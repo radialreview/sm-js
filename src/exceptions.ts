@@ -88,3 +88,11 @@ export class SMUnexpectedQueryResultException extends Error {
     this.exception = exception
   }
 }
+
+export function throwLocallyLogInProd(error: Error) {
+  if (process.env.NODE_ENV !== 'production') {
+    throw error;
+  } else {
+    console.error(error);
+  }
+}

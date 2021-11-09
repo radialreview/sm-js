@@ -1,11 +1,6 @@
-import { autorun } from 'mobx'
-
-import { DIResolver } from '@mm/core/di/resolver'
-
 import * as smData from './smDataTypes'
-import { TodoNode, getTodoNode, generateDOInstance } from './specUtilities'
+import { TodoNode, todoNode, generateDOInstance } from './specUtilities'
 
-const diResolver = new DIResolver()
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -73,37 +68,6 @@ describe('smData.DO', () => {
     expect(doInstance.settings.schedule.startTime).toBe(321)
   })
 
-  test('data in a DO instance is observable', (done) => {
-    const doInstance = generateDOInstance({
-      properties: {
-        task: smData.string,
-        nested: smData.object({
-          nestedData: smData.string,
-        }),
-      },
-      initialData: {
-        task: 'mock task',
-        nested: {
-          nestedData: 'mock nested data',
-        },
-      },
-    })
-
-    autorun((r) => {
-      if (
-        doInstance.task === 'updated task' &&
-        doInstance.nested.nestedData === 'updated nested data'
-      ) {
-        done()
-        r.dispose()
-      }
-    })
-
-    doInstance.onDataReceived({
-      task: 'updated task',
-      nested: { nestedData: 'updated nested data' },
-    })
-  })
 
   test('basic computed props return the expected value', () => {
     const properties = {
@@ -167,42 +131,6 @@ describe('smData.DO', () => {
     expect(doInstance.taskWithTestAndTest2).toEqual('get it done test test2')
   })
 
-  test('computed properties do not recalculate unless the data they use has changed, when consumed within a reactive context', (done) => {
-    const properties = {
-      task: smData.string,
-    }
-
-    const computedDataGetter = jest.fn((nodeData: { task: string }) => {
-      return nodeData.task + ' is done!'
-    })
-
-    const doInstance = generateDOInstance<
-      typeof properties,
-      { doneText: string },
-      {},
-      {}
-    >({
-      properties,
-      initialData: {
-        task: 'get it done',
-      },
-      computed: {
-        doneText: computedDataGetter,
-      },
-    })
-
-    // this only works within a reactive context
-    // making it work outside a reactive context would entail using computed values with keepAlive: true
-    // which leads to memory leaks
-    autorun(() => {
-      expect(doInstance.doneText).toEqual('get it done is done!')
-      expect(computedDataGetter).toHaveBeenCalledTimes(1)
-      expect(doInstance.doneText).toEqual('get it done is done!')
-      expect(computedDataGetter).toHaveBeenCalledTimes(1)
-      done()
-    })
-  })
-
   test('relational properties are available on the DO', () => {
     const doInstance = generateDOInstance<
       {},
@@ -212,15 +140,15 @@ describe('smData.DO', () => {
     >({
       properties: {},
       relational: {
-        todos: () => smData.children({ node: getTodoNode(diResolver) }),
+        todos: () => smData.children({ def: todoNode }),
       },
     })
 
     expect(doInstance.todos).toBeInstanceOf(Function)
     const queryFn = ({ id }: { id: ISMData<string> }) => ({ id })
-    expect(doInstance.todos({ query: queryFn })).toEqual(
+    expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
-        query: queryFn,
+        map: queryFn,
         _smRelational: smData.SM_RELATIONAL_TYPES.children,
       })
     )

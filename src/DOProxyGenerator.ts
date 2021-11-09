@@ -121,7 +121,7 @@ export function DOProxyGenerator<
       } else if (computedAccessors[key]) {
         try {
           return computedAccessors[key]()
-        } catch (e) {
+        } catch (e) {          
           if (e instanceof SMNotUpToDateException) {
             throw new SMNotUpToDateInComputedException({
               computedPropName: key,

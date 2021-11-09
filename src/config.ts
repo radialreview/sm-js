@@ -1,4 +1,11 @@
 import { SMPlugin } from "./plugins";
+import {
+  ApolloClient,
+  InMemoryCache,
+
+} from '@apollo/client';
+
+const defaultClien
 
 export type SMConfig = {
     plugins?: Array<SMPlugin>

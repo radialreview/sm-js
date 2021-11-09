@@ -1,6 +1,4 @@
-import { action, observable, computed } from 'mobx'
 
-import { arrayFlatten } from '@mm/core/dataParsing/arrayFlatten'
 import { DOProxyGenerator } from './DOProxyGenerator'
 import { SMDataParsingException } from './exceptions'
 
@@ -37,10 +35,8 @@ type SMQueryManagerProxyCacheEntry = {
  *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
  */
 export class SMQueryManager {
-  @observable
   private state: SMQueryManagerState = {}
 
-  @action
   public onQueryResult(opts: {
     queryResult: any
     queryRecord: QueryRecord
@@ -54,7 +50,6 @@ export class SMQueryManager {
     this.state = this.buildStateForQueryResult(opts)
   }
 
-  @action
   public onSubscriptionMessage(opts: {
     node: Record<string, any>
     operation: {
@@ -100,8 +95,7 @@ export class SMQueryManager {
   /**
    * Returns the current results based on received query results and subscription messages
    */
-  @computed
-  get results() {
+  getResults() {
     return this.getResultsFromState(this.state)
   }
 
@@ -142,10 +136,10 @@ export class SMQueryManager {
         )
       }
 
-      const nodeRepository = opts.queryRecord[queryAlias].node.repository
+      const nodeRepository = opts.queryRecord[queryAlias].def.repository
 
       if (Array.isArray(dataForThisAlias)) {
-        arrayFlatten(dataForThisAlias).map((data) =>
+      dataForThisAlias.flatMap((data) =>
           nodeRepository.onDataReceived(data)
         )
       } else {
@@ -157,8 +151,8 @@ export class SMQueryManager {
       if (relationalQueries) {
         Object.keys(relationalQueries).forEach((relationalAlias) => {
           const relationalDataForThisAlias = Array.isArray(dataForThisAlias)
-            ? arrayFlatten(dataForThisAlias).map(
-                (dataEntry) => dataEntry[relationalAlias]
+            ? dataForThisAlias.flatMap(
+                (dataEntry: any) => dataEntry[relationalAlias]
               )
             : dataForThisAlias[relationalAlias]
           const relationalQuery = relationalQueries[relationalAlias]
@@ -255,10 +249,10 @@ export class SMQueryManager {
       node: Record<string, any>
     ): SMQueryManagerProxyCacheEntry => {
       const relationalState = buildRelationalStateForNode(node)
-      const nodeRepository = queryRecord[queryAlias].node.repository
+      const nodeRepository = queryRecord[queryAlias].def.repository
 
       const proxy = DOProxyGenerator({
-        node: opts.queryRecord[opts.queryAlias].node,
+        node: opts.queryRecord[opts.queryAlias].def,
         upToDateData: opts.queryRecord[opts.queryAlias].properties,
         relationalQueries: relational || null,
         queryId: opts.queryId,
