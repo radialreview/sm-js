@@ -13,14 +13,9 @@ export function DOFactory<
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
-  TNodeDO = NodeDO<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  >,
+  TNodeDO = NodeDO,
   TDOClass = new (
-    initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>
+    initialData?: Record<string,any>
   ) => TNodeDO
 >(node: {
   type: string

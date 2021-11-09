@@ -2,7 +2,7 @@ import {
   NULL_TAG,
   parseJSONFromBE,
   prepareValueForFE,
-} from '../network/gql/dataConversions'
+} from './dataConversions'
 import { SMNotCachedException, SMDataParsingException } from './exceptions'
 import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes'
 import { transformData } from './dataUtilities'
@@ -12,18 +12,10 @@ import { transformData } from './dataUtilities'
  */
 export function RepositoryFactory<
   TNodeData extends Record<string, ISMData>,
-  TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
-  TNodeDO extends NodeDO<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  > = NodeDO<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>,
-  TRepositoryInstance = ISMNodeRepository<TNodeData, TNodeDO>
+  TNodeDO extends NodeDO= NodeDO,
+  TRepositoryInstance = ISMNodeRepository
 >(opts: {
-  node: {
+  def: {
     type: string
     properties: TNodeData
     transformData?: (
@@ -34,8 +26,8 @@ export function RepositoryFactory<
     }
   }
   DOClass: new (
-    initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-  ) => TNodeDO
+    initialData?: Record<string,any>
+  ) => TNodeDO 
 }): TRepositoryInstance {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
   // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
@@ -45,13 +37,13 @@ export function RepositoryFactory<
     private cached: Record<string, TNodeDO> = {}
 
     public onDataReceived(
-      data: { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>>
+      data: { id: string } & Record<string,any> 
     ) {
       const cached = this.cached[data.id]
 
       const parsedData = this.parseDataFromSM<TNodeData>(data)
-      if (opts.node.transformData) {
-        const { extendIfQueried, overwriteIfQueried } = opts.node.transformData(
+      if (opts.def.transformData) {
+        const { extendIfQueried, overwriteIfQueried } = opts.def.transformData(
           parsedData
         )
 
@@ -77,7 +69,7 @@ export function RepositoryFactory<
 
       if (!cached) {
         throw new SMNotCachedException({
-          nodeType: opts.node.type,
+          nodeType: opts.def.type,
           id,
         })
       }
@@ -105,21 +97,21 @@ export function RepositoryFactory<
       return Object.keys(receivedData).reduce((parsed, key: string) => {
         // point 1) above
         const isDataStoredOnTheNode = key.includes('_')
-          ? Object.keys(opts.node.properties).includes(key.split('_')[0])
-          : Object.keys(opts.node.properties).includes(key)
+          ? Object.keys(opts.def.properties).includes(key.split('_')[0])
+          : Object.keys(opts.def.properties).includes(key)
 
         const isNullIdentifierProp = key.endsWith(IS_NULL_IDENTIFIER)
         if (!isDataStoredOnTheNode || isNullIdentifierProp) return parsed
 
         const isObjectData =
           key.includes('_') ||
-          opts.node.properties[key].type === SM_DATA_TYPES.object ||
-          opts.node.properties[key].type === SM_DATA_TYPES.maybeObject
+          opts.def.properties[key].type === SM_DATA_TYPES.object ||
+          opts.def.properties[key].type === SM_DATA_TYPES.maybeObject
 
         const isArrayData =
           !isObjectData &&
-          (opts.node.properties[key].type === SM_DATA_TYPES.array ||
-            opts.node.properties[key].type === SM_DATA_TYPES.maybeArray)
+          (opts.def.properties[key].type === SM_DATA_TYPES.array ||
+            opts.def.properties[key].type === SM_DATA_TYPES.maybeArray)
 
         // point 2 above
         if (isObjectData) {

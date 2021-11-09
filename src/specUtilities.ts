@@ -1,5 +1,5 @@
-import * as smData from './smDataTypes'
-import { DOFactory } from './DO'
+import * as smData from './smDataTypes';
+import { DOFactory } from './DO';
 
 const userProperties = {
   id: smData.string,
@@ -14,27 +14,25 @@ const userProperties = {
       floor: smData.number,
     }),
   }),
-}
+};
 
-type UserProperties = typeof userProperties
+type UserProperties = typeof userProperties;
 
 type UserRelationalData = {
-  todos: IChildrenQueryBuilder<TodoNode>
-}
+  todos: IChildrenQueryBuilder<TodoNode>;
+};
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>
+export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
 
-
-export   const userNode: UserNode =smData.def({
-    type: 'tt-user',
-    properties: userProperties,
-    relational: {
-      todos: () => smData.children({ node:todoNode }),
-    },
-  })
-
+export const userNode: UserNode = smData.def({
+  type: 'tt-user',
+  properties: userProperties,
+  relational: {
+    todos: () => smData.children({ def: todoNode }),
+  },
+});
 
 const todoProperties = {
   id: smData.string,
@@ -50,36 +48,34 @@ const todoProperties = {
   }),
   dataSetIds: smData.array(smData.string),
   comments: smData.maybeArray(smData.maybeString),
-}
+};
 
-export type TodoProperties = typeof todoProperties
+export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
-  assignee: IByReferenceQueryBuilder<UserNode>
-}
+  assignee: IByReferenceQueryBuilder<UserNode>;
+};
 
-export type TodoMutations = {
-}
+export type TodoMutations = {};
 
 export type TodoNode = ISMNode<
   TodoProperties,
   {},
   TodoRelationalData,
   TodoMutations
->
+>;
 
-export const todoNode:TodoNode= smData.def({
-    type: 'todo',
-    properties: todoProperties,
-    relational: {
-      assignee: () =>
-        smData.reference<TodoNode, UserNode>({
-          node: userNode,
-          idProp: 'assigneeId',
-        })
-      }
-  })
-
+export const todoNode: TodoNode = smData.def({
+  type: 'todo',
+  properties: todoProperties,
+  relational: {
+    assignee: () =>
+      smData.reference<TodoNode, UserNode>({
+        def: userNode,
+        idProp: 'assigneeId',
+      }),
+  },
+});
 
 export function generateDOInstance<
   TNodeData extends Record<string, ISMData>,
@@ -87,11 +83,11 @@ export function generateDOInstance<
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
 >(opts: {
-  properties: TNodeData
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>
-  relational?: NodeRelationalFns<TNodeRelationalData>
-  mutations?: TNodeMutations
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>
+  properties: TNodeData;
+  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  relational?: NodeRelationalFns<TNodeRelationalData>;
+  mutations?: TNodeMutations;
+  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
 }) {
   const DO = DOFactory<
     TNodeData,
@@ -103,6 +99,6 @@ export function generateDOInstance<
     properties: opts.properties,
     computed: opts.computed,
     relational: opts.relational,
-  })
-  return new DO(opts.initialData)
+  });
+  return new DO(opts.initialData);
 }

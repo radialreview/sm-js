@@ -1,27 +1,26 @@
-import gql from 'graphql-tag'
+import gql from 'graphql-tag';
 
-import { getUserNode, getTodoNode, TodoNode, UserNode } from './specUtilities'
+import { userNode, todoNode, TodoNode, UserNode } from './specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
-} from './queryDefinitionAdapters'
-import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes'
-import { DIResolver } from '../di/resolver'
+} from './queryDefinitionAdapters';
+import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
 
-const diResolver = new DIResolver()
+
 
 function createMockQueryDefinition(
   opts: { useIds: true } | { useUnder: true }
 ) {
   return {
     users: queryDefinition({
-      node: getUserNode(diResolver),
-      query: ({ todos, address }) => ({
+      def: userNode,
+      map: ({ todos, address }) => ({
         address: address({
-          query: ({ state, apt }) => ({
+          map: ({ state, apt }) => ({
             state,
             apt: apt({
-              query: ({ floor, number }) => ({
+              map: ({ floor, number }) => ({
                 floor,
                 number,
               }),
@@ -29,17 +28,17 @@ function createMockQueryDefinition(
           }),
         }),
         todos: todos({
-          query: ({ id, assignee }) => ({
+          map: ({ id, assignee }) => ({
             id,
             assignee: assignee({
-              query: ({ id, firstName }) => ({ id, firstName }),
+              map: ({ id, firstName }) => ({ id, firstName }),
             }),
           }),
         }),
       }),
       ...('useIds' in opts ? { ids: ['mock-id'] } : { underIds: ['mock-id'] }),
     }),
-  }
+  };
 }
 
 describe('getQueryRecordFromQueryDefinition', () => {
@@ -48,47 +47,47 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryId: 'queryId',
       queryDefinitions: {
         todos: queryDefinition({
-          node: getTodoNode(diResolver),
+          def: todoNode,
           underIds: ['mock-id'],
-          query: (({ id, task }) => ({ id, task })) as QueryFnForNode<TodoNode>,
+          map: (({ id, task }) => ({ id, task })) as MapFnForNode<TodoNode>,
         }),
         users: queryDefinition({
-          node: getUserNode(diResolver),
+          def: userNode,
           underIds: ['other-mock-id'],
-          query: (({ firstName, lastName }) => ({
+          map: (({ firstName, lastName }) => ({
             firstName,
             lastName,
-          })) as QueryFnForNode<UserNode>,
+          })) as MapFnForNode<UserNode>,
         }),
       },
-    })
+    });
 
     expect(record.todos).toEqual(
       expect.objectContaining({
-        node: expect.objectContaining({ type: 'todo' }),
+        def: expect.objectContaining({ type: 'todo' }),
         underIds: ['mock-id'],
         properties: ['id', 'task'],
       })
-    )
+    );
 
     expect(record.users).toEqual(
       expect.objectContaining({
-        node: expect.objectContaining({ type: 'tt-user' }),
+        def: expect.objectContaining({ type: 'tt-user' }),
         underIds: ['other-mock-id'],
         properties: ['id', 'firstName', 'lastName'],
       })
-    )
-  })
+    );
+  });
 
   it('handles querying partial objects within a node', () => {
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
       queryDefinitions: createMockQueryDefinition({ useUnder: true }),
-    }).users as QueryRecordEntry & { underIds: Array<string> }
+    }).users as QueryRecordEntry & { underIds: Array<string> };
 
-    expect(queryRecord.node).toEqual(
+    expect(queryRecord.def).toEqual(
       expect.objectContaining({ type: 'tt-user' })
-    )
+    );
     expect(queryRecord.underIds).toEqual(['mock-id']),
       expect(queryRecord.properties).toEqual([
         'id',
@@ -102,8 +101,8 @@ describe('getQueryRecordFromQueryDefinition', () => {
         'address_state',
         'address_apt_floor',
         'address_apt_number',
-      ])
-  })
+      ]);
+  });
 
   it('handles relational queries', () => {
     expect(
@@ -114,13 +113,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
     ).toEqual(
       expect.objectContaining({
         todos: expect.objectContaining({
-          node: expect.objectContaining({ type: 'todo' }),
+          def: expect.objectContaining({ type: 'todo' }),
           properties: ['id'],
           children: true,
         }),
       })
-    )
-  })
+    );
+  });
 
   it('handles nested relational queries', () => {
     expect(
@@ -131,15 +130,15 @@ describe('getQueryRecordFromQueryDefinition', () => {
     ).toEqual(
       expect.objectContaining({
         assignee: expect.objectContaining({
-          node: expect.objectContaining({ type: 'tt-user' }),
+          def: expect.objectContaining({ type: 'tt-user' }),
           properties: ['id', 'firstName'],
           byReference: true,
           idProp: 'assigneeId',
         }),
       })
-    )
-  })
-})
+    );
+  });
+});
 
 describe('getQueryInfo.queryGQLString', () => {
   it('creates a valid SM query from a fetcher config', () => {
@@ -166,8 +165,8 @@ describe('getQueryInfo.queryGQLString', () => {
             }
           }
           }"
-    `)
-  })
+    `);
+  });
 
   it('handles multiple aliases', () => {
     expect(
@@ -211,8 +210,8 @@ describe('getQueryInfo.queryGQLString', () => {
             }
           }
           }"
-    `)
-  })
+    `);
+  });
 
   it('handles fetching specific ids', () => {
     expect(
@@ -238,15 +237,15 @@ describe('getQueryInfo.queryGQLString', () => {
             }
           }
           }"
-    `)
-  })
+    `);
+  });
 
   it('handles shorthand query definitions', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          todos: getTodoNode(diResolver),
+          todos: todoNode,
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -265,8 +264,58 @@ describe('getQueryInfo.queryGQLString', () => {
             comments
           }
           }"
-    `)
-  })
+    `);
+  });
+
+  it('handles map fn omission', () => {
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: {
+            def: todoNode,
+          },
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\") {
+            id,
+            task,
+            done,
+            assigneeId,
+            meetingId,
+            settings,
+            settings__IS_NULL__,
+            settings_archiveAfterMeeting,
+            settings_nestedSettings_nestedNestedMaybe,
+            dataSetIds,
+            comments
+          }
+          }"
+    `);
+  });
+
+  it('supports filters', () => {
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: todoNode,
+            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            filter: { task: 'get it done' },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
+            id
+          }
+          }"
+    `);
+  });
 
   it('returns a valid gql string', () => {
     expect(() =>
@@ -279,9 +328,9 @@ describe('getQueryInfo.queryGQLString', () => {
           },
         }).queryGQLString
       )
-    ).not.toThrow()
-  })
-})
+    ).not.toThrow();
+  });
+});
 
 describe('getQueryInfo.subscriptionGQLStrings', () => {
   it('creates a valid SM subscription from a fetcher config', () => {
@@ -289,7 +338,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: createMockQueryDefinition({ useUnder: true }),
-      }).subscriptionConfigs.map((config) => config.gqlString)
+      }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
@@ -314,8 +363,8 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
             }
           }",
       ]
-    `)
-  })
+    `);
+  });
 
   it('handles multiple aliases', () => {
     expect(
@@ -325,7 +374,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
           users: createMockQueryDefinition({ useUnder: true }).users,
           otherAlias: createMockQueryDefinition({ useUnder: true }).users,
         },
-      }).subscriptionConfigs.map((config) => config.gqlString)
+      }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
@@ -371,15 +420,15 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
             }
           }",
       ]
-    `)
-  })
+    `);
+  });
 
   it('handles fetching specific ids', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: createMockQueryDefinition({ useIds: true }),
-      }).subscriptionConfigs.map((config) => config.gqlString)
+      }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
@@ -404,8 +453,8 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
             }
           }",
       ]
-    `)
-  })
+    `);
+  });
 
   it('returns a valid gql string', () => {
     expect(() =>
@@ -415,7 +464,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
           users: createMockQueryDefinition({ useUnder: true }).users,
           otherAlias: createMockQueryDefinition({ useUnder: true }).users,
         },
-      }).subscriptionConfigs.map((config) => gql(config.gqlString))
-    ).not.toThrow()
-  })
-})
+      }).subscriptionConfigs.map(config => gql(config.gqlString))
+    ).not.toThrow();
+  });
+});

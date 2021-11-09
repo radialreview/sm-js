@@ -1,10 +1,9 @@
 import { DOFactory } from './DO'
 import * as smData from './smDataTypes'
 import { SMNotCachedException } from './exceptions'
-import { UserNode, getUserNode } from './specUtilities'
+import { UserNode, userNode } from './specUtilities'
 import { RepositoryFactory } from './Repository'
-import { DIResolver } from '../di/resolver'
-import { prepareForBE, prepareValueForBE } from '../network/gql/dataConversions'
+
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
@@ -23,7 +22,7 @@ function generateRepositoryInstance<
     overwriteIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>
   }
 }) {
-  const node = {
+  const def = {
     type: 'mockNodeType',
     properties: opts.properties,
     computed: opts.computed,
@@ -31,28 +30,17 @@ function generateRepositoryInstance<
     transformData: opts.transformData,
   }
 
-  const DOClass = DOFactory<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  >(node)
+  const DOClass = DOFactory(def)
 
-  return RepositoryFactory<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  >({
+  return RepositoryFactory({
     DOClass,
-    node,
+    def,
   })
 }
 
-const diResolver = new DIResolver()
 
 describe('smData.repository', () => {
-  it('exposes a method to cache new data being received for a node', () => {
+  it('exposes a method to cache new data being received for a def', () => {
     const repository = generateRepositoryInstance({
       properties: {
         id: smData.string,
@@ -171,7 +159,7 @@ describe('smData.repository', () => {
         task: smData.string,
       },
       relational: {
-        assignee: () => smData.children({ node: getUserNode(diResolver) }),
+        assignee: () => smData.children({ def: userNode }),
       },
     })
 
