@@ -112,27 +112,15 @@ declare type UpToDateData<
 /**
  * These methods are called automatically when using this lib's public methods like "useSMData"
  */
-interface IDOMethods<TNodeData extends Record<string, ISMData>> {
+interface IDOMethods {
   /**
    * Called when we get data from SM for this particular DO instance, found by its id
    */
-  onDataReceived(data: DeepPartial<GetExpectedNodeDataType<TNodeData>>): void
+  onDataReceived(data: DeepPartial<Record<string,any>>): void
 }
 
-declare type NodeDO<
-  /* All the data stored directly on this node in SM */
-  TNodeData extends Record<string, ISMData>,
-  /* Any data that can be computed client side from data that is stored in SM for this node */
-  TNodeComputedData extends Record<string, any>,
-  /* Any relational data for this node, check NodeRelationalQueryBuilder for more info */
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  /* Update methods for the given node */
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
-> = GetExpectedNodeDataType<TNodeData> &
-  TNodeComputedData &
-  TNodeRelationalData &
-  TNodeMutations &
-  IDOMethods<TNodeData>
+declare type NodeDO= Record<string,any> &
+  IDOMethods
 
 declare type NodeComputedFns<
   TNodeData extends Record<string, ISMData>,

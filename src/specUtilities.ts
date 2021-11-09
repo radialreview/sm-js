@@ -27,7 +27,7 @@ type UserRelationalData = {
 export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>
 
 
-  const userNode: UserNode =smData.def({
+export   const userNode: UserNode =smData.def({
     type: 'tt-user',
     properties: userProperties,
     relational: {
@@ -68,7 +68,7 @@ export type TodoNode = ISMNode<
   TodoMutations
 >
 
-const todoNode:TodoNode= smData.def({
+export const todoNode:TodoNode= smData.def({
     type: 'todo',
     properties: todoProperties,
     relational: {

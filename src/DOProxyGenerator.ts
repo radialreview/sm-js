@@ -1,6 +1,4 @@
-import { computed } from 'mobx'
 import { getConfig } from './config'
-
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
@@ -36,10 +34,10 @@ import { SM_DATA_TYPES } from './smDataTypes'
  *      Instead, we'll throw an error and tell them - hey, you tried to read this property from this node type in this query, but you didn't request it/aren't subscribed to it!
  */
 export function DOProxyGenerator<
-  TNodeDO extends NodeDO<TNodeData, TNodeComputedData, any, any>,
-  TNodeComputedData extends Record<string, any>,
   TNodeData extends Record<string, ISMData>,
-  TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
+  TNodeComputedData extends Record<string, any>,
+  TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>,
+  TNodeDO extends NodeDO,
 >(opts: {
   node: ISMNode<TNodeData, TNodeComputedData>
   queryId: string
@@ -50,10 +48,12 @@ export function DOProxyGenerator<
 }): TNodeDO & TRelationalResults & IDOProxy {
   let relationalResults = opts.relationalResults
 
-  const nodeSMComputed = opts.node.smComputed
+  // Casting to unknown here because we don't want type safety around structure of a node's data when building plugins
+  // but completely losing type safety in opts.node.smComputed would break the return type inference in QueryDataReturn
+  const nodeSMComputed = opts.node.smComputed as unknown as Record<string, (proxy: IDOProxy) => any>
   const computedAccessors = nodeSMComputed
     ? Object.keys(nodeSMComputed).reduce((acc, computedKey) => {
-        let computedFn = () => nodeSMComputed[computedKey](proxy as GetExpectedNodeDataType<TNodeData> & TNodeComputedData)
+        let computedFn = () => nodeSMComputed[computedKey](proxy as IDOProxy)
         getConfig().plugins?.forEach(plugin => {
           if(plugin.DOProxy?.computedDecorator) {
             computedFn = plugin.DOProxy.computedDecorator({ProxyInstance: proxy, computedFn}) 
