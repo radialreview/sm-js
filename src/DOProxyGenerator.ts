@@ -37,15 +37,14 @@ export function DOProxyGenerator<
   TNodeData extends Record<string, ISMData>,
   TNodeComputedData extends Record<string, any>,
   TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>,
-  TNodeDO extends NodeDO,
 >(opts: {
   node: ISMNode<TNodeData, TNodeComputedData>
   queryId: string
-  do: TNodeDO
+  do: NodeDO
   upToDateData: Array<string>
   relationalResults: Maybe<TRelationalResults>
   relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>
-}): TNodeDO & TRelationalResults & IDOProxy {
+}): NodeDO & TRelationalResults & IDOProxy {
   let relationalResults = opts.relationalResults
 
   // Casting to unknown here because we don't want type safety around structure of a node's data when building plugins
@@ -137,7 +136,7 @@ export function DOProxyGenerator<
 
       return target[key]
     },
-  }) as TNodeDO & TRelationalResults & IDOProxy
+  }) as NodeDO & TRelationalResults & IDOProxy
 
   return proxy
 }

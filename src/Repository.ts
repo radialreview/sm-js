@@ -12,8 +12,6 @@ import { transformData } from './dataUtilities'
  */
 export function RepositoryFactory<
   TNodeData extends Record<string, ISMData>,
-  TNodeDO extends NodeDO= NodeDO,
-  TRepositoryInstance = ISMNodeRepository
 >(opts: {
   def: {
     type: string
@@ -27,14 +25,14 @@ export function RepositoryFactory<
   }
   DOClass: new (
     initialData?: Record<string,any>
-  ) => TNodeDO 
-}): TRepositoryInstance {
+  ) => NodeDO 
+}): ISMNodeRepository {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
   // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
   // eslint-disable-next-line
   // @ts-ignore
-  class Repository implements TRepositoryInstance {
-    private cached: Record<string, TNodeDO> = {}
+  class Repository implements ISMNodeRepository {
+    private cached: Record<string, NodeDO> = {}
 
     public onDataReceived(
       data: { id: string } & Record<string,any> 

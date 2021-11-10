@@ -13,10 +13,9 @@ export function DOFactory<
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
-  TNodeDO = NodeDO,
   TDOClass = new (
     initialData?: Record<string,any>
-  ) => TNodeDO
+  ) => NodeDO
 >(node: {
   type: string
   properties: TNodeData
