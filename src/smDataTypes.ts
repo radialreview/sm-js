@@ -1,6 +1,6 @@
 import { DOFactory } from './DO';
 import { RepositoryFactory } from './Repository';
-import { SMDataTypeException } from './exceptions';
+import { SMDataTypeException, SMDataTypeExplicitDefaultException } from './exceptions';
 
 export const SM_DATA_TYPES = {
   string: 's',
@@ -25,15 +25,18 @@ export class SMData<
   type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
   parser: (smValue: TSMValue) => TParsedValue;
   boxedValue: TBoxedValue;
+  defaultValue: Maybe<TParsedValue>;
 
   constructor(opts: {
     type: string;
     parser: (smValue: TSMValue) => TParsedValue;
     boxedValue?: TBoxedValue;
+    defaultValue?: TParsedValue;
   }) {
     this.type = opts.type;
     this.parser = opts.parser;
     this.boxedValue = opts.boxedValue as TBoxedValue;
+    this.defaultValue = opts.defaultValue ?? null;
   }
 }
 
@@ -43,38 +46,70 @@ export class SMData<
  * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
  */
 
-export const string = new SMData<string, string, undefined>({
-  type: SM_DATA_TYPES.string,
-  parser: value => (value != null ? String(value) : value),
-});
-export const maybeString = new SMData<Maybe<string>, Maybe<string>, undefined>({
+export const string: ISMDataConstructor<
+  string,
+  string,
+  undefined
+> = defaultValue =>
+  new SMData<string, string, undefined>({
+    type: SM_DATA_TYPES.string,
+    parser: value => (value != null ? String(value) : value),
+    defaultValue,
+  });
+
+string._default = string('');
+
+string.optional = new SMData<Maybe<string>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeString,
   parser: value => (value != null ? String(value) : value),
 });
-export const number = new SMData<number, string, undefined>({
-  type: SM_DATA_TYPES.number,
-  parser: Number,
-});
-export const maybeNumber = new SMData<Maybe<number>, Maybe<string>, undefined>({
+
+export const number: ISMDataConstructor<
+  number,
+  string,
+  undefined
+> = (defaultValue) =>
+  new SMData<number, string, undefined>({
+    type: SM_DATA_TYPES.number,
+    parser: Number,
+    defaultValue
+  });
+
+number._default = number(0)
+
+
+number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeNumber,
   parser: value => (value != null ? Number(value) : value),
 });
-export const boolean = new SMData<boolean, string | boolean, undefined>({
-  type: SM_DATA_TYPES.boolean,
-  parser: value => {
-    if (value === 'true' || value === true) {
-      return true;
-    } else if (value === 'false' || value === false) {
-      return false;
-    } else {
-      throw new SMDataTypeException({
-        dataType: SM_DATA_TYPES.boolean,
-        value: value,
-      });
-    }
-  },
-});
-export const maybeBoolean = new SMData<
+
+export const boolean: ISMDataConstructor<boolean, string | boolean, undefined> = (defaultValue) => {
+  if (defaultValue === undefined) {
+    throw new SMDataTypeExplicitDefaultException({dataType: SM_DATA_TYPES.boolean});
+  }
+
+  return new SMData<boolean, string | boolean, undefined>({
+    type: SM_DATA_TYPES.boolean,
+    parser: value => {
+      if (value === 'true' || value === true) {
+        return true;
+      } else if (value === 'false' || value === false) {
+        return false;
+      } else {
+        throw new SMDataTypeException({
+          dataType: SM_DATA_TYPES.boolean,
+          value: value,
+        });
+      }
+    },
+    defaultValue,
+  });
+} 
+// need this in order to trigger an error when a user doesn't provide a default
+//@ts-ignore
+boolean._default = () => boolean()
+
+boolean.optional = new SMData<
   Maybe<boolean>,
   Maybe<string | boolean>,
   undefined
@@ -90,24 +125,49 @@ export const maybeBoolean = new SMData<
     }
   },
 });
-export const object = <TBoxedValue extends Record<string, ISMData>>(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
-    GetExpectedNodeDataType<TBoxedValue>,
-    GetExpectedNodeDataType<TBoxedValue>,
-    TBoxedValue
-  >({
-    type: SM_DATA_TYPES.object,
-    /**
-     * Doesn't need to do any parsing on the data to convert strings to their real types
-     * That's done by the DO class's "objectDataSetter" method
-     */
-    parser: val => val,
-    boxedValue,
-  });
 
-export const maybeObject = <TBoxedValue extends Record<string, ISMData>>(
+export function _object<TBoxedValue extends Record<string, ISMData>>(
+         boxedValue: TBoxedValue
+       ) {
+
+         return new SMData<
+           GetExpectedNodeDataType<TBoxedValue>,
+           GetExpectedNodeDataType<TBoxedValue>,
+           TBoxedValue
+         >({
+           type: SM_DATA_TYPES.object,
+           /**
+            * Doesn't need to do any parsing on the data to convert strings to their real types
+            * That's done by the DO class's "objectDataSetter" method
+            */
+           parser: val => val,
+           boxedValue,
+
+         });
+       }
+
+export const object = <TBoxedValue extends Record<string, ISMData>>(
+         boxedValue: TBoxedValue
+       )=> 
+         new SMData<
+           GetExpectedNodeDataType<TBoxedValue>,
+           GetExpectedNodeDataType<TBoxedValue>,
+           TBoxedValue
+         >({
+           type: SM_DATA_TYPES.object,
+           /**
+            * Doesn't need to do any parsing on the data to convert strings to their real types
+            * That's done by the DO class's "objectDataSetter" method
+            */
+           parser: val => val,
+           boxedValue,
+         });
+
+  object._default = object({})
+
+  
+
+object.optional = <TBoxedValue extends Record<string, ISMData>>(
   boxedValue: TBoxedValue
 ) =>
   new SMData<
@@ -123,6 +183,7 @@ export const maybeObject = <TBoxedValue extends Record<string, ISMData>>(
     parser: val => val,
     boxedValue,
   });
+
 export const record = <TKey extends string, TBoxedValue extends ISMData>(
   boxedValue: TBoxedValue
 ) =>
@@ -135,6 +196,7 @@ export const record = <TKey extends string, TBoxedValue extends ISMData>(
     parser: val => val,
     boxedValue,
   });
+
 export const maybeRecord = <TBoxedValue extends ISMData>(
   boxedValue: TBoxedValue
 ) =>
@@ -147,6 +209,7 @@ export const maybeRecord = <TBoxedValue extends ISMData>(
     parser: val => val,
     boxedValue,
   });
+
 export const array = <TBoxedValue extends ISMData>(boxedValue: TBoxedValue) =>
   new SMData<
     Array<GetSMDataType<TBoxedValue>>,

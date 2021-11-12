@@ -43,6 +43,12 @@ export class SMDataTypeException extends Error {
   }
 }
 
+export class SMDataTypeExplicitDefaultException extends Error {
+  constructor(opts: {dataType: string}) {
+    super(`SMDataTypeExplicitDefaultException - the data type ${opts.dataType} requires setting an explicit default value for non-optional properties`);
+  }
+}
+
 export class SMDataParsingException extends Error {
   constructor(opts: { receivedData: any; message: string }) {
     super(

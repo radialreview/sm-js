@@ -40,6 +40,8 @@ function generateRepositoryInstance<
 
 
 describe('smData.repository', () => {
+
+
   it('exposes a method to cache new data being received for a def', () => {
     const repository = generateRepositoryInstance({
       properties: {
@@ -296,4 +298,5 @@ describe('smData.repository', () => {
     // if they are not queried
     expect(cached.settings?.notQueried).toBe(undefined)
   })
+  
 })

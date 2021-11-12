@@ -1,5 +1,15 @@
 declare type Maybe<T> = T | null;
 
+declare interface ISMDataConstructor<
+  TParsedValue = any,
+  TSMValue = any,
+  TBoxedValue extends ISMData | Record<string, ISMData> | undefined
+> {
+  (defaultValue: TParsedValue): SMData<TParsedValue, TSMValue, undefined> ;
+  _default: SMData<TSMValue, TSMValue, undefined>;
+  optional: SMData<Maybe<TSMValue>, Maybe<TSMValue>, undefined>;
+}
+
 /**
  * The interface implemented by each smData type (like smData.string, smData.boolean)
  */
@@ -17,6 +27,7 @@ declare interface ISMData<
   type: string;
   parser(smValue: TSMValue): TParsedValue;
   boxedValue: TBoxedValue;
+  defaultValue: Maybe<TParsedValue>;
 }
 
 declare type SMDataEnum<Enum extends string | number | null> = ISMData<
@@ -119,10 +130,10 @@ interface IDOMethods {
   /**
    * Called when we get data from SM for this particular DO instance, found by its id
    */
-  onDataReceived(data: Record<string,any>): void;
+  onDataReceived(data: Record<string, any>): void;
 }
 
-declare type NodeDO = Record<string,any> & IDOMethods;
+declare type NodeDO = Record<string, any> & IDOMethods;
 
 declare type NodeComputedFns<
   TNodeData extends Record<string, ISMData>,
@@ -170,7 +181,7 @@ declare interface ISMNode<
   };
   type: string;
   repository: ISMNodeRepository;
-  do: new (data?: Record<string,any>) => TNodeDO;
+  do: new (data?: Record<string, any>) => TNodeDO;
 }
 
 /**
@@ -235,9 +246,7 @@ declare type NodeRelationalQueryBuilderRecord = Record<
 
 declare interface ISMNodeRepository {
   byId(id: string): NodeDO;
-  onDataReceived(
-    data: { id: string } & Record<string,any>
-  ): void;
+  onDataReceived(data: { id: string } & Record<string, any>): void;
   onNodeDeleted(id: string): void;
 }
 
@@ -303,9 +312,8 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
           : never
         : never
       : never
-    : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted
-    ? // return the entirety of the node's data
-      TQueryDefinitions[Key] extends { def: infer TSMNode }
+    : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
+    ? TQueryDefinitions[Key] extends { def: infer TSMNode }
       ? TSMNode extends ISMNode
         ? TQueryDefinitions[Key] extends { id: string }
           ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>> &
@@ -369,9 +377,8 @@ type RequestedData<
           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
           : TNodeData[Key]
         : Key extends keyof TNodeComputedData
-        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it)
-        : // relational data requests may use any alias, so that we can query different subsets of the same node relation
-          // Check the "How we achieve concurrent relational data querying support" section in the .md file
+        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it) // relational data requests may use any alias, so that we can query different subsets of the same node relation
+        : // Check the "How we achieve concurrent relational data querying support" section in the .md file
           never;
     }
   | {}
