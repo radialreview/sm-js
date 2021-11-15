@@ -76,6 +76,7 @@ export function DOProxyGenerator<
       // This gives better json stringify results
       // by preventing attempts to get properties which are not
       // guaranteed to be up to date
+      // @TODO write tests for this enumeration
       if (opts.upToDateData.includes(key)) {
         return { enumerable: true, configurable: true };
       }
@@ -178,6 +179,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
     const isUpToDate = opts.upToDateData.includes(name);
 
     Object.defineProperty(objectToReturn, objectProp, {
+      // @TODO write tests for this enumeration
       enumerable: isUpToDate,
       get: () => {
         if (
