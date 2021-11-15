@@ -5,7 +5,11 @@ declare interface ISMDataConstructor<
   TSMValue = any,
   TBoxedValue extends ISMData | Record<string, ISMData> | undefined
 > {
-  (defaultValue: TParsedValue): SMData<TParsedValue, TSMValue, undefined> ;
+  <T>(defaultValue: TParsedValue): T extends number
+    ? TParsedValue extends undefined
+      ? Error
+      : SMData<TParsedValue, TSMValue, undefined>
+    : SMData<TParsedValue, TSMValue, undefined>;
   _default: SMData<TSMValue, TSMValue, undefined>;
   optional: SMData<Maybe<TSMValue>, Maybe<TSMValue>, undefined>;
 }
@@ -377,9 +381,8 @@ type RequestedData<
           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
           : TNodeData[Key]
         : Key extends keyof TNodeComputedData
-        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it) // relational data requests may use any alias, so that we can query different subsets of the same node relation
-        : // Check the "How we achieve concurrent relational data querying support" section in the .md file
-          never;
+        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it) // relational data requests may use any alias, so that we can query different subsets of the same node relation // Check the "How we achieve concurrent relational data querying support" section in the .md file
+        : never;
     }
   | {}
 >;

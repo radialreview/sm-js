@@ -1,6 +1,5 @@
 import { DOFactory } from './DO';
 import { SMDataTypeExplicitDefaultException } from './exceptions';
-// import { SMDataTypeExplicitDefaultException } from './exceptions';
 import * as smData from './smDataTypes';
 
 describe('Node default properties', () => {

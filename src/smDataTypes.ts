@@ -85,7 +85,7 @@ number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
 
 export const boolean: ISMDataConstructor<boolean, string | boolean, undefined> = (defaultValue) => {
   if (defaultValue === undefined) {
-    throw new SMDataTypeExplicitDefaultException({dataType: SM_DATA_TYPES.boolean});
+    return new SMDataTypeExplicitDefaultException({dataType: SM_DATA_TYPES.boolean});
   }
 
   return new SMData<boolean, string | boolean, undefined>({
@@ -107,7 +107,7 @@ export const boolean: ISMDataConstructor<boolean, string | boolean, undefined> =
 } 
 // need this in order to trigger an error when a user doesn't provide a default
 //@ts-ignore
-boolean._default = () => boolean()
+boolean._default = boolean()
 
 boolean.optional = new SMData<
   Maybe<boolean>,

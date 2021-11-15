@@ -85,12 +85,13 @@ export function DOFactory<
           const propValue = nodeProperties[prop];
 
           if (typeof propValue === 'function') {
-            try {
-              (propValue as () => any)();
-            } catch (e) {
-              throw e;
+            const defaultFn = (nodeProperties[prop] as any)._default;
+            
+            if (defaultFn instanceof Error) {
+              throw defaultFn;
             }
-            acc[prop] = (nodeProperties[prop] as any)._default.defaultValue;
+
+            acc[prop] = defaultFn.defaultValue;
           } else {
             acc[prop] = nodeProperties[prop].defaultValue;
           }
