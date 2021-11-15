@@ -106,4 +106,30 @@ describe('Node default properties', () => {
       expect(e instanceof SMDataTypeExplicitDefaultException).toEqual(true);
     }
   });
+
+  it('should handle defaults/optional properties for array types', () => {
+    const properties = {
+      pets: smData.array(smData.string)(['cat', 'dog', 'bird']),
+      dogBreeds: smData.array(smData.string)(['pug', 'golden retriever']),
+      catBreeds: smData.array(smData.string),
+      birdBreeds: smData.array(smData.string).optional,
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      dogBreeds: ['husky'],
+      catBreeds: ['siamese'],
+    });
+
+    expect(DO.pets).toEqual(['cat', 'dog', 'bird']);
+    expect(DO.dogBreeds).toEqual(['husky']);
+    expect(DO.catBreeds).toEqual(['siamese']);
+    expect(DO.birdBreeds).toEqual(null);
+  });
 });

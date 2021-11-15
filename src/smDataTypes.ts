@@ -1,6 +1,9 @@
 import { DOFactory } from './DO';
 import { RepositoryFactory } from './Repository';
-import { SMDataTypeException, SMDataTypeExplicitDefaultException } from './exceptions';
+import {
+  SMDataTypeException,
+  SMDataTypeExplicitDefaultException,
+} from './exceptions';
 
 export const SM_DATA_TYPES = {
   string: 's',
@@ -68,24 +71,29 @@ export const number: ISMDataConstructor<
   number,
   string,
   undefined
-> = (defaultValue) =>
+> = defaultValue =>
   new SMData<number, string, undefined>({
     type: SM_DATA_TYPES.number,
     parser: Number,
-    defaultValue
+    defaultValue,
   });
 
-number._default = number(0)
-
+number._default = number(0);
 
 number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeNumber,
   parser: value => (value != null ? Number(value) : value),
 });
 
-export const boolean: ISMDataConstructor<boolean, string | boolean, undefined> = (defaultValue) => {
+export const boolean: ISMDataConstructor<
+  boolean,
+  string | boolean,
+  undefined
+> = defaultValue => {
   if (defaultValue === undefined) {
-    return new SMDataTypeExplicitDefaultException({dataType: SM_DATA_TYPES.boolean});
+    return new SMDataTypeExplicitDefaultException({
+      dataType: SM_DATA_TYPES.boolean,
+    });
   }
 
   return new SMData<boolean, string | boolean, undefined>({
@@ -104,10 +112,10 @@ export const boolean: ISMDataConstructor<boolean, string | boolean, undefined> =
     },
     defaultValue,
   });
-} 
+};
 // need this in order to trigger an error when a user doesn't provide a default
 //@ts-ignore
-boolean._default = boolean()
+boolean._default = boolean();
 
 boolean.optional = new SMData<
   Maybe<boolean>,
@@ -126,46 +134,24 @@ boolean.optional = new SMData<
   },
 });
 
-export function _object<TBoxedValue extends Record<string, ISMData>>(
-         boxedValue: TBoxedValue
-       ) {
-
-         return new SMData<
-           GetExpectedNodeDataType<TBoxedValue>,
-           GetExpectedNodeDataType<TBoxedValue>,
-           TBoxedValue
-         >({
-           type: SM_DATA_TYPES.object,
-           /**
-            * Doesn't need to do any parsing on the data to convert strings to their real types
-            * That's done by the DO class's "objectDataSetter" method
-            */
-           parser: val => val,
-           boxedValue,
-
-         });
-       }
-
 export const object = <TBoxedValue extends Record<string, ISMData>>(
-         boxedValue: TBoxedValue
-       )=> 
-         new SMData<
-           GetExpectedNodeDataType<TBoxedValue>,
-           GetExpectedNodeDataType<TBoxedValue>,
-           TBoxedValue
-         >({
-           type: SM_DATA_TYPES.object,
-           /**
-            * Doesn't need to do any parsing on the data to convert strings to their real types
-            * That's done by the DO class's "objectDataSetter" method
-            */
-           parser: val => val,
-           boxedValue,
-         });
+  boxedValue: TBoxedValue
+) =>
+  new SMData<
+    GetExpectedNodeDataType<TBoxedValue>,
+    GetExpectedNodeDataType<TBoxedValue>,
+    TBoxedValue
+  >({
+    type: SM_DATA_TYPES.object,
+    /**
+     * Doesn't need to do any parsing on the data to convert strings to their real types
+     * That's done by the DO class's "objectDataSetter" method
+     */
+    parser: val => val,
+    boxedValue,
+  });
 
-  object._default = object({})
-
-  
+object._default = object({});
 
 object.optional = <TBoxedValue extends Record<string, ISMData>>(
   boxedValue: TBoxedValue
@@ -210,28 +196,46 @@ export const maybeRecord = <TBoxedValue extends ISMData>(
     boxedValue,
   });
 
-export const array = <TBoxedValue extends ISMData>(boxedValue: TBoxedValue) =>
-  new SMData<
-    Array<GetSMDataType<TBoxedValue>>,
-    Array<GetSMDataType<TBoxedValue>>,
-    TBoxedValue
-  >({
-    type: SM_DATA_TYPES.array,
-    parser: value => value,
-    boxedValue,
-  });
-export const maybeArray = <TBoxedValue extends ISMData>(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
+export const array = <TBoxedValue extends ISMData>(
+  boxedValue:
+    | TBoxedValue
+    | ISMDataConstructor<GetSMDataType<TBoxedValue>, string, undefined>
+): ISMDataConstructor<
+  Array<GetSMDataType<TBoxedValue>>,
+  Array<GetSMDataType<TBoxedValue>>,
+  TBoxedValue
+> => {
+  const parsedBoxedValue: TBoxedValue =
+    // will be a function if no explicit default set
+    typeof boxedValue === 'function' ? boxedValue._default : boxedValue;
+
+  function smArray(defaultValue: Array<GetSMDataType<TBoxedValue>>) {
+    return new SMData<
+      Array<GetSMDataType<TBoxedValue>>,
+      Array<GetSMDataType<TBoxedValue>>,
+      TBoxedValue
+    >({
+      type: SM_DATA_TYPES.array,
+      parser: value => value,
+      boxedValue: parsedBoxedValue,
+      defaultValue,
+    });
+  }
+
+  smArray.optional = new SMData<
     Maybe<Array<GetSMDataType<TBoxedValue>>>,
     Maybe<Array<GetSMDataType<TBoxedValue>>>,
     TBoxedValue
   >({
     type: SM_DATA_TYPES.maybeArray,
     parser: value => value,
-    boxedValue,
+    boxedValue: parsedBoxedValue,
   });
+
+  smArray._default = smArray([]);
+
+  return smArray;
+};
 
 export const SM_RELATIONAL_TYPES = {
   byReference: 'bR' as 'bR',

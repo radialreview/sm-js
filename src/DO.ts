@@ -32,7 +32,6 @@ export function DOFactory<
       const initialPersisted: DeepPartial<TNodeData> = {};
 
       this._defaults = this.getDefaultData(node.properties);
-
       extend({
         object: initialPersisted,
         extension: this._defaults,
@@ -86,7 +85,7 @@ export function DOFactory<
 
           if (typeof propValue === 'function') {
             const defaultFn = (nodeProperties[prop] as any)._default;
-            
+
             if (defaultFn instanceof Error) {
               throw defaultFn;
             }
@@ -178,21 +177,17 @@ export function DOFactory<
           property.type === SM_DATA_TYPES.array ||
           property.type === SM_DATA_TYPES.maybeArray
         ) {
-          const smDataForThisProp = node.properties[prop];
-
           this.setArrayProp({
             parentObject: this,
             propName: prop,
-            smDataForThisProp: smDataForThisProp,
+            smDataForThisProp: property,
             parsedDataForParent: this.parsedData,
           });
         } else {
-          const smDataForThisProp = property;
-
           this.setPrimitiveValueProp({
             parentObject: this,
             propName: prop,
-            smDataForThisProp: smDataForThisProp,
+            smDataForThisProp: property,
             parsedDataForParent: this.parsedData,
           });
         }
@@ -390,22 +385,36 @@ export function DOFactory<
       });
     };
 
-    private getArrayValueSetter(opts: {
+    private getArrayValueSetter = (opts: {
       smDataForThisProp: ISMData<any, any, ISMData>;
       propName: string;
       parsedDataForParent: Record<string, any>;
-    }) {
-      return function ArrayValueSetter(newVal: any) {
+    }) => {
+      const ArrayValueSetter = (newVal: any) => {
         if (newVal == null) {
           opts.parsedDataForParent[opts.propName] = newVal;
           return;
         }
 
+        const newState = {
+          ...opts.parsedDataForParent,
+          [opts.propName]: newVal ?? this._defaults[opts.propName],
+        };
+
+        extend({
+          object: opts.parsedDataForParent,
+          extension: newState,
+          deleteKeysNotInExtension: false,
+          extendNestedObjects: false,
+        });
+
         opts.parsedDataForParent[opts.propName] = newVal.map(
           opts.smDataForThisProp.boxedValue.parser
         );
       };
-    }
+
+      return ArrayValueSetter;
+    };
 
     private setArrayProp = (opts: {
       parentObject: Record<string, any>;
