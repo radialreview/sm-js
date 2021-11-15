@@ -1,5 +1,7 @@
 import * as smData from './smDataTypes';
 import { DOFactory } from './DO';
+import { queryDefinition } from './smDataTypes';
+import { IS_NULL_IDENTIFIER } from '.';
 
 const userProperties = {
   id: smData.string,
@@ -102,3 +104,56 @@ export function generateDOInstance<
   });
   return new DO(opts.initialData);
 }
+
+export function createMockQueryDefinitions(
+  opts?: { useIds: true } | { useUnder: true }
+) {
+  return {
+    users: queryDefinition({
+      def: userNode,
+      map: ({ todos, address }) => ({
+        address: address({
+          map: ({ state, apt }) => ({
+            state,
+            apt: apt({
+              map: ({ floor, number }) => ({
+                floor,
+                number,
+              }),
+            }),
+          }),
+        }),
+        todos: todos({
+          map: ({ id, assignee }) => ({
+            id,
+            assignee: assignee({
+              map: ({ id, firstName }) => ({ id, firstName }),
+            }),
+          }),
+        }),
+      }),
+      ...(opts && 'useIds' in opts
+        ? { ids: ['mock-id'] }
+        : { underIds: ['mock-id'] }),
+    }),
+  };
+}
+
+export const mockQueryDataReturn = {
+  users: [
+    {
+      id: 'mock-user-id',
+      address: null,
+      [`address${IS_NULL_IDENTIFIER}`]: false,
+      address_state: 'FL',
+      address_apt_floor: '1',
+      address_apt_number: '1',
+      todos: [
+        {
+          id: 'mock-todo-id',
+          assignee: [{ id: 'mock-user-id', firstName: 'Joe' }],
+        },
+      ],
+    },
+  ],
+};

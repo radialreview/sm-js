@@ -1,45 +1,17 @@
 import gql from 'graphql-tag';
 
-import { userNode, todoNode, TodoNode, UserNode } from './specUtilities';
+import {
+  createMockQueryDefinitions,
+  userNode,
+  todoNode,
+  TodoNode,
+  UserNode,
+} from './specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
 } from './queryDefinitionAdapters';
 import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
-
-
-
-function createMockQueryDefinition(
-  opts: { useIds: true } | { useUnder: true }
-) {
-  return {
-    users: queryDefinition({
-      def: userNode,
-      map: ({ todos, address }) => ({
-        address: address({
-          map: ({ state, apt }) => ({
-            state,
-            apt: apt({
-              map: ({ floor, number }) => ({
-                floor,
-                number,
-              }),
-            }),
-          }),
-        }),
-        todos: todos({
-          map: ({ id, assignee }) => ({
-            id,
-            assignee: assignee({
-              map: ({ id, firstName }) => ({ id, firstName }),
-            }),
-          }),
-        }),
-      }),
-      ...('useIds' in opts ? { ids: ['mock-id'] } : { underIds: ['mock-id'] }),
-    }),
-  };
-}
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
@@ -82,7 +54,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
   it('handles querying partial objects within a node', () => {
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
-      queryDefinitions: createMockQueryDefinition({ useUnder: true }),
+      queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
     }).users as QueryRecordEntry & { underIds: Array<string> };
 
     expect(queryRecord.def).toEqual(
@@ -108,7 +80,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinition({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
       }).users.relational
     ).toEqual(
       expect.objectContaining({
@@ -125,7 +97,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinition({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
       }).users.relational?.todos.relational
     ).toEqual(
       expect.objectContaining({
@@ -145,7 +117,7 @@ describe('getQueryInfo.queryGQLString', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinition({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -173,8 +145,8 @@ describe('getQueryInfo.queryGQLString', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinition({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinition({ useUnder: true }).users,
+          users: createMockQueryDefinitions({ useUnder: true }).users,
+          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -217,7 +189,7 @@ describe('getQueryInfo.queryGQLString', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinition({ useIds: true }),
+        queryDefinitions: createMockQueryDefinitions({ useIds: true }),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -323,8 +295,8 @@ describe('getQueryInfo.queryGQLString', () => {
         getQueryInfo({
           queryId: 'MyTestQuery',
           queryDefinitions: {
-            users: createMockQueryDefinition({ useUnder: true }).users,
-            otherAlias: createMockQueryDefinition({ useUnder: true }).users,
+            users: createMockQueryDefinitions({ useUnder: true }).users,
+            otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
           },
         }).queryGQLString
       )
@@ -337,7 +309,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinition({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -371,8 +343,8 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinition({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinition({ useUnder: true }).users,
+          users: createMockQueryDefinitions({ useUnder: true }).users,
+          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
         },
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
@@ -427,7 +399,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinition({ useIds: true }),
+        queryDefinitions: createMockQueryDefinitions({ useIds: true }),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -461,8 +433,8 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinition({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinition({ useUnder: true }).users,
+          users: createMockQueryDefinitions({ useUnder: true }).users,
+          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
         },
       }).subscriptionConfigs.map(config => gql(config.gqlString))
     ).not.toThrow();
