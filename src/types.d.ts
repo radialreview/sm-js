@@ -119,10 +119,10 @@ interface IDOMethods {
   /**
    * Called when we get data from SM for this particular DO instance, found by its id
    */
-  onDataReceived(data: Record<string,any>): void;
+  onDataReceived(data: Record<string, any>): void;
 }
 
-declare type NodeDO = Record<string,any> & IDOMethods;
+declare type NodeDO = Record<string, any> & IDOMethods;
 
 declare type NodeComputedFns<
   TNodeData extends Record<string, ISMData>,
@@ -170,7 +170,7 @@ declare interface ISMNode<
   };
   type: string;
   repository: ISMNodeRepository;
-  do: new (data?: Record<string,any>) => TNodeDO;
+  do: new (data?: Record<string, any>) => TNodeDO;
 }
 
 /**
@@ -235,9 +235,7 @@ declare type NodeRelationalQueryBuilderRecord = Record<
 
 declare interface ISMNodeRepository {
   byId(id: string): NodeDO;
-  onDataReceived(
-    data: { id: string } & Record<string,any>
-  ): void;
+  onDataReceived(data: { id: string } & Record<string, any>): void;
   onNodeDeleted(id: string): void;
 }
 
@@ -293,7 +291,10 @@ declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
-  } // full query definition provided, with a map fn
+  }
+  /**
+   * full query definition provided, with a map fn
+   */
     ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
@@ -303,10 +304,15 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
           : never
         : never
       : never
-    : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted
-    ? // return the entirety of the node's data
-      TQueryDefinitions[Key] extends { def: infer TSMNode }
-      ? TSMNode extends ISMNode
+    : TQueryDefinitions[Key] extends {
+        def: ISMNode;
+      }
+    ? TQueryDefinitions[Key] extends { def: infer TSMNode }
+      ? /**
+         * full query definition provided, but map function omitted
+         * return the entirety of the node's data
+         */
+        TSMNode extends ISMNode
         ? TQueryDefinitions[Key] extends { id: string }
           ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>> &
               ExtractNodeComputedData<TSMNode>
@@ -316,7 +322,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
             >
         : never
       : never
-    : TQueryDefinitions[Key] extends ISMNode // shorthand syntax used, only a node definition was provided
+    : TQueryDefinitions[Key] extends ISMNode
+      /**
+       * shorthand syntax used, only a node definition was provided
+       */
     ? Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
@@ -369,17 +378,13 @@ type RequestedData<
           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
           : TNodeData[Key]
         : Key extends keyof TNodeComputedData
-        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it)
-        : // relational data requests may use any alias, so that we can query different subsets of the same node relation
-          // Check the "How we achieve concurrent relational data querying support" section in the .md file
-          never;
+        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as declared on the node (no use for aliases here, it would just confuse the dev reading it) // relational data requests may use any alias, so that we can query different subsets of the same node relation // Check the "How we achieve concurrent relational data querying support" section in the .md file
+        : never;
     }
   | {}
 >;
 
-type RequestedRelationalData = ReturnType<NodeRelationalQueryBuilder<any>>;
-
-// A generic to extract the resulting data based on a query fn
+// A generic to extract the resulting data based on a map fn
 type ExtractQueriedDataFromMapFn<
   TMapFn extends MapFn<any, any, any>,
   TSMNode extends ISMNode
@@ -387,18 +392,18 @@ type ExtractQueriedDataFromMapFn<
   ExtractNodeMutations<TSMNode> &
   ExtractNodeComputedData<TSMNode>;
 
-// From the return of a query fn, get the type of data that will be returned by the query, aka the expected response from the API
+// From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
   TSMNode extends ISMNode
 > = {
-  [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IChildrenQuery<
+  [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<
     any,
     any
   >
-    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
-    : TMapFnReturn[Key] extends IByReferenceQuery<any, any>
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
+    : TMapFnReturn[Key] extends IChildrenQuery<any, any>
+    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
     : TMapFnReturn[Key] extends MapFn<any, any, any>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
     : TMapFnReturn[Key] extends ISMData

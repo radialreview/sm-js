@@ -1,16 +1,18 @@
 import { config, SMConfig } from './config';
 import { setToken } from './auth';
-import { smQuery } from './smQuery';
+import { query } from './smQueriers';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
-test('smQuery uses the gql client, passing in the expected params', async done => {
+const token = 'my mock token';
+setToken('default', { token });
+
+test('sm.query uses the gql client, passing in the expected params', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const queryId = 'MockQueryId';
-  const token = 'my mock token';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
     queryId,
@@ -26,18 +28,30 @@ test('smQuery uses the gql client, passing in the expected params', async done =
       query: mockQuery,
     },
   } as DeepPartial<SMConfig>);
-  setToken('default', { token });
 
-  await smQuery(queryDefinitions, { queryId });
+  await query(queryDefinitions, { queryId });
 
   expect(mockQuery).toHaveBeenCalled();
   done();
 });
 
-test('smQuery returns the correct data', async () => {
+test('sm.query returns the correct data', async () => {
   const queryDefinitions = createMockQueryDefinitions();
-  const queryId = 'MockQueryId';
-  const token = 'my mock token';
+  const expectedAssignee = {
+    id: 'mock-user-id',
+    firstName: 'Joe',
+  };
+  const expectedTodo = {
+    id: 'mock-todo-id',
+    assignee: expectedAssignee,
+  };
+  const expectedUsers = [
+    {
+      id: 'mock-user-id',
+      address: { state: 'FL', apt: { number: 1, floor: 1 } },
+      todos: [expectedTodo],
+    },
+  ];
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
   config({
@@ -45,10 +59,11 @@ test('smQuery returns the correct data', async () => {
       query: mockQuery,
     },
   } as DeepPartial<SMConfig>);
-  setToken('default', { token });
 
-  const { users } = await smQuery(queryDefinitions, { queryId });
+  const { users } = await query(queryDefinitions);
 
-  expect(users[0].address.apt).toEqual({ floor: 1, number: 1 });
-  expect(users[0].todos[0].assignee).toBe('Joe');
+  expect(users.length).toBe(expectedUsers.length);
+  expectedUsers.forEach((expectedUser, i) =>
+    expect(users[i]).toEqual(expectedUser)
+  );
 });

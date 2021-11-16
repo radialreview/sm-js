@@ -1,2 +1,2 @@
 export * from './smDataTypes';
-export * from './smQuery';
+export * from './smQueriers';

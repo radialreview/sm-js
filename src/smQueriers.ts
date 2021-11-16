@@ -33,7 +33,7 @@ type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
 
 let queryIdx = 0;
 
-export async function smQuery<TQueryDefinitions extends QueryDefinitions>(
+export async function query<TQueryDefinitions extends QueryDefinitions>(
   queryDefinitions: TQueryDefinitions,
   opts?: QueryOpts<TQueryDefinitions>
 ): Promise<QueryReturn<TQueryDefinitions>> {

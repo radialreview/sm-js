@@ -77,8 +77,16 @@ export function DOProxyGenerator<
       // by preventing attempts to get properties which are not
       // guaranteed to be up to date
       // @TODO write tests for this enumeration
-      if (opts.upToDateData.includes(key)) {
-        return { enumerable: true, configurable: true };
+      if (
+        opts.upToDateData.includes(key) ||
+        (opts.relationalQueries &&
+          Object.keys(opts.relationalQueries).includes(key))
+      ) {
+        return {
+          ...Object.getOwnPropertyDescriptor(target, key),
+          enumerable: true,
+          configurable: true,
+        };
       }
 
       return {
@@ -176,7 +184,13 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
       ? `${opts.parentObjectKey}_${objectProp}`
       : objectProp;
     const smDataForThisProp = opts.smDataForThisObject[objectProp];
-    const isUpToDate = opts.upToDateData.includes(name);
+    const isUpToDate =
+      opts.upToDateData.includes(name) ||
+      // this second case handles ensuring that nested objects are enumerable
+      // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
+      // and we request address_apt_floor and address_apt_unit
+      // we need to make address.apt enumerable below
+      opts.upToDateData.some(prop => prop.startsWith(name));
 
     Object.defineProperty(objectToReturn, objectProp, {
       // @TODO write tests for this enumeration
