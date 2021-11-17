@@ -112,6 +112,7 @@ describe('Node default properties', () => {
       pets: smData.array(smData.string)(['cat', 'dog', 'bird']),
       dogBreeds: smData.array(smData.string)(['pug', 'golden retriever']),
       catBreeds: smData.array(smData.string),
+      insects: smData.array(smData.string),
       birdBreeds: smData.array(smData.string).optional,
     };
 
@@ -131,5 +132,43 @@ describe('Node default properties', () => {
     expect(DO.dogBreeds).toEqual(['husky']);
     expect(DO.catBreeds).toEqual(['siamese']);
     expect(DO.birdBreeds).toEqual(null);
+    expect(DO.insects).toEqual([]);
+  });
+
+  it.only('should handle defaults/optional properties for object types', () => {
+    const properties = {
+      animal: smData.object({
+        type: smData.string('cat'),
+        name: smData.string('joe'),
+        age: smData.number,
+        isGoodBoy: smData.boolean.optional,
+        favoriteFoods: smData.array(smData.string).optional,
+
+        owner: smData.object({ name: smData.string('rick') }),
+        bestFriend: smData.object.optional({ name: smData.string }),
+      }),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      animal: {
+        type: 'dog',
+        isGoodBoy: true,
+      },
+    });
+
+    expect(DO.animal.type).toEqual('dog');
+    expect(DO.animal.name).toEqual('joe');
+    expect(DO.animal.age).toEqual(0);
+    expect(DO.animal.isGoodBoy).toEqual(true);
+    expect(DO.animal.favoriteFoods).toEqual(null);
+    expect(DO.animal.owner.name).toEqual('rick');
+    expect(DO.animal.bestFriend).toEqual(null); // this one fails
   });
 });

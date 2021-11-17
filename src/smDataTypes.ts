@@ -134,7 +134,9 @@ boolean.optional = new SMData<
   },
 });
 
-export const object = <TBoxedValue extends Record<string, ISMData>>(
+export const object: ISMDataConstructor<any, any, any> = <
+  TBoxedValue extends Record<string, ISMData | any>
+>(
   boxedValue: TBoxedValue
 ) =>
   new SMData<
@@ -151,7 +153,7 @@ export const object = <TBoxedValue extends Record<string, ISMData>>(
     boxedValue,
   });
 
-object._default = object({});
+object._default = null; //object({});
 
 object.optional = <TBoxedValue extends Record<string, ISMData>>(
   boxedValue: TBoxedValue

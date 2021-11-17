@@ -32,11 +32,12 @@ export function DOFactory<
       const initialPersisted: DeepPartial<TNodeData> = {};
 
       this._defaults = this.getDefaultData(node.properties);
+
       extend({
         object: initialPersisted,
         extension: this._defaults,
         deleteKeysNotInExtension: false,
-        extendNestedObjects: false,
+        extendNestedObjects: true,
       });
 
       if (initialData) {
@@ -44,7 +45,7 @@ export function DOFactory<
           object: initialPersisted,
           extension: initialData,
           deleteKeysNotInExtension: false,
-          extendNestedObjects: false,
+          extendNestedObjects: true,
         });
       }
 
@@ -56,7 +57,7 @@ export function DOFactory<
         object: initialPersisted,
         extension: parsedData,
         deleteKeysNotInExtension: false,
-        extendNestedObjects: false,
+        extendNestedObjects: true,
       });
 
       this.parsedData = initialPersisted;
@@ -83,7 +84,9 @@ export function DOFactory<
         (acc, prop: keyof TNodeData) => {
           const propValue = nodeProperties[prop];
 
-          if (typeof propValue === 'function') {
+          if (propValue.type === SM_DATA_TYPES.object) {
+            acc[prop] = this.getDefaultData(propValue.boxedValue);
+          } else if (typeof propValue === 'function') {
             const defaultFn = (nodeProperties[prop] as any)._default;
 
             if (defaultFn instanceof Error) {
@@ -132,6 +135,7 @@ export function DOFactory<
               string,
               ISMData
             >;
+
             const initialStateForThisObject = this.getInitialState({
               smDataForThisObject,
             });
@@ -158,6 +162,7 @@ export function DOFactory<
           }
           return node.properties[prop] as ISMData;
         })();
+
         if (
           property.type === SM_DATA_TYPES.object ||
           property.type === SM_DATA_TYPES.maybeObject
