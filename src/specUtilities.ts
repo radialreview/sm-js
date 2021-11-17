@@ -157,3 +157,21 @@ export const mockQueryDataReturn = {
     },
   ],
 };
+
+const expectedAssignee = {
+  id: 'mock-user-id',
+  firstName: 'Joe',
+};
+const expectedTodo = {
+  id: 'mock-todo-id',
+  assignee: expectedAssignee,
+};
+const expectedUsers = [
+  {
+    id: 'mock-user-id',
+    address: { state: 'FL', apt: { number: 1, floor: 1 } },
+    todos: [expectedTodo],
+  },
+];
+
+export const mockResultExpectations = { users: expectedUsers };

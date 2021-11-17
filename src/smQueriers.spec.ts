@@ -4,8 +4,10 @@ import { query } from './smQueriers';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
+  mockResultExpectations,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import { subscribe } from '.';
 
 const token = 'my mock token';
 setToken('default', { token });
@@ -37,21 +39,6 @@ test('sm.query uses the gql client, passing in the expected params', async done 
 
 test('sm.query returns the correct data', async () => {
   const queryDefinitions = createMockQueryDefinitions();
-  const expectedAssignee = {
-    id: 'mock-user-id',
-    firstName: 'Joe',
-  };
-  const expectedTodo = {
-    id: 'mock-todo-id',
-    assignee: expectedAssignee,
-  };
-  const expectedUsers = [
-    {
-      id: 'mock-user-id',
-      address: { state: 'FL', apt: { number: 1, floor: 1 } },
-      todos: [expectedTodo],
-    },
-  ];
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
   config({
@@ -60,10 +47,152 @@ test('sm.query returns the correct data', async () => {
     },
   } as DeepPartial<SMConfig>);
 
-  const { users } = await query(queryDefinitions);
+  const data = await query(queryDefinitions);
 
-  expect(users.length).toBe(expectedUsers.length);
-  expectedUsers.forEach((expectedUser, i) =>
-    expect(users[i]).toEqual(expectedUser)
-  );
+  expect(data).toEqual(mockResultExpectations);
+});
+
+test('sm.query calls "onData" with the result of the query', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  query(queryDefinitions, {
+    onData: data => {
+      expect(data).toEqual(mockResultExpectations);
+      done();
+    },
+  });
+});
+
+test('sm.query calls "onError" when the query fails', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const error = new Error();
+  const mockQuery = jest.fn(async () => {
+    throw error;
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  query(queryDefinitions, {
+    onError: e => {
+      expect(e).toBe(error);
+      done();
+    },
+  });
+});
+
+test('sm.query throws an error when the query fails and no "onError" handler is provided', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const error = new Error();
+  const mockQuery = jest.fn(async () => {
+    throw error;
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  try {
+    await query(queryDefinitions);
+  } catch (e) {
+    expect(e).toBe(error);
+    done();
+  }
+});
+
+test('sm.subscribe by default queries and subscribes to the data set', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  const mockSubscribe = jest.fn(() => {
+    expect(mockQuery).toHaveBeenCalled();
+    done();
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    onData: () => {},
+    onError: e => {
+      done(e);
+    },
+  });
+});
+
+test('sm.subscribe does not query if skipInitialQuery is true', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  const mockSubscribe = jest.fn(() => {
+    expect(mockQuery).not.toHaveBeenCalled();
+    done();
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: () => {},
+    onError: e => {
+      done(e);
+    },
+  });
+});
+
+test('sm.subscribe returns a method to cancel any subscriptions started', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const cancel = jest.fn();
+  const mockSubscribe = jest.fn(() => cancel);
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const cancelSubs = subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: () => {},
+    onError: e => {
+      done(e);
+    },
+  });
+
+  cancelSubs();
+  expect(cancel).toHaveBeenCalled();
+  done();
+});
+
+test('sm.subscribe calls on error when a query or subscription error occurs', done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(() => {
+    throw Error('Some error');
+  });
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: () => {},
+    onError: () => {
+      done();
+    },
+  });
 });

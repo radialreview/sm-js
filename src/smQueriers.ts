@@ -3,51 +3,102 @@ import { getConfig } from './config';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { SMQueryManager } from './SMQueryManager';
 
-type QueryReturn<TQueryDefinitions extends QueryDefinitions> = QueryDataReturn<
-  TQueryDefinitions
-> & {
-  methods: {
-    subscriptions: {
-      cancel: () => void;
-    };
-  };
-};
+let queryIdx = 0;
 
 type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
-  // @TODO in another task
-  // add second param containing the change event, with only the data that changed, instead of the new set of results
-  onUpdateReceived?: (newData: QueryDataReturn<TQueryDefinitions>) => void;
-  // @QUESTION
-  // should we enforce that when "onUpdateReceived" is provided
-  // "onError" should also have to be provided?
-  // Otherwise, this lib would have to throw the subscription error
-  // and because it's thrown asynchronously, the stack trace would not
-  // be helpful in finding the subscription that failed.
-  // If instead we enforce an onError handler, the consumer can then choose how to deel with that error
-  // and should have a helpful stack trace.
-  onError?: (error: any) => void;
+  onData?: (newData: QueryDataReturn<TQueryDefinitions>) => void;
+  onError?: (...args: any) => void;
+  queryId?: string;
+  tokenName?: string;
+  batched?: boolean;
+};
+type QueryReturn<TQueryDefinitions extends QueryDefinitions> = QueryDataReturn<
+  TQueryDefinitions
+>;
+
+/**
+ * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
+ * Which ensures that the socket messages are applied to the correct base set of results
+ */
+function generateQuerier(queryManager?: SMQueryManager) {
+  return async function query<TQueryDefinitions extends QueryDefinitions>(
+    queryDefinitions: TQueryDefinitions,
+    opts?: QueryOpts<TQueryDefinitions>
+  ): Promise<QueryReturn<TQueryDefinitions>> {
+    const queryId = opts?.queryId || `smQuery${queryIdx++}`;
+    const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
+      queryDefinitions,
+      queryId,
+    });
+
+    const tokenName = opts?.tokenName || 'default';
+    const token = getToken({ tokenName });
+
+    if (!token) {
+      throw Error(`No token registered with the name "${token}".\n' + 
+             'Please register this token prior to using it with sm.setTokenInfo(tokenName, { token })`);
+    }
+
+    return getConfig()
+      .gqlClient.query({
+        gql: queryGQL,
+        token: token,
+        batched: opts?.batched,
+      })
+      .then(queryResult => {
+        const qM = queryManager || new SMQueryManager();
+        qM.onQueryResult({
+          queryRecord: queryRecord,
+          queryId,
+          queryResult,
+        });
+
+        const results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
+
+        opts?.onData && opts.onData(results);
+        return results;
+      })
+      .catch(e => {
+        if (opts?.onError) {
+          opts.onError(e);
+          return e;
+        } else {
+          throw e;
+        }
+      });
+  };
+}
+
+export const query = generateQuerier();
+
+type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+  onData: (newData: QueryDataReturn<TQueryDefinitions>) => void;
+  // @TODO can onError be optional
+  // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+  onError?: (...args: any) => void;
+  skipInitialQuery?: boolean;
   queryId?: string;
   tokenName?: string;
   batched?: boolean;
 };
 
-let queryIdx = 0;
+type SubscriptionCanceller = () => void;
+type SubscriptionReturn = SubscriptionCanceller;
 
-export async function query<TQueryDefinitions extends QueryDefinitions>(
+export function subscribe<TQueryDefinitions extends QueryDefinitions>(
   queryDefinitions: TQueryDefinitions,
-  opts?: QueryOpts<TQueryDefinitions>
-): Promise<QueryReturn<TQueryDefinitions>> {
+  opts: SubscriptionOpts<TQueryDefinitions>
+): SubscriptionReturn {
+  // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+  const startStack = new Error().stack as string;
   const queryId = opts?.queryId || `smQuery${queryIdx++}`;
   const {
-    queryGQL,
     queryRecord,
     subscriptionConfigs,
   } = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
     queryId,
   });
-
-  const queryManager = new SMQueryManager();
 
   const tokenName = opts?.tokenName || 'default';
   const token = getToken({ tokenName });
@@ -57,67 +108,75 @@ export async function query<TQueryDefinitions extends QueryDefinitions>(
            'Please register this token prior to using it with sm.setTokenInfo(tokenName, { token })`);
   }
 
-  return getConfig()
-    .gqlClient.query({
-      gql: queryGQL,
-      token: token,
-      batched: opts?.batched,
-    })
-    .then(queryResult => {
-      queryManager.onQueryResult({
-        queryRecord: queryRecord,
-        queryId,
-        queryResult,
-      });
+  const queryManager = new SMQueryManager();
 
-      let subscriptionCancellers: Maybe<Array<() => void>>;
-      const onUpdateReceived = opts?.onUpdateReceived;
-      if (onUpdateReceived) {
-        subscriptionCancellers = subscriptionConfigs.map(subscriptionConfig => {
-          return getConfig().gqlClient.subscribe({
-            gql: subscriptionConfig.gql,
-            token: token,
-            onMessage: message => {
-              const node = subscriptionConfig.extractNodeFromSubscriptionMessage(
-                message
-              );
-              const operation = subscriptionConfig.extractOperationFromSubscriptionMessage(
-                message
-              );
+  function handleError(...args: Array<any>) {
+    if (opts.onError) {
+      opts.onError(...args);
+      return;
+    }
 
-              queryManager.onSubscriptionMessage({
-                node,
-                operation,
-                queryId: queryId,
-                queryRecord: queryRecord,
-                subscriptionAlias: subscriptionConfig.alias,
-              });
+    // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+    const error = args[0];
+    error.stack =
+      error.stack + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
+    console.error(error);
+  }
 
-              onUpdateReceived(
-                queryManager.getResults() as QueryDataReturn<TQueryDefinitions>
-              );
-            },
-            onError: error => {
-              opts && opts.onError && opts.onError(error);
-            },
-          });
+  let subscriptionCancellers: Array<SubscriptionCanceller> = [];
+  function initSubscriptions() {
+    try {
+      subscriptionCancellers = subscriptionConfigs.map(subscriptionConfig => {
+        return getConfig().gqlClient.subscribe({
+          gql: subscriptionConfig.gql,
+          token: token,
+          onMessage: message => {
+            const node = subscriptionConfig.extractNodeFromSubscriptionMessage(
+              message
+            );
+            const operation = subscriptionConfig.extractOperationFromSubscriptionMessage(
+              message
+            );
+
+            queryManager.onSubscriptionMessage({
+              node,
+              operation,
+              queryId: queryId,
+              queryRecord: queryRecord,
+              subscriptionAlias: subscriptionConfig.alias,
+            });
+
+            opts?.onData(
+              queryManager.getResults() as QueryDataReturn<TQueryDefinitions>
+            );
+          },
+          onError: handleError,
         });
-      }
+      });
+    } catch (e) {
+      handleError(e);
+    }
+  }
 
-      function cancelSubscriptions() {
-        if (subscriptionCancellers) {
-          subscriptionCancellers.forEach(cancel => cancel());
-        }
-      }
-
-      const queryDataReturn = queryManager.getResults() as QueryDataReturn<
-        TQueryDefinitions
-      >;
-      return {
-        ...queryDataReturn,
-        methods: {
-          subscriptions: { cancel: cancelSubscriptions },
+  if (!opts.skipInitialQuery) {
+    try {
+      const query = generateQuerier(queryManager);
+      query(queryDefinitions, {
+        ...opts,
+        onData: (...args) => {
+          opts.onData(...args);
+          initSubscriptions();
         },
-      };
-    });
+        onError: handleError,
+      });
+    } catch (e) {
+      handleError(e);
+    }
+  } else {
+    initSubscriptions();
+  }
+
+  return () => {
+    subscriptionCancellers.forEach(cancel => cancel());
+  };
 }
