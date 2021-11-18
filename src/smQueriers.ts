@@ -12,16 +12,18 @@ type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
   tokenName?: string;
   batched?: boolean;
 };
-type QueryReturn<TQueryDefinitions extends QueryDefinitions> = QueryDataReturn<
-  TQueryDefinitions
->;
+type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
+  data: QueryDataReturn<TQueryDefinitions>;
+};
 
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
  * Which ensures that the socket messages are applied to the correct base set of results
  */
-function generateQuerier(queryManager?: SMQueryManager) {
-  return async function query<TQueryDefinitions extends QueryDefinitions>(
+function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
+  queryManager?: SMQueryManager
+) {
+  return async function query(
     queryDefinitions: TQueryDefinitions,
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
@@ -56,7 +58,7 @@ function generateQuerier(queryManager?: SMQueryManager) {
         const results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
 
         opts?.onData && opts.onData(results);
-        return results;
+        return { data: results };
       })
       .catch(e => {
         if (opts?.onError) {
@@ -73,9 +75,8 @@ export const query = generateQuerier();
 
 type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   onData: (newData: QueryDataReturn<TQueryDefinitions>) => void;
-  // @TODO can onError be optional
-  // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
   onError?: (...args: any) => void;
+  // @TODO can this be supported? If we skip initial query, we can't resolve with the data
   skipInitialQuery?: boolean;
   queryId?: string;
   tokenName?: string;
@@ -83,12 +84,19 @@ type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
 };
 
 type SubscriptionCanceller = () => void;
-type SubscriptionReturn = SubscriptionCanceller;
+type SubscriptionMeta = { unsub: SubscriptionCanceller };
 
-export function subscribe<TQueryDefinitions extends QueryDefinitions>(
+export async function subscribe<
+  TQueryDefinitions extends QueryDefinitions,
+  TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>
+>(
   queryDefinitions: TQueryDefinitions,
-  opts: SubscriptionOpts<TQueryDefinitions>
-): SubscriptionReturn {
+  opts: TSubscriptionOpts
+): Promise<
+  TSubscriptionOpts extends { skipInitialQuery: true }
+    ? SubscriptionMeta
+    : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta
+> {
   // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
   const startStack = new Error().stack as string;
   const queryId = opts?.queryId || `smQuery${queryIdx++}`;
@@ -111,20 +119,25 @@ export function subscribe<TQueryDefinitions extends QueryDefinitions>(
   const queryManager = new SMQueryManager();
 
   function handleError(...args: Array<any>) {
+    const error = args[0];
     if (opts.onError) {
       opts.onError(...args);
-      return;
+      return error;
     }
 
     // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-    const error = args[0];
     error.stack =
       error.stack + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
     console.error(error);
+
+    return error;
   }
 
   let subscriptionCancellers: Array<SubscriptionCanceller> = [];
-  function initSubscriptions() {
+  let subsHaveBeenCancelled = false;
+  function initSubs() {
+    if (subsHaveBeenCancelled) return;
+
     try {
       subscriptionCancellers = subscriptionConfigs.map(subscriptionConfig => {
         return getConfig().gqlClient.subscribe({
@@ -158,25 +171,30 @@ export function subscribe<TQueryDefinitions extends QueryDefinitions>(
     }
   }
 
-  if (!opts.skipInitialQuery) {
-    try {
-      const query = generateQuerier(queryManager);
-      query(queryDefinitions, {
-        ...opts,
-        onData: (...args) => {
-          opts.onData(...args);
-          initSubscriptions();
-        },
-        onError: handleError,
-      });
-    } catch (e) {
-      handleError(e);
-    }
-  } else {
-    initSubscriptions();
+  function unsub() {
+    subsHaveBeenCancelled = true;
+    subscriptionCancellers.forEach(cancel => cancel());
   }
 
-  return () => {
-    subscriptionCancellers.forEach(cancel => cancel());
-  };
+  if (opts.skipInitialQuery) {
+    initSubs();
+    return { unsub } as TSubscriptionOpts extends { skipInitialQuery: true }
+      ? SubscriptionMeta
+      : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
+  } else {
+    try {
+      const query = generateQuerier(queryManager);
+      const { data } = await query(queryDefinitions, {
+        queryId: opts.queryId,
+      });
+      initSubs();
+
+      opts.onData(data as QueryDataReturn<TQueryDefinitions>);
+      return { data, unsub } as {
+        data: QueryDataReturn<TQueryDefinitions>;
+      } & SubscriptionMeta;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

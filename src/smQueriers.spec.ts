@@ -47,7 +47,7 @@ test('sm.query returns the correct data', async () => {
     },
   } as DeepPartial<SMConfig>);
 
-  const data = await query(queryDefinitions);
+  const { data } = await query(queryDefinitions);
 
   expect(data).toEqual(mockResultExpectations);
 });
@@ -154,7 +154,7 @@ test('sm.subscribe does not query if skipInitialQuery is true', done => {
   });
 });
 
-test('sm.subscribe returns a method to cancel any subscriptions started', done => {
+test('sm.subscribe returns a method to cancel any subscriptions started', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const cancel = jest.fn();
   const mockSubscribe = jest.fn(() => cancel);
@@ -164,7 +164,7 @@ test('sm.subscribe returns a method to cancel any subscriptions started', done =
     },
   } as DeepPartial<SMConfig>);
 
-  const cancelSubs = subscribe(queryDefinitions, {
+  const { unsub } = await subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -172,12 +172,12 @@ test('sm.subscribe returns a method to cancel any subscriptions started', done =
     },
   });
 
-  cancelSubs();
+  unsub();
   expect(cancel).toHaveBeenCalled();
   done();
 });
 
-test('sm.subscribe calls on error when a query or subscription error occurs', done => {
+test('sm.subscribe calls on error when a query or subscription error occurs', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
@@ -188,7 +188,7 @@ test('sm.subscribe calls on error when a query or subscription error occurs', do
     },
   } as DeepPartial<SMConfig>);
 
-  subscribe(queryDefinitions, {
+  await subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: () => {
