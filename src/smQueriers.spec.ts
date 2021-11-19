@@ -217,6 +217,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
         users: {
           node: {
             ...mockQueryDataReturn.users[0],
+            address_state: 'Definitely not FL',
           },
           operation: {
             action: 'UpdateNode',
@@ -232,9 +233,16 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
     },
   } as DeepPartial<SMConfig>);
 
-  const onData = jest.fn();
+  let iteration = 0;
+  const onData = jest.fn(({ results }) => {
+    // ignore when onData is called with the query results
+    if (iteration === 1) {
+      expect(results.users[0].address.state).toEqual('Definitely not FL');
+    } else {
+      iteration++;
+    }
+  });
   await subscribe(queryDefinitions, {
-    skipInitialQuery: true,
     onData: onData,
     onError: e => {
       done(e);
@@ -243,7 +251,56 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
 
   setTimeout(() => {
     expect(onData).toHaveBeenCalledTimes(2);
+    done();
   }, 40);
+});
+
+test('sm.subscribe handles a case where a subscription message comes in before the query result', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(opts => {
+    setTimeout(() => {
+      opts.onMessage({
+        users: {
+          node: {
+            ...mockQueryDataReturn.users[0],
+            address_state: 'Definitely not FL',
+          },
+          operation: {
+            action: 'UpdateNode',
+            path: mockQueryDataReturn.users[0].id,
+          },
+        },
+      });
+    }, 20);
+  });
+  const mockQuery = jest.fn(() => {
+    return new Promise(res => {
+      setTimeout(() => {
+        res(mockQueryDataReturn);
+      }, 40);
+    });
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const onData = jest.fn(({ results }) => {
+    expect(results.users[0].address.state).toEqual('Definitely not FL');
+  });
+  await subscribe(queryDefinitions, {
+    onData: onData,
+    onError: e => {
+      done(e);
+    },
+  });
+
+  setTimeout(() => {
+    expect(onData).toHaveBeenCalledTimes(1);
+    done();
+  }, 60);
 });
 
 test('sm.subscribe calls onError when a subscription error occurs', async done => {

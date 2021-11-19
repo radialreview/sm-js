@@ -6,7 +6,6 @@ import {
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 
-
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
@@ -484,6 +483,17 @@ function getRootLevelQueryString(
   );
 }
 
+export type SubscriptionConfig = {
+  alias: string;
+  gqlString: string;
+  extractNodeFromSubscriptionMessage: (
+    subscriptionMessage: Record<string, any>
+  ) => any;
+  extractOperationFromSubscriptionMessage: (
+    subscriptionMessage: Record<string, any>
+  ) => any;
+};
+
 export function getQueryInfo(opts: {
   queryDefinitions: QueryDefinitions;
   queryId: string;
@@ -501,17 +511,6 @@ export function getQueryInfo(opts: {
           .join('\n    ')}
     }
   `.trim();
-
-  type SubscriptionConfig = {
-    alias: string;
-    gqlString: string;
-    extractNodeFromSubscriptionMessage: (
-      subscriptionMessage: Record<string, any>
-    ) => any;
-    extractOperationFromSubscriptionMessage: (
-      subscriptionMessage: Record<string, any>
-    ) => any;
-  };
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord
