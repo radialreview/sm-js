@@ -1,13 +1,27 @@
 import { config, SMConfig } from './config';
 import { setToken } from './auth';
-import { query } from './smQueriers';
+import { query, subscribe } from './smQueriers';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
   mockResultExpectations,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { subscribe } from '.';
+
+// this file tests some console error functionality, this keeps the test output clean
+const nativeConsoleError = console.error;
+beforeEach(() => {
+  console.error = () => {};
+  config({
+    gqlClient: {
+      query: async () => mockQueryDataReturn,
+      subscribe: () => {},
+    },
+  } as DeepPartial<SMConfig>);
+});
+afterAll(() => {
+  console.error = nativeConsoleError;
+});
 
 const token = 'my mock token';
 setToken('default', { token });
@@ -39,7 +53,6 @@ test('sm.query uses the gql client, passing in the expected params', async done 
 
 test('sm.query returns the correct data', async () => {
   const queryDefinitions = createMockQueryDefinitions();
-
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
   config({
     gqlClient: {
@@ -62,8 +75,8 @@ test('sm.query calls "onData" with the result of the query', done => {
   } as DeepPartial<SMConfig>);
 
   query(queryDefinitions, {
-    onData: data => {
-      expect(data).toEqual(mockResultExpectations);
+    onData: ({ results }) => {
+      expect(results).toEqual(mockResultExpectations);
       done();
     },
   });
@@ -71,9 +84,8 @@ test('sm.query calls "onData" with the result of the query', done => {
 
 test('sm.query calls "onError" when the query fails', done => {
   const queryDefinitions = createMockQueryDefinitions();
-  const error = new Error();
   const mockQuery = jest.fn(async () => {
-    throw error;
+    throw new Error('Something went wrong');
   });
   config({
     gqlClient: {
@@ -83,7 +95,10 @@ test('sm.query calls "onError" when the query fails', done => {
 
   query(queryDefinitions, {
     onError: e => {
-      expect(e).toBe(error);
+      expect(e).toMatchInlineSnapshot(`
+        [Error: Error querying data
+        Error: Something went wrong]
+      `);
       done();
     },
   });
@@ -91,9 +106,8 @@ test('sm.query calls "onError" when the query fails', done => {
 
 test('sm.query throws an error when the query fails and no "onError" handler is provided', async done => {
   const queryDefinitions = createMockQueryDefinitions();
-  const error = new Error();
   const mockQuery = jest.fn(async () => {
-    throw error;
+    throw new Error('Something went wrong');
   });
   config({
     gqlClient: {
@@ -104,18 +118,32 @@ test('sm.query throws an error when the query fails and no "onError" handler is 
   try {
     await query(queryDefinitions);
   } catch (e) {
-    expect(e).toBe(error);
+    expect(e).toMatchInlineSnapshot(`
+      [Error: Error querying data
+      Error: Something went wrong]
+    `);
     done();
   }
 });
 
-test('sm.subscribe by default queries and subscribes to the data set', done => {
+test('sm.query throws an error when the user specifies a token which has not been registered', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+
+  try {
+    await query(queryDefinitions, { tokenName: 'invalidTokenName' });
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`
+      [Error: No token registered with the name "invalidTokenName".
+      Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
+    `);
+    done();
+  }
+});
+
+test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  const mockSubscribe = jest.fn(() => {
-    expect(mockQuery).toHaveBeenCalled();
-    done();
-  });
+  const mockSubscribe = jest.fn(() => {});
   config({
     gqlClient: {
       query: mockQuery,
@@ -123,21 +151,22 @@ test('sm.subscribe by default queries and subscribes to the data set', done => {
     },
   } as DeepPartial<SMConfig>);
 
-  subscribe(queryDefinitions, {
+  await subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       done(e);
     },
   });
+
+  expect(mockQuery).toHaveBeenCalled();
+  expect(mockSubscribe).toHaveBeenCalled();
+  done();
 });
 
-test('sm.subscribe does not query if skipInitialQuery is true', done => {
+test('sm.subscribe does not query if skipInitialQuery is true', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  const mockSubscribe = jest.fn(() => {
-    expect(mockQuery).not.toHaveBeenCalled();
-    done();
-  });
+  const mockSubscribe = jest.fn(() => {});
   config({
     gqlClient: {
       query: mockQuery,
@@ -145,13 +174,16 @@ test('sm.subscribe does not query if skipInitialQuery is true', done => {
     },
   } as DeepPartial<SMConfig>);
 
-  subscribe(queryDefinitions, {
+  await subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
       done(e);
     },
   });
+
+  expect(mockQuery).not.toHaveBeenCalled();
+  done();
 });
 
 test('sm.subscribe returns a method to cancel any subscriptions started', async done => {
@@ -177,7 +209,44 @@ test('sm.subscribe returns a method to cancel any subscriptions started', async 
   done();
 });
 
-test('sm.subscribe calls on error when a query or subscription error occurs', async done => {
+test('sm.subscribe calls onData with the new set of results when a node is updated', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(opts => {
+    setTimeout(() => {
+      opts.onMessage({
+        users: {
+          node: {
+            ...mockQueryDataReturn.users[0],
+          },
+          operation: {
+            action: 'UpdateNode',
+            path: mockQueryDataReturn.users[0].id,
+          },
+        },
+      });
+    }, 20);
+  });
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const onData = jest.fn();
+  await subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: onData,
+    onError: e => {
+      done(e);
+    },
+  });
+
+  setTimeout(() => {
+    expect(onData).toHaveBeenCalledTimes(2);
+  }, 40);
+});
+
+test('sm.subscribe calls onError when a subscription error occurs', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
@@ -195,4 +264,144 @@ test('sm.subscribe calls on error when a query or subscription error occurs', as
       done();
     },
   });
+});
+
+test('sm.subscribe throws an error when a subscription initialization error occurs and no onError handler is provided', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(() => {
+    throw Error('Some error');
+  });
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  try {
+    await subscribe(queryDefinitions, {
+      skipInitialQuery: true,
+      onData: () => {},
+    });
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`
+      [Error: Error initializating subscriptions
+      Error: Some error]
+    `);
+    done();
+  }
+});
+
+test('sm.subscribe calls onError when a subscription initialization error occurs', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(() => {
+    throw Error('Some error');
+  });
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: () => {},
+    onError: e => {
+      expect(e).toMatchInlineSnapshot(`
+        [Error: Error initializating subscriptions
+        Error: Some error]
+      `);
+      done();
+    },
+  });
+});
+
+test('sm.subscribe calls onError when an ongoing subscription error occurs', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(opts => {
+    setTimeout(() => {
+      opts.onError(new Error('Something went wrong'));
+    }, 30);
+  });
+  config({
+    gqlClient: {
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    skipInitialQuery: true,
+    onData: () => {},
+    onError: e => {
+      expect(e).toMatchInlineSnapshot(`
+        [Error: Error in a subscription message
+        Error: Something went wrong]
+      `);
+      done();
+    },
+  });
+});
+
+test('sm.subscribe calls onError when a query error occurs', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(() => {
+    throw Error('Some error');
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  subscribe(queryDefinitions, {
+    onData: () => {},
+    onError: e => {
+      expect(e).toMatchInlineSnapshot(`
+        [Error: Error querying initial data set
+        Error: Some error]
+      `);
+      done();
+    },
+  });
+});
+
+test('sm.subscribe throws an error when a query error occurs and no onError handler is provided', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(() => {
+    throw Error('Some error');
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  try {
+    await subscribe(queryDefinitions, {
+      onData: () => {},
+    });
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`
+      [Error: Error querying initial data set
+      Error: Some error]
+    `);
+    done();
+  }
+});
+
+test('sm.subscribe throws an error when the user specifies a token which has not been registered', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+
+  try {
+    await subscribe(queryDefinitions, {
+      onData: () => {},
+      tokenName: 'invalidTokenName',
+    });
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`
+      [Error: Error querying initial data set
+      Error: No token registered with the name "invalidTokenName".
+      Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
+    `);
+    done();
+  }
 });

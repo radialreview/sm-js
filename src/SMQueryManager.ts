@@ -1,27 +1,26 @@
-
-import { DOProxyGenerator } from './DOProxyGenerator'
-import { SMDataParsingException } from './exceptions'
+import { DOProxyGenerator } from './DOProxyGenerator';
+import { SMDataParsingException } from './exceptions';
 
 type SMQueryManagerState = Record<
   string, // the alias for this set of results
   SMQueryManagerStateEntry
->
+>;
 
 type SMQueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
-  idsOrIdInCurrentResult: string | Array<string>
-  proxyCache: SMQueryManagerProxyCache
-}
+  idsOrIdInCurrentResult: string | Array<string>;
+  proxyCache: SMQueryManagerProxyCache;
+};
 
 type SMQueryManagerProxyCache = Record<
   string, // id of the node
   SMQueryManagerProxyCacheEntry
->
+>;
 
 type SMQueryManagerProxyCacheEntry = {
-  proxy: IDOProxy
-  relationalState: Maybe<SMQueryManagerState>
-} // the proxy for that DO and relational state from the query results/latest subscription message
+  proxy: IDOProxy;
+  relationalState: Maybe<SMQueryManagerState>;
+}; // the proxy for that DO and relational state from the query results/latest subscription message
 
 /**
  * SMQueryManager is in charge of
@@ -35,49 +34,49 @@ type SMQueryManagerProxyCacheEntry = {
  *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
  */
 export class SMQueryManager {
-  private state: SMQueryManagerState = {}
+  private state: SMQueryManagerState = {};
 
   public onQueryResult(opts: {
-    queryResult: any
-    queryRecord: QueryRecord
-    queryId: string
+    queryResult: any;
+    queryRecord: QueryRecord;
+    queryId: string;
   }) {
     this.notifyRepositories({
       data: opts.queryResult,
       queryRecord: opts.queryRecord,
-    })
+    });
 
-    this.state = this.buildStateForQueryResult(opts)
+    this.state = this.buildStateForQueryResult(opts);
   }
 
   public onSubscriptionMessage(opts: {
-    node: Record<string, any>
+    node: Record<string, any>;
     operation: {
-      action: 'UpdateNode' | 'DeleteNode' | 'InsertNode'
-      path: string
-    }
-    queryId: string
-    queryRecord: QueryRecord
-    subscriptionAlias: string
+      action: 'UpdateNode' | 'DeleteNode' | 'InsertNode';
+      path: string;
+    };
+    queryId: string;
+    queryRecord: QueryRecord;
+    subscriptionAlias: string;
   }) {
-    const { node, operation, queryRecord, subscriptionAlias } = opts
-    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias]
+    const { node, operation, queryRecord, subscriptionAlias } = opts;
+    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias];
 
     if (operation.action === 'DeleteNode' && operation.path === node.id) {
       const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
-        .idsOrIdInCurrentResult
+        .idsOrIdInCurrentResult;
       if (Array.isArray(idsOrIdInCurrentResult)) {
         this.state[
           opts.subscriptionAlias
         ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
-          (id) => id !== node.id
-        )
+          id => id !== node.id
+        );
       } else {
         // @TODO SUPPORT-SINGLE-ID-QUERY
-        throw Error('Not implemented')
+        throw Error('Not implemented');
       }
 
-      return
+      return;
     }
 
     this.notifyRepositories({
@@ -87,16 +86,16 @@ export class SMQueryManager {
       queryRecord: {
         [subscriptionAlias]: queryRecordEntryForThisSubscription,
       },
-    })
+    });
 
-    this.updateProxiesAndStateFromSubscriptionMessage(opts)
+    this.updateProxiesAndStateFromSubscriptionMessage(opts);
   }
 
   /**
    * Returns the current results based on received query results and subscription messages
    */
   getResults() {
-    return this.getResultsFromState(this.state)
+    return this.getResultsFromState(this.state);
   }
 
   /**
@@ -105,14 +104,14 @@ export class SMQueryManager {
    */
   private getResultsFromState(state: SMQueryManagerState): Record<string, any> {
     return Object.keys(state).reduce((resultsAcc, queryAlias) => {
-      const stateForThisAlias = state[queryAlias]
-      const idsOrId = stateForThisAlias.idsOrIdInCurrentResult
+      const stateForThisAlias = state[queryAlias];
+      const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
       resultsAcc[queryAlias] = Array.isArray(idsOrId)
-        ? idsOrId.map((id) => stateForThisAlias.proxyCache[id].proxy)
-        : stateForThisAlias.proxyCache[idsOrId].proxy
+        ? idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy)
+        : stateForThisAlias.proxyCache[idsOrId].proxy;
 
-      return resultsAcc
-    }, {} as Record<string, any>)
+      return resultsAcc;
+    }, {} as Record<string, any>);
   }
 
   /**
@@ -120,11 +119,11 @@ export class SMQueryManager {
    * notifies the appropriate repositories so that DOs can be constructed or updated
    */
   private notifyRepositories(opts: {
-    data: Record<string, any>
-    queryRecord: { [key: string]: BaseQueryRecordEntry }
+    data: Record<string, any>;
+    queryRecord: { [key: string]: BaseQueryRecordEntry };
   }) {
-    Object.keys(opts.queryRecord).forEach((queryAlias) => {
-      const dataForThisAlias = opts.data[queryAlias]
+    Object.keys(opts.queryRecord).forEach(queryAlias => {
+      const dataForThisAlias = opts.data[queryAlias];
 
       if (!dataForThisAlias) {
         throw Error(
@@ -133,29 +132,27 @@ export class SMQueryManager {
             null,
             2
           )}\nResulting data:\n${JSON.stringify(opts.data, null, 2)}`
-        )
+        );
       }
 
-      const nodeRepository = opts.queryRecord[queryAlias].def.repository
+      const nodeRepository = opts.queryRecord[queryAlias].def.repository;
 
       if (Array.isArray(dataForThisAlias)) {
-      dataForThisAlias.flatMap((data) =>
-          nodeRepository.onDataReceived(data)
-        )
+        dataForThisAlias.flatMap(data => nodeRepository.onDataReceived(data));
       } else {
-        nodeRepository.onDataReceived(dataForThisAlias)
+        nodeRepository.onDataReceived(dataForThisAlias);
       }
 
-      const relationalQueries = opts.queryRecord[queryAlias].relational
+      const relationalQueries = opts.queryRecord[queryAlias].relational;
 
       if (relationalQueries) {
-        Object.keys(relationalQueries).forEach((relationalAlias) => {
+        Object.keys(relationalQueries).forEach(relationalAlias => {
           const relationalDataForThisAlias = Array.isArray(dataForThisAlias)
             ? dataForThisAlias.flatMap(
                 (dataEntry: any) => dataEntry[relationalAlias]
               )
-            : dataForThisAlias[relationalAlias]
-          const relationalQuery = relationalQueries[relationalAlias]
+            : dataForThisAlias[relationalAlias];
+          const relationalQuery = relationalQueries[relationalAlias];
 
           if (!relationalDataForThisAlias) {
             throw Error(
@@ -164,7 +161,7 @@ export class SMQueryManager {
                 null,
                 2
               )}\nResulting data:\n${JSON.stringify(opts.data, null, 2)}`
-            )
+            );
           }
 
           this.notifyRepositories({
@@ -174,10 +171,10 @@ export class SMQueryManager {
             queryRecord: {
               [relationalAlias]: relationalQuery,
             },
-          })
-        })
+          });
+        });
       }
-    })
+    });
   }
 
   /**
@@ -185,9 +182,9 @@ export class SMQueryManager {
    *   does not execute on subscription messages. Look for "getStatePartialFromSubscriptionMessage"
    */
   private buildStateForQueryResult(opts: {
-    queryResult: Record<string, any>
-    queryRecord: { [key: string]: BaseQueryRecordEntry }
-    queryId: string
+    queryResult: Record<string, any>;
+    queryRecord: { [key: string]: BaseQueryRecordEntry };
+    queryId: string;
   }): SMQueryManagerState {
     return Object.keys(opts.queryRecord).reduce(
       (resultingStateAcc, queryAlias) => {
@@ -196,31 +193,31 @@ export class SMQueryManager {
           queryId: opts.queryId,
           queryAlias,
           queryRecord: opts.queryRecord,
-        })
+        });
 
-        return resultingStateAcc
+        return resultingStateAcc;
       },
       {} as SMQueryManagerState
-    )
+    );
   }
 
   private buildCacheEntry(opts: {
-    nodeData: Record<string, any> | Array<Record<string, any>>
-    queryId: string
-    queryAlias: string
-    queryRecord: { [key: string]: BaseQueryRecordEntry }
+    nodeData: Record<string, any> | Array<Record<string, any>>;
+    queryId: string;
+    queryAlias: string;
+    queryRecord: { [key: string]: BaseQueryRecordEntry };
   }): SMQueryManagerStateEntry {
-    const { queryRecord, nodeData, queryAlias } = opts
-    const { relational } = queryRecord[opts.queryAlias]
+    const { queryRecord, nodeData, queryAlias } = opts;
+    const { relational } = queryRecord[opts.queryAlias];
 
     const buildRelationalStateForNode = (
       node: Record<string, any>
     ): Maybe<SMQueryManagerState> => {
-      if (!relational) return null
+      if (!relational) return null;
 
       return Object.keys(relational).reduce(
         (relationalStateAcc, relationalAlias) => {
-          const relationalDataForThisAlias = node[relationalAlias]
+          const relationalDataForThisAlias = node[relationalAlias];
 
           if (!relationalDataForThisAlias)
             throw Error(
@@ -229,7 +226,7 @@ export class SMQueryManager {
                 null,
                 2
               )}`
-            )
+            );
 
           return {
             ...relationalStateAcc,
@@ -239,17 +236,17 @@ export class SMQueryManager {
               queryAlias: relationalAlias,
               queryRecord: relational,
             }),
-          }
+          };
         },
         {} as SMQueryManagerState
-      )
-    }
+      );
+    };
 
     const buildProxyCacheEntryForNode = (
       node: Record<string, any>
     ): SMQueryManagerProxyCacheEntry => {
-      const relationalState = buildRelationalStateForNode(node)
-      const nodeRepository = queryRecord[queryAlias].def.repository
+      const relationalState = buildRelationalStateForNode(node);
+      const nodeRepository = queryRecord[queryAlias].def.repository;
 
       const proxy = DOProxyGenerator({
         node: opts.queryRecord[opts.queryAlias].def,
@@ -260,13 +257,13 @@ export class SMQueryManager {
           ? null
           : this.getResultsFromState(relationalState),
         do: nodeRepository.byId(node.id),
-      })
+      });
 
       return {
         proxy,
         relationalState,
-      }
-    }
+      };
+    };
 
     if (Array.isArray(opts.nodeData)) {
       if ('id' in queryRecord[opts.queryAlias]) {
@@ -274,26 +271,26 @@ export class SMQueryManager {
           throw new SMDataParsingException({
             receivedData: opts.nodeData,
             message: `Queried a node by id for the query with the id "${opts.queryId}" but received back an empty array`,
-          })
+          });
         }
 
         return {
           idsOrIdInCurrentResult: opts.nodeData[0].id,
           proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
-            proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node)
+            proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
 
-            return proxyCacheAcc
+            return proxyCacheAcc;
           }, {} as SMQueryManagerProxyCache),
-        }
+        };
       } else {
         return {
-          idsOrIdInCurrentResult: opts.nodeData.map((node) => node.id),
+          idsOrIdInCurrentResult: opts.nodeData.map(node => node.id),
           proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
-            proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node)
+            proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
 
-            return proxyCacheAcc
+            return proxyCacheAcc;
           }, {} as SMQueryManagerProxyCache),
-        }
+        };
       }
     } else {
       return {
@@ -303,23 +300,23 @@ export class SMQueryManager {
             nodeData
           ),
         },
-      }
+      };
     }
   }
 
   private updateProxiesAndStateFromSubscriptionMessage(opts: {
-    node: any
-    queryId: string
-    queryRecord: QueryRecord
-    subscriptionAlias: string
+    node: any;
+    queryId: string;
+    queryRecord: QueryRecord;
+    subscriptionAlias: string;
   }) {
-    const { node, queryId, queryRecord, subscriptionAlias } = opts
-    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias]
-    this.state[subscriptionAlias] = this.state[subscriptionAlias] || {}
-    const stateForThisAlias = this.state[subscriptionAlias]
-    const nodeId = node.id
+    const { node, queryId, queryRecord, subscriptionAlias } = opts;
+    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias];
+    this.state[subscriptionAlias] = this.state[subscriptionAlias] || {};
+    const stateForThisAlias = this.state[subscriptionAlias];
+    const nodeId = node.id;
     const { proxy, relationalState } =
-      stateForThisAlias.proxyCache[nodeId] || {}
+      stateForThisAlias.proxyCache[nodeId] || {};
 
     if (proxy) {
       const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry({
@@ -332,21 +329,21 @@ export class SMQueryManager {
         relationalQueryRecord:
           queryRecordEntryForThisSubscription.relational || null,
         currentState: { proxy, relationalState },
-      })
-      stateForThisAlias.proxyCache[nodeId] = newCacheEntry
+      });
+      stateForThisAlias.proxyCache[nodeId] = newCacheEntry;
     } else {
       const { proxyCache } = this.buildCacheEntry({
         nodeData: node,
         queryId,
         queryAlias: subscriptionAlias,
         queryRecord,
-      })
+      });
 
-      const newlyGeneratedProxy = proxyCache[node.id]
+      const newlyGeneratedProxy = proxyCache[node.id];
 
-      if (!newlyGeneratedProxy) throw Error('Expected a newly generated proxy')
+      if (!newlyGeneratedProxy) throw Error('Expected a newly generated proxy');
 
-      stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id]
+      stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
     }
 
     if (
@@ -359,37 +356,37 @@ export class SMQueryManager {
           stateForThisAlias.idsOrIdInCurrentResult || ([] as Array<string>)
         ).includes(nodeId)
       )
-        return // don't need to do anything if this id was already in the returned set
+        return; // don't need to do anything if this id was already in the returned set
 
       this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = [
         nodeId, // insert the new node at the start of the array
         ...(this.state[opts.subscriptionAlias].idsOrIdInCurrentResult as Array<
           string
         >),
-      ]
+      ];
     } else if ('id' in queryRecordEntryForThisSubscription) {
       if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
-        return
+        return;
       }
 
-      this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId
+      this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId;
     } else {
       throw Error(
         `Not implemented. ${JSON.stringify(
           queryRecordEntryForThisSubscription
         )}`
-      )
+      );
     }
   }
 
   private recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
-    queryId: string
-    proxy: IDOProxy
+    queryId: string;
+    proxy: IDOProxy;
     newRelationalData: Maybe<
       Record<string, Array<Record<string, any> | Record<string, any>>>
-    >
-    relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>
-    currentState: SMQueryManagerProxyCacheEntry
+    >;
+    relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
+    currentState: SMQueryManagerProxyCacheEntry;
   }): SMQueryManagerProxyCacheEntry {
     const {
       queryId,
@@ -397,8 +394,8 @@ export class SMQueryManager {
       newRelationalData,
       currentState,
       relationalQueryRecord,
-    } = opts
-    const { relationalState: currentRelationalState } = currentState
+    } = opts;
+    const { relationalState: currentRelationalState } = currentState;
 
     const newRelationalState = !relationalQueryRecord
       ? null
@@ -415,17 +412,17 @@ export class SMQueryManager {
                   null,
                   2
                 )}`
-              )
+              );
             }
 
             const relationalDataForThisAlias =
-              newRelationalData[relationalAlias]
+              newRelationalData[relationalAlias];
             const queryRecordForThisAlias =
-              relationalQueryRecord[relationalAlias]
+              relationalQueryRecord[relationalAlias];
 
             const currentStateForThisAlias = !currentRelationalState
               ? null
-              : currentRelationalState[relationalAlias]
+              : currentRelationalState[relationalAlias];
 
             if (!currentStateForThisAlias) {
               relationalStateAcc[relationalAlias] = this.buildCacheEntry({
@@ -433,19 +430,19 @@ export class SMQueryManager {
                 queryId,
                 queryAlias: relationalAlias,
                 queryRecord: relationalQueryRecord,
-              })
+              });
 
-              return relationalStateAcc
+              return relationalStateAcc;
             }
 
             if (Array.isArray(relationalDataForThisAlias)) {
               relationalStateAcc[relationalAlias] = relationalStateAcc[
                 relationalAlias
-              ] || { proxyCache: {}, idsOrIdInCurrentResult: [] }
+              ] || { proxyCache: {}, idsOrIdInCurrentResult: [] };
 
-              relationalDataForThisAlias.forEach((node) => {
+              relationalDataForThisAlias.forEach(node => {
                 const existingProxy =
-                  currentStateForThisAlias.proxyCache[node.id]?.proxy
+                  currentStateForThisAlias.proxyCache[node.id]?.proxy;
 
                 if (!existingProxy) {
                   const newCacheEntry = this.buildCacheEntry({
@@ -453,7 +450,7 @@ export class SMQueryManager {
                     queryId: queryId,
                     queryAlias: relationalAlias,
                     queryRecord: relationalQueryRecord,
-                  })
+                  });
 
                   relationalStateAcc[relationalAlias] = {
                     proxyCache: {
@@ -465,7 +462,7 @@ export class SMQueryManager {
                         .idsOrIdInCurrentResult as Array<string>),
                       node.id,
                     ],
-                  }
+                  };
                 } else {
                   const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
                     {
@@ -480,7 +477,7 @@ export class SMQueryManager {
                       currentState:
                         currentStateForThisAlias.proxyCache[node.id],
                     }
-                  )
+                  );
 
                   relationalStateAcc[relationalAlias] = {
                     proxyCache: {
@@ -492,45 +489,45 @@ export class SMQueryManager {
                         .idsOrIdInCurrentResult as Array<string>),
                       node.id,
                     ],
-                  }
+                  };
                 }
-              })
+              });
             } else {
               throw Error(
                 `Not implemented. ${JSON.stringify(relationalDataForThisAlias)}`
-              )
+              );
             }
 
-            return relationalStateAcc
+            return relationalStateAcc;
           },
           {} as SMQueryManagerState
-        )
+        );
 
     newRelationalState
       ? proxy.updateRelationalResults(
           this.getResultsFromState(newRelationalState)
         )
-      : proxy.updateRelationalResults(null)
+      : proxy.updateRelationalResults(null);
 
     return {
       proxy,
       relationalState: newRelationalState,
-    }
+    };
   }
 
   private getRelationalData(opts: {
-    queryRecord: BaseQueryRecordEntry
-    node: Record<string, any>
+    queryRecord: BaseQueryRecordEntry;
+    node: Record<string, any>;
   }) {
     return opts.queryRecord.relational
       ? Object.keys(opts.queryRecord.relational).reduce(
           (relationalDataAcc, relationalAlias) => {
-            relationalDataAcc[relationalAlias] = opts.node[relationalAlias]
+            relationalDataAcc[relationalAlias] = opts.node[relationalAlias];
 
-            return relationalDataAcc
+            return relationalDataAcc;
           },
           {} as Record<string, any>
         )
-      : null
+      : null;
   }
 }
