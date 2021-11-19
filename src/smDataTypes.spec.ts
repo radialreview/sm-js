@@ -75,7 +75,7 @@ describe('Node default properties', () => {
     const DOClass = DOFactory(def as any);
 
     const DO = new DOClass({
-      isBillingEnabled: true,
+      isBillingEnabled: 'true',
       isProduction: false,
     });
 
@@ -137,7 +137,8 @@ describe('Node default properties', () => {
 
   it.only('should handle defaults/optional properties for object types', () => {
     const properties = {
-      animal: smData.object({
+      zoo: smData.string,
+      animal: smData.object.optional({
         type: smData.string('cat'),
         name: smData.string('joe'),
         age: smData.number,
@@ -157,9 +158,10 @@ describe('Node default properties', () => {
     const DOClass = DOFactory(def as any);
 
     const DO = new DOClass({
+      zoo: 'brendans zoo',
       animal: {
         type: 'dog',
-        isGoodBoy: true,
+        isGoodBoy: 'true',
       },
     });
 

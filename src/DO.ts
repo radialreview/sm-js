@@ -27,6 +27,7 @@ export function DOFactory<
   return class DO implements TDOClass {
     public parsedData: DeepPartial<TNodeData>;
     private _defaults: Record<keyof TNodeData, any>;
+    private _test: Record<string, any> = {};
 
     constructor(initialData?: DeepPartial<TNodeData>) {
       const initialPersisted: DeepPartial<TNodeData> = {};
@@ -36,26 +37,6 @@ export function DOFactory<
       extend({
         object: initialPersisted,
         extension: this._defaults,
-        deleteKeysNotInExtension: false,
-        extendNestedObjects: true,
-      });
-
-      if (initialData) {
-        extend({
-          object: initialPersisted,
-          extension: initialData,
-          deleteKeysNotInExtension: false,
-          extendNestedObjects: true,
-        });
-      }
-
-      const { parsedData } = this.getInitialState({
-        smDataForThisObject: node.properties,
-      });
-
-      extend({
-        object: initialPersisted,
-        extension: parsedData,
         deleteKeysNotInExtension: false,
         extendNestedObjects: true,
       });
@@ -77,6 +58,58 @@ export function DOFactory<
       this.initializeNodeComputedGetters();
       this.initializeNodeRelationalGetters();
       this.initializeNodeMutations();
+      initialData &&
+        this.parseInitialData({ initialData, nodeProperties: node.properties });
+    }
+
+    private parseInitialData(opts: {
+      initialData: Record<string, any>;
+      nodeProperties: typeof node.properties;
+      parentObjectPropName?: string;
+    }) {
+      const { initialData, nodeProperties, parentObjectPropName } = opts;
+      // Object.entries(nodeProperties).reduce((acc, [propName, propValue]) => {
+      //   const property = (() => {
+      //     if (typeof propValue === 'function') {
+      //       return (propValue as any)._default as ISMData;
+      //     }
+      //     return propValue as ISMData;
+      //   })();
+      // }, {} as Record<string, any>);
+
+      Object.entries(nodeProperties).forEach(([propName, propValue]) => {
+        const property = (() => {
+          if (typeof propValue === 'function') {
+            return (propValue as any)._default as ISMData;
+          }
+          return propValue as ISMData;
+        })();
+        const propExistsInInitialData = propName in initialData;
+
+        if (
+          property.type === SM_DATA_TYPES.object ||
+          property.type === SM_DATA_TYPES.maybeObject
+        ) {
+          if (propExistsInInitialData) {
+            this._test[propName] = this.parseInitialData({
+              initialData: initialData[propName],
+              nodeProperties: property.boxedValue,
+              parentObjectPropName: propName,
+            });
+          }
+        } else if (parentObjectPropName && propExistsInInitialData) {
+          this._test = {
+            ...this._test,
+            [parentObjectPropName]: {
+              ...(this._test[parentObjectPropName] || {}),
+              [propName]: property.parser(initialData[propName]),
+            },
+          };
+        } else if (propExistsInInitialData) {
+          this._test[propName] = property.parser(initialData[propName]);
+        }
+        console.log('test', this._test);
+      });
     }
 
     private getDefaultData = (nodeProperties: TNodeData) => {
@@ -84,7 +117,10 @@ export function DOFactory<
         (acc, prop: keyof TNodeData) => {
           const propValue = nodeProperties[prop];
 
-          if (propValue.type === SM_DATA_TYPES.object) {
+          if (
+            propValue.type === SM_DATA_TYPES.object ||
+            propValue.type === SM_DATA_TYPES.maybeObject
+          ) {
             acc[prop] = this.getDefaultData(propValue.boxedValue);
           } else if (typeof propValue === 'function') {
             const defaultFn = (nodeProperties[prop] as any)._default;
@@ -139,6 +175,7 @@ export function DOFactory<
             const initialStateForThisObject = this.getInitialState({
               smDataForThisObject,
             });
+
             acc.parsedData[prop] = initialStateForThisObject.parsedData;
           }
 
@@ -167,14 +204,15 @@ export function DOFactory<
           property.type === SM_DATA_TYPES.object ||
           property.type === SM_DATA_TYPES.maybeObject
         ) {
-          const parsedDataForThisObject = this.parsedData[prop] as Record<
-            string,
-            any
-          >;
+          // const parsedDataForThisObject = this.parsedData[prop] as Record<
+          //   string,
+          //   any
+          // >;
 
           this.setObjectProp({
             smDataForThisObject: property.boxedValue as Record<string, ISMData>,
-            parsedDataForThisObject,
+            parsedDataForThisObject: () =>
+              this.parsedData[prop] as Record<string, any>,
             propNameForThisObject: prop as string,
             parentObject: this,
           });
@@ -243,10 +281,15 @@ export function DOFactory<
     private getParsedNewValue = (opts: {
       newValue: any;
       currentParsedData: any;
-      smData: ISMData | Record<string, ISMData>;
+      smData:
+        | ISMData
+        | Record<string, ISMData>
+        | ISMDataConstructor<any, any, any>;
     }) => {
       if (opts.smData instanceof SMData) {
         return (opts.smData as ISMData).parser(opts.newValue);
+      } else if (typeof opts.smData === 'function') {
+        return opts.smData(opts.newValue).parser(opts.newValue);
       } else {
         const smDataForThisObject = opts.smData as Record<string, ISMData>;
 
@@ -317,7 +360,7 @@ export function DOFactory<
      */
     private setObjectProp = (opts: {
       smDataForThisObject: Record<string, ISMData>;
-      parsedDataForThisObject: Record<string, any>;
+      parsedDataForThisObject: () => Record<string, any>;
       propNameForThisObject: string;
       parentObject: Record<string, any>;
     }) => {
@@ -325,25 +368,26 @@ export function DOFactory<
         configurable: true,
         enumerable: true,
         get: () => {
-          // Because objects within nodes are spread to multiple properties, there is no easy way to make an object "null".
-          // To define an object as "null", this library stores a boolean value within node.objectName[IS_NULL_IDENTIFIER]
-          if (opts.parsedDataForThisObject[IS_NULL_IDENTIFIER]) {
-            return null;
-          }
+          return opts.parsedDataForThisObject();
+          // // Because objects within nodes are spread to multiple properties, there is no easy way to make an object "null".
+          // // To define an object as "null", this library stores a boolean value within node.objectName[IS_NULL_IDENTIFIER]
+          // if (opts.parsedDataForThisObject[IS_NULL_IDENTIFIER]) {
+          //   return null;
+          // }
 
-          const objectToReturn: Record<string, any> = {};
+          // const objectToReturn: Record<string, any> = {};
 
-          Object.keys(opts.parsedDataForThisObject).forEach(objectProp => {
-            if (objectProp === IS_NULL_IDENTIFIER) return;
+          // Object.keys(opts.parsedDataForThisObject).forEach(objectProp => {
+          //   if (objectProp === IS_NULL_IDENTIFIER) return;
 
-            Object.defineProperty(objectToReturn, objectProp, {
-              configurable: true,
-              enumerable: true,
-              get: () => opts.parsedDataForThisObject[objectProp],
-            });
-          });
+          //   Object.defineProperty(objectToReturn, objectProp, {
+          //     configurable: true,
+          //     enumerable: true,
+          //     get: () => opts.parsedDataForThisObject[objectProp],
+          //   });
+          // });
 
-          return objectToReturn;
+          // return objectToReturn;
         },
         set: this.objectDataSetter({
           parsedDataForObject: opts.parsedDataForThisObject,
