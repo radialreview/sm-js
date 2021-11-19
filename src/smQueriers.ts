@@ -22,6 +22,8 @@ let queryIdx = 0;
 
 type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
   onData?: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
+  // When onError is provided, we pass it any errors encountered instead of throwing them.
+  // This is by design, for consistency with the interface of sm.subscribe
   onError?: (...args: any) => void;
   queryId?: string;
   tokenName?: string;
@@ -94,6 +96,14 @@ export const query = generateQuerier();
 
 type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
+  // To catch an error in a subscription, you must provide an onError handler,
+  // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
+  //
+  // This means you can use the try/catch syntax try { await sm.subscription } catch (e) {}
+  // to catch errors querying or initializing subscriptions.
+  //
+  // However, when onError is given, errors will no longer be thrown
+  // They will instead all be passed to the onError handler
   onError?: (...args: any) => void;
   skipInitialQuery?: boolean;
   queryId?: string;
@@ -214,6 +224,8 @@ export async function subscribe<
             });
           },
           onError: e => {
+            // Can never throw here. The dev consuming this would have no way of catching it
+            // To catch an error in a subscription they must provide onError
             handleError(new Error(`Error in a subscription message\n${e}`));
           },
         });
@@ -261,6 +273,7 @@ export async function subscribe<
     if (mustAwaitQuery) {
       mustAwaitQuery = false;
       messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
+      messageQueue.length = 0;
     }
 
     const data = queryManager.getResults() as QueryDataReturn<
