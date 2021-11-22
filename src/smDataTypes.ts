@@ -153,7 +153,7 @@ export const object: ISMDataConstructor<any, any, any> = <
     boxedValue,
   });
 
-object._default = null; //object({});
+object._default = null;
 
 object.optional = <TBoxedValue extends Record<string, ISMData>>(
   boxedValue: TBoxedValue

@@ -36,8 +36,8 @@ describe('Node default properties', () => {
       price: smData.number(123.15),
       taxRate: smData.number,
       credits: smData.number(5),
-      total: smData.string.optional,
-      subTotal: smData.string.optional,
+      total: smData.number.optional,
+      subTotal: smData.number.optional,
     };
 
     const def = {
@@ -48,8 +48,8 @@ describe('Node default properties', () => {
     const DOClass = DOFactory(def as any);
 
     const DO = new DOClass({
-      credits: 40,
-      subTotal: 30,
+      credits: '40',
+      subTotal: '30',
     });
 
     expect(DO.price).toEqual(123.15);
@@ -76,7 +76,7 @@ describe('Node default properties', () => {
 
     const DO = new DOClass({
       isBillingEnabled: 'true',
-      isProduction: false,
+      isProduction: 'false',
     });
 
     expect(DO.isLoggingEnabled).toEqual(true);
@@ -135,7 +135,7 @@ describe('Node default properties', () => {
     expect(DO.insects).toEqual([]);
   });
 
-  it.only('should handle defaults/optional properties for object types', () => {
+  it('should handle defaults/optional properties for object types', () => {
     const properties = {
       zoo: smData.string,
       animal: smData.object.optional({
@@ -147,6 +147,7 @@ describe('Node default properties', () => {
 
         owner: smData.object({ name: smData.string('rick') }),
         bestFriend: smData.object.optional({ name: smData.string }),
+        favoriteNumbers: smData.array(smData.number),
       }),
     };
 
@@ -162,6 +163,7 @@ describe('Node default properties', () => {
       animal: {
         type: 'dog',
         isGoodBoy: 'true',
+        favoriteNumbers: null,
       },
     });
 
@@ -171,6 +173,7 @@ describe('Node default properties', () => {
     expect(DO.animal.isGoodBoy).toEqual(true);
     expect(DO.animal.favoriteFoods).toEqual(null);
     expect(DO.animal.owner.name).toEqual('rick');
-    expect(DO.animal.bestFriend).toEqual(null); // this one fails
+    expect(DO.animal.bestFriend).toEqual(null);
+    expect(DO.animal.favoriteNumbers).toEqual([]);
   });
 });
