@@ -5,6 +5,11 @@ import {
 } from './exceptions';
 import { SM_DATA_TYPES } from './smDataTypes';
 
+// @TODO MUST UPDATA upToDateData
+// currently, it's all data in the query definition.
+// We want it to be just the data we've received, so that we don't enumerate
+// all DOProxy properties from the query record in data received from subscription deltas
+
 /**
  * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
  * Instead, we decorate each DO instance with a bit of functionality

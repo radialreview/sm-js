@@ -2,6 +2,7 @@ import * as smData from './smDataTypes';
 import { DOFactory } from './DO';
 import { queryDefinition } from './smDataTypes';
 import { IS_NULL_IDENTIFIER } from '.';
+import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
 const userProperties = {
   id: smData.string,
@@ -174,4 +175,23 @@ const expectedUsers = [
   },
 ];
 
-export const mockResultExpectations = { users: expectedUsers };
+export const mockQueryResultExpectations = { users: expectedUsers };
+
+const queryId = 'MockQuery';
+const { queryRecord } = convertQueryDefinitionToQueryInfo({
+  queryDefinitions: createMockQueryDefinitions(),
+  queryId,
+});
+
+export const mockQueryRecord = queryRecord;
+
+export const mockSubscriptionMessage = {
+  node: { id: 'some-mock-user-id', address_state: 'AK' },
+  operation: {
+    action: 'UpdateNode' as 'UpdateNode',
+    path: 'some-mock-user-id',
+  },
+  queryId,
+  queryRecord,
+  subscriptionAlias: 'users',
+};

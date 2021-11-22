@@ -34,16 +34,18 @@ type SMQueryManagerProxyCacheEntry = {
  *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
  */
 export class SMQueryManager {
-  private state: SMQueryManagerState = {};
+  private state: SMQueryManagerState;
+  private queryRecord: QueryRecord;
 
-  public onQueryResult(opts: {
-    queryResult: any;
-    queryRecord: QueryRecord;
-    queryId: string;
-  }) {
+  constructor(queryRecord: QueryRecord) {
+    this.state = this.buildInitialStateFromQueryRecord(queryRecord);
+    this.queryRecord = queryRecord;
+  }
+
+  public onQueryResult(opts: { queryResult: any; queryId: string }) {
     this.notifyRepositories({
       data: opts.queryResult,
-      queryRecord: opts.queryRecord,
+      queryRecord: this.queryRecord,
     });
 
     this.state = this.buildStateForQueryResult(opts);
@@ -56,11 +58,12 @@ export class SMQueryManager {
       path: string;
     };
     queryId: string;
-    queryRecord: QueryRecord;
     subscriptionAlias: string;
   }) {
-    const { node, operation, queryRecord, subscriptionAlias } = opts;
-    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias];
+    const { node, operation, subscriptionAlias } = opts;
+    const queryRecordEntryForThisSubscription = this.queryRecord[
+      subscriptionAlias
+    ];
 
     if (operation.action === 'DeleteNode' && operation.path === node.id) {
       const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
@@ -96,6 +99,21 @@ export class SMQueryManager {
    */
   getResults() {
     return this.getResultsFromState(this.state);
+  }
+
+  private buildInitialStateFromQueryRecord(
+    queryRecord: QueryRecord
+  ): SMQueryManagerState {
+    return Object.keys(queryRecord).reduce((acc, queryAlias) => {
+      const queryRecordEntry = queryRecord[queryAlias];
+
+      acc[queryAlias] = {
+        idsOrIdInCurrentResult: 'id' in queryRecordEntry ? '' : [],
+        proxyCache: {},
+      };
+
+      return acc;
+    }, {} as SMQueryManagerState);
   }
 
   /**
@@ -152,26 +170,19 @@ export class SMQueryManager {
                 (dataEntry: any) => dataEntry[relationalAlias]
               )
             : dataForThisAlias[relationalAlias];
-          const relationalQuery = relationalQueries[relationalAlias];
 
-          if (!relationalDataForThisAlias) {
-            throw Error(
-              `notifyRepositories could not find resulting relational data for the alias "${relationalAlias}" in the following queryRecord:\n${JSON.stringify(
-                opts.queryRecord,
-                null,
-                2
-              )}\nResulting data:\n${JSON.stringify(opts.data, null, 2)}`
-            );
+          if (relationalDataForThisAlias) {
+            const relationalQuery = relationalQueries[relationalAlias];
+
+            this.notifyRepositories({
+              data: {
+                [relationalAlias]: relationalDataForThisAlias,
+              },
+              queryRecord: {
+                [relationalAlias]: relationalQuery,
+              },
+            });
           }
-
-          this.notifyRepositories({
-            data: {
-              [relationalAlias]: relationalDataForThisAlias,
-            },
-            queryRecord: {
-              [relationalAlias]: relationalQuery,
-            },
-          });
         });
       }
     });
@@ -183,16 +194,14 @@ export class SMQueryManager {
    */
   private buildStateForQueryResult(opts: {
     queryResult: Record<string, any>;
-    queryRecord: { [key: string]: BaseQueryRecordEntry };
     queryId: string;
   }): SMQueryManagerState {
-    return Object.keys(opts.queryRecord).reduce(
+    return Object.keys(this.queryRecord).reduce(
       (resultingStateAcc, queryAlias) => {
         resultingStateAcc[queryAlias] = this.buildCacheEntry({
           nodeData: opts.queryResult[queryAlias],
           queryId: opts.queryId,
           queryAlias,
-          queryRecord: opts.queryRecord,
         });
 
         return resultingStateAcc;
@@ -205,9 +214,10 @@ export class SMQueryManager {
     nodeData: Record<string, any> | Array<Record<string, any>>;
     queryId: string;
     queryAlias: string;
-    queryRecord: { [key: string]: BaseQueryRecordEntry };
+    queryRecord?: { [key: string]: BaseQueryRecordEntry };
   }): SMQueryManagerStateEntry {
-    const { queryRecord, nodeData, queryAlias } = opts;
+    const { nodeData, queryAlias } = opts;
+    const queryRecord = opts.queryRecord || this.queryRecord;
     const { relational } = queryRecord[opts.queryAlias];
 
     const buildRelationalStateForNode = (
@@ -219,24 +229,17 @@ export class SMQueryManager {
         (relationalStateAcc, relationalAlias) => {
           const relationalDataForThisAlias = node[relationalAlias];
 
-          if (!relationalDataForThisAlias)
-            throw Error(
-              `Expected data for "${relationalAlias}" in\n${JSON.stringify(
-                nodeData,
-                null,
-                2
-              )}`
-            );
-
-          return {
-            ...relationalStateAcc,
-            [relationalAlias]: this.buildCacheEntry({
-              nodeData: relationalDataForThisAlias,
-              queryId: opts.queryId,
-              queryAlias: relationalAlias,
-              queryRecord: relational,
-            }),
-          };
+          if (relationalDataForThisAlias) {
+            return {
+              ...relationalStateAcc,
+              [relationalAlias]: this.buildCacheEntry({
+                nodeData: relationalDataForThisAlias,
+                queryId: opts.queryId,
+                queryAlias: relationalAlias,
+                queryRecord: relational,
+              }),
+            };
+          } else return relationalStateAcc;
         },
         {} as SMQueryManagerState
       );
@@ -249,8 +252,8 @@ export class SMQueryManager {
       const nodeRepository = queryRecord[queryAlias].def.repository;
 
       const proxy = DOProxyGenerator({
-        node: opts.queryRecord[opts.queryAlias].def,
-        upToDateData: opts.queryRecord[opts.queryAlias].properties,
+        node: queryRecord[opts.queryAlias].def,
+        upToDateData: queryRecord[opts.queryAlias].properties,
         relationalQueries: relational || null,
         queryId: opts.queryId,
         relationalResults: !relationalState
@@ -307,11 +310,12 @@ export class SMQueryManager {
   private updateProxiesAndStateFromSubscriptionMessage(opts: {
     node: any;
     queryId: string;
-    queryRecord: QueryRecord;
     subscriptionAlias: string;
   }) {
-    const { node, queryId, queryRecord, subscriptionAlias } = opts;
-    const queryRecordEntryForThisSubscription = queryRecord[subscriptionAlias];
+    const { node, queryId, subscriptionAlias } = opts;
+    const queryRecordEntryForThisSubscription = this.queryRecord[
+      subscriptionAlias
+    ];
     this.state[subscriptionAlias] = this.state[subscriptionAlias] || {};
     const stateForThisAlias = this.state[subscriptionAlias];
     const nodeId = node.id;
@@ -336,7 +340,7 @@ export class SMQueryManager {
         nodeData: node,
         queryId,
         queryAlias: subscriptionAlias,
-        queryRecord,
+        queryRecord: this.queryRecord,
       });
 
       const newlyGeneratedProxy = proxyCache[node.id];

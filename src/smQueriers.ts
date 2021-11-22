@@ -55,10 +55,16 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
     const token = getToken({ tokenName });
 
     if (!token) {
-      throw Error(
+      const error = new Error(
         `No token registered with the name "${tokenName}".\n` +
           'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
       );
+      if (opts?.onError) {
+        opts.onError(error);
+        return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
+      } else {
+        throw error;
+      }
     }
 
     return getConfig()
@@ -68,14 +74,24 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
         batched: opts?.batched,
       })
       .then(queryResult => {
-        const qM = queryManager || new SMQueryManager();
-        qM.onQueryResult({
-          queryRecord: queryRecord,
-          queryId,
-          queryResult,
-        });
+        let results;
+        try {
+          const qM = queryManager || new SMQueryManager(queryRecord);
+          qM.onQueryResult({
+            queryId,
+            queryResult,
+          });
 
-        const results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
+          results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
+        } catch (e) {
+          const error = new Error(`Error applying query results\n${e}`);
+          if (opts?.onError) {
+            opts.onError(error);
+            return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
+          } else {
+            throw error;
+          }
+        }
 
         opts?.onData && opts.onData({ results });
         return { data: results, error: null };
@@ -153,15 +169,21 @@ export async function subscribe<
   const token = getToken({ tokenName });
 
   if (!token) {
-    handleError(
-      new Error(
-        `No token registered with the name "${tokenName}".\n` +
-          'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
-      )
+    const error = new Error(
+      `No token registered with the name "${tokenName}".\n` +
+        'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
     );
+    if (opts.onError) {
+      opts.onError(error);
+      return { data: {}, unsub, error } as {
+        data: QueryDataReturn<TQueryDefinitions>;
+      } & SubscriptionMeta;
+    } else {
+      throw error;
+    }
   }
 
-  const queryManager = new SMQueryManager();
+  const queryManager = new SMQueryManager(queryRecord);
 
   function updateQueryManagerWithSubscriptionMessage(data: {
     message: Record<string, any>;
@@ -180,11 +202,10 @@ export async function subscribe<
         node,
         operation,
         queryId: queryId,
-        queryRecord: queryRecord,
         subscriptionAlias: data.subscriptionConfig.alias,
       });
     } catch (e) {
-      handleError(e);
+      handleError(`Error applying subscription message\n${e}`);
     }
   }
 

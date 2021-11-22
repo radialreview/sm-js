@@ -4,7 +4,7 @@ import { query, subscribe } from './smQueriers';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
-  mockResultExpectations,
+  mockQueryResultExpectations,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
@@ -62,7 +62,7 @@ test('sm.query returns the correct data', async () => {
 
   const { data } = await query(queryDefinitions);
 
-  expect(data).toEqual(mockResultExpectations);
+  expect(data).toEqual(mockQueryResultExpectations);
 });
 
 test('sm.query calls "onData" with the result of the query', done => {
@@ -76,7 +76,7 @@ test('sm.query calls "onData" with the result of the query', done => {
 
   query(queryDefinitions, {
     onData: ({ results }) => {
-      expect(results).toEqual(mockResultExpectations);
+      expect(results).toEqual(mockQueryResultExpectations);
       done();
     },
   });
