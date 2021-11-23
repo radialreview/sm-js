@@ -32,6 +32,7 @@ declare interface ISMData<
   parser(smValue: TSMValue): TParsedValue;
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
+  isOptional: boolean;
 }
 
 declare type SMDataEnum<Enum extends string | number | null> = ISMData<

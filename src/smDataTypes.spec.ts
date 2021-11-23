@@ -114,6 +114,13 @@ describe('Node default properties', () => {
       catBreeds: smData.array(smData.string),
       insects: smData.array(smData.string),
       birdBreeds: smData.array(smData.string).optional,
+      petsInStock: smData.array(
+        smData.object({
+          name: smData.string,
+          type: smData.string('n/a'),
+          onSale: smData.boolean(true),
+        })
+      ),
     };
 
     const def = {
@@ -126,13 +133,27 @@ describe('Node default properties', () => {
     const DO = new DOClass({
       dogBreeds: ['husky'],
       catBreeds: ['siamese'],
+      petsInStock: [
+        {
+          name: 'floyd',
+        },
+        { name: 'harry', type: 'cat' },
+      ],
     });
 
     expect(DO.pets).toEqual(['cat', 'dog', 'bird']);
     expect(DO.dogBreeds).toEqual(['husky']);
     expect(DO.catBreeds).toEqual(['siamese']);
     expect(DO.birdBreeds).toEqual(null);
-    expect(DO.insects).toEqual([]);
+    expect(DO.insects).toEqual(['']);
+    expect(DO.petsInStock).toEqual([
+      {
+        name: 'floyd',
+        type: 'n/a',
+        onSale: true,
+      },
+      { name: 'harry', type: 'cat', onSale: true },
+    ]);
   });
 
   it('should handle defaults/optional properties for object types', () => {
@@ -148,6 +169,7 @@ describe('Node default properties', () => {
         owner: smData.object({ name: smData.string('rick') }),
         bestFriend: smData.object.optional({ name: smData.string }),
         favoriteNumbers: smData.array(smData.number),
+        leastFavoriteNumbers: smData.array(smData.number).optional,
       }),
     };
 
@@ -164,6 +186,7 @@ describe('Node default properties', () => {
         type: 'dog',
         isGoodBoy: 'true',
         favoriteNumbers: null,
+        leastFavoriteNumbers: ['2', '5'],
       },
     });
 
@@ -174,6 +197,7 @@ describe('Node default properties', () => {
     expect(DO.animal.favoriteFoods).toEqual(null);
     expect(DO.animal.owner.name).toEqual('rick');
     expect(DO.animal.bestFriend).toEqual(null);
-    expect(DO.animal.favoriteNumbers).toEqual([]);
+    expect(DO.animal.favoriteNumbers).toEqual([0]);
+    expect(DO.animal.leastFavoriteNumbers).toEqual([2, 5]);
   });
 });

@@ -29,17 +29,20 @@ export class SMData<
   parser: (smValue: TSMValue) => TParsedValue;
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
+  isOptional: boolean;
 
   constructor(opts: {
     type: string;
     parser: (smValue: TSMValue) => TParsedValue;
     boxedValue?: TBoxedValue;
     defaultValue?: TParsedValue;
+    isOptional: boolean;
   }) {
     this.type = opts.type;
     this.parser = opts.parser;
     this.boxedValue = opts.boxedValue as TBoxedValue;
     this.defaultValue = opts.defaultValue ?? null;
+    this.isOptional = opts.isOptional;
   }
 }
 
@@ -58,6 +61,7 @@ export const string: ISMDataConstructor<
     type: SM_DATA_TYPES.string,
     parser: value => (value != null ? String(value) : value),
     defaultValue,
+    isOptional: false,
   });
 
 string._default = string('');
@@ -65,6 +69,7 @@ string._default = string('');
 string.optional = new SMData<Maybe<string>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeString,
   parser: value => (value != null ? String(value) : value),
+  isOptional: true,
 });
 
 export const number: ISMDataConstructor<
@@ -76,6 +81,7 @@ export const number: ISMDataConstructor<
     type: SM_DATA_TYPES.number,
     parser: Number,
     defaultValue,
+    isOptional: false,
   });
 
 number._default = number(0);
@@ -83,6 +89,7 @@ number._default = number(0);
 number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeNumber,
   parser: value => (value != null ? Number(value) : value),
+  isOptional: true,
 });
 
 export const boolean: ISMDataConstructor<
@@ -111,6 +118,7 @@ export const boolean: ISMDataConstructor<
       }
     },
     defaultValue,
+    isOptional: false,
   });
 };
 // need this in order to trigger an error when a user doesn't provide a default
@@ -132,6 +140,7 @@ boolean.optional = new SMData<
       return false;
     }
   },
+  isOptional: true,
 });
 
 export const object: ISMDataConstructor<any, any, any> = <
@@ -151,6 +160,7 @@ export const object: ISMDataConstructor<any, any, any> = <
      */
     parser: val => val,
     boxedValue,
+    isOptional: false,
   });
 
 object._default = null;
@@ -170,6 +180,7 @@ object.optional = <TBoxedValue extends Record<string, ISMData>>(
      */
     parser: val => val,
     boxedValue,
+    isOptional: true,
   });
 
 export const record = <TKey extends string, TBoxedValue extends ISMData>(
@@ -183,6 +194,7 @@ export const record = <TKey extends string, TBoxedValue extends ISMData>(
     type: SM_DATA_TYPES.record,
     parser: val => val,
     boxedValue,
+    isOptional: false,
   });
 
 export const maybeRecord = <TBoxedValue extends ISMData>(
@@ -196,6 +208,7 @@ export const maybeRecord = <TBoxedValue extends ISMData>(
     type: SM_DATA_TYPES.maybeRecord,
     parser: val => val,
     boxedValue,
+    isOptional: true,
   });
 
 export const array = <TBoxedValue extends ISMData>(
@@ -221,6 +234,7 @@ export const array = <TBoxedValue extends ISMData>(
       parser: value => value,
       boxedValue: parsedBoxedValue,
       defaultValue,
+      isOptional: false,
     });
   }
 
@@ -232,6 +246,7 @@ export const array = <TBoxedValue extends ISMData>(
     type: SM_DATA_TYPES.maybeArray,
     parser: value => value,
     boxedValue: parsedBoxedValue,
+    isOptional: true,
   });
 
   smArray._default = smArray([]);

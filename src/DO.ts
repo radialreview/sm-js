@@ -101,6 +101,27 @@ export function DOFactory<
     }
 
     private getDefaultData = (nodeProperties: TNodeData) => {
+      const getDefaultFnValue = (propName: keyof TNodeData) => {
+        const defaultFn = (nodeProperties[propName] as any)._default;
+
+        if (defaultFn instanceof Error) {
+          throw defaultFn;
+        }
+
+        if (
+          defaultFn.type === SM_DATA_TYPES.array ||
+          defaultFn.type === SM_DATA_TYPES.maybeArray
+        ) {
+          if (defaultFn.boxedValue.type === SM_DATA_TYPES.object) {
+            return [this.getDefaultData(defaultFn.boxedValue.boxedValue)];
+          }
+
+          return [defaultFn.boxedValue.defaultValue];
+        }
+
+        return defaultFn.defaultValue;
+      };
+
       return Object.keys(nodeProperties).reduce(
         (acc, prop: keyof TNodeData) => {
           const propValue = nodeProperties[prop];
@@ -111,13 +132,9 @@ export function DOFactory<
           ) {
             acc[prop] = this.getDefaultData(propValue.boxedValue);
           } else if (typeof propValue === 'function') {
-            const defaultFn = (nodeProperties[prop] as any)._default;
+            const defaultValue = getDefaultFnValue(prop);
 
-            if (defaultFn instanceof Error) {
-              throw defaultFn;
-            }
-
-            acc[prop] = defaultFn.defaultValue;
+            acc[prop] = defaultValue;
           } else {
             acc[prop] = nodeProperties[prop].defaultValue;
           }
@@ -127,67 +144,95 @@ export function DOFactory<
       );
     };
 
-    private getDatatoReturn = (opts: {
-      persistedData: Record<string, any>;
-      defaultData: Record<string, any>;
-      nodeProperties: typeof node.properties;
-    }) => {
-      return Object.entries(opts.nodeProperties).reduce(
-        (acc, [propName, propValue]) => {
-          const property = this.getSMProperty(propValue);
+    private getParsedData(opts: {
+      smData:
+        | ISMData
+        | ISMDataConstructor<any, any, any>
+        | Record<string, ISMData | ISMDataConstructor<any, any, any>>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
+      persistedData: any;
+      defaultData: any;
+    }) {
+      if (
+        opts.smData instanceof SMData &&
+        opts.smData.isOptional &&
+        opts.persistedData == null
+      )
+        return null;
 
-          if (
-            property.type === SM_DATA_TYPES.maybeObject ||
-            property.type === SM_DATA_TYPES.object
-          ) {
-            if (
-              property.type === SM_DATA_TYPES.maybeObject &&
-              opts.persistedData[propName] == null
-            ) {
-              acc[propName] = null;
-            } else {
-              acc = {
-                ...acc,
-                [propName]: this.getDatatoReturn({
-                  persistedData: opts.persistedData[propName],
-                  defaultData: opts.defaultData[propName],
-                  nodeProperties: property.boxedValue,
-                }),
-              };
-            }
+      const property = this.getSMProperty(
+        opts.smData as ISMData | ISMDataConstructor<any, any, any>
+      );
+
+      if (property instanceof SMData && property.boxedValue) {
+        // sm.array, sm.object or sm.record
+
+        if (
+          property.type === SM_DATA_TYPES.array ||
+          property.type === SM_DATA_TYPES.maybeArray
+        ) {
+          // if the default data is an array, I know this is an sm.array type prop
+          if (opts.persistedData) {
+            return (opts.persistedData || []).map((data: any) => {
+              return this.getParsedData({
+                smData: property.boxedValue,
+                persistedData: data,
+                defaultData:
+                  property.type === SM_DATA_TYPES.array
+                    ? opts.defaultData[0]
+                    : opts.persistedData,
+              });
+            });
           } else {
-            if (
-              property.type === SM_DATA_TYPES.maybeArray ||
-              property.type === SM_DATA_TYPES.maybeString ||
-              property.type === SM_DATA_TYPES.maybeNumber ||
-              property.type === SM_DATA_TYPES.maybeBoolean
-            ) {
-              if (opts.persistedData?.[propName] == null) {
-                acc[propName] = null;
-              } else {
-                if (opts.persistedData?.[propName] === false) {
-                  acc[propName] = false;
-                } else {
-                  acc[propName] =
-                    opts.persistedData?.[propName] ||
-                    opts.defaultData[propName];
-                }
-              }
-            } else {
-              if (opts.persistedData?.[propName] === false) {
-                acc[propName] = false;
-              } else {
-                acc[propName] =
-                  opts.persistedData?.[propName] || opts.defaultData[propName];
-              }
-            }
+            return opts.defaultData;
+          }
+        } else {
+          // sm.object, sm.record
+
+          // safe to assume that if we made it this far, the expected data type is object and it's non optional, so lets default it to {}
+          if (!opts.persistedData) {
+            opts.persistedData = {};
           }
 
+          if (property.boxedValue instanceof SMData) {
+            // sm.record
+            return Object.keys(opts.persistedData).reduce((acc, key) => {
+              acc[key] = this.getParsedData({
+                smData: property.boxedValue,
+                persistedData: opts.persistedData[key],
+                defaultData: null,
+              }); // no default value for values in a record
+              return acc;
+            }, {} as Record<string, any>);
+          } else {
+            // if we're dealing with an object, lets loop over the keys in its' boxed value
+            return Object.keys(property.boxedValue).reduce((acc, key) => {
+              acc[key] = this.getParsedData({
+                smData: property.boxedValue[key],
+                persistedData: opts.persistedData[key],
+                defaultData: opts.defaultData[key],
+              });
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        }
+      } else if (property instanceof SMData) {
+        // sm.string, sm.boolean, sm.number
+        return opts.persistedData != null
+          ? property.parser(opts.persistedData)
+          : opts.defaultData;
+      } else {
+        // root of node, simply loop over keys of data definition and call this function recursively
+        return Object.keys(property).reduce((acc, prop) => {
+          acc[prop] = this.getParsedData({
+            // @ts-ignore
+            smData: property[prop],
+            persistedData: opts.persistedData[prop],
+            defaultData: opts.defaultData[prop],
+          });
           return acc;
-        },
-        {} as Record<string, any>
-      );
-    };
+        }, {} as Record<string, any>);
+      }
+    }
 
     public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
       const newData = this.parseInitialData({
@@ -201,11 +246,11 @@ export function DOFactory<
         extendNestedObjects: true,
       });
 
-      this.parsedData = this.getDatatoReturn({
+      this.parsedData = this.getParsedData({
+        smData: node.properties,
         persistedData: this._persistedData,
         defaultData: this._defaults,
-        nodeProperties: node.properties,
-      }) as DeepPartial<TNodeData>;
+      });
     };
 
     /**
