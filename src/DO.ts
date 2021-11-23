@@ -170,7 +170,6 @@ export function DOFactory<
           property.type === SM_DATA_TYPES.array ||
           property.type === SM_DATA_TYPES.maybeArray
         ) {
-          // if the default data is an array, I know this is an sm.array type prop
           if (opts.persistedData) {
             return (opts.persistedData || []).map((data: any) => {
               return this.getParsedData({
