@@ -177,8 +177,8 @@ export function DOFactory<
                 persistedData: data,
                 defaultData:
                   property.type === SM_DATA_TYPES.array
-                    ? opts.defaultData[0]
-                    : opts.persistedData,
+                    ? opts.defaultData[0] // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
+                    : null,
               });
             });
           } else {
