@@ -294,10 +294,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
   }
-    ? /**
-       * full query definition provided, with a map fn
-       */
-      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
+  /**
+   * full query definition provided, with a map fn
+   */
+    ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
           ? TQueryDefinitions[Key] extends { id: string }
@@ -310,11 +310,11 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
         def: ISMNode;
       }
     ? TQueryDefinitions[Key] extends { def: infer TSMNode }
-      /**
-       * full query definition provided, but map function omitted
-       * return the entirety of the node's data
-       */
-      ? TSMNode extends ISMNode
+      ? /**
+         * full query definition provided, but map function omitted
+         * return the entirety of the node's data
+         */
+        TSMNode extends ISMNode
         ? TQueryDefinitions[Key] extends { id: string }
           ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>> &
               ExtractNodeComputedData<TSMNode>
@@ -325,10 +325,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
         : never
       : never
     : TQueryDefinitions[Key] extends ISMNode
-    ? /**
+      /**
        * shorthand syntax used, only a node definition was provided
        */
-      Array<
+    ? Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
       >

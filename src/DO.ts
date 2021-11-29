@@ -26,8 +26,22 @@ export function DOFactory<
   // @ts-ignore
   return class DO implements TDOClass {
     public parsedData: DeepPartial<TNodeData>;
+    private version: number;
 
-    constructor(initialData?: DeepPartial<TNodeData>) {
+    constructor(
+      initialData: DeepPartial<TNodeData> & { id: string; version: number }
+    ) {
+      Object.defineProperty(this, 'version', {
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+
+      if (initialData.version == null) {
+        throw Error('Initial data for node was missing a version');
+      }
+
+      this.version = Number(initialData.version);
       const { parsedData } = this.getInitialState({
         smDataForThisObject: node.properties,
       });
@@ -50,17 +64,27 @@ export function DOFactory<
       this.initializeNodeMutations();
     }
 
-    public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
-      extend({
-        object: this,
-        extension: receivedData,
-        deleteKeysNotInExtension: false,
-        /**
-         * the setters for these nested objects will handle extending the object themselves by extending parsedData for that object
-         * check objectDataSetter in this class for more details on that
-         */
-        extendNestedObjects: false,
-      });
+    public onDataReceived = (
+      receivedData: { version: number } & DeepPartial<TNodeData>
+    ) => {
+      if (receivedData.version == null) {
+        throw Error('Message received for a node was missing a version');
+      }
+
+      const newVersion = Number(receivedData.version);
+      if (this.version < newVersion) {
+        this.version = newVersion;
+        extend({
+          object: this,
+          extension: receivedData,
+          deleteKeysNotInExtension: false,
+          /**
+           * the setters for these nested objects will handle extending the object themselves by extending parsedData for that object
+           * check objectDataSetter in this class for more details on that
+           */
+          extendNestedObjects: false,
+        });
+      }
     };
 
     /**

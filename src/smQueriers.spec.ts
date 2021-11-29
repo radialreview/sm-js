@@ -207,35 +207,6 @@ test('sm.subscribe returns the expected data', async done => {
   done();
 });
 
-test('sm.subscribe returns the expected data when it receives some subscription messages before a query result', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(() => {
-    return new Promise(res => {
-      setTimeout(() => res(mockQueryDataReturn), 40);
-    });
-  });
-  const mockSubscribe = jest.fn(async opts => {
-    setTimeout(() => opts.onMessage(mockSubscriptionMessage), 20);
-    return () => {};
-  });
-  config({
-    gqlClient: {
-      query: mockQuery,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
-
-  const { data } = await subscribe(queryDefinitions, {
-    onData: () => {},
-    onError: e => {
-      done(e);
-    },
-  });
-
-  expect(data).toEqual(mockQueryResultExpectations);
-  done();
-});
-
 test('sm.subscribe returns a method to cancel any subscriptions started', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const cancel = jest.fn();
@@ -265,13 +236,11 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
     setTimeout(() => {
       opts.onMessage({
         users: {
+          ...mockSubscriptionMessage.users,
           node: {
-            ...mockQueryDataReturn.users[0],
+            ...mockSubscriptionMessage.users.node,
+            version: 2,
             address_state: 'Definitely not FL',
-          },
-          operation: {
-            action: 'UpdateNode',
-            path: mockQueryDataReturn.users[0].id,
           },
         },
       });
@@ -305,19 +274,17 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
   }, 40);
 });
 
-test('sm.subscribe handles a case where a subscription message comes in before the query result', async done => {
+test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
   const queryDefinitions = createMockQueryDefinitions();
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onMessage({
         users: {
+          ...mockSubscriptionMessage.users,
           node: {
-            ...mockQueryDataReturn.users[0],
+            ...mockSubscriptionMessage.users.node,
+            version: 2,
             address_state: 'Definitely not FL',
-          },
-          operation: {
-            action: 'UpdateNode',
-            path: mockQueryDataReturn.users[0].id,
           },
         },
       });
@@ -339,6 +306,52 @@ test('sm.subscribe handles a case where a subscription message comes in before t
 
   const onData = jest.fn(({ results }) => {
     expect(results.users[0].address.state).toEqual('Definitely not FL');
+  });
+  await subscribe(queryDefinitions, {
+    onData: onData,
+    onError: e => {
+      done(e);
+    },
+  });
+
+  setTimeout(() => {
+    expect(onData).toHaveBeenCalledTimes(1);
+    done();
+  }, 60);
+});
+
+test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockSubscribe = jest.fn(opts => {
+    setTimeout(() => {
+      opts.onMessage({
+        users: {
+          ...mockSubscriptionMessage.users,
+          node: {
+            ...mockSubscriptionMessage.users.node,
+            version: 0,
+            address_state: 'Definitely not FL',
+          },
+        },
+      });
+    }, 20);
+  });
+  const mockQuery = jest.fn(() => {
+    return new Promise(res => {
+      setTimeout(() => {
+        res(mockQueryDataReturn);
+      }, 40);
+    });
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const onData = jest.fn(({ results }) => {
+    expect(results).toEqual(mockQueryResultExpectations);
   });
   await subscribe(queryDefinitions, {
     onData: onData,

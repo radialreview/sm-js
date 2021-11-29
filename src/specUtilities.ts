@@ -29,13 +29,19 @@ type UserRelationalData = {
 // https://github.com/microsoft/TypeScript/issues/35546
 export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
 
-export const userNode: UserNode = smData.def({
-  type: 'tt-user',
-  properties: userProperties,
-  relational: {
-    todos: () => smData.children({ def: todoNode }),
-  },
-});
+// factory functions so that tests don't share DO repositories
+export function generateUserNode(cachedTodoNode?: TodoNode): UserNode {
+  const userNode = smData.def({
+    type: 'tt-user',
+    properties: userProperties,
+    relational: {
+      todos: () => smData.children({ def: todoNode }),
+    },
+  });
+  const todoNode: TodoNode = cachedTodoNode || generateTodoNode(userNode);
+
+  return userNode;
+}
 
 const todoProperties = {
   id: smData.string,
@@ -68,17 +74,22 @@ export type TodoNode = ISMNode<
   TodoMutations
 >;
 
-export const todoNode: TodoNode = smData.def({
-  type: 'todo',
-  properties: todoProperties,
-  relational: {
-    assignee: () =>
-      smData.reference<TodoNode, UserNode>({
-        def: userNode,
-        idProp: 'assigneeId',
-      }),
-  },
-});
+export function generateTodoNode(cachedUserNode?: UserNode): TodoNode {
+  const todoNode = smData.def({
+    type: 'todo',
+    properties: todoProperties,
+    relational: {
+      assignee: () =>
+        smData.reference<TodoNode, UserNode>({
+          def: userNode,
+          idProp: 'assigneeId',
+        }),
+    },
+  });
+  const userNode: UserNode = cachedUserNode || generateUserNode(todoNode);
+
+  return todoNode;
+}
 
 export function generateDOInstance<
   TNodeData extends Record<string, ISMData>,
@@ -111,7 +122,7 @@ export function createMockQueryDefinitions(
 ) {
   return {
     users: queryDefinition({
-      def: userNode,
+      def: generateUserNode(),
       map: ({ todos, address }) => ({
         address: address({
           map: ({ state, apt }) => ({
@@ -144,6 +155,7 @@ export const mockQueryDataReturn = {
   users: [
     {
       id: 'mock-user-id',
+      version: '1',
       address: null,
       [`address${IS_NULL_IDENTIFIER}`]: false,
       address_state: 'FL',
@@ -151,8 +163,9 @@ export const mockQueryDataReturn = {
       address_apt_number: '1',
       todos: [
         {
+          version: '1',
           id: 'mock-todo-id',
-          assignee: [{ id: 'mock-user-id', firstName: 'Joe' }],
+          assignee: [{ id: 'mock-user-id', version: '1', firstName: 'Joe' }],
         },
       ],
     },
@@ -187,7 +200,17 @@ export const mockQueryRecord = queryRecord;
 
 export const mockSubscriptionMessage = {
   users: {
-    node: { id: 'mock-user-id', address_state: 'FL' },
+    node: {
+      // same prop values
+      id: 'mock-user-id',
+      address: null,
+      [`address${IS_NULL_IDENTIFIER}`]: false,
+      address_apt_floor: '1',
+      address_apt_number: '1',
+      // these are updated
+      address_state: 'AK',
+      version: '2',
+    },
     operation: {
       action: 'UpdateNode' as 'UpdateNode',
       path: 'some-mock-user-id',

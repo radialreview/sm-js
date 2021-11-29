@@ -6,6 +6,8 @@ import {
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 
+export const PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version'];
+
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
@@ -95,8 +97,8 @@ function getQueriedProperties(opts: {
 
       if (!isData) return acc;
 
-      // we always query the id by default, can ignore any explicit requests for it
-      if (key === 'id' && opts.isRootLevel) {
+      // we always query these properties, can ignore any explicit requests for it
+      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
         return acc;
       }
 
@@ -125,7 +127,9 @@ function getQueriedProperties(opts: {
 
       return [...acc, key];
     },
-    opts.isRootLevel ? ['id'] : ([] as Array<string>)
+    opts.isRootLevel
+      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      : ([] as Array<string>)
   );
 }
 
@@ -135,8 +139,8 @@ function getAllNodeProperties(opts: {
 }) {
   return Object.keys(opts.nodeProperties).reduce(
     (acc, key) => {
-      // we always query the id by default, can ignore any explicit requests for it
-      if (key === 'id' && opts.isRootLevel) {
+      // we are already querying these properties, can ignore any explicit requests for it
+      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
         return acc;
       }
 
@@ -167,7 +171,9 @@ function getAllNodeProperties(opts: {
 
       return [...acc, key];
     },
-    opts.isRootLevel ? ['id'] : ([] as Array<string>)
+    opts.isRootLevel
+      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      : ([] as Array<string>)
   );
 }
 
