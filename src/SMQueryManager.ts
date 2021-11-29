@@ -34,11 +34,10 @@ type SMQueryManagerProxyCacheEntry = {
  *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
  */
 export class SMQueryManager {
-  private state: SMQueryManagerState;
+  private state: SMQueryManagerState = {};
   private queryRecord: QueryRecord;
 
   constructor(queryRecord: QueryRecord) {
-    this.state = this.buildInitialStateFromQueryRecord(queryRecord);
     this.queryRecord = queryRecord;
   }
 
@@ -48,7 +47,7 @@ export class SMQueryManager {
       queryRecord: this.queryRecord,
     });
 
-    this.state = this.buildStateForQueryResult(opts);
+    this.state = this.getNewStateFromQueryResult(opts);
   }
 
   public onSubscriptionMessage(opts: {
@@ -99,21 +98,6 @@ export class SMQueryManager {
    */
   getResults() {
     return this.getResultsFromState(this.state);
-  }
-
-  private buildInitialStateFromQueryRecord(
-    queryRecord: QueryRecord
-  ): SMQueryManagerState {
-    return Object.keys(queryRecord).reduce((acc, queryAlias) => {
-      const queryRecordEntry = queryRecord[queryAlias];
-
-      acc[queryAlias] = {
-        idsOrIdInCurrentResult: 'id' in queryRecordEntry ? '' : [],
-        proxyCache: {},
-      };
-
-      return acc;
-    }, {} as SMQueryManagerState);
   }
 
   /**
@@ -190,9 +174,9 @@ export class SMQueryManager {
 
   /**
    * Gets the initial state for this manager from the initial query results
-   *   does not execute on subscription messages. Look for "getStatePartialFromSubscriptionMessage"
+   *   does not execute on subscription messages
    */
-  private buildStateForQueryResult(opts: {
+  private getNewStateFromQueryResult(opts: {
     queryResult: Record<string, any>;
     queryId: string;
   }): SMQueryManagerState {
@@ -253,7 +237,7 @@ export class SMQueryManager {
 
       const proxy = DOProxyGenerator({
         node: queryRecord[opts.queryAlias].def,
-        upToDateData: queryRecord[opts.queryAlias].properties,
+        allPropertiesQueried: queryRecord[opts.queryAlias].properties,
         relationalQueries: relational || null,
         queryId: opts.queryId,
         relationalResults: !relationalState
@@ -406,17 +390,7 @@ export class SMQueryManager {
       : Object.keys(relationalQueryRecord).reduce(
           (relationalStateAcc, relationalAlias) => {
             if (!newRelationalData || !newRelationalData[relationalAlias]) {
-              throw Error(
-                `recursivelyUpdateProxyAndReturnNewCacheEntry could not find resulting data for the alias "${relationalAlias}" in the following queryRecord:\n${JSON.stringify(
-                  relationalQueryRecord,
-                  null,
-                  2
-                )}\nResulting data:\n${JSON.stringify(
-                  newRelationalData,
-                  null,
-                  2
-                )}`
-              );
+              return relationalStateAcc;
             }
 
             const relationalDataForThisAlias =

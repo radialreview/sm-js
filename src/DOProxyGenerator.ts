@@ -5,11 +5,6 @@ import {
 } from './exceptions';
 import { SM_DATA_TYPES } from './smDataTypes';
 
-// @TODO MUST UPDATA upToDateData
-// currently, it's all data in the query definition.
-// We want it to be just the data we've received, so that we don't enumerate
-// all DOProxy properties from the query record in data received from subscription deltas
-
 /**
  * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
  * Instead, we decorate each DO instance with a bit of functionality
@@ -46,7 +41,8 @@ export function DOProxyGenerator<
   node: ISMNode<TNodeData, TNodeComputedData>;
   queryId: string;
   do: NodeDO;
-  upToDateData: Array<string>;
+  // The DOProxy protects the dev from reading a property that we haven't actually queried from SM
+  allPropertiesQueried: Array<string>;
   relationalResults: Maybe<TRelationalResults>;
   relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }): NodeDO & TRelationalResults & IDOProxy {
@@ -83,7 +79,7 @@ export function DOProxyGenerator<
       // guaranteed to be up to date
       // @TODO write tests for this enumeration
       if (
-        opts.upToDateData.includes(key) ||
+        opts.allPropertiesQueried.includes(key) ||
         (opts.relationalQueries &&
           Object.keys(opts.relationalQueries).includes(key))
       ) {
@@ -102,7 +98,10 @@ export function DOProxyGenerator<
     get: (target, key: string) => {
       if (key === 'updateRelationalResults') {
         return (newRelationalResults: Maybe<TRelationalResults>) => {
-          relationalResults = newRelationalResults;
+          relationalResults = {
+            ...relationalResults,
+            ...newRelationalResults,
+          } as Maybe<TRelationalResults>;
         };
       }
 
@@ -123,7 +122,7 @@ export function DOProxyGenerator<
       }
 
       if (Object.keys(opts.node.smData).includes(key)) {
-        if (!opts.upToDateData.includes(key)) {
+        if (!opts.allPropertiesQueried.includes(key)) {
           throw new SMNotUpToDateException({
             propName: key,
             queryId: opts.queryId,
@@ -144,7 +143,7 @@ export function DOProxyGenerator<
             queryId: opts.queryId,
             allCachedData: opts.do[key],
             smDataForThisObject: smDataForThisProp.boxedValue,
-            upToDateData: opts.upToDateData,
+            allPropertiesQueried: opts.allPropertiesQueried,
             parentObjectKey: key,
           });
         }
@@ -179,7 +178,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
   queryId: string;
   allCachedData: Record<string, any>;
   smDataForThisObject: Record<string, ISMData>;
-  upToDateData: Array<string>;
+  allPropertiesQueried: Array<string>;
   parentObjectKey: Maybe<string>;
 }) {
   const objectToReturn = {};
@@ -190,12 +189,12 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
       : objectProp;
     const smDataForThisProp = opts.smDataForThisObject[objectProp];
     const isUpToDate =
-      opts.upToDateData.includes(name) ||
+      opts.allPropertiesQueried.includes(name) ||
       // this second case handles ensuring that nested objects are enumerable
       // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
       // and we request address_apt_floor and address_apt_unit
       // we need to make address.apt enumerable below
-      opts.upToDateData.some(prop => prop.startsWith(name));
+      opts.allPropertiesQueried.some(prop => prop.startsWith(name));
 
     Object.defineProperty(objectToReturn, objectProp, {
       // @TODO write tests for this enumeration
@@ -213,7 +212,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
             queryId: opts.queryId,
             allCachedData: opts.allCachedData[objectProp],
             smDataForThisObject: smDataForThisProp.boxedValue,
-            upToDateData: opts.upToDateData,
+            allPropertiesQueried: opts.allPropertiesQueried,
             parentObjectKey: name,
           });
         }

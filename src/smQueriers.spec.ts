@@ -5,6 +5,7 @@ import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
   mockQueryResultExpectations,
+  mockSubscriptionMessage,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
@@ -183,6 +184,55 @@ test('sm.subscribe does not query if skipInitialQuery is true', async done => {
   });
 
   expect(mockQuery).not.toHaveBeenCalled();
+  done();
+});
+
+test('sm.subscribe returns the expected data', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  config({
+    gqlClient: {
+      query: mockQuery,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const { data } = await subscribe(queryDefinitions, {
+    onData: () => {},
+    onError: e => {
+      done(e);
+    },
+  });
+
+  expect(data).toEqual(mockQueryResultExpectations);
+  done();
+});
+
+test('sm.subscribe returns the expected data when it receives some subscription messages before a query result', async done => {
+  const queryDefinitions = createMockQueryDefinitions();
+  const mockQuery = jest.fn(() => {
+    return new Promise(res => {
+      setTimeout(() => res(mockQueryDataReturn), 40);
+    });
+  });
+  const mockSubscribe = jest.fn(async opts => {
+    setTimeout(() => opts.onMessage(mockSubscriptionMessage), 20);
+    return () => {};
+  });
+  config({
+    gqlClient: {
+      query: mockQuery,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  const { data } = await subscribe(queryDefinitions, {
+    onData: () => {},
+    onError: e => {
+      done(e);
+    },
+  });
+
+  expect(data).toEqual(mockQueryResultExpectations);
   done();
 });
 
@@ -455,8 +505,7 @@ test('sm.subscribe throws an error when the user specifies a token which has not
     });
   } catch (e) {
     expect(e).toMatchInlineSnapshot(`
-      [Error: Error querying initial data set
-      Error: No token registered with the name "invalidTokenName".
+      [Error: No token registered with the name "invalidTokenName".
       Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
     `);
     done();

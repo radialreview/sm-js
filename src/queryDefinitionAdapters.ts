@@ -10,7 +10,7 @@ import { SMUnexpectedSubscriptionMessageException } from './exceptions';
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
- * This fn runs those a record of those relational fns at query time and returns a new record of relational query builders
+ * This fn executs those fns at query time, and returns a record of relational query builders
  */
 function getRelationalQueryBuildersFromRelationalFns(
   relationaFns?: NodeRelationalFns<any>

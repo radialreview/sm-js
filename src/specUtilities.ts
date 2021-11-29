@@ -186,12 +186,14 @@ const { queryRecord } = convertQueryDefinitionToQueryInfo({
 export const mockQueryRecord = queryRecord;
 
 export const mockSubscriptionMessage = {
-  node: { id: 'some-mock-user-id', address_state: 'AK' },
-  operation: {
-    action: 'UpdateNode' as 'UpdateNode',
-    path: 'some-mock-user-id',
+  users: {
+    node: { id: 'mock-user-id', address_state: 'FL' },
+    operation: {
+      action: 'UpdateNode' as 'UpdateNode',
+      path: 'some-mock-user-id',
+    },
+    queryId,
+    queryRecord,
+    subscriptionAlias: 'users',
   },
-  queryId,
-  queryRecord,
-  subscriptionAlias: 'users',
 };

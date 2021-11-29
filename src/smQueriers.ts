@@ -205,7 +205,7 @@ export async function subscribe<
         subscriptionAlias: data.subscriptionConfig.alias,
       });
     } catch (e) {
-      handleError(`Error applying subscription message\n${e}`);
+      handleError(new Error(`Error applying subscription message\n${e}`));
     }
   }
 
@@ -238,6 +238,9 @@ export async function subscribe<
               subscriptionConfig,
             });
 
+            // @TODO When called with skipInitialQuery, results should be null
+            // and we should simply expose a "delta" from the message
+            // probably don't need a query manager in that case either.
             opts.onData({
               results: queryManager.getResults() as QueryDataReturn<
                 TQueryDefinitions
@@ -274,6 +277,7 @@ export async function subscribe<
     const query = generateQuerier(queryManager);
     initSubs();
     try {
+      // this query method will post its results to the queryManager declared above
       await query(queryDefinitions, {
         queryId: opts.queryId,
         tokenName: opts.tokenName,
