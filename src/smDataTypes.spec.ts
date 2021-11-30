@@ -1,6 +1,10 @@
 import { DOFactory } from './DO';
-import { SMDataTypeExplicitDefaultException } from './exceptions';
+import {
+  SMDataTypeException,
+  SMDataTypeExplicitDefaultException,
+} from './exceptions';
 import * as smData from './smDataTypes';
+import { SM_DATA_TYPES } from './smDataTypes';
 
 describe('Node default properties', () => {
   it('should handle defaults/optional properties for string types', () => {
@@ -199,5 +203,134 @@ describe('Node default properties', () => {
     expect(DO.animal.bestFriend).toEqual(null);
     expect(DO.animal.favoriteNumbers).toEqual([0]);
     expect(DO.animal.leastFavoriteNumbers).toEqual([2, 5]);
+  });
+
+  it('should handle defaults/optional properties for record types (string values)', () => {
+    const properties = {
+      person: smData.record.optional(smData.string),
+      animal: smData.record.optional(smData.string),
+      other: smData.record(smData.string),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      person: {
+        name: 'Joe',
+        occupation: 'plumber',
+      },
+    });
+
+    expect(DO.person.name).toEqual('Joe');
+    expect(DO.person.occupation).toEqual('plumber');
+    expect(DO.animal).toEqual(null);
+    expect(DO.other).toEqual({});
+  });
+
+  it('should handle defaults/optional properties for record types (number values)', () => {
+    const properties = {
+      productName: smData.string,
+      cost: smData.record(smData.number),
+      test: smData.record(smData.array(smData.string)),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      productName: 'guitar',
+      cost: {
+        subtotal: '500',
+        tax: '12.5',
+        total: '512.5',
+        paid: 'true',
+      },
+    });
+
+    console.error = jest.fn();
+
+    expect(DO.productName).toEqual('guitar');
+    expect(DO.cost.subtotal).toEqual(500);
+    expect(DO.cost.tax).toEqual(12.5);
+    expect(DO.cost.total).toEqual(512.5);
+    expect(DO.cost.paid).toEqual(0);
+    setTimeout(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        new SMDataTypeException({
+          dataType: SM_DATA_TYPES.number,
+          value: 'true',
+        })
+      );
+    }, 0);
+  });
+
+  it('should handle defaults/optional properties for record types (boolean values)', () => {
+    const properties = {
+      todos: smData.record(smData.boolean(false)),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      todos: {
+        hasTestedSmDataTypes: 'true',
+      },
+    });
+
+    expect(DO.todos.hasTestedSmDataTypes).toEqual(true);
+  });
+
+  it.only('should handle defaults/optional properties for record types (array values)', () => {
+    const properties = {
+      numbers: smData.record(smData.array(smData.number)),
+      people: smData.record(
+        smData.array(
+          smData.object({
+            name: smData.string,
+            age: smData.number,
+            occupation: smData.string('plumber'),
+          })
+        )
+      ),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      numbers: {
+        favorite: [1, 2, 3],
+      },
+      people: {
+        plumbers: [
+          { name: 'Joe', age: '42' },
+          { name: 'Jane', age: '35' },
+        ],
+      },
+    });
+
+    expect(DO.numbers.favorite).toEqual([1, 2, 3]);
+    expect(DO.people.plumbers).toEqual([
+      { name: 'Joe', age: 42 },
+      { name: 'Jane', age: 35 },
+    ]);
   });
 });

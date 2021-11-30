@@ -79,7 +79,21 @@ export const number: ISMDataConstructor<
 > = defaultValue =>
   new SMData<number, string, undefined>({
     type: SM_DATA_TYPES.number,
-    parser: Number,
+    parser: value => {
+      const parsed = Number(value);
+
+      if (isNaN(parsed)) {
+        console.error(
+          new SMDataTypeException({
+            dataType: SM_DATA_TYPES.number,
+            value,
+          })
+        );
+        return number._default.defaultValue;
+      }
+
+      return parsed;
+    },
     defaultValue,
     isOptional: false,
   });
@@ -88,7 +102,12 @@ number._default = number(0);
 
 number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
   type: SM_DATA_TYPES.maybeNumber,
-  parser: value => (value != null ? Number(value) : value),
+  parser: value => {
+    if (value != null) {
+      return Number(value);
+    }
+    return value;
+  },
   isOptional: true,
 });
 
@@ -183,7 +202,10 @@ object.optional = <TBoxedValue extends Record<string, ISMData>>(
     isOptional: true,
   });
 
-export const record = <TKey extends string, TBoxedValue extends ISMData>(
+export const record: ISMDataConstructor<any, any, any> = <
+  TKey extends string,
+  TBoxedValue extends ISMData
+>(
   boxedValue: TBoxedValue
 ) =>
   new SMData<
@@ -195,11 +217,10 @@ export const record = <TKey extends string, TBoxedValue extends ISMData>(
     parser: val => val,
     boxedValue,
     isOptional: false,
+    defaultValue: {} as Record<string, any>,
   });
 
-export const maybeRecord = <TBoxedValue extends ISMData>(
-  boxedValue: TBoxedValue
-) =>
+record.optional = <TBoxedValue extends ISMData>(boxedValue: TBoxedValue) =>
   new SMData<
     Maybe<Record<string, GetSMDataType<TBoxedValue>>>,
     Maybe<Record<string, GetSMDataType<TBoxedValue>>>,
@@ -209,7 +230,10 @@ export const maybeRecord = <TBoxedValue extends ISMData>(
     parser: val => val,
     boxedValue,
     isOptional: true,
+    defaultValue: null,
   });
+
+record._default = {};
 
 export const array = <TBoxedValue extends ISMData>(
   boxedValue:

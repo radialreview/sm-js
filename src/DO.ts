@@ -1,6 +1,5 @@
 import { extend } from './dataUtilities';
-import { SMData, SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
-import { SMDataParsingException } from './exceptions';
+import { SMData, SM_DATA_TYPES } from './smDataTypes';
 import { getConfig } from './config';
 
 /**
@@ -73,18 +72,27 @@ export function DOFactory<
           const propExistsInInitialData =
             propName in initialData && initialData[propName] != null;
 
-          if (
-            (property.type === SM_DATA_TYPES.object ||
-              property.type === SM_DATA_TYPES.maybeObject) &&
-            propExistsInInitialData
-          ) {
+          if (this.isObjectType(property.type) && propExistsInInitialData) {
             acc[propName] = this.parseInitialData({
               initialData: initialData[propName],
               nodeProperties: property.boxedValue,
             });
           } else if (
-            (property.type === SM_DATA_TYPES.array ||
-              property.type === SM_DATA_TYPES.maybeArray) &&
+            this.isRecordType(property.type) &&
+            propExistsInInitialData
+          ) {
+            console.log('is RECORD', initialData[propName]);
+            console.log('BOXED', property.boxedValue);
+            const recordProp = this.getSMProperty(property);
+            console.log('RECORDPROP', recordProp);
+
+            acc[propName] = this.parseInitialData({
+              initialData: initialData[propName],
+              nodeProperties: recordProp.boxedValue,
+            });
+            acc[propName] = property.parser(initialData[propName]);
+          } else if (
+            this.isArrayType(property.type) &&
             propExistsInInitialData
           ) {
             acc[propName] = initialData[propName].map(
@@ -108,11 +116,8 @@ export function DOFactory<
           throw defaultFn;
         }
 
-        if (
-          defaultFn.type === SM_DATA_TYPES.array ||
-          defaultFn.type === SM_DATA_TYPES.maybeArray
-        ) {
-          if (defaultFn.boxedValue.type === SM_DATA_TYPES.object) {
+        if (this.isArrayType(defaultFn.type)) {
+          if (this.isObjectType(defaultFn.boxedValue.type)) {
             return [this.getDefaultData(defaultFn.boxedValue.boxedValue)];
           }
 
@@ -125,11 +130,7 @@ export function DOFactory<
       return Object.keys(nodeProperties).reduce(
         (acc, prop: keyof TNodeData) => {
           const propValue = nodeProperties[prop];
-
-          if (
-            propValue.type === SM_DATA_TYPES.object ||
-            propValue.type === SM_DATA_TYPES.maybeObject
-          ) {
+          if (this.isObjectType(propValue.type)) {
             acc[prop] = this.getDefaultData(propValue.boxedValue);
           } else if (typeof propValue === 'function') {
             const defaultValue = getDefaultFnValue(prop);
@@ -166,10 +167,7 @@ export function DOFactory<
       if (property instanceof SMData && property.boxedValue) {
         // sm.array, sm.object or sm.record
 
-        if (
-          property.type === SM_DATA_TYPES.array ||
-          property.type === SM_DATA_TYPES.maybeArray
-        ) {
+        if (this.isArrayType(property.type)) {
           if (opts.persistedData) {
             return (opts.persistedData || []).map((data: any) => {
               return this.getParsedData({
@@ -177,7 +175,7 @@ export function DOFactory<
                 persistedData: data,
                 defaultData:
                   property.type === SM_DATA_TYPES.array
-                    ? opts.defaultData[0] // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
+                    ? opts.defaultData?.[0] || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
                     : null,
               });
             });
@@ -186,13 +184,14 @@ export function DOFactory<
           }
         } else {
           // sm.object, sm.record
-
           // safe to assume that if we made it this far, the expected data type is object and it's non optional, so lets default it to {}
           if (!opts.persistedData) {
             opts.persistedData = {};
           }
 
-          if (property.boxedValue instanceof SMData) {
+          const boxedValueSMProperty = this.getSMProperty(property.boxedValue);
+
+          if (boxedValueSMProperty instanceof SMData) {
             // sm.record
             return Object.keys(opts.persistedData).reduce((acc, key) => {
               acc[key] = this.getParsedData({
@@ -203,12 +202,12 @@ export function DOFactory<
               return acc;
             }, {} as Record<string, any>);
           } else {
-            // if we're dealing with an object, lets loop over the keys in its' boxed value
+            // if we're dealing with an object, lets loop over the keys in its boxed value
             return Object.keys(property.boxedValue).reduce((acc, key) => {
               acc[key] = this.getParsedData({
                 smData: property.boxedValue[key],
                 persistedData: opts.persistedData[key],
-                defaultData: opts.defaultData[key],
+                defaultData: opts.defaultData?.[key],
               });
               return acc;
             }, {} as Record<string, any>);
@@ -216,9 +215,10 @@ export function DOFactory<
         }
       } else if (property instanceof SMData) {
         // sm.string, sm.boolean, sm.number
-        return opts.persistedData != null
-          ? property.parser(opts.persistedData)
-          : opts.defaultData;
+        if (opts.persistedData != null) {
+          return property.parser(opts.persistedData);
+        }
+        return opts.defaultData;
       } else {
         // root of node, simply loop over keys of data definition and call this function recursively
         return Object.keys(property).reduce((acc, prop) => {
@@ -238,6 +238,7 @@ export function DOFactory<
         initialData: receivedData,
         nodeProperties: node.properties,
       });
+
       extend({
         object: this._persistedData,
         extension: newData,
@@ -250,41 +251,8 @@ export function DOFactory<
         persistedData: this._persistedData,
         defaultData: this._defaults,
       });
-    };
 
-    /**
-     * gets initial values for self.parsedData
-     * calling itself recursively for nested objects
-     */
-    private getInitialState = (opts: {
-      smDataForThisObject: Record<string, ISMData>;
-    }) => {
-      return Object.keys(opts.smDataForThisObject).reduce(
-        (acc, prop) => {
-          const data = opts.smDataForThisObject[prop] as ISMData;
-
-          if (
-            data.type === SM_DATA_TYPES.object ||
-            data.type === SM_DATA_TYPES.maybeObject
-          ) {
-            const smDataForThisObject = data.boxedValue as Record<
-              string,
-              ISMData
-            >;
-
-            const initialStateForThisObject = this.getInitialState({
-              smDataForThisObject,
-            });
-
-            acc.parsedData[prop] = initialStateForThisObject.parsedData;
-          }
-
-          return acc;
-        },
-        { parsedData: {} } as {
-          parsedData: Record<string, Record<string, {}>>;
-        }
-      );
+      console.log('parsed', this.parsedData.people);
     };
 
     /**
@@ -295,15 +263,9 @@ export function DOFactory<
       Object.keys(node.properties).forEach(prop => {
         const property = this.getSMProperty(node.properties[prop]);
 
-        if (
-          property.type === SM_DATA_TYPES.object ||
-          property.type === SM_DATA_TYPES.maybeObject
-        ) {
+        if (this.isObjectType(property.type)) {
           this.setObjectProp(prop);
-        } else if (
-          property.type === SM_DATA_TYPES.array ||
-          property.type === SM_DATA_TYPES.maybeArray
-        ) {
+        } else if (this.isArrayType(property.type)) {
           this.setArrayProp(prop);
         } else {
           this.setPrimitiveValueProp(prop);
@@ -351,56 +313,6 @@ export function DOFactory<
         });
       }
     }
-
-    private getParsedNewValue = (opts: {
-      newValue: any;
-      currentParsedData: any;
-      smData:
-        | ISMData
-        | Record<string, ISMData>
-        | ISMDataConstructor<any, any, any>;
-    }) => {
-      if (opts.smData instanceof SMData) {
-        return (opts.smData as ISMData).parser(opts.newValue);
-      } else if (typeof opts.smData === 'function') {
-        return opts.smData(opts.newValue).parser(opts.newValue);
-      } else {
-        const smDataForThisObject = opts.smData as Record<string, ISMData>;
-
-        if (opts.newValue == null) return opts.newValue;
-
-        return Object.keys({
-          ...opts.currentParsedData,
-          ...opts.newValue,
-        }).reduce((acc, dataKey) => {
-          if (dataKey === IS_NULL_IDENTIFIER) return acc;
-
-          const smDataForThisProp = smDataForThisObject[dataKey];
-
-          if (!smDataForThisProp)
-            throw new SMDataParsingException({
-              receivedData: opts.newValue,
-              message: `No smData for the prop ${dataKey} in the data for the node with the type ${node.type}.`,
-            });
-
-          if (opts.newValue[dataKey] !== undefined) {
-            acc[dataKey] = this.getParsedNewValue({
-              newValue: opts.newValue[dataKey],
-              currentParsedData: opts.currentParsedData[dataKey],
-              smData:
-                smDataForThisProp.type === SM_DATA_TYPES.object ||
-                smDataForThisProp.type === SM_DATA_TYPES.maybeObject
-                  ? smDataForThisProp.boxedValue
-                  : smDataForThisProp,
-            });
-          } else {
-            acc[dataKey] = opts.currentParsedData[dataKey];
-          }
-
-          return acc;
-        }, {} as Record<string, any>);
-      }
-    };
 
     /**
      * Object type props have different getters and setters than non object type
@@ -476,6 +388,22 @@ export function DOFactory<
         return (prop as any)._default as ISMData;
       }
       return prop as ISMData;
+    }
+
+    private isArrayType(type: string) {
+      return type === SM_DATA_TYPES.array || type === SM_DATA_TYPES.maybeArray;
+    }
+
+    private isObjectType(type: string) {
+      return (
+        type === SM_DATA_TYPES.object || type === SM_DATA_TYPES.maybeObject
+      );
+    }
+
+    private isRecordType(type: string) {
+      return (
+        type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord
+      );
     }
   };
 }
