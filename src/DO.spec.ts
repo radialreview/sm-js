@@ -1,6 +1,9 @@
-import * as smData from './smDataTypes'
-import { TodoNode, todoNode, generateDOInstance } from './specUtilities'
-
+import * as smData from './smDataTypes';
+import {
+  TodoNode,
+  generateTodoNode,
+  generateDOInstance,
+} from './specUtilities';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -16,17 +19,18 @@ describe('smData.DO', () => {
       },
       initialData: {
         id: '123',
+        version: '1',
         dueDate: ('295791241' as unknown) as number, // this is wrong but expected
         settings: {
           show: ('true' as unknown) as boolean,
         },
       },
-    })
+    });
 
-    expect(doInstance.id).toBe('123')
-    expect(doInstance.dueDate).toBe(295791241)
-    expect(doInstance.settings.show).toBe(true)
-  })
+    expect(doInstance.id).toBe('123');
+    expect(doInstance.dueDate).toBe(295791241);
+    expect(doInstance.settings.show).toBe(true);
+  });
 
   test('that DO class will automatically coerce data it receives on an update based on the expected data structure', () => {
     const doInstance = generateDOInstance({
@@ -34,16 +38,17 @@ describe('smData.DO', () => {
         id: smData.string,
         dueDate: smData.number,
       },
-    })
+    });
 
     doInstance.onDataReceived({
       id: '321',
+      version: '1',
       dueDate: ('100' as unknown) as number,
-    })
+    });
 
-    expect(doInstance.id).toBe('321')
-    expect(doInstance.dueDate).toBe(100)
-  })
+    expect(doInstance.id).toBe('321');
+    expect(doInstance.dueDate).toBe(100);
+  });
 
   test('data in nested object is coerced correctly', () => {
     const doInstance = generateDOInstance({
@@ -55,19 +60,19 @@ describe('smData.DO', () => {
           }),
         }),
       },
-    })
+    });
 
     doInstance.onDataReceived({
+      version: '1',
       settings: {
         schedule: {
           startTime: ('321' as unknown) as number,
         },
       },
-    })
+    });
 
-    expect(doInstance.settings.schedule.startTime).toBe(321)
-  })
-
+    expect(doInstance.settings.schedule.startTime).toBe(321);
+  });
 
   test('basic computed props return the expected value', () => {
     const properties = {
@@ -76,7 +81,7 @@ describe('smData.DO', () => {
       // including this meeting prop and not marking it as up to date to check that we only need the absolute minimum set of data
       // available and up to date to calculate computed properties
       meetingId: smData.string,
-    }
+    };
 
     const doInstance = generateDOInstance<
       typeof properties,
@@ -87,26 +92,27 @@ describe('smData.DO', () => {
       properties,
       initialData: {
         id: 'test-id',
+        version: '1',
         task: 'get it done',
       },
       computed: {
-        dropdownOpt: (data) => ({
+        dropdownOpt: data => ({
           value: data.id,
           display: data.task,
         }),
       },
-    })
+    });
 
     expect(doInstance.dropdownOpt).toEqual({
       value: 'test-id',
       display: 'get it done',
-    })
-  })
+    });
+  });
 
   test('computed properties can use other computed properties', () => {
     const properties = {
       task: smData.string,
-    }
+    };
 
     const doInstance = generateDOInstance<
       typeof properties,
@@ -116,20 +122,21 @@ describe('smData.DO', () => {
     >({
       properties,
       initialData: {
+        version: '1',
         task: 'get it done',
       },
       computed: {
-        taskWithTest: (data) => {
-          return data.task + ' test'
+        taskWithTest: data => {
+          return data.task + ' test';
         },
-        taskWithTestAndTest2: (data) => {
-          return data.taskWithTest + ' test2'
+        taskWithTestAndTest2: data => {
+          return data.taskWithTest + ' test2';
         },
       },
-    })
+    });
 
-    expect(doInstance.taskWithTestAndTest2).toEqual('get it done test test2')
-  })
+    expect(doInstance.taskWithTestAndTest2).toEqual('get it done test test2');
+  });
 
   test('relational properties are available on the DO', () => {
     const doInstance = generateDOInstance<
@@ -140,19 +147,19 @@ describe('smData.DO', () => {
     >({
       properties: {},
       relational: {
-        todos: () => smData.children({ def: todoNode }),
+        todos: () => smData.children({ def: generateTodoNode() }),
       },
-    })
+    });
 
-    expect(doInstance.todos).toBeInstanceOf(Function)
-    const queryFn = ({ id }: { id: ISMData<string> }) => ({ id })
+    expect(doInstance.todos).toBeInstanceOf(Function);
+    const queryFn = ({ id }: { id: ISMData<string> }) => ({ id });
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
         map: queryFn,
         _smRelational: smData.SM_RELATIONAL_TYPES.children,
       })
-    )
-  })
+    );
+  });
 
   test('maybe types are parsed correctly', () => {
     const properties = {
@@ -166,36 +173,38 @@ describe('smData.DO', () => {
         }),
       }),
       maybeArr: smData.maybeArray(smData.maybeNumber),
-    }
+    };
 
     const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
+        version: '1',
         maybeStr: null,
         maybeBool: null,
         maybeNum: null,
         maybeObj: null,
         maybeArr: null,
       },
-    })
+    });
 
-    expect(doInstance.maybeStr).toBe(null)
-    expect(doInstance.maybeBool).toBe(null)
-    expect(doInstance.maybeNum).toBe(null)
-    expect(doInstance.maybeObj).toEqual(null)
-    expect(doInstance.maybeArr).toBe(null)
+    expect(doInstance.maybeStr).toBe(null);
+    expect(doInstance.maybeBool).toBe(null);
+    expect(doInstance.maybeNum).toBe(null);
+    expect(doInstance.maybeObj).toEqual(null);
+    expect(doInstance.maybeArr).toBe(null);
 
     doInstance.onDataReceived({
+      version: '1',
       maybeObj: {
         nested: ('true' as unknown) as boolean,
         doubleNested: null,
       },
       maybeArr: [('1' as unknown) as number],
-    })
+    });
 
-    expect(doInstance.maybeObj).toEqual({ nested: true, doubleNested: null })
-    expect(doInstance.maybeArr).toEqual([1])
-  })
+    expect(doInstance.maybeObj).toEqual({ nested: true, doubleNested: null });
+    expect(doInstance.maybeArr).toEqual([1]);
+  });
 
   // tests fix for https://tractiontools.atlassian.net/browse/MIO-326
   test('an update for a record will delete properties not included in the new record', () => {
@@ -207,11 +216,12 @@ describe('smData.DO', () => {
           doubleNestedRecord: smData.record(smData.string),
         }),
       }),
-    }
+    };
 
     const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
+        version: '1',
         rootLevelRecord: {
           foo: 'foo',
         },
@@ -226,9 +236,10 @@ describe('smData.DO', () => {
           },
         },
       },
-    })
+    });
 
     doInstance.onDataReceived({
+      version: '1',
       rootLevelRecord: {
         baz: 'baz',
       },
@@ -242,18 +253,18 @@ describe('smData.DO', () => {
           },
         },
       },
-    })
+    });
 
-    expect(doInstance.rootLevelRecord.foo).toBe(undefined)
-    expect(doInstance.object.nestedRecord.nestedFoo).toBe(undefined)
+    expect(doInstance.rootLevelRecord.foo).toBe(undefined);
+    expect(doInstance.object.nestedRecord.nestedFoo).toBe(undefined);
     expect(
       doInstance.object.nestedObject.doubleNestedRecord.doubleNesteFoo
-    ).toBe(undefined)
+    ).toBe(undefined);
 
-    expect(doInstance.rootLevelRecord.baz).toBe('baz')
-    expect(doInstance.object.nestedRecord.nestedBaz).toBe('nestedBaz')
+    expect(doInstance.rootLevelRecord.baz).toBe('baz');
+    expect(doInstance.object.nestedRecord.nestedBaz).toBe('nestedBaz');
     expect(
       doInstance.object.nestedObject.doubleNestedRecord.doubleNestedBaz
-    ).toBe('doubleNestedBaz')
-  })
-})
+    ).toBe('doubleNestedBaz');
+  });
+});

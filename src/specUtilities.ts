@@ -101,7 +101,9 @@ export function generateDOInstance<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
+  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
+    version: string;
+  };
 }) {
   const DO = DOFactory<
     TNodeData,
