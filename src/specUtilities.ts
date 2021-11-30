@@ -175,16 +175,19 @@ export const mockQueryDataReturn = {
 const expectedAssignee = {
   id: 'mock-user-id',
   firstName: 'Joe',
+  version: 1,
 };
 const expectedTodo = {
   id: 'mock-todo-id',
   assignee: expectedAssignee,
+  version: 1,
 };
 const expectedUsers = [
   {
     id: 'mock-user-id',
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
+    version: 1,
   },
 ];
 
@@ -203,11 +206,6 @@ export const mockSubscriptionMessage = {
     node: {
       // same prop values
       id: 'mock-user-id',
-      address: null,
-      [`address${IS_NULL_IDENTIFIER}`]: false,
-      address_apt_floor: '1',
-      address_apt_number: '1',
-      // these are updated
       address_state: 'AK',
       version: '2',
     },

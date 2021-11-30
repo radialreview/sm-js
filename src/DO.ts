@@ -62,7 +62,10 @@ export function DOFactory<
 
       const { version, ...restReceivedData } = receivedData;
       const newVersion = Number(version);
-      if (this.version < newVersion) {
+      // Must check if the new version is greater or equal
+      // because we may receive different bits of data, at the same version, from different parts of the query
+      // if we for example query a user's todos (not querying their name), but then query the assignee for each todo _and_ their name
+      if (newVersion >= this.version) {
         this.version = newVersion;
         extend({
           object: this,
