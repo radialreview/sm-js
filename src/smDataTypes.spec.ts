@@ -209,7 +209,7 @@ describe('Node default properties', () => {
     const properties = {
       person: smData.record.optional(smData.string),
       animal: smData.record.optional(smData.string),
-      other: smData.record(smData.string),
+      other: smData.record(smData.string('John')),
     };
 
     const def = {
@@ -224,12 +224,15 @@ describe('Node default properties', () => {
         name: 'Joe',
         occupation: 'plumber',
       },
+      other: {
+        name: undefined,
+      },
     });
 
     expect(DO.person.name).toEqual('Joe');
     expect(DO.person.occupation).toEqual('plumber');
     expect(DO.animal).toEqual(null);
-    expect(DO.other).toEqual({});
+    expect(DO.other).toEqual({ name: 'John' });
   });
 
   it('should handle defaults/optional properties for record types (number values)', () => {
@@ -237,6 +240,7 @@ describe('Node default properties', () => {
       productName: smData.string,
       cost: smData.record(smData.number),
       test: smData.record(smData.array(smData.string)),
+      secretPrice: smData.record(smData.number(100)),
     };
 
     const def = {
@@ -253,6 +257,9 @@ describe('Node default properties', () => {
         tax: '12.5',
         total: '512.5',
         paid: 'true',
+      },
+      secretPrice: {
+        hidden: undefined,
       },
     });
 
@@ -271,11 +278,13 @@ describe('Node default properties', () => {
         })
       );
     }, 0);
+    expect(DO.secretPrice.hidden).toEqual(100);
   });
 
   it('should handle defaults/optional properties for record types (boolean values)', () => {
     const properties = {
       todos: smData.record(smData.boolean(false)),
+      featureFlags: smData.record(smData.boolean(true)),
     };
 
     const def = {
@@ -289,12 +298,16 @@ describe('Node default properties', () => {
       todos: {
         hasTestedSmDataTypes: 'true',
       },
+      featureFlags: {
+        enableBilling: undefined,
+      },
     });
 
     expect(DO.todos.hasTestedSmDataTypes).toEqual(true);
+    expect(DO.featureFlags.enableBilling).toEqual(true);
   });
 
-  it.only('should handle defaults/optional properties for record types (array values)', () => {
+  it('should handle defaults/optional properties for record types (array values)', () => {
     const properties = {
       numbers: smData.record(smData.array(smData.number)),
       people: smData.record(
@@ -329,8 +342,42 @@ describe('Node default properties', () => {
 
     expect(DO.numbers.favorite).toEqual([1, 2, 3]);
     expect(DO.people.plumbers).toEqual([
-      { name: 'Joe', age: 42 },
-      { name: 'Jane', age: 35 },
+      { name: 'Joe', age: 42, occupation: 'plumber' },
+      { name: 'Jane', age: 35, occupation: 'plumber' },
     ]);
+  });
+
+  it('should handle defaults/optional properties for record types (object values)', () => {
+    const properties = {
+      peopleById: smData.record(
+        smData.object({
+          name: smData.string,
+          age: smData.number,
+          occupation: smData.string('plumber'),
+        })
+      ),
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def as any);
+
+    const DO = new DOClass({
+      peopleById: {
+        123: {
+          name: 'joe',
+          age: '50',
+        },
+      },
+    });
+
+    expect(DO.peopleById['123'].name).toEqual('joe');
+
+    expect(DO.peopleById['123'].age).toEqual(50);
+
+    expect(DO.peopleById['123'].occupation).toEqual('plumber');
   });
 });

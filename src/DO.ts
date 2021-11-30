@@ -78,20 +78,6 @@ export function DOFactory<
               nodeProperties: property.boxedValue,
             });
           } else if (
-            this.isRecordType(property.type) &&
-            propExistsInInitialData
-          ) {
-            console.log('is RECORD', initialData[propName]);
-            console.log('BOXED', property.boxedValue);
-            const recordProp = this.getSMProperty(property);
-            console.log('RECORDPROP', recordProp);
-
-            acc[propName] = this.parseInitialData({
-              initialData: initialData[propName],
-              nodeProperties: recordProp.boxedValue,
-            });
-            acc[propName] = property.parser(initialData[propName]);
-          } else if (
             this.isArrayType(property.type) &&
             propExistsInInitialData
           ) {
@@ -108,9 +94,28 @@ export function DOFactory<
       );
     }
 
-    private getDefaultData = (nodeProperties: TNodeData) => {
-      const getDefaultFnValue = (propName: keyof TNodeData) => {
-        const defaultFn = (nodeProperties[propName] as any)._default;
+    private getDefaultData = (
+      nodePropertiesOrSMData:
+        | typeof node.properties
+        | SMData<any, any, any>
+        | ISMDataConstructor<any, any, any>
+    ): Record<keyof TNodeData, any> => {
+      if (nodePropertiesOrSMData instanceof SMData) {
+        if (this.isObjectType(nodePropertiesOrSMData.type)) {
+          return this.getDefaultData(nodePropertiesOrSMData.boxedValue);
+        }
+        return nodePropertiesOrSMData.defaultValue;
+      }
+
+      const getDefaultFnValue = (
+        propNameOrBoxedValue?: keyof TNodeData | ISMData,
+        defaultSMData?: ISMData
+      ) => {
+        const defaultFn =
+          defaultSMData ||
+          ((nodePropertiesOrSMData as TNodeData)[
+            propNameOrBoxedValue as keyof TNodeData
+          ] as any)._default;
 
         if (defaultFn instanceof Error) {
           throw defaultFn;
@@ -127,17 +132,24 @@ export function DOFactory<
         return defaultFn.defaultValue;
       };
 
-      return Object.keys(nodeProperties).reduce(
+      if (typeof nodePropertiesOrSMData === 'function') {
+        return getDefaultFnValue(undefined, nodePropertiesOrSMData._default);
+      }
+
+      return Object.keys(nodePropertiesOrSMData).reduce(
         (acc, prop: keyof TNodeData) => {
-          const propValue = nodeProperties[prop];
-          if (this.isObjectType(propValue.type)) {
+          const propValue = nodePropertiesOrSMData[prop];
+          if (
+            this.isObjectType(propValue.type) ||
+            this.isRecordType(propValue.type)
+          ) {
             acc[prop] = this.getDefaultData(propValue.boxedValue);
           } else if (typeof propValue === 'function') {
             const defaultValue = getDefaultFnValue(prop);
 
             acc[prop] = defaultValue;
           } else {
-            acc[prop] = nodeProperties[prop].defaultValue;
+            acc[prop] = nodePropertiesOrSMData[prop].defaultValue;
           }
           return acc;
         },
@@ -166,7 +178,6 @@ export function DOFactory<
 
       if (property instanceof SMData && property.boxedValue) {
         // sm.array, sm.object or sm.record
-
         if (this.isArrayType(property.type)) {
           if (opts.persistedData) {
             return (opts.persistedData || []).map((data: any) => {
@@ -197,7 +208,7 @@ export function DOFactory<
               acc[key] = this.getParsedData({
                 smData: property.boxedValue,
                 persistedData: opts.persistedData[key],
-                defaultData: null,
+                defaultData: opts.defaultData, //opts.defaultData,
               }); // no default value for values in a record
               return acc;
             }, {} as Record<string, any>);
@@ -251,8 +262,6 @@ export function DOFactory<
         persistedData: this._persistedData,
         defaultData: this._defaults,
       });
-
-      console.log('parsed', this.parsedData.people);
     };
 
     /**
