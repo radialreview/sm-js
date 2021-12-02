@@ -115,11 +115,13 @@ export const boolean: ISMDataConstructor<
   boolean,
   string | boolean,
   undefined
-> = defaultValue => {
+> = <TDefaultValue extends boolean>(defaultValue?: TDefaultValue) => {
   if (defaultValue === undefined) {
     return new SMDataTypeExplicitDefaultException({
       dataType: SM_DATA_TYPES.boolean,
-    });
+    }) as TDefaultValue extends undefined
+      ? Error
+      : ISMData<boolean, string | boolean, undefined>;
   }
 
   return new SMData<boolean, string | boolean, undefined>({
@@ -138,7 +140,9 @@ export const boolean: ISMDataConstructor<
     },
     defaultValue,
     isOptional: false,
-  });
+  }) as TDefaultValue extends undefined
+    ? Error
+    : ISMData<boolean, string | boolean, undefined>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
 //@ts-ignore
@@ -321,7 +325,7 @@ export const children = <TSMNode extends ISMNode>(opts: {
 export const IS_NULL_IDENTIFIER = '__IS_NULL__';
 
 type NodeDefArgs<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -331,23 +335,10 @@ type NodeDefArgs<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  transformData?: (
-    receivedData: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-  ) => {
-    /**
-     * This object will extend the received data object.
-     * It will only extend queried properties and only if the recieved data property value is nullish.
-     * */
-    extendIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-    /**
-     * This object will overwrite values in received data object for queried properties regardless of the current value.
-     */
-    overwriteIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-  };
 };
 
 export function def<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -370,7 +361,6 @@ export function def<
     smComputed: def.computed,
     smRelational: def.relational,
     smMutations: def.mutations,
-    transformData: def.transformData,
   };
 }
 

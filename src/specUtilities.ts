@@ -4,7 +4,7 @@ import { DOFactory } from './DO';
 const userProperties = {
   id: smData.string,
   firstName: smData.string,
-  lastName: smData.string,
+  lastName: smData.string('joe'),
   address: smData.object({
     streetName: smData.string,
     zipCode: smData.string,
@@ -39,15 +39,15 @@ const todoProperties = {
   task: smData.string,
   done: smData.boolean,
   assigneeId: smData.string,
-  meetingId: smData.maybeString,
-  settings: smData.maybeObject({
-    archiveAfterMeeting: smData.maybeBoolean,
-    nestedSettings: smData.maybeObject({
-      nestedNestedMaybe: smData.maybeString,
+  meetingId: smData.string.optional,
+  settings: smData.object.optional({
+    archiveAfterMeeting: smData.boolean.optional,
+    nestedSettings: smData.object.optional({
+      nestedNestedMaybe: smData.string.optional,
     }),
   }),
   dataSetIds: smData.array(smData.string),
-  comments: smData.maybeArray(smData.maybeString),
+  comments: smData.array(smData.string.optional).optional,
 };
 
 export type TodoProperties = typeof todoProperties;

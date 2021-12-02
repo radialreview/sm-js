@@ -5,13 +5,15 @@ declare interface ISMDataConstructor<
   TSMValue = any,
   TBoxedValue extends ISMData | Record<string, ISMData> | undefined
 > {
-  <T>(defaultValue: TParsedValue): T extends number
-    ? TParsedValue extends undefined
+  <TDefaultValue extends TParsedValue>(
+    defaultValue: TDefaultValue
+  ): TParsedValue extends boolean
+    ? TDefaultValue extends undefined
       ? Error
-      : SMData<TParsedValue, TSMValue, undefined>
-    : SMData<TParsedValue, TSMValue, undefined>;
-  _default: SMData<TSMValue, TSMValue, undefined>;
-  optional: SMData<Maybe<TSMValue>, Maybe<TSMValue>, undefined>;
+      : ISMData<TParsedValue, TSMValue, TBoxedValue> // SMData<TParsedValue, TSMValue, undefined>
+    : ISMData<TParsedValue, TSMValue, TBoxedValue>;
+  _default: ISMData<TSMValue, TSMValue, undefined>;
+  optional: ISMData<Maybe<TSMValue>, Maybe<TSMValue>, undefined>;
 }
 
 /**
@@ -62,7 +64,7 @@ declare type QueryFilterEqualsKeyValue<NodeType> = Partial<
  * Utility to extract the expected data type of a node based on its' data structure
  */
 declare type GetExpectedNodeDataType<
-  TSMData extends Record<string, ISMData>
+  TSMData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>
 > = {
   [key in keyof TSMData]: TSMData[key] extends ISMData<
     infer TParsedValue,
@@ -141,7 +143,7 @@ interface IDOMethods {
 declare type NodeDO = Record<string, any> & IDOMethods;
 
 declare type NodeComputedFns<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
   TNodeComputedData
 > = {
   [key in keyof TNodeComputedData]: (
@@ -161,7 +163,10 @@ declare type NodeMutationFn<
 > = (opts: SMNodeMutationOpts<TNodeData> & TAdditionalOpts) => Promise<any>;
 
 declare interface ISMNode<
-  TNodeData extends Record<string, ISMData> = {},
+  TNodeData extends Record<
+    string,
+    ISMData | ISMDataConstructor<any, any, any>
+  > = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>> = {},
@@ -177,13 +182,6 @@ declare interface ISMNode<
   smComputed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
-  // allows extending received data with an arbitrary set of default data
-  transformData?: (
-    receivedData: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-  ) => {
-    extendIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-    overwriteIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-  };
   type: string;
   repository: ISMNodeRepository;
   do: new (data?: Record<string, any>) => TNodeDO;

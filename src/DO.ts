@@ -7,7 +7,7 @@ import { getConfig } from './config';
  * for each instance of that node type that is fetched from SM
  */
 export function DOFactory<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
@@ -138,7 +138,7 @@ export function DOFactory<
 
       return Object.keys(nodePropertiesOrSMData).reduce(
         (acc, prop: keyof TNodeData) => {
-          const propValue = nodePropertiesOrSMData[prop];
+          const propValue = nodePropertiesOrSMData[prop] as ISMData;
           if (
             this.isObjectType(propValue.type) ||
             this.isRecordType(propValue.type)
@@ -149,7 +149,7 @@ export function DOFactory<
 
             acc[prop] = defaultValue;
           } else {
-            acc[prop] = nodePropertiesOrSMData[prop].defaultValue;
+            acc[prop] = (nodePropertiesOrSMData[prop] as ISMData).defaultValue;
           }
           return acc;
         },
