@@ -23,7 +23,10 @@ export const SM_DATA_TYPES = {
 export class SMData<
   TParsedValue,
   TSMValue,
-  TBoxedValue extends ISMData | Record<string, ISMData> | undefined
+  TBoxedValue extends
+    | ISMData
+    | Record<string, ISMData | ISMDataConstructor<TParsedValue, TSMValue, any>>
+    | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
   type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
   parser: (smValue: TSMValue) => TParsedValue;
@@ -89,7 +92,7 @@ export const number: ISMDataConstructor<
             value,
           })
         );
-        return number._default.defaultValue;
+        return number._default.defaultValue as number;
       }
 
       return parsed;
@@ -166,8 +169,8 @@ boolean.optional = new SMData<
   isOptional: true,
 });
 
-export const object: ISMDataConstructor<any, any, any> = <
-  TBoxedValue extends Record<string, ISMData | any>
+export const object = <
+  TBoxedValue extends Record<string, ISMData | ISMDataConstructor>
 >(
   boxedValue: TBoxedValue
 ) =>
@@ -186,9 +189,11 @@ export const object: ISMDataConstructor<any, any, any> = <
     isOptional: false,
   });
 
-object._default = null;
+object._default = null as any;
 
-object.optional = <TBoxedValue extends Record<string, ISMData>>(
+object.optional = <
+  TBoxedValue extends Record<string, ISMData | ISMDataConstructor>
+>(
   boxedValue: TBoxedValue
 ) =>
   new SMData<

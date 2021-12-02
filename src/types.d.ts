@@ -10,10 +10,14 @@ declare interface ISMDataConstructor<
   ): TParsedValue extends boolean
     ? TDefaultValue extends undefined
       ? Error
-      : ISMData<TParsedValue, TSMValue, TBoxedValue> // SMData<TParsedValue, TSMValue, undefined>
+      : ISMData<boolean, TSMValue, TBoxedValue> // SMData<TParsedValue, TSMValue, undefined>
     : ISMData<TParsedValue, TSMValue, TBoxedValue>;
-  _default: ISMData<TSMValue, TSMValue, undefined>;
-  optional: ISMData<Maybe<TSMValue>, Maybe<TSMValue>, undefined>;
+  _default: ISMData<TParsedValue, TSMValue, TBoxedValue>;
+  optional: TBoxedValue extends undefined
+    ? ISMData<Maybe<TParsedValue>, Maybe<TSMValue>, undefined>
+    : (
+        boxedValue: TBoxedValue
+      ) => ISMData<Maybe<TParsedValue>, Maybe<TSMValue>, TBoxedValue>;
 }
 
 /**
@@ -28,7 +32,10 @@ declare interface ISMData<
    * for arrays is the smData type of each item in that array
    * for objects is a record of strings to smData (matching the structure the smData.object received as an argument)
    */
-  TBoxedValue extends ISMData | Record<string, ISMData> | undefined = any
+  TBoxedValue extends
+    | ISMData
+    | Record<string, ISMData | ISMDataConstructor>
+    | undefined = any
 > {
   type: string;
   parser(smValue: TSMValue): TParsedValue;
@@ -64,13 +71,11 @@ declare type QueryFilterEqualsKeyValue<NodeType> = Partial<
  * Utility to extract the expected data type of a node based on its' data structure
  */
 declare type GetExpectedNodeDataType<
-  TSMData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>
+  TSMData extends Record<string, ISMData | ISMDataConstructor>
 > = {
-  [key in keyof TSMData]: TSMData[key] extends ISMData<
-    infer TParsedValue,
-    any,
-    infer TBoxedValue
-  >
+  [key in keyof TSMData]: TSMData[key] extends
+    | ISMData<infer TParsedValue, any, infer TBoxedValue>
+    | ISMDataConstructor<infer TParsedValue, any, infer TBoxedValue>
     ? TBoxedValue extends Record<string, ISMData>
       ? TParsedValue extends null
         ? Maybe<GetExpectedNodeDataType<TBoxedValue>>
