@@ -10,7 +10,10 @@ import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
  * Returns an initialized instance of a repository for an SMNode
  */
 export function RepositoryFactory<
-  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>
+  TNodeData extends Record<
+    string,
+    ISMData | ((_default: any) => ISMData | Error)
+  >
 >(opts: {
   def: {
     type: string;
@@ -66,7 +69,7 @@ export function RepositoryFactory<
     private parseDataFromSM<
       TNodeData extends Record<
         string,
-        ISMData | ISMDataConstructor<any, any, any>
+        ISMData | ((_default: any) => ISMData | Error)
       >
     >(
       receivedData: any

@@ -10,7 +10,7 @@ declare interface ISMDataConstructor<
   ): TParsedValue extends boolean
     ? TDefaultValue extends undefined
       ? Error
-      : ISMData<boolean, TSMValue, TBoxedValue> // SMData<TParsedValue, TSMValue, undefined>
+      : ISMData<boolean, TSMValue, TBoxedValue>
     : ISMData<TParsedValue, TSMValue, TBoxedValue>;
   _default: ISMData<TParsedValue, TSMValue, TBoxedValue>;
   optional: TBoxedValue extends undefined
@@ -34,7 +34,7 @@ declare interface ISMData<
    */
   TBoxedValue extends
     | ISMData
-    | Record<string, ISMData | ISMDataConstructor>
+    | Record<string, ISMData | ((_default: any) => ISMData)>
     | undefined = any
 > {
   type: string;
@@ -71,11 +71,13 @@ declare type QueryFilterEqualsKeyValue<NodeType> = Partial<
  * Utility to extract the expected data type of a node based on its' data structure
  */
 declare type GetExpectedNodeDataType<
-  TSMData extends Record<string, ISMData | ISMDataConstructor>
+  TSMData extends Record<string, ISMData | ((_default: any) => ISMData | Error)>
 > = {
-  [key in keyof TSMData]: TSMData[key] extends
-    | ISMData<infer TParsedValue, any, infer TBoxedValue>
-    | ISMDataConstructor<infer TParsedValue, any, infer TBoxedValue>
+  [key in keyof TSMData]: TSMData[key] extends ISMData<
+    infer TParsedValue,
+    any,
+    infer TBoxedValue
+  >
     ? TBoxedValue extends Record<string, ISMData>
       ? TParsedValue extends null
         ? Maybe<GetExpectedNodeDataType<TBoxedValue>>
@@ -148,7 +150,10 @@ interface IDOMethods {
 declare type NodeDO = Record<string, any> & IDOMethods;
 
 declare type NodeComputedFns<
-  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
+  TNodeData extends Record<
+    string,
+    ISMData | ((_default: any) => ISMData | Error)
+  >,
   TNodeComputedData
 > = {
   [key in keyof TNodeComputedData]: (
@@ -170,7 +175,7 @@ declare type NodeMutationFn<
 declare interface ISMNode<
   TNodeData extends Record<
     string,
-    ISMData | ISMDataConstructor<any, any, any>
+    ISMData | ((_default: any) => ISMData | Error)
   > = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},

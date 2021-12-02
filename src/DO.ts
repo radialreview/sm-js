@@ -7,7 +7,10 @@ import { getConfig } from './config';
  * for each instance of that node type that is fetched from SM
  */
 export function DOFactory<
-  TNodeData extends Record<string, ISMData | ISMDataConstructor<any, any, any>>,
+  TNodeData extends Record<
+    string,
+    ISMData | ((_default: any) => ISMData | Error)
+  >,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
@@ -98,7 +101,7 @@ export function DOFactory<
       nodePropertiesOrSMData:
         | typeof node.properties
         | SMData<any, any, any>
-        | ISMDataConstructor<any, any, any>
+        | ((_default: any) => SMData<any, any, any>)
     ): Record<keyof TNodeData, any> => {
       if (nodePropertiesOrSMData instanceof SMData) {
         if (this.isObjectType(nodePropertiesOrSMData.type)) {
@@ -133,7 +136,10 @@ export function DOFactory<
       };
 
       if (typeof nodePropertiesOrSMData === 'function') {
-        return getDefaultFnValue(undefined, nodePropertiesOrSMData._default);
+        return getDefaultFnValue(
+          undefined,
+          (nodePropertiesOrSMData as any)._default as ISMData
+        );
       }
 
       return Object.keys(nodePropertiesOrSMData).reduce(
@@ -160,8 +166,7 @@ export function DOFactory<
     private getParsedData(opts: {
       smData:
         | ISMData
-        | ISMDataConstructor<any, any, any>
-        | Record<string, ISMData | ISMDataConstructor<any, any, any>>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
+        | Record<string, ISMData | ((_default: any) => ISMData | Error)>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
       persistedData: any;
       defaultData: any;
     }) {
@@ -172,9 +177,7 @@ export function DOFactory<
       )
         return null;
 
-      const property = this.getSMProperty(
-        opts.smData as ISMData | ISMDataConstructor<any, any, any>
-      );
+      const property = this.getSMProperty(opts.smData as ISMData);
 
       if (property instanceof SMData && property.boxedValue) {
         // sm.array, sm.object or sm.record
@@ -391,7 +394,7 @@ export function DOFactory<
     }
 
     private getSMProperty(
-      prop: ISMData<any, any, any> | ISMDataConstructor<any, any, any>
+      prop: ISMData<any, any, any> | ((_default: any) => ISMData | Error)
     ) {
       if (typeof prop === 'function') {
         return (prop as any)._default as ISMData;
