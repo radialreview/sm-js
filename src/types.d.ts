@@ -1,25 +1,6 @@
 declare type Maybe<T> = T | null;
 
-declare interface ISMDataConstructor<
-  TParsedValue = any,
-  TSMValue = any,
-  TBoxedValue extends ISMData | Record<string, ISMData> | undefined
-> {
-  <TDefaultValue extends TParsedValue>(
-    defaultValue: TDefaultValue
-  ): TParsedValue extends boolean
-    ? TDefaultValue extends undefined
-      ? Error
-      : ISMData<boolean, TSMValue, TBoxedValue>
-    : ISMData<TParsedValue, TSMValue, TBoxedValue>;
-  _default: ISMData<TParsedValue, TSMValue, TBoxedValue>;
-  optional: TBoxedValue extends undefined
-    ? ISMData<Maybe<TParsedValue>, Maybe<TSMValue>, undefined>
-    : (
-        boxedValue: TBoxedValue
-      ) => ISMData<Maybe<TParsedValue>, Maybe<TSMValue>, TBoxedValue>;
-}
-
+declare type TSMDataDefaultFn = (_default: any) => ISMData | Error;
 /**
  * The interface implemented by each smData type (like smData.string, smData.boolean)
  */
@@ -34,7 +15,7 @@ declare interface ISMData<
    */
   TBoxedValue extends
     | ISMData
-    | Record<string, ISMData | ((_default: any) => ISMData)>
+    | Record<string, ISMData | ((_default: any) => ISMData | Error)>
     | undefined = any
 > {
   type: string;
@@ -352,12 +333,19 @@ declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<
 >;
 
 type GetMapFnArgs<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<
+    string,
+    ISMData | ((_default: any) => ISMData | Error)
+  >,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
   [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>>
     ? TNodeData[key]
-    : TNodeData[key] extends ISMData<any, any, Record<string, ISMData>>
+    : TNodeData[key] extends ISMData<
+        any,
+        any,
+        Record<string, ISMData | ((_default: any) => ISMData | Error)>
+      >
     ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;
       }) => TMapFn
@@ -366,7 +354,10 @@ type GetMapFnArgs<
   TNodeRelationalData;
 
 declare type MapFn<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<
+    string,
+    ISMData | ((_default: any) => ISMData | Error)
+  >,
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = (
