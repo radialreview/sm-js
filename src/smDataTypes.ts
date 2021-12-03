@@ -222,7 +222,7 @@ export const record = <
   >({
     type: SM_DATA_TYPES.record,
     parser: val => val,
-    boxedValue: parsedBoxedValue,
+    boxedValue: boxedValue as typeof parsedBoxedValue,
     isOptional: false,
     defaultValue: {} as Record<string, any>,
   });
