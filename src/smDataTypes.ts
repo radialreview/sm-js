@@ -25,7 +25,7 @@ export class SMData<
   TSMValue,
   TBoxedValue extends
     | ISMData
-    | Record<string, ISMData | ((_default: any) => ISMData)>
+    | Record<string, ISMData | TSMDataDefaultFn>
     | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
   type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
@@ -162,7 +162,7 @@ boolean.optional = new SMData<
 });
 
 export const object = <
-  TBoxedValue extends Record<string, ISMData | ((_default: any) => ISMData)>
+  TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
 >(
   boxedValue: TBoxedValue
 ) =>
@@ -184,7 +184,7 @@ export const object = <
 object._default = null as any;
 
 object.optional = <
-  TBoxedValue extends Record<string, ISMData | ((_default: any) => ISMData)>
+  TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
 >(
   boxedValue: TBoxedValue
 ) =>
@@ -205,7 +205,7 @@ object.optional = <
 
 export const record = <
   TKey extends string,
-  TBoxedValue extends ISMData | ((_default: any) => ISMData)
+  TBoxedValue extends ISMData | TSMDataDefaultFn
 >(
   boxedValue: TBoxedValue
 ) => {
@@ -228,7 +228,7 @@ export const record = <
   });
 };
 
-record.optional = <TBoxedValue extends ISMData | ((_default: any) => ISMData)>(
+record.optional = <TBoxedValue extends ISMData | TSMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
   const parsedBoxedValue: ISMData =
@@ -252,9 +252,7 @@ record.optional = <TBoxedValue extends ISMData | ((_default: any) => ISMData)>(
 
 record._default = null as any;
 
-export const array = <
-  TBoxedValue extends ISMData | ((_default: any) => ISMData)
->(
+export const array = <TBoxedValue extends ISMData | TSMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
   const parsedBoxedValue: ISMData =
