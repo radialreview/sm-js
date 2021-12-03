@@ -338,10 +338,7 @@ export const children = <TSMNode extends ISMNode>(opts: {
 export const IS_NULL_IDENTIFIER = '__IS_NULL__';
 
 type NodeDefArgs<
-  TNodeData extends Record<
-    string,
-    ISMData | ((_default: any) => ISMData | Error)
-  >,
+  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -354,10 +351,7 @@ type NodeDefArgs<
 };
 
 export function def<
-  TNodeData extends Record<
-    string,
-    ISMData | ((_default: any) => ISMData | Error)
-  >,
+  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>

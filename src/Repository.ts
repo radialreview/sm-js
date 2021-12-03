@@ -10,10 +10,7 @@ import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
  * Returns an initialized instance of a repository for an SMNode
  */
 export function RepositoryFactory<
-  TNodeData extends Record<
-    string,
-    ISMData | ((_default: any) => ISMData | Error)
-  >
+  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>
 >(opts: {
   def: {
     type: string;
@@ -67,10 +64,7 @@ export function RepositoryFactory<
      *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the smDataTypes)
      */
     private parseDataFromSM<
-      TNodeData extends Record<
-        string,
-        ISMData | ((_default: any) => ISMData | Error)
-      >
+      TNodeData extends Record<string, ISMData | TSMDataDefaultFn>
     >(
       receivedData: any
     ): { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>> {
