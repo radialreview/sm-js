@@ -7,7 +7,7 @@ import { getConfig } from './config';
  * for each instance of that node type that is fetched from SM
  */
 export function DOFactory<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
@@ -161,7 +161,7 @@ export function DOFactory<
     };
 
     private getParsedData(opts: {
-      smData: ISMData | Record<string, ISMData | TSMDataDefaultFn>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
+      smData: ISMData | Record<string, ISMData | SMDataDefaultFn>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
       persistedData: any;
       defaultData: any;
     }) {
@@ -388,7 +388,7 @@ export function DOFactory<
       });
     }
 
-    private getSMProperty(prop: ISMData<any, any, any> | TSMDataDefaultFn) {
+    private getSMProperty(prop: ISMData<any, any, any> | SMDataDefaultFn) {
       if (typeof prop === 'function') {
         return (prop as any)._default as ISMData;
       }

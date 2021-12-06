@@ -1,6 +1,6 @@
 declare type Maybe<T> = T | null;
 
-declare type TSMDataDefaultFn = (_default: any) => ISMData;
+declare type SMDataDefaultFn = (_default: any) => ISMData;
 /**
  * The interface implemented by each smData type (like smData.string, smData.boolean)
  */
@@ -15,7 +15,7 @@ declare interface ISMData<
    */
   TBoxedValue extends
     | ISMData
-    | Record<string, ISMData | TSMDataDefaultFn>
+    | Record<string, ISMData | SMDataDefaultFn>
     | undefined = any
 > {
   type: string;
@@ -57,14 +57,12 @@ declare type GetParsedValueTypeFromDefaultFn<
  * Utility to extract the expected data type of a node based on its' data structure
  */
 declare type GetExpectedNodeDataType<
-  TSMData extends Record<string, ISMData | TSMDataDefaultFn>
+  TSMData extends Record<string, ISMData | SMDataDefaultFn>
 > = {
-  [key in keyof TSMData]: TSMData[key] extends ISMData<
-    infer TParsedValue,
-    any,
-    infer TBoxedValue
-  >
-    ? TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
+  [key in keyof TSMData]: TSMData[key] extends
+    | ISMData<infer TParsedValue, any, infer TBoxedValue>
+    | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
+    ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
       ? TParsedValue extends null
         ? Maybe<GetExpectedNodeDataType<TBoxedValue>>
         : GetExpectedNodeDataType<TBoxedValue>
@@ -73,7 +71,7 @@ declare type GetExpectedNodeDataType<
         ? Maybe<Array<TArrayItemType>>
         : Array<TArrayItemType>
       : TParsedValue
-    : TSMData[key] extends TSMDataDefaultFn
+    : TSMData[key] extends SMDataDefaultFn
     ? GetParsedValueTypeFromDefaultFn<TSMData[key]>
     : never;
 };
@@ -138,7 +136,7 @@ interface IDOMethods {
 declare type NodeDO = Record<string, any> & IDOMethods;
 
 declare type NodeComputedFns<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData
 > = {
   [key in keyof TNodeComputedData]: (
@@ -158,7 +156,7 @@ declare type NodeMutationFn<
 > = (opts: SMNodeMutationOpts<TNodeData> & TAdditionalOpts) => Promise<any>;
 
 declare interface ISMNode<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn> = {},
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>> = {},
@@ -334,7 +332,7 @@ declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<
 >;
 
 type GetMapFnArgs<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
   [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>>
@@ -342,7 +340,7 @@ type GetMapFnArgs<
     : TNodeData[key] extends ISMData<
         any,
         any,
-        Record<string, ISMData | TSMDataDefaultFn>
+        Record<string, ISMData | SMDataDefaultFn>
       >
     ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;
@@ -352,7 +350,7 @@ type GetMapFnArgs<
   TNodeRelationalData;
 
 declare type MapFn<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = (

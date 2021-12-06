@@ -25,7 +25,7 @@ export class SMData<
   TSMValue,
   TBoxedValue extends
     | ISMData
-    | Record<string, ISMData | TSMDataDefaultFn>
+    | Record<string, ISMData | SMDataDefaultFn>
     | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
   type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
@@ -160,7 +160,7 @@ boolean.optional = new SMData<
 });
 
 export const object = <
-  TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
+  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
 >(
   boxedValue: TBoxedValue
 ) =>
@@ -182,7 +182,7 @@ export const object = <
 object._default = null as any;
 
 object.optional = <
-  TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
+  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
 >(
   boxedValue: TBoxedValue
 ) =>
@@ -203,7 +203,7 @@ object.optional = <
 
 export const record = <
   TKey extends string,
-  TBoxedValue extends ISMData | TSMDataDefaultFn
+  TBoxedValue extends ISMData | SMDataDefaultFn
 >(
   boxedValue: TBoxedValue
 ) => {
@@ -226,7 +226,7 @@ export const record = <
   });
 };
 
-record.optional = <TBoxedValue extends ISMData | TSMDataDefaultFn>(
+record.optional = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
   const parsedBoxedValue: ISMData =
@@ -250,7 +250,7 @@ record.optional = <TBoxedValue extends ISMData | TSMDataDefaultFn>(
 
 record._default = null as any;
 
-export const array = <TBoxedValue extends ISMData | TSMDataDefaultFn>(
+export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
   const parsedBoxedValue: ISMData =
@@ -334,7 +334,7 @@ export const children = <TSMNode extends ISMNode>(opts: {
 export const IS_NULL_IDENTIFIER = '__IS_NULL__';
 
 type NodeDefArgs<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -347,7 +347,7 @@ type NodeDefArgs<
 };
 
 export function def<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>

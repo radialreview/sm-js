@@ -94,7 +94,7 @@ describe('DOProxyGenerator', () => {
 });
 
 function generateDOProxy<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   properties: TNodeData;
   initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;

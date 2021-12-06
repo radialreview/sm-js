@@ -78,7 +78,7 @@ export const todoNode: TodoNode = smData.def({
 });
 
 export function generateDOInstance<
-  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -87,7 +87,7 @@ export function generateDOInstance<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
+  initialData?: Record<string, any>; // DeepPartial<GetExpectedNodeDataType<TNodeData>>;
 }) {
   const DO = DOFactory<
     TNodeData,
