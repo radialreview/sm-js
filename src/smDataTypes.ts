@@ -112,11 +112,9 @@ export const boolean = <TDefaultValue extends boolean>(
   defaultValue?: TDefaultValue
 ) => {
   if (defaultValue === undefined) {
-    return new SMDataTypeExplicitDefaultException({
+    return (new SMDataTypeExplicitDefaultException({
       dataType: SM_DATA_TYPES.boolean,
-    }) as TDefaultValue extends undefined
-      ? Error
-      : ISMData<boolean, string | boolean, undefined>;
+    }) as unknown) as ISMData<boolean, string | boolean, undefined>;
   }
 
   return new SMData<boolean, string | boolean, undefined>({

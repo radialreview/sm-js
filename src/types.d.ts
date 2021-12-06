@@ -1,6 +1,6 @@
 declare type Maybe<T> = T | null;
 
-declare type TSMDataDefaultFn = (_default: any) => ISMData | Error;
+declare type TSMDataDefaultFn = (_default: any) => ISMData;
 /**
  * The interface implemented by each smData type (like smData.string, smData.boolean)
  */
@@ -48,6 +48,11 @@ declare type QueryFilterEqualsKeyValue<NodeType> = Partial<
   Record<keyof NodeType, string>
 >;
 
+declare type GetParsedValueTypeFromDefaultFn<
+  TDefaultFn extends (_default: any) => ISMData
+> = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any>
+  ? TParsedValue
+  : never;
 /**
  * Utility to extract the expected data type of a node based on its' data structure
  */
@@ -59,7 +64,7 @@ declare type GetExpectedNodeDataType<
     any,
     infer TBoxedValue
   >
-    ? TBoxedValue extends Record<string, ISMData>
+    ? TBoxedValue extends Record<string, ISMData | TSMDataDefaultFn>
       ? TParsedValue extends null
         ? Maybe<GetExpectedNodeDataType<TBoxedValue>>
         : GetExpectedNodeDataType<TBoxedValue>
@@ -68,6 +73,8 @@ declare type GetExpectedNodeDataType<
         ? Maybe<Array<TArrayItemType>>
         : Array<TArrayItemType>
       : TParsedValue
+    : TSMData[key] extends TSMDataDefaultFn
+    ? GetParsedValueTypeFromDefaultFn<TSMData[key]>
     : never;
 };
 

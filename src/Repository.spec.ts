@@ -141,8 +141,8 @@ describe('smData.repository', () => {
   test('data received that is not part of node data or is relational is ignored', () => {
     const repository = generateRepositoryInstance<
       {
-        id: ISMDataConstructor<string, string, any>;
-        task: ISMDataConstructor<string, string, any>;
+        id: TSMDataDefaultFn;
+        task: TSMDataDefaultFn;
       },
       {},
       { assignee: IChildrenQueryBuilder<UserNode> },

@@ -1,10 +1,10 @@
-import { generateDOInstance } from './specUtilities'
-import * as smData from './smDataTypes'
-import { DOProxyGenerator } from './DOProxyGenerator'
+import { generateDOInstance } from './specUtilities';
+import * as smData from './smDataTypes';
+import { DOProxyGenerator } from './DOProxyGenerator';
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
-} from './exceptions'
+} from './exceptions';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -17,15 +17,15 @@ describe('DOProxyGenerator', () => {
         id: 'mockId',
       },
       upToDateData: ['id'],
-    })
+    });
 
-    expect(doProxy.id).toBe('mockId')
-  })
+    expect(doProxy.id).toBe('mockId');
+  });
 
   it('adds getters for relational results', () => {
     const todos = new Array(5)
       .fill(0)
-      .map(() => generateDOProxy({ properties: { id: smData.string } }))
+      .map(() => generateDOProxy({ properties: { id: smData.string } }));
 
     const doProxy = generateDOProxy({
       properties: {
@@ -39,10 +39,10 @@ describe('DOProxyGenerator', () => {
           children: true,
         } as RelationalQueryRecordEntry,
       },
-    })
+    });
 
-    expect(doProxy.todos).toBe(todos)
-  })
+    expect(doProxy.todos).toBe(todos);
+  });
 
   it(`throws a helpful exception when a property that isn't guaranteed to be up to date is read`, () => {
     const doProxy = generateDOProxy({
@@ -50,10 +50,10 @@ describe('DOProxyGenerator', () => {
         id: smData.string,
       },
       upToDateData: [],
-    })
+    });
 
-    expect(() => doProxy.id).toThrow(SMNotUpToDateException)
-  })
+    expect(() => doProxy.id).toThrow(SMNotUpToDateException);
+  });
 
   it(`throws a helpful exception when a property within a nested object that isn't guaranteed to be up to date is read`, () => {
     const doProxy = generateDOProxy({
@@ -64,47 +64,50 @@ describe('DOProxyGenerator', () => {
         }),
       },
       upToDateData: ['object', 'object_nestedString'],
-    })
+    });
 
-    expect(() => doProxy.object.nestedString).not.toThrow()
-    expect(() => doProxy.object.nestedNumber).toThrow(SMNotUpToDateException)
-  })
+    expect(() => doProxy.object.nestedString).not.toThrow();
+    expect(() => doProxy.object.nestedNumber).toThrow(SMNotUpToDateException);
+  });
 
   it(`throws a helpful exception when a property is attempted to be read from within a computed property but isn't guaranteed to be up to date`, () => {
     const doProxy = generateDOProxy({
       properties: {
+        name: smData.string,
         object: smData.object({
           nestedString: smData.string,
           nestedNumber: smData.number,
         }),
       },
       computed: {
-        computedValue: (data) => {
-          return data.object.nestedNumber
+        computedValue: data => {
+          return data.object.nestedNumber;
         },
       },
       upToDateData: ['object', 'object_nestedString'],
-    })
+    });
 
     expect(() => doProxy.computedValue).toThrow(
       SMNotUpToDateInComputedException
-    )
-  })
-})
+    );
+  });
+});
 
-function generateDOProxy<TNodeData extends Record<string, ISMData>>(opts: {
-  properties: TNodeData
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-  computed?: NodeComputedFns<TNodeData, Record<string, any>>
-  upToDateData?: Array<string>
-  relationalResults?: Record<string, any>
-  relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>
+function generateDOProxy<
+  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>
+>(opts: {
+  properties: TNodeData;
+  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
+  computed?: NodeComputedFns<TNodeData, Record<string, any>>;
+  upToDateData?: Array<string>;
+  relationalResults?: Record<string, any>;
+  relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }) {
   const doInstance = generateDOInstance({
     properties: opts.properties,
     initialData: opts.initialData,
     computed: opts.computed,
-  })
+  });
 
   return DOProxyGenerator({
     do: doInstance,
@@ -117,5 +120,5 @@ function generateDOProxy<TNodeData extends Record<string, ISMData>>(opts: {
     upToDateData: opts.upToDateData || [],
     relationalResults: opts.relationalResults || {},
     relationalQueries: opts.relationalQueries || {},
-  })
+  });
 }

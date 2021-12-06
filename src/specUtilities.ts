@@ -78,7 +78,7 @@ export const todoNode: TodoNode = smData.def({
 });
 
 export function generateDOInstance<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | TSMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
