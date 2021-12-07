@@ -29,8 +29,6 @@ export function DOFactory<
     private _persistedData: Record<string, any> = {};
 
     constructor(initialData?: DeepPartial<TNodeData>) {
-      const initialPersisted: DeepPartial<TNodeData> = {};
-
       this._defaults = this.getDefaultData(node.properties);
 
       if (initialData) {
@@ -40,7 +38,11 @@ export function DOFactory<
         });
       }
 
-      this.parsedData = initialPersisted;
+      this.parsedData = this.getParsedData({
+        smData: node.properties,
+        persistedData: this._persistedData,
+        defaultData: this._defaults,
+      });
 
       getConfig().plugins?.forEach(plugin => {
         if (plugin.DO?.onConstruct) {
@@ -52,7 +54,7 @@ export function DOFactory<
       });
 
       this.initializeNodePropGettersAndSetters();
-      initialData && this.onDataReceived(initialData);
+      initialData && this.onInitialDataReceived(initialData);
 
       this.initializeNodeComputedGetters();
       this.initializeNodeRelationalGetters();
@@ -243,15 +245,27 @@ export function DOFactory<
     }
 
     public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
+      this.handleNewData({ receivedData, isInitialData: false });
+    };
+
+    private onInitialDataReceived = (receivedData: DeepPartial<TNodeData>) => {
+      this.handleNewData({ receivedData, isInitialData: true });
+    };
+
+    private handleNewData = (opts: {
+      receivedData: DeepPartial<TNodeData>;
+      isInitialData: boolean;
+    }) => {
       const newData = this.parseInitialData({
-        initialData: receivedData,
+        initialData: opts.receivedData,
         nodeProperties: node.properties,
       });
 
       extend({
         object: this._persistedData,
         extension: newData,
-        deleteKeysNotInExtension: false,
+        // we only want to delete keys if this is an update, not the initial data received
+        deleteKeysNotInExtension: !opts.isInitialData,
         extendNestedObjects: true,
       });
 

@@ -8,7 +8,7 @@ describe('smData.DO', () => {
         id: smData.string,
         dueDate: smData.number,
         settings: smData.object({
-          show: smData.boolean,
+          show: smData.boolean(true),
           color: smData.string,
         }),
         items: smData.array(smData.number),

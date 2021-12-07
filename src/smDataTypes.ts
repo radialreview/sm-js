@@ -211,7 +211,7 @@ export const record = <
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
       ? ((boxedValue as any)._default as ISMData)
-      : boxedValue;
+      : (boxedValue as ISMData);
 
   return new SMData<
     Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
@@ -233,7 +233,7 @@ record.optional = <TBoxedValue extends ISMData | SMDataDefaultFn>(
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
       ? ((boxedValue as any)._default as ISMData)
-      : boxedValue;
+      : (boxedValue as ISMData);
 
   return new SMData<
     Maybe<Record<string, GetSMDataType<typeof parsedBoxedValue>>>,
@@ -257,7 +257,7 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
       ? ((boxedValue as any)._default as ISMData)
-      : boxedValue;
+      : (boxedValue as ISMData);
 
   function smArray(
     defaultValue: Array<GetSMDataType<typeof parsedBoxedValue>>
