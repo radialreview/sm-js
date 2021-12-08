@@ -7,7 +7,6 @@
     "dist",
     "src"
   ],
-  "exports": "./*",
   "engines": {
     "node": ">=10"
   },
