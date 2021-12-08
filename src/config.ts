@@ -1,40 +1,37 @@
 import { DocumentNode } from 'graphql';
 import { extend } from './dataUtilities';
+import { getGQLCLient } from './gqlClient';
 import { SMPlugin } from './plugins';
-// import {
-//   ApolloClient,
-//   InMemoryCache,
 
-// } from '@apollo/client';
+export type SMGQLClient = {
+  query(opts: {
+    gql: DocumentNode;
+    token: string;
+    batched?: boolean;
+  }): Promise<any>;
+  // returns a subscription canceller
+  subscribe(opts: {
+    gql: DocumentNode;
+    token: string;
+    onMessage: (message: Record<string, any>) => void;
+    onError: (error: any) => void;
+  }): () => void;
+};
 
 export type SMConfig = {
-  gqlClient: {
-    query(opts: {
-      gql: DocumentNode;
-      token: string;
-      batched?: boolean;
-    }): Promise<any>;
-    // returns a subscription canceller
-    subscribe(opts: {
-      gql: any;
-      token: string;
-      onMessage: (message: Record<string, any>) => void;
-      onError: (error: any) => void;
-    }): () => void;
-  };
+  gqlClient: SMGQLClient;
   plugins?: Array<SMPlugin>;
 };
 
 const defaultConfig: SMConfig = {
-  gqlClient: {
-    query: async function defaultGQLClientQuery() {
-      // @TODO
+  gqlClient: getGQLCLient({
+    httpUrl: 'saasmaster.dev02.tt-devs.com',
+    wsUrl: 'saasmaster.dev02.tt-devs.com',
+    onErrors: e => {
+      console.error('gql client errors:', e);
+      return false;
     },
-    subscribe: () => {
-      // @TODO
-      return () => {};
-    },
-  },
+  }),
 };
 
 let _storedConfig: SMConfig = defaultConfig;
