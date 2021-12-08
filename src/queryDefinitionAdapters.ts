@@ -1,4 +1,5 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client/core';
+
 import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,

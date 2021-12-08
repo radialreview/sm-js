@@ -334,11 +334,13 @@ export class SMQueryManager {
       stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
     }
 
-    if (
-      'under' in queryRecordEntryForThisSubscription ||
-      'underIds' in queryRecordEntryForThisSubscription ||
-      'ids' in queryRecordEntryForThisSubscription
-    ) {
+    if ('id' in queryRecordEntryForThisSubscription) {
+      if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
+        return;
+      }
+
+      this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId;
+    } else {
       if (
         (
           stateForThisAlias.idsOrIdInCurrentResult || ([] as Array<string>)
@@ -352,18 +354,6 @@ export class SMQueryManager {
           string
         >),
       ];
-    } else if ('id' in queryRecordEntryForThisSubscription) {
-      if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
-        return;
-      }
-
-      this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId;
-    } else {
-      throw Error(
-        `Not implemented. ${JSON.stringify(
-          queryRecordEntryForThisSubscription
-        )}`
-      );
     }
   }
 

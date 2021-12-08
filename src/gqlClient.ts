@@ -1,16 +1,17 @@
-import gql from 'graphql-tag';
-import { GraphQLError, OperationDefinitionNode, DocumentNode } from 'graphql';
 import {
   ApolloClient,
   InMemoryCache,
   ApolloLink,
   Observable,
   split,
-} from '@apollo/client';
+  DocumentNode,
+  gql,
+} from '@apollo/client/core';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
+
 import { SMGQLClient } from './config';
 
 interface IGetGQLClientOpts {
@@ -18,16 +19,7 @@ interface IGetGQLClientOpts {
   wsUrl: string;
   // return "true" if the errors were handled
   // false otherwise to ensure errors are bubbled up
-  onErrors: (errs: readonly GraphQLError[]) => boolean;
-}
-
-export function getOperationName(doc: DocumentNode) {
-  const matchingDefinition = (doc.definitions as Array<
-    OperationDefinitionNode
-  >).find(definition => definition.name?.kind === 'Name');
-
-  if (matchingDefinition) return matchingDefinition.name?.value || null;
-  return null;
+  onErrors: (errs: Array<any>) => boolean;
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
@@ -99,6 +91,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       'GetChildren',
       'GetReferences',
       'GetNodes',
+      'GetNodesNew',
       'GetNodesById',
     ];
 
@@ -186,7 +179,13 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           query: authenticateSubscriptionDocument(opts),
         })
         .subscribe({
-          next: opts.onMessage,
+          next: message => {
+            if (!message.data)
+              opts.onError(
+                new Error(`Unexpected message structure.\n${message}`)
+              );
+            else opts.onMessage(message.data);
+          },
           error: opts.onError,
         });
 

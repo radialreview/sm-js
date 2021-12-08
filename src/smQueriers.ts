@@ -45,6 +45,8 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
     queryDefinitions: TQueryDefinitions,
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
+    const startStack = new Error().stack as string;
+
     const queryId = opts?.queryId || `smQuery${queryIdx++}`;
     const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
       queryDefinitions,
@@ -54,11 +56,28 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
     const tokenName = opts?.tokenName || 'default';
     const token = getToken({ tokenName });
 
+    function getError(error: any) {
+      if (opts?.onError) {
+        return error;
+      } else {
+        // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+        error.stack =
+          error.stack +
+          '\n' +
+          startStack.substring(startStack.indexOf('\n') + 1);
+
+        return error;
+      }
+    }
+
     if (!token) {
-      const error = new Error(
-        `No token registered with the name "${tokenName}".\n` +
-          'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
+      const error = getError(
+        new Error(
+          `No token registered with the name "${tokenName}".\n` +
+            'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
+        )
       );
+
       if (opts?.onError) {
         opts.onError(error);
         return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
@@ -84,7 +103,10 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
 
           results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
         } catch (e) {
-          const error = new Error(`Error applying query results\n${e}`);
+          const error = getError(
+            new Error(`Error applying query results\n${e}`)
+          );
+
           if (opts?.onError) {
             opts.onError(error);
             return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
@@ -97,7 +119,7 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
         return { data: results, error: null };
       })
       .catch(e => {
-        const error = new Error(`Error querying data\n${e}`);
+        const error = getError(new Error(`Error querying data\n${e}`));
         if (opts?.onError) {
           opts.onError(error);
           return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
@@ -141,6 +163,12 @@ export async function subscribe<
     ? SubscriptionMeta
     : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta
 > {
+  type ReturnType = TSubscriptionOpts extends {
+    skipInitialQuery: true;
+  }
+    ? SubscriptionMeta
+    : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
+
   // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
   const startStack = new Error().stack as string;
   const queryId = opts?.queryId || `smQuery${queryIdx++}`;
@@ -152,16 +180,15 @@ export async function subscribe<
     queryId,
   });
 
-  function handleError(...args: Array<any>) {
+  function getError(error: any) {
     if (opts.onError) {
-      opts.onError(...args);
+      return error;
     } else {
-      const error = args[0];
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
       error.stack =
         error.stack + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
 
-      console.error(error);
+      return error;
     }
   }
 
@@ -169,15 +196,19 @@ export async function subscribe<
   const token = getToken({ tokenName });
 
   if (!token) {
-    const error = new Error(
-      `No token registered with the name "${tokenName}".\n` +
-        'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
+    const error = getError(
+      new Error(
+        `No token registered with the name "${tokenName}".\n` +
+          'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
+      )
     );
     if (opts.onError) {
       opts.onError(error);
-      return { data: {}, unsub, error } as {
-        data: QueryDataReturn<TQueryDefinitions>;
-      } & SubscriptionMeta;
+      return { data: {}, unsub, error } as TSubscriptionOpts extends {
+        skipInitialQuery: true;
+      }
+        ? SubscriptionMeta
+        : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
     } else {
       throw error;
     }
@@ -205,7 +236,15 @@ export async function subscribe<
         subscriptionAlias: data.subscriptionConfig.alias,
       });
     } catch (e) {
-      handleError(new Error(`Error applying subscription message\n${e}`));
+      const error = getError(
+        new Error(`Error applying subscription message\n${e}`)
+      );
+
+      if (opts.onError) {
+        opts.onError(error);
+      } else {
+        console.error(error);
+      }
     }
   }
 
@@ -250,12 +289,23 @@ export async function subscribe<
           onError: e => {
             // Can never throw here. The dev consuming this would have no way of catching it
             // To catch an error in a subscription they must provide onError
-            handleError(new Error(`Error in a subscription message\n${e}`));
+            const error = getError(
+              new Error(`Error in a subscription message\n${e}`)
+            );
+
+            if (opts.onError) {
+              opts.onError(error);
+            } else {
+              console.error(error);
+            }
           },
         });
       });
     } catch (e) {
-      const error = new Error(`Error initializating subscriptions\n${e}`);
+      const error = getError(
+        new Error(`Error initializating subscriptions\n${e}`)
+      );
+
       if (opts?.onError) {
         opts.onError(error);
       } else {
@@ -270,9 +320,7 @@ export async function subscribe<
 
   if (opts.skipInitialQuery) {
     initSubs();
-    return { unsub } as TSubscriptionOpts extends { skipInitialQuery: true }
-      ? SubscriptionMeta
-      : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
+    return { unsub } as ReturnType;
   } else {
     const query = generateQuerier(queryManager);
     initSubs();
@@ -284,12 +332,13 @@ export async function subscribe<
         batched: opts.batched,
       });
     } catch (e) {
-      const error = new Error(`Error querying initial data set\n${e}`);
+      const error = getError(
+        new Error(`Error querying initial data set\n${e}`)
+      );
+
       if (opts?.onError) {
         opts.onError(error);
-        return { data: {}, unsub, error } as {
-          data: QueryDataReturn<TQueryDefinitions>;
-        } & SubscriptionMeta;
+        return { data: {}, unsub, error } as ReturnType;
       } else {
         throw error;
       }
@@ -307,8 +356,6 @@ export async function subscribe<
 
     opts.onData({ results: data as QueryDataReturn<TQueryDefinitions> });
 
-    return { data, unsub, error: null } as {
-      data: QueryDataReturn<TQueryDefinitions>;
-    } & SubscriptionMeta;
+    return { data, unsub, error: null } as ReturnType;
   }
 }

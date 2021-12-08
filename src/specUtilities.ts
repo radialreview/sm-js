@@ -120,8 +120,19 @@ export function generateDOInstance<
 }
 
 export function createMockQueryDefinitions(
-  opts?: { useIds: true } | { useUnder: true }
+  opts: { useIds: true } | { useUnder: true } | { useNoUnder: true } = {
+    useUnder: true,
+  }
 ) {
+  let target = {};
+  if ('useIds' in opts) {
+    target = { ids: ['mock-id'] };
+  } else if ('useUnder' in opts) {
+    target = { underIds: ['mock-id'] };
+  } else if ('useNoUnder' in opts) {
+    // do nothing, leave target empty
+  }
+
   return {
     users: queryDefinition({
       def: generateUserNode(),
@@ -146,9 +157,7 @@ export function createMockQueryDefinitions(
           }),
         }),
       }),
-      ...(opts && 'useIds' in opts
-        ? { ids: ['mock-id'] }
-        : { underIds: ['mock-id'] }),
+      ...target,
     }),
   };
 }

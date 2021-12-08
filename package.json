@@ -7,6 +7,7 @@
     "dist",
     "src"
   ],
+  "exports": "./*",
   "engines": {
     "node": ">=10"
   },
@@ -46,7 +47,9 @@
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^6.0.4",
+    "@types/lodash": "^4.14.177",
     "husky": "^7.0.4",
+    "isomorphic-fetch": "^3.0.0",
     "size-limit": "^6.0.4",
     "tsdx": "^0.14.1",
     "tslib": "^2.3.1",
@@ -54,10 +57,9 @@
   },
   "dependencies": {
     "@apollo/client": "^3.4.17",
-    "@types/lodash": "^4.14.176",
-    "graphql": "^16.0.1",
-    "graphql-tag": "^2.12.6",
+    "graphql": "^16.1.0",
     "lodash": "^4.17.21",
-    "mobx": "^6.3.6"
+    "mobx": "^6.3.6",
+    "subscriptions-transport-ws": "^0.11.0"
   }
 }

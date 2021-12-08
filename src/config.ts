@@ -1,4 +1,6 @@
-import { DocumentNode } from 'graphql';
+require('isomorphic-fetch');
+
+import { DocumentNode } from '@apollo/client/core';
 import { extend } from './dataUtilities';
 import { getGQLCLient } from './gqlClient';
 import { SMPlugin } from './plugins';
@@ -25,8 +27,8 @@ export type SMConfig = {
 
 const defaultConfig: SMConfig = {
   gqlClient: getGQLCLient({
-    httpUrl: 'saasmaster.dev02.tt-devs.com',
-    wsUrl: 'saasmaster.dev02.tt-devs.com',
+    httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
+    wsUrl: 'wss://saasmaster.dev02.tt-devs.com/',
     onErrors: e => {
       console.error('gql client errors:', e);
       return false;

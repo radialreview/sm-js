@@ -1,5 +1,3 @@
-import gql from 'graphql-tag';
-
 import {
   createMockQueryDefinitions,
   generateUserNode,
@@ -13,6 +11,7 @@ import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
 } from './queryDefinitionAdapters';
 import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
+import { gql } from '@apollo/client/core';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
