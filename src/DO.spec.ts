@@ -12,7 +12,7 @@ describe('smData.DO', () => {
         id: smData.string,
         dueDate: smData.number,
         settings: smData.object({
-          show: smData.boolean,
+          show: smData.boolean(true),
           color: smData.string,
         }),
         items: smData.array(smData.number),
@@ -163,16 +163,16 @@ describe('smData.DO', () => {
 
   test('maybe types are parsed correctly', () => {
     const properties = {
-      maybeStr: smData.maybeString,
-      maybeBool: smData.maybeBoolean,
-      maybeNum: smData.maybeNumber,
-      maybeObj: smData.maybeObject({
-        nested: smData.maybeBoolean,
-        doubleNested: smData.maybeObject({
-          doubleNestedNested: smData.maybeBoolean,
+      maybeStr: smData.string.optional,
+      maybeBool: smData.boolean.optional,
+      maybeNum: smData.number.optional,
+      maybeObj: smData.object.optional({
+        nested: smData.boolean.optional,
+        doubleNested: smData.object.optional({
+          doubleNestedNested: smData.boolean.optional,
         }),
       }),
-      maybeArr: smData.maybeArray(smData.maybeNumber),
+      maybeArr: smData.array(smData.number.optional).optional,
     };
 
     const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
@@ -194,7 +194,7 @@ describe('smData.DO', () => {
     expect(doInstance.maybeArr).toBe(null);
 
     doInstance.onDataReceived({
-      version: '1',
+      version: '2',
       maybeObj: {
         nested: ('true' as unknown) as boolean,
         doubleNested: null,
@@ -239,7 +239,7 @@ describe('smData.DO', () => {
     });
 
     doInstance.onDataReceived({
-      version: '1',
+      version: '2',
       rootLevelRecord: {
         baz: 'baz',
       },
@@ -266,5 +266,30 @@ describe('smData.DO', () => {
     expect(
       doInstance.object.nestedObject.doubleNestedRecord.doubleNestedBaz
     ).toBe('doubleNestedBaz');
+  });
+
+  test('does not delete properties within objects that are not included within an update', () => {
+    const doInstance = generateDOInstance({
+      properties: {
+        object: smData.object({
+          nested: smData.object({
+            nestedNumber: smData.number,
+          }),
+          someNumber: smData.number,
+        }),
+      },
+      initialData: {
+        id: '123',
+        version: '1',
+        object: { nested: { nestedNumber: '1' } },
+      },
+    });
+
+    doInstance.onDataReceived({
+      version: '2',
+      object: { someNumber: 3 },
+    });
+
+    expect(doInstance.object.nested.nestedNumber).toBe(1);
   });
 });

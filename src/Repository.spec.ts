@@ -14,19 +14,12 @@ function generateRepositoryInstance<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  transformData?: (
-    receivedData: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-  ) => {
-    extendIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-    overwriteIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-  };
 }) {
   const def = {
     type: 'mockNodeType',
     properties: opts.properties,
     computed: opts.computed,
     relational: opts.relational,
-    transformData: opts.transformData,
   };
 
   const DOClass = DOFactory(def);
@@ -153,7 +146,10 @@ describe('smData.repository', () => {
   // to remove the relational results. This ensures the DO is responsible for that.
   test('data received that is not part of node data or is relational is ignored', () => {
     const repository = generateRepositoryInstance<
-      { id: ISMData<string>; task: ISMData<string> },
+      {
+        id: SMDataDefaultFn;
+        task: SMDataDefaultFn;
+      },
       {},
       { assignee: IChildrenQueryBuilder<UserNode> },
       {}
@@ -217,91 +213,5 @@ describe('smData.repository', () => {
     repository.onNodeDeleted('123');
 
     expect(() => repository.byId('123')).toThrow(SMNotCachedException);
-  });
-
-  it('extends received data with default data for nullish queried properties', () => {
-    const properties = {
-      id: smData.string,
-      settings: smData.maybeObject({
-        foo: smData.string,
-        notQueried: smData.string,
-        notNull: smData.string,
-      }),
-    };
-
-    const repository = generateRepositoryInstance({
-      properties,
-      transformData: () => {
-        const defaults: DeepPartial<GetExpectedNodeDataType<
-          typeof properties
-        >> = {
-          settings: {
-            foo: 'default foo',
-            notQueried: 'default notQueried',
-            notNull: 'default notNull',
-          },
-        };
-
-        return {
-          extendIfQueried: defaults,
-        };
-      },
-    });
-
-    repository.onDataReceived({
-      id: '123',
-      version: '1',
-      settings: null as any,
-      settings_foo: null, // mimicking what the BE would return from querying this bit of the object
-      settings_notNull: 'persisted notNull',
-    } as any);
-
-    const cached = repository.byId('123');
-    expect(cached.settings?.foo).toBe('default foo');
-    expect(cached.settings?.notNull).toBe('persisted notNull');
-    // Make sure properties that exists in the transformData are not applied
-    // if they are not queried
-    expect(cached.settings?.notQueried).toBe(undefined);
-  });
-
-  it('should overwrite received data with default data for queried properties', () => {
-    const properties = {
-      id: smData.string,
-      settings: smData.maybeObject({
-        foo: smData.string,
-        notQueried: smData.string,
-      }),
-    };
-
-    const repository = generateRepositoryInstance({
-      properties,
-      transformData: () => {
-        const overwriteIfQueried: DeepPartial<GetExpectedNodeDataType<
-          typeof properties
-        >> = {
-          settings: {
-            foo: 'overwritten foo',
-            notQueried: 'overwritten notQueried',
-          },
-        };
-
-        return {
-          overwriteIfQueried,
-        };
-      },
-    });
-
-    repository.onDataReceived({
-      id: '123',
-      version: '1',
-      settings: null as any,
-      settings_foo: 'persisted foo',
-    } as any);
-
-    const cached = repository.byId('123');
-    expect(cached.settings?.foo).toBe('overwritten foo');
-    // Make sure properties that exists in the transformData are not applied
-    // if they are not queried
-    expect(cached.settings?.notQueried).toBe(undefined);
   });
 });

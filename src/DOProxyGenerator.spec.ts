@@ -74,6 +74,7 @@ describe('DOProxyGenerator', () => {
   it(`throws a helpful exception when a property is attempted to be read from within a computed property but isn't guaranteed to be up to date`, () => {
     const doProxy = generateDOProxy({
       properties: {
+        name: smData.string,
         object: smData.object({
           nestedString: smData.string,
           nestedNumber: smData.number,
@@ -93,7 +94,9 @@ describe('DOProxyGenerator', () => {
   });
 });
 
-function generateDOProxy<TNodeData extends Record<string, ISMData>>(opts: {
+function generateDOProxy<
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>
+>(opts: {
   properties: TNodeData;
   initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
     version: string;

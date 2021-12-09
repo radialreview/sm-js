@@ -4,25 +4,18 @@ import {
   prepareValueForFE,
 } from './dataConversions';
 import { SMNotCachedException, SMDataParsingException } from './exceptions';
-import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
-import { transformData } from './dataUtilities';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
+import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
 
 /**
  * Returns an initialized instance of a repository for an SMNode
  */
 export function RepositoryFactory<
-  TNodeData extends Record<string, ISMData>
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   def: {
     type: string;
     properties: TNodeData;
-    transformData?: (
-      receivedData: DeepPartial<GetExpectedNodeDataType<TNodeData>>
-    ) => {
-      extendIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-      overwriteIfQueried?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
-    };
   };
   DOClass: new (initialData?: Record<string, any>) => NodeDO;
 }): ISMNodeRepository {
@@ -37,22 +30,6 @@ export function RepositoryFactory<
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
-      if (opts.def.transformData) {
-        const { extendIfQueried, overwriteIfQueried } = opts.def.transformData(
-          parsedData
-        );
-
-        transformData({
-          object: parsedData,
-          extensions: extendIfQueried || {},
-          overwrites: overwriteIfQueried || {},
-          // parsedData includes only the data that was queried
-          // if we do not discard values not in parsed data,
-          // this resets data in the DO to the defaults
-          discardValuesNotInObject: true,
-        });
-      }
-
       if (cached) {
         cached.onDataReceived(parsedData);
       } else {
@@ -86,7 +63,9 @@ export function RepositoryFactory<
      *     settings_show: 'true'
      *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the smDataTypes)
      */
-    private parseDataFromSM<TNodeData extends Record<string, ISMData>>(
+    private parseDataFromSM<
+      TNodeData extends Record<string, ISMData | SMDataDefaultFn>
+    >(
       receivedData: any
     ): { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>> {
       const oldStyleObjects: Record<string, any> = {};
@@ -111,13 +90,15 @@ export function RepositoryFactory<
 
         const isObjectData =
           key.includes('_') ||
-          opts.def.properties[key].type === SM_DATA_TYPES.object ||
-          opts.def.properties[key].type === SM_DATA_TYPES.maybeObject;
+          (opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.object ||
+          (opts.def.properties[key] as ISMData).type ===
+            SM_DATA_TYPES.maybeObject;
 
         const isArrayData =
           !isObjectData &&
-          (opts.def.properties[key].type === SM_DATA_TYPES.array ||
-            opts.def.properties[key].type === SM_DATA_TYPES.maybeArray);
+          ((opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.array ||
+            (opts.def.properties[key] as ISMData).type ===
+              SM_DATA_TYPES.maybeArray);
 
         // point 2 above
         if (isObjectData) {

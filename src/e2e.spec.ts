@@ -26,7 +26,13 @@ test('querying data from SM works', async done => {
   expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
     Array [
       Object {
-        "address": null,
+        "address": Object {
+          "apt": Object {
+            "floor": 0,
+            "number": 0,
+          },
+          "state": "",
+        },
         "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
         "todos": Array [
           Object {
@@ -88,7 +94,13 @@ test('subscribing to data from sm works', async done => {
   expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
     Array [
       Object {
-        "address": null,
+        "address": Object {
+          "apt": Object {
+            "floor": 0,
+            "number": 0,
+          },
+          "state": "",
+        },
         "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
         "todos": Array [
           Object {

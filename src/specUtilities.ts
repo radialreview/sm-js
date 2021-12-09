@@ -7,7 +7,7 @@ import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 const userProperties = {
   id: smData.string,
   firstName: smData.string,
-  lastName: smData.string,
+  lastName: smData.string('joe'),
   address: smData.object({
     streetName: smData.string,
     zipCode: smData.string,
@@ -46,17 +46,17 @@ export function generateUserNode(cachedTodoNode?: TodoNode): UserNode {
 const todoProperties = {
   id: smData.string,
   task: smData.string,
-  done: smData.boolean,
+  done: smData.boolean(false),
   assigneeId: smData.string,
-  meetingId: smData.maybeString,
-  settings: smData.maybeObject({
-    archiveAfterMeeting: smData.maybeBoolean,
-    nestedSettings: smData.maybeObject({
-      nestedNestedMaybe: smData.maybeString,
+  meetingId: smData.string.optional,
+  settings: smData.object.optional({
+    archiveAfterMeeting: smData.boolean.optional,
+    nestedSettings: smData.object.optional({
+      nestedNestedMaybe: smData.string.optional,
     }),
   }),
   dataSetIds: smData.array(smData.string),
-  comments: smData.maybeArray(smData.maybeString),
+  comments: smData.array(smData.string.optional).optional,
 };
 
 export type TodoProperties = typeof todoProperties;
@@ -92,7 +92,7 @@ export function generateTodoNode(cachedUserNode?: UserNode): TodoNode {
 }
 
 export function generateDOInstance<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
@@ -101,9 +101,7 @@ export function generateDOInstance<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
-    version: string;
-  };
+  initialData?: { version: string } & Record<string, any>;
 }) {
   const DO = DOFactory<
     TNodeData,

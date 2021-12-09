@@ -1,6 +1,4 @@
-import { extend } from './dataUtilities';
-import { SMData, SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
-import { SMDataParsingException } from './exceptions';
+import { SMData, SM_DATA_TYPES } from './smDataTypes';
 import { getConfig } from './config';
 
 /**
@@ -8,7 +6,7 @@ import { getConfig } from './config';
  * for each instance of that node type that is fetched from SM
  */
 export function DOFactory<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
@@ -27,14 +25,27 @@ export function DOFactory<
   return class DO implements TDOClass {
     public parsedData: DeepPartial<TNodeData>;
     public version: number = -1;
+    private _defaults: Record<keyof TNodeData, any>;
+    private _persistedData: Record<string, any> = {};
 
-    constructor(
-      initialData: DeepPartial<TNodeData> & { id: string; version: number }
-    ) {
-      const { parsedData } = this.getInitialState({
-        smDataForThisObject: node.properties,
+    constructor(initialData?: DeepPartial<TNodeData> & { version: number }) {
+      this._defaults = this.getDefaultData(node.properties);
+      if (initialData?.version) {
+        this.version = Number(initialData.version);
+      }
+
+      if (initialData) {
+        this._persistedData = this.parseReceivedData({
+          initialData,
+          nodeProperties: node.properties,
+        });
+      }
+
+      this.parsedData = this.getParsedData({
+        smData: node.properties,
+        persistedData: this._persistedData,
+        defaultData: this._defaults,
       });
-      this.parsedData = parsedData as DeepPartial<TNodeData>;
 
       getConfig().plugins?.forEach(plugin => {
         if (plugin.DO?.onConstruct) {
@@ -46,72 +57,256 @@ export function DOFactory<
       });
 
       this.initializeNodePropGettersAndSetters();
-      initialData && this.onDataReceived(initialData);
-
       this.initializeNodeComputedGetters();
       this.initializeNodeRelationalGetters();
       this.initializeNodeMutations();
     }
 
-    public onDataReceived = (
-      receivedData: { version: number } & DeepPartial<TNodeData>
-    ) => {
+    private parseReceivedData(opts: {
+      initialData: Record<string, any>;
+      nodeProperties: typeof node.properties;
+    }) {
+      const { initialData, nodeProperties } = opts;
+
+      return Object.entries(nodeProperties).reduce(
+        (acc, [propName, propValue]) => {
+          const property = this.getSMData(propValue);
+
+          const propExistsInInitialData =
+            propName in initialData && initialData[propName] != null;
+
+          if (this.isObjectType(property.type) && propExistsInInitialData) {
+            acc[propName] = this.parseReceivedData({
+              initialData: initialData[propName],
+              nodeProperties: property.boxedValue,
+            });
+          } else if (
+            this.isArrayType(property.type) &&
+            propExistsInInitialData
+          ) {
+            acc[propName] = initialData[propName].map(
+              property.boxedValue.parser
+            );
+          } else if (propExistsInInitialData) {
+            acc[propName] = property.parser(initialData[propName]);
+          }
+
+          return acc;
+        },
+        {} as Record<string, any>
+      );
+    }
+
+    private getDefaultData = (
+      nodePropertiesOrSMData:
+        | typeof node.properties
+        | SMData<any, any, any>
+        | ((_default: any) => SMData<any, any, any>)
+    ): Record<keyof TNodeData, any> => {
+      if (nodePropertiesOrSMData instanceof SMData) {
+        if (this.isObjectType(nodePropertiesOrSMData.type)) {
+          return this.getDefaultData(nodePropertiesOrSMData.boxedValue);
+        }
+        return nodePropertiesOrSMData.defaultValue;
+      }
+
+      const getDefaultFnValue = (
+        propName?: keyof TNodeData,
+        defaultSMData?: ISMData
+      ) => {
+        const defaultFn =
+          defaultSMData ||
+          ((nodePropertiesOrSMData as TNodeData)[
+            propName as keyof TNodeData
+          ] as any)._default;
+
+        // if a boolean dataType is not passed a default value, it returns an error. We throw it here
+        if (defaultFn instanceof Error) {
+          throw defaultFn;
+        }
+
+        // if array type, we need to set the default value as an array containing the parent type's boxedValue
+        if (this.isArrayType(defaultFn.type)) {
+          if (this.isObjectType(defaultFn.boxedValue.type)) {
+            return [this.getDefaultData(defaultFn.boxedValue.boxedValue)];
+          }
+          return [defaultFn.boxedValue.defaultValue];
+        }
+
+        return defaultFn.defaultValue;
+      };
+
+      if (typeof nodePropertiesOrSMData === 'function') {
+        return getDefaultFnValue(
+          undefined,
+          (nodePropertiesOrSMData as any)._default as ISMData
+        );
+      }
+
+      return Object.keys(nodePropertiesOrSMData).reduce(
+        (acc, prop: keyof TNodeData) => {
+          const propValue = nodePropertiesOrSMData[prop] as ISMData;
+          if (
+            this.isObjectType(propValue.type) ||
+            this.isRecordType(propValue.type)
+          ) {
+            acc[prop] = this.getDefaultData(propValue.boxedValue);
+          } else if (typeof propValue === 'function') {
+            const defaultValue = getDefaultFnValue(prop);
+
+            acc[prop] = defaultValue;
+          } else {
+            acc[prop] = (nodePropertiesOrSMData[prop] as ISMData).defaultValue;
+          }
+          return acc;
+        },
+        {} as Record<keyof TNodeData, any>
+      );
+    };
+
+    private getParsedData(opts: {
+      smData: ISMData | Record<string, ISMData | SMDataDefaultFn>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
+      persistedData: any;
+      defaultData: any;
+    }) {
+      if (
+        opts.smData instanceof SMData &&
+        opts.smData.isOptional &&
+        opts.persistedData == null
+      )
+        return null;
+
+      const property = this.getSMData(opts.smData as ISMData);
+
+      if (property instanceof SMData && property.boxedValue) {
+        // sm.array, sm.object or sm.record
+        if (this.isArrayType(property.type)) {
+          if (opts.persistedData) {
+            return (opts.persistedData || []).map((data: any) => {
+              return this.getParsedData({
+                smData: property.boxedValue,
+                persistedData: data,
+                defaultData:
+                  property.type === SM_DATA_TYPES.array
+                    ? opts.defaultData?.[0] || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
+                    : null,
+              });
+            });
+          } else {
+            return opts.defaultData;
+          }
+        } else {
+          // sm.object, sm.record
+          // safe to assume that if we made it this far, the expected data type is object and it's non optional, so lets default it to {}
+          if (!opts.persistedData) {
+            opts.persistedData = {};
+          }
+
+          const boxedValueSMProperty = this.getSMData(property.boxedValue);
+
+          if (boxedValueSMProperty instanceof SMData) {
+            // sm.record
+            return Object.keys(opts.persistedData).reduce((acc, key) => {
+              acc[key] = this.getParsedData({
+                smData: property.boxedValue,
+                persistedData: opts.persistedData[key],
+                defaultData: opts.defaultData, //opts.defaultData,
+              }); // no default value for values in a record
+              return acc;
+            }, {} as Record<string, any>);
+          } else {
+            // if we're dealing with an object, lets loop over the keys in its boxed value
+            return Object.keys(property.boxedValue).reduce((acc, key) => {
+              acc[key] = this.getParsedData({
+                smData: property.boxedValue[key],
+                persistedData: opts.persistedData[key],
+                defaultData: opts.defaultData?.[key],
+              });
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        }
+      } else if (property instanceof SMData) {
+        // sm.string, sm.boolean, sm.number
+        if (opts.persistedData != null) {
+          return property.parser(opts.persistedData);
+        }
+        return opts.defaultData;
+      } else {
+        // root of node, simply loop over keys of data definition and call this function recursively
+        return Object.keys(property).reduce((acc, prop) => {
+          acc[prop] = this.getParsedData({
+            // @ts-ignore
+            smData: property[prop],
+            persistedData: opts.persistedData[prop],
+            defaultData: opts.defaultData[prop],
+          });
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
+    public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
       if (receivedData.version == null) {
         throw Error('Message received for a node was missing a version');
       }
 
       const { version, ...restReceivedData } = receivedData;
       const newVersion = Number(version);
-      // Must check if the new version is greater or equal
-      // because we may receive different bits of data, at the same version, from different parts of the query
-      // if we for example query a user's todos (not querying their name), but then query the assignee for each todo _and_ their name
+
       if (newVersion >= this.version) {
         this.version = newVersion;
-        extend({
-          object: this,
-          extension: restReceivedData,
-          deleteKeysNotInExtension: false,
-          /**
-           * the setters for these nested objects will handle extending the object themselves by extending parsedData for that object
-           * check objectDataSetter in this class for more details on that
-           */
-          extendNestedObjects: false,
+
+        const newData = this.parseReceivedData({
+          initialData: restReceivedData,
+          nodeProperties: node.properties,
+        });
+
+        this.extendPersistedWithNewlyReceivedData({
+          smData: node.properties,
+          object: this._persistedData,
+          extension: newData,
+        });
+
+        this.parsedData = this.getParsedData({
+          smData: node.properties,
+          persistedData: this._persistedData,
+          defaultData: this._defaults,
         });
       }
     };
 
-    /**
-     * gets initial values for self.parsedData
-     * calling itself recursively for nested objects
-     */
-    private getInitialState = (opts: {
-      smDataForThisObject: Record<string, ISMData>;
-    }) => {
-      return Object.keys(opts.smDataForThisObject).reduce(
-        (acc, prop) => {
-          const data = opts.smDataForThisObject[prop] as ISMData;
+    private extendPersistedWithNewlyReceivedData(opts: {
+      smData: Record<string, ISMData | SMDataDefaultFn>;
+      object: Record<string, any>;
+      extension: Record<string, any>;
+    }) {
+      Object.entries(opts.extension).forEach(([key, value]) => {
+        const smDataForThisProp = this.getSMData(opts.smData[key]);
 
-          if (
-            data.type === SM_DATA_TYPES.object ||
-            data.type === SM_DATA_TYPES.maybeObject
-          ) {
-            const smDataForThisObject = data.boxedValue as Record<
-              string,
-              ISMData
-            >;
-            const initialStateForThisObject = this.getInitialState({
-              smDataForThisObject,
-            });
-            acc.parsedData[prop] = initialStateForThisObject.parsedData;
+        if (!smDataForThisProp) {
+          opts.object[key] = value;
+        } else if (this.isRecordType(smDataForThisProp.type)) {
+          opts.object[key] = value;
+        } else {
+          if (this.isObjectType(smDataForThisProp.type)) {
+            if (value == null) {
+              opts.object[key] = null;
+            } else {
+              opts.object[key] = opts.object[key] || {};
+
+              this.extendPersistedWithNewlyReceivedData({
+                smData: smDataForThisProp.boxedValue,
+                object: opts.object[key],
+                extension: value,
+              });
+            }
+          } else {
+            opts.object[key] = value;
           }
-
-          return acc;
-        },
-        { parsedData: {} } as {
-          parsedData: Record<string, Record<string, {}>>;
         }
-      );
-    };
+      });
+    }
 
     /**
      * initializes getters and setters for properties that are stored on this node in SM
@@ -119,44 +314,14 @@ export function DOFactory<
      */
     private initializeNodePropGettersAndSetters() {
       Object.keys(node.properties).forEach(prop => {
-        const property = node.properties[prop] as ISMData;
+        const property = this.getSMData(node.properties[prop]);
 
-        if (
-          property.type === SM_DATA_TYPES.object ||
-          property.type === SM_DATA_TYPES.maybeObject
-        ) {
-          const parsedDataForThisObject = this.parsedData[prop] as Record<
-            string,
-            any
-          >;
-
-          this.setObjectProp({
-            smDataForThisObject: property.boxedValue as Record<string, ISMData>,
-            parsedDataForThisObject,
-            propNameForThisObject: prop as string,
-            parentObject: this,
-          });
-        } else if (
-          property.type === SM_DATA_TYPES.array ||
-          property.type === SM_DATA_TYPES.maybeArray
-        ) {
-          const smDataForThisProp = node.properties[prop];
-
-          this.setArrayProp({
-            parentObject: this,
-            propName: prop,
-            smDataForThisProp: smDataForThisProp,
-            parsedDataForParent: this.parsedData,
-          });
+        if (this.isObjectType(property.type)) {
+          this.setObjectProp(prop);
+        } else if (this.isArrayType(property.type)) {
+          this.setArrayProp(prop);
         } else {
-          const smDataForThisProp = node.properties[prop];
-
-          this.setPrimitiveValueProp({
-            parentObject: this,
-            propName: prop,
-            smDataForThisProp: smDataForThisProp,
-            parsedDataForParent: this.parsedData,
-          });
+          this.setPrimitiveValueProp(prop);
         }
       });
     }
@@ -202,176 +367,37 @@ export function DOFactory<
       }
     }
 
-    private getParsedNewValue = (opts: {
-      newValue: any;
-      currentParsedData: any;
-      smData: ISMData | Record<string, ISMData>;
-    }) => {
-      if (opts.smData instanceof SMData) {
-        return (opts.smData as ISMData).parser(opts.newValue);
-      } else {
-        const smDataForThisObject = opts.smData as Record<string, ISMData>;
-
-        if (opts.newValue == null) return opts.newValue;
-
-        return Object.keys({
-          ...opts.currentParsedData,
-          ...opts.newValue,
-        }).reduce((acc, dataKey) => {
-          if (dataKey === IS_NULL_IDENTIFIER) return acc;
-
-          const smDataForThisProp = smDataForThisObject[dataKey];
-
-          if (!smDataForThisProp)
-            throw new SMDataParsingException({
-              receivedData: opts.newValue,
-              message: `No smData for the prop ${dataKey} in the data for the node with the type ${node.type}.`,
-            });
-
-          if (opts.newValue[dataKey] !== undefined) {
-            acc[dataKey] = this.getParsedNewValue({
-              newValue: opts.newValue[dataKey],
-              currentParsedData: opts.currentParsedData[dataKey],
-              smData:
-                smDataForThisProp.type === SM_DATA_TYPES.object ||
-                smDataForThisProp.type === SM_DATA_TYPES.maybeObject
-                  ? smDataForThisProp.boxedValue
-                  : smDataForThisProp,
-            });
-          } else {
-            acc[dataKey] = opts.currentParsedData[dataKey];
-          }
-
-          return acc;
-        }, {} as Record<string, any>);
-      }
-    };
-
-    private objectDataSetter = (opts: {
-      parsedDataForObject: Record<string, any>;
-      smDataForObject: Record<string, ISMData>;
-    }) => {
-      return (newValue: any) => {
-        // We intentionally prefer mutating objects to updating their reference
-        // as updating their reference would mean we'd also have to re-instantiate property getters/setters
-        if (newValue == null) {
-          opts.parsedDataForObject[IS_NULL_IDENTIFIER] = true;
-        } else {
-          opts.parsedDataForObject[IS_NULL_IDENTIFIER] = false;
-
-          extend({
-            object: opts.parsedDataForObject,
-            extension: this.getParsedNewValue({
-              newValue,
-              smData: opts.smDataForObject,
-              currentParsedData: opts.parsedDataForObject,
-            }),
-            deleteKeysNotInExtension: true,
-            extendNestedObjects: true,
-          });
-        }
-      };
-    };
-
     /**
      * Object type props have different getters and setters than non object type
      * because when an object property is set we extend the previous value, instead of replacing its reference entirely (we've seen great performance gains doing this)
      */
-    private setObjectProp = (opts: {
-      smDataForThisObject: Record<string, ISMData>;
-      parsedDataForThisObject: Record<string, any>;
-      propNameForThisObject: string;
-      parentObject: Record<string, any>;
-    }) => {
-      Object.defineProperty(opts.parentObject, opts.propNameForThisObject, {
+    private setObjectProp = (propNameForThisObject: string) => {
+      Object.defineProperty(this, propNameForThisObject, {
         configurable: true,
         enumerable: true,
         get: () => {
-          // Because objects within nodes are spread to multiple properties, there is no easy way to make an object "null".
-          // To define an object as "null", this library stores a boolean value within node.objectName[IS_NULL_IDENTIFIER]
-          if (opts.parsedDataForThisObject[IS_NULL_IDENTIFIER]) {
-            return null;
-          }
-
-          const objectToReturn: Record<string, any> = {};
-
-          Object.keys(opts.parsedDataForThisObject).forEach(objectProp => {
-            if (objectProp === IS_NULL_IDENTIFIER) return;
-
-            Object.defineProperty(objectToReturn, objectProp, {
-              configurable: true,
-              enumerable: true,
-              get: () => opts.parsedDataForThisObject[objectProp],
-            });
-          });
-
-          return objectToReturn;
+          return this.parsedData[propNameForThisObject];
         },
-        set: this.objectDataSetter({
-          parsedDataForObject: opts.parsedDataForThisObject,
-          smDataForObject: opts.smDataForThisObject,
-        }),
       });
     };
 
-    private getPrimitiveValueSetter(opts: {
-      smDataForThisProp: ISMData;
-      propName: string;
-      parsedDataForParent: Record<string, any>;
-    }) {
-      return function PrimitiveValueSetter(newVal: any) {
-        opts.parsedDataForParent[opts.propName] = opts.smDataForThisProp.parser(
-          newVal
-        );
-      };
-    }
-
-    private setPrimitiveValueProp = (opts: {
-      parentObject: Record<string, any>;
-      propName: string;
-      smDataForThisProp: ISMData;
-      parsedDataForParent: Record<string, any>;
-    }) => {
-      Object.defineProperty(opts.parentObject, opts.propName, {
+    private setPrimitiveValueProp = (propName: string) => {
+      Object.defineProperty(this, propName, {
         configurable: true,
         enumerable: true,
         get: () => {
-          return opts.parsedDataForParent[opts.propName];
+          return this.parsedData[propName];
         },
-        set: this.getPrimitiveValueSetter(opts),
       });
     };
 
-    private getArrayValueSetter(opts: {
-      smDataForThisProp: ISMData<any, any, ISMData>;
-      propName: string;
-      parsedDataForParent: Record<string, any>;
-    }) {
-      return function ArrayValueSetter(newVal: any) {
-        if (newVal == null) {
-          opts.parsedDataForParent[opts.propName] = newVal;
-          return;
-        }
-
-        opts.parsedDataForParent[opts.propName] = newVal.map(
-          opts.smDataForThisProp.boxedValue.parser
-        );
-      };
-    }
-
-    private setArrayProp = (opts: {
-      parentObject: Record<string, any>;
-      propName: string;
-      smDataForThisProp: ISMData;
-      parsedDataForParent: Record<string, any>;
-    }) => {
-      Object.defineProperty(opts.parentObject, opts.propName, {
+    private setArrayProp = (propName: string) => {
+      Object.defineProperty(this, propName, {
         configurable: true,
         enumerable: true,
         get: () => {
-          return opts.parsedDataForParent[opts.propName];
+          return this.parsedData[propName];
         },
-        set: this.getArrayValueSetter(opts),
       });
     };
 
@@ -407,6 +433,29 @@ export function DOFactory<
           return opts.relationalQueryGetter();
         },
       });
+    }
+
+    private getSMData(prop: ISMData<any, any, any> | SMDataDefaultFn) {
+      if (typeof prop === 'function') {
+        return (prop as any)._default as ISMData;
+      }
+      return prop as ISMData;
+    }
+
+    private isArrayType(type: string) {
+      return type === SM_DATA_TYPES.array || type === SM_DATA_TYPES.maybeArray;
+    }
+
+    private isObjectType(type: string) {
+      return (
+        type === SM_DATA_TYPES.object || type === SM_DATA_TYPES.maybeObject
+      );
+    }
+
+    private isRecordType(type: string) {
+      return (
+        type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord
+      );
     }
   };
 }

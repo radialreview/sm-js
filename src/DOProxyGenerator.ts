@@ -34,7 +34,7 @@ import { SM_DATA_TYPES } from './smDataTypes';
  *      Instead, we'll throw an error and tell them - hey, you tried to read this property from this node type in this query, but you didn't request it/aren't subscribed to it!
  */
 export function DOProxyGenerator<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
 >(opts: {
