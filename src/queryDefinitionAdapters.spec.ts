@@ -7,8 +7,6 @@ import {
 } from './queryDefinitionAdapters';
 import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
 
-
-
 function createMockQueryDefinition(
   opts: { useIds: true } | { useUnder: true }
 ) {

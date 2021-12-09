@@ -1,9 +1,9 @@
-import { getConfig } from './config'
+import { getConfig } from './config';
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
-} from './exceptions'
-import { SM_DATA_TYPES } from './smDataTypes'
+} from './exceptions';
+import { SM_DATA_TYPES } from './smDataTypes';
 
 /**
  * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
@@ -34,43 +34,49 @@ import { SM_DATA_TYPES } from './smDataTypes'
  *      Instead, we'll throw an error and tell them - hey, you tried to read this property from this node type in this query, but you didn't request it/aren't subscribed to it!
  */
 export function DOProxyGenerator<
-  TNodeData extends Record<string, ISMData>,
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
-  TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>,
+  TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
 >(opts: {
-  node: ISMNode<TNodeData, TNodeComputedData>
-  queryId: string
-  do: NodeDO
-  upToDateData: Array<string>
-  relationalResults: Maybe<TRelationalResults>
-  relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>
+  node: ISMNode<TNodeData, TNodeComputedData>;
+  queryId: string;
+  do: NodeDO;
+  upToDateData: Array<string>;
+  relationalResults: Maybe<TRelationalResults>;
+  relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }): NodeDO & TRelationalResults & IDOProxy {
-  let relationalResults = opts.relationalResults
+  let relationalResults = opts.relationalResults;
 
   // Casting to unknown here because we don't want type safety around structure of a node's data when building plugins
   // but completely losing type safety in opts.node.smComputed would break the return type inference in QueryDataReturn
-  const nodeSMComputed = opts.node.smComputed as unknown as Record<string, (proxy: IDOProxy) => any>
+  const nodeSMComputed = (opts.node.smComputed as unknown) as Record<
+    string,
+    (proxy: IDOProxy) => any
+  >;
   const computedAccessors = nodeSMComputed
     ? Object.keys(nodeSMComputed).reduce((acc, computedKey) => {
-        let computedFn = () => nodeSMComputed[computedKey](proxy as IDOProxy)
+        let computedFn = () => nodeSMComputed[computedKey](proxy as IDOProxy);
         getConfig().plugins?.forEach(plugin => {
-          if(plugin.DOProxy?.computedDecorator) {
-            computedFn = plugin.DOProxy.computedDecorator({ProxyInstance: proxy, computedFn}) 
+          if (plugin.DOProxy?.computedDecorator) {
+            computedFn = plugin.DOProxy.computedDecorator({
+              ProxyInstance: proxy,
+              computedFn,
+            });
           }
-        })
-        
-        acc[computedKey] = computedFn
-        
-        return acc
+        });
+
+        acc[computedKey] = computedFn;
+
+        return acc;
       }, {} as Record<string, () => any>)
-    : {}
+    : {};
 
   const proxy = new Proxy(opts.do as Record<string, any>, {
     get: (target, key: string) => {
       if (key === 'updateRelationalResults') {
         return (newRelationalResults: Maybe<TRelationalResults>) => {
-          relationalResults = newRelationalResults
-        }
+          relationalResults = newRelationalResults;
+        };
       }
 
       if (
@@ -81,12 +87,12 @@ export function DOProxyGenerator<
         // SM returns an array when "byReference" is used
         // but we only care about the first result
         if ('byReference' in opts.relationalQueries[key]) {
-          const results = relationalResults[key]
+          const results = relationalResults[key];
           if (!Array.isArray(results))
-            throw Error(`Expected results to be an array but it wasn't`)
-          return results[0]
+            throw Error(`Expected results to be an array but it wasn't`);
+          return results[0];
         }
-        return relationalResults[key]
+        return relationalResults[key];
       }
 
       if (Object.keys(opts.node.smData).includes(key)) {
@@ -95,16 +101,16 @@ export function DOProxyGenerator<
             propName: key,
             queryId: opts.queryId,
             nodeType: opts.node.type,
-          })
+          });
         }
 
-        const smDataForThisProp = opts.node.smData[key] as ISMData
+        const smDataForThisProp = opts.node.smData[key] as ISMData;
         if (
           smDataForThisProp.type === SM_DATA_TYPES.object ||
           smDataForThisProp.type === SM_DATA_TYPES.maybeObject
         ) {
           // do not return an object if this prop came back as null from SM
-          if (opts.do[key] == null) return opts.do[key]
+          if (opts.do[key] == null) return opts.do[key];
 
           return getNestedObjectWithNotUpToDateProtection({
             nodeType: opts.node.type,
@@ -113,49 +119,49 @@ export function DOProxyGenerator<
             smDataForThisObject: smDataForThisProp.boxedValue,
             upToDateData: opts.upToDateData,
             parentObjectKey: key,
-          })
+          });
         }
 
-        return opts.do[key]
+        return opts.do[key];
       } else if (computedAccessors[key]) {
         try {
-          return computedAccessors[key]()
-        } catch (e) {          
+          return computedAccessors[key]();
+        } catch (e) {
           if (e instanceof SMNotUpToDateException) {
             throw new SMNotUpToDateInComputedException({
               computedPropName: key,
               propName: e.propName,
               nodeType: opts.node.type,
               queryId: opts.queryId,
-            })
+            });
           }
 
-          throw e
+          throw e;
         }
       }
 
-      return target[key]
+      return target[key];
     },
-  }) as NodeDO & TRelationalResults & IDOProxy
+  }) as NodeDO & TRelationalResults & IDOProxy;
 
-  return proxy
+  return proxy;
 }
 
 function getNestedObjectWithNotUpToDateProtection(opts: {
-  nodeType: string
-  queryId: string
-  allCachedData: Record<string, any>
-  smDataForThisObject: Record<string, ISMData>
-  upToDateData: Array<string>
-  parentObjectKey: Maybe<string>
+  nodeType: string;
+  queryId: string;
+  allCachedData: Record<string, any>;
+  smDataForThisObject: Record<string, ISMData>;
+  upToDateData: Array<string>;
+  parentObjectKey: Maybe<string>;
 }) {
-  const objectToReturn = {}
+  const objectToReturn = {};
 
-  Object.keys(opts.smDataForThisObject).forEach((objectProp) => {
+  Object.keys(opts.smDataForThisObject).forEach(objectProp => {
     const name = opts.parentObjectKey
       ? `${opts.parentObjectKey}_${objectProp}`
-      : objectProp
-    const smDataForThisProp = opts.smDataForThisObject[objectProp]
+      : objectProp;
+    const smDataForThisProp = opts.smDataForThisObject[objectProp];
 
     Object.defineProperty(objectToReturn, objectProp, {
       get: () => {
@@ -164,7 +170,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
           smDataForThisProp.type === SM_DATA_TYPES.maybeObject
         ) {
           if (opts.allCachedData[objectProp] == null)
-            return opts.allCachedData[objectProp]
+            return opts.allCachedData[objectProp];
 
           return getNestedObjectWithNotUpToDateProtection({
             nodeType: opts.nodeType,
@@ -173,7 +179,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
             smDataForThisObject: smDataForThisProp.boxedValue,
             upToDateData: opts.upToDateData,
             parentObjectKey: name,
-          })
+          });
         }
 
         if (!opts.upToDateData.includes(name)) {
@@ -181,13 +187,13 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
             propName: name,
             nodeType: opts.nodeType,
             queryId: opts.queryId,
-          })
+          });
         }
 
-        return opts.allCachedData ? opts.allCachedData[objectProp] : undefined
+        return opts.allCachedData ? opts.allCachedData[objectProp] : undefined;
       },
-    })
-  })
+    });
+  });
 
-  return objectToReturn
+  return objectToReturn;
 }

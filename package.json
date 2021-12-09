@@ -55,6 +55,7 @@
   "dependencies": {
     "@apollo/client": "^3.4.17",
     "@types/lodash": "^4.14.176",
+    "graphql": "^16.0.1",
     "graphql-tag": "^2.12.6",
     "lodash": "^4.17.21",
     "mobx": "^6.3.6"
