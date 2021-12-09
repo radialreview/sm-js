@@ -284,11 +284,11 @@ export function DOFactory<
       Object.entries(opts.extension).forEach(([key, value]) => {
         const smDataForThisProp = this.getSMData(opts.smData[key]);
 
-        if (!smDataForThisProp) {
-          opts.object[key] = value;
-        } else if (this.isRecordType(smDataForThisProp.type)) {
+        // if this is a record, completely overwrite the stored persisted data
+        if (this.isRecordType(smDataForThisProp.type)) {
           opts.object[key] = value;
         } else {
+          // if it's an object, extend the persisted data we've received so far with the newly received data
           if (this.isObjectType(smDataForThisProp.type)) {
             if (value == null) {
               opts.object[key] = null;
@@ -302,6 +302,7 @@ export function DOFactory<
               });
             }
           } else {
+            // otherwise no need to extend, simply overwrite the value
             opts.object[key] = value;
           }
         }
