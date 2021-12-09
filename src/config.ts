@@ -1,18 +1,15 @@
-import { SMPlugin } from "./plugins";
-
+import { SMPlugin } from './plugins';
 
 export type SMConfig = {
-    plugins?: Array<SMPlugin>
-}
+  plugins?: Array<SMPlugin>;
+};
 
-let _storedConfig: SMConfig = {
-
-}
+let _storedConfig: SMConfig = {};
 
 export function config(config: SMConfig) {
-    _storedConfig = config
+  _storedConfig = config;
 }
 
 export function getConfig() {
-    return _storedConfig
+  return _storedConfig;
 }

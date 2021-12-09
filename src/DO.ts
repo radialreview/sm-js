@@ -54,8 +54,6 @@ export function DOFactory<
       });
 
       this.initializeNodePropGettersAndSetters();
-      initialData && this.onInitialDataReceived(initialData);
-
       this.initializeNodeComputedGetters();
       this.initializeNodeRelationalGetters();
       this.initializeNodeMutations();
@@ -69,7 +67,7 @@ export function DOFactory<
 
       return Object.entries(nodeProperties).reduce(
         (acc, [propName, propValue]) => {
-          const property = this.getSMProperty(propValue);
+          const property = this.getSMData(propValue);
 
           const propExistsInInitialData =
             propName in initialData && initialData[propName] != null;
@@ -110,24 +108,25 @@ export function DOFactory<
       }
 
       const getDefaultFnValue = (
-        propNameOrBoxedValue?: keyof TNodeData | ISMData,
+        propName?: keyof TNodeData,
         defaultSMData?: ISMData
       ) => {
         const defaultFn =
           defaultSMData ||
           ((nodePropertiesOrSMData as TNodeData)[
-            propNameOrBoxedValue as keyof TNodeData
+            propName as keyof TNodeData
           ] as any)._default;
 
+        // if a boolean dataType is not passed a default value, it returns an error. We throw it here
         if (defaultFn instanceof Error) {
           throw defaultFn;
         }
 
+        // if array type, we need to set the default value as an array containing the parent type's boxedValue
         if (this.isArrayType(defaultFn.type)) {
           if (this.isObjectType(defaultFn.boxedValue.type)) {
             return [this.getDefaultData(defaultFn.boxedValue.boxedValue)];
           }
-
           return [defaultFn.boxedValue.defaultValue];
         }
 
@@ -174,7 +173,7 @@ export function DOFactory<
       )
         return null;
 
-      const property = this.getSMProperty(opts.smData as ISMData);
+      const property = this.getSMData(opts.smData as ISMData);
 
       if (property instanceof SMData && property.boxedValue) {
         // sm.array, sm.object or sm.record
@@ -200,7 +199,7 @@ export function DOFactory<
             opts.persistedData = {};
           }
 
-          const boxedValueSMProperty = this.getSMProperty(property.boxedValue);
+          const boxedValueSMProperty = this.getSMData(property.boxedValue);
 
           if (boxedValueSMProperty instanceof SMData) {
             // sm.record
@@ -245,19 +244,8 @@ export function DOFactory<
     }
 
     public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
-      this.handleNewData({ receivedData, isInitialData: false });
-    };
-
-    private onInitialDataReceived = (receivedData: DeepPartial<TNodeData>) => {
-      this.handleNewData({ receivedData, isInitialData: true });
-    };
-
-    private handleNewData = (opts: {
-      receivedData: DeepPartial<TNodeData>;
-      isInitialData: boolean;
-    }) => {
       const newData = this.parseInitialData({
-        initialData: opts.receivedData,
+        initialData: receivedData,
         nodeProperties: node.properties,
       });
 
@@ -265,7 +253,7 @@ export function DOFactory<
         object: this._persistedData,
         extension: newData,
         // we only want to delete keys if this is an update, not the initial data received
-        deleteKeysNotInExtension: !opts.isInitialData,
+        deleteKeysNotInExtension: true,
         extendNestedObjects: true,
       });
 
@@ -282,7 +270,7 @@ export function DOFactory<
      */
     private initializeNodePropGettersAndSetters() {
       Object.keys(node.properties).forEach(prop => {
-        const property = this.getSMProperty(node.properties[prop]);
+        const property = this.getSMData(node.properties[prop]);
 
         if (this.isObjectType(property.type)) {
           this.setObjectProp(prop);
@@ -402,7 +390,7 @@ export function DOFactory<
       });
     }
 
-    private getSMProperty(prop: ISMData<any, any, any> | SMDataDefaultFn) {
+    private getSMData(prop: ISMData<any, any, any> | SMDataDefaultFn) {
       if (typeof prop === 'function') {
         return (prop as any)._default as ISMData;
       }

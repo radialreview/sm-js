@@ -4,7 +4,6 @@ import {
   SMDataTypeExplicitDefaultException,
 } from './exceptions';
 import * as smData from './smDataTypes';
-import { SM_DATA_TYPES } from './smDataTypes';
 
 describe('Node default properties', () => {
   it('should handle defaults/optional properties for string types', () => {
@@ -108,6 +107,28 @@ describe('Node default properties', () => {
       });
     } catch (e) {
       expect(e instanceof SMDataTypeExplicitDefaultException).toEqual(true);
+    }
+  });
+
+  it('should throw an error if a number is passed an invalid default', () => {
+    const properties = {
+      firstNumber: smData.number(42),
+      invalidNumber: smData.number,
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = DOFactory(def);
+
+    try {
+      new DOClass({
+        invalidNumber: 'hello',
+      });
+    } catch (e) {
+      expect(e instanceof SMDataTypeException).toEqual(true);
     }
   });
 
@@ -256,7 +277,6 @@ describe('Node default properties', () => {
         subtotal: '500',
         tax: '12.5',
         total: '512.5',
-        paid: 'true',
       },
       secretPrice: {
         hidden: undefined,
@@ -269,15 +289,6 @@ describe('Node default properties', () => {
     expect(DO.cost.subtotal).toEqual(500);
     expect(DO.cost.tax).toEqual(12.5);
     expect(DO.cost.total).toEqual(512.5);
-    expect(DO.cost.paid).toEqual(0);
-    setTimeout(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        new SMDataTypeException({
-          dataType: SM_DATA_TYPES.number,
-          value: 'true',
-        })
-      );
-    }, 0);
     expect(DO.secretPrice.hidden).toEqual(100);
   });
 

@@ -3,6 +3,7 @@ import { RepositoryFactory } from './Repository';
 import {
   SMDataTypeException,
   SMDataTypeExplicitDefaultException,
+  throwLocallyLogInProd,
 } from './exceptions';
 
 export const SM_DATA_TYPES = {
@@ -80,7 +81,7 @@ export const number = (
       const parsed = Number(value);
 
       if (isNaN(parsed)) {
-        console.error(
+        throwLocallyLogInProd(
           new SMDataTypeException({
             dataType: SM_DATA_TYPES.number,
             value,
