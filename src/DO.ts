@@ -1,4 +1,3 @@
-import { extend } from './dataUtilities';
 import { SMData, SM_DATA_TYPES } from './smDataTypes';
 import { getConfig } from './config';
 
@@ -25,14 +24,18 @@ export function DOFactory<
   // @ts-ignore
   return class DO implements TDOClass {
     public parsedData: DeepPartial<TNodeData>;
+    public version: number = -1;
     private _defaults: Record<keyof TNodeData, any>;
     private _persistedData: Record<string, any> = {};
 
-    constructor(initialData?: DeepPartial<TNodeData>) {
+    constructor(initialData?: DeepPartial<TNodeData> & { version: number }) {
       this._defaults = this.getDefaultData(node.properties);
+      if (initialData?.version) {
+        this.version = Number(initialData.version);
+      }
 
       if (initialData) {
-        this._persistedData = this.parseInitialData({
+        this._persistedData = this.parseReceivedData({
           initialData,
           nodeProperties: node.properties,
         });
@@ -59,7 +62,7 @@ export function DOFactory<
       this.initializeNodeMutations();
     }
 
-    private parseInitialData(opts: {
+    private parseReceivedData(opts: {
       initialData: Record<string, any>;
       nodeProperties: typeof node.properties;
     }) {
@@ -73,7 +76,7 @@ export function DOFactory<
             propName in initialData && initialData[propName] != null;
 
           if (this.isObjectType(property.type) && propExistsInInitialData) {
-            acc[propName] = this.parseInitialData({
+            acc[propName] = this.parseReceivedData({
               initialData: initialData[propName],
               nodeProperties: property.boxedValue,
             });
@@ -244,25 +247,67 @@ export function DOFactory<
     }
 
     public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
-      const newData = this.parseInitialData({
-        initialData: receivedData,
-        nodeProperties: node.properties,
-      });
+      if (receivedData.version == null) {
+        throw Error('Message received for a node was missing a version');
+      }
 
-      extend({
-        object: this._persistedData,
-        extension: newData,
-        // we only want to delete keys if this is an update, not the initial data received
-        deleteKeysNotInExtension: true,
-        extendNestedObjects: true,
-      });
+      const { version, ...restReceivedData } = receivedData;
+      const newVersion = Number(version);
 
-      this.parsedData = this.getParsedData({
-        smData: node.properties,
-        persistedData: this._persistedData,
-        defaultData: this._defaults,
-      });
+      if (newVersion >= this.version) {
+        this.version = newVersion;
+
+        const newData = this.parseReceivedData({
+          initialData: restReceivedData,
+          nodeProperties: node.properties,
+        });
+
+        this.extendPersistedWithNewlyReceivedData({
+          smData: node.properties,
+          object: this._persistedData,
+          extension: newData,
+        });
+
+        this.parsedData = this.getParsedData({
+          smData: node.properties,
+          persistedData: this._persistedData,
+          defaultData: this._defaults,
+        });
+      }
     };
+
+    private extendPersistedWithNewlyReceivedData(opts: {
+      smData: Record<string, ISMData | SMDataDefaultFn>;
+      object: Record<string, any>;
+      extension: Record<string, any>;
+    }) {
+      Object.entries(opts.extension).forEach(([key, value]) => {
+        const smDataForThisProp = this.getSMData(opts.smData[key]);
+
+        // if this is a record, completely overwrite the stored persisted data
+        if (this.isRecordType(smDataForThisProp.type)) {
+          opts.object[key] = value;
+        } else {
+          // if it's an object, extend the persisted data we've received so far with the newly received data
+          if (this.isObjectType(smDataForThisProp.type)) {
+            if (value == null) {
+              opts.object[key] = null;
+            } else {
+              opts.object[key] = opts.object[key] || {};
+
+              this.extendPersistedWithNewlyReceivedData({
+                smData: smDataForThisProp.boxedValue,
+                object: opts.object[key],
+                extension: value,
+              });
+            }
+          } else {
+            // otherwise no need to extend, simply overwrite the value
+            opts.object[key] = value;
+          }
+        }
+      });
+    }
 
     /**
      * initializes getters and setters for properties that are stored on this node in SM
@@ -384,6 +429,7 @@ export function DOFactory<
       >;
     }) {
       Object.defineProperty(this, opts.propName, {
+        configurable: true,
         get: () => {
           return opts.relationalQueryGetter();
         },

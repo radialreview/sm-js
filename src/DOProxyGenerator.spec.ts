@@ -14,9 +14,10 @@ describe('DOProxyGenerator', () => {
         id: smData.string,
       },
       initialData: {
+        version: '1',
         id: 'mockId',
       },
-      upToDateData: ['id'],
+      allPropertiesQueried: ['id'],
     });
 
     expect(doProxy.id).toBe('mockId');
@@ -49,7 +50,7 @@ describe('DOProxyGenerator', () => {
       properties: {
         id: smData.string,
       },
-      upToDateData: [],
+      allPropertiesQueried: [],
     });
 
     expect(() => doProxy.id).toThrow(SMNotUpToDateException);
@@ -63,7 +64,7 @@ describe('DOProxyGenerator', () => {
           nestedNumber: smData.number,
         }),
       },
-      upToDateData: ['object', 'object_nestedString'],
+      allPropertiesQueried: ['object', 'object_nestedString'],
     });
 
     expect(() => doProxy.object.nestedString).not.toThrow();
@@ -84,7 +85,7 @@ describe('DOProxyGenerator', () => {
           return data.object.nestedNumber;
         },
       },
-      upToDateData: ['object', 'object_nestedString'],
+      allPropertiesQueried: ['object', 'object_nestedString'],
     });
 
     expect(() => doProxy.computedValue).toThrow(
@@ -97,9 +98,11 @@ function generateDOProxy<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   properties: TNodeData;
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>>;
+  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
+    version: string;
+  };
   computed?: NodeComputedFns<TNodeData, Record<string, any>>;
-  upToDateData?: Array<string>;
+  allPropertiesQueried?: Array<string>;
   relationalResults?: Record<string, any>;
   relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }) {
@@ -117,7 +120,7 @@ function generateDOProxy<
       properties: opts.properties,
       computed: opts.computed,
     }),
-    upToDateData: opts.upToDateData || [],
+    allPropertiesQueried: opts.allPropertiesQueried || [],
     relationalResults: opts.relationalResults || {},
     relationalQueries: opts.relationalQueries || {},
   });

@@ -41,7 +41,8 @@ export function DOProxyGenerator<
   node: ISMNode<TNodeData, TNodeComputedData>;
   queryId: string;
   do: NodeDO;
-  upToDateData: Array<string>;
+  // The DOProxy protects the dev from reading a property that we haven't actually queried from SM
+  allPropertiesQueried: Array<string>;
   relationalResults: Maybe<TRelationalResults>;
   relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }): NodeDO & TRelationalResults & IDOProxy {
@@ -72,10 +73,35 @@ export function DOProxyGenerator<
     : {};
 
   const proxy = new Proxy(opts.do as Record<string, any>, {
+    getOwnPropertyDescriptor: function(target, key: string) {
+      // This gives better json stringify results
+      // by preventing attempts to get properties which are not
+      // guaranteed to be up to date
+      // @TODO write tests for this enumeration
+      if (
+        opts.allPropertiesQueried.includes(key) ||
+        (opts.relationalQueries &&
+          Object.keys(opts.relationalQueries).includes(key))
+      ) {
+        return {
+          ...Object.getOwnPropertyDescriptor(target, key),
+          enumerable: true,
+          configurable: true,
+        };
+      }
+
+      return {
+        ...Object.getOwnPropertyDescriptor(target, key),
+        enumerable: false,
+      };
+    },
     get: (target, key: string) => {
       if (key === 'updateRelationalResults') {
         return (newRelationalResults: Maybe<TRelationalResults>) => {
-          relationalResults = newRelationalResults;
+          relationalResults = {
+            ...relationalResults,
+            ...newRelationalResults,
+          } as Maybe<TRelationalResults>;
         };
       }
 
@@ -96,7 +122,7 @@ export function DOProxyGenerator<
       }
 
       if (Object.keys(opts.node.smData).includes(key)) {
-        if (!opts.upToDateData.includes(key)) {
+        if (!opts.allPropertiesQueried.includes(key)) {
           throw new SMNotUpToDateException({
             propName: key,
             queryId: opts.queryId,
@@ -117,7 +143,7 @@ export function DOProxyGenerator<
             queryId: opts.queryId,
             allCachedData: opts.do[key],
             smDataForThisObject: smDataForThisProp.boxedValue,
-            upToDateData: opts.upToDateData,
+            allPropertiesQueried: opts.allPropertiesQueried,
             parentObjectKey: key,
           });
         }
@@ -152,7 +178,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
   queryId: string;
   allCachedData: Record<string, any>;
   smDataForThisObject: Record<string, ISMData>;
-  upToDateData: Array<string>;
+  allPropertiesQueried: Array<string>;
   parentObjectKey: Maybe<string>;
 }) {
   const objectToReturn = {};
@@ -162,8 +188,17 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
       ? `${opts.parentObjectKey}_${objectProp}`
       : objectProp;
     const smDataForThisProp = opts.smDataForThisObject[objectProp];
+    const isUpToDate =
+      opts.allPropertiesQueried.includes(name) ||
+      // this second case handles ensuring that nested objects are enumerable
+      // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
+      // and we request address_apt_floor and address_apt_unit
+      // we need to make address.apt enumerable below
+      opts.allPropertiesQueried.some(prop => prop.startsWith(name));
 
     Object.defineProperty(objectToReturn, objectProp, {
+      // @TODO write tests for this enumeration
+      enumerable: isUpToDate,
       get: () => {
         if (
           smDataForThisProp.type === SM_DATA_TYPES.object ||
@@ -177,12 +212,12 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
             queryId: opts.queryId,
             allCachedData: opts.allCachedData[objectProp],
             smDataForThisObject: smDataForThisProp.boxedValue,
-            upToDateData: opts.upToDateData,
+            allPropertiesQueried: opts.allPropertiesQueried,
             parentObjectKey: name,
           });
         }
 
-        if (!opts.upToDateData.includes(name)) {
+        if (!isUpToDate) {
           throw new SMNotUpToDateException({
             propName: name,
             nodeType: opts.nodeType,

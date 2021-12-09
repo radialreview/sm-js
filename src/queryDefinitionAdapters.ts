@@ -1,4 +1,5 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client/core';
+
 import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
@@ -6,12 +7,13 @@ import {
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 
+export const PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version'];
 
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
- * This fn runs those a record of those relational fns at query time and returns a new record of relational query builders
+ * This fn executs those fns at query time, and returns a record of relational query builders
  */
 function getRelationalQueryBuildersFromRelationalFns(
   relationaFns?: NodeRelationalFns<any>
@@ -96,8 +98,8 @@ function getQueriedProperties(opts: {
 
       if (!isData) return acc;
 
-      // we always query the id by default, can ignore any explicit requests for it
-      if (key === 'id' && opts.isRootLevel) {
+      // we always query these properties, can ignore any explicit requests for it
+      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
         return acc;
       }
 
@@ -126,7 +128,9 @@ function getQueriedProperties(opts: {
 
       return [...acc, key];
     },
-    opts.isRootLevel ? ['id'] : ([] as Array<string>)
+    opts.isRootLevel
+      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      : ([] as Array<string>)
   );
 }
 
@@ -136,8 +140,8 @@ function getAllNodeProperties(opts: {
 }) {
   return Object.keys(opts.nodeProperties).reduce(
     (acc, key) => {
-      // we always query the id by default, can ignore any explicit requests for it
-      if (key === 'id' && opts.isRootLevel) {
+      // we are already querying these properties, can ignore any explicit requests for it
+      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
         return acc;
       }
 
@@ -168,7 +172,9 @@ function getAllNodeProperties(opts: {
 
       return [...acc, key];
     },
-    opts.isRootLevel ? ['id'] : ([] as Array<string>)
+    opts.isRootLevel
+      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      : ([] as Array<string>)
   );
 }
 
@@ -484,6 +490,17 @@ function getRootLevelQueryString(
   );
 }
 
+export type SubscriptionConfig = {
+  alias: string;
+  gqlString: string;
+  extractNodeFromSubscriptionMessage: (
+    subscriptionMessage: Record<string, any>
+  ) => any;
+  extractOperationFromSubscriptionMessage: (
+    subscriptionMessage: Record<string, any>
+  ) => any;
+};
+
 export function getQueryInfo(opts: {
   queryDefinitions: QueryDefinitions;
   queryId: string;
@@ -501,17 +518,6 @@ export function getQueryInfo(opts: {
           .join('\n    ')}
     }
   `.trim();
-
-  type SubscriptionConfig = {
-    alias: string;
-    gqlString: string;
-    extractNodeFromSubscriptionMessage: (
-      subscriptionMessage: Record<string, any>
-    ) => any;
-    extractOperationFromSubscriptionMessage: (
-      subscriptionMessage: Record<string, any>
-    ) => any;
-  };
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord
