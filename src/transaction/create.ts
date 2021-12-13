@@ -6,15 +6,15 @@ import { NodeData } from './types';
 export type CreateNodesOperation = {
   type: 'createNodes';
   nodes: Array<{ data: NodeData; under?: string | Array<string> }>;
-  mutationName?: string;
+  name?: string;
 };
 
 export function createNodes(
-  nodes: Array<{ data: NodeData; under?: string | Array<string> }>
+  operation: Omit<CreateNodesOperation, 'type'>
 ): CreateNodesOperation {
   return {
     type: 'createNodes',
-    nodes,
+    ...operation,
   };
 }
 
@@ -22,16 +22,15 @@ export type CreateNodeOperation = {
   type: 'createNode';
   data: NodeData;
   under?: string | Array<string>;
-  mutationName?: string;
+  name?: string;
 };
 
-export function createNode(node: {
-  data: NodeData;
-  under?: string | Array<string>;
-}): CreateNodeOperation {
+export function createNode(
+  operation: Omit<CreateNodeOperation, 'type'>
+): CreateNodeOperation {
   return {
     type: 'createNode',
-    ...node,
+    ...operation,
   };
 }
 
@@ -40,7 +39,7 @@ export function getMutationsFromTransactionCreateOperations(
 ): Array<DocumentNode> {
   const allCreateNodeOperations = operations.flatMap(operation => {
     if (operation.type === 'createNode') {
-      return { data: operation.data, under: operation.under };
+      return operation;
     } else if (operation.type === 'createNodes') {
       return operation.nodes;
     } else {
@@ -48,15 +47,25 @@ export function getMutationsFromTransactionCreateOperations(
     }
   });
 
-  function getMutationName() {
-    return 'MyMutation'; // @TODO, how should I name this? Join all mutation names?
-  }
+  const allOperationNames = operations
+    .filter(operation => 'name' in operation)
+    .map(operation => {
+      if ('name' in operation) {
+        return operation.name;
+      } else {
+        throw Error('Expected an operation name here');
+      }
+    });
+
+  const name = allOperationNames.length
+    ? allOperationNames.join('__')
+    : 'CreateNodes';
 
   // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
   return [
     gql`
-      mutation ${getMutationName()} {
+      mutation ${name} {
         CreateNodes(
           createOptions: [
             ${allCreateNodeOperations

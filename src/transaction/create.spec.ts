@@ -9,36 +9,42 @@ test('getMutationsFromTransactionCreateOperations returns a single mutation that
   const mutations = getMutationsFromTransactionCreateOperations([
     createNode({
       data: { type: 'mock-todo', task: 'do the thing', done: false },
+      name: 'CreateTodo',
     }),
     createNode({
       data: { type: 'mock-issue', issue: `the thing wasn't done` },
       under: ['mock-id-1', 'mock-id-2'],
+      name: 'CreateIssue',
     }),
-    createNodes([
-      {
-        data: {
-          type: 'mock-headline',
-          headline: 'thing may be done next week',
+    createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-headline',
+            headline: 'thing may be done next week',
+          },
+          under: 'some-other-mock-id',
         },
-        under: 'some-other-mock-id',
-      },
-      {
-        data: {
-          type: 'mock-measurable',
-          title: 'no of times thing was done',
-          childNodes: [
-            { type: 'mock-score', value: 2 },
-            { type: 'mock-score', value: 3 },
-          ],
+        {
+          data: {
+            type: 'mock-measurable',
+            title: 'no of times thing was done',
+            childNodes: [
+              { type: 'mock-score', value: 2 },
+              { type: 'mock-score', value: 3 },
+            ],
+          },
+          under: 'some-other-mock-id',
         },
-        under: 'some-other-mock-id',
-      },
-    ]),
+      ],
+      name: 'CreateHeadlineAndMeasurable',
+    }),
   ]);
+  expect(mutations.length).toBe(1);
   expect(autoIndentGQL(mutations[0].loc?.source.body as string))
     .toMatchInlineSnapshot(`
     "
-    mutation MyMutation {
+    mutation CreateTodo__CreateIssue__CreateHeadlineAndMeasurable {
      CreateNodes(
        createOptions: [
          {
