@@ -1,17 +1,36 @@
-import { JSON_TAG, NULL_TAG } from '../dataConversions';
+export function convertJSONToSMPersistedData(
+  json: Record<string, any>
+): string {
+  const parsedData = Object.entries(json).reduce((acc, [key, value]) => {
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error(`"childNodes" is supposed to be an array`);
+      }
 
-export function convertJSONToSMPersistedData(json: Record<string, any>) {
-  const parsedData = Object.keys(json).reduce((acc, key) => {
-    const value = json[key];
+      return {
+        ...acc,
+        childNodes: value.map(item => convertJSONToSMPersistedData(item)),
+      };
+    }
+
     return {
       ...acc,
       ...prepareForBE({ key, value }),
     };
-  }, {} as Record<string, string>);
+  }, {} as Record<string, any>);
 
-  const stringified = Object.keys(parsedData).reduce((acc, key) => {
-    return acc + `\n${key}: "${parsedData[key]}"`;
-  }, ``);
+  const stringified = Object.entries(parsedData).reduce(
+    (acc, [key, value], i) => {
+      if (i > 0) {
+        acc += '\n';
+      }
+      if (key === 'childNodes') {
+        return acc + `${key}: [{${value.join('}\n{')}}]`;
+      }
+      return acc + `${key}: "${value}"`;
+    },
+    ``
+  );
 
   return stringified;
 }
@@ -23,31 +42,27 @@ function escapeText(text: string): string {
     .replace(/\n/g, '\\n');
 }
 
-function stringifyJSONFromFE(json: Record<string, any>) {
-  return JSON_TAG + escapeText(JSON.stringify(json));
-}
-
-function prepareForBE(opts: { key: string; value: any }) {
-  if (value === null) {
-    return NULL_TAG;
-  } else if (typeof value === 'object') {
-    return stringifyJSONFromFE(value);
-  } else if (typeof value === 'string') {
-    if (value.startsWith(JSON_TAG)) {
-      return value;
-    } else {
-      return escapeText(value);
+function prepareForBE(opts: {
+  key: string;
+  value: any;
+}): Record<string, Maybe<string>> {
+  if (opts.value === null) {
+    return { [opts.key]: null };
+  } else if (typeof opts.value === 'object') {
+    throw Error('Not supported');
+  } else if (typeof opts.value === 'string') {
+    return { [opts.key]: escapeText(opts.value) };
+  } else if (
+    typeof opts.value === 'boolean' ||
+    typeof opts.value === 'number'
+  ) {
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      return { [opts.key]: null };
     }
-  } else if (typeof value === 'boolean' || typeof value === 'number') {
-    if (typeof value === 'number' && isNaN(value)) {
-      return NULL_TAG;
-    }
-    return String(value);
-  } else if (typeof value === 'undefined') {
-    return undefined;
+    return { [opts.key]: String(opts.value) };
   } else {
     throw Error(
-      `I don't yet know how to handle feData of type "${typeof value}"`
+      `I don't yet know how to handle feData of type "${typeof opts.value}"`
     );
   }
 }

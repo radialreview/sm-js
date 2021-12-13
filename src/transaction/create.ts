@@ -1,16 +1,7 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 
-type NodeData = {
-  type: string;
-  childNodes: Array<NodeData>;
-} & Record<string, any>;
-
-export type CreateNodeOperation = {
-  type: 'createNode';
-  data: NodeData;
-  under?: string | Array<string>;
-  mutationName?: string;
-};
+import { convertJSONToSMPersistedData } from './convertJSONToSMPersistedData';
+import { NodeData } from './types';
 
 export type CreateNodesOperation = {
   type: 'createNodes';
@@ -26,6 +17,13 @@ export function createNodes(
     nodes,
   };
 }
+
+export type CreateNodeOperation = {
+  type: 'createNode';
+  data: NodeData;
+  under?: string | Array<string>;
+  mutationName?: string;
+};
 
 export function createNode(node: {
   data: NodeData;
@@ -58,15 +56,17 @@ export function getMutationsFromTransactionCreateOperations(
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
   return [
     gql`
-        mutation ${getMutationName()} {
-            result: CreateNodes([
-                ${allCreateNodeOperations.map(
-                  convertCreateNodeOperationToMutationArguments
-                )}
-            ]) {
-                id
-            }
+      mutation ${getMutationName()} {
+        CreateNodes(
+          createOptions: [
+            ${allCreateNodeOperations
+              .map(convertCreateNodeOperationToMutationArguments)
+              .join('\n')}
+          ] 
+        ) {
+          id
         }
+      }
     `,
   ];
 }
@@ -75,11 +75,24 @@ function convertCreateNodeOperationToMutationArguments(operation: {
   data: NodeData;
   under?: string | Array<string>;
 }): string {
-  const { childNodes, ...restOfData } = operation.data;
+  const dataToPersistInSM = convertJSONToSMPersistedData(operation.data);
 
-  return `
-        node: {
-            ${convertJSONToSMPersistedData(restOfData)}
-        }
-    `;
+  let mutationArgs: Array<string> = [
+    `node: {
+        ${dataToPersistInSM}
+      }`,
+  ];
+
+  if (operation.under) {
+    const value =
+      typeof operation.under === 'string'
+        ? `["${operation.under}"]`
+        : `["${operation.under.join('", "')}"]`;
+
+    mutationArgs.push(`underIds: ${value}`);
+  }
+
+  return `{
+    ${mutationArgs.join('\n')}
+  }`;
 }
