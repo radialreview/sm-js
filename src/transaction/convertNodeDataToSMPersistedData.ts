@@ -1,7 +1,13 @@
-export function convertJSONToSMPersistedData(
-  json: Record<string, any>
-): string {
-  const parsedData = Object.entries(json).reduce((acc, [key, value]) => {
+import { NodeData } from './types';
+
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+export function convertNodeDataToSMPersistedData(nodeData: NodeData): string {
+  const parsedData = Object.entries(nodeData).reduce((acc, [key, value]) => {
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
         throw new Error(`"childNodes" is supposed to be an array`);
@@ -9,7 +15,7 @@ export function convertJSONToSMPersistedData(
 
       return {
         ...acc,
-        childNodes: value.map(item => convertJSONToSMPersistedData(item)),
+        childNodes: value.map(item => convertNodeDataToSMPersistedData(item)),
       };
     }
 

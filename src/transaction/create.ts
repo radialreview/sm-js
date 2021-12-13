@@ -1,6 +1,6 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 
-import { convertJSONToSMPersistedData } from './convertJSONToSMPersistedData';
+import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { NodeData } from './types';
 
 export type CreateNodesOperation = {
@@ -84,7 +84,7 @@ function convertCreateNodeOperationToMutationArguments(operation: {
   data: NodeData;
   under?: string | Array<string>;
 }): string {
-  const dataToPersistInSM = convertJSONToSMPersistedData(operation.data);
+  const dataToPersistInSM = convertNodeDataToSMPersistedData(operation.data);
 
   let mutationArgs: Array<string> = [
     `node: {
