@@ -102,3 +102,49 @@ export function generateDOInstance<
   });
   return new DO(opts.initialData);
 }
+
+function isTerminatingLine(line: string) {
+  return (
+    (line.endsWith('}') && !line.includes('{')) ||
+    (line.endsWith(']') && !line.includes('[')) ||
+    (line.endsWith(')') && !line.includes('(')) ||
+    line.startsWith(')')
+  );
+}
+
+function isInititingLine(line: string) {
+  return line.endsWith('{') || line.endsWith('[') || line.endsWith('(');
+}
+
+export function autoIndentGQL(gqlString: string): string {
+  let nextIndent = 0;
+  return gqlString
+    .split('\n')
+    .map(string => string.trim())
+    .map((line: string, lineIdx, lines) => {
+      let indentOnThisLine = nextIndent;
+
+      if (isInititingLine(line)) {
+        nextIndent++;
+      } else if (isTerminatingLine(line)) {
+        indentOnThisLine--;
+        const nextLine = lines[lineIdx + 1];
+        if (
+          nextLine &&
+          isInititingLine(nextLine) &&
+          isTerminatingLine(nextLine)
+        ) {
+          nextIndent -= 2;
+        } else {
+          nextIndent--;
+        }
+      }
+
+      return `${
+        indentOnThisLine > 0
+          ? new Array(indentOnThisLine * 2).fill(null).join(' ')
+          : ''
+      }${line}`;
+    })
+    .join('\n');
+}
