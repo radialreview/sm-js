@@ -25,7 +25,7 @@ export function convertJSONToSMPersistedData(
         acc += '\n';
       }
       if (key === 'childNodes') {
-        return acc + `${key}: [{${value.join('}\n{')}}]`;
+        return acc + `${key}: [\n{\n${value.join('\n}\n{\n')}\n}\n]`;
       }
       return acc + `${key}: "${value}"`;
     },
