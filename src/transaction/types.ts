@@ -1,4 +1,4 @@
 export type NodeData = {
-  type: string;
+  type?: string;
   childNodes?: Array<NodeData>;
 } & Record<string, any>;

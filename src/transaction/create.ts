@@ -1,6 +1,7 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
+import { getMutationNameFromOperations } from './getMutationNameFromOperations';
 import { NodeData } from './types';
 
 export type CreateNodesOperation = {
@@ -37,7 +38,10 @@ export function createNode(
 export function getMutationsFromTransactionCreateOperations(
   operations: Array<CreateNodeOperation | CreateNodesOperation>
 ): Array<DocumentNode> {
-  const allCreateNodeOperations = operations.flatMap(operation => {
+  const allCreateNodeOperations: Array<{
+    data: NodeData;
+    under?: string | Array<string>;
+  }> = operations.flatMap(operation => {
     if (operation.type === 'createNode') {
       return operation;
     } else if (operation.type === 'createNodes') {
@@ -47,19 +51,7 @@ export function getMutationsFromTransactionCreateOperations(
     }
   });
 
-  const allOperationNames = operations
-    .filter(operation => 'name' in operation)
-    .map(operation => {
-      if ('name' in operation) {
-        return operation.name;
-      } else {
-        throw Error('Expected an operation name here');
-      }
-    });
-
-  const name = allOperationNames.length
-    ? allOperationNames.join('__')
-    : 'CreateNodes';
+  const name = getMutationNameFromOperations(operations, 'CreateNodes');
 
   // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
@@ -69,7 +61,7 @@ export function getMutationsFromTransactionCreateOperations(
         CreateNodes(
           createOptions: [
             ${allCreateNodeOperations
-              .map(convertCreateNodeOperationToMutationArguments)
+              .map(convertCreateNodeOperationToCreateNodesMutationArguments)
               .join('\n')}
           ] 
         ) {
@@ -80,7 +72,7 @@ export function getMutationsFromTransactionCreateOperations(
   ];
 }
 
-function convertCreateNodeOperationToMutationArguments(operation: {
+function convertCreateNodeOperationToCreateNodesMutationArguments(operation: {
   data: NodeData;
   under?: string | Array<string>;
 }): string {
