@@ -1,19 +1,7 @@
 import { DocumentNode, gql } from '@apollo/client/core';
-
-export type EdgePermissions = {
-  view?: boolean;
-  edit?: boolean;
-  manage?: boolean;
-  terminate?: boolean;
-  addChild?: boolean;
-};
-
-export type EdgeProperties = {
-  type?: string;
-  from: string;
-  to: string;
-  permissions: EdgePermissions;
-};
+import { getMutationNameFromOperations } from '../getMutationNameFromOperations';
+import { EdgeProperties } from './types';
+import { getEdgePermissionsString } from './utilities';
 
 export type CreateEdgeOperation = {
   operationType: 'createEdge';
@@ -62,28 +50,17 @@ export function getMutationsFromEdgeCreateOperations(
 function convertEdgeCreationOperationToMutationArguments(
   opts: EdgeProperties & { name?: string }
 ): DocumentNode {
-  const edge = `{${getEdgePermissionsString(opts.permissions)}}`;
+  const edge = `{\ntype: "${opts.type || 'access'}",${getEdgePermissionsString(
+    opts.permissions
+  )}}`;
+  const name = getMutationNameFromOperations([opts], 'CreateEdge');
+
   return gql`
-    mutation ${getName(opts)} {
+    mutation ${name} {
         AttachEdge(
-            type: "${opts.type || 'access'}"
             newSourceId: "${opts.from}"
             targetId: "${opts.to}"
             edge: ${edge}
         )
     }`;
-}
-
-function getName(opts: EdgeProperties & { name?: string }) {
-  return opts.name ? `${opts.name}Mutation` : 'edgeCreationMutation';
-}
-
-function getEdgePermissionsString(permissions: EdgePermissions): string {
-  return `
-    view: ${permissions.view ? 'true' : 'false'},
-    edit: ${permissions.edit ? 'true' : 'false'},
-    manage: ${permissions.manage ? 'true' : 'false'},
-    terminate: ${permissions.terminate ? 'true' : 'false'},
-    addChild: ${permissions.addChild ? 'true' : 'false'}
-  `;
 }
