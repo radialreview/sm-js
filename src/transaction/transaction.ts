@@ -38,7 +38,7 @@ type OperationType =
   | DropNodeOperation;
 
 /**
- * A transaction allows developers to build groups of mutations that are execution with transactional integrity
+ * A transaction allows developers to build groups of mutations that execute with transactional integrity
  *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
  *
  * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
