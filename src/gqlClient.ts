@@ -191,6 +191,19 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
       return () => subscription.unsubscribe();
     },
+    mutate: async opts => {
+      return await Promise.all(
+        opts.mutations.map(mutation =>
+          baseClient.mutate({
+            mutation,
+            context: {
+              batchedMutation: true,
+              ...getContextWithToken({ token: opts.token }),
+            },
+          })
+        )
+      );
+    },
   };
 
   return gqlClient;

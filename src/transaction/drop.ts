@@ -20,6 +20,8 @@ export function dropNode(
 export function getMutationsFromTransactionDropOperations(
   operations: Array<DropNodeOperation>
 ): Array<DocumentNode> {
+  if (!operations.length) return [];
+
   const allDropNodeOperations: Array<{
     id: string;
     name?: string;

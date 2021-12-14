@@ -38,6 +38,8 @@ export function createNode(
 export function getMutationsFromTransactionCreateOperations(
   operations: Array<CreateNodeOperation | CreateNodesOperation>
 ): Array<DocumentNode> {
+  if (!operations.length) return [];
+
   const allCreateNodeOperations: Array<{
     data: NodeData;
     under?: string | Array<string>;

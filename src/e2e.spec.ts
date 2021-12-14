@@ -1,6 +1,8 @@
+import { def, number, queryDefinition, string } from '.';
 import { setToken } from './auth';
 import { query, subscribe } from './smQueriers';
 import { createMockQueryDefinitions } from './specUtilities';
+import { transaction } from './transaction';
 
 function removeVersionsFromResults(results: any) {
   return results.data.users.map((user: any) => ({
@@ -145,6 +147,220 @@ test('subscribing to data from sm works', async done => {
     ]
   `);
   done();
+});
+
+const mockThingDef = def({
+  type: 'mock-thing',
+  properties: {
+    id: string,
+    number: number,
+    string: string,
+  },
+});
+
+test('creating a single node in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNode({
+      data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
+    });
+  });
+
+  const id = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { thing },
+  } = await query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id,
+    }),
+  });
+
+  expect((thing as any).number).toBe(timestamp);
+  expect((thing as any).string).toBe('mock string');
+  done();
+});
+
+test('creating multiple nodes in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+          },
+        },
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp + 1,
+            string: 'mock string 2',
+          },
+        },
+      ],
+    });
+  });
+
+  const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
+    .CreateNodes as Array<{ id: string }>;
+
+  const {
+    data: { things },
+  } = await query({
+    things: queryDefinition({
+      def: mockThingDef,
+      ids: [id1, id2],
+    }),
+  });
+
+  expect(things.length).toBe(2);
+  expect(things[0].number).toBe(timestamp);
+  expect(things[0].string).toBe('mock string');
+  expect(things[1].number).toBe(timestamp + 1);
+  expect(things[1].string).toBe('mock string 2');
+  done();
+});
+
+test('updating a single node in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNode({
+      data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
+    });
+  });
+
+  const id = transactionResult[0].data.CreateNodes[0].id as string;
+
+  await transaction(ctx => {
+    ctx.updateNode({
+      data: {
+        id,
+        number: timestamp + 10,
+      },
+    });
+  });
+
+  const {
+    data: { thing },
+  } = await query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id,
+    }),
+  });
+
+  expect((thing as any).number).toBe(timestamp + 10);
+  done();
+});
+
+test('updating several nodes in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+          },
+        },
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp + 1,
+            string: 'mock string 2',
+          },
+        },
+      ],
+    });
+  });
+
+  const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
+    .CreateNodes as Array<{ id: string }>;
+
+  await transaction(ctx => {
+    ctx.updateNodes({
+      nodes: [
+        {
+          id: id1,
+          number: timestamp + 10,
+        },
+        { id: id2, number: timestamp + 20 },
+      ],
+    });
+  });
+
+  const {
+    data: { thing },
+  } = await query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      ids: [id1, id2],
+    }),
+  });
+
+  expect(thing[0].number).toBe(timestamp + 10);
+  expect(thing[1].number).toBe(timestamp + 20);
+  done();
+});
+
+test('dropping a node in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNode({
+      data: { type: 'mock-thing' },
+    });
+  });
+
+  const id = transactionResult[0].data.CreateNodes[0].id as string;
+
+  await transaction(ctx => {
+    ctx.dropNode({ id });
+  });
+
+  try {
+    await query(
+      {
+        thing: queryDefinition({
+          def: mockThingDef,
+          id,
+        }),
+      },
+      { queryId: 'mock-query' }
+    );
+    done(
+      new Error(
+        'Did not expect to find the node that was just dropped, but it was found'
+      )
+    );
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`
+      [Error: Error querying data
+      Error: Error applying query results
+      Error: SMDataParsing exception - Queried a node by id for the query with the id "mock-query" but received back an empty array
+      Data: [].]
+    `);
+    done();
+  }
 });
 
 async function getToken(): Promise<string> {

@@ -18,6 +18,7 @@ export type SMGQLClient = {
     onMessage: (message: Record<string, any>) => void;
     onError: (error: any) => void;
   }): () => void;
+  mutate(opts: { mutations: Array<DocumentNode>; token: string }): Promise<any>;
 };
 
 export type SMConfig = {
