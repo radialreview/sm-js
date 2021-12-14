@@ -1,7 +1,7 @@
 import { DOFactory } from './DO';
 import * as smData from './smDataTypes';
 import { SMNotCachedException } from './exceptions';
-import { UserNode, userNode } from './specUtilities';
+import { UserNode, generateUserNode } from './specUtilities';
 import { RepositoryFactory } from './Repository';
 
 function generateRepositoryInstance<
@@ -41,6 +41,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      version: '1',
       task: 'test task',
     });
   });
@@ -55,6 +56,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      version: '1',
       task: 'test task',
     });
 
@@ -74,6 +76,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      version: '1',
       task: 'test task',
     });
 
@@ -81,6 +84,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      version: '1',
       task: 'updated test task',
     });
 
@@ -104,6 +108,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
+      version: '1',
       [`settings${smData.IS_NULL_IDENTIFIER}`]: false,
       settings: null,
       settings_schedule_startTime: '321',
@@ -127,6 +132,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
+      version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
       settings_schedule_startTime: null, // mimicking what the BE would return from querying this bit of the object
@@ -153,13 +159,14 @@ describe('smData.repository', () => {
         task: smData.string,
       },
       relational: {
-        assignee: () => smData.children({ def: userNode }),
+        assignee: () => smData.children({ def: generateUserNode() }),
       },
     });
 
     expect(() =>
       repository.onDataReceived({
         id: 'mock-id',
+        version: '1',
         task: 'my task',
         assignee: 'test', // purposely adding a property which is relational to test that we don't throw "tried to set a property without a setter"
         otherProp: 'test2', // and a property not declared on the node
@@ -196,6 +203,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      version: '1',
     });
 
     const cached = repository.byId('123');

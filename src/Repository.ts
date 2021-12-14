@@ -4,6 +4,7 @@ import {
   prepareValueForFE,
 } from './dataConversions';
 import { SMNotCachedException, SMDataParsingException } from './exceptions';
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
 
 /**
@@ -29,7 +30,6 @@ export function RepositoryFactory<
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
-
       if (cached) {
         cached.onDataReceived(parsedData);
       } else {
@@ -70,6 +70,16 @@ export function RepositoryFactory<
     ): { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>> {
       const oldStyleObjects: Record<string, any> = {};
       return Object.keys(receivedData).reduce((parsed, key: string) => {
+        const isDataStoredOnAllNodes = PROPERTIES_QUERIED_FOR_ALL_NODES.includes(
+          key
+        );
+        if (isDataStoredOnAllNodes) {
+          return {
+            ...parsed,
+            [key]: receivedData[key],
+          };
+        }
+
         // point 1) above
         const isDataStoredOnTheNode = key.includes('_')
           ? Object.keys(opts.def.properties).includes(key.split('_')[0])

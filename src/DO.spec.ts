@@ -1,5 +1,9 @@
 import * as smData from './smDataTypes';
-import { TodoNode, todoNode, generateDOInstance } from './specUtilities';
+import {
+  TodoNode,
+  generateTodoNode,
+  generateDOInstance,
+} from './specUtilities';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -15,6 +19,7 @@ describe('smData.DO', () => {
       },
       initialData: {
         id: '123',
+        version: '1',
         dueDate: ('295791241' as unknown) as number, // this is wrong but expected
         settings: {
           show: ('true' as unknown) as boolean,
@@ -37,6 +42,7 @@ describe('smData.DO', () => {
 
     doInstance.onDataReceived({
       id: '321',
+      version: '1',
       dueDate: ('100' as unknown) as number,
     });
 
@@ -57,6 +63,7 @@ describe('smData.DO', () => {
     });
 
     doInstance.onDataReceived({
+      version: '1',
       settings: {
         schedule: {
           startTime: ('321' as unknown) as number,
@@ -85,6 +92,7 @@ describe('smData.DO', () => {
       properties,
       initialData: {
         id: 'test-id',
+        version: '1',
         task: 'get it done',
       },
       computed: {
@@ -114,6 +122,7 @@ describe('smData.DO', () => {
     >({
       properties,
       initialData: {
+        version: '1',
         task: 'get it done',
       },
       computed: {
@@ -138,7 +147,7 @@ describe('smData.DO', () => {
     >({
       properties: {},
       relational: {
-        todos: () => smData.children({ def: todoNode }),
+        todos: () => smData.children({ def: generateTodoNode() }),
       },
     });
 
@@ -169,6 +178,7 @@ describe('smData.DO', () => {
     const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
+        version: '1',
         maybeStr: null,
         maybeBool: null,
         maybeNum: null,
@@ -184,6 +194,7 @@ describe('smData.DO', () => {
     expect(doInstance.maybeArr).toBe(null);
 
     doInstance.onDataReceived({
+      version: '2',
       maybeObj: {
         nested: ('true' as unknown) as boolean,
         doubleNested: null,
@@ -210,6 +221,7 @@ describe('smData.DO', () => {
     const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
+        version: '1',
         rootLevelRecord: {
           foo: 'foo',
         },
@@ -227,6 +239,7 @@ describe('smData.DO', () => {
     });
 
     doInstance.onDataReceived({
+      version: '2',
       rootLevelRecord: {
         baz: 'baz',
       },
@@ -253,5 +266,30 @@ describe('smData.DO', () => {
     expect(
       doInstance.object.nestedObject.doubleNestedRecord.doubleNestedBaz
     ).toBe('doubleNestedBaz');
+  });
+
+  test('does not delete properties within objects that are not included within an update', () => {
+    const doInstance = generateDOInstance({
+      properties: {
+        object: smData.object({
+          nested: smData.object({
+            nestedNumber: smData.number,
+          }),
+          someNumber: smData.number,
+        }),
+      },
+      initialData: {
+        id: '123',
+        version: '1',
+        object: { nested: { nestedNumber: '1' } },
+      },
+    });
+
+    doInstance.onDataReceived({
+      version: '2',
+      object: { someNumber: 3 },
+    });
+
+    expect(doInstance.object.nested.nestedNumber).toBe(1);
   });
 });

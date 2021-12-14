@@ -1,3 +1,5 @@
+declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
+
 declare type Maybe<T> = T | null;
 
 declare type SMDataDefaultFn = (_default: any) => ISMData;
@@ -295,8 +297,11 @@ declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
-  } // full query definition provided, with a map fn
-    ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
+  }
+    ? /**
+       * full query definition provided, with a map fn
+       */
+      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
           ? TQueryDefinitions[Key] extends { id: string }
@@ -317,8 +322,11 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
             >
         : never
       : never
-    : TQueryDefinitions[Key] extends ISMNode // shorthand syntax used, only a node definition was provided
-    ? Array<
+    : TQueryDefinitions[Key] extends ISMNode
+    ? /**
+       * shorthand syntax used, only a node definition was provided
+       */
+      Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
       >
@@ -380,9 +388,7 @@ type RequestedData<
   | {}
 >;
 
-type RequestedRelationalData = ReturnType<NodeRelationalQueryBuilder<any>>;
-
-// A generic to extract the resulting data based on a query fn
+// A generic to extract the resulting data based on a map fn
 type ExtractQueriedDataFromMapFn<
   TMapFn extends MapFn<any, any, any>,
   TSMNode extends ISMNode
@@ -390,18 +396,18 @@ type ExtractQueriedDataFromMapFn<
   ExtractNodeMutations<TSMNode> &
   ExtractNodeComputedData<TSMNode>;
 
-// From the return of a query fn, get the type of data that will be returned by the query, aka the expected response from the API
+// From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
   TSMNode extends ISMNode
 > = {
-  [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IChildrenQuery<
+  [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<
     any,
     any
   >
-    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
-    : TMapFnReturn[Key] extends IByReferenceQuery<any, any>
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
+    : TMapFnReturn[Key] extends IChildrenQuery<any, any>
+    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
     : TMapFnReturn[Key] extends MapFn<any, any, any>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
     : TMapFnReturn[Key] extends ISMData
