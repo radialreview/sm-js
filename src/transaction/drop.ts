@@ -1,4 +1,5 @@
 import { DocumentNode, gql } from '@apollo/client/core';
+
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
 
 export type DropNodeOperation = {
@@ -34,9 +35,9 @@ export function getMutationsFromTransactionDropOperations(
     const name = getMutationNameFromOperations([operation], 'DropNode');
 
     return gql`
-            mutation ${name} {
-                DropNode(nodeId: "${operation.id}")
-            }    
-        `;
+      mutation ${name} {
+        DropNode(nodeId: "${operation.id}")
+      }    
+    `;
   });
 }
