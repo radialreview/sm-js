@@ -1,34 +1,37 @@
 import { autoIndentGQL } from '../../specUtilities';
 import {
-  getMutationsFromEdgeUpdateOperations,
-  updateEdge,
-  UpdateEdgeOperation,
-  updateEdges,
-  UpdateEdgesOperation,
-} from './update';
+  getMutationsFromEdgeReplaceOperations,
+  replaceEdge,
+  ReplaceEdgeOperation,
+  replaceEdges,
+  ReplaceEdgesOperation,
+} from './replace';
 
-describe('updateEdge', () => {
-  test('getMutationsFromEdgeUpdateOperations returns a single mutation for each edge provided', () => {
-    const operations: Array<UpdateEdgeOperation | UpdateEdgesOperation> = [
-      updateEdge({
-        name: 'updateEdgeFromTaskToUser',
+describe('replaceEdge', () => {
+  test('getMutationsFromEdgeReplaceOperations returns a single mutation for each edge provided', () => {
+    const operations: Array<ReplaceEdgeOperation | ReplaceEdgesOperation> = [
+      replaceEdge({
+        name: 'replace',
         edge: {
+          current: 'abc',
           from: '123',
           to: '456',
           permissions: { view: true },
         },
       }),
-      updateEdges([
+      replaceEdges([
         {
-          type: 'renamedEdge',
+          type: 'replacedEdge',
+          current: '123',
           from: '456',
           to: '789',
           permissions: {
             view: true,
           },
-          name: 'namedEdgeUpdate',
+          name: 'namedEdgeReplacement',
         },
         {
+          current: '222',
           from: '444',
           to: '555',
           permissions: {
@@ -39,14 +42,15 @@ describe('updateEdge', () => {
       ]),
     ];
 
-    const mutations = getMutationsFromEdgeUpdateOperations(operations);
+    const mutations = getMutationsFromEdgeReplaceOperations(operations);
 
     expect(autoIndentGQL(mutations[0].loc?.source.body as string))
       .toMatchInlineSnapshot(`
       "
-      mutation updateEdgeFromTaskToUser {
-       UpdateEdge(
-         currentSourceId: \\"123\\"
+      mutation replace {
+       ReplaceEdge(
+         currentSourceId: \\"abc\\"
+         newSourceId: \\"123\\"
          targetId: \\"456\\"
          edge: {
            type: \\"access\\",
@@ -63,12 +67,13 @@ describe('updateEdge', () => {
     expect(autoIndentGQL(mutations[1].loc?.source.body as string))
       .toMatchInlineSnapshot(`
       "
-      mutation namedEdgeUpdate {
-       UpdateEdge(
-         currentSourceId: \\"456\\"
+      mutation namedEdgeReplacement {
+       ReplaceEdge(
+         currentSourceId: \\"123\\"
+         newSourceId: \\"456\\"
          targetId: \\"789\\"
          edge: {
-           type: \\"renamedEdge\\",
+           type: \\"replacedEdge\\",
            view: true,
            edit: false,
            manage: false,
@@ -82,9 +87,10 @@ describe('updateEdge', () => {
     expect(autoIndentGQL(mutations[2].loc?.source.body as string))
       .toMatchInlineSnapshot(`
       "
-      mutation UpdateEdge {
-       UpdateEdge(
-         currentSourceId: \\"444\\"
+      mutation ReplaceEdge {
+       ReplaceEdge(
+         currentSourceId: \\"222\\"
+         newSourceId: \\"444\\"
          targetId: \\"555\\"
          edge: {
            type: \\"access\\",

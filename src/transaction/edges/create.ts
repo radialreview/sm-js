@@ -42,8 +42,12 @@ export function getMutationsFromEdgeCreateOperations(
         ...operation.edge,
         name: operation.name,
       });
+    } else if (operation.operationType === 'createEdges') {
+      return operation.edges.map(
+        convertEdgeCreationOperationToMutationArguments
+      );
     }
-    return operation.edges.map(convertEdgeCreationOperationToMutationArguments);
+    throw Error(`Operation not recognized: "${operation}"`);
   });
 }
 
