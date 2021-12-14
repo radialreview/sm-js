@@ -37,6 +37,8 @@ export function updateNode(
 export function getMutationsFromTransactionUpdateOperations(
   operations: Array<UpdateNodeOperation | UpdateNodesOperation>
 ): Array<DocumentNode> {
+  if (!operations.length) return [];
+
   const allUpdateNodeOperations: Array<{
     id: string;
   } & NodeData> = operations.flatMap(operation => {
