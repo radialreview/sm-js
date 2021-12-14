@@ -1,55 +1,5 @@
-
 export const JSON_TAG = '__JSON__';
 export const NULL_TAG = '__NULL__';
-
-function escapeText(text: string): string {
-  return text
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n');
-}
-
-function stringifyJSONFromFE(json: Record<string, any>) {
-  return JSON_TAG + escapeText(JSON.stringify(json));
-}
-
-export function prepareValueForBE(value: any) {
-  if (value === null) {
-    return NULL_TAG;
-  } else if (typeof value === 'object') {
-    return stringifyJSONFromFE(value);
-  } else if (typeof value === 'string') {
-    if (value.startsWith(JSON_TAG)) {
-      return value;
-    } else {
-      return escapeText(value);
-    }
-  } else if (typeof value === 'boolean' || typeof value === 'number') {
-    if (typeof value === 'number' && isNaN(value)) {
-      return NULL_TAG;
-    }
-    return String(value);
-  } else if (typeof value === 'undefined') {
-    return undefined;
-  } else {
-    throw Error(
-      `I don't yet know how to handle feData of type "${typeof value}"`
-    );
-  }
-}
-
-export function prepareForBE(
-  feData: Record<string,string>
-): Record<string, string> {
-  return Object.keys(feData).reduce((prepared, key) => {
-    const value = feData[key];
-    const val = prepareValueForBE(value);
-    if (val !== undefined) {
-      prepared[key] = val;
-    }
-    return prepared;
-  }, {} as Record<string, string>);
-}
 
 export function parseJSONFromBE(jsonString: string) {
   if (!jsonString.startsWith(JSON_TAG)) {
@@ -84,7 +34,7 @@ export function prepareValueForFE(value: any): any {
   }
 }
 
-export function prepareForFE(beData: Record<string,any>) {
+export function prepareForFE(beData: Record<string, any>) {
   return Object.keys(beData).reduce((prepared, key) => {
     const value = beData[key];
     return {
@@ -93,5 +43,3 @@ export function prepareForFE(beData: Record<string,any>) {
     };
   }, {} as Record<string, any>);
 }
-
-
