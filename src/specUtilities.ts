@@ -1,7 +1,6 @@
 import * as smData from './smDataTypes';
 import { DOFactory } from './DO';
-import { queryDefinition } from './smDataTypes';
-import { IS_NULL_IDENTIFIER } from '.';
+import { IS_NULL_IDENTIFIER, queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
 const userProperties = {
