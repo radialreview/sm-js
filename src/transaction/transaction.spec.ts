@@ -7,8 +7,8 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
   config({
     gqlClient: {
       mutate: (opts: any) => {
-        // 1 for all creates, 1 for all updates, 1 per each drop
-        expect(opts.mutations.length).toBe(4);
+        // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
+        expect(opts.mutations.length).toBe(16);
         expect(
           opts.mutations.map((document: DocumentNode) =>
             autoIndentGQL(document.loc?.source.body as string)
@@ -75,6 +75,168 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
          DropNode(nodeId: \\"other-thing-to-drop\\")
         }
         ",
+          "
+        mutation createEdgeMutation {
+         AttachEdge(
+           newSourceId: \\"123\\"
+           targetId: \\"456\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation namedEdgeCreation {
+         AttachEdge(
+           newSourceId: \\"456\\"
+           targetId: \\"789\\"
+           edge: {
+             type: \\"namedEdge\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation CreateEdge {
+         AttachEdge(
+           newSourceId: \\"444\\"
+           targetId: \\"555\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: true,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation dropEdgeFromTaskToUser {
+         DropEdge(
+           sourceId: \\"123\\"
+           targetId: \\"456\\"
+           edgeType: \\"access\\"
+         )
+        }",
+          "
+        mutation namedEdgeDrop {
+         DropEdge(
+           sourceId: \\"456\\"
+           targetId: \\"789\\"
+           edgeType: \\"namedEdge\\"
+         )
+        }",
+          "
+        mutation DropEdge {
+         DropEdge(
+           sourceId: \\"444\\"
+           targetId: \\"555\\"
+           edgeType: \\"access\\"
+         )
+        }",
+          "
+        mutation replace {
+         ReplaceEdge(
+           currentSourceId: \\"abc\\"
+           newSourceId: \\"123\\"
+           targetId: \\"456\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation namedEdgeReplacement {
+         ReplaceEdge(
+           currentSourceId: \\"123\\"
+           newSourceId: \\"456\\"
+           targetId: \\"789\\"
+           edge: {
+             type: \\"replacedEdge\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation ReplaceEdge {
+         ReplaceEdge(
+           currentSourceId: \\"222\\"
+           newSourceId: \\"444\\"
+           targetId: \\"555\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: true,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation updateEdgeFromTaskToUser {
+         UpdateEdge(
+           currentSourceId: \\"123\\"
+           targetId: \\"456\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation namedEdgeUpdate {
+         UpdateEdge(
+           currentSourceId: \\"456\\"
+           targetId: \\"789\\"
+           edge: {
+             type: \\"renamedEdge\\",
+             view: true,
+             edit: false,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
+          "
+        mutation UpdateEdge {
+         UpdateEdge(
+           currentSourceId: \\"444\\"
+           targetId: \\"555\\"
+           edge: {
+             type: \\"access\\",
+             view: true,
+             edit: true,
+             manage: false,
+             terminate: false,
+             addChild: false
+           }
+         )
+        }",
         ]
         `);
         done();
@@ -116,6 +278,115 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
     context.dropNode({
       id: 'other-thing-to-drop',
     });
+
+    context.createEdge({
+      name: 'createEdgeMutation',
+      edge: {
+        from: '123',
+        to: '456',
+        permissions: {
+          view: true,
+        },
+      },
+    });
+
+    context.createEdges([
+      {
+        type: 'namedEdge',
+        from: '456',
+        to: '789',
+        permissions: {
+          view: true,
+        },
+        name: 'namedEdgeCreation',
+      },
+      {
+        from: '444',
+        to: '555',
+        permissions: {
+          view: true,
+          edit: true,
+        },
+      },
+    ]);
+
+    context.dropEdge({
+      name: 'dropEdgeFromTaskToUser',
+      edge: {
+        from: '123',
+        to: '456',
+      },
+    });
+
+    context.dropEdges([
+      {
+        type: 'namedEdge',
+        from: '456',
+        to: '789',
+        name: 'namedEdgeDrop',
+      },
+      {
+        from: '444',
+        to: '555',
+      },
+    ]);
+    context.replaceEdge({
+      name: 'replace',
+      edge: {
+        current: 'abc',
+        from: '123',
+        to: '456',
+        permissions: { view: true },
+      },
+    });
+    context.replaceEdges([
+      {
+        type: 'replacedEdge',
+        current: '123',
+        from: '456',
+        to: '789',
+        permissions: {
+          view: true,
+        },
+        name: 'namedEdgeReplacement',
+      },
+      {
+        current: '222',
+        from: '444',
+        to: '555',
+        permissions: {
+          view: true,
+          edit: true,
+        },
+      },
+    ]);
+    context.updateEdge({
+      name: 'updateEdgeFromTaskToUser',
+      edge: {
+        from: '123',
+        to: '456',
+        permissions: { view: true },
+      },
+    });
+    context.updateEdges([
+      {
+        type: 'renamedEdge',
+        from: '456',
+        to: '789',
+        permissions: {
+          view: true,
+        },
+        name: 'namedEdgeUpdate',
+      },
+      {
+        from: '444',
+        to: '555',
+        permissions: {
+          view: true,
+          edit: true,
+        },
+      },
+    ]);
   });
 });
 

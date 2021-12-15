@@ -1,10 +1,9 @@
 import { autoIndentGQL } from '../../specUtilities';
+import { UpdateEdgeOperation, UpdateEdgesOperation } from './types';
 import {
   getMutationsFromEdgeUpdateOperations,
   updateEdge,
-  UpdateEdgeOperation,
   updateEdges,
-  UpdateEdgesOperation,
 } from './update';
 
 describe('updateEdge', () => {

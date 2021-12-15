@@ -1,29 +1,16 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 import { getMutationNameFromOperations } from '../getMutationNameFromOperations';
-import { EdgeProperties } from './types';
+import {
+  ReplaceEdgeOperation,
+  ReplaceEdgeOpts,
+  ReplaceEdgeProperties,
+  ReplaceEdgesOperation,
+} from './types';
 import { getEdgePermissionsString } from './utilities';
-
-export type ReplaceEdgeProperties = EdgeProperties & {
-  current: string;
-};
-
-export type ReplaceEdgeOperation = {
-  operationType: 'replaceEdge';
-  name?: string;
-  edge: ReplaceEdgeProperties;
-};
-
-export type ReplaceEdgesOperation = {
-  operationType: 'replaceEdges';
-  edges: Array<ReplaceEdgeProperties & { name?: string }>;
-};
-
-export type ReplaceEdgeOpts = Omit<ReplaceEdgeOperation, 'operationType'>;
-export type ReplaceEdgesOpts = Omit<ReplaceEdgesOperation, 'operationType'>;
 
 export function replaceEdge(edge: ReplaceEdgeOpts): ReplaceEdgeOperation {
   return {
-    operationType: 'replaceEdge',
+    type: 'replaceEdge',
     ...edge,
   };
 }
@@ -32,7 +19,7 @@ export function replaceEdges(
   edges: Array<ReplaceEdgeProperties & { name?: string }>
 ): ReplaceEdgesOperation {
   return {
-    operationType: 'replaceEdges',
+    type: 'replaceEdges',
     edges,
   };
 }
@@ -41,12 +28,12 @@ export function getMutationsFromEdgeReplaceOperations(
   operations: Array<ReplaceEdgeOperation | ReplaceEdgesOperation>
 ): Array<DocumentNode> {
   return operations.flatMap(operation => {
-    if (operation.operationType === 'replaceEdge') {
+    if (operation.type === 'replaceEdge') {
       return convertEdgeReplaceOperationToMutationArguments({
         ...operation.edge,
         name: operation.name,
       });
-    } else if (operation.operationType === 'replaceEdges') {
+    } else if (operation.type === 'replaceEdges') {
       return operation.edges.map(
         convertEdgeReplaceOperationToMutationArguments
       );

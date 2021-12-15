@@ -1,5 +1,28 @@
 import { DocumentNode } from '@apollo/client/core';
-
+import {
+  createEdge,
+  createEdges,
+  getMutationsFromEdgeCreateOperations,
+  dropEdge,
+  dropEdges,
+  getMutationsFromEdgeDropOperations,
+  replaceEdge,
+  replaceEdges,
+  getMutationsFromEdgeReplaceOperations,
+  updateEdge,
+  updateEdges,
+  getMutationsFromEdgeUpdateOperations,
+} from './edges';
+import {
+  CreateEdgeOperation,
+  CreateEdgesOperation,
+  DropEdgeOperation,
+  DropEdgesOperation,
+  ReplaceEdgeOperation,
+  ReplaceEdgesOperation,
+  UpdateEdgeOperation,
+  UpdateEdgesOperation,
+} from './edges/types';
 import {
   createNode,
   CreateNodeOperation,
@@ -28,6 +51,14 @@ interface ITransactionContext {
   updateNodes: typeof updateNodes;
   updateNode: typeof updateNode;
   dropNode: typeof dropNode;
+  createEdge: typeof createEdge;
+  createEdges: typeof createEdges;
+  dropEdge: typeof dropEdge;
+  dropEdges: typeof dropEdges;
+  updateEdge: typeof updateEdge;
+  updateEdges: typeof updateEdges;
+  replaceEdge: typeof replaceEdge;
+  replaceEdges: typeof replaceEdges;
 }
 
 type OperationType =
@@ -35,7 +66,15 @@ type OperationType =
   | CreateNodesOperation
   | UpdateNodeOperation
   | UpdateNodesOperation
-  | DropNodeOperation;
+  | DropNodeOperation
+  | CreateEdgeOperation
+  | CreateEdgesOperation
+  | DropEdgeOperation
+  | DropEdgesOperation
+  | UpdateEdgeOperation
+  | UpdateEdgesOperation
+  | ReplaceEdgeOperation
+  | ReplaceEdgesOperation;
 
 /**
  * A transaction allows developers to build groups of mutations that execute with transactional integrity
@@ -56,6 +95,14 @@ export async function transaction(
     updateNode: [],
     updateNodes: [],
     dropNode: [],
+    createEdge: [],
+    createEdges: [],
+    dropEdge: [],
+    dropEdges: [],
+    replaceEdge: [],
+    replaceEdges: [],
+    updateEdge: [],
+    updateEdges: [],
   };
 
   function pushOperation(operation: OperationType) {
@@ -93,6 +140,46 @@ export async function transaction(
       pushOperation(operation);
       return operation;
     },
+    createEdge: opts => {
+      const operation = createEdge(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    createEdges: opts => {
+      const operation = createEdges(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    dropEdge: opts => {
+      const operation = dropEdge(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    dropEdges: opts => {
+      const operation = dropEdges(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    updateEdge: opts => {
+      const operation = updateEdge(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    updateEdges: opts => {
+      const operation = updateEdges(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    replaceEdge: opts => {
+      const operation = replaceEdge(opts);
+      pushOperation(operation);
+      return operation;
+    },
+    replaceEdges: opts => {
+      const operation = replaceEdges(opts);
+      pushOperation(operation);
+      return operation;
+    },
   };
 
   const result = callback(context);
@@ -112,6 +199,22 @@ export async function transaction(
     ]),
     ...getMutationsFromTransactionDropOperations([
       ...(operationsByType.dropNode as Array<DropNodeOperation>),
+    ]),
+    ...getMutationsFromEdgeCreateOperations([
+      ...(operationsByType.createEdge as Array<CreateEdgeOperation>),
+      ...(operationsByType.createEdges as Array<CreateEdgesOperation>),
+    ]),
+    ...getMutationsFromEdgeDropOperations([
+      ...(operationsByType.dropEdge as Array<DropEdgeOperation>),
+      ...(operationsByType.dropEdges as Array<DropEdgesOperation>),
+    ]),
+    ...getMutationsFromEdgeReplaceOperations([
+      ...(operationsByType.replaceEdge as Array<ReplaceEdgeOperation>),
+      ...(operationsByType.replaceEdges as Array<ReplaceEdgesOperation>),
+    ]),
+    ...getMutationsFromEdgeUpdateOperations([
+      ...(operationsByType.updateEdge as Array<UpdateEdgeOperation>),
+      ...(operationsByType.updateEdges as Array<UpdateEdgesOperation>),
     ]),
   ];
 
