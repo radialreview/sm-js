@@ -45,7 +45,7 @@ describe('updateEdge', () => {
       "
       mutation updateEdgeFromTaskToUser {
        UpdateEdge(
-         currentSourceId: \\"123\\"
+         sourceId: \\"123\\"
          targetId: \\"456\\"
          edge: {
            type: \\"access\\",
@@ -64,7 +64,7 @@ describe('updateEdge', () => {
       "
       mutation namedEdgeUpdate {
        UpdateEdge(
-         currentSourceId: \\"456\\"
+         sourceId: \\"456\\"
          targetId: \\"789\\"
          edge: {
            type: \\"renamedEdge\\",
@@ -83,7 +83,7 @@ describe('updateEdge', () => {
       "
       mutation UpdateEdge {
        UpdateEdge(
-         currentSourceId: \\"444\\"
+         sourceId: \\"444\\"
          targetId: \\"555\\"
          edge: {
            type: \\"access\\",

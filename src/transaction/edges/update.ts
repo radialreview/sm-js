@@ -52,7 +52,7 @@ function convertEdgeUpdateOperationToMutationArguments(
   return gql`
     mutation ${name} {
         UpdateEdge(
-            currentSourceId: "${opts.from}"
+            sourceId: "${opts.from}"
             targetId: "${opts.to}"
             edge: ${edge}
         )

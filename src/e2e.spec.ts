@@ -1,4 +1,4 @@
-import { def, number, queryDefinition, string } from '.';
+import { def, number, queryDefinition, string, children, boolean } from '.';
 import { setToken } from './auth';
 import { query, subscribe } from './smQueriers';
 import { createMockQueryDefinitions } from './specUtilities';
@@ -149,12 +149,24 @@ test('subscribing to data from sm works', async done => {
   done();
 });
 
-const mockThingDef = def({
+const mockThingDef: any = def({
   type: 'mock-thing',
   properties: {
     id: string,
     number: number,
     string: string,
+  },
+  relational: {
+    todos: () => children({ def: mockTodoDef }),
+  },
+});
+
+const mockTodoDef = def({
+  type: 'mock-todo',
+  properties: {
+    id: string,
+    title: string,
+    done: boolean(false),
   },
 });
 
@@ -361,6 +373,497 @@ test('dropping a node in sm works', async done => {
     `);
     done();
   }
+});
+
+const createMockThingAndTodo = async () => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const nodesTransaction = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+          },
+        },
+        {
+          data: {
+            type: 'mock-todo',
+            title: 'mock todo',
+            done: false,
+          },
+        },
+      ],
+    });
+  });
+
+  const [thingId, todoId] = nodesTransaction[0].data.CreateNodes.map(
+    ({ id }: { id: string }) => id
+  );
+
+  return [thingId, todoId];
+};
+
+const createMockThingAndMultipleTodos = async () => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const nodesTransaction = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+          },
+        },
+        {
+          data: {
+            type: 'mock-todo',
+            title: 'mock todo',
+            done: false,
+          },
+        },
+        {
+          data: {
+            type: 'mock-todo',
+            title: 'mock todo 2',
+            done: false,
+          },
+        },
+      ],
+    });
+  });
+
+  const [thingId, todoId, todo2Id] = nodesTransaction[0].data.CreateNodes.map(
+    ({ id }: { id: string }) => id
+  );
+
+  return [thingId, todoId, todo2Id];
+};
+
+test('creating a single edge in sm works', async done => {
+  const [thingId, todoId] = await createMockThingAndTodo();
+
+  await transaction(ctx => {
+    ctx.createEdge({
+      edge: {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { todo },
+  } = await query({
+    todo: queryDefinition({
+      def: mockTodoDef,
+      underIds: [thingId],
+    }),
+  });
+
+  expect(todo[0].id).toBe(todoId);
+  done();
+});
+
+test('creating multiple edges in sm works', async done => {
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+
+  await transaction(ctx => {
+    ctx.createEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+      {
+        from: thingId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const {
+    data: { todo },
+  } = await query({
+    todo: queryDefinition({
+      def: mockTodoDef,
+      underIds: [thingId],
+    }),
+  });
+
+  expect(todo[0].id).toBe(todoId);
+  expect(todo[1].id).toBe(todo2Id);
+  done();
+});
+
+test('updating a single edge in sm works', async done => {
+  const [thingId, todoId] = await createMockThingAndTodo();
+
+  await transaction(ctx => {
+    ctx.createEdge({
+      edge: {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { todo },
+  } = await query({
+    todo: queryDefinition({
+      def: mockTodoDef,
+      underIds: [thingId],
+    }),
+  });
+
+  expect(todo[0].id).toBe(todoId);
+
+  const updateResult = await transaction(ctx => {
+    ctx.updateEdge({
+      edge: {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: false,
+        },
+      },
+    });
+  });
+  expect(updateResult[0].data.UpdateEdge).toBe(1);
+
+  done();
+});
+
+test('updating multiple edges in sm works', async done => {
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+
+  await transaction(ctx => {
+    ctx.createEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+      {
+        from: thingId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const {
+    data: { todo },
+  } = await query({
+    todo: queryDefinition({
+      def: mockTodoDef,
+      underIds: [thingId],
+    }),
+  });
+
+  expect(todo[0].id).toBe(todoId);
+
+  const updateResult = await transaction(ctx => {
+    ctx.updateEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: false,
+        },
+      },
+      {
+        from: thingId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: false,
+        },
+      },
+    ]);
+  });
+  expect(updateResult[0].data.UpdateEdge).toBe(1);
+  expect(updateResult[1].data.UpdateEdge).toBe(1);
+  done();
+});
+
+test('dropping a single edge in sm works', async done => {
+  const [thingId, todoId] = await createMockThingAndTodo();
+
+  await transaction(ctx => {
+    ctx.createEdge({
+      edge: {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    });
+  });
+
+  const queryTodoUnderThing = (thingId: string) => {
+    return query({
+      todo: queryDefinition({
+        def: mockTodoDef,
+        underIds: [thingId],
+      }),
+    });
+  };
+
+  const {
+    data: { todo },
+  } = await queryTodoUnderThing(thingId);
+
+  expect(todo[0].id).toBe(todoId);
+
+  await transaction(ctx => {
+    ctx.dropEdge({
+      edge: {
+        from: thingId,
+        to: todoId,
+      },
+    });
+  });
+
+  const {
+    data: { todo: todoAfterDrop },
+  } = await queryTodoUnderThing(thingId);
+
+  expect(todoAfterDrop).toEqual([]);
+  done();
+});
+
+test('dropping a multiple edges in sm works', async done => {
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+  await transaction(ctx => {
+    ctx.createEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+      {
+        from: thingId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const queryTodosUnderThing = (thingId: string) => {
+    return query({
+      todo: queryDefinition({
+        def: mockTodoDef,
+        underIds: [thingId],
+      }),
+    });
+  };
+
+  const {
+    data: { todo },
+  } = await queryTodosUnderThing(thingId);
+
+  expect(todo[0].id).toBe(todoId);
+  expect(todo[1].id).toBe(todo2Id);
+
+  await transaction(ctx => {
+    ctx.dropEdges([
+      {
+        from: thingId,
+        to: todoId,
+      },
+      { from: thingId, to: todo2Id },
+    ]);
+  });
+
+  const {
+    data: { todo: todosAfterDrop },
+  } = await queryTodosUnderThing(thingId);
+
+  expect(todosAfterDrop).toEqual([]);
+  done();
+});
+
+test('replacing a single edge in sm works', async done => {
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+  await transaction(ctx => {
+    ctx.createEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const queryTodoUnderThing = (thingId: string) => {
+    return query({
+      todo: queryDefinition({
+        def: mockTodoDef,
+        underIds: [thingId],
+      }),
+    });
+  };
+
+  const {
+    data: { todo },
+  } = await queryTodoUnderThing(thingId);
+
+  expect(todo[0].id).toBe(todoId);
+
+  await transaction(ctx => {
+    ctx.replaceEdge({
+      edge: {
+        current: thingId,
+        from: todo2Id,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { todo: todoAfterReplace },
+  } = await queryTodoUnderThing(thingId);
+  const { data: todosUnderOtherTodo } = await queryTodoUnderThing(todo2Id);
+
+  expect(todoAfterReplace).toEqual([]);
+  expect(todosUnderOtherTodo.todo.map(({ id }) => id)).toContain(todoId);
+  done();
+});
+
+test('replacing a multiple edges in sm works', async done => {
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+  await transaction(ctx => {
+    ctx.createEdges([
+      {
+        from: thingId,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+      {
+        from: thingId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const queryTodoUnderThing = (thingId: string) => {
+    return query({
+      todo: queryDefinition({
+        def: mockTodoDef,
+        underIds: [thingId],
+      }),
+    });
+  };
+
+  const {
+    data: { todo },
+  } = await queryTodoUnderThing(thingId);
+
+  expect(todo[0].id).toBe(todoId);
+  expect(todo[1].id).toBe(todo2Id);
+
+  await transaction(ctx => {
+    ctx.replaceEdges([
+      {
+        current: thingId,
+        from: todo2Id,
+        to: todoId,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+      {
+        current: thingId,
+        from: todoId,
+        to: todo2Id,
+        permissions: {
+          view: true,
+          edit: true,
+          addChild: true,
+        },
+      },
+    ]);
+  });
+
+  const {
+    data: { todo: todoAfterReplace },
+  } = await queryTodoUnderThing(thingId);
+  const { data: todosUnderOtherTodo } = await queryTodoUnderThing(todo2Id);
+  const todoIds = todosUnderOtherTodo.todo.map(({ id }) => id);
+
+  expect(todoAfterReplace).toEqual([]);
+  expect(todoIds).toContain(todoId);
+  expect(todoIds).toContain(todo2Id);
+  done();
 });
 
 async function getToken(): Promise<string> {

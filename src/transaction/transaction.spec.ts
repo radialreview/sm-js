@@ -147,7 +147,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation replace {
          ReplaceEdge(
-           currentSourceId: \\"abc\\"
+           sourceId: \\"abc\\"
            newSourceId: \\"123\\"
            targetId: \\"456\\"
            edge: {
@@ -163,7 +163,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation namedEdgeReplacement {
          ReplaceEdge(
-           currentSourceId: \\"123\\"
+           sourceId: \\"123\\"
            newSourceId: \\"456\\"
            targetId: \\"789\\"
            edge: {
@@ -179,7 +179,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation ReplaceEdge {
          ReplaceEdge(
-           currentSourceId: \\"222\\"
+           sourceId: \\"222\\"
            newSourceId: \\"444\\"
            targetId: \\"555\\"
            edge: {
@@ -195,7 +195,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation updateEdgeFromTaskToUser {
          UpdateEdge(
-           currentSourceId: \\"123\\"
+           sourceId: \\"123\\"
            targetId: \\"456\\"
            edge: {
              type: \\"access\\",
@@ -210,7 +210,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation namedEdgeUpdate {
          UpdateEdge(
-           currentSourceId: \\"456\\"
+           sourceId: \\"456\\"
            targetId: \\"789\\"
            edge: {
              type: \\"renamedEdge\\",
@@ -225,7 +225,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
           "
         mutation UpdateEdge {
          UpdateEdge(
-           currentSourceId: \\"444\\"
+           sourceId: \\"444\\"
            targetId: \\"555\\"
            edge: {
              type: \\"access\\",
