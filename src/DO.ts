@@ -84,10 +84,14 @@ export function DOFactory<
             this.isArrayType(property.type) &&
             propExistsInInitialData
           ) {
+            console.log('INITIAL DATA', initialData);
             acc[propName] = initialData[propName].map(
               property.boxedValue.parser
             );
           } else if (propExistsInInitialData) {
+            console.log('STRING');
+            console.log(initialData[propName]);
+
             acc[propName] = property.parser(initialData[propName]);
           }
 

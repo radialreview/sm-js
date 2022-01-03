@@ -36,6 +36,8 @@ export function RepositoryFactory<
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
+      console.log('parsedData', parsedData);
+
       if (cached) {
         cached.onDataReceived(parsedData);
       } else {
@@ -102,11 +104,25 @@ export function RepositoryFactory<
           (opts.def.properties[key] as ISMData).type ===
             SM_DATA_TYPES.maybeObject;
 
-        const isArrayData =
-          !isObjectData &&
-          ((opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.array ||
-            (opts.def.properties[key] as ISMData).type ===
-              SM_DATA_TYPES.maybeArray);
+        const isArrayData = (() => {
+          if (isObjectData) {
+            return false;
+          }
+
+          const receivedDataValue = opts.def.properties[key];
+
+          const smDataType =
+            typeof receivedDataValue === 'function'
+              ? ((receivedDataValue as any)._default as ISMData).type
+              : (receivedData as ISMData).type;
+
+          return (
+            smDataType === SM_DATA_TYPES.array ||
+            smDataType === SM_DATA_TYPES.maybeArray
+          );
+        })();
+
+        console.log('is array', isArrayData);
 
         // point 2 above
         if (isObjectData) {

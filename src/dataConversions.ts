@@ -12,11 +12,16 @@ export function parseJSONFromBE(jsonString: string) {
 }
 
 export function prepareValueForFE(value: any): any {
+  console.log('PREPEARE', value);
+  console.log(value.startsWith(JSON_TAG));
+
   if (value === NULL_TAG) {
     return null;
   } else if (value === 'true' || value === 'false') {
     return value === 'true';
   } else if (typeof value === 'string' && value.startsWith(JSON_TAG)) {
+    console.log('STRING JSON');
+
     return parseJSONFromBE(value);
   } else if (Array.isArray(value)) {
     return value.map(entry => {

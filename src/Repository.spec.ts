@@ -119,6 +119,24 @@ describe('smData.repository', () => {
     expect(DO.settings.schedule.startTime).toBe(321);
   });
 
+  it.only('converts data received with __JSON__ array format to a regular array', () => {
+    const repository = generateRepositoryInstance({
+      properties: {
+        id: smData.string,
+        people: smData.array(smData.string),
+      },
+    });
+
+    repository.onDataReceived({
+      id: 'mock-id',
+      people: `"__JSON__["joe", "bob"]"`,
+    } as { id: string });
+
+    // const DO = repository.byId('mock-id');
+    // DO;
+    // expect(DO.people).toBe(['joe', 'bob']);
+  });
+
   it('converts data received in old object format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
