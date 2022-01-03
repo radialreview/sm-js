@@ -119,7 +119,7 @@ describe('smData.repository', () => {
     expect(DO.settings.schedule.startTime).toBe(321);
   });
 
-  it.only('converts data received with __JSON__ array format to a regular array', () => {
+  it('converts data received with __JSON__ array format to a regular array', () => {
     const repository = generateRepositoryInstance({
       properties: {
         id: smData.string,
@@ -129,13 +129,12 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
-      people: `__JSON__["joe", "bob", ["jill", "jane"]]`,
+      people: `__JSON__["joe", "bob"]`,
     } as { id: string });
 
     const DO = repository.byId('mock-id');
-    console.log(DO.people);
 
-    expect(DO.people).toEqual(['joe', 'bob', ['jill', 'jane']]);
+    expect(DO.people).toEqual(['joe', 'bob']);
   });
 
   it('converts data received in old object format to a regular object', () => {

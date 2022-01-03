@@ -68,7 +68,7 @@ export function DOFactory<
     }) {
       const { initialData, nodeProperties } = opts;
 
-      const result = Object.entries(nodeProperties).reduce(
+      return Object.entries(nodeProperties).reduce(
         (acc, [propName, propValue]) => {
           const property = this.getSMData(propValue);
 
@@ -84,12 +84,9 @@ export function DOFactory<
             this.isArrayType(property.type) &&
             propExistsInInitialData
           ) {
-            acc[propName] = initialData[propName].map((data: any) => {
-              if (Array.isArray(data)) {
-                return data.map(property.boxedValue.parser);
-              }
-              return property.boxedValue.parser(data);
-            });
+            acc[propName] = initialData[propName].map(
+              property.boxedValue.parser
+            );
           } else if (propExistsInInitialData) {
             acc[propName] = property.parser(initialData[propName]);
           }
@@ -98,7 +95,6 @@ export function DOFactory<
         },
         {} as Record<string, any>
       );
-      return result;
     }
 
     private getDefaultData = (
