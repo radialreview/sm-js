@@ -136,7 +136,7 @@ describe('smData.repository', () => {
       version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
-      settings_schedule_startTime: null, // mimicking what the BE would return from querying this bit of the object
+      settings__dot__schedule__dot__startTime: null, // mimicking what the BE would return from querying this bit of the object
     } as { id: string });
 
     const DO = repository.byId('mock-id');
