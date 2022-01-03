@@ -36,7 +36,6 @@ export function RepositoryFactory<
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
-      console.log('parsedData', parsedData);
 
       if (cached) {
         cached.onDataReceived(parsedData);
@@ -121,8 +120,6 @@ export function RepositoryFactory<
             smDataType === SM_DATA_TYPES.maybeArray
           );
         })();
-
-        console.log('is array', isArrayData);
 
         // point 2 above
         if (isObjectData) {

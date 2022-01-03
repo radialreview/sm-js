@@ -129,12 +129,13 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
-      people: `"__JSON__["joe", "bob"]"`,
+      people: `__JSON__["joe", "bob", ["jill", "jane"]]`,
     } as { id: string });
 
-    // const DO = repository.byId('mock-id');
-    // DO;
-    // expect(DO.people).toBe(['joe', 'bob']);
+    const DO = repository.byId('mock-id');
+    console.log(DO.people);
+
+    expect(DO.people).toEqual(['joe', 'bob', ['jill', 'jane']]);
   });
 
   it('converts data received in old object format to a regular object', () => {
