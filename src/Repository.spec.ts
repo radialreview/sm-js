@@ -94,7 +94,7 @@ describe('smData.repository', () => {
     expect(cachedAfterSecondData.task).toEqual('updated test task');
   });
 
-  it('converts data received with _ nested format to a regular object', () => {
+  it('converts data received with __dot__ nested format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
         id: smData.string,
@@ -110,8 +110,9 @@ describe('smData.repository', () => {
       id: 'mock-id',
       version: '1',
       [`settings${smData.IS_NULL_IDENTIFIER}`]: false,
-      settings: null,
-      settings_schedule_startTime: '321',
+      settings: smData.OBJECT_IDENTIFIER,
+      settings__dot__schedule: smData.OBJECT_IDENTIFIER,
+      settings__dot__schedule__dot__startTime: '321',
     } as { id: string });
 
     const DO = repository.byId('mock-id');

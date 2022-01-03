@@ -1,3 +1,4 @@
+import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
 import { NodeData } from './types';
 
 export const JSON_TAG = '__JSON__';
@@ -102,10 +103,12 @@ function prepareForBE(opts: {
  */
 function prepareObjectForBE(obj: Record<string, any>, parentKey?: string) {
   return Object.entries(obj).reduce((acc, [key, val]) => {
-    const preparedKey = parentKey ? `${parentKey}__dot__${key}` : key;
+    const preparedKey = parentKey
+      ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+      : key;
 
     if (typeof val === 'object') {
-      acc[preparedKey] = '__object__';
+      acc[preparedKey] = OBJECT_IDENTIFIER;
       acc = { ...acc, ...prepareObjectForBE(val, preparedKey) };
     } else {
       acc[preparedKey] = val;

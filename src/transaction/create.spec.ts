@@ -5,7 +5,7 @@ import {
   getMutationsFromTransactionCreateOperations,
 } from './create';
 
-test.only('getMutationsFromTransactionCreateOperations returns a single mutation that creates every node specified', () => {
+test('getMutationsFromTransactionCreateOperations returns a single mutation that creates every node specified', () => {
   const mutations = getMutationsFromTransactionCreateOperations([
     createNode({
       data: { type: 'mock-todo', task: 'do the thing', done: false },
