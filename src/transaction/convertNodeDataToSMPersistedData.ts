@@ -107,7 +107,7 @@ function prepareObjectForBE(obj: Record<string, any>, parentKey?: string) {
       ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
       : key;
 
-    if (typeof val === 'object') {
+    if (typeof val === 'object' && val != null) {
       acc[preparedKey] = OBJECT_IDENTIFIER;
       acc = { ...acc, ...prepareObjectForBE(val, preparedKey) };
     } else {

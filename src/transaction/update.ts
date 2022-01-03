@@ -1,4 +1,5 @@
 import { DocumentNode, gql } from '@apollo/client/core';
+import { OBJECT_PROPERTY_SEPARATOR } from '..';
 
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
@@ -34,6 +35,21 @@ export function updateNode(
   };
 }
 
+function getPropertiesToNull(object: Record<string, any>) {
+  return Object.entries(object).reduce((acc, [key, value]) => {
+    if (value == null) acc.push(key);
+    else if (!Array.isArray(value) && typeof value === 'object') {
+      acc.push(
+        ...getPropertiesToNull(value).map(
+          property => `${key}${OBJECT_PROPERTY_SEPARATOR}${property}`
+        )
+      );
+    }
+
+    return acc;
+  }, [] as Array<string>);
+}
+
 export function getMutationsFromTransactionUpdateOperations(
   operations: Array<UpdateNodeOperation | UpdateNodesOperation>
 ): Array<DocumentNode> {
@@ -53,6 +69,31 @@ export function getMutationsFromTransactionUpdateOperations(
 
   const name = getMutationNameFromOperations(operations, 'UpdateNodes');
 
+  const dropPropertiesMutations = allUpdateNodeOperations.reduce(
+    (acc, updateNodeOperation) => {
+      const propertiesToNull = getPropertiesToNull(updateNodeOperation);
+      if (propertiesToNull.length) {
+        acc.push(gql`
+        mutation {
+          DropProperties(
+            nodeIds: ["${updateNodeOperation.id}"]
+            propertyNames: [${propertiesToNull
+              .map(prop => `"${prop}${OBJECT_PROPERTY_SEPARATOR}*"`)
+              .join(',')}]
+            transactional: true
+          )
+          { 
+            id
+          }
+      }
+      `);
+      }
+
+      return acc;
+    },
+    [] as Array<DocumentNode>
+  );
+
   // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
   return [
@@ -69,7 +110,7 @@ export function getMutationsFromTransactionUpdateOperations(
           }
         }
       `,
-  ];
+  ].concat(dropPropertiesMutations);
 }
 
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(
