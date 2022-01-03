@@ -234,4 +234,33 @@ describe('smData.repository', () => {
 
     expect(() => repository.byId('123')).toThrow(SMNotCachedException);
   });
+
+  it('handles null nested objects', () => {
+    const repository = generateRepositoryInstance({
+      properties: {
+        object: smData.object({
+          nested: smData.object({
+            foo: smData.string,
+          }),
+        }),
+        optionalObject: smData.object.optional({
+          nested: smData.object({
+            foo: smData.string,
+          }),
+        }),
+      },
+    });
+
+    repository.onDataReceived({
+      id: '123',
+      version: '1',
+      object: null,
+      optionalObject: null,
+    });
+
+    const cached = repository.byId('123');
+
+    expect(cached.object).toEqual({ nested: { foo: '' } });
+    expect(cached.optionalObject).toEqual(null);
+  });
 });

@@ -94,8 +94,7 @@ export function RepositoryFactory<
             )
           : Object.keys(opts.def.properties).includes(key);
 
-        const isNullIdentifierProp = key.endsWith(IS_NULL_IDENTIFIER);
-        if (!isDataStoredOnTheNode || isNullIdentifierProp) return parsed;
+        if (!isDataStoredOnTheNode) return parsed;
 
         const isObjectData =
           key.includes(OBJECT_PROPERTY_SEPARATOR) ||
@@ -125,9 +124,9 @@ export function RepositoryFactory<
         if (isObjectData) {
           const [root, ...nests] = key.split(OBJECT_PROPERTY_SEPARATOR);
 
-          // was set to __NULL__ which means this
+          // it it was set to __NULL__ it means this
           // node is using the old style of storing nested objects
-          if (receivedData[root] === NULL_TAG) {
+          if (receivedData[root] === NULL_TAG || receivedData[root] == null) {
             parsed[root as keyof TNodeData] = null as any;
             return parsed;
           } else if (receivedData[root].startsWith(JSON_TAG)) {
