@@ -126,10 +126,13 @@ export function RepositoryFactory<
 
           // it it was set to __NULL__ it means this
           // node is using the old style of storing nested objects
-          if (receivedData[root] === NULL_TAG || receivedData[root] == null) {
+          if (receivedData[root] === NULL_TAG || receivedData[root] === null) {
             parsed[root as keyof TNodeData] = null as any;
             return parsed;
-          } else if (receivedData[root].startsWith(JSON_TAG)) {
+          } else if (
+            typeof receivedData[root] === 'string' &&
+            receivedData[root].startsWith(JSON_TAG)
+          ) {
             // https://tractiontools.atlassian.net/browse/TT-2905
             // will ensure this would've been set to null if this object was updated
             //

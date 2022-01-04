@@ -305,7 +305,11 @@ test('sm.subscribe handles a case where a subscription message comes in before t
   } as DeepPartial<SMConfig>);
 
   const onData = jest.fn(({ results }) => {
-    expect(results.users[0].address.state).toEqual('Definitely not FL');
+    try {
+      expect(results.users[0].address.state).toEqual('Definitely not FL');
+    } catch (e) {
+      done(e);
+    }
   });
   await subscribe(queryDefinitions, {
     onData: onData,
