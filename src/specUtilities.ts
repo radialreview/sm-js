@@ -213,6 +213,7 @@ export const mockSubscriptionMessage = {
     node: {
       // same prop values
       id: 'mock-user-id',
+      address: '__object__',
       address__dot__state: 'AK',
       version: '2',
     },

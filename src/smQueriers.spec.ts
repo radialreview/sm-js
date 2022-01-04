@@ -284,7 +284,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });
@@ -330,7 +330,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 0,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });
