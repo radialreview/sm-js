@@ -240,7 +240,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });

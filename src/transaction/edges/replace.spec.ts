@@ -48,7 +48,7 @@ describe('replaceEdge', () => {
       "
       mutation replace {
        ReplaceEdge(
-         sourceId: \\"abc\\"
+         currentSourceId: \\"abc\\"
          newSourceId: \\"123\\"
          targetId: \\"456\\"
          edge: {
@@ -68,7 +68,7 @@ describe('replaceEdge', () => {
       "
       mutation namedEdgeReplacement {
        ReplaceEdge(
-         sourceId: \\"123\\"
+         currentSourceId: \\"123\\"
          newSourceId: \\"456\\"
          targetId: \\"789\\"
          edge: {
@@ -88,7 +88,7 @@ describe('replaceEdge', () => {
       "
       mutation ReplaceEdge {
        ReplaceEdge(
-         sourceId: \\"222\\"
+         currentSourceId: \\"222\\"
          newSourceId: \\"444\\"
          targetId: \\"555\\"
          edge: {
