@@ -4,6 +4,7 @@ import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
   IS_NULL_IDENTIFIER,
+  OBJECT_PROPERTY_SEPARATOR,
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 
@@ -121,7 +122,7 @@ function getQueriedProperties(opts: {
             queryId: opts.queryId,
             mapFn: mapFnReturn[key] as MapFn<any, any, any>,
             smData: (data.boxedValue as unknown) as Record<string, ISMData>,
-          }).map(nestedKey => `${key}_${nestedKey}`)
+          }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
         return acc;
       }
@@ -165,7 +166,7 @@ function getAllNodeProperties(opts: {
               ISMData
             >,
             isRootLevel: false,
-          }).map(nestedKey => `${key}_${nestedKey}`)
+          }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
         return acc;
       }

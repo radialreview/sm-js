@@ -1,4 +1,12 @@
-import { def, number, queryDefinition, string, children, boolean } from '.';
+import {
+  def,
+  number,
+  queryDefinition,
+  string,
+  children,
+  boolean,
+  object,
+} from '.';
 import { setToken } from './auth';
 import { query, subscribe } from './smQueriers';
 import { createMockQueryDefinitions } from './specUtilities';
@@ -155,6 +163,9 @@ const mockThingDef: any = def({
     id: string,
     number: number,
     string: string,
+    object: object({
+      property: string('hello'),
+    }),
   },
   relational: {
     todos: () => children({ def: mockTodoDef }),
@@ -788,7 +799,7 @@ test('replacing a single edge in sm works', async done => {
   done();
 });
 
-test('replacing a multiple edges in sm works', async done => {
+test('replacing multiple edges in sm works', async done => {
   const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
   await transaction(ctx => {
     ctx.createEdges([
@@ -863,6 +874,66 @@ test('replacing a multiple edges in sm works', async done => {
   expect(todoAfterReplace).toEqual([]);
   expect(todoIds).toContain(todoId);
   expect(todoIds).toContain(todo2Id);
+  done();
+});
+
+test('dropping properties in sm works', async done => {
+  const token = await getToken();
+
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+            object: {
+              property: 'value',
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { thing },
+  } = await query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thing as any).object.property).toBe('value');
+
+  await transaction(ctx => {
+    ctx.updateNode({
+      data: {
+        id: createdThingId,
+        object: {
+          property: null,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { thingAfterDrop },
+  } = await query({
+    thingAfterDrop: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thingAfterDrop as any).object.property).toBe('null');
   done();
 });
 
