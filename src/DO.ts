@@ -93,20 +93,8 @@ export function DOFactory<
           } // TODO: remove this when SM fixes setting null as a string when dropping properties
           else if (propName in initialData && initialData[propName] === null) {
             acc[propName] = null;
-            console.log(initialData[propName]);
-
-            console.log('SAD');
           } else if (propExistsInInitialData) {
             acc[propName] = property.parser(initialData[propName]);
-            // TODO: remove this when SM fixes setting null as a string when dropping properties
-            // if (initialData[propName] === 'null') {
-            //   acc[propName] = null;
-            // } else {
-            //   acc[propName] =
-            //     initialData[propName] != null
-            //       ? property.parser(initialData[propName])
-            //       : null;
-            // }
           }
 
           return acc;
@@ -246,7 +234,7 @@ export function DOFactory<
         }
       } else if (property instanceof SMData) {
         // TODO: remove this when SM fixes setting null as a string when dropping properties
-        if (opts.persistedData === 'null') {
+        if (opts.persistedData === 'null' || opts.persistedData === null) {
           return null;
         }
 

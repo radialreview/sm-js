@@ -881,7 +881,7 @@ test('replacing multiple edges in sm works', async done => {
   done();
 });
 
-test.only('dropping a property in sm works', async done => {
+test('dropping a property in sm works', async done => {
   const token = await getToken();
 
   setToken('default', { token });
