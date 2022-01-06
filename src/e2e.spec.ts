@@ -163,8 +163,12 @@ const mockThingDef: any = def({
     id: string,
     number: number,
     string: string,
-    object: object({
-      property: string('hello'),
+    object: object.optional({
+      property: string,
+      otherProperty: string,
+      nestedObject: object.optional({
+        nestedProperty: string,
+      }),
     }),
   },
   relational: {
@@ -877,7 +881,7 @@ test('replacing multiple edges in sm works', async done => {
   done();
 });
 
-test('dropping properties in sm works', async done => {
+test.only('dropping a property in sm works', async done => {
   const token = await getToken();
 
   setToken('default', { token });
@@ -893,6 +897,74 @@ test('dropping properties in sm works', async done => {
             string: 'mock string',
             object: {
               property: 'value',
+              otherProperty: 'otherValue',
+              nestedObject: {
+                nestedProperty: 'nestedValue',
+              },
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { thing },
+  } = await query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thing as any).object.property).toBe('value');
+
+  await transaction(ctx => {
+    ctx.updateNode({
+      data: {
+        id: createdThingId,
+        object: {
+          property: null,
+          nestedObject: null,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { thingAfterDrop },
+  } = await query({
+    thingAfterDrop: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thingAfterDrop as any).object.property).toBe(null);
+  expect((thingAfterDrop as any).object.nestedObject.nestedProperty).toBe(null);
+  expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
+  done();
+});
+
+test('dropping an object will drop all the properties', async done => {
+  const token = await getToken();
+
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+            object: {
+              property: 'value',
+              otherProperty: 'otherValue',
             },
           },
         },
@@ -933,7 +1005,8 @@ test('dropping properties in sm works', async done => {
     }),
   });
 
-  expect((thingAfterDrop as any).object.property).toBe('null');
+  expect((thingAfterDrop as any).object.property).toBe(null);
+  expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
   done();
 });
 

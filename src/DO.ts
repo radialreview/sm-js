@@ -87,8 +87,26 @@ export function DOFactory<
             acc[propName] = initialData[propName].map(
               property.boxedValue.parser
             );
+            // TODO: remove this when SM fixes setting null as a string when dropping properties
+          } else if (propName === 'null') {
+            acc[propName] = null;
+          } // TODO: remove this when SM fixes setting null as a string when dropping properties
+          else if (propName in initialData && initialData[propName] === null) {
+            acc[propName] = null;
+            console.log(initialData[propName]);
+
+            console.log('SAD');
           } else if (propExistsInInitialData) {
             acc[propName] = property.parser(initialData[propName]);
+            // TODO: remove this when SM fixes setting null as a string when dropping properties
+            // if (initialData[propName] === 'null') {
+            //   acc[propName] = null;
+            // } else {
+            //   acc[propName] =
+            //     initialData[propName] != null
+            //       ? property.parser(initialData[propName])
+            //       : null;
+            // }
           }
 
           return acc;
@@ -227,10 +245,16 @@ export function DOFactory<
           }
         }
       } else if (property instanceof SMData) {
+        // TODO: remove this when SM fixes setting null as a string when dropping properties
+        if (opts.persistedData === 'null') {
+          return null;
+        }
+
         // sm.string, sm.boolean, sm.number
         if (opts.persistedData != null) {
           return property.parser(opts.persistedData);
         }
+
         return opts.defaultData;
       } else {
         // root of node, simply loop over keys of data definition and call this function recursively
