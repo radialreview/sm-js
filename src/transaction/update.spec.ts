@@ -86,10 +86,10 @@ test('getMutationsFromTransactionUpdateOperations returns additional dropPropert
        nodes: [
          {
            id: \\"mock-id\\"
-           object: \\"null\\"
+           object: null
            otherObject: \\"__object__\\"
            otherObject__dot__nestedObject: \\"__object__\\"
-           otherObject__dot__nestedObject__dot__value: \\"null\\"
+           otherObject__dot__nestedObject__dot__value: null
          }
        ]
      ) {
@@ -102,7 +102,7 @@ test('getMutationsFromTransactionUpdateOperations returns additional dropPropert
      DropProperties(
        nodeIds: [\\"mock-id\\"]
        propertyNames: [\\"object__dot__*\\",\\"otherObject__dot__nestedObject__dot__value__dot__*\\"]
-       transactional: true
+       
      )
      {
        id

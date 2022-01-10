@@ -965,6 +965,9 @@ test('dropping an object will drop all the properties', async done => {
             object: {
               property: 'value',
               otherProperty: 'otherValue',
+              nestedObject: {
+                nestedProperty: 'nestedValue',
+              },
             },
           },
         },
@@ -984,14 +987,12 @@ test('dropping an object will drop all the properties', async done => {
   });
 
   expect((thing as any).object.property).toBe('value');
-
+  expect((thing as any).object.nestedObject.nestedProperty).toBe('nestedValue');
   await transaction(ctx => {
     ctx.updateNode({
       data: {
         id: createdThingId,
-        object: {
-          property: null,
-        },
+        object: null,
       },
     });
   });
@@ -1005,8 +1006,8 @@ test('dropping an object will drop all the properties', async done => {
     }),
   });
 
-  expect((thingAfterDrop as any).object.property).toBe(null);
-  expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
+  expect((thingAfterDrop as any).object).toBe(null);
+
   done();
 });
 
