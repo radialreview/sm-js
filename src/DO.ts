@@ -87,11 +87,10 @@ export function DOFactory<
             acc[propName] = initialData[propName].map(
               property.boxedValue.parser
             );
-            // TODO: remove this when SM fixes setting null as a string when dropping properties
-          } else if (propName === 'null') {
-            acc[propName] = null;
-          } // TODO: remove this when SM fixes setting null as a string when dropping properties
-          else if (propName in initialData && initialData[propName] === null) {
+          } else if (
+            propName in initialData &&
+            initialData[propName] === null
+          ) {
             acc[propName] = null;
           } else if (propExistsInInitialData) {
             acc[propName] = property.parser(initialData[propName]);
@@ -233,8 +232,7 @@ export function DOFactory<
           }
         }
       } else if (property instanceof SMData) {
-        // TODO: remove this when SM fixes setting null as a string when dropping properties
-        if (opts.persistedData === 'null' || opts.persistedData === null) {
+        if (opts.persistedData === null) {
           return null;
         }
 
