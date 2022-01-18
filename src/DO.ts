@@ -87,6 +87,11 @@ export function DOFactory<
             acc[propName] = initialData[propName].map(
               property.boxedValue.parser
             );
+          } else if (
+            propName in initialData &&
+            initialData[propName] === null
+          ) {
+            acc[propName] = null;
           } else if (propExistsInInitialData) {
             acc[propName] = property.parser(initialData[propName]);
           }
@@ -227,10 +232,15 @@ export function DOFactory<
           }
         }
       } else if (property instanceof SMData) {
+        if (opts.persistedData === null) {
+          return null;
+        }
+
         // sm.string, sm.boolean, sm.number
         if (opts.persistedData != null) {
           return property.parser(opts.persistedData);
         }
+
         return opts.defaultData;
       } else {
         // root of node, simply loop over keys of data definition and call this function recursively

@@ -94,7 +94,7 @@ describe('smData.repository', () => {
     expect(cachedAfterSecondData.task).toEqual('updated test task');
   });
 
-  it('converts data received with _ nested format to a regular object', () => {
+  it('converts data received with __dot__ nested format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
         id: smData.string,
@@ -110,12 +110,31 @@ describe('smData.repository', () => {
       id: 'mock-id',
       version: '1',
       [`settings${smData.IS_NULL_IDENTIFIER}`]: false,
-      settings: null,
-      settings_schedule_startTime: '321',
+      settings: smData.OBJECT_IDENTIFIER,
+      settings__dot__schedule: smData.OBJECT_IDENTIFIER,
+      settings__dot__schedule__dot__startTime: '321',
     } as { id: string });
 
     const DO = repository.byId('mock-id');
     expect(DO.settings.schedule.startTime).toBe(321);
+  });
+
+  it('converts data received with __JSON__ array format to a regular array', () => {
+    const repository = generateRepositoryInstance({
+      properties: {
+        id: smData.string,
+        people: smData.array(smData.string),
+      },
+    });
+
+    repository.onDataReceived({
+      id: 'mock-id',
+      people: `__JSON__["joe", "bob"]`,
+    } as { id: string });
+
+    const DO = repository.byId('mock-id');
+
+    expect(DO.people).toEqual(['joe', 'bob']);
   });
 
   it('converts data received in old object format to a regular object', () => {
@@ -135,7 +154,7 @@ describe('smData.repository', () => {
       version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
-      settings_schedule_startTime: null, // mimicking what the BE would return from querying this bit of the object
+      settings__dot__schedule__dot__startTime: null, // mimicking what the BE would return from querying this bit of the object
     } as { id: string });
 
     const DO = repository.byId('mock-id');
@@ -213,5 +232,34 @@ describe('smData.repository', () => {
     repository.onNodeDeleted('123');
 
     expect(() => repository.byId('123')).toThrow(SMNotCachedException);
+  });
+
+  it('handles null nested objects', () => {
+    const repository = generateRepositoryInstance({
+      properties: {
+        object: smData.object({
+          nested: smData.object({
+            foo: smData.string,
+          }),
+        }),
+        optionalObject: smData.object.optional({
+          nested: smData.object({
+            foo: smData.string,
+          }),
+        }),
+      },
+    });
+
+    repository.onDataReceived({
+      id: '123',
+      version: '1',
+      object: null,
+      optionalObject: null,
+    });
+
+    const cached = repository.byId('123');
+
+    expect(cached.object).toEqual({ nested: { foo: '' } });
+    expect(cached.optionalObject).toEqual(null);
   });
 });

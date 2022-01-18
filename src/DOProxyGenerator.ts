@@ -3,7 +3,7 @@ import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
 } from './exceptions';
-import { SM_DATA_TYPES } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR, SM_DATA_TYPES } from './smDataTypes';
 
 /**
  * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
@@ -185,7 +185,7 @@ function getNestedObjectWithNotUpToDateProtection(opts: {
 
   Object.keys(opts.smDataForThisObject).forEach(objectProp => {
     const name = opts.parentObjectKey
-      ? `${opts.parentObjectKey}_${objectProp}`
+      ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
       : objectProp;
     const smDataForThisProp = opts.smDataForThisObject[objectProp];
     const isUpToDate =

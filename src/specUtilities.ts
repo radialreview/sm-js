@@ -1,6 +1,6 @@
 import * as smData from './smDataTypes';
 import { DOFactory } from './DO';
-import { IS_NULL_IDENTIFIER, queryDefinition } from './smDataTypes';
+import { queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 
 const userProperties = {
@@ -164,11 +164,10 @@ export const mockQueryDataReturn = {
     {
       id: 'mock-user-id',
       version: '1',
-      address: null,
-      [`address${IS_NULL_IDENTIFIER}`]: false,
-      address_state: 'FL',
-      address_apt_floor: '1',
-      address_apt_number: '1',
+      address: '__object__',
+      address__dot__state: 'FL',
+      address__dot__apt__dot__floor: '1',
+      address__dot__apt__dot__number: '1',
       todos: [
         {
           version: '1',
@@ -214,7 +213,7 @@ export const mockSubscriptionMessage = {
     node: {
       // same prop values
       id: 'mock-user-id',
-      address_state: 'AK',
+      address__dot__state: 'AK',
       version: '2',
     },
     operation: {

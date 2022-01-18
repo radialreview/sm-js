@@ -12,7 +12,12 @@ test('getMutationsFromTransactionCreateOperations returns a single mutation that
       name: 'CreateTodo',
     }),
     createNode({
-      data: { type: 'mock-issue', issue: `the thing wasn't done` },
+      data: {
+        type: 'mock-issue',
+        issue: `the thing wasn't done`,
+        settings: { alerts: { statusUpdates: 'on' } },
+        assignees: ['joe', 'bob'],
+      },
       under: ['mock-id-1', 'mock-id-2'],
       name: 'CreateIssue',
     }),
@@ -40,6 +45,7 @@ test('getMutationsFromTransactionCreateOperations returns a single mutation that
       name: 'CreateHeadlineAndMeasurable',
     }),
   ]);
+
   expect(mutations.length).toBe(1);
   expect(autoIndentGQL(mutations[0].loc?.source.body as string))
     .toMatchInlineSnapshot(`
@@ -58,6 +64,10 @@ test('getMutationsFromTransactionCreateOperations returns a single mutation that
            node: {
              type: \\"mock-issue\\"
              issue: \\"the thing wasn't done\\"
+             settings: \\"__object__\\"
+             settings__dot__alerts: \\"__object__\\"
+             settings__dot__alerts__dot__statusUpdates: \\"on\\"
+             assignees: \\"__JSON__[\\\\\\"joe\\\\\\",\\\\\\"bob\\\\\\"]\\"
            }
            underIds: [\\"mock-id-1\\", \\"mock-id-2\\"]
          }

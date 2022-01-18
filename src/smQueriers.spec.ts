@@ -240,7 +240,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });
@@ -284,7 +284,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });
@@ -305,7 +305,11 @@ test('sm.subscribe handles a case where a subscription message comes in before t
   } as DeepPartial<SMConfig>);
 
   const onData = jest.fn(({ results }) => {
-    expect(results.users[0].address.state).toEqual('Definitely not FL');
+    try {
+      expect(results.users[0].address.state).toEqual('Definitely not FL');
+    } catch (e) {
+      done(e);
+    }
   });
   await subscribe(queryDefinitions, {
     onData: onData,
@@ -330,7 +334,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 0,
-            address_state: 'Definitely not FL',
+            address__dot__state: 'Definitely not FL',
           },
         },
       });

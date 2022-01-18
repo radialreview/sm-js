@@ -2,10 +2,9 @@ import { autoIndentGQL } from '../../specUtilities';
 import {
   getMutationsFromEdgeDropOperations,
   dropEdge,
-  DropEdgeOperation,
   dropEdges,
-  DropEdgesOperation,
 } from './drop';
+import { DropEdgeOperation, DropEdgesOperation } from './types';
 
 describe('dropEdge', () => {
   test('getMutationsFromEdgeDropOperations returns a single mutation for each edge provided', () => {

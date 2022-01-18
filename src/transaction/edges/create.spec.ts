@@ -1,11 +1,10 @@
 import { autoIndentGQL } from '../../specUtilities';
 import {
   createEdge,
-  CreateEdgeOperation,
   createEdges,
-  CreateEdgesOperation,
   getMutationsFromEdgeCreateOperations,
 } from './create';
+import { CreateEdgeOperation, CreateEdgesOperation } from './types';
 
 describe('Edges', () => {
   test('getMutationsFromEdgeCreateOperations returns a single mutation for each edge provided', () => {

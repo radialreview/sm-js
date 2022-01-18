@@ -1,29 +1,15 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 import { getMutationNameFromOperations } from '../getMutationNameFromOperations';
-
-export type DropEdgeProperties = {
-  from: string;
-  to: string;
-  type?: string;
-};
-
-export type DropEdgeOperation = {
-  operationType: 'dropEdge';
-  name?: string;
-  edge: DropEdgeProperties;
-};
-
-export type DropEdgesOperation = {
-  operationType: 'dropEdges';
-  edges: Array<DropEdgeProperties & { name?: string }>;
-};
-
-export type DropEdgeOpts = Omit<DropEdgeOperation, 'operationType'>;
-export type DropEdgesOpts = Omit<DropEdgesOperation, 'operationType'>;
+import {
+  DropEdgeOpts,
+  DropEdgeOperation,
+  DropEdgeProperties,
+  DropEdgesOperation,
+} from './types';
 
 export function dropEdge(edge: DropEdgeOpts): DropEdgeOperation {
   return {
-    operationType: 'dropEdge',
+    type: 'dropEdge',
     ...edge,
   };
 }
@@ -32,7 +18,7 @@ export function dropEdges(
   edges: Array<DropEdgeProperties & { name?: string }>
 ): DropEdgesOperation {
   return {
-    operationType: 'dropEdges',
+    type: 'dropEdges',
     edges,
   };
 }
@@ -41,12 +27,12 @@ export function getMutationsFromEdgeDropOperations(
   operations: Array<DropEdgeOperation | DropEdgesOperation>
 ): Array<DocumentNode> {
   return operations.flatMap(operation => {
-    if (operation.operationType === 'dropEdge') {
+    if (operation.type === 'dropEdge') {
       return convertEdgeDropOperationToMutationArguments({
         ...operation.edge,
         name: operation.name,
       });
-    } else if (operation.operationType === 'dropEdges') {
+    } else if (operation.type === 'dropEdges') {
       return operation.edges.map(convertEdgeDropOperationToMutationArguments);
     }
 

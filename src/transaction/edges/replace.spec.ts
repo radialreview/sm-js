@@ -2,10 +2,9 @@ import { autoIndentGQL } from '../../specUtilities';
 import {
   getMutationsFromEdgeReplaceOperations,
   replaceEdge,
-  ReplaceEdgeOperation,
   replaceEdges,
-  ReplaceEdgesOperation,
 } from './replace';
+import { ReplaceEdgeOperation, ReplaceEdgesOperation } from './types';
 
 describe('replaceEdge', () => {
   test('getMutationsFromEdgeReplaceOperations returns a single mutation for each edge provided', () => {

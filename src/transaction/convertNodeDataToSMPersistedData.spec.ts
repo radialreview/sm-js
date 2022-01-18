@@ -13,6 +13,28 @@ test('convertNodeDataToSMPersistedData converts numbers', () => {
   );
 });
 
+test('convertNodeDataToSMPersistedData converts objects', () => {
+  expect(
+    convertNodeDataToSMPersistedData({
+      settings: {
+        schedule: { day: 'Monday' },
+      },
+    })
+  ).toMatchInlineSnapshot(`
+    "settings: \\"__object__\\"
+    settings__dot__schedule: \\"__object__\\"
+    settings__dot__schedule__dot__day: \\"Monday\\""
+  `);
+});
+
+test('convertNodeDataToSMPersistedData converts arrays', () => {
+  expect(
+    convertNodeDataToSMPersistedData({ people: ['joe', 'bob'] })
+  ).toMatchInlineSnapshot(
+    `"people: \\"__JSON__[\\\\\\"joe\\\\\\",\\\\\\"bob\\\\\\"]\\""`
+  );
+});
+
 test('convertNodeDataToSMPersistedData passes through strings', () => {
   expect(
     convertNodeDataToSMPersistedData({ test: 'string' })

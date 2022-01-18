@@ -6,6 +6,11 @@ export function parseJSONFromBE(jsonString: string) {
     throw Error(`parseJSONFromBE - invalid json received:\n${jsonString}`);
   }
 
+  // convert string array into js array
+  if (jsonString.startsWith(`${JSON_TAG}[`)) {
+    return JSON.parse(jsonString.replace('__JSON__', ''));
+  }
+
   // Allow new line text (\n to \\n)
   // replacing prevents JSON.parse to complaining
   return JSON.parse(jsonString.replace(JSON_TAG, '').replace(/\n/g, '\\n'));

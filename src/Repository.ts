@@ -1,11 +1,17 @@
 import {
+  JSON_TAG,
   NULL_TAG,
   parseJSONFromBE,
   prepareValueForFE,
 } from './dataConversions';
 import { SMNotCachedException, SMDataParsingException } from './exceptions';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
-import { SM_DATA_TYPES, IS_NULL_IDENTIFIER } from './smDataTypes';
+import {
+  SM_DATA_TYPES,
+  IS_NULL_IDENTIFIER,
+  OBJECT_PROPERTY_SEPARATOR,
+  OBJECT_IDENTIFIER,
+} from './smDataTypes';
 
 /**
  * Returns an initialized instance of a repository for an SMNode
@@ -30,6 +36,7 @@ export function RepositoryFactory<
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
+
       if (cached) {
         cached.onDataReceived(parsedData);
       } else {
@@ -60,7 +67,7 @@ export function RepositoryFactory<
      *     without doing this, we'd get errors about attempting to set a property on a DO which is read only
      * 2) take objects spread into root properties and convert them to regular objects
      *     for example, if we are trying to store `settings: { show: true }` in SM, what is actually stored in the DB is
-     *     settings_show: 'true'
+     *     settings__dot__show: 'true'
      *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the smDataTypes)
      */
     private parseDataFromSM<
@@ -81,38 +88,51 @@ export function RepositoryFactory<
         }
 
         // point 1) above
-        const isDataStoredOnTheNode = key.includes('_')
-          ? Object.keys(opts.def.properties).includes(key.split('_')[0])
+        const isDataStoredOnTheNode = key.includes(OBJECT_PROPERTY_SEPARATOR)
+          ? Object.keys(opts.def.properties).includes(
+              key.split(OBJECT_PROPERTY_SEPARATOR)[0]
+            )
           : Object.keys(opts.def.properties).includes(key);
 
-        const isNullIdentifierProp = key.endsWith(IS_NULL_IDENTIFIER);
-        if (!isDataStoredOnTheNode || isNullIdentifierProp) return parsed;
+        if (!isDataStoredOnTheNode) return parsed;
 
         const isObjectData =
-          key.includes('_') ||
+          key.includes(OBJECT_PROPERTY_SEPARATOR) ||
           (opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.object ||
           (opts.def.properties[key] as ISMData).type ===
             SM_DATA_TYPES.maybeObject;
 
-        const isArrayData =
-          !isObjectData &&
-          ((opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.array ||
-            (opts.def.properties[key] as ISMData).type ===
-              SM_DATA_TYPES.maybeArray);
+        const isArrayData = (() => {
+          if (isObjectData) {
+            return false;
+          }
+
+          const receivedDataValue = opts.def.properties[key];
+
+          const smDataType =
+            typeof receivedDataValue === 'function'
+              ? ((receivedDataValue as any)._default as ISMData).type
+              : (receivedData as ISMData).type;
+
+          return (
+            smDataType === SM_DATA_TYPES.array ||
+            smDataType === SM_DATA_TYPES.maybeArray
+          );
+        })();
 
         // point 2 above
         if (isObjectData) {
-          const [root, ...nests] = key.split('_');
+          const [root, ...nests] = key.split(OBJECT_PROPERTY_SEPARATOR);
 
-          // was set to __NULL__ which means this
+          // it it was set to __NULL__ it means this
           // node is using the old style of storing nested objects
-          if (receivedData[root] === NULL_TAG) {
+          if (receivedData[root] === NULL_TAG || receivedData[root] === null) {
             parsed[root as keyof TNodeData] = null as any;
             return parsed;
-          } else if (receivedData[root] != null) {
-            // this node has the root property of this nested object defined
-            // which means it's still using the old style of storing nested objects
-            //
+          } else if (
+            typeof receivedData[root] === 'string' &&
+            receivedData[root].startsWith(JSON_TAG)
+          ) {
             // https://tractiontools.atlassian.net/browse/TT-2905
             // will ensure this would've been set to null if this object was updated
             //
@@ -132,17 +152,6 @@ export function RepositoryFactory<
             }
           }
 
-          const isMarkedNull = receivedData[`${root}${IS_NULL_IDENTIFIER}`];
-          if (
-            // if using the old style of storing json data and the root prop is set to null
-            (isMarkedNull === null && receivedData[root] == null) ||
-            // or if using the new style of storing json data and marked null
-            isMarkedNull === true
-          ) {
-            parsed[root as keyof TNodeData] = null as any;
-            return parsed;
-          }
-
           if (oldStyleObjects[root]) {
             parsed[root as keyof TNodeData] =
               parsed[root] ||
@@ -155,12 +164,15 @@ export function RepositoryFactory<
             return parsed;
           }
 
-          if (parsed[root] == null) parsed[root as keyof TNodeData] = {} as any;
+          if (parsed[root] == null) {
+            parsed[root as keyof TNodeData] = {} as any;
+          }
 
           this.nest({
             nests,
             root: parsed[root] as Record<string, any>,
-            val: receivedData[key],
+            val:
+              receivedData[key] === OBJECT_IDENTIFIER ? {} : receivedData[key],
           });
 
           return parsed;
@@ -183,12 +195,12 @@ export function RepositoryFactory<
         opts.allDataReceived
       ).filter(
         key =>
-          key.startsWith(`${opts.rootProp}_`) &&
+          key.startsWith(`${opts.rootProp}${OBJECT_PROPERTY_SEPARATOR}`) &&
           !key.endsWith(IS_NULL_IDENTIFIER)
       );
 
       return newStylePropertiesQueriedForThisObject.reduce((acc, prop) => {
-        const [root, ...nests] = prop.split('_');
+        const [root, ...nests] = prop.split(OBJECT_PROPERTY_SEPARATOR);
 
         this.nest({
           nests,
@@ -203,7 +215,7 @@ export function RepositoryFactory<
       }, {} as Record<string, any>);
     }
 
-    // with a "prop" in the format root_nestedKey_evenMoreNestedKey
+    // with a "prop" in the format root__dot__nestedKey__dot__evenMoreNestedKey
     // returns the correct value from an "object" of previously parsed data { root: { nestedKey: { evenMoreNestedKey: true } } }
     private getDataForProp(opts: {
       object: Record<string, any>;
@@ -213,11 +225,11 @@ export function RepositoryFactory<
         return undefined; // the prop is not set on the object at all
       }
 
-      if (opts.prop.includes('_')) {
-        const [root, ...rest] = opts.prop.split('_');
+      if (opts.prop.includes(OBJECT_PROPERTY_SEPARATOR)) {
+        const [root, ...rest] = opts.prop.split(OBJECT_PROPERTY_SEPARATOR);
         return this.getDataForProp({
           object: opts.object[root],
-          prop: rest.join('_'),
+          prop: rest.join(OBJECT_PROPERTY_SEPARATOR),
         });
       }
 
