@@ -1,11 +1,11 @@
 import {
+  boolean,
+  children,
   def,
   number,
+  object,
   queryDefinition,
   string,
-  children,
-  boolean,
-  object,
 } from '.';
 import { setToken } from './auth';
 import { query, subscribe } from './smQueriers';
@@ -194,7 +194,7 @@ test('creating a single node in sm works', async done => {
     ctx.createNode({
       data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
     });
-  });
+  }).execute();
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
 
@@ -236,7 +236,7 @@ test('creating multiple nodes in sm works', async done => {
         },
       ],
     });
-  });
+  }).execute();
 
   const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
     .CreateNodes as Array<{ id: string }>;
@@ -267,7 +267,7 @@ test('updating a single node in sm works', async done => {
     ctx.createNode({
       data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
     });
-  });
+  }).execute();
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
 
@@ -278,7 +278,7 @@ test('updating a single node in sm works', async done => {
         number: timestamp + 10,
       },
     });
-  });
+  }).execute();
 
   const {
     data: { thing },
@@ -317,7 +317,7 @@ test('updating several nodes in sm works', async done => {
         },
       ],
     });
-  });
+  }).execute();
 
   const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
     .CreateNodes as Array<{ id: string }>;
@@ -332,7 +332,7 @@ test('updating several nodes in sm works', async done => {
         { id: id2, number: timestamp + 20 },
       ],
     });
-  });
+  }).execute();
 
   const {
     data: { thing },
@@ -356,13 +356,13 @@ test('dropping a node in sm works', async done => {
     ctx.createNode({
       data: { type: 'mock-thing' },
     });
-  });
+  }).execute();
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
 
   await transaction(ctx => {
     ctx.dropNode({ id });
-  });
+  }).execute();
 
   try {
     await query(
@@ -414,7 +414,7 @@ const createMockThingAndTodo = async () => {
         },
       ],
     });
-  });
+  }).execute();
 
   const [thingId, todoId] = nodesTransaction[0].data.CreateNodes.map(
     ({ id }: { id: string }) => id
@@ -454,7 +454,7 @@ const createMockThingAndMultipleTodos = async () => {
         },
       ],
     });
-  });
+  }).execute();
 
   const [thingId, todoId, todo2Id] = nodesTransaction[0].data.CreateNodes.map(
     ({ id }: { id: string }) => id
@@ -478,7 +478,7 @@ test('creating a single edge in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
 
   const {
     data: { todo },
@@ -517,7 +517,7 @@ test('creating multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const {
     data: { todo },
@@ -547,7 +547,7 @@ test('updating a single edge in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
 
   const {
     data: { todo },
@@ -571,7 +571,8 @@ test('updating a single edge in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
+
   expect(updateResult[0].data.UpdateEdge).toBe(1);
 
   done();
@@ -601,7 +602,7 @@ test('updating multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const {
     data: { todo },
@@ -633,7 +634,7 @@ test('updating multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
   expect(updateResult[0].data.UpdateEdge).toBe(1);
   expect(updateResult[1].data.UpdateEdge).toBe(1);
   done();
@@ -654,7 +655,7 @@ test('dropping a single edge in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
 
   const queryTodoUnderThing = (thingId: string) => {
     return query({
@@ -678,7 +679,7 @@ test('dropping a single edge in sm works', async done => {
         to: todoId,
       },
     });
-  });
+  }).execute();
 
   const {
     data: { todo: todoAfterDrop },
@@ -711,7 +712,7 @@ test('dropping a multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const queryTodosUnderThing = (thingId: string) => {
     return query({
@@ -737,7 +738,7 @@ test('dropping a multiple edges in sm works', async done => {
       },
       { from: thingId, to: todo2Id },
     ]);
-  });
+  }).execute();
 
   const {
     data: { todo: todosAfterDrop },
@@ -761,7 +762,7 @@ test('replacing a single edge in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const queryTodoUnderThing = (thingId: string) => {
     return query({
@@ -791,7 +792,7 @@ test('replacing a single edge in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
 
   const {
     data: { todo: todoAfterReplace },
@@ -826,7 +827,7 @@ test('replacing multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const queryTodoUnderThing = (thingId: string) => {
     return query({
@@ -867,7 +868,7 @@ test('replacing multiple edges in sm works', async done => {
         },
       },
     ]);
-  });
+  }).execute();
 
   const {
     data: { todo: todoAfterReplace },
@@ -906,7 +907,7 @@ test('dropping a property in sm works', async done => {
         },
       ],
     });
-  });
+  }).execute();
 
   const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
 
@@ -931,7 +932,7 @@ test('dropping a property in sm works', async done => {
         },
       },
     });
-  });
+  }).execute();
 
   const {
     data: { thingAfterDrop },
@@ -973,7 +974,7 @@ test('dropping an object will drop all the properties', async done => {
         },
       ],
     });
-  });
+  }).execute();
 
   const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
 
@@ -995,7 +996,7 @@ test('dropping an object will drop all the properties', async done => {
         object: null,
       },
     });
-  });
+  }).execute();
 
   const {
     data: { thingAfterDrop },
