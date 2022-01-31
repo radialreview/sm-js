@@ -73,9 +73,6 @@ export class SMQueryManager {
         ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
           id => id !== node.id
         );
-      } else {
-        // @TODO SUPPORT-SINGLE-ID-QUERY
-        throw Error('Not implemented');
       }
 
       return;

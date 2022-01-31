@@ -5,6 +5,7 @@ interface ISMContextSubscription {
   results?: any;
   unsub?: SubscriptionCanceller;
   suspendPromise?: Promise<any>;
+  onResults?: (newResults: any) => void;
 }
 
 interface ISMContext {

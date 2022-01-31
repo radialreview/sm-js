@@ -21,7 +21,13 @@ function App() {
 
   console.log('users', users);
 
-  return <div className="App">{JSON.stringify(users, null, 2)}</div>;
+  return (
+    <div className="App">
+      {users.map((user: any) => (
+        <div key={user.id}>{user.firstName}</div>
+      ))}
+    </div>
+  );
 }
 
 export default App;
