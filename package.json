@@ -46,7 +46,10 @@
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^6.0.4",
+    "@testing-library/react": "^12.1.2",
     "@types/lodash": "^4.14.177",
+    "@types/react": "^17.0.38",
+    "@types/react-dom": "^17.0.11",
     "husky": "^7.0.4",
     "isomorphic-fetch": "^3.0.0",
     "size-limit": "^6.0.4",
@@ -58,7 +61,10 @@
     "@apollo/client": "^3.4.17",
     "graphql": "^16.1.0",
     "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "mobx": "^6.3.6",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
     "subscriptions-transport-ws": "^0.11.0"
   }
 }

@@ -132,7 +132,7 @@ function generateQuerier<TQueryDefinitions extends QueryDefinitions>(
 
 export const query = generateQuerier();
 
-type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+export type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
   // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
@@ -149,8 +149,8 @@ type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   batched?: boolean;
 };
 
-type SubscriptionCanceller = () => void;
-type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
+export type SubscriptionCanceller = () => void;
+export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 
 export async function subscribe<
   TQueryDefinitions extends QueryDefinitions,
