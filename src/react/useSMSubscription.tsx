@@ -8,7 +8,7 @@ import { SMContext } from './context';
 // also implement sub cancelling
 export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   queryDefinitions: TQueryDefinitions
-): QueryDataReturn<TQueryDefinitions> {
+): { data: QueryDataReturn<TQueryDefinitions> } {
   const smContext = React.useContext(SMContext);
 
   if (!smContext) {
@@ -30,6 +30,9 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   const [results, setResults] = React.useState<
     QueryDataReturn<TQueryDefinitions> | undefined
   >(existingContextForThisSubscription?.results);
+  const [error, setError] = React.useState<any>(
+    existingContextForThisSubscription?.error
+  );
 
   // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
   // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
@@ -38,6 +41,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   // and call that in "onData" instead.
   smContext.updateSubscriptionInfo(subscriptionId, {
     onResults: setResults,
+    onError: setError,
   });
 
   if (!existingContextForThisSubscription) {
@@ -57,6 +61,14 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
       .then(({ unsub }) => {
         smContext.updateSubscriptionInfo(subscriptionId, { unsub });
       })
+      .catch(e => {
+        const contextForThisSub =
+          smContext.ongoingSubscriptionRecord[subscriptionId];
+        contextForThisSub.onError && contextForThisSub.onError(e);
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          error: e,
+        });
+      })
       .finally(() => {
         smContext.updateSubscriptionInfo(subscriptionId, {
           suspendPromise: undefined,
@@ -64,7 +76,9 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
       });
   } else if (existingContextForThisSubscription.suspendPromise) {
     throw existingContextForThisSubscription.suspendPromise;
+  } else if (error) {
+    throw error;
   } else {
-    return results as QueryDataReturn<TQueryDefinitions>;
+    return { data: results } as { data: QueryDataReturn<TQueryDefinitions> };
   }
 }

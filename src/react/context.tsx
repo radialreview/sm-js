@@ -3,9 +3,11 @@ import { SubscriptionCanceller } from '../smQueriers';
 
 interface ISMContextSubscription {
   results?: any;
+  error?: any;
   unsub?: SubscriptionCanceller;
   suspendPromise?: Promise<any>;
   onResults?: (newResults: any) => void;
+  onError?: (newError: any) => void;
 }
 
 interface ISMContext {
