@@ -143,6 +143,10 @@ export type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   // However, when onError is given, errors will no longer be thrown
   // They will instead all be passed to the onError handler
   onError?: (...args: any) => void;
+  // Allow subscriptions to be cancelled immediately after "subscribe" is called, and before the initial query resolves
+  onSubscriptionInitialized?: (
+    subscriptionCanceller: SubscriptionCanceller
+  ) => void;
   skipInitialQuery?: boolean;
   queryId?: string;
   tokenName?: string;
@@ -318,12 +322,12 @@ export async function subscribe<
     subscriptionCancellers.forEach(cancel => cancel());
   }
 
+  initSubs();
+  opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
   if (opts.skipInitialQuery) {
-    initSubs();
     return { unsub } as ReturnType;
   } else {
     const query = generateQuerier(queryManager);
-    initSubs();
     try {
       // this query method will post its results to the queryManager declared above
       await query(queryDefinitions, {

@@ -24,15 +24,21 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
     throw Error('Error.captureStackTrace not supported');
   }
   const subscriptionId = obj.stack.split('\n')[1];
-  const existingContextForThisSubscription =
+  const preExistingContextForThisSubscription =
     smContext.ongoingSubscriptionRecord[subscriptionId];
 
   const [results, setResults] = React.useState<
     QueryDataReturn<TQueryDefinitions> | undefined
-  >(existingContextForThisSubscription?.results);
+  >(preExistingContextForThisSubscription?.results);
   const [error, setError] = React.useState<any>(
-    existingContextForThisSubscription?.error
+    preExistingContextForThisSubscription?.error
   );
+  React.useEffect(() => {
+    smContext.cancelCleanup(subscriptionId);
+    return () => {
+      smContext.scheduleCleanup(subscriptionId);
+    };
+  }, []);
 
   // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
   // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
@@ -44,7 +50,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
     onError: setError,
   });
 
-  if (!existingContextForThisSubscription) {
+  if (!preExistingContextForThisSubscription) {
     const suspendPromise = subscribe(queryDefinitions, {
       onData: ({ results: newResults }) => {
         const contextForThisSub =
@@ -54,28 +60,29 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
           results: newResults,
         });
       },
+      onError: error => {
+        const contextForThisSub =
+          smContext.ongoingSubscriptionRecord[subscriptionId];
+        contextForThisSub.onError && contextForThisSub.onError(error);
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          error,
+        });
+      },
+      onSubscriptionInitialized: subscriptionCanceller => {
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          unsub: subscriptionCanceller,
+        });
+      },
     });
 
     smContext.updateSubscriptionInfo(subscriptionId, { suspendPromise });
-    throw suspendPromise
-      .then(({ unsub }) => {
-        smContext.updateSubscriptionInfo(subscriptionId, { unsub });
-      })
-      .catch(e => {
-        const contextForThisSub =
-          smContext.ongoingSubscriptionRecord[subscriptionId];
-        contextForThisSub.onError && contextForThisSub.onError(e);
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          error: e,
-        });
-      })
-      .finally(() => {
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          suspendPromise: undefined,
-        });
+    throw suspendPromise.finally(() => {
+      smContext.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise: undefined,
       });
-  } else if (existingContextForThisSubscription.suspendPromise) {
-    throw existingContextForThisSubscription.suspendPromise;
+    });
+  } else if (preExistingContextForThisSubscription.suspendPromise) {
+    throw preExistingContextForThisSubscription.suspendPromise;
   } else if (error) {
     throw error;
   } else {

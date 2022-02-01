@@ -9,11 +9,11 @@ import {
 import { useSubscription } from './';
 import { setToken, SMProvider, config, SMConfig } from '..';
 
-const token = 'my mock token';
-setToken('default', { token });
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
 beforeEach(() => {
+  const token = 'my mock token';
+  setToken('default', { token });
   console.error = () => {};
 });
 afterAll(() => {
@@ -49,6 +49,12 @@ test('it throws a promise that resolves when the query for the data requested re
     },
   } as DeepPartial<SMConfig>);
 
+  render(
+    <SMProvider>
+      <MyComponent />
+    </SMProvider>
+  );
+
   function MyComponent() {
     try {
       useSubscription(createMockQueryDefinitions());
@@ -72,17 +78,12 @@ test('it throws a promise that resolves when the query for the data requested re
       done(e);
     }
   }
-
-  render(
-    <SMProvider>
-      <MyComponent />
-    </SMProvider>
-  );
 });
 
 test('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
+  let triggerMessage: (() => void) | undefined;
   const mockSubscribe = jest.fn(opts => {
-    setTimeout(() => {
+    triggerMessage = () => {
       opts.onMessage({
         users: {
           ...mockSubscriptionMessage.users,
@@ -93,7 +94,7 @@ test('it re-renders the component when a subscription message causes a change in
           },
         },
       });
-    }, 10);
+    };
   });
   config({
     gqlClient: {
@@ -122,9 +123,43 @@ test('it re-renders the component when a subscription message causes a change in
   );
 
   await renderResult.findByText('FL');
-  // re-render after sub message
+  triggerMessage && triggerMessage();
   await renderResult.findByText('Definitely not FL');
   done();
+});
+
+test('it cancels the subscription after the component that establishes the subscription unmounts', done => {
+  const mockUnsub = jest.fn(() => {});
+  const mockSubscribe = jest.fn(() => {
+    return mockUnsub;
+  });
+  config({
+    gqlClient: {
+      query: async () => mockQueryDataReturn,
+      subscribe: mockSubscribe,
+    },
+  } as DeepPartial<SMConfig>);
+
+  function MyComponent() {
+    useSubscription(createMockQueryDefinitions());
+
+    return null;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <SMProvider>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  // wrap around a setTimeout to allow the useEffect hook to run and schedule the cleanup
+  setTimeout(() => {
+    result.unmount();
+    expect(mockUnsub).toHaveBeenCalled();
+    done();
+  }, 100);
 });
 
 function promiseState(p: Promise<any>) {
