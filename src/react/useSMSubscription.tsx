@@ -5,7 +5,6 @@ import { SMContext } from './context';
 
 // DOES NOT CURRENTLY HANDLE AN UPDATE TO QUERY DEFINITIONS
 // @TODO think about whether this is ok for now or if we need to deal with that
-// also implement sub cancelling
 export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   queryDefinitions: TQueryDefinitions
 ): { data: QueryDataReturn<TQueryDefinitions> } {

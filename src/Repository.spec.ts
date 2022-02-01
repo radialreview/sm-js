@@ -1,8 +1,8 @@
-import { DOFactory } from './DO';
 import * as smData from './smDataTypes';
 import { SMNotCachedException } from './exceptions';
 import { UserNode, generateUserNode } from './specUtilities';
 import { RepositoryFactory } from './Repository';
+import { getDefaultConfig, SMJS } from '.';
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
@@ -15,6 +15,7 @@ function generateRepositoryInstance<
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 }) {
+  const smJS = new SMJS(getDefaultConfig());
   const def = {
     type: 'mockNodeType',
     properties: opts.properties,
@@ -22,7 +23,7 @@ function generateRepositoryInstance<
     relational: opts.relational,
   };
 
-  const DOClass = DOFactory(def);
+  const DOClass = smJS.def(def).do;
 
   return RepositoryFactory({
     DOClass,

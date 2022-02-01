@@ -1,4 +1,3 @@
-import { DOFactory } from './DO';
 import { RepositoryFactory } from './Repository';
 import {
   SMDataTypeException,
@@ -337,46 +336,6 @@ export const IS_NULL_IDENTIFIER = '__IS_NULL__';
 export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 export const OBJECT_IDENTIFIER = '__object__';
-
-type NodeDefArgs<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
-> = {
-  type: string;
-  properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
-  relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
-};
-
-export function def<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
->(
-  def: NodeDefArgs<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  >
-): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations> {
-  const DOClass = DOFactory(def);
-
-  return {
-    _isSMNodeDef: true,
-    do: DOClass,
-    repository: RepositoryFactory({ def, DOClass }),
-    type: def.type,
-    smData: def.properties,
-    smComputed: def.computed,
-    smRelational: def.relational,
-    smMutations: def.mutations,
-  };
-}
 
 // HACK ALERT! Exists only to make TS work the way we need it
 // It makes it possible to accept multiple node types within a record of query definitions, without losing type safety

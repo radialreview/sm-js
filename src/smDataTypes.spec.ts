@@ -1,4 +1,4 @@
-import { DOFactory } from './DO';
+import { getDefaultConfig, SMJS } from '.';
 import {
   SMDataTypeException,
   SMDataTypeExplicitDefaultException,
@@ -20,7 +20,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       nickname: 'Joseph',
@@ -48,7 +48,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       credits: '40',
@@ -75,7 +75,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       isBillingEnabled: 'true',
@@ -99,7 +99,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     try {
       new DOClass({
@@ -121,7 +121,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     try {
       new DOClass({
@@ -153,7 +153,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       dogBreeds: ['husky'],
@@ -203,7 +203,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       zoo: 'brendans zoo',
@@ -238,7 +238,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       person: {
@@ -269,7 +269,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       productName: 'guitar',
@@ -303,7 +303,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       todos: {
@@ -337,7 +337,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       numbers: {
@@ -374,7 +374,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = DOFactory(def);
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       peopleById: {

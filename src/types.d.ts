@@ -3,6 +3,139 @@ declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 declare type Maybe<T> = T | null;
 
 declare type SMDataDefaultFn = (_default: any) => ISMData;
+
+declare type DocumentNode = import('@apollo/client/core').DocumentNode;
+
+declare type SMPlugin = {
+  DO?: {
+    onConstruct?: (opts: { DOInstance: NodeDO; parsedDataKey: string }) => void;
+    computedDecorator?: <
+      TReturnType,
+      TComputedFn extends (data: Record<string, any>) => TReturnType
+    >(opts: {
+      DOInstance: NodeDO;
+      computedFn: TComputedFn;
+    }) => () => TReturnType;
+  };
+  DOProxy?: {
+    computedDecorator?: <
+      TReturnType,
+      TComputedFn extends (data: Record<string, any>) => TReturnType
+    >(opts: {
+      ProxyInstance: IDOProxy;
+      computedFn: TComputedFn;
+    }) => () => TReturnType;
+  };
+};
+
+declare type SMConfig = {
+  gqlClient: ISMGQLClient;
+  plugins?: Array<SMPlugin>;
+};
+
+declare interface ISMGQLClient {
+  query(opts: {
+    gql: DocumentNode;
+    token: string;
+    batched?: boolean;
+  }): Promise<any>;
+  // returns a subscription canceller
+  subscribe(opts: {
+    gql: DocumentNode;
+    token: string;
+    onMessage: (message: Record<string, any>) => void;
+    onError: (error: any) => void;
+  }): () => void;
+  mutate(opts: { mutations: Array<DocumentNode>; token: string }): Promise<any>;
+}
+
+declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
+  data: QueryDataReturn<TQueryDefinitions>;
+  error: any;
+};
+
+declare type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
+  onData?: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
+  // When onError is provided, we pass it any errors encountered instead of throwing them.
+  // This is by design, for consistency with the interface of sm.subscribe
+  onError?: (...args: any) => void;
+  queryId?: string;
+  tokenName?: string;
+  batched?: boolean;
+};
+
+declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+  onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
+  // To catch an error in a subscription, you must provide an onError handler,
+  // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
+  //
+  // This means you can use the try/catch syntax try { await sm.subscription } catch (e) {}
+  // to catch errors querying or initializing subscriptions.
+  //
+  // However, when onError is given, errors will no longer be thrown
+  // They will instead all be passed to the onError handler
+  onError?: (...args: any) => void;
+  // Allow subscriptions to be cancelled immediately after "subscribe" is called, and before the initial query resolves
+  onSubscriptionInitialized?: (
+    subscriptionCanceller: SubscriptionCanceller
+  ) => void;
+  skipInitialQuery?: boolean;
+  queryId?: string;
+  tokenName?: string;
+  batched?: boolean;
+};
+
+declare type SubscriptionCanceller = () => void;
+declare type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
+
+declare interface ISMJS {
+  gqlClient: ISMGQLClient;
+  plugins: Array<SMPlugin> | undefined;
+  def<
+    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeComputedData extends Record<string, any>,
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+    TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+  >(
+    def: NodeDefArgs<
+      TNodeData,
+      TNodeComputedData,
+      TNodeRelationalData,
+      TNodeMutations
+    >
+  ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  getToken(opts: { tokenName: string }): string;
+  setToken(opts: { tokenName: string; token: string }): void;
+  query<TQueryDefinitions extends QueryDefinitions>(
+    queryDefinition: TQueryDefinitions,
+    opts: QueryOpts<TQueryDefinitions>
+  ): Promise<QueryReturn<TQueryDefinitions>>;
+  subscribe<
+    TQueryDefinitions extends QueryDefinitions,
+    TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>
+  >(
+    queryDefinitions: TQueryDefinitions,
+    opts: TSubscriptionOpts
+  ): Promise<
+    TSubscriptionOpts extends { skipInitialQuery: true }
+      ? SubscriptionMeta
+      : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta
+  >;
+}
+
+declare type NodeDefArgs<
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeComputedData extends Record<string, any>,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+> = {
+  type: string;
+  properties: TNodeData;
+  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  relational?: NodeRelationalFns<TNodeRelationalData>;
+  mutations?: TNodeMutations;
+};
+
 /**
  * The interface implemented by each smData type (like smData.string, smData.boolean)
  */
@@ -298,10 +431,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
   }
-    ? /**
-       * full query definition provided, with a map fn
-       */
-      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
+  /**
+   * full query definition provided, with a map fn
+   */
+    ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
           ? TQueryDefinitions[Key] extends { id: string }
@@ -323,10 +456,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
         : never
       : never
     : TQueryDefinitions[Key] extends ISMNode
-    ? /**
+      /**
        * shorthand syntax used, only a node definition was provided
        */
-      Array<
+    ? Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
       >
