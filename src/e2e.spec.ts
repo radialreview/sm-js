@@ -194,6 +194,14 @@ test('creating a single node in sm works', async done => {
     ctx.createNode({
       data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
     });
+
+    ctx.createNode({
+      data: {
+        type: 'mock-thing',
+        number: timestamp + 1,
+        string: 'mock string2',
+      },
+    });
   }).execute();
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
@@ -235,6 +243,70 @@ test('creating multiple nodes in sm works', async done => {
           },
         },
       ],
+    });
+  }).execute();
+
+  const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
+    .CreateNodes as Array<{ id: string }>;
+
+  const {
+    data: { things },
+  } = await query({
+    things: queryDefinition({
+      def: mockThingDef,
+      ids: [id1, id2],
+    }),
+  });
+
+  expect(things.length).toBe(2);
+  expect(things[0].number).toBe(timestamp);
+  expect(things[0].string).toBe('mock string');
+  expect(things[1].number).toBe(timestamp + 1);
+  expect(things[1].string).toBe('mock string 2');
+  done();
+});
+
+test.only('creating multiple nodes in multiple operations in sm works', async done => {
+  const token = await getToken();
+  setToken('default', { token });
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await transaction(ctx => {
+    // ctx.createNode({
+    //   data: {
+    //     type: 'mock-thing',
+    //     number: timestamp + 2,
+    //     string: 'mock string 3',
+    //   },
+    //   onSuccess: (data: any) => console.log('data', data),
+    // });
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+          },
+        },
+        // {
+        //   data: {
+        //     type: 'mock-thing',
+        //     number: timestamp + 2,
+        //     string: 'mock strin3g',
+        //   },
+        // },
+      ],
+    });
+
+    ctx.createNode({
+      data: {
+        id: '123',
+        type: 'mock-thing',
+        number: timestamp + 1,
+        string: 'mock string 2',
+      },
+      onSuccess: (data: any) => console.log('data', data),
     });
   }).execute();
 
@@ -1010,6 +1082,48 @@ test('dropping an object will drop all the properties', async done => {
   expect((thingAfterDrop as any).object).toBe(null);
 
   done();
+});
+
+test('grouped transactions work as expected', async () => {
+  const token = await getToken();
+
+  setToken('default', { token });
+
+  const createTodo = ({ title, done }: { title: string; done: boolean }) => {
+    return transaction(ctx => {
+      ctx.createNode({
+        data: {
+          type: 'mock-todo',
+          title,
+          done,
+        },
+      });
+    });
+  };
+
+  const createTodos = (todos: Array<{ title: string; done: boolean }>) => {
+    return transaction(todos.map(createTodo));
+  };
+
+  const transactionResult = await createTodos([
+    { title: 'todo 1', done: false },
+    { title: 'todo 2', done: true },
+  ]).execute();
+
+  const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
+    .CreateNodes as Array<{ id: string }>;
+
+  const {
+    data: { todos },
+  } = await query({
+    todos: queryDefinition({
+      def: mockTodoDef,
+      ids: [id1, id2],
+    }),
+  });
+
+  expect(todos[0].title).toBe('todo 1');
+  expect(todos[1].title).toBe('todo 2');
 });
 
 async function getToken(): Promise<string> {
