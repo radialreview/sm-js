@@ -266,47 +266,31 @@ test('creating multiple nodes in sm works', async done => {
   done();
 });
 
-test.only('creating multiple nodes in multiple operations in sm works', async done => {
+test('creating multiple nodes in multiple operations in sm works', async done => {
   const token = await getToken();
   setToken('default', { token });
   const timestamp = new Date().valueOf();
 
   const transactionResult = await transaction(ctx => {
-    // ctx.createNode({
-    //   data: {
-    //     type: 'mock-thing',
-    //     number: timestamp + 2,
-    //     string: 'mock string 3',
-    //   },
-    //   onSuccess: (data: any) => console.log('data', data),
-    // });
+    ctx.createNode({
+      data: {
+        id: '123',
+        type: 'mock-thing',
+        number: timestamp,
+        string: 'mock string',
+      },
+    });
+
     ctx.createNodes({
       nodes: [
         {
           data: {
             type: 'mock-thing',
-            number: timestamp,
-            string: 'mock string',
+            number: timestamp + 1,
+            string: 'mock string 2',
           },
         },
-        // {
-        //   data: {
-        //     type: 'mock-thing',
-        //     number: timestamp + 2,
-        //     string: 'mock strin3g',
-        //   },
-        // },
       ],
-    });
-
-    ctx.createNode({
-      data: {
-        id: '123',
-        type: 'mock-thing',
-        number: timestamp + 1,
-        string: 'mock string 2',
-      },
-      onSuccess: (data: any) => console.log('data', data),
     });
   }).execute();
 
