@@ -4,6 +4,7 @@ import {
   generateTodoNode,
   TodoNode,
   UserNode,
+  getMockConfig,
 } from './specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
@@ -12,11 +13,13 @@ import {
 } from './queryDefinitionAdapters';
 import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
 import { gql } from '@apollo/client/core';
+import { SMJS } from '.';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
-    const todoNode = generateTodoNode();
-    const userNode = generateUserNode(todoNode);
+    const smJSInstance = new SMJS(getMockConfig());
+    const todoNode = generateTodoNode(smJSInstance);
+    const userNode = generateUserNode(smJSInstance, todoNode);
 
     const record = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
@@ -59,9 +62,12 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles querying partial objects within a node', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
-      queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
+      queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+        useUnder: true,
+      }),
     }).users as QueryRecordEntry & { underIds: Array<string> };
 
     expect(queryRecord.def).toEqual(
@@ -84,10 +90,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles relational queries', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useUnder: true,
+        }),
       }).users.relational
     ).toEqual(
       expect.objectContaining({
@@ -101,10 +110,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles nested relational queries', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useUnder: true,
+        }),
       }).users.relational?.todos.relational
     ).toEqual(
       expect.objectContaining({
@@ -121,10 +133,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
 
 describe('getQueryInfo.queryGQLString', () => {
   it('creates a valid SM query from a fetcher config', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useUnder: true,
+        }),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -151,12 +166,16 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles multiple aliases', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
+          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
+            .users,
+          otherAlias: createMockQueryDefinitions(smJSInstance, {
+            useUnder: true,
+          }).users,
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -202,10 +221,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles fetching specific ids', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions({ useIds: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useIds: true,
+        }),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -232,11 +254,12 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles shorthand query definitions', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          todos: generateTodoNode(),
+          todos: generateTodoNode(smJSInstance),
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -260,12 +283,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles map fn omission', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
           todos: {
-            def: generateTodoNode(),
+            def: generateTodoNode(smJSInstance),
           },
         },
       }).queryGQLString
@@ -290,12 +314,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('supports filters', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
           todos: queryDefinition({
-            def: generateTodoNode(),
+            def: generateTodoNode(smJSInstance),
             map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
             filter: { task: 'get it done' },
           }),
@@ -312,13 +337,17 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('returns a valid gql string', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(() =>
       gql(
         getQueryInfo({
           queryId: 'MyTestQuery',
           queryDefinitions: {
-            users: createMockQueryDefinitions({ useUnder: true }).users,
-            otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
+            users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
+              .users,
+            otherAlias: createMockQueryDefinitions(smJSInstance, {
+              useUnder: true,
+            }).users,
           },
         }).queryGQLString
       )
@@ -328,10 +357,13 @@ describe('getQueryInfo.queryGQLString', () => {
 
 describe('getQueryInfo.subscriptionGQLStrings', () => {
   it('creates a valid SM subscription from a fetcher config', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions({ useUnder: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useUnder: true,
+        }),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -364,12 +396,16 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('handles multiple aliases', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
+          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
+            .users,
+          otherAlias: createMockQueryDefinitions(smJSInstance, {
+            useUnder: true,
+          }).users,
         },
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
@@ -427,10 +463,13 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('handles fetching specific ids', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions({ useIds: true }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+          useIds: true,
+        }),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -463,12 +502,16 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('returns a valid gql string', () => {
+    const smJSInstance = new SMJS(getMockConfig());
     expect(() =>
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions({ useUnder: true }).users,
-          otherAlias: createMockQueryDefinitions({ useUnder: true }).users,
+          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
+            .users,
+          otherAlias: createMockQueryDefinitions(smJSInstance, {
+            useUnder: true,
+          }).users,
         },
       }).subscriptionConfigs.map(config => gql(config.gqlString))
     ).not.toThrow();

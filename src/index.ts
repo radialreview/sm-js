@@ -3,6 +3,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './smQueriers';
 import { createSMQueryManager } from './SMQueryManager';
+import { createTransaction } from './transaction/transaction';
 
 export * from './smDataTypes';
 export * from './react';
@@ -16,6 +17,7 @@ export class SMJS implements ISMJS {
   public subscribe;
   public doProxyGenerator;
   public SMQueryManager;
+  public transaction;
   private DOFactory;
 
   constructor(config: SMConfig) {
@@ -26,6 +28,7 @@ export class SMJS implements ISMJS {
     this.doProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
     this.SMQueryManager = createSMQueryManager(this);
+    this.transaction = createTransaction(this);
   }
 
   public def<

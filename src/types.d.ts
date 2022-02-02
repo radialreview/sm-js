@@ -101,7 +101,6 @@ declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
 
 declare type SubscriptionCanceller = () => void;
 declare type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
-
 declare interface ISMJS {
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
@@ -133,6 +132,10 @@ declare interface ISMJS {
       TNodeMutations
     >
   ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  transaction(
+    callback: (context: ITransactionContext) => void | Promise<void>,
+    opts?: { tokenName: string }
+  ): Promise<any>;
 
   gqlClient: ISMGQLClient;
   plugins: Array<SMPlugin> | undefined;
@@ -459,10 +462,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
   }
-    ? /**
-       * full query definition provided, with a map fn
-       */
-      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
+  /**
+   * full query definition provided, with a map fn
+   */
+    ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
           ? TQueryDefinitions[Key] extends { id: string }
@@ -484,10 +487,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
         : never
       : never
     : TQueryDefinitions[Key] extends ISMNode
-    ? /**
+      /**
        * shorthand syntax used, only a node definition was provided
        */
-      Array<
+    ? Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
       >
