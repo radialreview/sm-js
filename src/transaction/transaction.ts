@@ -1,5 +1,5 @@
 import { DocumentNode } from '@apollo/client/core';
-import { mergeWith } from 'lodash';
+import { mergeWith, sortBy } from 'lodash';
 import {
   createEdge,
   createEdges,
@@ -62,7 +62,12 @@ interface ITransactionContext {
   replaceEdges: typeof replaceEdges;
 }
 
-type TOperationsByType = Record<OperationType['type'], Array<OperationType>>;
+type TIndexedOperationType = OperationType & { position: number };
+
+type TOperationsByType = Record<
+  OperationType['type'],
+  Array<TIndexedOperationType>
+>;
 
 interface IPendingTransaction {
   operations: TOperationsByType;
@@ -113,13 +118,43 @@ export function transaction(
     updateEdges: [],
   };
 
+  let operationsCount = 0;
+
   function pushOperation(operation: OperationType) {
     if (!operationsByType[operation.type]) {
       throw Error(
         `No operationsByType array initialized for "${operation.type}"`
       );
     }
-    operationsByType[operation.type].push(operation);
+    /**
+     * Keeps track of the number of operations performed in this transaction.
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
+     * SM responds with each operation in the order they were sent up.
+     */
+
+    operationsCount += 1;
+
+    /**
+     * createNodes creates multiple nodes in a single operation,
+     * therefore we need to track the position of these nodes instead of just the position of the operation itself
+     */
+    if (operation.type === 'createNodes') {
+      operationsByType[operation.type].push({
+        ...operation,
+        position: operationsCount,
+        nodes: operation.nodes.map((node, idx) => {
+          return {
+            ...node,
+            position: idx === 0 ? operationsCount : (operationsCount += 1),
+          };
+        }),
+      });
+    } else {
+      operationsByType[operation.type].push({
+        ...operation,
+        position: operationsCount,
+      });
+    }
   }
 
   const context: ITransactionContext = {
@@ -190,46 +225,156 @@ export function transaction(
     },
   };
 
+  function sortMutationsByTransactionPosition<T>(
+    operations: Array<TIndexedOperationType>
+  ) {
+    return (sortBy(
+      operations,
+      operation => operation.position
+    ) as unknown) as T;
+  }
+
   function getAllMutations(operations: TOperationsByType): Array<DocumentNode> {
     return [
-      ...getMutationsFromTransactionCreateOperations([
-        ...(operations.createNode as Array<CreateNodeOperation>),
-        ...(operations.createNodes as Array<CreateNodesOperation>),
-      ]),
-      ...getMutationsFromTransactionUpdateOperations([
-        ...(operations.updateNode as Array<UpdateNodeOperation>),
-        ...(operations.updateNodes as Array<UpdateNodesOperation>),
-      ]),
-      ...getMutationsFromTransactionDropOperations([
-        ...(operations.dropNode as Array<DropNodeOperation>),
-      ]),
-      ...getMutationsFromEdgeCreateOperations([
-        ...(operations.createEdge as Array<CreateEdgeOperation>),
-        ...(operations.createEdges as Array<CreateEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeDropOperations([
-        ...(operations.dropEdge as Array<DropEdgeOperation>),
-        ...(operations.dropEdges as Array<DropEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeReplaceOperations([
-        ...(operations.replaceEdge as Array<ReplaceEdgeOperation>),
-        ...(operations.replaceEdges as Array<ReplaceEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeUpdateOperations([
-        ...(operations.updateEdge as Array<UpdateEdgeOperation>),
-        ...(operations.updateEdges as Array<UpdateEdgesOperation>),
-      ]),
+      ...getMutationsFromTransactionCreateOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.createNode as Array<
+            CreateNodeOperation & { position: number }
+          >),
+          ...(operations.createNodes as Array<
+            CreateNodesOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromTransactionUpdateOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.updateNode as Array<
+            UpdateNodeOperation & { position: number }
+          >),
+          ...(operations.updateNodes as Array<
+            UpdateNodesOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromTransactionDropOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.dropNode as Array<
+            DropNodeOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromEdgeCreateOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.createEdge as Array<
+            CreateEdgeOperation & { position: number }
+          >),
+          ...(operations.createEdges as Array<
+            CreateEdgesOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromEdgeDropOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.dropEdge as Array<
+            DropEdgeOperation & { position: number }
+          >),
+          ...(operations.dropEdges as Array<
+            DropEdgesOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromEdgeReplaceOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.replaceEdge as Array<
+            ReplaceEdgeOperation & { position: number }
+          >),
+          ...(operations.replaceEdges as Array<
+            ReplaceEdgesOperation & { position: number }
+          >),
+        ])
+      ),
+      ...getMutationsFromEdgeUpdateOperations(
+        sortMutationsByTransactionPosition([
+          ...(operations.updateEdge as Array<
+            UpdateEdgeOperation & { position: number }
+          >),
+          ...(operations.updateEdges as Array<
+            UpdateEdgesOperation & { position: number }
+          >),
+        ])
+      ),
     ];
   }
 
   const tokenName = opts?.tokenName || 'default';
   const token = getToken({ tokenName });
 
+  // TODO: make more semantic
+  function groupBySMOperationName(operations: TOperationsByType) {
+    const result = Object.entries(operations).reduce((acc, [_, val]) => {
+      val.forEach((op: any) => {
+        if (acc.hasOwnProperty(op.smOperationName)) {
+          acc[op.smOperationName] = [...acc[op.smOperationName], op];
+        } else {
+          acc[op.smOperationName] = [op];
+        }
+      });
+      return acc;
+    }, {} as Record<string, Array<any>>);
+
+    Object.entries(result).forEach(([smOperationName, operations]) => {
+      result[smOperationName] = sortBy(
+        operations,
+        operation => operation.position
+      );
+    });
+
+    return result;
+  }
+
   if (Array.isArray(callback)) {
     return transactionGroup(callback);
   }
 
   const result = callback(context);
+
+  function handleSuccessCallbacks(opts: {
+    executionResult: Array<{ data: Record<string, any> }>;
+    operationsByType: TOperationsByType;
+  }) {
+    const { executionResult, operationsByType } = opts;
+
+    const operationsBySMOperationName = groupBySMOperationName(
+      operationsByType
+    );
+
+    const resultData = executionResult[0].data;
+    /**
+     * Loop through the operations, map the operation to each result sent back from SM,
+     * then pass the result into the callback if it exists
+     */
+    Object.entries(operationsBySMOperationName).forEach(
+      ([smOperationName, operations]) => {
+        if (resultData.hasOwnProperty(smOperationName)) {
+          operations.forEach(operation => {
+            const groupedResult = resultData[smOperationName];
+            // for createNodes, execute callback on each individual node rather than top-level operation
+            if (operation.hasOwnProperty('nodes')) {
+              operation.nodes.forEach((node: any) => {
+                if (node.hasOwnProperty('onSuccess')) {
+                  const operationResult = groupedResult[node.position - 1];
+                  node.onSuccess(operationResult);
+                }
+              });
+            } else if (operation.hasOwnProperty('onSuccess')) {
+              const operationResult = groupedResult[operation.position - 1];
+              operation.onSuccess(operationResult);
+            }
+          });
+        }
+      }
+    );
+  }
 
   async function execute() {
     try {
@@ -243,6 +388,10 @@ export function transaction(
         mutations,
         token,
       });
+
+      if (executionResult) {
+        handleSuccessCallbacks({ executionResult, operationsByType });
+      }
 
       return executionResult;
     } catch (error) {
@@ -287,6 +436,10 @@ export function transaction(
           mutations,
           token,
         });
+
+        if (executionResult) {
+          handleSuccessCallbacks({ executionResult, operationsByType });
+        }
 
         return executionResult;
       } catch (error) {

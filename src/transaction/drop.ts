@@ -6,7 +6,6 @@ export type DropNodeOperation = {
   type: 'dropNode';
   id: string;
   name?: string;
-  onSuccess?: (data: any) => any;
 };
 
 export function dropNode(
