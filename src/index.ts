@@ -1,9 +1,10 @@
 import { createDOFactory } from './DO';
+import { createDOProxyGenerator } from './DOProxyGenerator';
 import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './smQueriers';
+import { createSMQueryManager } from './SMQueryManager';
 
 export * from './smDataTypes';
-export * from './smQueriers';
 export * from './react';
 export * from './config';
 
@@ -13,12 +14,18 @@ export class SMJS implements ISMJS {
   public tokens: Record<string, string> = {};
   public query;
   public subscribe;
+  public doProxyGenerator;
+  public SMQueryManager;
+  private DOFactory;
 
   constructor(config: SMConfig) {
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
     this.query = generateQuerier({ smJSInstance: this });
     this.subscribe = generateSubscriber(this);
+    this.doProxyGenerator = createDOProxyGenerator(this);
+    this.DOFactory = createDOFactory(this);
+    this.SMQueryManager = createSMQueryManager(this);
   }
 
   public def<
@@ -39,8 +46,7 @@ export class SMJS implements ISMJS {
     TNodeRelationalData,
     TNodeMutations
   > {
-    const DOFactory = createDOFactory(this);
-    const DOClass = DOFactory(def);
+    const DOClass = this.DOFactory(def);
 
     return {
       _isSMNodeDef: true,

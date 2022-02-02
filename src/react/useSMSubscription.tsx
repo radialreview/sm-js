@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { subscribe } from '../smQueriers';
 import { SMContext } from './context';
 
 // DOES NOT CURRENTLY HANDLE AN UPDATE TO QUERY DEFINITIONS
@@ -50,7 +49,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   });
 
   if (!preExistingContextForThisSubscription) {
-    const suspendPromise = subscribe(queryDefinitions, {
+    const suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
       onData: ({ results: newResults }) => {
         const contextForThisSub =
           smContext.ongoingSubscriptionRecord[subscriptionId];

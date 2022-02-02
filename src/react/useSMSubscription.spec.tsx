@@ -4,16 +4,15 @@ import { render } from '@testing-library/react';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
-  mockSubscriptionMessage,
+  getMockSubscriptionMessage,
+  getMockConfig,
 } from '../specUtilities';
 import { useSubscription } from './';
-import { setToken, SMProvider, config, SMConfig } from '..';
+import { SMProvider, SMJS } from '..';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
 beforeEach(() => {
-  const token = 'my mock token';
-  setToken('default', { token });
   console.error = () => {};
 });
 afterAll(() => {
@@ -21,8 +20,10 @@ afterAll(() => {
 });
 
 test('it throws an error when used outside the context of an SMProvider', done => {
+  const smJS = new SMJS(getMockConfig());
+  smJS.setToken({ tokenName: 'default', token: 'mock token' });
   function MyComponent() {
-    useSubscription(createMockQueryDefinitions());
+    useSubscription(createMockQueryDefinitions(smJS));
 
     return null;
   }
@@ -42,22 +43,25 @@ test('it throws a promise that resolves when the query for the data requested re
   const mockPromise = new Promise(res => {
     resolvePromise = res;
   });
-
-  config({
+  const config = getMockConfig();
+  const smJS = new SMJS({
+    ...config,
     gqlClient: {
+      ...config.gqlClient,
       query: () => mockPromise,
     },
-  } as DeepPartial<SMConfig>);
+  });
+  smJS.setToken({ tokenName: 'default', token: 'mock token' });
 
   render(
-    <SMProvider>
+    <SMProvider smJS={smJS}>
       <MyComponent />
     </SMProvider>
   );
 
   function MyComponent() {
     try {
-      useSubscription(createMockQueryDefinitions());
+      useSubscription(createMockQueryDefinitions(smJS));
     } catch (suspendPromise) {
       testPromise(suspendPromise as Promise<any>);
     }
@@ -81,6 +85,10 @@ test('it throws a promise that resolves when the query for the data requested re
 });
 
 test('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
+  const smJS = new SMJS(getMockConfig());
+  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  const mockSubscriptionMessage = getMockSubscriptionMessage(smJS);
+
   let triggerMessage: (() => void) | undefined;
   const mockSubscribe = jest.fn(opts => {
     triggerMessage = () => {
@@ -95,15 +103,12 @@ test('it re-renders the component when a subscription message causes a change in
         },
       });
     };
+    return () => {};
   });
-  config({
-    gqlClient: {
-      query: async () => mockQueryDataReturn,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJS.gqlClient.subscribe = mockSubscribe;
+
   function MyComponent() {
-    const { data } = useSubscription(createMockQueryDefinitions());
+    const { data } = useSubscription(createMockQueryDefinitions(smJS));
 
     return (
       <>
@@ -116,7 +121,7 @@ test('it re-renders the component when a subscription message causes a change in
 
   const renderResult = render(
     <React.Suspense fallback="loading">
-      <SMProvider>
+      <SMProvider smJS={smJS}>
         <MyComponent />
       </SMProvider>
     </React.Suspense>
@@ -129,26 +134,23 @@ test('it re-renders the component when a subscription message causes a change in
 });
 
 test('it cancels the subscription after the component that establishes the subscription unmounts', done => {
+  const smJS = new SMJS(getMockConfig());
+  smJS.setToken({ tokenName: 'default', token: 'mock token' });
   const mockUnsub = jest.fn(() => {});
   const mockSubscribe = jest.fn(() => {
     return mockUnsub;
   });
-  config({
-    gqlClient: {
-      query: async () => mockQueryDataReturn,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJS.gqlClient.subscribe = mockSubscribe;
 
   function MyComponent() {
-    useSubscription(createMockQueryDefinitions());
+    useSubscription(createMockQueryDefinitions(smJS));
 
     return null;
   }
 
   const result = render(
     <React.Suspense fallback="loading">
-      <SMProvider>
+      <SMProvider smJS={smJS}>
         <MyComponent />
       </SMProvider>
     </React.Suspense>

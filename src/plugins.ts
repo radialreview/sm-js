@@ -1,5 +1,4 @@
 import { computed, makeAutoObservable } from 'mobx';
-import { SMPlugin } from './types';
 
 export const mobxPlugin: SMPlugin = {
   DO: {

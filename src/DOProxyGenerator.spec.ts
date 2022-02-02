@@ -1,6 +1,5 @@
 import { generateDOInstance } from './specUtilities';
 import * as smData from './smDataTypes';
-import { DOProxyGenerator } from './DOProxyGenerator';
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
@@ -106,16 +105,16 @@ function generateDOProxy<
   relationalResults?: Record<string, any>;
   relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }) {
-  const doInstance = generateDOInstance({
+  const { doInstance, smJSInstance } = generateDOInstance({
     properties: opts.properties,
     initialData: opts.initialData,
     computed: opts.computed,
   });
 
-  return DOProxyGenerator({
+  return smJSInstance.doProxyGenerator({
     do: doInstance,
     queryId: 'mockQueryId',
-    node: smData.def({
+    node: smJSInstance.def({
       type: 'mockNodeType',
       properties: opts.properties,
       computed: opts.computed,

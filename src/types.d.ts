@@ -49,6 +49,20 @@ declare interface ISMGQLClient {
   mutate(opts: { mutations: Array<DocumentNode>; token: string }): Promise<any>;
 }
 
+declare interface ISMQueryManager {
+  onQueryResult(opts: { queryResult: any; queryId: string }): void;
+  onSubscriptionMessage(opts: {
+    node: Record<string, any>;
+    operation: {
+      action: 'UpdateNode' | 'DeleteNode' | 'InsertNode';
+      path: string;
+    };
+    queryId: string;
+    subscriptionAlias: string;
+  }): void;
+  getResults: () => Record<string, any>;
+}
+
 declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
   data: QueryDataReturn<TQueryDefinitions>;
   error: any;
@@ -89,21 +103,6 @@ declare type SubscriptionCanceller = () => void;
 declare type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 
 declare interface ISMJS {
-  gqlClient: ISMGQLClient;
-  plugins: Array<SMPlugin> | undefined;
-  def<
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-    TNodeComputedData extends Record<string, any>,
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
-  >(
-    def: NodeDefArgs<
-      TNodeData,
-      TNodeComputedData,
-      TNodeRelationalData,
-      TNodeMutations
-    >
-  ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
   query<TQueryDefinitions extends QueryDefinitions>(
@@ -121,6 +120,35 @@ declare interface ISMJS {
       ? SubscriptionMeta
       : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta
   >;
+  def<
+    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeComputedData extends Record<string, any>,
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+    TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+  >(
+    def: NodeDefArgs<
+      TNodeData,
+      TNodeComputedData,
+      TNodeRelationalData,
+      TNodeMutations
+    >
+  ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+
+  gqlClient: ISMGQLClient;
+  plugins: Array<SMPlugin> | undefined;
+  doProxyGenerator<
+    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeComputedData extends Record<string, any>,
+    TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
+  >(opts: {
+    node: ISMNode<TNodeData, TNodeComputedData>;
+    queryId: string;
+    do: NodeDO;
+    allPropertiesQueried: Array<string>;
+    relationalResults: Maybe<TRelationalResults>;
+    relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
+  }): NodeDO & TRelationalResults & IDOProxy;
+  SMQueryManager: new (queryRecord: QueryRecord) => ISMQueryManager;
 }
 
 declare type NodeDefArgs<
@@ -431,10 +459,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
     map: MapFn<any, any, any>;
   }
-  /**
-   * full query definition provided, with a map fn
-   */
-    ? TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
+    ? /**
+       * full query definition provided, with a map fn
+       */
+      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFn<any, any, any>
           ? TQueryDefinitions[Key] extends { id: string }
@@ -456,10 +484,10 @@ declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
         : never
       : never
     : TQueryDefinitions[Key] extends ISMNode
-      /**
+    ? /**
        * shorthand syntax used, only a node definition was provided
        */
-    ? Array<
+      Array<
         GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> &
           ExtractNodeComputedData<TQueryDefinitions[Key]>
       >

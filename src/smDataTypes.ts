@@ -1,4 +1,3 @@
-import { RepositoryFactory } from './Repository';
 import {
   SMDataTypeException,
   SMDataTypeExplicitDefaultException,

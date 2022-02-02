@@ -2,7 +2,6 @@ import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
 } from './queryDefinitionAdapters';
-import { SMQueryManager } from './SMQueryManager';
 
 let queryIdx = 0;
 
@@ -15,7 +14,7 @@ export function generateQuerier({
   queryManager,
 }: {
   smJSInstance: ISMJS;
-  queryManager?: SMQueryManager;
+  queryManager?: ISMQueryManager;
 }) {
   return async function query<TQueryDefinitions extends QueryDefinitions>(
     queryDefinitions: TQueryDefinitions,
@@ -71,7 +70,8 @@ export function generateQuerier({
       .then((queryResult: any) => {
         let results;
         try {
-          const qM = queryManager || new SMQueryManager(queryRecord);
+          const qM =
+            queryManager || new smJSInstance.SMQueryManager(queryRecord);
           qM.onQueryResult({
             queryId,
             queryResult,
@@ -171,7 +171,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       }
     }
 
-    const queryManager = new SMQueryManager(queryRecord);
+    const queryManager = new smJSInstance.SMQueryManager(queryRecord);
 
     function updateQueryManagerWithSubscriptionMessage(data: {
       message: Record<string, any>;

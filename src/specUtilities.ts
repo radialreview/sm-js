@@ -1,7 +1,7 @@
 import * as smData from './smDataTypes';
-import { DOFactory } from './DO';
 import { queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import { getDefaultConfig, SMJS } from '.';
 
 const userProperties = {
   id: smData.string,
@@ -29,15 +29,19 @@ type UserRelationalData = {
 export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
 
 // factory functions so that tests don't share DO repositories
-export function generateUserNode(cachedTodoNode?: TodoNode): UserNode {
-  const userNode = smData.def({
+export function generateUserNode(
+  smJSInstance: ISMJS,
+  cachedTodoNode?: TodoNode
+): UserNode {
+  const userNode = smJSInstance.def({
     type: 'tt-user',
     properties: userProperties,
     relational: {
       todos: () => smData.children({ def: todoNode }),
     },
   });
-  const todoNode: TodoNode = cachedTodoNode || generateTodoNode(userNode);
+  const todoNode: TodoNode =
+    cachedTodoNode || generateTodoNode(smJSInstance, userNode);
 
   return userNode;
 }
@@ -73,8 +77,11 @@ export type TodoNode = ISMNode<
   TodoMutations
 >;
 
-export function generateTodoNode(cachedUserNode?: UserNode): TodoNode {
-  const todoNode = smData.def({
+export function generateTodoNode(
+  smJSInstance: ISMJS,
+  cachedUserNode?: UserNode
+): TodoNode {
+  const todoNode = smJSInstance.def({
     type: 'todo',
     properties: todoProperties,
     relational: {
@@ -85,7 +92,8 @@ export function generateTodoNode(cachedUserNode?: UserNode): TodoNode {
         }),
     },
   });
-  const userNode: UserNode = cachedUserNode || generateUserNode(todoNode);
+  const userNode: UserNode =
+    cachedUserNode || generateUserNode(smJSInstance, todoNode);
 
   return todoNode;
 }
@@ -102,7 +110,8 @@ export function generateDOInstance<
   mutations?: TNodeMutations;
   initialData?: { version: string } & Record<string, any>;
 }) {
-  const DO = DOFactory<
+  const smJS = new SMJS(getDefaultConfig());
+  const DOclass = smJS.def<
     TNodeData,
     TNodeComputedData,
     TNodeRelationalData,
@@ -112,11 +121,12 @@ export function generateDOInstance<
     properties: opts.properties,
     computed: opts.computed,
     relational: opts.relational,
-  });
-  return new DO(opts.initialData);
+  }).do;
+  return { doInstance: new DOclass(opts.initialData), smJSInstance: smJS };
 }
 
 export function createMockQueryDefinitions(
+  smJSInstance: ISMJS,
   opts: { useIds: true } | { useUnder: true } | { useNoUnder: true } = {
     useUnder: true,
   }
@@ -132,7 +142,7 @@ export function createMockQueryDefinitions(
 
   return {
     users: queryDefinition({
-      def: generateUserNode(),
+      def: generateUserNode(smJSInstance),
       map: ({ todos, address }) => ({
         address: address({
           map: ({ state, apt }) => ({
@@ -200,31 +210,47 @@ const expectedUsers = [
 
 export const mockQueryResultExpectations = { users: expectedUsers };
 
-const queryId = 'MockQuery';
-const { queryRecord } = convertQueryDefinitionToQueryInfo({
-  queryDefinitions: createMockQueryDefinitions(),
-  queryId,
-});
-
-export const mockQueryRecord = queryRecord;
-
-export const mockSubscriptionMessage = {
-  users: {
-    node: {
-      // same prop values
-      id: 'mock-user-id',
-      address__dot__state: 'AK',
-      version: '2',
-    },
-    operation: {
-      action: 'UpdateNode' as 'UpdateNode',
-      path: 'some-mock-user-id',
-    },
+export function getMockQueryRecord(smJSInstance: ISMJS) {
+  const queryId = 'MockQuery';
+  const { queryRecord } = convertQueryDefinitionToQueryInfo({
+    queryDefinitions: createMockQueryDefinitions(smJSInstance),
     queryId,
-    queryRecord,
-    subscriptionAlias: 'users',
-  },
-};
+  });
+
+  return queryRecord;
+}
+
+export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
+  const queryId = 'MockQuery';
+  const queryRecord = getMockQueryRecord(smJSInstance);
+  return {
+    users: {
+      node: {
+        // same prop values
+        id: 'mock-user-id',
+        address__dot__state: 'AK',
+        version: '2',
+      },
+      operation: {
+        action: 'UpdateNode' as 'UpdateNode',
+        path: 'some-mock-user-id',
+      },
+      queryId,
+      queryRecord,
+      subscriptionAlias: 'users',
+    },
+  };
+}
+
+export function getMockConfig(): SMConfig {
+  return {
+    gqlClient: {
+      query: () => new Promise(res => res(mockQueryDataReturn)),
+      subscribe: () => () => {},
+      mutate: () => new Promise(res => res(null)),
+    },
+  };
+}
 
 function isTerminatingLine(line: string) {
   return (

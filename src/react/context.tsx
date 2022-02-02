@@ -1,6 +1,4 @@
 import React from 'react';
-import { SubscriptionCanceller } from '../smQueriers';
-
 interface ISMContextSubscription {
   results?: any;
   error?: any;
@@ -11,6 +9,7 @@ interface ISMContextSubscription {
 }
 
 interface ISMContext {
+  smJSInstance: ISMJS;
   ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
   updateSubscriptionInfo: (
     subscriptionId: string,
@@ -26,6 +25,7 @@ export const SMContext = React.createContext<ISMContext>(
 
 export const SMProvider = (props: {
   children: React.ReactNode;
+  smJS: ISMJS;
   subscriptionTTLMs?: number;
 }) => {
   const existingContext = React.useContext(SMContext);
@@ -85,6 +85,7 @@ export const SMProvider = (props: {
   return (
     <SMContext.Provider
       value={{
+        smJSInstance: props.smJS,
         ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
         updateSubscriptionInfo,
         scheduleCleanup,
