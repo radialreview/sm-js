@@ -80,7 +80,7 @@ export function getMutationsFromTransactionUpdateOperations(
             propertyNames: [${propertiesToNull
               .map(prop => `"${prop}${OBJECT_PROPERTY_SEPARATOR}*"`)
               .join(',')}]
-            transactional: true
+  
           )
           { 
             id
@@ -88,7 +88,6 @@ export function getMutationsFromTransactionUpdateOperations(
       }
       `);
       }
-
       return acc;
     },
     [] as Array<DocumentNode>

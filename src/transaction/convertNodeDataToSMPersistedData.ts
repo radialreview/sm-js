@@ -36,7 +36,7 @@ export function convertNodeDataToSMPersistedData(nodeData: NodeData): string {
       if (key === 'childNodes') {
         return acc + `${key}: [\n{\n${value.join('\n}\n{\n')}\n}\n]`;
       }
-      return acc + `${key}: "${value}"`;
+      return acc + `${key}: ${value === null ? value : `"${value}"`}`;
     },
     ``
   );

@@ -43,7 +43,7 @@ import {
   getMutationsFromTransactionDropOperations,
 } from './drop';
 
-export interface ITransactionContext {
+interface ITransactionContext {
   createNodes: typeof createNodes;
   createNode: typeof createNode;
   updateNodes: typeof updateNodes;

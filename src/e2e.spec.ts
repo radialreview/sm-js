@@ -5,6 +5,7 @@ import {
   string,
   children,
   boolean,
+  object,
   getDefaultConfig,
 } from '.';
 import { createMockQueryDefinitions } from './specUtilities';
@@ -36,6 +37,13 @@ async function setupTest() {
       id: string,
       number: number,
       string: string,
+      object: object.optional({
+        property: string,
+        otherProperty: string,
+        nestedObject: object.optional({
+          nestedProperty: string,
+        }),
+      }),
     },
     relational: {
       todos: () => children({ def: mockTodoDef }),
@@ -888,6 +896,132 @@ test('replacing a multiple edges in sm works', async done => {
   expect(todoAfterReplace).toEqual([]);
   expect(todoIds).toContain(todoId);
   expect(todoIds).toContain(todo2Id);
+  done();
+});
+
+test('dropping a property in sm works', async done => {
+  const { smJSInstance, mockThingDef } = await setupTest();
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await smJSInstance.transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+            object: {
+              property: 'value',
+              otherProperty: 'otherValue',
+              nestedObject: {
+                nestedProperty: 'nestedValue',
+              },
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { thing },
+  } = await smJSInstance.query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thing as any).object.property).toBe('value');
+
+  await smJSInstance.transaction(ctx => {
+    ctx.updateNode({
+      data: {
+        id: createdThingId,
+        object: {
+          property: null,
+          nestedObject: null,
+        },
+      },
+    });
+  });
+
+  const {
+    data: { thingAfterDrop },
+  } = await smJSInstance.query({
+    thingAfterDrop: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thingAfterDrop as any).object.property).toBe(null);
+  expect((thingAfterDrop as any).object.nestedObject.nestedProperty).toBe(null);
+  expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
+  done();
+});
+
+test('dropping an object will drop all the properties', async done => {
+  const { smJSInstance, mockThingDef } = await setupTest();
+  const timestamp = new Date().valueOf();
+
+  const transactionResult = await smJSInstance.transaction(ctx => {
+    ctx.createNodes({
+      nodes: [
+        {
+          data: {
+            type: 'mock-thing',
+            number: timestamp,
+            string: 'mock string',
+            object: {
+              property: 'value',
+              otherProperty: 'otherValue',
+              nestedObject: {
+                nestedProperty: 'nestedValue',
+              },
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  const createdThingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { thing },
+  } = await smJSInstance.query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thing as any).object.property).toBe('value');
+  expect((thing as any).object.nestedObject.nestedProperty).toBe('nestedValue');
+  await smJSInstance.transaction(ctx => {
+    ctx.updateNode({
+      data: {
+        id: createdThingId,
+        object: null,
+      },
+    });
+  });
+
+  const {
+    data: { thingAfterDrop },
+  } = await smJSInstance.query({
+    thingAfterDrop: queryDefinition({
+      def: mockThingDef,
+      id: createdThingId,
+    }),
+  });
+
+  expect((thingAfterDrop as any).object).toBe(null);
+
   done();
 });
 

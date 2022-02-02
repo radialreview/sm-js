@@ -63,7 +63,7 @@ describe('DOProxyGenerator', () => {
           nestedNumber: smData.number,
         }),
       },
-      allPropertiesQueried: ['object', 'object_nestedString'],
+      allPropertiesQueried: ['object', 'object__dot__nestedString'],
     });
 
     expect(() => doProxy.object.nestedString).not.toThrow();

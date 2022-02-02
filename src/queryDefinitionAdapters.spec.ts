@@ -83,9 +83,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
         `address${IS_NULL_IDENTIFIER}`,
         // new format separates the object query into every non-object property that was queried
         // so that we can query much less data
-        'address_state',
-        'address_apt_floor',
-        'address_apt_number',
+        'address__dot__state',
+        'address__dot__apt__dot__floor',
+        'address__dot__apt__dot__number',
       ]);
   });
 
@@ -148,9 +148,9 @@ describe('getQueryInfo.queryGQLString', () => {
             version,
             address,
             address__IS_NULL__,
-            address_state,
-            address_apt_floor,
-            address_apt_number,
+            address__dot__state,
+            address__dot__apt__dot__floor,
+            address__dot__apt__dot__number,
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
@@ -185,9 +185,9 @@ describe('getQueryInfo.queryGQLString', () => {
             version,
             address,
             address__IS_NULL__,
-            address_state,
-            address_apt_floor,
-            address_apt_number,
+            address__dot__state,
+            address__dot__apt__dot__floor,
+            address__dot__apt__dot__number,
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
@@ -203,9 +203,9 @@ describe('getQueryInfo.queryGQLString', () => {
             version,
             address,
             address__IS_NULL__,
-            address_state,
-            address_apt_floor,
-            address_apt_number,
+            address__dot__state,
+            address__dot__apt__dot__floor,
+            address__dot__apt__dot__number,
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
@@ -236,9 +236,9 @@ describe('getQueryInfo.queryGQLString', () => {
             version,
             address,
             address__IS_NULL__,
-            address_state,
-            address_apt_floor,
-            address_apt_number,
+            address__dot__state,
+            address__dot__apt__dot__floor,
+            address__dot__apt__dot__number,
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
@@ -273,8 +273,8 @@ describe('getQueryInfo.queryGQLString', () => {
             meetingId,
             settings,
             settings__IS_NULL__,
-            settings_archiveAfterMeeting,
-            settings_nestedSettings_nestedNestedMaybe,
+            settings__dot__archiveAfterMeeting,
+            settings__dot__nestedSettings__dot__nestedNestedMaybe,
             dataSetIds,
             comments
           }
@@ -304,8 +304,8 @@ describe('getQueryInfo.queryGQLString', () => {
             meetingId,
             settings,
             settings__IS_NULL__,
-            settings_archiveAfterMeeting,
-            settings_nestedSettings_nestedNestedMaybe,
+            settings__dot__archiveAfterMeeting,
+            settings__dot__nestedSettings__dot__nestedNestedMaybe,
             dataSetIds,
             comments
           }
@@ -375,9 +375,9 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     version,
                     address,
                     address__IS_NULL__,
-                    address_state,
-                    address_apt_floor,
-                    address_apt_number,
+                    address__dot__state,
+                    address__dot__apt__dot__floor,
+                    address__dot__apt__dot__number,
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
@@ -418,9 +418,9 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     version,
                     address,
                     address__IS_NULL__,
-                    address_state,
-                    address_apt_floor,
-                    address_apt_number,
+                    address__dot__state,
+                    address__dot__apt__dot__floor,
+                    address__dot__apt__dot__number,
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
@@ -442,9 +442,9 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     version,
                     address,
                     address__IS_NULL__,
-                    address_state,
-                    address_apt_floor,
-                    address_apt_number,
+                    address__dot__state,
+                    address__dot__apt__dot__floor,
+                    address__dot__apt__dot__number,
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
@@ -481,9 +481,9 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     version,
                     address,
                     address__IS_NULL__,
-                    address_state,
-                    address_apt_floor,
-                    address_apt_number,
+                    address__dot__state,
+                    address__dot__apt__dot__floor,
+                    address__dot__apt__dot__number,
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,

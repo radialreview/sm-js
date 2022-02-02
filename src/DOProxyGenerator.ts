@@ -2,7 +2,7 @@ import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
 } from './exceptions';
-import { SM_DATA_TYPES } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR, SM_DATA_TYPES } from './smDataTypes';
 
 export function createDOProxyGenerator(smJSInstance: ISMJS) {
   /**
@@ -185,7 +185,7 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
 
     Object.keys(opts.smDataForThisObject).forEach(objectProp => {
       const name = opts.parentObjectKey
-        ? `${opts.parentObjectKey}_${objectProp}`
+        ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
         : objectProp;
       const smDataForThisProp = opts.smDataForThisObject[objectProp];
       const isUpToDate =
