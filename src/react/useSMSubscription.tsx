@@ -1,12 +1,11 @@
 import React from 'react';
+import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
 
 import { SMContext } from './context';
 
-// DOES NOT CURRENTLY HANDLE AN UPDATE TO QUERY DEFINITIONS
-// @TODO think about whether this is ok for now or if we need to deal with that
 export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   queryDefinitions: TQueryDefinitions
-): { data: QueryDataReturn<TQueryDefinitions> } {
+): { data: QueryDataReturn<TQueryDefinitions>; querying: boolean } {
   const smContext = React.useContext(SMContext);
 
   if (!smContext) {
@@ -31,6 +30,11 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   const [error, setError] = React.useState<any>(
     preExistingContextForThisSubscription?.error
   );
+  const [querying, setQuerying] = React.useState<boolean>(
+    preExistingContextForThisSubscription?.querying != null
+      ? preExistingContextForThisSubscription?.querying
+      : true
+  );
   React.useEffect(() => {
     smContext.cancelCleanup(subscriptionId);
     return () => {
@@ -46,44 +50,94 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
   smContext.updateSubscriptionInfo(subscriptionId, {
     onResults: setResults,
     onError: setError,
+    setQuerying: setQuerying,
   });
 
-  if (!preExistingContextForThisSubscription) {
-    const suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
-      onData: ({ results: newResults }) => {
-        const contextForThisSub =
-          smContext.ongoingSubscriptionRecord[subscriptionId];
-        contextForThisSub.onResults && contextForThisSub.onResults(newResults);
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          results: newResults,
-        });
-      },
-      onError: error => {
-        const contextForThisSub =
-          smContext.ongoingSubscriptionRecord[subscriptionId];
-        contextForThisSub.onError && contextForThisSub.onError(error);
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          error,
-        });
-      },
-      onSubscriptionInitialized: subscriptionCanceller => {
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          unsub: subscriptionCanceller,
-        });
-      },
+  const queryDefinitionHasBeenUpdated =
+    preExistingContextForThisSubscription?.queryInfo?.queryGQL != null &&
+    preExistingContextForThisSubscription.queryInfo.queryGQL !==
+      convertQueryDefinitionToQueryInfo({
+        queryDefinitions,
+        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
+      }).queryGQL;
+  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
+    if (queryDefinitionHasBeenUpdated) {
+      preExistingContextForThisSubscription.unsub &&
+        preExistingContextForThisSubscription.unsub();
+    }
+
+    const queryTimestamp = new Date().valueOf();
+    setQuerying(true);
+    smContext.updateSubscriptionInfo(subscriptionId, {
+      querying: true,
+      lastQueryTimestamp: queryTimestamp,
     });
 
-    smContext.updateSubscriptionInfo(subscriptionId, { suspendPromise });
-    throw suspendPromise.finally(() => {
-      smContext.updateSubscriptionInfo(subscriptionId, {
-        suspendPromise: undefined,
+    const suspendPromise = smContext.smJSInstance
+      .subscribe(queryDefinitions, {
+        onData: ({ results: newResults }) => {
+          const contextForThisSub =
+            smContext.ongoingSubscriptionRecord[subscriptionId];
+          const thisQueryIsMostRecent =
+            contextForThisSub.lastQueryTimestamp === queryTimestamp;
+          if (thisQueryIsMostRecent) {
+            contextForThisSub.onResults &&
+              contextForThisSub.onResults(newResults);
+            smContext.updateSubscriptionInfo(subscriptionId, {
+              results: newResults,
+            });
+          }
+        },
+        onError: error => {
+          const contextForThisSub =
+            smContext.ongoingSubscriptionRecord[subscriptionId];
+          contextForThisSub.onError && contextForThisSub.onError(error);
+          smContext.updateSubscriptionInfo(subscriptionId, {
+            error,
+          });
+        },
+        onSubscriptionInitialized: subscriptionCanceller => {
+          smContext.updateSubscriptionInfo(subscriptionId, {
+            unsub: subscriptionCanceller,
+          });
+        },
+        onQueryInfoConstructed: queryInfo => {
+          smContext.updateSubscriptionInfo(subscriptionId, {
+            queryInfo,
+          });
+        },
+      })
+      .finally(() => {
+        const contextForThisSub =
+          smContext.ongoingSubscriptionRecord[subscriptionId];
+        const thisQueryIsMostRecent =
+          contextForThisSub.lastQueryTimestamp === queryTimestamp;
+        if (thisQueryIsMostRecent) {
+          contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
+          smContext.updateSubscriptionInfo(subscriptionId, {
+            suspendPromise: undefined,
+            querying: false,
+          });
+        }
       });
-    });
+
+    if (!preExistingContextForThisSubscription) {
+      smContext.updateSubscriptionInfo(subscriptionId, { suspendPromise });
+      throw suspendPromise;
+    } else {
+      return { data: results, querying } as {
+        data: QueryDataReturn<TQueryDefinitions>;
+        querying: boolean;
+      };
+    }
   } else if (preExistingContextForThisSubscription.suspendPromise) {
     throw preExistingContextForThisSubscription.suspendPromise;
   } else if (error) {
     throw error;
   } else {
-    return { data: results } as { data: QueryDataReturn<TQueryDefinitions> };
+    return { data: results, querying } as {
+      data: QueryDataReturn<TQueryDefinitions>;
+      querying: boolean;
+    };
   }
 }

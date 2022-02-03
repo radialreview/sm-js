@@ -128,12 +128,16 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     const startStack = new Error().stack as string;
     const queryId = opts?.queryId || `smQuery${queryIdx++}`;
     const {
+      queryGQL,
       queryRecord,
       subscriptionConfigs,
     } = convertQueryDefinitionToQueryInfo({
       queryDefinitions,
       queryId,
     });
+
+    opts.onQueryInfoConstructed &&
+      opts.onQueryInfoConstructed({ queryGQL, queryId });
 
     function getError(error: any) {
       if (opts.onError) {

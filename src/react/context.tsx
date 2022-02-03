@@ -2,10 +2,14 @@ import React from 'react';
 interface ISMContextSubscription {
   results?: any;
   error?: any;
+  querying?: boolean;
   unsub?: SubscriptionCanceller;
   suspendPromise?: Promise<any>;
   onResults?: (newResults: any) => void;
   onError?: (newError: any) => void;
+  setQuerying?: (querying: boolean) => void;
+  queryInfo?: { queryGQL: DocumentNode; queryId: string };
+  lastQueryTimestamp?: number;
 }
 
 interface ISMContext {

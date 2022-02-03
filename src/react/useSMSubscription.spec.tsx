@@ -9,6 +9,7 @@ import {
 } from '../specUtilities';
 import { useSubscription } from './';
 import { SMProvider, SMJS } from '..';
+import { deepClone } from '../dataUtilities';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -20,8 +21,7 @@ afterAll(() => {
 });
 
 test('it throws an error when used outside the context of an SMProvider', done => {
-  const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  const { smJS } = setupTests();
   function MyComponent() {
     useSubscription(createMockQueryDefinitions(smJS));
 
@@ -43,15 +43,8 @@ test('it throws a promise that resolves when the query for the data requested re
   const mockPromise = new Promise(res => {
     resolvePromise = res;
   });
-  const config = getMockConfig();
-  const smJS = new SMJS({
-    ...config,
-    gqlClient: {
-      ...config.gqlClient,
-      query: () => mockPromise,
-    },
-  });
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  const { smJS } = setupTests();
+  smJS.gqlClient.query = () => mockPromise;
 
   render(
     <SMProvider smJS={smJS}>
@@ -85,8 +78,7 @@ test('it throws a promise that resolves when the query for the data requested re
 });
 
 test('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
-  const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  const { smJS } = setupTests();
   const mockSubscriptionMessage = getMockSubscriptionMessage(smJS);
 
   let triggerMessage: (() => void) | undefined;
@@ -134,8 +126,7 @@ test('it re-renders the component when a subscription message causes a change in
 });
 
 test('it cancels the subscription after the component that establishes the subscription unmounts', done => {
-  const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  const { smJS } = setupTests();
   const mockUnsub = jest.fn(() => {});
   const mockSubscribe = jest.fn(() => {
     return mockUnsub;
@@ -163,6 +154,101 @@ test('it cancels the subscription after the component that establishes the subsc
     done();
   }, 100);
 });
+
+test('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
+  const { smJS } = setupTests();
+  let requestIdx = 0;
+  smJS.gqlClient.query = jest.fn(() => {
+    return new Promise(res => {
+      if (requestIdx === 0) {
+        res(mockQueryDataReturn);
+        requestIdx++;
+      } else {
+        const updatedQueryDataReturn = deepClone(mockQueryDataReturn);
+        updatedQueryDataReturn.users[0].address__dot__state = 'Not FL';
+        res(updatedQueryDataReturn);
+      }
+    });
+  });
+
+  function MyComponent() {
+    const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
+      false
+    );
+    const { data, querying } = useSubscription(
+      updateQueryDefinition
+        ? createMockQueryDefinitions(smJS, { useUnder: true })
+        : createMockQueryDefinitions(smJS, { useIds: true })
+    );
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setUpdateQueryDefinition(true);
+      }, 50);
+    }, []);
+
+    if (querying) return <>querying</>;
+    return <>{data.users[0].address.state}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('FL');
+  // query definitions are updated by the timeout within the use effect above, which triggers a new query
+  await result.findByText('querying');
+  await result.findByText('Not FL');
+  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+});
+
+test('if the query record provided is updated, unsubscribes from the previously established subscription', async done => {
+  const { smJS } = setupTests();
+  const mockUnsub = jest.fn();
+  smJS.gqlClient.subscribe = () => mockUnsub;
+
+  function MyComponent() {
+    const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
+      false
+    );
+    useSubscription(
+      updateQueryDefinition
+        ? createMockQueryDefinitions(smJS, { useUnder: true })
+        : createMockQueryDefinitions(smJS, { useIds: true })
+    );
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setUpdateQueryDefinition(true);
+        setTimeout(() => {
+          expect(mockUnsub).toHaveBeenCalledTimes(1);
+          done();
+        }, 50);
+      }, 50);
+    }, []);
+
+    return null;
+  }
+
+  render(
+    <React.Suspense fallback="loading">
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+});
+
+function setupTests() {
+  const smJS = new SMJS(getMockConfig());
+  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+
+  return { smJS };
+}
 
 function promiseState(p: Promise<any>) {
   const t = {};
