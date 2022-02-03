@@ -32,6 +32,7 @@ export type CreateNodeOperation = {
   data: NodeData;
   under?: string | Array<string>;
   name?: string;
+  position?: number;
   onSuccess?: (data: any) => any;
 };
 

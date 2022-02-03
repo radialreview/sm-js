@@ -62,7 +62,7 @@ interface ITransactionContext {
   replaceEdges: typeof replaceEdges;
 }
 
-type TIndexedOperationType = OperationType & { position: number };
+type TIndexedOperationType = OperationType & { position?: number };
 
 type TOperationsByType = Record<
   OperationType['type'],
@@ -118,7 +118,8 @@ export function transaction(
     updateEdges: [],
   };
 
-  let operationsCount = 0;
+  let createOperationsCount = 0;
+  let updateOperationsCount = 0;
 
   function pushOperation(operation: OperationType) {
     if (!operationsByType[operation.type]) {
@@ -132,28 +133,55 @@ export function transaction(
      * SM responds with each operation in the order they were sent up.
      */
 
-    operationsCount += 1;
-
     /**
-     * createNodes creates multiple nodes in a single operation,
+     * createNodes/updateNodes creates multiple nodes in a single operation,
      * therefore we need to track the position of these nodes instead of just the position of the operation itself
      */
+
+    // TODO: abstract this a bit
     if (operation.type === 'createNodes') {
+      createOperationsCount += 1;
+
       operationsByType[operation.type].push({
         ...operation,
-        position: operationsCount,
+        position: createOperationsCount,
         nodes: operation.nodes.map((node, idx) => {
           return {
             ...node,
-            position: idx === 0 ? operationsCount : (operationsCount += 1),
+            position:
+              idx === 0 ? createOperationsCount : (createOperationsCount += 1),
           };
         }),
       });
-    } else {
+    } else if (operation.type === 'createNode') {
+      createOperationsCount += 1;
+
       operationsByType[operation.type].push({
         ...operation,
-        position: operationsCount,
+        position: createOperationsCount,
       });
+    } else if (operation.type === 'updateNodes') {
+      updateOperationsCount += 1;
+
+      operationsByType[operation.type].push({
+        ...operation,
+        position: updateOperationsCount,
+        nodes: operation.nodes.map((node, idx) => {
+          return {
+            ...node,
+            position:
+              idx === 0 ? updateOperationsCount : (updateOperationsCount += 1),
+          };
+        }),
+      });
+    } else if (operation.type === 'updateNode') {
+      updateOperationsCount += 1;
+      operationsByType[operation.type].push({
+        ...operation,
+        position: updateOperationsCount,
+      });
+    } else {
+      operationsByType[operation.type].push(operation);
     }
   }
 
@@ -256,53 +284,25 @@ export function transaction(
           >),
         ])
       ),
-      ...getMutationsFromTransactionDropOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.dropNode as Array<
-            DropNodeOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromEdgeCreateOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.createEdge as Array<
-            CreateEdgeOperation & { position: number }
-          >),
-          ...(operations.createEdges as Array<
-            CreateEdgesOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromEdgeDropOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.dropEdge as Array<
-            DropEdgeOperation & { position: number }
-          >),
-          ...(operations.dropEdges as Array<
-            DropEdgesOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromEdgeReplaceOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.replaceEdge as Array<
-            ReplaceEdgeOperation & { position: number }
-          >),
-          ...(operations.replaceEdges as Array<
-            ReplaceEdgesOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromEdgeUpdateOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.updateEdge as Array<
-            UpdateEdgeOperation & { position: number }
-          >),
-          ...(operations.updateEdges as Array<
-            UpdateEdgesOperation & { position: number }
-          >),
-        ])
-      ),
+      ...getMutationsFromTransactionDropOperations([
+        ...(operations.dropNode as Array<DropNodeOperation>),
+      ]),
+      ...getMutationsFromEdgeCreateOperations([
+        ...(operations.createEdge as Array<CreateEdgeOperation>),
+        ...(operations.createEdges as Array<CreateEdgesOperation>),
+      ]),
+      ...getMutationsFromEdgeDropOperations([
+        ...(operations.dropEdge as Array<DropEdgeOperation>),
+        ...(operations.dropEdges as Array<DropEdgesOperation>),
+      ]),
+      ...getMutationsFromEdgeReplaceOperations([
+        ...(operations.replaceEdge as Array<ReplaceEdgeOperation>),
+        ...(operations.replaceEdges as Array<ReplaceEdgesOperation>),
+      ]),
+      ...getMutationsFromEdgeUpdateOperations([
+        ...(operations.updateEdge as Array<UpdateEdgeOperation>),
+        ...(operations.updateEdges as Array<UpdateEdgesOperation>),
+      ]),
     ];
   }
 
@@ -348,27 +348,64 @@ export function transaction(
       operationsByType
     );
 
-    const resultData = executionResult[0].data;
     /**
      * Loop through the operations, map the operation to each result sent back from SM,
      * then pass the result into the callback if it exists
      */
+    executionResult.forEach(result => {
+      const resultData = result.data;
+      Object.entries(operationsBySMOperationName).forEach(
+        ([smOperationName, operations]) => {
+          if (resultData.hasOwnProperty(smOperationName)) {
+            operations.forEach(operation => {
+              // we only need to gather the data for node create/update operations
+              if (
+                smOperationName === 'CreateNodes' ||
+                smOperationName === 'UpdateNodes'
+              ) {
+                const groupedResult = resultData[smOperationName];
+
+                // for createNodes, execute callback on each individual node rather than top-level operation
+                if (operation.hasOwnProperty('nodes')) {
+                  operation.nodes.forEach((node: any) => {
+                    if (node.hasOwnProperty('onSuccess')) {
+                      const operationResult = groupedResult[node.position - 1];
+
+                      node.onSuccess(operationResult);
+                    }
+                  });
+                } else if (operation.hasOwnProperty('onSuccess')) {
+                  const operationResult = groupedResult[operation.position - 1];
+                  operation.onSuccess(operationResult);
+                }
+              }
+            });
+          }
+        }
+      );
+    });
+
+    /**
+     * For all other operations, just invoke the callback with no args.
+     * Transactions will guarantee that all operations have succeeded, so this is safe to do
+     */
     Object.entries(operationsBySMOperationName).forEach(
       ([smOperationName, operations]) => {
-        if (resultData.hasOwnProperty(smOperationName)) {
+        if (
+          smOperationName !== 'CreateNodes' &&
+          smOperationName !== 'UpdateNodes'
+        ) {
           operations.forEach(operation => {
-            const groupedResult = resultData[smOperationName];
-            // for createNodes, execute callback on each individual node rather than top-level operation
-            if (operation.hasOwnProperty('nodes')) {
-              operation.nodes.forEach((node: any) => {
-                if (node.hasOwnProperty('onSuccess')) {
-                  const operationResult = groupedResult[node.position - 1];
-                  node.onSuccess(operationResult);
+            if (operation.hasOwnProperty('onSuccess')) {
+              operation.onSuccess();
+            } else if (operation.hasOwnProperty('edges')) {
+              (operation.edges as CreateEdgesOperation['edges']).forEach(
+                edgeOperation => {
+                  if (edgeOperation.hasOwnProperty('onSuccess')) {
+                    edgeOperation.onSuccess!();
+                  }
                 }
-              });
-            } else if (operation.hasOwnProperty('onSuccess')) {
-              const operationResult = groupedResult[operation.position - 1];
-              operation.onSuccess(operationResult);
+              );
             }
           });
         }

@@ -10,15 +10,15 @@ import {
 export function dropEdge(edge: DropEdgeOpts): DropEdgeOperation {
   return {
     type: 'dropEdge',
+    smOperationName: 'DropEdge',
     ...edge,
   };
 }
 
-export function dropEdges(
-  edges: Array<DropEdgeProperties & { name?: string }>
-): DropEdgesOperation {
+export function dropEdges(edges: Array<DropEdgeOpts>): DropEdgesOperation {
   return {
     type: 'dropEdges',
+    smOperationName: 'DropEdge',
     edges,
   };
 }
@@ -33,7 +33,12 @@ export function getMutationsFromEdgeDropOperations(
         name: operation.name,
       });
     } else if (operation.type === 'dropEdges') {
-      return operation.edges.map(convertEdgeDropOperationToMutationArguments);
+      return operation.edges.map(operation =>
+        convertEdgeDropOperationToMutationArguments({
+          ...operation.edge,
+          name: operation.name,
+        })
+      );
     }
 
     throw Error(`Operation not recognized: "${operation}"`);

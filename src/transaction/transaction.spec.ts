@@ -263,12 +263,16 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
     context.updateNodes({
       nodes: [
         {
-          id: 'some-other-mock-id',
-          title: 'new title for other mock thing',
+          data: {
+            id: 'some-other-mock-id',
+            title: 'new title for other mock thing',
+          },
         },
         {
-          id: 'some-other-other-mock-id',
-          title: 'new title for other other mock thing',
+          data: {
+            id: 'some-other-other-mock-id',
+            title: 'new title for other other mock thing',
+          },
         },
       ],
     });
@@ -292,20 +296,25 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
 
     context.createEdges([
       {
-        type: 'namedEdge',
-        from: '456',
-        to: '789',
-        permissions: {
-          view: true,
+        edge: {
+          type: 'namedEdge',
+          from: '456',
+          to: '789',
+          permissions: {
+            view: true,
+          },
+          name: 'namedEdgeCreation',
         },
-        name: 'namedEdgeCreation',
       },
+
       {
-        from: '444',
-        to: '555',
-        permissions: {
-          view: true,
-          edit: true,
+        edge: {
+          from: '444',
+          to: '555',
+          permissions: {
+            view: true,
+            edit: true,
+          },
         },
       },
     ]);
@@ -320,14 +329,15 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
 
     context.dropEdges([
       {
-        type: 'namedEdge',
-        from: '456',
-        to: '789',
+        edge: {
+          type: 'namedEdge',
+          from: '456',
+          to: '789',
+        },
         name: 'namedEdgeDrop',
       },
       {
-        from: '444',
-        to: '555',
+        edge: { from: '444', to: '555' },
       },
     ]);
     context.replaceEdge({
@@ -410,7 +420,7 @@ test('transaction awaits the callback if it returns a promise', async done => {
   }).execute();
 });
 
-test.only('transactions that receive an array of transaction results should group them all', async done => {
+test('transactions that receive an array of transaction results should group them all', async done => {
   try {
     config({
       gqlClient: {
@@ -425,15 +435,17 @@ test.only('transactions that receive an array of transaction results should grou
                   { id: 'joesmith', __typename: 'OutputNode' },
                   { id: 'martyBanks', __typename: 'OutputNode' },
                 ],
-                DropNode: [{ id: '???' }],
+              },
+            },
+            {
+              data: {
+                DropNode: 1,
               },
             },
           ];
         },
       },
     });
-
-    // TODO: HANDLE SMOPERATION NAME AND ONSUCCESS FOR ALL OPERATION TYPES
 
     const transaction1 = transaction(ctx => {
       ctx.createNodes({
@@ -493,7 +505,12 @@ test.only('transactions that receive an array of transaction results should grou
   }
 });
 
-test('onSuccess callback is executed with correct argument', async done => {
+test.only('onSuccess callback is executed with correct argument', async done => {
+  let dropNodeSpy;
+  let createEdgeSpy;
+  const createEdgesMock = jest.fn();
+  const dropEdgeMock = jest.fn();
+
   config({
     gqlClient: {
       mutate: () => {
@@ -505,6 +522,50 @@ test('onSuccess callback is executed with correct argument', async done => {
                 { id: 'jeanpaul', __typename: 'OutputNode' },
                 { id: 'joesmith', __typename: 'OutputNode' },
               ],
+            },
+          },
+          {
+            data: {
+              DropNode: 1,
+            },
+          },
+          {
+            data: {
+              UpdateNodes: [
+                { id: '444', __typename: 'OutputNode' },
+                { id: '555', __typename: 'OutputNode' },
+                { id: '666', __typename: 'OutputNode' },
+              ],
+            },
+          },
+          {
+            data: {
+              AttachEdge: 1,
+            },
+          },
+          {
+            data: {
+              AttachEdge: 1,
+            },
+          },
+          {
+            data: {
+              AttachEdge: 1,
+            },
+          },
+          {
+            data: {
+              DropEdge: 1,
+            },
+          },
+          {
+            data: {
+              DropEdge: 1,
+            },
+          },
+          {
+            data: {
+              DropEdge: 1,
             },
           },
         ];
@@ -539,6 +600,26 @@ test('onSuccess callback is executed with correct argument', async done => {
       ],
     });
 
+    const dropNode = {
+      id: '123',
+      onSuccess: () => {
+        // no-op
+      },
+    };
+
+    dropNodeSpy = jest.spyOn(dropNode, 'onSuccess');
+
+    ctx.dropNode(dropNode);
+
+    ctx.updateNode({
+      data: {
+        id: '444',
+      },
+      onSuccess: (data: any) => {
+        expect(data).toEqual({ id: '444', __typename: 'OutputNode' });
+      },
+    });
+
     ctx.createNode({
       data: {
         type: 'mock-person',
@@ -546,8 +627,99 @@ test('onSuccess callback is executed with correct argument', async done => {
       },
       onSuccess: (data: any) => {
         expect(data).toEqual({ id: 'joesmith', __typename: 'OutputNode' });
-        done();
       },
     });
+
+    ctx.updateNodes({
+      nodes: [
+        {
+          data: {
+            id: '555',
+          },
+          onSuccess: (data: any) => {
+            expect(data).toEqual({ id: '555', __typename: 'OutputNode' });
+          },
+        },
+        {
+          data: { id: '666' },
+          onSuccess: (data: any) => {
+            expect(data).toEqual({ id: '666', __typename: 'OutputNode' });
+          },
+        },
+      ],
+    });
+
+    const createEdgeOpts = {
+      edge: {
+        from: '123',
+        to: '456',
+        permissions: {
+          view: true,
+        },
+      },
+      onSuccess: () => {
+        // no-op
+      },
+    };
+
+    createEdgeSpy = jest.spyOn(createEdgeOpts, 'onSuccess');
+
+    ctx.createEdge(createEdgeOpts);
+
+    const createEdgesOpts = [
+      {
+        edge: {
+          from: '123',
+          to: '456',
+          permissions: {
+            view: true,
+          },
+        },
+        onSuccess: createEdgesMock,
+      },
+      {
+        edge: {
+          from: 'w123',
+          to: '4w56',
+          permissions: {
+            view: true,
+          },
+        },
+        onSuccess: createEdgesMock,
+      },
+    ];
+
+    ctx.createEdges(createEdgesOpts);
+
+    ctx.dropEdge({
+      edge: {
+        from: '123',
+        to: '456',
+      },
+      onSuccess: dropEdgeMock,
+    });
+
+    ctx.dropEdges([
+      {
+        edge: {
+          from: '12e3',
+          to: '456w',
+        },
+        onSuccess: dropEdgeMock,
+      },
+      {
+        edge: {
+          from: '12e32e',
+          to: '456we',
+        },
+        onSuccess: dropEdgeMock,
+      },
+    ]);
   }).execute();
+
+  expect(dropNodeSpy).toHaveBeenCalledTimes(1);
+  expect(createEdgeSpy).toHaveBeenCalledTimes(1);
+  expect(createEdgesMock).toHaveBeenCalledTimes(2);
+  expect(dropEdgeMock).toHaveBeenCalledTimes(3);
+  done();
 });

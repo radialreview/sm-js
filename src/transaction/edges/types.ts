@@ -15,17 +15,29 @@ export type EdgeProperties = {
 
 export type CreateEdgeOperation = {
   type: 'createEdge';
+  smOperationName: 'AttachEdge';
   name?: string;
   edge: EdgeProperties;
+  onSuccess?: () => any;
 };
 
 export type CreateEdgesOperation = {
   type: 'createEdges';
-  edges: Array<EdgeProperties & { name?: string }>;
+  smOperationName: 'AttachEdge';
+  edges: Array<{
+    edge: EdgeProperties & { name?: string };
+    onSuccess?: () => any;
+  }>;
 };
 
-export type CreateEdgeOpts = Omit<CreateEdgeOperation, 'type'>;
-export type CreateEdgesOpts = Omit<CreateEdgesOperation, 'type'>;
+export type CreateEdgeOpts = Omit<
+  CreateEdgeOperation,
+  'type' | 'smOperationName'
+>;
+export type CreateEdgesOpts = Omit<
+  CreateEdgesOperation,
+  'type' | 'smOperationName'
+>;
 
 export type DropEdgeProperties = {
   from: string;
@@ -35,17 +47,27 @@ export type DropEdgeProperties = {
 
 export type DropEdgeOperation = {
   type: 'dropEdge';
+  smOperationName: 'DropEdge';
   name?: string;
   edge: DropEdgeProperties;
+  onSuccess?: () => any;
 };
 
 export type DropEdgesOperation = {
   type: 'dropEdges';
-  edges: Array<DropEdgeProperties & { name?: string }>;
+  smOperationName: 'DropEdge';
+  edges: Array<{
+    edge: DropEdgeProperties;
+    onSuccess?: () => any;
+    name?: string;
+  }>;
 };
 
-export type DropEdgeOpts = Omit<DropEdgeOperation, 'type'>;
-export type DropEdgesOpts = Omit<DropEdgesOperation, 'type'>;
+export type DropEdgeOpts = Omit<DropEdgeOperation, 'type' | 'smOperationName'>;
+export type DropEdgesOpts = Omit<
+  DropEdgesOperation,
+  'type' | 'smOperationName'
+>;
 
 export type ReplaceEdgeProperties = EdgeProperties & {
   current: string;

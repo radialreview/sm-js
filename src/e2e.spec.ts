@@ -266,20 +266,12 @@ test('creating multiple nodes in sm works', async done => {
   done();
 });
 
-test.only('creating multiple nodes in multiple operations in sm works', async done => {
+test('creating multiple nodes in multiple operations in sm works', async done => {
   const token = await getToken();
   setToken('default', { token });
   const timestamp = new Date().valueOf();
 
   const transactionResult = await transaction(ctx => {
-    // ctx.createNode({
-    //   data: {
-    //     type: 'mock-thing',
-    //     number: timestamp + 2,
-    //     string: 'mock string 3',
-    //   },
-    //   onSuccess: (data: any) => console.log('data', data),
-    // });
     ctx.createNodes({
       nodes: [
         {
@@ -289,13 +281,6 @@ test.only('creating multiple nodes in multiple operations in sm works', async do
             string: 'mock string',
           },
         },
-        // {
-        //   data: {
-        //     type: 'mock-thing',
-        //     number: timestamp + 2,
-        //     string: 'mock strin3g',
-        //   },
-        // },
       ],
     });
 
@@ -306,7 +291,6 @@ test.only('creating multiple nodes in multiple operations in sm works', async do
         number: timestamp + 1,
         string: 'mock string 2',
       },
-      onSuccess: (data: any) => console.log('data', data),
     });
   }).execute();
 
@@ -398,10 +382,12 @@ test('updating several nodes in sm works', async done => {
     ctx.updateNodes({
       nodes: [
         {
-          id: id1,
-          number: timestamp + 10,
+          data: {
+            id: id1,
+            number: timestamp + 10,
+          },
         },
-        { id: id2, number: timestamp + 20 },
+        { data: { id: id2, number: timestamp + 20 } },
       ],
     });
   }).execute();
@@ -571,21 +557,25 @@ test('creating multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.createEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
       {
-        from: thingId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);
@@ -656,21 +646,25 @@ test('updating multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.createEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
       {
-        from: thingId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);
@@ -766,21 +760,25 @@ test('dropping a multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.createEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
       {
-        from: thingId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);
@@ -805,10 +803,12 @@ test('dropping a multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.dropEdges([
       {
-        from: thingId,
-        to: todoId,
+        edge: {
+          from: thingId,
+          to: todoId,
+        },
       },
-      { from: thingId, to: todo2Id },
+      { edge: { from: thingId, to: todo2Id } },
     ]);
   }).execute();
 
@@ -825,12 +825,14 @@ test('replacing a single edge in sm works', async done => {
   await transaction(ctx => {
     ctx.createEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);
@@ -881,21 +883,25 @@ test('replacing multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.createEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
       {
-        from: thingId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          from: thingId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);
