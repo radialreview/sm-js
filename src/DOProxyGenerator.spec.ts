@@ -111,7 +111,7 @@ function generateDOProxy<
     computed: opts.computed,
   });
 
-  return smJSInstance.doProxyGenerator({
+  return smJSInstance.DOProxyGenerator({
     do: doInstance,
     queryId: 'mockQueryId',
     node: smJSInstance.def({

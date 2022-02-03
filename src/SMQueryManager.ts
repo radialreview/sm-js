@@ -1,4 +1,13 @@
 import { SMDataParsingException } from './exceptions';
+import {
+  IDOProxy,
+  Maybe,
+  ISMJS,
+  ISMQueryManager,
+  QueryRecord,
+  BaseQueryRecordEntry,
+  RelationalQueryRecordEntry,
+} from './types';
 
 type SMQueryManagerState = Record<
   string, // the alias for this set of results
@@ -234,7 +243,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         const relationalState = buildRelationalStateForNode(node);
         const nodeRepository = queryRecord[queryAlias].def.repository;
 
-        const proxy = smJSInstance.doProxyGenerator({
+        const proxy = smJSInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
           relationalQueries: relational || null,

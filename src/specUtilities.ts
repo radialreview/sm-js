@@ -2,6 +2,19 @@ import * as smData from './smDataTypes';
 import { queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, SMJS } from '.';
+import {
+  IChildrenQueryBuilder,
+  ISMNode,
+  ISMJS,
+  IByReferenceQueryBuilder,
+  ISMData,
+  SMDataDefaultFn,
+  NodeRelationalQueryBuilderRecord,
+  NodeMutationFn,
+  NodeComputedFns,
+  NodeRelationalFns,
+  SMConfig,
+} from './types';
 
 const userProperties = {
   id: smData.string,
@@ -102,7 +115,10 @@ export function generateDOInstance<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+  TNodeMutations extends Record<
+    string,
+    /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+  >
 >(opts: {
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;

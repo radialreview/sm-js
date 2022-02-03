@@ -1,4 +1,5 @@
 import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
+import { Maybe } from '../types';
 import { NodeData } from './types';
 
 export const JSON_TAG = '__JSON__';

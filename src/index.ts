@@ -4,28 +4,38 @@ import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './smQueriers';
 import { createSMQueryManager } from './SMQueryManager';
 import { createTransaction } from './transaction/transaction';
+import {
+  ISMJS,
+  SMConfig,
+  ISMData,
+  SMDataDefaultFn,
+  NodeRelationalQueryBuilderRecord,
+  NodeMutationFn,
+  NodeDefArgs,
+  ISMNode,
+} from './types';
 
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
 
 export class SMJS implements ISMJS {
-  public gqlClient;
-  public plugins;
+  public gqlClient: ISMJS['gqlClient'];
+  public plugins: ISMJS['plugins'];
+  public query: ISMJS['query'];
+  public subscribe: ISMJS['subscribe'];
+  public SMQueryManager: ISMJS['SMQueryManager'];
+  public transaction: ISMJS['transaction'];
   public tokens: Record<string, string> = {};
-  public query;
-  public subscribe;
-  public doProxyGenerator;
-  public SMQueryManager;
-  public transaction;
-  private DOFactory;
+  public DOFactory: ISMJS['DOFactory'];
+  public DOProxyGenerator: ISMJS['DOProxyGenerator'];
 
   constructor(config: SMConfig) {
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
     this.query = generateQuerier({ smJSInstance: this });
     this.subscribe = generateSubscriber(this);
-    this.doProxyGenerator = createDOProxyGenerator(this);
+    this.DOProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
     this.SMQueryManager = createSMQueryManager(this);
     this.transaction = createTransaction(this);
@@ -33,9 +43,12 @@ export class SMJS implements ISMJS {
 
   public def<
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-    TNodeComputedData extends Record<string, any>,
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+    TNodeComputedData extends Record<string, any> = {},
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
+    TNodeMutations extends Record<
+      string,
+      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+    > = {}
   >(
     def: NodeDefArgs<
       TNodeData,

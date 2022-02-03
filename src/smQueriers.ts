@@ -2,6 +2,17 @@ import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
 } from './queryDefinitionAdapters';
+import {
+  ISMJS,
+  ISMQueryManager,
+  QueryDefinitions,
+  QueryOpts,
+  QueryReturn,
+  QueryDataReturn,
+  SubscriptionOpts,
+  SubscriptionMeta,
+  SubscriptionCanceller,
+} from './types';
 
 let queryIdx = 0;
 

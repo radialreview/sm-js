@@ -1,4 +1,17 @@
 import { SMData, SM_DATA_TYPES } from './smDataTypes';
+import {
+  ISMJS,
+  ISMData,
+  SMDataDefaultFn,
+  NodeRelationalQueryBuilderRecord,
+  NodeMutationFn,
+  NodeDO,
+  NodeComputedFns,
+  NodeRelationalFns,
+  DeepPartial,
+  NodeRelationalQueryBuilder,
+  ISMNode,
+} from './types';
 
 export function createDOFactory(smJSInstance: ISMJS) {
   /**
@@ -9,7 +22,10 @@ export function createDOFactory(smJSInstance: ISMJS) {
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>,
+    TNodeMutations extends Record<
+      string,
+      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+    >,
     TDOClass = new (initialData?: Record<string, any>) => NodeDO
   >(node: {
     type: string;

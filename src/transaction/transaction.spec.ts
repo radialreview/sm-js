@@ -1,5 +1,6 @@
 import { SMJS } from '..';
 import { autoIndentGQL, getMockConfig } from '../specUtilities';
+import { DocumentNode } from '../types';
 
 test('transaction calls gqlClient.mutate with the expected operations', async done => {
   const smJSInstance = new SMJS(getMockConfig());

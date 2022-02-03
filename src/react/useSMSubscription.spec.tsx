@@ -6,9 +6,18 @@ import {
   mockQueryDataReturn,
   getMockSubscriptionMessage,
   getMockConfig,
+  generateUserNode,
+  // getMockQueryRecord,
+  // generateUserNode,
 } from '../specUtilities';
 import { useSubscription } from './';
-import { SMProvider, SMJS } from '..';
+import {
+  SMProvider,
+  SMJS /*string, queryDefinition*/,
+  string,
+  queryDefinition,
+  getDefaultConfig,
+} from '..';
 import { deepClone } from '../dataUtilities';
 
 // this file tests some console error functionality, this keeps the test output clean
@@ -256,4 +265,36 @@ function promiseState(p: Promise<any>) {
     v => (v === t ? 'pending' : 'resolved'),
     () => 'rejected'
   );
+}
+
+export async function TStests() {
+  const smJS = new SMJS(getDefaultConfig());
+  const userNode = smJS.def({
+    type: 'user',
+    properties: {
+      id: string,
+    },
+  });
+
+  // shorthand syntax tests
+  // no map fn or target defined
+  const shorthandQueryResults = await smJS.query({
+    users: userNode,
+  });
+  shorthandQueryResults.data.users[0].id as string;
+  // @ts-expect-error wasn't queried
+  shorthandQueryResults.data.users[0].nonqueried;
+
+  // def and map defined in this query
+  // but no specific ids or "under" provided
+  const targetOmmissionResults = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({ id: userData.id }),
+    }),
+  });
+
+  targetOmmissionResults.data.users[0].id as string;
+  // @ts-expect-error
+  targetOmmissionResults.data.users[0].nonqueried;
 }

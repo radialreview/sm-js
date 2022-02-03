@@ -3,6 +3,20 @@ import {
   SMDataTypeExplicitDefaultException,
   throwLocallyLogInProd,
 } from './exceptions';
+import {
+  GetExpectedNodeDataType,
+  GetSMDataType,
+  IByReferenceQueryBuilder,
+  IChildrenQueryBuilder,
+  ISMData,
+  ISMNode,
+  ISMQueryPagination,
+  MapFnForNode,
+  Maybe,
+  QueryDefinition,
+  QueryDefinitionTarget,
+  SMDataDefaultFn,
+} from './types';
 
 export const SM_DATA_TYPES = {
   string: 's',

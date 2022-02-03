@@ -1,5 +1,6 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { QueryDefinitions, QueryDataReturn } from '../types';
 
 import { SMContext } from './context';
 

@@ -1,4 +1,5 @@
 import { getGQLCLient } from './gqlClient';
+import { SMConfig } from './types';
 
 export function getDefaultConfig(): SMConfig {
   return {

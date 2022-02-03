@@ -1,4 +1,5 @@
 import React from 'react';
+import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
 interface ISMContextSubscription {
   results?: any;
   error?: any;

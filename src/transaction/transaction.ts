@@ -42,8 +42,9 @@ import {
   DropNodeOperation,
   getMutationsFromTransactionDropOperations,
 } from './drop';
+import { ISMJS } from '../types';
 
-interface ITransactionContext {
+export interface ITransactionContext {
   createNodes: typeof createNodes;
   createNode: typeof createNode;
   updateNodes: typeof updateNodes;
