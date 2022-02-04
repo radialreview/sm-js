@@ -433,7 +433,9 @@ export  interface ISMNodeRepository {
 }
 
 // @TODO figure out what this should actually be with Brendan
-export  type QueryFilter<TNodeData> = TNodeData;
+export  type QueryFilter<TNodeData> = Partial<{
+  [key in keyof TNodeData]: string
+}>;
 
 export type QueryDefinitionTarget<
   TSMNode extends ISMNode,
@@ -454,12 +456,11 @@ export type QueryDefinitionTarget<
 // The config needed by a query to get one or multiple nodes of a single type
 export  type QueryDefinition<
   TSMNode extends ISMNode,
-  TQueryDefinitionTarget extends QueryDefinitionTarget<TSMNode>,
   TMapFn extends MapFnForNode<TSMNode>
 > = {
   def: TSMNode;
   map?: TMapFn;
-} & TQueryDefinitionTarget;
+} & QueryDefinitionTarget<TSMNode>;
 
 // A query takes a record where you can specify aliases for each node type you're querying (including 2 aliases for different sets of the same node type)
 //

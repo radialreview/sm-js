@@ -3,12 +3,23 @@ import { SMNotCachedException } from './exceptions';
 import { UserNode, generateUserNode, getMockConfig } from './specUtilities';
 import { RepositoryFactory } from './Repository';
 import { getDefaultConfig, SMJS } from '.';
+import {
+  NodeRelationalQueryBuilderRecord,
+  NodeMutationFn,
+  NodeComputedFns,
+  NodeRelationalFns,
+  SMDataDefaultFn,
+  IChildrenQueryBuilder,
+} from './types';
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+  TNodeMutations extends Record<
+    string,
+    /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+  >
 >(opts: {
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;

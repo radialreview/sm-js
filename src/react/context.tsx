@@ -77,7 +77,7 @@ export const SMProvider = (props: {
         cleanup();
       }
     },
-    []
+    [props.subscriptionTTLMs]
   );
 
   const cancelCleanup: ISMContext['cancelCleanup'] = React.useCallback(

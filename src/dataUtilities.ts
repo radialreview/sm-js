@@ -95,7 +95,7 @@ export function extend(opts: {
   // then loop over every key in the extension that hasn't yet been handled in the loop above
   Object.keys(opts.extension)
     .filter(key => !handledExtensionProps.includes(key))
-    .map(extensionProp => {
+    .forEach(extensionProp => {
       const extensionValue = opts.extension[extensionProp];
 
       if (

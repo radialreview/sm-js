@@ -9,6 +9,7 @@ import {
   getDefaultConfig,
 } from '.';
 import { createMockQueryDefinitions } from './specUtilities';
+import { ISMJS } from './types';
 
 function removeVersionsFromResults(results: any) {
   return results.data.users.map((user: any) => ({
