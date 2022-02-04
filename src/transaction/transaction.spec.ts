@@ -428,7 +428,7 @@ test('transaction awaits the callback if it returns a promise', async done => {
   }).execute();
 });
 
-test('transactions that receive an array of transaction results should group them all', async done => {
+test.only('transactions that receive an array of transaction results should group them all', async done => {
   try {
     config({
       gqlClient: {
@@ -484,6 +484,9 @@ test('transactions that receive an array of transaction results should group the
         data: {
           type: 'mock-person',
           name: 'Joe Smith',
+        },
+        onSuccess: data => {
+          console.log(data);
         },
       });
 

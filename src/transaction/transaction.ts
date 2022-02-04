@@ -117,7 +117,11 @@ export function transaction(
     updateEdge: [],
     updateEdges: [],
   };
-
+  /**
+   * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+   * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
+   * SM responds with each operation in the order they were sent up.
+   */
   let createOperationsCount = 0;
   let updateOperationsCount = 0;
 
@@ -127,11 +131,6 @@ export function transaction(
         `No operationsByType array initialized for "${operation.type}"`
       );
     }
-    /**
-     * Keeps track of the number of operations performed in this transaction.
-     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
-     * SM responds with each operation in the order they were sent up.
-     */
 
     /**
      * createNodes/updateNodes creates multiple nodes in a single operation,
@@ -309,14 +308,19 @@ export function transaction(
   const tokenName = opts?.tokenName || 'default';
   const token = getToken({ tokenName });
 
-  // TODO: make more semantic
+  /**
+   * Group operations by their SM operation name, sorted by position if applicable
+   */
   function groupBySMOperationName(operations: TOperationsByType) {
-    const result = Object.entries(operations).reduce((acc, [_, val]) => {
-      val.forEach((op: any) => {
-        if (acc.hasOwnProperty(op.smOperationName)) {
-          acc[op.smOperationName] = [...acc[op.smOperationName], op];
+    const result = Object.entries(operations).reduce((acc, [_, operations]) => {
+      operations.forEach((operation: TIndexedOperationType | OperationType) => {
+        if (acc.hasOwnProperty(operation.smOperationName)) {
+          acc[operation.smOperationName] = [
+            ...acc[operation.smOperationName],
+            operation,
+          ];
         } else {
-          acc[op.smOperationName] = [op];
+          acc[operation.smOperationName] = [operation];
         }
       });
       return acc;
@@ -339,10 +343,23 @@ export function transaction(
   const result = callback(context);
 
   function handleSuccessCallbacks(opts: {
-    executionResult: Array<{ data: Record<string, any> }>;
+    executionResult: Array<{
+      data: Record<string, any>;
+    }>;
     operationsByType: TOperationsByType;
   }) {
     const { executionResult, operationsByType } = opts;
+    console.log('operationsByType', operationsByType);
+
+    console.log(
+      'operationsByType[2]',
+      (operationsByType.createNodes[2] as any).nodes
+    );
+
+    console.log(
+      'operationsByType[3]',
+      (operationsByType.createNodes[3] as any).nodes
+    );
 
     const operationsBySMOperationName = groupBySMOperationName(
       operationsByType
@@ -415,10 +432,13 @@ export function transaction(
 
   async function execute() {
     try {
-      if (result instanceof Promise) {
-        await result;
-      }
+      if (typeof callback === 'function') {
+        const result = callback(context);
 
+        if (result instanceof Promise) {
+          await result;
+        }
+      }
       const mutations = getAllMutations(operationsByType);
 
       const executionResult = await getConfig().gqlClient.mutate({
@@ -427,7 +447,10 @@ export function transaction(
       });
 
       if (executionResult) {
-        handleSuccessCallbacks({ executionResult, operationsByType });
+        handleSuccessCallbacks({
+          executionResult,
+          operationsByType,
+        });
       }
 
       return executionResult;
@@ -449,13 +472,77 @@ export function transaction(
       .filter(tx => tx.callbackResult instanceof Promise)
       .map(({ callbackResult }) => callbackResult);
 
+    const sortedTransactions = transactions.map((tx, idx) => {
+      if (idx > 0) {
+        return {
+          ...tx,
+          operations: Object.entries(tx.operations).reduce(
+            (acc, [key, operations]) => {
+              acc[key as keyof TOperationsByType] = operations.map(
+                operation => {
+                  if (operation.position) {
+                    const result = {
+                      ...operation,
+                      position:
+                        operation.position +
+                        transactions[idx - 1].operations[
+                          key as keyof TOperationsByType
+                        ].length,
+                    };
+
+                    if (operation.hasOwnProperty('nodes')) {
+                      (result as any).nodes = (operation as any).nodes.map(
+                        (node: any, nodeIdx: number) => {
+                          const previousTransaction =
+                            transactions[idx - 1].operations[
+                              key as keyof TOperationsByType
+                            ];
+
+                          const previousTransactionNodes = (previousTransaction[
+                            previousTransaction.length - 1
+                          ] as any).nodes;
+
+                          const lastNodeInPreviousTransaction =
+                            previousTransactionNodes[
+                              previousTransactionNodes.length - 1
+                            ];
+
+                          console.log(
+                            'lastNodeInPreviousTransaction',
+                            lastNodeInPreviousTransaction
+                          );
+
+                          return {
+                            ...node,
+                            position:
+                              lastNodeInPreviousTransaction.position +
+                              (nodeIdx + 1),
+                          };
+                        }
+                      );
+                    }
+                    return result;
+                  }
+                  return operation;
+                }
+              );
+              return acc;
+            },
+            {} as TOperationsByType
+          ),
+        };
+      }
+
+      return tx;
+    });
+
     async function execute() {
       try {
         if (asyncCallbacks.length) {
           await Promise.all(asyncCallbacks);
         }
 
-        const operationsByType: TOperationsByType = transactions.reduce(
+        const operationsByType: TOperationsByType = sortedTransactions.reduce(
           (acc, tx) => {
             return mergeWith(acc, tx.operations, (objValue, srcValue) => {
               if (Array.isArray(objValue)) {
@@ -475,7 +562,10 @@ export function transaction(
         });
 
         if (executionResult) {
-          handleSuccessCallbacks({ executionResult, operationsByType });
+          handleSuccessCallbacks({
+            executionResult,
+            operationsByType,
+          });
         }
 
         return executionResult;

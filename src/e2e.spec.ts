@@ -1098,19 +1098,68 @@ test('dropping an object will drop all the properties', async done => {
   done();
 });
 
-test('grouped transactions work as expected', async () => {
+test.only('grouped transactions work as expected', async () => {
   const token = await getToken();
 
   setToken('default', { token });
 
   const createTodo = ({ title, done }: { title: string; done: boolean }) => {
+    title;
+    done;
     return transaction(ctx => {
-      ctx.createNode({
-        data: {
-          type: 'mock-todo',
-          title,
-          done,
-        },
+      // ctx.createNode({
+      //   data: {
+      //     type: 'mock-todo',
+      //     title,
+      //     done,
+      //   },
+      //   onSuccess: console.log,
+      // });
+      // ctx.createNode({
+      //   data: {
+      //     type: 'mock-todo',
+      //     title,
+      //     done,
+      //   },
+      //   onSuccess: console.log,
+      // });
+
+      ctx.createNodes({
+        nodes: [
+          {
+            data: {
+              type: 'mock-thing',
+              number: 2,
+              string: 'mock string',
+            },
+          },
+          {
+            data: {
+              type: 'mock-thing',
+              number: 3,
+              string: 'mock string 2',
+            },
+          },
+        ],
+      });
+
+      ctx.createNodes({
+        nodes: [
+          {
+            data: {
+              type: 'mock-thing',
+              number: 2,
+              string: 'mock string',
+            },
+          },
+          {
+            data: {
+              type: 'mock-thing',
+              number: 3,
+              string: 'mock string 2',
+            },
+          },
+        ],
       });
     });
   };
@@ -1123,6 +1172,8 @@ test('grouped transactions work as expected', async () => {
     { title: 'todo 1', done: false },
     { title: 'todo 2', done: true },
   ]).execute();
+
+  console.log(transactionResult[0].data.CreateNodes);
 
   const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
     .CreateNodes as Array<{ id: string }>;
