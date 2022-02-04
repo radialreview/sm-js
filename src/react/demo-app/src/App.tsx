@@ -18,10 +18,6 @@ smJS.setToken({
 });
 
 function MyComponent() {
-  const { data } = useSubscription({
-    users: userNode,
-  });
-
   return (
     <div className="App">
       {data.users.map(user => (
