@@ -684,19 +684,23 @@ test('updating multiple edges in sm works', async done => {
   const updateResult = await transaction(ctx => {
     ctx.updateEdges([
       {
-        from: thingId,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: false,
+        edge: {
+          from: thingId,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: false,
+          },
         },
       },
       {
-        from: thingId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: false,
+        edge: {
+          from: thingId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: false,
+          },
         },
       },
     ]);
@@ -926,23 +930,27 @@ test('replacing multiple edges in sm works', async done => {
   await transaction(ctx => {
     ctx.replaceEdges([
       {
-        current: thingId,
-        from: todo2Id,
-        to: todoId,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          current: thingId,
+          from: todo2Id,
+          to: todoId,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
       {
-        current: thingId,
-        from: todoId,
-        to: todo2Id,
-        permissions: {
-          view: true,
-          edit: true,
-          addChild: true,
+        edge: {
+          current: thingId,
+          from: todoId,
+          to: todo2Id,
+          permissions: {
+            view: true,
+            edit: true,
+            addChild: true,
+          },
         },
       },
     ]);

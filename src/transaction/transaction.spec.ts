@@ -351,22 +351,26 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
     });
     context.replaceEdges([
       {
-        type: 'replacedEdge',
-        current: '123',
-        from: '456',
-        to: '789',
-        permissions: {
-          view: true,
+        edge: {
+          type: 'replacedEdge',
+          current: '123',
+          from: '456',
+          to: '789',
+          permissions: {
+            view: true,
+          },
+          name: 'namedEdgeReplacement',
         },
-        name: 'namedEdgeReplacement',
       },
       {
-        current: '222',
-        from: '444',
-        to: '555',
-        permissions: {
-          view: true,
-          edit: true,
+        edge: {
+          current: '222',
+          from: '444',
+          to: '555',
+          permissions: {
+            view: true,
+            edit: true,
+          },
         },
       },
     ]);
@@ -380,20 +384,24 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
     });
     context.updateEdges([
       {
-        type: 'renamedEdge',
-        from: '456',
-        to: '789',
-        permissions: {
-          view: true,
+        edge: {
+          type: 'renamedEdge',
+          from: '456',
+          to: '789',
+          permissions: {
+            view: true,
+          },
+          name: 'namedEdgeUpdate',
         },
-        name: 'namedEdgeUpdate',
       },
       {
-        from: '444',
-        to: '555',
-        permissions: {
-          view: true,
-          edit: true,
+        edge: {
+          from: '444',
+          to: '555',
+          permissions: {
+            view: true,
+            edit: true,
+          },
         },
       },
     ]);
@@ -505,11 +513,13 @@ test('transactions that receive an array of transaction results should group the
   }
 });
 
-test.only('onSuccess callback is executed with correct argument', async done => {
+test('onSuccess callback is executed with correct argument', async done => {
   let dropNodeSpy;
   let createEdgeSpy;
   const createEdgesMock = jest.fn();
   const dropEdgeMock = jest.fn();
+  const replaceEdgeMock = jest.fn();
+  const updateEdgeMock = jest.fn();
 
   config({
     gqlClient: {
@@ -566,6 +576,36 @@ test.only('onSuccess callback is executed with correct argument', async done => 
           {
             data: {
               DropEdge: 1,
+            },
+          },
+          {
+            data: {
+              ReplaceEdge: 1,
+            },
+          },
+          {
+            data: {
+              ReplaceEdge: 1,
+            },
+          },
+          {
+            data: {
+              ReplaceEdge: 1,
+            },
+          },
+          {
+            data: {
+              UpdateEdge: 1,
+            },
+          },
+          {
+            data: {
+              UpdateEdge: 1,
+            },
+          },
+          {
+            data: {
+              UpdateEdge: 1,
             },
           },
         ];
@@ -715,11 +755,78 @@ test.only('onSuccess callback is executed with correct argument', async done => 
         onSuccess: dropEdgeMock,
       },
     ]);
+
+    ctx.replaceEdge({
+      edge: {
+        current: 'abc',
+        from: '123',
+        to: '456',
+        permissions: { view: true },
+      },
+      onSuccess: replaceEdgeMock,
+    });
+    ctx.replaceEdges([
+      {
+        edge: {
+          current: 'abc',
+          from: '123',
+          to: '456',
+          permissions: { view: true },
+        },
+        onSuccess: replaceEdgeMock,
+      },
+      {
+        edge: {
+          current: 'aebc',
+          from: '12e3',
+          to: '45w6',
+          permissions: { view: true },
+        },
+        onSuccess: replaceEdgeMock,
+      },
+    ]);
+
+    ctx.updateEdge({
+      name: 'updateEdgeFromTaskToUser',
+      edge: {
+        from: '123',
+        to: '456',
+        permissions: { view: true },
+      },
+      onSuccess: updateEdgeMock,
+    });
+    ctx.updateEdges([
+      {
+        edge: {
+          type: 'renamedEdge',
+          from: '456',
+          to: '789',
+          permissions: {
+            view: true,
+          },
+          name: 'namedEdgeUpdate',
+        },
+        onSuccess: updateEdgeMock,
+      },
+      {
+        edge: {
+          from: '444',
+          to: '555',
+          permissions: {
+            view: true,
+            edit: true,
+          },
+        },
+        onSuccess: updateEdgeMock,
+      },
+    ]);
   }).execute();
 
   expect(dropNodeSpy).toHaveBeenCalledTimes(1);
   expect(createEdgeSpy).toHaveBeenCalledTimes(1);
   expect(createEdgesMock).toHaveBeenCalledTimes(2);
   expect(dropEdgeMock).toHaveBeenCalledTimes(3);
+  expect(replaceEdgeMock).toHaveBeenCalledTimes(3);
+  expect(updateEdgeMock).toHaveBeenCalledTimes(3);
   done();
 });

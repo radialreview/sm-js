@@ -75,28 +75,52 @@ export type ReplaceEdgeProperties = EdgeProperties & {
 
 export type ReplaceEdgeOperation = {
   type: 'replaceEdge';
+  smOperationName: 'ReplaceEdge';
   name?: string;
   edge: ReplaceEdgeProperties;
+  onSuccess?: () => any;
 };
 
 export type ReplaceEdgesOperation = {
   type: 'replaceEdges';
-  edges: Array<ReplaceEdgeProperties & { name?: string }>;
+  smOperationName: 'ReplaceEdge';
+  edges: Array<{
+    edge: ReplaceEdgeProperties & { name?: string };
+    onSuccess?: () => any;
+  }>;
 };
 
-export type ReplaceEdgeOpts = Omit<ReplaceEdgeOperation, 'type'>;
-export type ReplaceEdgesOpts = Omit<ReplaceEdgesOperation, 'type'>;
+export type ReplaceEdgeOpts = Omit<
+  ReplaceEdgeOperation,
+  'type' | 'smOperationName'
+>;
+export type ReplaceEdgesOpts = Omit<
+  ReplaceEdgesOperation,
+  'type' | 'smOperationName'
+>;
 
 export type UpdateEdgeOperation = {
   type: 'updateEdge';
+  smOperationName: 'UpdateEdge';
   name?: string;
   edge: EdgeProperties;
+  onSuccess?: () => any;
 };
 
 export type UpdateEdgesOperation = {
   type: 'updateEdges';
-  edges: Array<EdgeProperties & { name?: string }>;
+  smOperationName: 'UpdateEdge';
+  edges: Array<{
+    edge: EdgeProperties & { name?: string };
+    onSuccess?: () => any;
+  }>;
 };
 
-export type UpdateEdgeOpts = Omit<UpdateEdgeOperation, 'type'>;
-export type UpdateEdgesOpts = Omit<UpdateEdgesOperation, 'type'>;
+export type UpdateEdgeOpts = Omit<
+  UpdateEdgeOperation,
+  'type' | 'smOperationName'
+>;
+export type UpdateEdgesOpts = Omit<
+  UpdateEdgesOperation,
+  'type' | 'smOperationName'
+>;

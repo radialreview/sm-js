@@ -11,15 +11,20 @@ import { getEdgePermissionsString } from './utilities';
 export function updateEdge(edge: UpdateEdgeOpts): UpdateEdgeOperation {
   return {
     type: 'updateEdge',
+    smOperationName: 'UpdateEdge',
     ...edge,
   };
 }
 
 export function updateEdges(
-  edges: Array<EdgeProperties & { name?: string }>
+  edges: Array<{
+    edge: EdgeProperties & { name?: string };
+    onSuccess?: () => any;
+  }>
 ): UpdateEdgesOperation {
   return {
     type: 'updateEdges',
+    smOperationName: 'UpdateEdge',
     edges,
   };
 }
@@ -34,7 +39,9 @@ export function getMutationsFromEdgeUpdateOperations(
         name: operation.name,
       });
     } else if (operation.type === 'updateEdges') {
-      return operation.edges.map(convertEdgeUpdateOperationToMutationArguments);
+      return operation.edges.map(({ edge }) =>
+        convertEdgeUpdateOperationToMutationArguments(edge)
+      );
     }
 
     throw Error(`Operation not recognized: "${operation}"`);
