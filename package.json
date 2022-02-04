@@ -15,11 +15,10 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "lint": "eslint src && tsc",
-    "prepare": "tsdx build",
+    "prepare": "husky install",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
-  "peerDependencies": {},
   "prettier": {
     "printWidth": 80,
     "semi": true,
