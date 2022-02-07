@@ -70,7 +70,7 @@ const userNode = smJS.def({
     todos2: todos,
   });
   mapFnWithRelationalQueries;
-});
+})();
 
 (async function QueryDataReturnTests() {
   const randomMapFn = () => ({ id: string });
@@ -115,7 +115,7 @@ const userNode = smJS.def({
     firstName: '',
   };
   returnedData;
-});
+})();
 
 // These are the most important
 // While the other tests in this file check that the share generic types are doing what they're supposed to
@@ -200,4 +200,4 @@ const userNode = smJS.def({
   withRelationalResults.data.users[0].todos[0].dueDate as number;
   // @ts-expect-error not queried
   withRelationalResults.data.users[0].todos[0].task as string;
-});
+})();
