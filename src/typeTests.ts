@@ -1,14 +1,27 @@
-import { getDefaultConfig, queryDefinition, SMJS, string } from './';
+import { getDefaultConfig, queryDefinition, SMJS, string, children } from './';
 
+/**
+ * This function exists for the sole purpose of having TS check it to ensure our type inferrence system is working as intended
+ */
 export async function TStests() {
   const smJS = new SMJS(getDefaultConfig());
   const userProperties = {
     id: string,
     firstName: string,
   };
+  const todoNode = smJS.def({
+    type: 'todo',
+    properties: {
+      id: string,
+      task: string,
+    },
+  });
   const userNode = smJS.def({
     type: 'user',
     properties: userProperties,
+    relational: {
+      todos: () => children({ def: todoNode }),
+    },
   });
 
   // shorthand syntax tests
@@ -60,4 +73,17 @@ export async function TStests() {
   targetWithFilters.data.users[0].id as number;
   // @ts-expect-error not queried
   targetWithFilters.data.users[0].notqueried as number;
+
+  const withRelationalResults = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todos: userData.todos({
+          map: todoData => ({ id: todoData.id }),
+        }),
+      }),
+    }),
+  });
+
+  withRelationalResults.data.users[0].todos[0].id;
 }
