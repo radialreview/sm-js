@@ -1,5 +1,5 @@
 import { DocumentNode } from '@apollo/client/core';
-import { mergeWith, sortBy } from 'lodash';
+import { sortBy } from 'lodash';
 import {
   createEdge,
   createEdges,
@@ -353,7 +353,6 @@ export function transaction(
         >;
     operationsByType: TOperationsByType;
   }) {
-    return null;
     const { executionResult, operationsByType } = opts;
 
     const operationsBySMOperationName = groupBySMOperationName(
@@ -392,7 +391,6 @@ export function transaction(
                     smOperationName === 'UpdateNodes'
                   ) {
                     const groupedResult = resultData[smOperationName];
-
                     // for createNodes, execute callback on each individual node rather than top-level operation
                     if (operation.hasOwnProperty('nodes')) {
                       operation.nodes.forEach((node: any) => {
@@ -450,15 +448,11 @@ export function transaction(
   async function execute() {
     try {
       if (typeof callback === 'function') {
-        const result = callback(context);
-
         if (result instanceof Promise) {
           await result;
         }
       }
       const mutations = getAllMutations(operationsByType);
-      // console.log('mutations', mutations);
-      console.log('operationsByType', operationsByType);
 
       const executionResult = await getConfig().gqlClient.mutate({
         mutations,
@@ -491,89 +485,12 @@ export function transaction(
       .filter(tx => tx.callbackResult instanceof Promise)
       .map(({ callbackResult }) => callbackResult);
 
-    // const sortedTransactions = transactions.map((tx, idx) => {
-    //   if (idx > 0) {
-    //     return {
-    //       ...tx,
-    //       operations: Object.entries(tx.operations).reduce(
-    //         (acc, [key, operations]) => {
-    //           acc[key as keyof TOperationsByType] = operations.map(
-    //             operation => {
-    //               if (operation.position) {
-    //                 const result = {
-    //                   ...operation,
-    //                   position:
-    //                     operation.position +
-    //                     transactions[idx - 1].operations[
-    //                       key as keyof TOperationsByType
-    //                     ].length,
-    //                 };
-
-    //                 if (operation.hasOwnProperty('nodes')) {
-    //                   (result as any).nodes = (operation as any).nodes.map(
-    //                     (node: any, nodeIdx: number) => {
-    //                       const previousTransaction =
-    //                         transactions[idx - 1].operations[
-    //                           key as keyof TOperationsByType
-    //                         ];
-
-    //                       const previousTransactionNodes = (previousTransaction[
-    //                         previousTransaction.length - 1
-    //                       ] as any).nodes;
-
-    //                       const lastNodeInPreviousTransaction =
-    //                         previousTransactionNodes[
-    //                           previousTransactionNodes.length - 1
-    //                         ];
-
-    //                       return {
-    //                         ...node,
-    //                         position:
-    //                           lastNodeInPreviousTransaction.position +
-    //                           (nodeIdx + 1),
-    //                       };
-    //                     }
-    //                   );
-    //                 }
-    //                 return result;
-    //               }
-    //               return operation;
-    //             }
-    //           );
-    //           return acc;
-    //         },
-    //         {} as TOperationsByType
-    //       ),
-    //     };
-    //   }
-
-    //   return tx;
-    // });
-
     async function execute() {
       try {
         if (asyncCallbacks.length) {
           await Promise.all(asyncCallbacks);
         }
 
-        mergeWith;
-        // const operationsByType: TOperationsByType = sortedTransactions.reduce(
-        //   (acc, tx) => {
-        //     return mergeWith(acc, tx.operations, (objValue, srcValue) => {
-        //       if (Array.isArray(objValue)) {
-        //         return objValue.concat(srcValue);
-        //       }
-        //       return srcValue;
-        //     });
-        //   },
-        //   {} as TOperationsByType
-        // );
-
-        //      map transactions and run getallmutations on each
-        // const mutations = transactions.map(({ operations }) =>
-        //   getAllMutations(operations)
-        // );
-        // get 2d array
         const allMutations = transactions.map(({ operations }) => {
           return getConfig().gqlClient.mutate({
             mutations: getAllMutations(operations),
@@ -581,20 +498,14 @@ export function transaction(
           });
         });
 
-        // const result = await Promise.all(allMutations);
-
-        // const executionResult = await getConfig().gqlClient.mutate({
-        //   mutations,
-        //   token,
-        // });
-        // console.log('allMutations', allMutations);
-
         const executionResult = await Promise.all(allMutations);
 
         if (executionResult) {
-          handleSuccessCallbacks({
-            executionResult,
-            operationsByType,
+          executionResult.forEach((result, idx) => {
+            handleSuccessCallbacks({
+              executionResult: result,
+              operationsByType: transactions[idx].operations,
+            });
           });
         }
 

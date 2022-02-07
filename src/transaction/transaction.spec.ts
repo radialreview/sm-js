@@ -3,7 +3,7 @@ import { config, SMConfig } from '../config';
 import { autoIndentGQL } from '../specUtilities';
 import { transaction } from './transaction';
 
-test.only('transaction calls gqlClient.mutate with the expected operations', async done => {
+test('transaction calls gqlClient.mutate with the expected operations', async done => {
   config({
     gqlClient: {
       mutate: (opts: any) => {
@@ -278,9 +278,11 @@ test.only('transaction calls gqlClient.mutate with the expected operations', asy
         },
       ],
     });
+
     context.dropNode({
       id: 'thing-to-drop',
     });
+
     context.dropNode({
       id: 'other-thing-to-drop',
     });

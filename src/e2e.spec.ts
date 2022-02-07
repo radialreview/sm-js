@@ -1100,12 +1100,12 @@ test('dropping an object will drop all the properties', async done => {
 
 test.only('grouped transactions work as expected', async () => {
   const token = await getToken();
+  console.log(token);
 
   setToken('default', { token });
+  const onSuccessMock = jest.fn();
 
   const createTodo = ({ title, done }: { title: string; done: boolean }) => {
-    title;
-    done;
     return transaction(ctx => {
       ctx.createNode({
         data: {
@@ -1113,46 +1113,8 @@ test.only('grouped transactions work as expected', async () => {
           title,
           done,
         },
-        // onSuccess: console.log,
+        onSuccess: onSuccessMock,
       });
-
-      // ctx.createNodes({
-      //   nodes: [
-      //     {
-      //       data: {
-      //         type: 'mock-thing',
-      //         number: 2,
-      //         string: 'mock string',
-      //       },
-      //     },
-      //     {
-      //       data: {
-      //         type: 'mock-thing',
-      //         number: 3,
-      //         string: 'mock string 2',
-      //       },
-      //     },
-      //   ],
-      // });
-
-      // ctx.createNodes({
-      //   nodes: [
-      //     {
-      //       data: {
-      //         type: 'mock-thing',
-      //         number: 4,
-      //         string: 'mock string 3',
-      //       },
-      //     },
-      //     {
-      //       data: {
-      //         type: 'mock-thing',
-      //         number: 5,
-      //         string: 'mock string  4',
-      //       },
-      //     },
-      //   ],
-      // });
     });
   };
 
@@ -1184,6 +1146,7 @@ test.only('grouped transactions work as expected', async () => {
 
   expect(todos[0].title).toBe('todo 1');
   expect(todos[1].title).toBe('todo 2');
+  expect(onSuccessMock).toHaveBeenCalledTimes(2);
 });
 
 async function getToken(): Promise<string> {
@@ -1201,9 +1164,11 @@ async function getToken(): Promise<string> {
         timeZone: null,
       }),
     }
-  ).then((res: any) => {
-    return res.json();
-  });
+  )
+    .then((res: any) => {
+      return res.json();
+    })
+    .catch(console.log);
 
   if (!data.orgUserToken) throw Error('Failed to get token');
   return data.orgUserToken as string;
