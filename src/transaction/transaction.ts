@@ -131,7 +131,6 @@ export function transaction(
         `No operationsByType array initialized for "${operation.type}"`
       );
     }
-
     /**
      * createNodes/updateNodes creates multiple nodes in a single operation,
      * therefore we need to track the position of these nodes instead of just the position of the operation itself
@@ -343,23 +342,19 @@ export function transaction(
   const result = callback(context);
 
   function handleSuccessCallbacks(opts: {
-    executionResult: Array<{
-      data: Record<string, any>;
-    }>;
+    executionResult:
+      | Array<{
+          data: Record<string, any>;
+        }>
+      | Array<
+          Array<{
+            data: Record<string, any>;
+          }>
+        >;
     operationsByType: TOperationsByType;
   }) {
+    return null;
     const { executionResult, operationsByType } = opts;
-    console.log('operationsByType', operationsByType);
-
-    console.log(
-      'operationsByType[2]',
-      (operationsByType.createNodes[2] as any).nodes
-    );
-
-    console.log(
-      'operationsByType[3]',
-      (operationsByType.createNodes[3] as any).nodes
-    );
 
     const operationsBySMOperationName = groupBySMOperationName(
       operationsByType
@@ -369,38 +364,60 @@ export function transaction(
      * Loop through the operations, map the operation to each result sent back from SM,
      * then pass the result into the callback if it exists
      */
-    executionResult.forEach(result => {
-      const resultData = result.data;
-      Object.entries(operationsBySMOperationName).forEach(
-        ([smOperationName, operations]) => {
-          if (resultData.hasOwnProperty(smOperationName)) {
-            operations.forEach(operation => {
-              // we only need to gather the data for node create/update operations
-              if (
-                smOperationName === 'CreateNodes' ||
-                smOperationName === 'UpdateNodes'
-              ) {
-                const groupedResult = resultData[smOperationName];
 
-                // for createNodes, execute callback on each individual node rather than top-level operation
-                if (operation.hasOwnProperty('nodes')) {
-                  operation.nodes.forEach((node: any) => {
-                    if (node.hasOwnProperty('onSuccess')) {
-                      const operationResult = groupedResult[node.position - 1];
+    const executeCallbacksWithData = (
+      executionResult:
+        | Array<{
+            data: Record<string, any>;
+          }>
+        | Array<
+            Array<{
+              data: Record<string, any>;
+            }>
+          >
+    ) => {
+      executionResult.forEach(result => {
+        if (Array.isArray(result)) {
+          executeCallbacksWithData(result);
+        } else {
+          const resultData = result.data;
 
-                      node.onSuccess(operationResult);
+          Object.entries(operationsBySMOperationName).forEach(
+            ([smOperationName, operations]) => {
+              if (resultData.hasOwnProperty(smOperationName)) {
+                operations.forEach(operation => {
+                  // we only need to gather the data for node create/update operations
+                  if (
+                    smOperationName === 'CreateNodes' ||
+                    smOperationName === 'UpdateNodes'
+                  ) {
+                    const groupedResult = resultData[smOperationName];
+
+                    // for createNodes, execute callback on each individual node rather than top-level operation
+                    if (operation.hasOwnProperty('nodes')) {
+                      operation.nodes.forEach((node: any) => {
+                        if (node.hasOwnProperty('onSuccess')) {
+                          const operationResult =
+                            groupedResult[node.position - 1];
+
+                          node.onSuccess(operationResult);
+                        }
+                      });
+                    } else if (operation.hasOwnProperty('onSuccess')) {
+                      const operationResult =
+                        groupedResult[operation.position - 1];
+                      operation.onSuccess(operationResult);
                     }
-                  });
-                } else if (operation.hasOwnProperty('onSuccess')) {
-                  const operationResult = groupedResult[operation.position - 1];
-                  operation.onSuccess(operationResult);
-                }
+                  }
+                });
               }
-            });
-          }
+            }
+          );
         }
-      );
-    });
+      });
+    };
+
+    executeCallbacksWithData(executionResult);
 
     /**
      * For all other operations, just invoke the callback with no args.
@@ -440,6 +457,8 @@ export function transaction(
         }
       }
       const mutations = getAllMutations(operationsByType);
+      // console.log('mutations', mutations);
+      console.log('operationsByType', operationsByType);
 
       const executionResult = await getConfig().gqlClient.mutate({
         mutations,
@@ -472,69 +491,64 @@ export function transaction(
       .filter(tx => tx.callbackResult instanceof Promise)
       .map(({ callbackResult }) => callbackResult);
 
-    const sortedTransactions = transactions.map((tx, idx) => {
-      if (idx > 0) {
-        return {
-          ...tx,
-          operations: Object.entries(tx.operations).reduce(
-            (acc, [key, operations]) => {
-              acc[key as keyof TOperationsByType] = operations.map(
-                operation => {
-                  if (operation.position) {
-                    const result = {
-                      ...operation,
-                      position:
-                        operation.position +
-                        transactions[idx - 1].operations[
-                          key as keyof TOperationsByType
-                        ].length,
-                    };
+    // const sortedTransactions = transactions.map((tx, idx) => {
+    //   if (idx > 0) {
+    //     return {
+    //       ...tx,
+    //       operations: Object.entries(tx.operations).reduce(
+    //         (acc, [key, operations]) => {
+    //           acc[key as keyof TOperationsByType] = operations.map(
+    //             operation => {
+    //               if (operation.position) {
+    //                 const result = {
+    //                   ...operation,
+    //                   position:
+    //                     operation.position +
+    //                     transactions[idx - 1].operations[
+    //                       key as keyof TOperationsByType
+    //                     ].length,
+    //                 };
 
-                    if (operation.hasOwnProperty('nodes')) {
-                      (result as any).nodes = (operation as any).nodes.map(
-                        (node: any, nodeIdx: number) => {
-                          const previousTransaction =
-                            transactions[idx - 1].operations[
-                              key as keyof TOperationsByType
-                            ];
+    //                 if (operation.hasOwnProperty('nodes')) {
+    //                   (result as any).nodes = (operation as any).nodes.map(
+    //                     (node: any, nodeIdx: number) => {
+    //                       const previousTransaction =
+    //                         transactions[idx - 1].operations[
+    //                           key as keyof TOperationsByType
+    //                         ];
 
-                          const previousTransactionNodes = (previousTransaction[
-                            previousTransaction.length - 1
-                          ] as any).nodes;
+    //                       const previousTransactionNodes = (previousTransaction[
+    //                         previousTransaction.length - 1
+    //                       ] as any).nodes;
 
-                          const lastNodeInPreviousTransaction =
-                            previousTransactionNodes[
-                              previousTransactionNodes.length - 1
-                            ];
+    //                       const lastNodeInPreviousTransaction =
+    //                         previousTransactionNodes[
+    //                           previousTransactionNodes.length - 1
+    //                         ];
 
-                          console.log(
-                            'lastNodeInPreviousTransaction',
-                            lastNodeInPreviousTransaction
-                          );
+    //                       return {
+    //                         ...node,
+    //                         position:
+    //                           lastNodeInPreviousTransaction.position +
+    //                           (nodeIdx + 1),
+    //                       };
+    //                     }
+    //                   );
+    //                 }
+    //                 return result;
+    //               }
+    //               return operation;
+    //             }
+    //           );
+    //           return acc;
+    //         },
+    //         {} as TOperationsByType
+    //       ),
+    //     };
+    //   }
 
-                          return {
-                            ...node,
-                            position:
-                              lastNodeInPreviousTransaction.position +
-                              (nodeIdx + 1),
-                          };
-                        }
-                      );
-                    }
-                    return result;
-                  }
-                  return operation;
-                }
-              );
-              return acc;
-            },
-            {} as TOperationsByType
-          ),
-        };
-      }
-
-      return tx;
-    });
+    //   return tx;
+    // });
 
     async function execute() {
       try {
@@ -542,24 +556,40 @@ export function transaction(
           await Promise.all(asyncCallbacks);
         }
 
-        const operationsByType: TOperationsByType = sortedTransactions.reduce(
-          (acc, tx) => {
-            return mergeWith(acc, tx.operations, (objValue, srcValue) => {
-              if (Array.isArray(objValue)) {
-                return objValue.concat(srcValue);
-              }
-              return srcValue;
-            });
-          },
-          {} as TOperationsByType
-        );
+        mergeWith;
+        // const operationsByType: TOperationsByType = sortedTransactions.reduce(
+        //   (acc, tx) => {
+        //     return mergeWith(acc, tx.operations, (objValue, srcValue) => {
+        //       if (Array.isArray(objValue)) {
+        //         return objValue.concat(srcValue);
+        //       }
+        //       return srcValue;
+        //     });
+        //   },
+        //   {} as TOperationsByType
+        // );
 
-        const mutations = getAllMutations(operationsByType);
-
-        const executionResult = await getConfig().gqlClient.mutate({
-          mutations,
-          token,
+        //      map transactions and run getallmutations on each
+        // const mutations = transactions.map(({ operations }) =>
+        //   getAllMutations(operations)
+        // );
+        // get 2d array
+        const allMutations = transactions.map(({ operations }) => {
+          return getConfig().gqlClient.mutate({
+            mutations: getAllMutations(operations),
+            token,
+          });
         });
+
+        // const result = await Promise.all(allMutations);
+
+        // const executionResult = await getConfig().gqlClient.mutate({
+        //   mutations,
+        //   token,
+        // });
+        // console.log('allMutations', allMutations);
+
+        const executionResult = await Promise.all(allMutations);
 
         if (executionResult) {
           handleSuccessCallbacks({
@@ -568,7 +598,7 @@ export function transaction(
           });
         }
 
-        return executionResult;
+        return executionResult.flat();
       } catch (error) {
         throw error;
       }

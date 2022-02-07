@@ -3,10 +3,12 @@ import { config, SMConfig } from '../config';
 import { autoIndentGQL } from '../specUtilities';
 import { transaction } from './transaction';
 
-test('transaction calls gqlClient.mutate with the expected operations', async done => {
+test.only('transaction calls gqlClient.mutate with the expected operations', async done => {
   config({
     gqlClient: {
       mutate: (opts: any) => {
+        // console.log(opts.mutations.map((m: any) => m.loc.source.body));
+
         // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
         expect(opts.mutations.length).toBe(16);
         expect(
@@ -428,12 +430,11 @@ test('transaction awaits the callback if it returns a promise', async done => {
   }).execute();
 });
 
-test.only('transactions that receive an array of transaction results should group them all', async done => {
+test('transactions that receive an array of transaction results should group them all', async () => {
   try {
-    config({
+    const configOpts = {
       gqlClient: {
-        mutate: (opts: any) => {
-          expect(opts.mutations.length).toBe(2);
+        mutate: () => {
           return [
             {
               data: {
@@ -453,7 +454,11 @@ test.only('transactions that receive an array of transaction results should grou
           ];
         },
       },
-    });
+    };
+
+    const mutateSpy = jest.spyOn(configOpts.gqlClient, 'mutate');
+
+    config(configOpts);
 
     const transaction1 = transaction(ctx => {
       ctx.createNodes({
@@ -469,13 +474,6 @@ test.only('transactions that receive an array of transaction results should grou
               type: 'mock-person',
               name: 'Jean Paul',
             },
-            onSuccess: (data: any) => {
-              expect(data).toEqual({
-                id: 'jeanpaul',
-                __typename: 'OutputNode',
-              });
-              done();
-            },
           },
         ],
       });
@@ -484,9 +482,6 @@ test.only('transactions that receive an array of transaction results should grou
         data: {
           type: 'mock-person',
           name: 'Joe Smith',
-        },
-        onSuccess: data => {
-          console.log(data);
         },
       });
 
@@ -511,6 +506,8 @@ test.only('transactions that receive an array of transaction results should grou
     });
 
     await transaction([transaction1, transaction2]).execute();
+
+    expect(mutateSpy).toHaveBeenCalledTimes(2);
   } catch (e) {
     console.log(e);
   }

@@ -1107,60 +1107,52 @@ test.only('grouped transactions work as expected', async () => {
     title;
     done;
     return transaction(ctx => {
-      // ctx.createNode({
-      //   data: {
-      //     type: 'mock-todo',
-      //     title,
-      //     done,
-      //   },
-      //   onSuccess: console.log,
-      // });
-      // ctx.createNode({
-      //   data: {
-      //     type: 'mock-todo',
-      //     title,
-      //     done,
-      //   },
-      //   onSuccess: console.log,
-      // });
-
-      ctx.createNodes({
-        nodes: [
-          {
-            data: {
-              type: 'mock-thing',
-              number: 2,
-              string: 'mock string',
-            },
-          },
-          {
-            data: {
-              type: 'mock-thing',
-              number: 3,
-              string: 'mock string 2',
-            },
-          },
-        ],
+      ctx.createNode({
+        data: {
+          type: 'mock-todo',
+          title,
+          done,
+        },
+        // onSuccess: console.log,
       });
 
-      ctx.createNodes({
-        nodes: [
-          {
-            data: {
-              type: 'mock-thing',
-              number: 2,
-              string: 'mock string',
-            },
-          },
-          {
-            data: {
-              type: 'mock-thing',
-              number: 3,
-              string: 'mock string 2',
-            },
-          },
-        ],
-      });
+      // ctx.createNodes({
+      //   nodes: [
+      //     {
+      //       data: {
+      //         type: 'mock-thing',
+      //         number: 2,
+      //         string: 'mock string',
+      //       },
+      //     },
+      //     {
+      //       data: {
+      //         type: 'mock-thing',
+      //         number: 3,
+      //         string: 'mock string 2',
+      //       },
+      //     },
+      //   ],
+      // });
+
+      // ctx.createNodes({
+      //   nodes: [
+      //     {
+      //       data: {
+      //         type: 'mock-thing',
+      //         number: 4,
+      //         string: 'mock string 3',
+      //       },
+      //     },
+      //     {
+      //       data: {
+      //         type: 'mock-thing',
+      //         number: 5,
+      //         string: 'mock string  4',
+      //       },
+      //     },
+      //   ],
+      // });
     });
   };
 
@@ -1173,10 +1165,13 @@ test.only('grouped transactions work as expected', async () => {
     { title: 'todo 2', done: true },
   ]).execute();
 
-  console.log(transactionResult[0].data.CreateNodes);
-
-  const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
-    .CreateNodes as Array<{ id: string }>;
+  const [id1, id2] = transactionResult.map(
+    ({
+      data,
+    }: {
+      data: { CreateNodes: Array<{ id: string; __typename: string }> };
+    }) => data.CreateNodes[0].id
+  );
 
   const {
     data: { todos },
