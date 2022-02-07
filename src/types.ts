@@ -223,16 +223,18 @@ export type GetSMDataType<TSMData extends ISMData | SMDataDefaultFn> = TSMData e
   infer TParsedValue
 >
   ? TParsedValue
-  : TSMData extends () => ISMData<infer TParsedValue>
-  ? TParsedValue
-  : never;
+  : TSMData extends SMDataDefaultFn
+    ? TSMData extends (_: any) => ISMData<infer TParsedValue>
+      ? TParsedValue
+      : never
+  : never
 
 type GetSMBoxedValue<
   TSMData extends ISMData<any, any, Record<string, ISMData>> | SMDataDefaultFn
 > = 
   TSMData extends ISMData<any, any, infer TBoxedValue> 
     ? TBoxedValue 
-    : TSMData extends () => ISMData<any,any, infer TBoxedValue>
+    : TSMData extends (_: any) => ISMData<any,any, infer TBoxedValue>
     ? TBoxedValue
 : never;
 
@@ -528,7 +530,15 @@ export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
   ExtractNodeRelationalData<TSMNode>
 >;
 
-type GetMapFnArgs<
+export type MapFn<
+  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeComputedData,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+> = (
+  data: GetMapFnArgs<TNodeData, TNodeRelationalData>
+) => RequestedData<TNodeData, TNodeComputedData>;
+
+export type GetMapFnArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
@@ -539,6 +549,7 @@ type GetMapFnArgs<
         any,
         Record<string, ISMData | SMDataDefaultFn>
       >
+    // allows devs to query a partial of an object within a node
     ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;
       }) => TMapFn
@@ -546,23 +557,17 @@ type GetMapFnArgs<
 } &
   TNodeRelationalData;
 
-export type MapFn<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
-> = (
-  data: GetMapFnArgs<TNodeData, TNodeRelationalData>
-) => RequestedData<TNodeData, TNodeComputedData>;
-
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
 // which gives us typo prevention :)
 type RequestedData<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData
-> =  Partial<{
+  TNodeComputedData extends Record<string, any>,
+  // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+  // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+> = Partial<{
       [Key in
-        | keyof TNodeData
+        keyof TNodeData
         | keyof TNodeComputedData
        ]: Key extends keyof TNodeData
         ? TNodeData[Key] extends ISMData<Maybe<Array<any>>>
@@ -570,8 +575,8 @@ type RequestedData<
           : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
           : TNodeData[Key]
-        : Key extends keyof TNodeComputedData
-        ? TNodeComputedData[Key] // Whereas NodeData and NodeComputedData requests must stick to their name as export d on the node (no use for aliases here, it would just confuse the dev reading it) // relational data requests may use any alias, so that we can query different subsets of the same node relation // Check the "How we achieve concurrent relational data querying support" section in the .md file
+        : Key extends keyof TNodeComputedData   
+        ? TNodeComputedData[Key] 
         : never;
   }>
 
@@ -598,7 +603,7 @@ type ExtractQueriedDataFromMapFnReturn<
     ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
     : TMapFnReturn[Key] extends MapFnForNode<TSMNode>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
-    : TMapFnReturn[Key] extends ISMData
+    : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
     : never;
 };
