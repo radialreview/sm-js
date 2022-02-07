@@ -578,7 +578,7 @@ type RequestedData<
         : Key extends keyof TNodeComputedData   
         ? TNodeComputedData[Key] 
         : never;
-  }>
+  } | {}>
 
 
 // A generic to extract the resulting data based on a map fn
@@ -605,6 +605,8 @@ type ExtractQueriedDataFromMapFnReturn<
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
     : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
+    : TMapFnReturn[Key] extends MapFn<any, any, any>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
     : never;
 };
 

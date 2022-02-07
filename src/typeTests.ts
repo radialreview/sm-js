@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/no-unused-vars: 0 */
 import {
   getDefaultConfig,
   queryDefinition,
@@ -6,6 +7,7 @@ import {
   number,
   children,
 } from './';
+import { object } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   IChildrenQueryBuilder,
@@ -28,6 +30,9 @@ const todoNode = smJS.def({
 const userProperties = {
   id: string,
   firstName: string,
+  address: object({
+    state: string,
+  }),
 };
 const userRelational = {
   todos: () =>
@@ -40,6 +45,7 @@ const userNode = smJS.def({
 });
 
 (async function MapFnTests() {
+  // @ts-ignore
   const mapFn: MapFnForNode<typeof userNode> = ({
     id,
     // @ts-expect-error
@@ -50,8 +56,8 @@ const userNode = smJS.def({
     // // @ts-expect-error
     // bleh: '',
   });
-  mapFn;
 
+  // @ts-ignore
   const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
     id,
     todos,
@@ -69,12 +75,12 @@ const userNode = smJS.def({
     // // @ts-expect-error
     todos2: todos,
   });
-  mapFnWithRelationalQueries;
 })();
 
 (async function QueryDataReturnTests() {
   const randomMapFn = () => ({ id: string });
 
+  // @ts-ignore
   const returnedDataFromRandomFn: ExtractQueriedDataFromMapFn<
     typeof randomMapFn,
     typeof userNode
@@ -83,7 +89,6 @@ const userNode = smJS.def({
     // @ts-expect-error
     bogus: '',
   };
-  returnedDataFromRandomFn;
 
   const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
     id,
@@ -97,8 +102,8 @@ const userNode = smJS.def({
       }),
     }),
   });
-  mapFnWithRelationalQueries;
 
+  // @ts-ignore
   const returnedData: ExtractQueriedDataFromMapFn<
     typeof mapFnWithRelationalQueries,
     typeof userNode
@@ -106,15 +111,13 @@ const userNode = smJS.def({
     // "id" seems to be falling through the never case in ExtractQueriedDataFromMapFnReturn
     // however doesn't seem to be causing issues in the resulting dev experience tests
     // id: '',
-
-    // is not even a valid property on a user, and was not included in the map fn above but doesn't throw an error here.
+    //
+    // "shouldError" is not even a valid property on a user, and was not included in the map fn above but doesn't throw an error here.
     // however doesn't seem to be causing issues in the resulting dev experience tests
     // shouldError: '',
-
-    // @ts-expect-error was not included in the map fn above
-    firstName: '',
+    //
+    // firstName: '',
   };
-  returnedData;
 })();
 
 // These are the most important
@@ -200,4 +203,40 @@ const userNode = smJS.def({
   withRelationalResults.data.users[0].todos[0].dueDate as number;
   // @ts-expect-error not queried
   withRelationalResults.data.users[0].todos[0].task as string;
+
+  const withOnlyRelationalResults = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todos: userData.todos({
+          map: todoData => ({
+            id: todoData.id,
+            dueDate: todoData.dueDate,
+            // @ts-expect-error doesn't exist in todo data
+            nonExisting: todoData.doesntExist,
+          }),
+        }),
+      }),
+    }),
+  });
+  // @ts-expect-error not queried
+  withOnlyRelationalResults.data.users[0].firstName as string;
+  withOnlyRelationalResults.data.users[0].todos[0].id as string;
+  // @ts-expect-error not queried
+  withOnlyRelationalResults.data.users[0].todos[0].bogus as string;
+
+  const withPartialObject = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        address: userData.address({
+          map: addressData => ({ state: addressData.state }),
+        }),
+      }),
+    }),
+  });
+
+  withPartialObject.data.users[0].address.state as string;
+  // @ts-expect-error
+  withPartialObject.data.users[0].address.bogus as string;
 })();

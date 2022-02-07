@@ -209,6 +209,7 @@ test('creating a single node in sm works', async done => {
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id,
     }),
   });
@@ -251,6 +252,7 @@ test('creating multiple nodes in sm works', async done => {
   } = await smJSInstance.query({
     things: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       ids: [id1, id2],
     }),
   });
@@ -289,6 +291,7 @@ test('updating a single node in sm works', async done => {
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id,
     }),
   });
@@ -342,6 +345,7 @@ test('updating several nodes in sm works', async done => {
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       ids: [id1, id2],
     }),
   });
@@ -371,6 +375,7 @@ test('dropping a node in sm works', async done => {
       {
         thing: queryDefinition({
           def: mockThingDef,
+          map: undefined,
           id,
         }),
       },
@@ -484,6 +489,7 @@ test('creating a single edge in sm works', async done => {
   } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -526,6 +532,7 @@ test('creating multiple edges in sm works', async done => {
   } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -557,6 +564,7 @@ test('updating a single edge in sm works', async done => {
   } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -614,6 +622,7 @@ test('updating multiple edges in sm works', async done => {
   } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -667,6 +676,7 @@ test('dropping a single edge in sm works', async done => {
     return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -728,6 +738,7 @@ test('dropping a multiple edges in sm works', async done => {
     return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -782,6 +793,7 @@ test('replacing a single edge in sm works', async done => {
     return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -851,6 +863,7 @@ test('replacing a multiple edges in sm works', async done => {
     return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -932,6 +945,7 @@ test('dropping a property in sm works', async done => {
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
@@ -955,6 +969,7 @@ test('dropping a property in sm works', async done => {
   } = await smJSInstance.query({
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
@@ -997,6 +1012,7 @@ test('dropping an object will drop all the properties', async done => {
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
@@ -1017,6 +1033,7 @@ test('dropping an object will drop all the properties', async done => {
   } = await smJSInstance.query({
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
