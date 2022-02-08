@@ -1098,7 +1098,7 @@ test('dropping an object will drop all the properties', async done => {
   done();
 });
 
-test.only('grouped transactions work as expected', async () => {
+test('grouped transactions work as expected', async () => {
   const token = await getToken();
   console.log(token);
 

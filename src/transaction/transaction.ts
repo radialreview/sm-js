@@ -64,6 +64,16 @@ interface ITransactionContext {
 
 type TIndexedOperationType = OperationType & { position?: number };
 
+type TExecutionResult =
+  | Array<{
+      data: Record<string, any>;
+    }>
+  | Array<
+      Array<{
+        data: Record<string, any>;
+      }>
+    >;
+
 type TOperationsByType = Record<
   OperationType['type'],
   Array<TIndexedOperationType>
@@ -135,8 +145,6 @@ export function transaction(
      * createNodes/updateNodes creates multiple nodes in a single operation,
      * therefore we need to track the position of these nodes instead of just the position of the operation itself
      */
-
-    // TODO: abstract this a bit
     if (operation.type === 'createNodes') {
       createOperationsCount += 1;
 
@@ -342,15 +350,7 @@ export function transaction(
   const result = callback(context);
 
   function handleSuccessCallbacks(opts: {
-    executionResult:
-      | Array<{
-          data: Record<string, any>;
-        }>
-      | Array<
-          Array<{
-            data: Record<string, any>;
-          }>
-        >;
+    executionResult: TExecutionResult;
     operationsByType: TOperationsByType;
   }) {
     const { executionResult, operationsByType } = opts;
@@ -363,19 +363,9 @@ export function transaction(
      * Loop through the operations, map the operation to each result sent back from SM,
      * then pass the result into the callback if it exists
      */
-
-    const executeCallbacksWithData = (
-      executionResult:
-        | Array<{
-            data: Record<string, any>;
-          }>
-        | Array<
-            Array<{
-              data: Record<string, any>;
-            }>
-          >
-    ) => {
+    const executeCallbacksWithData = (executionResult: TExecutionResult) => {
       executionResult.forEach(result => {
+        // if executionResult is 2d array
         if (Array.isArray(result)) {
           executeCallbacksWithData(result);
         } else {
@@ -454,10 +444,12 @@ export function transaction(
       }
       const mutations = getAllMutations(operationsByType);
 
-      const executionResult = await getConfig().gqlClient.mutate({
-        mutations,
-        token,
-      });
+      const executionResult: TExecutionResult = await getConfig().gqlClient.mutate(
+        {
+          mutations,
+          token,
+        }
+      );
 
       if (executionResult) {
         handleSuccessCallbacks({
@@ -498,10 +490,12 @@ export function transaction(
           });
         });
 
-        const executionResult = await Promise.all(allMutations);
+        const executionResults: Array<TExecutionResult> = await Promise.all(
+          allMutations
+        );
 
-        if (executionResult) {
-          executionResult.forEach((result, idx) => {
+        if (executionResults) {
+          executionResults.forEach((result, idx) => {
             handleSuccessCallbacks({
               executionResult: result,
               operationsByType: transactions[idx].operations,
@@ -509,7 +503,7 @@ export function transaction(
           });
         }
 
-        return executionResult.flat();
+        return executionResults.flat();
       } catch (error) {
         throw error;
       }
