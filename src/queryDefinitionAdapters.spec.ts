@@ -14,6 +14,7 @@ import {
 import { queryDefinition, IS_NULL_IDENTIFIER } from './smDataTypes';
 import { gql } from '@apollo/client/core';
 import { SMJS } from '.';
+import { MapFnForNode, QueryRecordEntry } from './types';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
@@ -73,20 +74,20 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(queryRecord.def).toEqual(
       expect.objectContaining({ type: 'tt-user' })
     );
-    expect(queryRecord.underIds).toEqual(['mock-id']),
-      expect(queryRecord.properties).toEqual([
-        ...PROPERTIES_QUERIED_FOR_ALL_NODES,
-        // include the root property name
-        // so that we can continue querying old formats (stringified json)
-        'address',
-        // if it's stored in the new format, is this object set to null
-        `address${IS_NULL_IDENTIFIER}`,
-        // new format separates the object query into every non-object property that was queried
-        // so that we can query much less data
-        'address__dot__state',
-        'address__dot__apt__dot__floor',
-        'address__dot__apt__dot__number',
-      ]);
+    expect(queryRecord.underIds).toEqual(['mock-id']);
+    expect(queryRecord.properties).toEqual([
+      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      // include the root property name
+      // so that we can continue querying old formats (stringified json)
+      'address',
+      // if it's stored in the new format, is this object set to null
+      `address${IS_NULL_IDENTIFIER}`,
+      // new format separates the object query into every non-object property that was queried
+      // so that we can query much less data
+      'address__dot__state',
+      'address__dot__apt__dot__floor',
+      'address__dot__apt__dot__number',
+    ]);
   });
 
   it('handles relational queries', () => {

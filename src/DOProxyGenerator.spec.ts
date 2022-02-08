@@ -4,6 +4,15 @@ import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
 } from './exceptions';
+import {
+  DeepPartial,
+  GetExpectedNodeDataType,
+  ISMData,
+  Maybe,
+  NodeComputedFns,
+  RelationalQueryRecordEntry,
+  SMDataDefaultFn,
+} from './types';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -111,7 +120,7 @@ function generateDOProxy<
     computed: opts.computed,
   });
 
-  return smJSInstance.doProxyGenerator({
+  return smJSInstance.DOProxyGenerator({
     do: doInstance,
     queryId: 'mockQueryId',
     node: smJSInstance.def({

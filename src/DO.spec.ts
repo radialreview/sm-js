@@ -6,6 +6,7 @@ import {
   generateDOInstance,
   getMockConfig,
 } from './specUtilities';
+import { IChildrenQueryBuilder, ISMData } from './types';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {

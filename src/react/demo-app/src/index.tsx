@@ -4,10 +4,12 @@ import { SMProvider } from 'sm-js';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+import smJS from './smJS';
+
 ReactDOM.render(
   <React.StrictMode>
     <React.Suspense fallback={'loading'}>
-      <SMProvider>
+      <SMProvider smJS={smJS}>
         <App />
       </SMProvider>
     </React.Suspense>

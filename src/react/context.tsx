@@ -1,4 +1,5 @@
 import React from 'react';
+import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
 interface ISMContextSubscription {
   results?: any;
   error?: any;
@@ -76,7 +77,7 @@ export const SMProvider = (props: {
         cleanup();
       }
     },
-    []
+    [props.subscriptionTTLMs]
   );
 
   const cancelCleanup: ISMContext['cancelCleanup'] = React.useCallback(

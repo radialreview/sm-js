@@ -1,5 +1,6 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { QueryDefinitions, QueryDataReturn } from '../types';
 
 import { SMContext } from './context';
 
@@ -40,7 +41,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
     return () => {
       smContext.scheduleCleanup(subscriptionId);
     };
-  }, []);
+  }, [smContext, subscriptionId]);
 
   // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
   // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the

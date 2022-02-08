@@ -12,6 +12,14 @@ import {
   OBJECT_PROPERTY_SEPARATOR,
   OBJECT_IDENTIFIER,
 } from './smDataTypes';
+import {
+  ISMData,
+  SMDataDefaultFn,
+  NodeDO,
+  ISMNodeRepository,
+  DeepPartial,
+  GetExpectedNodeDataType,
+} from './types';
 
 /**
  * Returns an initialized instance of a repository for an SMNode

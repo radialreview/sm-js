@@ -1,5 +1,3 @@
-require('isomorphic-fetch');
-
 import {
   ApolloClient,
   InMemoryCache,
@@ -12,6 +10,9 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { DocumentNode, ISMGQLClient } from './types';
+
+require('isomorphic-fetch');
 
 interface IGetGQLClientOpts {
   httpUrl: string;
