@@ -1,10 +1,21 @@
-import { DOFactory } from './DO';
-import { RepositoryFactory } from './Repository';
 import {
   SMDataTypeException,
   SMDataTypeExplicitDefaultException,
   throwLocallyLogInProd,
 } from './exceptions';
+import {
+  GetExpectedNodeDataType,
+  GetSMDataType,
+  IByReferenceQueryBuilder,
+  IChildrenQueryBuilder,
+  ISMData,
+  ISMNode,
+  ISMQueryPagination,
+  MapFnForNode,
+  Maybe,
+  QueryDefinition,
+  SMDataDefaultFn,
+} from './types';
 
 export const SM_DATA_TYPES = {
   string: 's',
@@ -338,53 +349,12 @@ export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 export const OBJECT_IDENTIFIER = '__object__';
 
-type NodeDefArgs<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
-> = {
-  type: string;
-  properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
-  relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
-};
-
-export function def<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
->(
-  def: NodeDefArgs<
-    TNodeData,
-    TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
-  >
-): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations> {
-  const DOClass = DOFactory(def);
-
-  return {
-    _isSMNodeDef: true,
-    do: DOClass,
-    repository: RepositoryFactory({ def, DOClass }),
-    type: def.type,
-    smData: def.properties,
-    smComputed: def.computed,
-    smRelational: def.relational,
-    smMutations: def.mutations,
-  };
-}
-
 // HACK ALERT! Exists only to make TS work the way we need it
 // It makes it possible to accept multiple node types within a record of query definitions, without losing type safety
 // See this for a simplified example https://www.typescriptlang.org/play?#code/GYVwdgxgLglg9mABBBwYHMA8ARAhlXAFQE8AHAUwD4AKFMNdALkQHkBbGKTASQGUYw6ADbkAwqgw58RMlQA0iAOQB9ZTADOJCr1zByAVXXlCACzET0AMXDR4YAIT3FlAJTM+A4efqS8BLVSIAN4AUIiIAE7kUCARSEEAdEl0DHIqapqyOnqGxmbiPlY2sAiOisxQESDkiAC+IfUhAlDkEcC4EDXchHAAJnB+uMFhiDC9zOqVniME6gDWE1OCDSEhdJOIUH0D0u49-YOIALzBo+NKAIwATADMigqzC0r9m2aIveTkvYp1q1CyiAAitUIsRLGApP5ZJRjohqL1dohBgEXMcYQAFXARWC4ISQmQUSirZqtdqdRAeQQiAoMfEBGGhcLhdIaALZAxGUzeBjWSAlBxOCpVchyEbhBEEZjI2SipmIACOIOIzGBrTBEOlhJWTTALTaHS6AFkQEJYDSMMNwgBtObkZWISYRTwAXXc-Cp3MkuDAxCJjXWUEQbGIADk+uRBu5jaaYOb0LDGYgQEYIpptupmInxYitgdpLKmYq1cxqEEzg9cPM6qijjDS+XNpW5tWRrUC7ihPs4BnkBZS2L3jntoMC+Ei6CS2WxhWq7Ua3Wp70Z82562XCsgA
 export function queryDefinition<
   TSMNode extends ISMNode,
-  TQueryDefinitionTarget extends QueryDefinitionTarget<TSMNode>,
-  TQueryFn extends MapFnForNode<TSMNode>
->(queryDefinition: QueryDefinition<TSMNode, TQueryDefinitionTarget, TQueryFn>) {
+  TMapFn extends MapFnForNode<TSMNode> | undefined
+>(queryDefinition: QueryDefinition<TSMNode, TMapFn>) {
   return queryDefinition;
 }

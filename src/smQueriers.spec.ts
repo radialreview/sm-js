@@ -1,34 +1,26 @@
-import { config, SMConfig } from './config';
-import { setToken } from './auth';
-import { query, subscribe } from './smQueriers';
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
   mockQueryResultExpectations,
-  mockSubscriptionMessage,
+  getMockSubscriptionMessage,
+  getMockConfig,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import { SMJS } from '.';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
 beforeEach(() => {
   console.error = () => {};
-  config({
-    gqlClient: {
-      query: async () => mockQueryDataReturn,
-      subscribe: () => {},
-    },
-  } as DeepPartial<SMConfig>);
 });
 afterAll(() => {
   console.error = nativeConsoleError;
 });
 
-const token = 'my mock token';
-setToken('default', { token });
-
 test('sm.query uses the gql client, passing in the expected params', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+  const token = 'mock token';
+  smJSInstance.setToken({ tokenName: 'default', token });
   const queryId = 'MockQueryId';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
@@ -40,42 +32,26 @@ test('sm.query uses the gql client, passing in the expected params', async done 
     expect(opts.token).toEqual(token);
     return mockQueryDataReturn;
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
 
-  await query(queryDefinitions, { queryId });
+  await smJSInstance.query(queryDefinitions, { queryId });
 
   expect(mockQuery).toHaveBeenCalled();
   done();
 });
 
 test('sm.query returns the correct data', async () => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  const { smJSInstance, queryDefinitions } = setupTest();
 
-  const { data } = await query(queryDefinitions);
+  const { data } = await smJSInstance.query(queryDefinitions);
 
   expect(data).toEqual(mockQueryResultExpectations);
 });
 
 test('sm.query calls "onData" with the result of the query', done => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  const { smJSInstance, queryDefinitions } = setupTest();
 
-  query(queryDefinitions, {
+  smJSInstance.query(queryDefinitions, {
     onData: ({ results }) => {
       expect(results).toEqual(mockQueryResultExpectations);
       done();
@@ -84,17 +60,13 @@ test('sm.query calls "onData" with the result of the query', done => {
 });
 
 test('sm.query calls "onError" when the query fails', done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(async () => {
     throw new Error('Something went wrong');
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
 
-  query(queryDefinitions, {
+  smJSInstance.query(queryDefinitions, {
     onError: e => {
       expect(e).toMatchInlineSnapshot(`
         [Error: Error querying data
@@ -106,18 +78,14 @@ test('sm.query calls "onError" when the query fails', done => {
 });
 
 test('sm.query throws an error when the query fails and no "onError" handler is provided', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(async () => {
     throw new Error('Something went wrong');
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
 
   try {
-    await query(queryDefinitions);
+    await smJSInstance.query(queryDefinitions);
   } catch (e) {
     expect(e).toMatchInlineSnapshot(`
       [Error: Error querying data
@@ -128,31 +96,30 @@ test('sm.query throws an error when the query fails and no "onError" handler is 
 });
 
 test('sm.query throws an error when the user specifies a token which has not been registered', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
 
   try {
-    await query(queryDefinitions, { tokenName: 'invalidTokenName' });
+    await smJSInstance.query(queryDefinitions, {
+      tokenName: 'invalidTokenName',
+    });
   } catch (e) {
     expect(e).toMatchInlineSnapshot(`
       [Error: No token registered with the name "invalidTokenName".
-      Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
+      Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
     `);
     done();
   }
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  const mockSubscribe = jest.fn(() => {});
-  config({
-    gqlClient: {
-      query: mockQuery,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  const { smJSInstance, queryDefinitions } = setupTest();
 
-  await subscribe(queryDefinitions, {
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  const mockSubscribe = jest.fn(() => () => {});
+  smJSInstance.gqlClient.query = mockQuery;
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
+
+  await smJSInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       done(e);
@@ -165,17 +132,14 @@ test('sm.subscribe by default queries and subscribes to the data set', async don
 });
 
 test('sm.subscribe does not query if skipInitialQuery is true', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  const mockSubscribe = jest.fn(() => {});
-  config({
-    gqlClient: {
-      query: mockQuery,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  const { smJSInstance, queryDefinitions } = setupTest();
 
-  await subscribe(queryDefinitions, {
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  const mockSubscribe = jest.fn(() => () => {});
+  smJSInstance.gqlClient.query = mockQuery;
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
+
+  await smJSInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -188,15 +152,9 @@ test('sm.subscribe does not query if skipInitialQuery is true', async done => {
 });
 
 test('sm.subscribe returns the expected data', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
-  const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  const { smJSInstance, queryDefinitions } = setupTest();
 
-  const { data } = await subscribe(queryDefinitions, {
+  const { data } = await smJSInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       done(e);
@@ -208,16 +166,13 @@ test('sm.subscribe returns the expected data', async done => {
 });
 
 test('sm.subscribe returns a method to cancel any subscriptions started', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+
   const cancel = jest.fn();
   const mockSubscribe = jest.fn(() => cancel);
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
-  const { unsub } = await subscribe(queryDefinitions, {
+  const { unsub } = await smJSInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -231,7 +186,9 @@ test('sm.subscribe returns a method to cancel any subscriptions started', async 
 });
 
 test('sm.subscribe calls onData with the new set of results when a node is updated', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onMessage({
@@ -245,12 +202,9 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
         },
       });
     }, 20);
+    return () => {};
   });
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
   let iteration = 0;
   const onData = jest.fn(({ results }) => {
@@ -261,7 +215,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
       iteration++;
     }
   });
-  await subscribe(queryDefinitions, {
+  await smJSInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -275,7 +229,9 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
 });
 
 test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onMessage({
@@ -289,6 +245,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
         },
       });
     }, 20);
+    return () => {};
   });
   const mockQuery = jest.fn(() => {
     return new Promise(res => {
@@ -297,12 +254,8 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       }, 40);
     });
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
   const onData = jest.fn(({ results }) => {
     try {
@@ -311,7 +264,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       done(e);
     }
   });
-  await subscribe(queryDefinitions, {
+  await smJSInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -325,7 +278,9 @@ test('sm.subscribe handles a case where a subscription message comes in before t
 });
 
 test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onMessage({
@@ -339,6 +294,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
         },
       });
     }, 20);
+    return () => {};
   });
   const mockQuery = jest.fn(() => {
     return new Promise(res => {
@@ -347,17 +303,13 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       }, 40);
     });
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
   const onData = jest.fn(({ results }) => {
     expect(results).toEqual(mockQueryResultExpectations);
   });
-  await subscribe(queryDefinitions, {
+  await smJSInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -371,17 +323,14 @@ test('sm.subscribe handles a case where a subscription message comes in before t
 });
 
 test('sm.subscribe calls onError when a subscription error occurs', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
-  await subscribe(queryDefinitions, {
+  await smJSInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: () => {
@@ -391,18 +340,15 @@ test('sm.subscribe calls onError when a subscription error occurs', async done =
 });
 
 test('sm.subscribe throws an error when a subscription initialization error occurs and no onError handler is provided', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
+
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
   try {
-    await subscribe(queryDefinitions, {
+    await smJSInstance.subscribe(queryDefinitions, {
       skipInitialQuery: true,
       onData: () => {},
     });
@@ -416,17 +362,13 @@ test('sm.subscribe throws an error when a subscription initialization error occu
 });
 
 test('sm.subscribe calls onError when a subscription initialization error occurs', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
-  subscribe(queryDefinitions, {
+  smJSInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -440,19 +382,16 @@ test('sm.subscribe calls onError when a subscription initialization error occurs
 });
 
 test('sm.subscribe calls onError when an ongoing subscription error occurs', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onError(new Error('Something went wrong'));
     }, 30);
+    return () => {};
   });
-  config({
-    gqlClient: {
-      subscribe: mockSubscribe,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.subscribe = mockSubscribe;
 
-  subscribe(queryDefinitions, {
+  smJSInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -466,17 +405,13 @@ test('sm.subscribe calls onError when an ongoing subscription error occurs', asy
 });
 
 test('sm.subscribe calls onError when a query error occurs', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(() => {
     throw Error('Some error');
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
 
-  subscribe(queryDefinitions, {
+  smJSInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       expect(e).toMatchInlineSnapshot(`
@@ -489,18 +424,14 @@ test('sm.subscribe calls onError when a query error occurs', async done => {
 });
 
 test('sm.subscribe throws an error when a query error occurs and no onError handler is provided', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(() => {
     throw Error('Some error');
   });
-  config({
-    gqlClient: {
-      query: mockQuery,
-    },
-  } as DeepPartial<SMConfig>);
+  smJSInstance.gqlClient.query = mockQuery;
 
   try {
-    await subscribe(queryDefinitions, {
+    await smJSInstance.subscribe(queryDefinitions, {
       onData: () => {},
     });
   } catch (e) {
@@ -513,10 +444,10 @@ test('sm.subscribe throws an error when a query error occurs and no onError hand
 });
 
 test('sm.subscribe throws an error when the user specifies a token which has not been registered', async done => {
-  const queryDefinitions = createMockQueryDefinitions();
+  const { smJSInstance, queryDefinitions } = setupTest();
 
   try {
-    await subscribe(queryDefinitions, {
+    await smJSInstance.subscribe(queryDefinitions, {
       onData: () => {},
       tokenName: 'invalidTokenName',
     });
@@ -528,3 +459,11 @@ test('sm.subscribe throws an error when the user specifies a token which has not
     done();
   }
 });
+
+function setupTest() {
+  const smJSInstance = new SMJS(getMockConfig());
+  smJSInstance.setToken({ tokenName: 'default', token: 'mock token' });
+  const queryDefinitions = createMockQueryDefinitions(smJSInstance);
+
+  return { smJSInstance, queryDefinitions };
+}

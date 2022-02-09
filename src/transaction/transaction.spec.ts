@@ -1,21 +1,18 @@
-import { DocumentNode } from '@apollo/client/core';
-import { config, SMConfig } from '../config';
-import { autoIndentGQL } from '../specUtilities';
-import { transaction } from './transaction';
+import { SMJS } from '..';
+import { autoIndentGQL, getMockConfig } from '../specUtilities';
+import { DocumentNode } from '../types';
 
 test('transaction calls gqlClient.mutate with the expected operations', async done => {
-  config({
-    gqlClient: {
-      mutate: (opts: any) => {
-        // console.log(opts.mutations.map((m: any) => m.loc.source.body));
+  const smJSInstance = new SMJS(getMockConfig());
 
-        // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
-        expect(opts.mutations.length).toBe(16);
-        expect(
-          opts.mutations.map((document: DocumentNode) =>
-            autoIndentGQL(document.loc?.source.body as string)
-          )
-        ).toMatchInlineSnapshot(`
+  smJSInstance.gqlClient.mutate = (opts: any) => {
+    // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
+    expect(opts.mutations.length).toBe(16);
+    expect(
+      opts.mutations.map((document: DocumentNode) =>
+        autoIndentGQL(document.loc?.source.body as string)
+      )
+    ).toMatchInlineSnapshot(`
         Array [
           "
         mutation CreateNodes {
@@ -241,228 +238,226 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
         }",
         ]
         `);
-        done();
-      },
-    },
-  } as DeepPartial<SMConfig>);
+    done();
+    return new Promise(res => res(null));
+  };
 
-  await transaction(context => {
-    context.createNode({
-      data: { type: 'todo', task: 'Do the thing' },
-    });
-    context.createNodes({
-      nodes: [
-        { data: { type: 'issue', task: `Thing wasn't done` } },
-        { data: { type: 'measurable', title: 'No of times thing was done' } },
-      ],
-    });
-    context.updateNode({
-      data: {
-        id: 'some-mock-id',
-        title: 'new title for mock thing',
-      },
-    });
-    context.updateNodes({
-      nodes: [
+  await smJSInstance
+    .transaction(context => {
+      context.createNode({
+        data: { type: 'todo', task: 'Do the thing' },
+      });
+      context.createNodes({
+        nodes: [
+          { data: { type: 'issue', task: `Thing wasn't done` } },
+          { data: { type: 'measurable', title: 'No of times thing was done' } },
+        ],
+      });
+      context.updateNode({
+        data: {
+          id: 'some-mock-id',
+          title: 'new title for mock thing',
+        },
+      });
+      context.updateNodes({
+        nodes: [
+          {
+            data: {
+              id: 'some-other-mock-id',
+              title: 'new title for other mock thing',
+            },
+          },
+          {
+            data: {
+              id: 'some-other-other-mock-id',
+              title: 'new title for other other mock thing',
+            },
+          },
+        ],
+      });
+
+      context.dropNode({
+        id: 'thing-to-drop',
+      });
+
+      context.dropNode({
+        id: 'other-thing-to-drop',
+      });
+
+      context.createEdge({
+        name: 'createEdgeMutation',
+        edge: {
+          from: '123',
+          to: '456',
+          permissions: {
+            view: true,
+          },
+        },
+      });
+
+      context.createEdges([
         {
-          data: {
-            id: 'some-other-mock-id',
-            title: 'new title for other mock thing',
+          edge: {
+            type: 'namedEdge',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeCreation',
+          },
+        },
+
+        {
+          edge: {
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
+          },
+        },
+      ]);
+
+      context.dropEdge({
+        name: 'dropEdgeFromTaskToUser',
+        edge: {
+          from: '123',
+          to: '456',
+        },
+      });
+
+      context.dropEdges([
+        {
+          edge: {
+            type: 'namedEdge',
+            from: '456',
+            to: '789',
+          },
+          name: 'namedEdgeDrop',
+        },
+        {
+          edge: { from: '444', to: '555' },
+        },
+      ]);
+      context.replaceEdge({
+        name: 'replace',
+        edge: {
+          current: 'abc',
+          from: '123',
+          to: '456',
+          permissions: { view: true },
+        },
+      });
+      context.replaceEdges([
+        {
+          edge: {
+            type: 'replacedEdge',
+            current: '123',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeReplacement',
           },
         },
         {
-          data: {
-            id: 'some-other-other-mock-id',
-            title: 'new title for other other mock thing',
+          edge: {
+            current: '222',
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
           },
         },
-      ],
-    });
-
-    context.dropNode({
-      id: 'thing-to-drop',
-    });
-
-    context.dropNode({
-      id: 'other-thing-to-drop',
-    });
-
-    context.createEdge({
-      name: 'createEdgeMutation',
-      edge: {
-        from: '123',
-        to: '456',
-        permissions: {
-          view: true,
-        },
-      },
-    });
-
-    context.createEdges([
-      {
+      ]);
+      context.updateEdge({
+        name: 'updateEdgeFromTaskToUser',
         edge: {
-          type: 'namedEdge',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
-          },
-          name: 'namedEdgeCreation',
+          from: '123',
+          to: '456',
+          permissions: { view: true },
         },
-      },
-
-      {
-        edge: {
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+      });
+      context.updateEdges([
+        {
+          edge: {
+            type: 'renamedEdge',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeUpdate',
           },
         },
-      },
-    ]);
-
-    context.dropEdge({
-      name: 'dropEdgeFromTaskToUser',
-      edge: {
-        from: '123',
-        to: '456',
-      },
-    });
-
-    context.dropEdges([
-      {
-        edge: {
-          type: 'namedEdge',
-          from: '456',
-          to: '789',
-        },
-        name: 'namedEdgeDrop',
-      },
-      {
-        edge: { from: '444', to: '555' },
-      },
-    ]);
-    context.replaceEdge({
-      name: 'replace',
-      edge: {
-        current: 'abc',
-        from: '123',
-        to: '456',
-        permissions: { view: true },
-      },
-    });
-    context.replaceEdges([
-      {
-        edge: {
-          type: 'replacedEdge',
-          current: '123',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
-          },
-          name: 'namedEdgeReplacement',
-        },
-      },
-      {
-        edge: {
-          current: '222',
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+        {
+          edge: {
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
           },
         },
-      },
-    ]);
-    context.updateEdge({
-      name: 'updateEdgeFromTaskToUser',
-      edge: {
-        from: '123',
-        to: '456',
-        permissions: { view: true },
-      },
-    });
-    context.updateEdges([
-      {
-        edge: {
-          type: 'renamedEdge',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
-          },
-          name: 'namedEdgeUpdate',
-        },
-      },
-      {
-        edge: {
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
-          },
-        },
-      },
-    ]);
-  }).execute();
+      ]);
+    })
+    .execute();
 });
 
 // allows devs to fetch data when building a transaction
 test('transaction awaits the callback if it returns a promise', async done => {
-  config({
-    gqlClient: {
-      mutate: (opts: any) => {
-        expect(opts.mutations.length).toBe(1);
-        done();
-      },
-    },
-  });
+  const smJSInstance = new SMJS(getMockConfig());
+  smJSInstance.gqlClient.mutate = (opts: any) => {
+    expect(opts.mutations.length).toBe(1);
+    done();
+    return new Promise(res => res(null));
+  };
 
-  await transaction(async ctx => {
-    const dataFromServer: { id: string } = await new Promise(res => {
-      res({ id: 'mock-todo-id' });
-    });
+  await smJSInstance
+    .transaction(async ctx => {
+      const dataFromServer: { id: string } = await new Promise(res => {
+        res({ id: 'mock-todo-id' });
+      });
 
-    ctx.dropNode({ id: dataFromServer.id });
-  }).execute();
+      ctx.dropNode({ id: dataFromServer.id });
+    })
+    .execute();
 });
 
 test('transactions that receive an array of transaction results should group them all', async () => {
   try {
-    const configOpts = {
-      gqlClient: {
-        mutate: () => {
-          return [
-            {
-              data: {
-                CreateNodes: [
-                  { id: 'tonycorleone', __typename: 'OutputNode' },
-                  { id: 'jeanpaul', __typename: 'OutputNode' },
-                  { id: 'joesmith', __typename: 'OutputNode' },
-                  { id: 'martyBanks', __typename: 'OutputNode' },
-                ],
-              },
-            },
-            {
-              data: {
-                DropNode: 1,
-              },
-            },
-          ];
+    const smJSInstance = new SMJS(getMockConfig());
+    smJSInstance.gqlClient.mutate = () => {
+      const result = [
+        {
+          data: {
+            CreateNodes: [
+              { id: 'tonycorleone', __typename: 'OutputNode' },
+              { id: 'jeanpaul', __typename: 'OutputNode' },
+              { id: 'joesmith', __typename: 'OutputNode' },
+              { id: 'martyBanks', __typename: 'OutputNode' },
+            ],
+          },
         },
-      },
+        {
+          data: {
+            DropNode: 1,
+          },
+        },
+      ];
+
+      return new Promise(res => res(result));
     };
 
-    const mutateSpy = jest.spyOn(configOpts.gqlClient, 'mutate');
+    const mutateSpy = jest.spyOn(smJSInstance.gqlClient, 'mutate');
 
-    config(configOpts);
-
-    const transaction1 = transaction(ctx => {
+    const transaction1 = smJSInstance.transaction(ctx => {
       ctx.createNodes({
         nodes: [
           {
@@ -495,7 +490,7 @@ test('transactions that receive an array of transaction results should group the
       });
     });
 
-    const transaction2 = transaction(async ctx => {
+    const transaction2 = smJSInstance.transaction(async ctx => {
       try {
         const dataFromServer: { id: string } = await new Promise(res => {
           res({ id: 'mock-todo-id' });
@@ -507,7 +502,7 @@ test('transactions that receive an array of transaction results should group the
       }
     });
 
-    await transaction([transaction1, transaction2]).execute();
+    await smJSInstance.transaction([transaction1, transaction2]).execute();
 
     expect(mutateSpy).toHaveBeenCalledTimes(2);
   } catch (e) {
@@ -523,193 +518,175 @@ test('onSuccess callback is executed with correct argument', async done => {
   const replaceEdgeMock = jest.fn();
   const updateEdgeMock = jest.fn();
 
-  config({
-    gqlClient: {
-      mutate: () => {
-        return [
-          {
-            data: {
-              CreateNodes: [
-                { id: 'mikejones', __typename: 'OutputNode' },
-                { id: 'jeanpaul', __typename: 'OutputNode' },
-                { id: 'joesmith', __typename: 'OutputNode' },
-              ],
-            },
-          },
-          {
-            data: {
-              DropNode: 1,
-            },
-          },
-          {
-            data: {
-              UpdateNodes: [
-                { id: '444', __typename: 'OutputNode' },
-                { id: '555', __typename: 'OutputNode' },
-                { id: '666', __typename: 'OutputNode' },
-              ],
-            },
-          },
-          {
-            data: {
-              AttachEdge: 1,
-            },
-          },
-          {
-            data: {
-              AttachEdge: 1,
-            },
-          },
-          {
-            data: {
-              AttachEdge: 1,
-            },
-          },
-          {
-            data: {
-              DropEdge: 1,
-            },
-          },
-          {
-            data: {
-              DropEdge: 1,
-            },
-          },
-          {
-            data: {
-              DropEdge: 1,
-            },
-          },
-          {
-            data: {
-              ReplaceEdge: 1,
-            },
-          },
-          {
-            data: {
-              ReplaceEdge: 1,
-            },
-          },
-          {
-            data: {
-              ReplaceEdge: 1,
-            },
-          },
-          {
-            data: {
-              UpdateEdge: 1,
-            },
-          },
-          {
-            data: {
-              UpdateEdge: 1,
-            },
-          },
-          {
-            data: {
-              UpdateEdge: 1,
-            },
-          },
-        ];
-      },
-    },
-  });
+  const smJSInstance = new SMJS(getMockConfig());
 
-  await transaction(ctx => {
-    ctx.createNodes({
-      nodes: [
-        {
-          data: { type: 'mock-person', name: 'Mike Jones' },
-          onSuccess: (data: any) => {
-            expect(data).toEqual({
-              id: 'mikejones',
-              __typename: 'OutputNode',
-            });
-          },
-        },
-        {
-          data: {
-            type: 'mock-person',
-            name: 'Jean Paul',
-          },
-          onSuccess: (data: any) => {
-            expect(data).toEqual({
-              id: 'jeanpaul',
-              __typename: 'OutputNode',
-            });
-          },
-        },
-      ],
-    });
-
-    const dropNode = {
-      id: '123',
-      onSuccess: () => {
-        // no-op
-      },
-    };
-
-    dropNodeSpy = jest.spyOn(dropNode, 'onSuccess');
-
-    ctx.dropNode(dropNode);
-
-    ctx.updateNode({
-      data: {
-        id: '444',
-      },
-      onSuccess: (data: any) => {
-        expect(data).toEqual({ id: '444', __typename: 'OutputNode' });
-      },
-    });
-
-    ctx.createNode({
-      data: {
-        type: 'mock-person',
-        name: 'Joe Smith',
-      },
-      onSuccess: (data: any) => {
-        expect(data).toEqual({ id: 'joesmith', __typename: 'OutputNode' });
-      },
-    });
-
-    ctx.updateNodes({
-      nodes: [
-        {
-          data: {
-            id: '555',
-          },
-          onSuccess: (data: any) => {
-            expect(data).toEqual({ id: '555', __typename: 'OutputNode' });
-          },
-        },
-        {
-          data: { id: '666' },
-          onSuccess: (data: any) => {
-            expect(data).toEqual({ id: '666', __typename: 'OutputNode' });
-          },
-        },
-      ],
-    });
-
-    const createEdgeOpts = {
-      edge: {
-        from: '123',
-        to: '456',
-        permissions: {
-          view: true,
-        },
-      },
-      onSuccess: () => {
-        // no-op
-      },
-    };
-
-    createEdgeSpy = jest.spyOn(createEdgeOpts, 'onSuccess');
-
-    ctx.createEdge(createEdgeOpts);
-
-    const createEdgesOpts = [
+  smJSInstance.gqlClient.mutate = () => {
+    const result = [
       {
+        data: {
+          CreateNodes: [
+            { id: 'mikejones', __typename: 'OutputNode' },
+            { id: 'jeanpaul', __typename: 'OutputNode' },
+            { id: 'joesmith', __typename: 'OutputNode' },
+          ],
+        },
+      },
+      {
+        data: {
+          DropNode: 1,
+        },
+      },
+      {
+        data: {
+          UpdateNodes: [
+            { id: '444', __typename: 'OutputNode' },
+            { id: '555', __typename: 'OutputNode' },
+            { id: '666', __typename: 'OutputNode' },
+          ],
+        },
+      },
+      {
+        data: {
+          AttachEdge: 1,
+        },
+      },
+      {
+        data: {
+          AttachEdge: 1,
+        },
+      },
+      {
+        data: {
+          AttachEdge: 1,
+        },
+      },
+      {
+        data: {
+          DropEdge: 1,
+        },
+      },
+      {
+        data: {
+          DropEdge: 1,
+        },
+      },
+      {
+        data: {
+          DropEdge: 1,
+        },
+      },
+      {
+        data: {
+          ReplaceEdge: 1,
+        },
+      },
+      {
+        data: {
+          ReplaceEdge: 1,
+        },
+      },
+      {
+        data: {
+          ReplaceEdge: 1,
+        },
+      },
+      {
+        data: {
+          UpdateEdge: 1,
+        },
+      },
+      {
+        data: {
+          UpdateEdge: 1,
+        },
+      },
+      {
+        data: {
+          UpdateEdge: 1,
+        },
+      },
+    ];
+    return new Promise(res => res(result));
+  };
+
+  await smJSInstance
+    .transaction(ctx => {
+      ctx.createNodes({
+        nodes: [
+          {
+            data: { type: 'mock-person', name: 'Mike Jones' },
+            onSuccess: (data: any) => {
+              expect(data).toEqual({
+                id: 'mikejones',
+                __typename: 'OutputNode',
+              });
+            },
+          },
+          {
+            data: {
+              type: 'mock-person',
+              name: 'Jean Paul',
+            },
+            onSuccess: (data: any) => {
+              expect(data).toEqual({
+                id: 'jeanpaul',
+                __typename: 'OutputNode',
+              });
+            },
+          },
+        ],
+      });
+
+      const dropNode = {
+        id: '123',
+        onSuccess: () => {
+          // no-op
+        },
+      };
+
+      dropNodeSpy = jest.spyOn(dropNode, 'onSuccess');
+
+      ctx.dropNode(dropNode);
+
+      ctx.updateNode({
+        data: {
+          id: '444',
+        },
+        onSuccess: (data: any) => {
+          expect(data).toEqual({ id: '444', __typename: 'OutputNode' });
+        },
+      });
+
+      ctx.createNode({
+        data: {
+          type: 'mock-person',
+          name: 'Joe Smith',
+        },
+        onSuccess: (data: any) => {
+          expect(data).toEqual({ id: 'joesmith', __typename: 'OutputNode' });
+        },
+      });
+
+      ctx.updateNodes({
+        nodes: [
+          {
+            data: {
+              id: '555',
+            },
+            onSuccess: (data: any) => {
+              expect(data).toEqual({ id: '555', __typename: 'OutputNode' });
+            },
+          },
+          {
+            data: { id: '666' },
+            onSuccess: (data: any) => {
+              expect(data).toEqual({ id: '666', __typename: 'OutputNode' });
+            },
+          },
+        ],
+      });
+
+      const createEdgeOpts = {
         edge: {
           from: '123',
           to: '456',
@@ -717,58 +694,66 @@ test('onSuccess callback is executed with correct argument', async done => {
             view: true,
           },
         },
-        onSuccess: createEdgesMock,
-      },
-      {
-        edge: {
-          from: 'w123',
-          to: '4w56',
-          permissions: {
-            view: true,
+        onSuccess: () => {
+          // no-op
+        },
+      };
+
+      createEdgeSpy = jest.spyOn(createEdgeOpts, 'onSuccess');
+
+      ctx.createEdge(createEdgeOpts);
+
+      const createEdgesOpts = [
+        {
+          edge: {
+            from: '123',
+            to: '456',
+            permissions: {
+              view: true,
+            },
           },
+          onSuccess: createEdgesMock,
         },
-        onSuccess: createEdgesMock,
-      },
-    ];
+        {
+          edge: {
+            from: 'w123',
+            to: '4w56',
+            permissions: {
+              view: true,
+            },
+          },
+          onSuccess: createEdgesMock,
+        },
+      ];
 
-    ctx.createEdges(createEdgesOpts);
+      ctx.createEdges(createEdgesOpts);
 
-    ctx.dropEdge({
-      edge: {
-        from: '123',
-        to: '456',
-      },
-      onSuccess: dropEdgeMock,
-    });
-
-    ctx.dropEdges([
-      {
+      ctx.dropEdge({
         edge: {
-          from: '12e3',
-          to: '456w',
+          from: '123',
+          to: '456',
         },
         onSuccess: dropEdgeMock,
-      },
-      {
-        edge: {
-          from: '12e32e',
-          to: '456we',
-        },
-        onSuccess: dropEdgeMock,
-      },
-    ]);
+      });
 
-    ctx.replaceEdge({
-      edge: {
-        current: 'abc',
-        from: '123',
-        to: '456',
-        permissions: { view: true },
-      },
-      onSuccess: replaceEdgeMock,
-    });
-    ctx.replaceEdges([
-      {
+      ctx.dropEdges([
+        {
+          edge: {
+            from: '12e3',
+            to: '456w',
+          },
+          onSuccess: dropEdgeMock,
+        },
+        {
+          edge: {
+            from: '12e32e',
+            to: '456we',
+          },
+          onSuccess: dropEdgeMock,
+        },
+      ]);
+
+      ctx.replaceEdge({
         edge: {
           current: 'abc',
           from: '123',
@@ -776,53 +761,64 @@ test('onSuccess callback is executed with correct argument', async done => {
           permissions: { view: true },
         },
         onSuccess: replaceEdgeMock,
-      },
-      {
+      });
+      ctx.replaceEdges([
+        {
+          edge: {
+            current: 'abc',
+            from: '123',
+            to: '456',
+            permissions: { view: true },
+          },
+          onSuccess: replaceEdgeMock,
+        },
+        {
+          edge: {
+            current: 'aebc',
+            from: '12e3',
+            to: '45w6',
+            permissions: { view: true },
+          },
+          onSuccess: replaceEdgeMock,
+        },
+      ]);
+
+      ctx.updateEdge({
+        name: 'updateEdgeFromTaskToUser',
         edge: {
-          current: 'aebc',
-          from: '12e3',
-          to: '45w6',
+          from: '123',
+          to: '456',
           permissions: { view: true },
         },
-        onSuccess: replaceEdgeMock,
-      },
-    ]);
-
-    ctx.updateEdge({
-      name: 'updateEdgeFromTaskToUser',
-      edge: {
-        from: '123',
-        to: '456',
-        permissions: { view: true },
-      },
-      onSuccess: updateEdgeMock,
-    });
-    ctx.updateEdges([
-      {
-        edge: {
-          type: 'renamedEdge',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
-          },
-          name: 'namedEdgeUpdate',
-        },
         onSuccess: updateEdgeMock,
-      },
-      {
-        edge: {
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+      });
+      ctx.updateEdges([
+        {
+          edge: {
+            type: 'renamedEdge',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeUpdate',
           },
+          onSuccess: updateEdgeMock,
         },
-        onSuccess: updateEdgeMock,
-      },
-    ]);
-  }).execute();
+        {
+          edge: {
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
+          },
+          onSuccess: updateEdgeMock,
+        },
+      ]);
+    })
+    .execute();
 
   expect(dropNodeSpy).toHaveBeenCalledTimes(1);
   expect(createEdgeSpy).toHaveBeenCalledTimes(1);

@@ -1,5 +1,5 @@
-import { DocumentNode, gql } from '@apollo/client/core';
-
+import { gql } from '@apollo/client/core';
+import { DocumentNode } from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
 import { NodeData } from './types';

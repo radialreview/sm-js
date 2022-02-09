@@ -4,22 +4,19 @@ import {
   ApolloLink,
   Observable,
   split,
-  DocumentNode,
   gql,
 } from '@apollo/client/core';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { DocumentNode, ISMGQLClient } from './types';
 
-import { SMGQLClient } from './config';
+require('isomorphic-fetch');
 
 interface IGetGQLClientOpts {
   httpUrl: string;
   wsUrl: string;
-  // return "true" if the errors were handled
-  // false otherwise to ensure errors are bubbled up
-  onErrors: (errs: Array<any>) => boolean;
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
@@ -150,28 +147,17 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     },
   });
 
-  const gqlClient: SMGQLClient = {
+  const gqlClient: ISMGQLClient = {
     query: async opts => {
-      try {
-        const { data } = await baseClient.query({
-          query: opts.gql,
-          context: {
-            batchedQuery: opts.batched != null ? opts.batched : true,
-            ...getContextWithToken({ token: opts.token }),
-          },
-        });
+      const { data } = await baseClient.query({
+        query: opts.gql,
+        context: {
+          batchedQuery: opts.batched != null ? opts.batched : true,
+          ...getContextWithToken({ token: opts.token }),
+        },
+      });
 
-        return data;
-      } catch (e) {
-        const gqlErrors = (e as any).graphQLErrors;
-        if (gqlErrors) {
-          if (gqlClientOpts.onErrors(gqlErrors)) {
-            return { data: null, errors: gqlErrors };
-          }
-        }
-
-        throw e;
-      }
+      return data;
     },
     subscribe: opts => {
       const subscription = baseClient

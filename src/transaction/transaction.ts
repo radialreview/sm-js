@@ -43,10 +43,9 @@ import {
   DropNodeOperation,
   getMutationsFromTransactionDropOperations,
 } from './drop';
-import { getConfig } from '../config';
-import { getToken } from '../auth';
+import { ISMJS } from '../types';
 
-interface ITransactionContext {
+export interface ITransactionContext {
   createNodes: typeof createNodes;
   createNode: typeof createNode;
   updateNodes: typeof updateNodes;
@@ -100,410 +99,378 @@ type OperationType =
   | ReplaceEdgeOperation
   | ReplaceEdgesOperation;
 
-/**
- * A transaction allows developers to build groups of mutations that execute with transactional integrity
- *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
- *
- * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
- */
-export function transaction(
-  callback:
-    | ((context: ITransactionContext) => void | Promise<void>)
-    | Array<IPendingTransaction>,
-  opts?: { tokenName: string }
-): IPendingTransaction {
-  const operationsByType: TOperationsByType = {
-    createNode: [],
-    createNodes: [],
-    updateNode: [],
-    updateNodes: [],
-    dropNode: [],
-    createEdge: [],
-    createEdges: [],
-    dropEdge: [],
-    dropEdges: [],
-    replaceEdge: [],
-    replaceEdges: [],
-    updateEdge: [],
-    updateEdges: [],
-  };
+export function createTransaction(smJSInstance: ISMJS) {
   /**
-   * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
-   * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
-   * SM responds with each operation in the order they were sent up.
+   * A transaction allows developers to build groups of mutations that execute with transactional integrity
+   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
+   *
+   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
    */
-  let createOperationsCount = 0;
-  let updateOperationsCount = 0;
-
-  function pushOperation(operation: OperationType) {
-    if (!operationsByType[operation.type]) {
-      throw Error(
-        `No operationsByType array initialized for "${operation.type}"`
-      );
-    }
-    /**
-     * createNodes/updateNodes creates multiple nodes in a single operation,
-     * therefore we need to track the position of these nodes instead of just the position of the operation itself
-     */
-    if (operation.type === 'createNodes') {
-      createOperationsCount += 1;
-
-      operationsByType[operation.type].push({
-        ...operation,
-        position: createOperationsCount,
-        nodes: operation.nodes.map((node, idx) => {
-          return {
-            ...node,
-            position:
-              idx === 0 ? createOperationsCount : (createOperationsCount += 1),
-          };
-        }),
-      });
-    } else if (operation.type === 'createNode') {
-      createOperationsCount += 1;
-
-      operationsByType[operation.type].push({
-        ...operation,
-        position: createOperationsCount,
-      });
-    } else if (operation.type === 'updateNodes') {
-      updateOperationsCount += 1;
-
-      operationsByType[operation.type].push({
-        ...operation,
-        position: updateOperationsCount,
-        nodes: operation.nodes.map((node, idx) => {
-          return {
-            ...node,
-            position:
-              idx === 0 ? updateOperationsCount : (updateOperationsCount += 1),
-          };
-        }),
-      });
-    } else if (operation.type === 'updateNode') {
-      updateOperationsCount += 1;
-      operationsByType[operation.type].push({
-        ...operation,
-        position: updateOperationsCount,
-      });
-    } else {
-      operationsByType[operation.type].push(operation);
-    }
-  }
-
-  const context: ITransactionContext = {
-    createNode: opts => {
-      const operation = createNode(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    createNodes: opts => {
-      const operation = createNodes(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    updateNode: opts => {
-      const operation = updateNode(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    updateNodes: opts => {
-      const operation = updateNodes(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    dropNode: opts => {
-      const operation = dropNode(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    createEdge: opts => {
-      const operation = createEdge(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    createEdges: opts => {
-      const operation = createEdges(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    dropEdge: opts => {
-      const operation = dropEdge(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    dropEdges: opts => {
-      const operation = dropEdges(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    updateEdge: opts => {
-      const operation = updateEdge(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    updateEdges: opts => {
-      const operation = updateEdges(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    replaceEdge: opts => {
-      const operation = replaceEdge(opts);
-      pushOperation(operation);
-      return operation;
-    },
-    replaceEdges: opts => {
-      const operation = replaceEdges(opts);
-      pushOperation(operation);
-      return operation;
-    },
-  };
-
-  function sortMutationsByTransactionPosition<T>(
-    operations: Array<TIndexedOperationType>
+  return function transaction(
+    callback:
+      | ((context: ITransactionContext) => void | Promise<void>)
+      | Array<IPendingTransaction>,
+    opts?: { tokenName: string }
   ) {
-    return (sortBy(
-      operations,
-      operation => operation.position
-    ) as unknown) as T;
-  }
+    const operationsByType: TOperationsByType = {
+      createNode: [],
+      createNodes: [],
+      updateNode: [],
+      updateNodes: [],
+      dropNode: [],
+      createEdge: [],
+      createEdges: [],
+      dropEdge: [],
+      dropEdges: [],
+      replaceEdge: [],
+      replaceEdges: [],
+      updateEdge: [],
+      updateEdges: [],
+    };
 
-  function getAllMutations(operations: TOperationsByType): Array<DocumentNode> {
-    return [
-      ...getMutationsFromTransactionCreateOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.createNode as Array<
-            CreateNodeOperation & { position: number }
-          >),
-          ...(operations.createNodes as Array<
-            CreateNodesOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromTransactionUpdateOperations(
-        sortMutationsByTransactionPosition([
-          ...(operations.updateNode as Array<
-            UpdateNodeOperation & { position: number }
-          >),
-          ...(operations.updateNodes as Array<
-            UpdateNodesOperation & { position: number }
-          >),
-        ])
-      ),
-      ...getMutationsFromTransactionDropOperations([
-        ...(operations.dropNode as Array<DropNodeOperation>),
-      ]),
-      ...getMutationsFromEdgeCreateOperations([
-        ...(operations.createEdge as Array<CreateEdgeOperation>),
-        ...(operations.createEdges as Array<CreateEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeDropOperations([
-        ...(operations.dropEdge as Array<DropEdgeOperation>),
-        ...(operations.dropEdges as Array<DropEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeReplaceOperations([
-        ...(operations.replaceEdge as Array<ReplaceEdgeOperation>),
-        ...(operations.replaceEdges as Array<ReplaceEdgesOperation>),
-      ]),
-      ...getMutationsFromEdgeUpdateOperations([
-        ...(operations.updateEdge as Array<UpdateEdgeOperation>),
-        ...(operations.updateEdges as Array<UpdateEdgesOperation>),
-      ]),
-    ];
-  }
+    /**
+     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
+     * SM responds with each operation in the order they were sent up.
+     */
+    let createOperationsCount = 0;
+    let updateOperationsCount = 0;
 
-  const tokenName = opts?.tokenName || 'default';
-  const token = getToken({ tokenName });
+    function pushOperation(operation: OperationType) {
+      if (!operationsByType[operation.type]) {
+        throw Error(
+          `No operationsByType array initialized for "${operation.type}"`
+        );
+      }
+      /**
+       * createNodes/updateNodes creates multiple nodes in a single operation,
+       * therefore we need to track the position of these nodes instead of just the position of the operation itself
+       */
+      if (operation.type === 'createNodes') {
+        createOperationsCount += 1;
 
-  /**
-   * Group operations by their SM operation name, sorted by position if applicable
-   */
-  function groupBySMOperationName(operations: TOperationsByType) {
-    const result = Object.entries(operations).reduce((acc, [_, operations]) => {
-      operations.forEach((operation: TIndexedOperationType | OperationType) => {
-        if (acc.hasOwnProperty(operation.smOperationName)) {
-          acc[operation.smOperationName] = [
-            ...acc[operation.smOperationName],
-            operation,
-          ];
-        } else {
-          acc[operation.smOperationName] = [operation];
-        }
-      });
-      return acc;
-    }, {} as Record<string, Array<any>>);
+        operationsByType[operation.type].push({
+          ...operation,
+          position: createOperationsCount,
+          nodes: operation.nodes.map((node, idx) => {
+            return {
+              ...node,
+              position:
+                idx === 0
+                  ? createOperationsCount
+                  : (createOperationsCount += 1),
+            };
+          }),
+        });
+      } else if (operation.type === 'createNode') {
+        createOperationsCount += 1;
 
-    Object.entries(result).forEach(([smOperationName, operations]) => {
-      result[smOperationName] = sortBy(
+        operationsByType[operation.type].push({
+          ...operation,
+          position: createOperationsCount,
+        });
+      } else if (operation.type === 'updateNodes') {
+        updateOperationsCount += 1;
+
+        operationsByType[operation.type].push({
+          ...operation,
+          position: updateOperationsCount,
+          nodes: operation.nodes.map((node, idx) => {
+            return {
+              ...node,
+              position:
+                idx === 0
+                  ? updateOperationsCount
+                  : (updateOperationsCount += 1),
+            };
+          }),
+        });
+      } else if (operation.type === 'updateNode') {
+        updateOperationsCount += 1;
+        operationsByType[operation.type].push({
+          ...operation,
+          position: updateOperationsCount,
+        });
+      } else {
+        operationsByType[operation.type].push(operation);
+      }
+    }
+
+    const context: ITransactionContext = {
+      createNode: opts => {
+        const operation = createNode(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      createNodes: opts => {
+        const operation = createNodes(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      updateNode: opts => {
+        const operation = updateNode(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      updateNodes: opts => {
+        const operation = updateNodes(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      dropNode: opts => {
+        const operation = dropNode(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      createEdge: opts => {
+        const operation = createEdge(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      createEdges: opts => {
+        const operation = createEdges(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdge: opts => {
+        const operation = dropEdge(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdges: opts => {
+        const operation = dropEdges(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdge: opts => {
+        const operation = updateEdge(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdges: opts => {
+        const operation = updateEdges(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdge: opts => {
+        const operation = replaceEdge(opts);
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdges: opts => {
+        const operation = replaceEdges(opts);
+        pushOperation(operation);
+        return operation;
+      },
+    };
+
+    function sortMutationsByTransactionPosition<T>(
+      operations: Array<TIndexedOperationType>
+    ) {
+      return (sortBy(
         operations,
         operation => operation.position
-      );
-    });
+      ) as unknown) as T;
+    }
 
-    return result;
-  }
+    function getAllMutations(
+      operations: TOperationsByType
+    ): Array<DocumentNode> {
+      return [
+        ...getMutationsFromTransactionCreateOperations(
+          sortMutationsByTransactionPosition([
+            ...(operations.createNode as Array<
+              CreateNodeOperation & { position: number }
+            >),
+            ...(operations.createNodes as Array<
+              CreateNodesOperation & { position: number }
+            >),
+          ])
+        ),
+        ...getMutationsFromTransactionUpdateOperations(
+          sortMutationsByTransactionPosition([
+            ...(operations.updateNode as Array<
+              UpdateNodeOperation & { position: number }
+            >),
+            ...(operations.updateNodes as Array<
+              UpdateNodesOperation & { position: number }
+            >),
+          ])
+        ),
+        ...getMutationsFromTransactionDropOperations([
+          ...(operations.dropNode as Array<DropNodeOperation>),
+        ]),
+        ...getMutationsFromEdgeCreateOperations([
+          ...(operations.createEdge as Array<CreateEdgeOperation>),
+          ...(operations.createEdges as Array<CreateEdgesOperation>),
+        ]),
+        ...getMutationsFromEdgeDropOperations([
+          ...(operations.dropEdge as Array<DropEdgeOperation>),
+          ...(operations.dropEdges as Array<DropEdgesOperation>),
+        ]),
+        ...getMutationsFromEdgeReplaceOperations([
+          ...(operations.replaceEdge as Array<ReplaceEdgeOperation>),
+          ...(operations.replaceEdges as Array<ReplaceEdgesOperation>),
+        ]),
+        ...getMutationsFromEdgeUpdateOperations([
+          ...(operations.updateEdge as Array<UpdateEdgeOperation>),
+          ...(operations.updateEdges as Array<UpdateEdgesOperation>),
+        ]),
+      ];
+    }
 
-  if (Array.isArray(callback)) {
-    return transactionGroup(callback);
-  }
-
-  const result = callback(context);
-
-  function handleSuccessCallbacks(opts: {
-    executionResult: TExecutionResult;
-    operationsByType: TOperationsByType;
-  }) {
-    const { executionResult, operationsByType } = opts;
-
-    const operationsBySMOperationName = groupBySMOperationName(
-      operationsByType
-    );
+    const tokenName = opts?.tokenName || 'default';
+    const token = smJSInstance.getToken({ tokenName });
 
     /**
-     * Loop through the operations, map the operation to each result sent back from SM,
-     * then pass the result into the callback if it exists
+     * Group operations by their SM operation name, sorted by position if applicable
      */
-    const executeCallbacksWithData = (executionResult: TExecutionResult) => {
-      executionResult.forEach(result => {
-        // if executionResult is 2d array
-        if (Array.isArray(result)) {
-          executeCallbacksWithData(result);
-        } else {
-          const resultData = result.data;
-
-          Object.entries(operationsBySMOperationName).forEach(
-            ([smOperationName, operations]) => {
-              if (resultData.hasOwnProperty(smOperationName)) {
-                operations.forEach(operation => {
-                  // we only need to gather the data for node create/update operations
-                  if (
-                    smOperationName === 'CreateNodes' ||
-                    smOperationName === 'UpdateNodes'
-                  ) {
-                    const groupedResult = resultData[smOperationName];
-                    // for createNodes, execute callback on each individual node rather than top-level operation
-                    if (operation.hasOwnProperty('nodes')) {
-                      operation.nodes.forEach((node: any) => {
-                        if (node.hasOwnProperty('onSuccess')) {
-                          const operationResult =
-                            groupedResult[node.position - 1];
-
-                          node.onSuccess(operationResult);
-                        }
-                      });
-                    } else if (operation.hasOwnProperty('onSuccess')) {
-                      const operationResult =
-                        groupedResult[operation.position - 1];
-                      operation.onSuccess(operationResult);
-                    }
-                  }
-                });
+    function groupBySMOperationName(operations: TOperationsByType) {
+      const result = Object.entries(operations).reduce(
+        (acc, [_, operations]) => {
+          operations.forEach(
+            (operation: TIndexedOperationType | OperationType) => {
+              if (acc.hasOwnProperty(operation.smOperationName)) {
+                acc[operation.smOperationName] = [
+                  ...acc[operation.smOperationName],
+                  operation,
+                ];
+              } else {
+                acc[operation.smOperationName] = [operation];
               }
             }
           );
-        }
-      });
-    };
-
-    executeCallbacksWithData(executionResult);
-
-    /**
-     * For all other operations, just invoke the callback with no args.
-     * Transactions will guarantee that all operations have succeeded, so this is safe to do
-     */
-    Object.entries(operationsBySMOperationName).forEach(
-      ([smOperationName, operations]) => {
-        if (
-          smOperationName !== 'CreateNodes' &&
-          smOperationName !== 'UpdateNodes'
-        ) {
-          operations.forEach(operation => {
-            if (operation.hasOwnProperty('onSuccess')) {
-              operation.onSuccess();
-            } else if (operation.hasOwnProperty('edges')) {
-              (operation.edges as CreateEdgesOperation['edges']).forEach(
-                edgeOperation => {
-                  if (edgeOperation.hasOwnProperty('onSuccess')) {
-                    edgeOperation.onSuccess!();
-                  }
-                }
-              );
-            }
-          });
-        }
-      }
-    );
-  }
-
-  async function execute() {
-    try {
-      if (typeof callback === 'function') {
-        if (result instanceof Promise) {
-          await result;
-        }
-      }
-      const mutations = getAllMutations(operationsByType);
-
-      const executionResult: TExecutionResult = await getConfig().gqlClient.mutate(
-        {
-          mutations,
-          token,
-        }
+          return acc;
+        },
+        {} as Record<string, Array<any>>
       );
 
-      if (executionResult) {
-        handleSuccessCallbacks({
-          executionResult,
-          operationsByType,
-        });
-      }
+      Object.entries(result).forEach(([smOperationName, operations]) => {
+        result[smOperationName] = sortBy(
+          operations,
+          operation => operation.position
+        );
+      });
 
-      return executionResult;
-    } catch (error) {
-      throw error;
+      return result;
     }
-  }
 
-  return {
-    operations: operationsByType,
-    execute,
-    callbackResult: result,
-  };
+    if (Array.isArray(callback)) {
+      return transactionGroup(callback);
+    }
 
-  function transactionGroup(
-    transactions: Array<IPendingTransaction>
-  ): Omit<IPendingTransaction, 'callbackResult'> {
-    const asyncCallbacks = transactions
-      .filter(tx => tx.callbackResult instanceof Promise)
-      .map(({ callbackResult }) => callbackResult);
+    const result = callback(context);
+
+    function handleSuccessCallbacks(opts: {
+      executionResult: TExecutionResult;
+      operationsByType: TOperationsByType;
+    }) {
+      const { executionResult, operationsByType } = opts;
+
+      const operationsBySMOperationName = groupBySMOperationName(
+        operationsByType
+      );
+
+      /**
+       * Loop through the operations, map the operation to each result sent back from SM,
+       * then pass the result into the callback if it exists
+       */
+      const executeCallbacksWithData = (executionResult: TExecutionResult) => {
+        executionResult.forEach(result => {
+          // if executionResult is 2d array
+          if (Array.isArray(result)) {
+            executeCallbacksWithData(result);
+          } else {
+            const resultData = result.data;
+
+            Object.entries(operationsBySMOperationName).forEach(
+              ([smOperationName, operations]) => {
+                if (resultData.hasOwnProperty(smOperationName)) {
+                  operations.forEach(operation => {
+                    // we only need to gather the data for node create/update operations
+                    if (
+                      smOperationName === 'CreateNodes' ||
+                      smOperationName === 'UpdateNodes'
+                    ) {
+                      const groupedResult = resultData[smOperationName];
+                      // for createNodes, execute callback on each individual node rather than top-level operation
+                      if (operation.hasOwnProperty('nodes')) {
+                        operation.nodes.forEach((node: any) => {
+                          if (node.hasOwnProperty('onSuccess')) {
+                            const operationResult =
+                              groupedResult[node.position - 1];
+
+                            node.onSuccess(operationResult);
+                          }
+                        });
+                      } else if (operation.hasOwnProperty('onSuccess')) {
+                        const operationResult =
+                          groupedResult[operation.position - 1];
+                        operation.onSuccess(operationResult);
+                      }
+                    }
+                  });
+                }
+              }
+            );
+          }
+        });
+      };
+
+      executeCallbacksWithData(executionResult);
+
+      /**
+       * For all other operations, just invoke the callback with no args.
+       * Transactions will guarantee that all operations have succeeded, so this is safe to do
+       */
+      Object.entries(operationsBySMOperationName).forEach(
+        ([smOperationName, operations]) => {
+          if (
+            smOperationName !== 'CreateNodes' &&
+            smOperationName !== 'UpdateNodes'
+          ) {
+            operations.forEach(operation => {
+              if (operation.hasOwnProperty('onSuccess')) {
+                operation.onSuccess();
+              } else if (operation.hasOwnProperty('edges')) {
+                (operation.edges as CreateEdgesOperation['edges']).forEach(
+                  edgeOperation => {
+                    if (edgeOperation.hasOwnProperty('onSuccess')) {
+                      edgeOperation.onSuccess!();
+                    }
+                  }
+                );
+              }
+            });
+          }
+        }
+      );
+    }
 
     async function execute() {
       try {
-        if (asyncCallbacks.length) {
-          await Promise.all(asyncCallbacks);
+        if (typeof callback === 'function') {
+          if (result instanceof Promise) {
+            await result;
+          }
         }
+        const mutations = getAllMutations(operationsByType);
 
-        const allMutations = transactions.map(({ operations }) => {
-          return getConfig().gqlClient.mutate({
-            mutations: getAllMutations(operations),
+        const executionResult: TExecutionResult = await smJSInstance.gqlClient.mutate(
+          {
+            mutations,
             token,
-          });
-        });
-
-        const executionResults: Array<TExecutionResult> = await Promise.all(
-          allMutations
+          }
         );
 
-        if (executionResults) {
-          executionResults.forEach((result, idx) => {
-            handleSuccessCallbacks({
-              executionResult: result,
-              operationsByType: transactions[idx].operations,
-            });
+        if (executionResult) {
+          handleSuccessCallbacks({
+            executionResult,
+            operationsByType,
           });
         }
 
-        return executionResults.flat();
+        return executionResult;
       } catch (error) {
         throw error;
       }
@@ -512,6 +479,52 @@ export function transaction(
     return {
       operations: operationsByType,
       execute,
+      callbackResult: result,
     };
-  }
+
+    function transactionGroup(
+      transactions: Array<IPendingTransaction>
+    ): Omit<IPendingTransaction, 'callbackResult'> {
+      const asyncCallbacks = transactions
+        .filter(tx => tx.callbackResult instanceof Promise)
+        .map(({ callbackResult }) => callbackResult);
+
+      async function execute() {
+        try {
+          if (asyncCallbacks.length) {
+            await Promise.all(asyncCallbacks);
+          }
+
+          const allMutations = transactions.map(({ operations }) => {
+            return smJSInstance.gqlClient.mutate({
+              mutations: getAllMutations(operations),
+              token,
+            });
+          });
+
+          const executionResults: Array<TExecutionResult> = await Promise.all(
+            allMutations
+          );
+
+          if (executionResults) {
+            executionResults.forEach((result, idx) => {
+              handleSuccessCallbacks({
+                executionResult: result,
+                operationsByType: transactions[idx].operations,
+              });
+            });
+          }
+
+          return executionResults.flat();
+        } catch (error) {
+          throw error;
+        }
+      }
+
+      return {
+        operations: operationsByType,
+        execute,
+      };
+    }
+  };
 }
