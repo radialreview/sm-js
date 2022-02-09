@@ -17,6 +17,7 @@ function MyComponent() {
         id: userData.id,
         firstName: userData.firstName,
         lastName: userData.lastName,
+        address: userData.address,
         todos: userData.todos({
           map: todoData => ({
             id: todoData.id,
@@ -27,6 +28,7 @@ function MyComponent() {
     }),
   });
 
+  console.log('data', data.users[0].address);
   return (
     <div className="App">
       {data.users.map(user => (

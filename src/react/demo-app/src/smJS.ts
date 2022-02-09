@@ -18,6 +18,7 @@ export const userNode = smJS.def({
     id: string,
     firstName: string,
     lastName: string,
+    address: string,
   },
   relational: {
     todos: () => children({ def: todoNode }),
