@@ -32,6 +32,8 @@ export function RepositoryFactory<
     properties: TNodeData;
   };
   DOClass: new (initialData?: Record<string, any>) => NodeDO;
+  onDOConstructed?: (DO: NodeDO) => void;
+  onDODeleted?: (DO: NodeDO) => void;
 }): ISMNodeRepository {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
   // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
@@ -49,6 +51,9 @@ export function RepositoryFactory<
         cached.onDataReceived(parsedData);
       } else {
         this.cached[data.id] = new opts.DOClass(parsedData);
+        if (opts.onDOConstructed) {
+          opts.onDOConstructed(this.cached[data.id]);
+        }
       }
     }
 
@@ -66,7 +71,12 @@ export function RepositoryFactory<
     }
 
     public onNodeDeleted(id: string) {
-      delete this.cached[id];
+      if (this.cached[id]) {
+        if (opts.onDODeleted) {
+          opts.onDODeleted(this.cached[id]);
+        }
+        delete this.cached[id];
+      }
     }
     /**
      * This method takes data that comes in from SM and is about to be applied to this DO's instance. It needs to:

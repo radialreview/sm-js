@@ -327,7 +327,13 @@ export interface IDOMethods {
   onDataReceived(data: Record<string, any>): void;
 }
 
-export type NodeDO = Record<string, any> & IDOMethods;
+export interface IDOAccessors {
+  id: string
+  version: number
+  persistedData: Record<string,any>
+}
+
+export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,

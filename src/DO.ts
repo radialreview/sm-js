@@ -41,17 +41,21 @@ export function createDOFactory(smJSInstance: ISMJS) {
     return class DO implements TDOClass {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
+      public id: string;
+      public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
-      private _persistedData: Record<string, any> = {};
 
-      constructor(initialData?: DeepPartial<TNodeData> & { version: number }) {
+      constructor(
+        initialData: DeepPartial<TNodeData> & { version: number; id: string }
+      ) {
         this._defaults = this.getDefaultData(node.properties);
-        if (initialData?.version) {
+        this.id = initialData.id;
+        if (initialData.version != null) {
           this.version = Number(initialData.version);
         }
 
         if (initialData) {
-          this._persistedData = this.parseReceivedData({
+          this.persistedData = this.parseReceivedData({
             initialData,
             nodeProperties: node.properties,
           });
@@ -59,7 +63,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
         this.parsedData = this.getParsedData({
           smData: node.properties,
-          persistedData: this._persistedData,
+          persistedData: this.persistedData,
           defaultData: this._defaults,
         });
 
@@ -292,13 +296,13 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
           this.extendPersistedWithNewlyReceivedData({
             smData: node.properties,
-            object: this._persistedData,
+            object: this.persistedData,
             extension: newData,
           });
 
           this.parsedData = this.getParsedData({
             smData: node.properties,
-            persistedData: this._persistedData,
+            persistedData: this.persistedData,
             defaultData: this._defaults,
           });
         }

@@ -1,5 +1,6 @@
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
+import { OptimisticUpdatesOrchestrator } from './OptimisticUpdates';
 import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './smQueriers';
 import { createSMQueryManager } from './SMQueryManager';
@@ -13,6 +14,7 @@ import {
   NodeMutationFn,
   NodeDefArgs,
   ISMNode,
+  NodeDO,
 } from './types';
 
 export * from './smDataTypes';
@@ -29,6 +31,9 @@ export class SMJS implements ISMJS {
   public tokens: Record<string, string> = {};
   public DOFactory: ISMJS['DOFactory'];
   public DOProxyGenerator: ISMJS['DOProxyGenerator'];
+  private optimisticUpdatesOrchestrator: InstanceType<
+    typeof OptimisticUpdatesOrchestrator
+  >;
 
   constructor(config: SMConfig) {
     this.gqlClient = config.gqlClient;
@@ -39,6 +44,7 @@ export class SMJS implements ISMJS {
     this.DOFactory = createDOFactory(this);
     this.SMQueryManager = createSMQueryManager(this);
     this.transaction = createTransaction(this);
+    this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
   }
 
   public def<
@@ -67,7 +73,14 @@ export class SMJS implements ISMJS {
     return {
       _isSMNodeDef: true,
       do: DOClass,
-      repository: RepositoryFactory({ def, DOClass }),
+      repository: RepositoryFactory({
+        def,
+        DOClass,
+        onDOConstructed: this.optimisticUpdatesOrchestrator.onDOConstructed,
+        onDODeleted: this.optimisticUpdatesOrchestrator.onDODeleted,
+        onPersistedDataReceived: this.optimisticUpdatesOrchestrator
+          .onPersistedDataReceived,
+      }),
       type: def.type,
       smData: def.properties,
       smComputed: def.computed,
