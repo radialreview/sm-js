@@ -14,7 +14,6 @@ import {
   NodeMutationFn,
   NodeDefArgs,
   ISMNode,
-  NodeDO,
 } from './types';
 
 export * from './smDataTypes';
@@ -78,7 +77,7 @@ export class SMJS implements ISMJS {
         DOClass,
         onDOConstructed: this.optimisticUpdatesOrchestrator.onDOConstructed,
         onDODeleted: this.optimisticUpdatesOrchestrator.onDODeleted,
-        onPersistedDataReceived: this.optimisticUpdatesOrchestrator
+        onDataReceived: this.optimisticUpdatesOrchestrator
           .onPersistedDataReceived,
       }),
       type: def.type,

@@ -32,8 +32,12 @@ export function RepositoryFactory<
     properties: TNodeData;
   };
   DOClass: new (initialData?: Record<string, any>) => NodeDO;
-  onDOConstructed?: (DO: NodeDO) => void;
-  onDODeleted?: (DO: NodeDO) => void;
+  onDataReceived(opts: {
+    data: { id: string } & Record<string, any>;
+    applyUpdateToDO: () => void;
+  }): void;
+  onDOConstructed?(DO: NodeDO): void;
+  onDODeleted?(DO: NodeDO): void;
 }): ISMNodeRepository {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
   // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
@@ -47,14 +51,22 @@ export function RepositoryFactory<
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
 
-      if (cached) {
-        cached.onDataReceived(parsedData);
-      } else {
-        this.cached[data.id] = new opts.DOClass(parsedData);
-        if (opts.onDOConstructed) {
-          opts.onDOConstructed(this.cached[data.id]);
-        }
+      if (!cached) {
+        const newDO = new opts.DOClass(parsedData);
+        this.cached[data.id] = newDO;
+        opts.onDOConstructed && opts.onDOConstructed(newDO);
       }
+
+      // applyUpdateToDO is called conditionally by OptimisticUpdatesOrchestrator
+      // see comments in that class to understand why
+      opts.onDataReceived({
+        data: parsedData,
+        applyUpdateToDO: () => {
+          // if there was no cached node it was already initialized with this data
+          // calling onDataReceived again would be wasted CPU cycles
+          cached && cached.onDataReceived(parsedData);
+        },
+      });
     }
 
     public byId(id: string) {
@@ -92,7 +104,9 @@ export function RepositoryFactory<
       TNodeData extends Record<string, ISMData | SMDataDefaultFn>
     >(
       receivedData: any
-    ): { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>> {
+    ): { id: string; version: number } & DeepPartial<
+      GetExpectedNodeDataType<TNodeData>
+    > {
       const oldStyleObjects: Record<string, any> = {};
       return Object.keys(receivedData).reduce((parsed, key: string) => {
         const isDataStoredOnAllNodes = PROPERTIES_QUERIED_FOR_ALL_NODES.includes(
@@ -201,7 +215,7 @@ export function RepositoryFactory<
           parsed[key as keyof TNodeData] = receivedData[key];
           return parsed;
         }
-      }, {} as { id: string } & DeepPartial<GetExpectedNodeDataType<TNodeData>>);
+      }, {} as { id: string; version: number } & DeepPartial<GetExpectedNodeDataType<TNodeData>>);
     }
 
     private getOnlyQueriedData(opts: {
