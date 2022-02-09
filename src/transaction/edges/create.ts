@@ -25,7 +25,6 @@ export function createEdges(
     edges,
   };
 }
-// bogus
 
 export function getMutationsFromEdgeCreateOperations(
   operations: Array<CreateEdgeOperation | CreateEdgesOperation>
