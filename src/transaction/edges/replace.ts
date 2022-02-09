@@ -11,15 +11,20 @@ import { getEdgePermissionsString } from './utilities';
 export function replaceEdge(edge: ReplaceEdgeOpts): ReplaceEdgeOperation {
   return {
     type: 'replaceEdge',
+    smOperationName: 'ReplaceEdge',
     ...edge,
   };
 }
 
 export function replaceEdges(
-  edges: Array<ReplaceEdgeProperties & { name?: string }>
+  edges: Array<{
+    edge: ReplaceEdgeProperties & { name?: string };
+    onSuccess?: () => any;
+  }>
 ): ReplaceEdgesOperation {
   return {
     type: 'replaceEdges',
+    smOperationName: 'ReplaceEdge',
     edges,
   };
 }
@@ -34,8 +39,8 @@ export function getMutationsFromEdgeReplaceOperations(
         name: operation.name,
       });
     } else if (operation.type === 'replaceEdges') {
-      return operation.edges.map(
-        convertEdgeReplaceOperationToMutationArguments
+      return operation.edges.map(({ edge }) =>
+        convertEdgeReplaceOperationToMutationArguments(edge)
       );
     }
     throw Error(`Operation not recognized: "${operation}"`);

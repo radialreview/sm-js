@@ -20,22 +20,26 @@ describe('replaceEdge', () => {
       }),
       replaceEdges([
         {
-          type: 'replacedEdge',
-          current: '123',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
+          edge: {
+            type: 'replacedEdge',
+            current: '123',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeReplacement',
           },
-          name: 'namedEdgeReplacement',
         },
         {
-          current: '222',
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+          edge: {
+            current: '222',
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
           },
         },
       ]),
