@@ -6,31 +6,42 @@ import { NodeData } from './types';
 
 export type CreateNodesOperation = {
   type: 'createNodes';
-  nodes: Array<{ data: NodeData; under?: string | Array<string> }>;
+  smOperationName: 'CreateNodes';
+  nodes: Array<{
+    data: NodeData;
+    under?: string | Array<string>;
+    position?: number;
+    onSuccess?: (data: any) => any;
+  }>;
   name?: string;
 };
 
 export function createNodes(
-  operation: Omit<CreateNodesOperation, 'type'>
+  operation: Omit<CreateNodesOperation, 'type' | 'smOperationName'>
 ): CreateNodesOperation {
   return {
     type: 'createNodes',
+    smOperationName: 'CreateNodes',
     ...operation,
   };
 }
 
 export type CreateNodeOperation = {
   type: 'createNode';
+  smOperationName: 'CreateNodes';
   data: NodeData;
   under?: string | Array<string>;
   name?: string;
+  position?: number;
+  onSuccess?: (data: any) => any;
 };
 
 export function createNode(
-  operation: Omit<CreateNodeOperation, 'type'>
+  operation: Omit<CreateNodeOperation, 'type' | 'smOperationName'>
 ): CreateNodeOperation {
   return {
     type: 'createNode',
+    smOperationName: 'CreateNodes',
     ...operation,
   };
 }
@@ -39,7 +50,6 @@ export function getMutationsFromTransactionCreateOperations(
   operations: Array<CreateNodeOperation | CreateNodesOperation>
 ): Array<DocumentNode> {
   if (!operations.length) return [];
-
   const allCreateNodeOperations: Array<{
     data: NodeData;
     under?: string | Array<string>;

@@ -1,5 +1,5 @@
 import { SM_RELATIONAL_TYPES } from './smDataTypes';
-import { ITransactionContext } from './transaction/transaction';
+import { IPendingTransaction, ITransactionContext } from './transaction/transaction';
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
@@ -129,7 +129,10 @@ export interface ISMJS {
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
+    TNodeMutations extends Record<
+      string,
+      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+    >
   >(
     def: NodeDefArgs<
       TNodeData,
@@ -139,9 +142,11 @@ export interface ISMJS {
     >
   ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
   transaction(
-    callback: (context: ITransactionContext) => void | Promise<void>,
+    callback:
+      | ((context: ITransactionContext) => void | Promise<void>)
+      | Array<IPendingTransaction>,
     opts?: { tokenName: string }
-  ): Promise<any>;
+  ): IPendingTransaction
 
   gqlClient: ISMGQLClient;
   plugins: Array<SMPlugin> | undefined;
@@ -161,7 +166,10 @@ export interface ISMJS {
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>,
+    TNodeMutations extends Record<
+      string,
+      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+    >,
     TDOClass = new (initialData?: Record<string, any>) => NodeDO
   >(node: {
     type: string;

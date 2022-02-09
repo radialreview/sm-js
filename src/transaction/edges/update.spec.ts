@@ -19,20 +19,24 @@ describe('updateEdge', () => {
       }),
       updateEdges([
         {
-          type: 'renamedEdge',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
+          edge: {
+            type: 'renamedEdge',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeUpdate',
           },
-          name: 'namedEdgeUpdate',
         },
         {
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+          edge: {
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
           },
         },
       ]),

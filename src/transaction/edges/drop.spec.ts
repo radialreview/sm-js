@@ -18,14 +18,18 @@ describe('dropEdge', () => {
       }),
       dropEdges([
         {
-          type: 'namedEdge',
-          from: '456',
-          to: '789',
+          edge: {
+            type: 'namedEdge',
+            from: '456',
+            to: '789',
+          },
           name: 'namedEdgeDrop',
         },
         {
-          from: '444',
-          to: '555',
+          edge: {
+            from: '444',
+            to: '555',
+          },
         },
       ]),
     ];

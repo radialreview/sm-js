@@ -7,30 +7,39 @@ import { NodeData } from './types';
 
 export type UpdateNodesOperation = {
   type: 'updateNodes';
-  nodes: Array<{ id: string } & NodeData>;
+  smOperationName: 'UpdateNodes';
+  nodes: Array<{
+    data: { id: string } & NodeData;
+    position?: number;
+    onSuccess?: (data: any) => any;
+  }>;
   name?: string;
 };
 
 export function updateNodes(
-  operation: Omit<UpdateNodesOperation, 'type'>
+  operation: Omit<UpdateNodesOperation, 'type' | 'smOperationName'>
 ): UpdateNodesOperation {
   return {
     type: 'updateNodes',
+    smOperationName: 'UpdateNodes',
     ...operation,
   };
 }
 
 export type UpdateNodeOperation = {
   type: 'updateNode';
+  smOperationName: 'UpdateNodes';
   data: { id: string } & NodeData;
   name?: string;
+  onSuccess?: (data: any) => any;
 };
 
 export function updateNode(
-  operation: Omit<UpdateNodeOperation, 'type'>
+  operation: Omit<UpdateNodeOperation, 'type' | 'smOperationName'>
 ): UpdateNodeOperation {
   return {
     type: 'updateNode',
+    smOperationName: 'UpdateNodes',
     ...operation,
   };
 }
@@ -61,7 +70,7 @@ export function getMutationsFromTransactionUpdateOperations(
     if (operation.type === 'updateNode') {
       return operation.data;
     } else if (operation.type === 'updateNodes') {
-      return operation.nodes;
+      return operation.nodes.map(({ data }) => data);
     } else {
       throw Error(`Operation not recognized: "${operation}"`);
     }

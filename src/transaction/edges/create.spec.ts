@@ -19,20 +19,24 @@ describe('Edges', () => {
       }),
       createEdges([
         {
-          type: 'namedEdge',
-          from: '456',
-          to: '789',
-          permissions: {
-            view: true,
+          edge: {
+            type: 'namedEdge',
+            from: '456',
+            to: '789',
+            permissions: {
+              view: true,
+            },
+            name: 'namedEdgeCreation',
           },
-          name: 'namedEdgeCreation',
         },
         {
-          from: '444',
-          to: '555',
-          permissions: {
-            view: true,
-            edit: true,
+          edge: {
+            from: '444',
+            to: '555',
+            permissions: {
+              view: true,
+              edit: true,
+            },
           },
         },
       ]),

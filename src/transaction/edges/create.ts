@@ -12,14 +12,16 @@ export function createEdge(edge: CreateEdgeOpts): CreateEdgeOperation {
   return {
     type: 'createEdge',
     ...edge,
+    smOperationName: 'AttachEdge',
   };
 }
 
 export function createEdges(
-  edges: Array<EdgeProperties & { name?: string }>
+  edges: CreateEdgesOperation['edges']
 ): CreateEdgesOperation {
   return {
     type: 'createEdges',
+    smOperationName: 'AttachEdge',
     edges,
   };
 }
@@ -34,8 +36,8 @@ export function getMutationsFromEdgeCreateOperations(
         name: operation.name,
       });
     } else if (operation.type === 'createEdges') {
-      return operation.edges.map(
-        convertEdgeCreationOperationToMutationArguments
+      return operation.edges.map(({ edge }) =>
+        convertEdgeCreationOperationToMutationArguments(edge)
       );
     }
     throw Error(`Operation not recognized: "${operation}"`);

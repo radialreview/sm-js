@@ -3,7 +3,7 @@ export function getMutationNameFromOperations(
   fallback: string
 ) {
   const operationNames = operations
-    .filter(operation => 'name' in operation)
+    .filter(operation => 'name' in operation && !!operation.name)
     .map(operation => {
       if ('name' in operation) {
         return operation.name;
