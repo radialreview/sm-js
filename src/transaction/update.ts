@@ -11,7 +11,8 @@ export type UpdateNodesOperation = {
   nodes: Array<{
     data: { id: string } & NodeData;
     position?: number;
-    onSuccess?: (data: any) => any;
+    onSuccess?: (data: any) => void;
+    onFail?: () => void;
   }>;
   name?: string;
 };
@@ -31,7 +32,8 @@ export type UpdateNodeOperation = {
   smOperationName: 'UpdateNodes';
   data: { id: string } & NodeData;
   name?: string;
-  onSuccess?: (data: any) => any;
+  onSuccess?: (data: any) => void;
+  onFail?: () => void;
 };
 
 export function updateNode(

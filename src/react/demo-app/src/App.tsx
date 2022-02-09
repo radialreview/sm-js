@@ -1,13 +1,7 @@
 import React from 'react';
 
-import smJS, { userNode } from './smJS';
 import { useSubscription, queryDefinition } from 'sm-js';
-
-smJS.setToken({
-  tokenName: 'default',
-  token:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImY5ZGIxYjA5LTdiMGItNDMzYy1iZDg2LTg5M2MzZmQxNDFmMCIsIk5hbWVzcGFjZUFwcGxpY2F0aW9uSWQiOiIyIiwibmJmIjoxNjQ0NDM4NDg4LCJleHAiOjE2NDQ1MjQ4ODgsImlhdCI6MTY0NDQzODQ4OH0.kt1mR159rr7r4YlABL3k_t7vr_ZnzAz-UUdX6hUYSDg',
-});
+import { userNode } from './smJS';
 
 function MyComponent() {
   const { data } = useSubscription({
@@ -28,7 +22,6 @@ function MyComponent() {
     }),
   });
 
-  console.log('data', data.users[0].address);
   return (
     <div className="App">
       {data.users.map(user => (

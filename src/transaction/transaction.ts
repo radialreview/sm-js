@@ -99,7 +99,15 @@ type OperationType =
   | ReplaceEdgeOperation
   | ReplaceEdgesOperation;
 
-export function createTransaction(smJSInstance: ISMJS) {
+export function createTransaction(
+  smJSInstance: ISMJS,
+  globalOperationHandlers: {
+    onUpdateRequested(update: {
+      id: string;
+      payload: Record<string, any>;
+    }): { onUpdateFailed(): void; onUpdateSuccessful(): void };
+  }
+) {
   /**
    * A transaction allows developers to build groups of mutations that execute with transactional integrity
    *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
@@ -209,12 +217,50 @@ export function createTransaction(smJSInstance: ISMJS) {
       },
       updateNode: opts => {
         const operation = updateNode(opts);
-        pushOperation(operation);
+        const {
+          onUpdateSuccessful,
+          onUpdateFailed,
+        } = globalOperationHandlers.onUpdateRequested({
+          id: opts.data.id,
+          payload: opts.data,
+        });
+
+        pushOperation({
+          ...operation,
+          onSuccess: data => {
+            operation.onSuccess && operation.onSuccess(data);
+            onUpdateSuccessful();
+          },
+          onFail: () => {
+            operation.onFail && operation.onFail();
+            onUpdateFailed();
+          },
+        });
         return operation;
       },
       updateNodes: opts => {
         const operation = updateNodes(opts);
-        pushOperation(operation);
+
+        const globalHandlers = opts.nodes.map(node => {
+          return globalOperationHandlers.onUpdateRequested({
+            id: node.data.id,
+            payload: node.data,
+          });
+        });
+        pushOperation({
+          ...operation,
+          nodes: operation.nodes.map((node, nodeIdx) => ({
+            ...node,
+            onSuccess: data => {
+              node.onSuccess && node.onSuccess(data);
+              globalHandlers[nodeIdx].onUpdateSuccessful();
+            },
+            onFail: () => {
+              node.onFail && node.onFail();
+              globalHandlers[nodeIdx].onUpdateFailed();
+            },
+          })),
+        });
         return operation;
       },
       dropNode: opts => {
@@ -361,6 +407,39 @@ export function createTransaction(smJSInstance: ISMJS) {
 
     const result = callback(context);
 
+    function handleErrorCallbacks(opts: {
+      operationsByType: TOperationsByType;
+    }) {
+      const { operationsByType } = opts;
+
+      const operationsBySMOperationName = groupBySMOperationName(
+        operationsByType
+      );
+
+      Object.entries(operationsBySMOperationName).forEach(
+        ([smOperationName, operations]) => {
+          operations.forEach(operation => {
+            // we only need to gather the data for node create/update operations
+            if (
+              smOperationName === 'CreateNodes' ||
+              smOperationName === 'UpdateNodes'
+            ) {
+              // for createNodes, execute callback on each individual node rather than top-level operation
+              if (operation.hasOwnProperty('nodes')) {
+                operation.nodes.forEach((node: any) => {
+                  if (node.hasOwnProperty('onFail')) {
+                    node.onFail();
+                  }
+                });
+              } else if (operation.hasOwnProperty('onFail')) {
+                operation.onFail();
+              }
+            }
+          });
+        }
+      );
+    }
+
     function handleSuccessCallbacks(opts: {
       executionResult: TExecutionResult;
       operationsByType: TOperationsByType;
@@ -482,6 +561,9 @@ export function createTransaction(smJSInstance: ISMJS) {
 
         return executionResult;
       } catch (error) {
+        handleErrorCallbacks({
+          operationsByType,
+        });
         throw error;
       }
     }

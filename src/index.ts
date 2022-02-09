@@ -42,8 +42,10 @@ export class SMJS implements ISMJS {
     this.DOProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
     this.SMQueryManager = createSMQueryManager(this);
-    this.transaction = createTransaction(this);
     this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
+    this.transaction = createTransaction(this, {
+      onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested,
+    });
   }
 
   public def<
