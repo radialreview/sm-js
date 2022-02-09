@@ -78,7 +78,7 @@ type TOperationsByType = Record<
   Array<TIndexedOperationType>
 >;
 
-interface IPendingTransaction {
+export interface IPendingTransaction {
   operations: TOperationsByType;
   execute: () => Promise<any>;
   callbackResult?: void | Promise<any> | Array<IPendingTransaction>;
