@@ -278,19 +278,24 @@ export function createDOFactory(smJSInstance: ISMJS) {
         }
       }
 
-      public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
+      public onDataReceived = (
+        receivedData: { version: number } & DeepPartial<TNodeData>,
+        opts?: { __unsafeIgnoreVersion: boolean }
+      ) => {
         if (receivedData.version == null) {
           throw Error('Message received for a node was missing a version');
         }
 
-        const { version, ...restReceivedData } = receivedData;
-        const newVersion = Number(version);
+        const newVersion = Number(receivedData.version);
 
-        if (newVersion >= this.version) {
+        // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+        // it allows setting the data on the DO to a version older than the last optimistic update
+        // so that we can revert on a failed request
+        if (opts?.__unsafeIgnoreVersion || newVersion >= this.version) {
           this.version = newVersion;
 
           const newData = this.parseReceivedData({
-            initialData: restReceivedData,
+            initialData: receivedData,
             nodeProperties: node.properties,
           });
 

@@ -324,7 +324,7 @@ export interface IDOMethods {
   /**
    * Called when we get data from SM for this particular DO instance, found by its id
    */
-  onDataReceived(data: Record<string, any>): void;
+  onDataReceived(data: Record<string, any>, opts?: {__unsafeIgnoreVersion?: boolean}): void;
 }
 
 export interface IDOAccessors {

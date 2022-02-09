@@ -1,4 +1,3 @@
-import { update } from 'lodash';
 import { deepClone } from './dataUtilities';
 import { NodeDO } from './types';
 
@@ -89,7 +88,10 @@ export class OptimisticUpdatesOrchestrator {
 
     if (!this.inFlightRequestsById[update.id]) {
       // before any in flight requests go out, we know that the persisted data on a DO is truly persisted
-      this.lastKnownPersistedDataById[update.id] = deepClone(DO.persistedData); // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
+      this.lastKnownPersistedDataById[update.id] = deepClone({
+        ...DO.persistedData,
+        version: DO.version,
+      }); // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
       this.inFlightRequestsById[update.id] = 1;
     } else {
       // if requests are in flight, the "persisted" data on a DO may actually originate from an optimistic update
@@ -98,7 +100,7 @@ export class OptimisticUpdatesOrchestrator {
       this.inFlightRequestsById[update.id]++;
     }
 
-    const currentVersion = DO.persistedData.version;
+    const currentVersion = Number(DO.version);
     const newVersion = currentVersion + 1;
 
     DO.onDataReceived({ ...update.payload, version: newVersion });
@@ -124,7 +126,12 @@ export class OptimisticUpdatesOrchestrator {
         );
       }
       const DO = this.getDOById(id);
-      DO.onDataReceived(this.lastKnownPersistedDataById[id]);
+      DO.onDataReceived(this.lastKnownPersistedDataById[id], {
+        // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+        // it allows setting the data on the DO to a version older than the last optimistic update
+        // so that we can revert on a failed request
+        __unsafeIgnoreVersion: true,
+      });
     }
   }
 
