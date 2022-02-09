@@ -18,12 +18,16 @@ test('getMutationsFromTransactionUpdateOperations returns a single mutation that
     updateNodes({
       nodes: [
         {
-          id: 'mock-headline-id',
-          headline: 'thing may be done next week',
+          data: {
+            id: 'mock-headline-id',
+            headline: 'thing may be done next week',
+          },
         },
         {
-          id: 'mock-measurable-id',
-          title: 'no of times thing was done',
+          data: {
+            id: 'mock-measurable-id',
+            title: 'no of times thing was done',
+          },
         },
       ],
       name: 'UpdateHeadlineAndMeasurable',

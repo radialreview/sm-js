@@ -376,45 +376,55 @@ export function createTransaction(smJSInstance: ISMJS) {
        * then pass the result into the callback if it exists
        */
       const executeCallbacksWithData = (executionResult: TExecutionResult) => {
-        executionResult.forEach(result => {
-          // if executionResult is 2d array
-          if (Array.isArray(result)) {
-            executeCallbacksWithData(result);
-          } else {
-            const resultData = result.data;
-
-            Object.entries(operationsBySMOperationName).forEach(
-              ([smOperationName, operations]) => {
-                if (resultData.hasOwnProperty(smOperationName)) {
-                  operations.forEach(operation => {
-                    // we only need to gather the data for node create/update operations
-                    if (
-                      smOperationName === 'CreateNodes' ||
-                      smOperationName === 'UpdateNodes'
-                    ) {
-                      const groupedResult = resultData[smOperationName];
-                      // for createNodes, execute callback on each individual node rather than top-level operation
-                      if (operation.hasOwnProperty('nodes')) {
-                        operation.nodes.forEach((node: any) => {
-                          if (node.hasOwnProperty('onSuccess')) {
-                            const operationResult =
-                              groupedResult[node.position - 1];
-
-                            node.onSuccess(operationResult);
-                          }
-                        });
-                      } else if (operation.hasOwnProperty('onSuccess')) {
-                        const operationResult =
-                          groupedResult[operation.position - 1];
-                        operation.onSuccess(operationResult);
-                      }
-                    }
-                  });
+        executionResult.forEach(
+          (
+            result:
+              | {
+                  data: Record<string, any>;
                 }
-              }
-            );
+              | {
+                  data: Record<string, any>;
+                }[]
+          ) => {
+            // if executionResult is 2d array
+            if (Array.isArray(result)) {
+              executeCallbacksWithData(result);
+            } else {
+              const resultData = result.data;
+
+              Object.entries(operationsBySMOperationName).forEach(
+                ([smOperationName, operations]) => {
+                  if (resultData.hasOwnProperty(smOperationName)) {
+                    operations.forEach(operation => {
+                      // we only need to gather the data for node create/update operations
+                      if (
+                        smOperationName === 'CreateNodes' ||
+                        smOperationName === 'UpdateNodes'
+                      ) {
+                        const groupedResult = resultData[smOperationName];
+                        // for createNodes, execute callback on each individual node rather than top-level operation
+                        if (operation.hasOwnProperty('nodes')) {
+                          operation.nodes.forEach((node: any) => {
+                            if (node.hasOwnProperty('onSuccess')) {
+                              const operationResult =
+                                groupedResult[node.position - 1];
+
+                              node.onSuccess(operationResult);
+                            }
+                          });
+                        } else if (operation.hasOwnProperty('onSuccess')) {
+                          const operationResult =
+                            groupedResult[operation.position - 1];
+                          operation.onSuccess(operationResult);
+                        }
+                      }
+                    });
+                  }
+                }
+              );
+            }
           }
-        });
+        );
       };
 
       executeCallbacksWithData(executionResult);
