@@ -24,7 +24,11 @@ import {
   QueryFilterEqualsKeyValue,
 } from './types';
 
-export const PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version'];
+export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
+  'id',
+  'version',
+  'lastUpdatedBy',
+];
 
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder

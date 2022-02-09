@@ -42,14 +42,20 @@ export function createDOFactory(smJSInstance: ISMJS) {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
       public id: string;
+      public lastUpdatedBy: string;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
 
       constructor(
-        initialData: DeepPartial<TNodeData> & { version: number; id: string }
+        initialData: DeepPartial<TNodeData> & {
+          version: number;
+          id: string;
+          lastUpdatedBy: string;
+        }
       ) {
         this._defaults = this.getDefaultData(node.properties);
         this.id = initialData.id;
+        this.lastUpdatedBy = initialData.lastUpdatedBy;
         if (initialData.version != null) {
           this.version = Number(initialData.version);
         }
@@ -279,7 +285,9 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       public onDataReceived = (
-        receivedData: { version: number } & DeepPartial<TNodeData>,
+        receivedData: { version: number; lastUpdatedBy: string } & DeepPartial<
+          TNodeData
+        >,
         opts?: { __unsafeIgnoreVersion: boolean }
       ) => {
         if (receivedData.version == null) {
@@ -293,6 +301,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
         // so that we can revert on a failed request
         if (opts?.__unsafeIgnoreVersion || newVersion >= this.version) {
           this.version = newVersion;
+          this.lastUpdatedBy = receivedData.lastUpdatedBy;
 
           const newData = this.parseReceivedData({
             initialData: receivedData,

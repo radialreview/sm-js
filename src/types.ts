@@ -338,6 +338,7 @@ export interface IDOMethods {
 export interface IDOAccessors {
   id: string
   version: number
+  lastUpdatedBy: string
   persistedData: Record<string,any>
 }
 

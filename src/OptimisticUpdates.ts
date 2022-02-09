@@ -39,7 +39,7 @@ export class OptimisticUpdatesOrchestrator {
     Array<{ rollbackState: Record<string, any> }>
   > = {};
 
-  public onDOConstructed(DO: NodeDO) {
+  public onDOConstructed = (DO: NodeDO) => {
     if (!DO.id) throw Error('No id found in DO');
     if (this.DOsById[DO.id])
       throw Error(
@@ -47,26 +47,22 @@ export class OptimisticUpdatesOrchestrator {
         There may be 2 instances of the same node type being initialized.`
       );
     this.DOsById[DO.id] = DO;
-  }
+  };
 
-  public onDODeleted(DO: NodeDO) {
+  public onDODeleted = (DO: NodeDO) => {
     if (!DO.id) throw Error('No id found in DO');
     delete this.DOsById[DO.id];
     delete this.lastKnownPersistedDataById[DO.id];
-  }
+  };
 
-  public onPersistedDataReceived(opts: {
-    data: { id: string; version: number } & Record<string, any>;
+  public onPersistedDataReceived = (opts: {
+    data: { id: string; version: number; lastUpdatedBy: string } & Record<
+      string,
+      any
+    >;
     applyUpdateToDO: () => void;
-  }) {
+  }) => {
     const nodeId = opts.data.id;
-    const version = Number(opts.data.version);
-    const userId = opts.data.lastUpdatedBy;
-    if (!userId || !version || !nodeId) {
-      throw Error(
-        'For optimistic updates to work, all persisted updates must contain "id", "lastUpdatedBy" and "version" properties.'
-      );
-    }
 
     // this is how we short circuit ths repository
     // read comment above this class to understand why
@@ -75,12 +71,12 @@ export class OptimisticUpdatesOrchestrator {
     } else {
       opts.applyUpdateToDO();
     }
-  }
+  };
 
-  public onUpdateRequested(update: {
+  public onUpdateRequested = (update: {
     id: string;
     payload: Record<string, any>;
-  }) {
+  }) => {
     const DO = this.getDOById(update.id);
     const userId = update.payload.lastUpdatedBy;
     if (!userId) {
@@ -93,22 +89,17 @@ export class OptimisticUpdatesOrchestrator {
       // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
       ...deepClone(DO.persistedData),
       version: DO.version,
+      lastUpdatedBy: DO.lastUpdatedBy,
     };
 
     if (!this.inFlightRequestsById[update.id]) {
       // before any in flight requests go out, we know that the persisted data on a DO is truly persisted
-      this.lastKnownPersistedDataById[update.id] = deepClone(rollbackState);
+      this.lastKnownPersistedDataById[update.id] = rollbackState;
       this.inFlightRequestsById[update.id] = [{ rollbackState }];
     } else {
       // if requests are in flight, the "persisted" data on a DO may actually originate from an optimistic update
       // this is simply to avoid introducing optimistic update logic in the DO class.
       // in that case, the true persisted state will be intercepted from the repository by "onPersistedDataReceived" above
-
-      const rollbackState = {
-        // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
-        ...deepClone(DO.persistedData),
-        version: DO.version,
-      };
       this.inFlightRequestsById[update.id].push({ rollbackState });
     }
 
@@ -127,7 +118,7 @@ export class OptimisticUpdatesOrchestrator {
         this.handleUpdateSuccessful({ updateIdx, id: update.id });
       },
     };
-  }
+  };
 
   private handleUpdateFailed(opts: { updateIdx: number; id: string }) {
     const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];

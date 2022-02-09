@@ -1,3 +1,25 @@
-import { getDefaultConfig, SMJS } from 'sm-js';
+import { children, getDefaultConfig, SMJS, string } from 'sm-js';
 
-export default new SMJS(getDefaultConfig());
+const smJS = new SMJS(getDefaultConfig());
+
+export default smJS;
+
+export const todoNode = smJS.def({
+  type: 'todo',
+  properties: {
+    id: string,
+    task: string,
+  },
+});
+
+export const userNode = smJS.def({
+  type: 'tt-user',
+  properties: {
+    id: string,
+    firstName: string,
+    lastName: string,
+  },
+  relational: {
+    todos: () => children({ def: todoNode }),
+  },
+});
