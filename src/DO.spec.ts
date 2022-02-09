@@ -1,13 +1,16 @@
+import { SMJS } from '.';
 import * as smData from './smDataTypes';
 import {
   TodoNode,
   generateTodoNode,
   generateDOInstance,
+  getMockConfig,
 } from './specUtilities';
+import { IChildrenQueryBuilder, ISMData } from './types';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
-    const doInstance = generateDOInstance({
+    const { doInstance } = generateDOInstance({
       properties: {
         id: smData.string,
         dueDate: smData.number,
@@ -33,7 +36,7 @@ describe('smData.DO', () => {
   });
 
   test('that DO class will automatically coerce data it receives on an update based on the expected data structure', () => {
-    const doInstance = generateDOInstance({
+    const { doInstance } = generateDOInstance({
       properties: {
         id: smData.string,
         dueDate: smData.number,
@@ -51,7 +54,7 @@ describe('smData.DO', () => {
   });
 
   test('data in nested object is coerced correctly', () => {
-    const doInstance = generateDOInstance({
+    const { doInstance } = generateDOInstance({
       properties: {
         settings: smData.object({
           schedule: smData.object({
@@ -83,7 +86,7 @@ describe('smData.DO', () => {
       meetingId: smData.string,
     };
 
-    const doInstance = generateDOInstance<
+    const { doInstance } = generateDOInstance<
       typeof properties,
       { dropdownOpt: { value: string; display: string } },
       {},
@@ -114,7 +117,7 @@ describe('smData.DO', () => {
       task: smData.string,
     };
 
-    const doInstance = generateDOInstance<
+    const { doInstance } = generateDOInstance<
       typeof properties,
       { taskWithTest: string; taskWithTestAndTest2: string },
       {},
@@ -139,7 +142,8 @@ describe('smData.DO', () => {
   });
 
   test('relational properties are available on the DO', () => {
-    const doInstance = generateDOInstance<
+    const smJSInstance = new SMJS(getMockConfig());
+    const { doInstance } = generateDOInstance<
       {},
       {},
       { todos: IChildrenQueryBuilder<TodoNode> },
@@ -147,7 +151,7 @@ describe('smData.DO', () => {
     >({
       properties: {},
       relational: {
-        todos: () => smData.children({ def: generateTodoNode() }),
+        todos: () => smData.children({ def: generateTodoNode(smJSInstance) }),
       },
     });
 
@@ -175,7 +179,7 @@ describe('smData.DO', () => {
       maybeArr: smData.array(smData.number.optional).optional,
     };
 
-    const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
         version: '1',
@@ -218,7 +222,7 @@ describe('smData.DO', () => {
       }),
     };
 
-    const doInstance = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
         version: '1',
@@ -269,7 +273,7 @@ describe('smData.DO', () => {
   });
 
   test('does not delete properties within objects that are not included within an update', () => {
-    const doInstance = generateDOInstance({
+    const { doInstance } = generateDOInstance({
       properties: {
         object: smData.object({
           nested: smData.object({

@@ -7,6 +7,22 @@ import {
   OBJECT_PROPERTY_SEPARATOR,
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
+import {
+  NodeRelationalFns,
+  NodeRelationalQueryBuilderRecord,
+  MapFn,
+  ISMData,
+  NodeRelationalQuery,
+  ISMNode,
+  NodeComputedFns,
+  RelationalQueryRecordEntry,
+  BaseQueryRecordEntry,
+  IByReferenceQuery,
+  QueryDefinitions,
+  QueryRecord,
+  QueryRecordEntry,
+  QueryFilterEqualsKeyValue,
+} from './types';
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version'];
 

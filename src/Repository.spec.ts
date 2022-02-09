@@ -1,20 +1,32 @@
-import { DOFactory } from './DO';
 import * as smData from './smDataTypes';
 import { SMNotCachedException } from './exceptions';
-import { UserNode, generateUserNode } from './specUtilities';
+import { UserNode, generateUserNode, getMockConfig } from './specUtilities';
 import { RepositoryFactory } from './Repository';
+import { getDefaultConfig, SMJS } from '.';
+import {
+  NodeRelationalQueryBuilderRecord,
+  NodeMutationFn,
+  NodeComputedFns,
+  NodeRelationalFns,
+  SMDataDefaultFn,
+  IChildrenQueryBuilder,
+} from './types';
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, NodeMutationFn<TNodeData, any>>
+  TNodeMutations extends Record<
+    string,
+    /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
+  >
 >(opts: {
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 }) {
+  const smJS = new SMJS(getDefaultConfig());
   const def = {
     type: 'mockNodeType',
     properties: opts.properties,
@@ -22,7 +34,7 @@ function generateRepositoryInstance<
     relational: opts.relational,
   };
 
-  const DOClass = DOFactory(def);
+  const DOClass = smJS.def(def).do;
 
   return RepositoryFactory({
     DOClass,
@@ -164,6 +176,7 @@ describe('smData.repository', () => {
   // When we get back data from a query, we want to call DO.onDataReceived without having to manually parse the data
   // to remove the relational results. This ensures the DO is responsible for that.
   test('data received that is not part of node data or is relational is ignored', () => {
+    const smJS = new SMJS(getMockConfig());
     const repository = generateRepositoryInstance<
       {
         id: SMDataDefaultFn;
@@ -178,7 +191,7 @@ describe('smData.repository', () => {
         task: smData.string,
       },
       relational: {
-        assignee: () => smData.children({ def: generateUserNode() }),
+        assignee: () => smData.children({ def: generateUserNode(smJS) }),
       },
     });
 

@@ -1,19 +1,18 @@
-import { DocumentNode } from '@apollo/client/core';
-import { config, SMConfig } from '../config';
-import { autoIndentGQL } from '../specUtilities';
-import { transaction } from './transaction';
+import { SMJS } from '..';
+import { autoIndentGQL, getMockConfig } from '../specUtilities';
+import { DocumentNode } from '../types';
 
 test('transaction calls gqlClient.mutate with the expected operations', async done => {
-  config({
-    gqlClient: {
-      mutate: (opts: any) => {
-        // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
-        expect(opts.mutations.length).toBe(16);
-        expect(
-          opts.mutations.map((document: DocumentNode) =>
-            autoIndentGQL(document.loc?.source.body as string)
-          )
-        ).toMatchInlineSnapshot(`
+  const smJSInstance = new SMJS(getMockConfig());
+
+  smJSInstance.gqlClient.mutate = (opts: any) => {
+    // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
+    expect(opts.mutations.length).toBe(16);
+    expect(
+      opts.mutations.map((document: DocumentNode) =>
+        autoIndentGQL(document.loc?.source.body as string)
+      )
+    ).toMatchInlineSnapshot(`
         Array [
           "
         mutation CreateNodes {
@@ -239,12 +238,11 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
         }",
         ]
         `);
-        done();
-      },
-    },
-  } as DeepPartial<SMConfig>);
+    done();
+    return new Promise(res => res(null));
+  };
 
-  await transaction(context => {
+  await smJSInstance.transaction(context => {
     context.createNode({
       data: { type: 'todo', task: 'Do the thing' },
     });
@@ -392,16 +390,14 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
 
 // allows devs to fetch data when building a transaction
 test('transaction awaits the callback if it returns a promise', async done => {
-  config({
-    gqlClient: {
-      mutate: (opts: any) => {
-        expect(opts.mutations.length).toBe(1);
-        done();
-      },
-    },
-  });
+  const smJSInstance = new SMJS(getMockConfig());
+  smJSInstance.gqlClient.mutate = (opts: any) => {
+    expect(opts.mutations.length).toBe(1);
+    done();
+    return new Promise(res => res(null));
+  };
 
-  await transaction(async ctx => {
+  await smJSInstance.transaction(async ctx => {
     const dataFromServer: { id: string } = await new Promise(res => {
       res({ id: 'mock-todo-id' });
     });

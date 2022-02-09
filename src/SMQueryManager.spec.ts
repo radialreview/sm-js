@@ -1,12 +1,17 @@
-import { SMQueryManager } from './SMQueryManager';
 import {
   mockQueryDataReturn,
-  mockQueryRecord,
+  getMockQueryRecord,
   mockQueryResultExpectations,
+  getMockConfig,
 } from './specUtilities';
 
+import { SMJS } from '.';
+
 test('smQueryManager handles a query result and returns the expected data', () => {
-  const queryManager = new SMQueryManager(mockQueryRecord);
+  const smJSInstance = new SMJS(getMockConfig());
+  const queryManager = new smJSInstance.SMQueryManager(
+    getMockQueryRecord(smJSInstance)
+  );
 
   queryManager.onQueryResult({
     queryResult: mockQueryDataReturn,

@@ -1,4 +1,5 @@
 import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
+import { Maybe } from '../types';
 import { NodeData } from './types';
 
 export const JSON_TAG = '__JSON__';
@@ -113,7 +114,6 @@ function prepareObjectForBE(obj: Record<string, any>, parentKey?: string) {
     } else {
       acc[preparedKey] = val;
     }
-
     return acc;
   }, {} as Record<string, any>);
 }

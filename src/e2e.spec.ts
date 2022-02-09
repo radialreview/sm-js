@@ -1,16 +1,15 @@
 import {
-  def,
+  SMJS,
   number,
   queryDefinition,
   string,
   children,
   boolean,
   object,
+  getDefaultConfig,
 } from '.';
-import { setToken } from './auth';
-import { query, subscribe } from './smQueriers';
 import { createMockQueryDefinitions } from './specUtilities';
-import { transaction } from './transaction';
+import { ISMJS } from './types';
 
 function removeVersionsFromResults(results: any) {
   return results.data.users.map((user: any) => ({
@@ -27,11 +26,49 @@ function removeVersionsFromResults(results: any) {
   }));
 }
 
-test('querying data from SM works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+async function setupTest() {
+  const smJSInstance = new SMJS(getDefaultConfig());
 
-  const results = await query(createMockQueryDefinitions({ useNoUnder: true }));
+  const token = await getToken();
+  smJSInstance.setToken({ tokenName: 'default', token });
+
+  const mockThingDef: any = smJSInstance.def({
+    type: 'mock-thing',
+    properties: {
+      id: string,
+      number: number,
+      string: string,
+      object: object.optional({
+        property: string,
+        otherProperty: string,
+        nestedObject: object.optional({
+          nestedProperty: string,
+        }),
+      }),
+    },
+    relational: {
+      todos: () => children({ def: mockTodoDef }),
+    },
+  });
+
+  const mockTodoDef = smJSInstance.def({
+    type: 'mock-todo',
+    properties: {
+      id: string,
+      title: string,
+      done: boolean(false),
+    },
+  });
+
+  return { smJSInstance, token, mockThingDef, mockTodoDef };
+}
+
+test('querying data from SM works', async done => {
+  const { smJSInstance } = await setupTest();
+
+  const results = await smJSInstance.query(
+    createMockQueryDefinitions(smJSInstance, { useNoUnder: true })
+  );
 
   expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
     Array [
@@ -89,13 +126,11 @@ test('querying data from SM works', async done => {
   done();
 });
 
-// @TODO add better e2e tests for subscriptions once mutation API is written
 test('subscribing to data from sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance } = await setupTest();
 
-  const results = await subscribe(
-    createMockQueryDefinitions({ useNoUnder: true }),
+  const results = await smJSInstance.subscribe(
+    createMockQueryDefinitions(smJSInstance, { useNoUnder: true }),
     {
       onData: () => {},
     }
@@ -157,40 +192,11 @@ test('subscribing to data from sm works', async done => {
   done();
 });
 
-const mockThingDef: any = def({
-  type: 'mock-thing',
-  properties: {
-    id: string,
-    number: number,
-    string: string,
-    object: object.optional({
-      property: string,
-      otherProperty: string,
-      nestedObject: object.optional({
-        nestedProperty: string,
-      }),
-    }),
-  },
-  relational: {
-    todos: () => children({ def: mockTodoDef }),
-  },
-});
-
-const mockTodoDef = def({
-  type: 'mock-todo',
-  properties: {
-    id: string,
-    title: string,
-    done: boolean(false),
-  },
-});
-
 test('creating a single node in sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNode({
       data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
     });
@@ -200,9 +206,10 @@ test('creating a single node in sm works', async done => {
 
   const {
     data: { thing },
-  } = await query({
+  } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id,
     }),
   });
@@ -213,11 +220,10 @@ test('creating a single node in sm works', async done => {
 });
 
 test('creating multiple nodes in sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -243,9 +249,10 @@ test('creating multiple nodes in sm works', async done => {
 
   const {
     data: { things },
-  } = await query({
+  } = await smJSInstance.query({
     things: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       ids: [id1, id2],
     }),
   });
@@ -259,11 +266,10 @@ test('creating multiple nodes in sm works', async done => {
 });
 
 test('updating a single node in sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNode({
       data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
     });
@@ -271,7 +277,7 @@ test('updating a single node in sm works', async done => {
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.updateNode({
       data: {
         id,
@@ -282,9 +288,10 @@ test('updating a single node in sm works', async done => {
 
   const {
     data: { thing },
-  } = await query({
+  } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id,
     }),
   });
@@ -294,11 +301,10 @@ test('updating a single node in sm works', async done => {
 });
 
 test('updating several nodes in sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -322,7 +328,7 @@ test('updating several nodes in sm works', async done => {
   const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
     .CreateNodes as Array<{ id: string }>;
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.updateNodes({
       nodes: [
         {
@@ -336,9 +342,10 @@ test('updating several nodes in sm works', async done => {
 
   const {
     data: { thing },
-  } = await query({
+  } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       ids: [id1, id2],
     }),
   });
@@ -349,10 +356,9 @@ test('updating several nodes in sm works', async done => {
 });
 
 test('dropping a node in sm works', async done => {
-  const token = await getToken();
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNode({
       data: { type: 'mock-thing' },
     });
@@ -360,15 +366,16 @@ test('dropping a node in sm works', async done => {
 
   const id = transactionResult[0].data.CreateNodes[0].id as string;
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.dropNode({ id });
   });
 
   try {
-    await query(
+    await smJSInstance.query(
       {
         thing: queryDefinition({
           def: mockThingDef,
+          map: undefined,
           id,
         }),
       },
@@ -390,12 +397,10 @@ test('dropping a node in sm works', async done => {
   }
 });
 
-const createMockThingAndTodo = async () => {
-  const token = await getToken();
-  setToken('default', { token });
+const createMockThingAndTodo = async (smJSInstance: ISMJS) => {
   const timestamp = new Date().valueOf();
 
-  const nodesTransaction = await transaction(ctx => {
+  const nodesTransaction = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -423,12 +428,10 @@ const createMockThingAndTodo = async () => {
   return [thingId, todoId];
 };
 
-const createMockThingAndMultipleTodos = async () => {
-  const token = await getToken();
-  setToken('default', { token });
+const createMockThingAndMultipleTodos = async (smJSInstance: ISMJS) => {
   const timestamp = new Date().valueOf();
 
-  const nodesTransaction = await transaction(ctx => {
+  const nodesTransaction = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -464,9 +467,10 @@ const createMockThingAndMultipleTodos = async () => {
 };
 
 test('creating a single edge in sm works', async done => {
-  const [thingId, todoId] = await createMockThingAndTodo();
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.createEdge({
       edge: {
         from: thingId,
@@ -482,9 +486,10 @@ test('creating a single edge in sm works', async done => {
 
   const {
     data: { todo },
-  } = await query({
+  } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -494,9 +499,12 @@ test('creating a single edge in sm works', async done => {
 });
 
 test('creating multiple edges in sm works', async done => {
-  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
+    smJSInstance
+  );
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.createEdges([
       {
         from: thingId,
@@ -521,9 +529,10 @@ test('creating multiple edges in sm works', async done => {
 
   const {
     data: { todo },
-  } = await query({
+  } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
@@ -534,9 +543,10 @@ test('creating multiple edges in sm works', async done => {
 });
 
 test('updating a single edge in sm works', async done => {
-  const [thingId, todoId] = await createMockThingAndTodo();
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.createEdge({
       edge: {
         from: thingId,
@@ -551,16 +561,17 @@ test('updating a single edge in sm works', async done => {
 
   const {
     data: { todo },
-  } = await query({
+  } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
 
   expect(todo[0].id).toBe(todoId);
 
-  const updateResult = await transaction(ctx => {
+  const updateResult = await smJSInstance.transaction(ctx => {
     ctx.updateEdge({
       edge: {
         from: thingId,
@@ -578,9 +589,12 @@ test('updating a single edge in sm works', async done => {
 });
 
 test('updating multiple edges in sm works', async done => {
-  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
+    smJSInstance
+  );
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.createEdges([
       {
         from: thingId,
@@ -605,16 +619,17 @@ test('updating multiple edges in sm works', async done => {
 
   const {
     data: { todo },
-  } = await query({
+  } = await smJSInstance.query({
     todo: queryDefinition({
       def: mockTodoDef,
+      map: undefined,
       underIds: [thingId],
     }),
   });
 
   expect(todo[0].id).toBe(todoId);
 
-  const updateResult = await transaction(ctx => {
+  const updateResult = await smJSInstance.transaction(ctx => {
     ctx.updateEdges([
       {
         from: thingId,
@@ -640,9 +655,10 @@ test('updating multiple edges in sm works', async done => {
 });
 
 test('dropping a single edge in sm works', async done => {
-  const [thingId, todoId] = await createMockThingAndTodo();
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.createEdge({
       edge: {
         from: thingId,
@@ -657,9 +673,10 @@ test('dropping a single edge in sm works', async done => {
   });
 
   const queryTodoUnderThing = (thingId: string) => {
-    return query({
+    return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -671,7 +688,7 @@ test('dropping a single edge in sm works', async done => {
 
   expect(todo[0].id).toBe(todoId);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.dropEdge({
       edge: {
         from: thingId,
@@ -689,8 +706,12 @@ test('dropping a single edge in sm works', async done => {
 });
 
 test('dropping a multiple edges in sm works', async done => {
-  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
-  await transaction(ctx => {
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
+    smJSInstance
+  );
+
+  await smJSInstance.transaction(ctx => {
     ctx.createEdges([
       {
         from: thingId,
@@ -714,9 +735,10 @@ test('dropping a multiple edges in sm works', async done => {
   });
 
   const queryTodosUnderThing = (thingId: string) => {
-    return query({
+    return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -729,7 +751,7 @@ test('dropping a multiple edges in sm works', async done => {
   expect(todo[0].id).toBe(todoId);
   expect(todo[1].id).toBe(todo2Id);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.dropEdges([
       {
         from: thingId,
@@ -748,8 +770,12 @@ test('dropping a multiple edges in sm works', async done => {
 });
 
 test('replacing a single edge in sm works', async done => {
-  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
-  await transaction(ctx => {
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
+    smJSInstance
+  );
+
+  await smJSInstance.transaction(ctx => {
     ctx.createEdges([
       {
         from: thingId,
@@ -764,9 +790,10 @@ test('replacing a single edge in sm works', async done => {
   });
 
   const queryTodoUnderThing = (thingId: string) => {
-    return query({
+    return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -778,7 +805,7 @@ test('replacing a single edge in sm works', async done => {
 
   expect(todo[0].id).toBe(todoId);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.replaceEdge({
       edge: {
         current: thingId,
@@ -803,9 +830,13 @@ test('replacing a single edge in sm works', async done => {
   done();
 });
 
-test('replacing multiple edges in sm works', async done => {
-  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos();
-  await transaction(ctx => {
+test('replacing a multiple edges in sm works', async done => {
+  const { smJSInstance, mockTodoDef } = await setupTest();
+  const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
+    smJSInstance
+  );
+
+  await smJSInstance.transaction(ctx => {
     ctx.createEdges([
       {
         from: thingId,
@@ -829,9 +860,10 @@ test('replacing multiple edges in sm works', async done => {
   });
 
   const queryTodoUnderThing = (thingId: string) => {
-    return query({
+    return smJSInstance.query({
       todo: queryDefinition({
         def: mockTodoDef,
+        map: undefined,
         underIds: [thingId],
       }),
     });
@@ -844,7 +876,7 @@ test('replacing multiple edges in sm works', async done => {
   expect(todo[0].id).toBe(todoId);
   expect(todo[1].id).toBe(todo2Id);
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.replaceEdges([
       {
         current: thingId,
@@ -882,12 +914,10 @@ test('replacing multiple edges in sm works', async done => {
 });
 
 test('dropping a property in sm works', async done => {
-  const token = await getToken();
-
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -912,16 +942,17 @@ test('dropping a property in sm works', async done => {
 
   const {
     data: { thing },
-  } = await query({
+  } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
 
   expect((thing as any).object.property).toBe('value');
 
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.updateNode({
       data: {
         id: createdThingId,
@@ -935,9 +966,10 @@ test('dropping a property in sm works', async done => {
 
   const {
     data: { thingAfterDrop },
-  } = await query({
+  } = await smJSInstance.query({
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
@@ -949,12 +981,10 @@ test('dropping a property in sm works', async done => {
 });
 
 test('dropping an object will drop all the properties', async done => {
-  const token = await getToken();
-
-  setToken('default', { token });
+  const { smJSInstance, mockThingDef } = await setupTest();
   const timestamp = new Date().valueOf();
 
-  const transactionResult = await transaction(ctx => {
+  const transactionResult = await smJSInstance.transaction(ctx => {
     ctx.createNodes({
       nodes: [
         {
@@ -979,16 +1009,17 @@ test('dropping an object will drop all the properties', async done => {
 
   const {
     data: { thing },
-  } = await query({
+  } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
 
   expect((thing as any).object.property).toBe('value');
   expect((thing as any).object.nestedObject.nestedProperty).toBe('nestedValue');
-  await transaction(ctx => {
+  await smJSInstance.transaction(ctx => {
     ctx.updateNode({
       data: {
         id: createdThingId,
@@ -999,9 +1030,10 @@ test('dropping an object will drop all the properties', async done => {
 
   const {
     data: { thingAfterDrop },
-  } = await query({
+  } = await smJSInstance.query({
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
+      map: undefined,
       id: createdThingId,
     }),
   });
