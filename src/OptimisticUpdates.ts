@@ -34,7 +34,10 @@ import { NodeDO } from './types';
 export class OptimisticUpdatesOrchestrator {
   private DOsById: Record<string, NodeDO> = {};
   private lastKnownPersistedDataById: Record<string, Record<string, any>> = {};
-  private inFlightRequestsById: Record<string, number> = {};
+  private inFlightRequestsById: Record<
+    string,
+    Array<{ rollbackState: Record<string, any> }>
+  > = {};
 
   public onDOConstructed(DO: NodeDO) {
     if (!DO.id) throw Error('No id found in DO');
@@ -86,19 +89,30 @@ export class OptimisticUpdatesOrchestrator {
       );
     }
 
+    const rollbackState = {
+      // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
+      ...deepClone(DO.persistedData),
+      version: DO.version,
+    };
+
     if (!this.inFlightRequestsById[update.id]) {
       // before any in flight requests go out, we know that the persisted data on a DO is truly persisted
-      this.lastKnownPersistedDataById[update.id] = deepClone({
-        ...DO.persistedData,
-        version: DO.version,
-      }); // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
-      this.inFlightRequestsById[update.id] = 1;
+      this.lastKnownPersistedDataById[update.id] = deepClone(rollbackState);
+      this.inFlightRequestsById[update.id] = [{ rollbackState }];
     } else {
       // if requests are in flight, the "persisted" data on a DO may actually originate from an optimistic update
       // this is simply to avoid introducing optimistic update logic in the DO class.
       // in that case, the true persisted state will be intercepted from the repository by "onPersistedDataReceived" above
-      this.inFlightRequestsById[update.id]++;
+
+      const rollbackState = {
+        // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
+        ...deepClone(DO.persistedData),
+        version: DO.version,
+      };
+      this.inFlightRequestsById[update.id].push({ rollbackState });
     }
+
+    const updateIdx = this.inFlightRequestsById[update.id].length - 1;
 
     const currentVersion = Number(DO.version);
     const newVersion = currentVersion + 1;
@@ -107,32 +121,51 @@ export class OptimisticUpdatesOrchestrator {
 
     return {
       onUpdateFailed: () => {
-        this.inFlightRequestsById[update.id]--;
-        this.revertIfNoInFlightRequests(update.id);
-        this.cleanupIfNoInFlightRequests(update.id);
+        this.handleUpdateFailed({ updateIdx, id: update.id });
       },
       onUpdateSuccessful: () => {
-        this.inFlightRequestsById[update.id]--;
-        this.cleanupIfNoInFlightRequests(update.id);
+        this.handleUpdateSuccessful({ updateIdx, id: update.id });
       },
     };
   }
 
-  private revertIfNoInFlightRequests(id: string) {
-    if (!this.inFlightRequestsById[id]) {
-      if (!this.lastKnownPersistedDataById[id]) {
-        throw Error(
-          'A revert was attempted but no known persisted data state was found.'
-        );
+  private handleUpdateFailed(opts: { updateIdx: number; id: string }) {
+    const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
+    const wasLastTriggeredUpdate =
+      inFlightRequestsForThisNode.length === opts.updateIdx + 1;
+    if (wasLastTriggeredUpdate) {
+      const DO = this.getDOById(opts.id);
+      const hasPreviousInFlightUpdate = inFlightRequestsForThisNode.length > 1;
+      if (hasPreviousInFlightUpdate) {
+        const previousInFlightRollbackState =
+          inFlightRequestsForThisNode[inFlightRequestsForThisNode.length - 1]
+            .rollbackState;
+        DO.onDataReceived(previousInFlightRollbackState, {
+          // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+          // it allows setting the data on the DO to a version older than the last optimistic update
+          // so that we can revert on a failed request
+          __unsafeIgnoreVersion: true,
+        });
+      } else {
+        DO.onDataReceived(this.lastKnownPersistedDataById[opts.id], {
+          // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+          // it allows setting the data on the DO to a version older than the last optimistic update
+          // so that we can revert on a failed request
+          __unsafeIgnoreVersion: true,
+        });
+        inFlightRequestsForThisNode.splice(opts.updateIdx, 1);
       }
-      const DO = this.getDOById(id);
-      DO.onDataReceived(this.lastKnownPersistedDataById[id], {
-        // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
-        // it allows setting the data on the DO to a version older than the last optimistic update
-        // so that we can revert on a failed request
-        __unsafeIgnoreVersion: true,
-      });
     }
+
+    inFlightRequestsForThisNode.splice(opts.updateIdx, 1);
+
+    this.cleanupIfNoInFlightRequests(opts.id);
+  }
+
+  private handleUpdateSuccessful(opts: { updateIdx: number; id: string }) {
+    const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
+    inFlightRequestsForThisNode.splice(opts.updateIdx, 1);
+    this.cleanupIfNoInFlightRequests(opts.id);
   }
 
   private getDOById(id: string) {
@@ -146,14 +179,9 @@ export class OptimisticUpdatesOrchestrator {
   }
 
   private cleanupIfNoInFlightRequests(id: string) {
-    if (!this.inFlightRequestsById[id]) {
+    if (!this.inFlightRequestsById[id].length) {
       delete this.lastKnownPersistedDataById[id];
       delete this.inFlightRequestsById[id];
     }
   }
 }
-
-// Test cases
-// 1) happy path simple update should make the DO return new data for any properties updated
-// 2) if the update fails, DO should return to the previously persisted state
-// 3) if updates about new persisted states are received between update being requested and that update failing, the DO should return to the last persisted state
