@@ -41,12 +41,11 @@ describe('smData.DO', () => {
         id: smData.string,
         dueDate: smData.number,
       },
-    });
-
-    doInstance.onDataReceived({
-      id: '321',
-      version: '1',
-      dueDate: ('100' as unknown) as number,
+      initialData: {
+        id: '321',
+        version: '1',
+        dueDate: ('100' as unknown) as number,
+      },
     });
 
     expect(doInstance.id).toBe('321');
@@ -63,13 +62,13 @@ describe('smData.DO', () => {
           }),
         }),
       },
-    });
-
-    doInstance.onDataReceived({
-      version: '1',
-      settings: {
-        schedule: {
-          startTime: ('321' as unknown) as number,
+      initialData: {
+        id: '321',
+        version: '1',
+        settings: {
+          schedule: {
+            startTime: ('321' as unknown) as number,
+          },
         },
       },
     });
@@ -125,6 +124,7 @@ describe('smData.DO', () => {
     >({
       properties,
       initialData: {
+        id: '321',
         version: '1',
         task: 'get it done',
       },
@@ -150,6 +150,10 @@ describe('smData.DO', () => {
       {}
     >({
       properties: {},
+      initialData: {
+        id: '321',
+        version: '1',
+      },
       relational: {
         todos: () => smData.children({ def: generateTodoNode(smJSInstance) }),
       },
@@ -183,6 +187,7 @@ describe('smData.DO', () => {
       properties,
       initialData: {
         version: '1',
+        id: '321',
         maybeStr: null,
         maybeBool: null,
         maybeNum: null,
@@ -225,6 +230,7 @@ describe('smData.DO', () => {
     const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
       properties,
       initialData: {
+        id: '321',
         version: '1',
         rootLevelRecord: {
           foo: 'foo',

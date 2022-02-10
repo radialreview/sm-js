@@ -7,10 +7,8 @@ test('happy path, an update should make the DO immediately return new data for p
 
   optimisticUpdatesOrchestrator.onUpdateRequested(mockDataUpdate);
 
-  expect(DO.name).toBe('new name');
-  expect(DO.settings).toEqual({
-    flagEnabled: false,
-  });
+  expect(DO.name).toBe(mockDataUpdate.payload.name);
+  expect(DO.settings).toEqual(mockDataUpdate.payload.settings);
 });
 
 test('if the update fails, DO should return to the previously persisted state', () => {
@@ -25,7 +23,7 @@ test('if the update fails, DO should return to the previously persisted state', 
     mockDataUpdate
   );
 
-  expect(DO.name).toBe('new name');
+  expect(DO.name).toBe(mockDataUpdate.payload.name);
 
   onUpdateFailed();
 
@@ -93,12 +91,12 @@ test('if multiple update requests are queued at the same time, it should stay on
 
   // until all updates fail or succeed, we ignore incoming messages
   expect(DO.name).toBe('new name in update 2');
-  update2.onUpdateFailed();
 
+  update2.onUpdateFailed();
   // should revert to the state of the first update
   expect(DO.name).toBe(mockDataUpdate.payload.name);
-  update1.onUpdateFailed();
 
+  update1.onUpdateFailed();
   // if both fail, should revert to last received message
   expect(DO.name).toBe('new name received in message');
 });

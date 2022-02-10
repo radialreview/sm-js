@@ -11,6 +11,15 @@ import {
 import { createMockQueryDefinitions } from './specUtilities';
 import { ISMJS } from './types';
 
+let consoleError: typeof console.error;
+beforeAll(() => {
+  consoleError = console.error;
+  console.error = () => {};
+});
+afterAll(() => {
+  console.error = consoleError;
+});
+
 function removeVersionsFromResults(results: any) {
   return results.data.users.map((user: any) => ({
     ...user,
@@ -70,6 +79,8 @@ test('querying data from SM works', async done => {
     createMockQueryDefinitions(smJSInstance, { useNoUnder: true })
   );
 
+  // remove versions from results so that screenshots don't change with each test
+  // since those versions are auto incremented by SM on each update
   expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
     Array [
       Object {
@@ -81,41 +92,50 @@ test('querying data from SM works', async done => {
           "state": "",
         },
         "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+        "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
         "todos": Array [
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "0b51e699-6119-49ed-834f-a9463290ea97",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
         ],
@@ -147,41 +167,50 @@ test('subscribing to data from sm works', async done => {
           "state": "",
         },
         "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+        "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
         "todos": Array [
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "0b51e699-6119-49ed-834f-a9463290ea97",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
           Object {
             "assignee": Object {
               "firstName": "Meida",
               "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
               "version": null,
             },
             "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
+            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
             "version": null,
           },
         ],
@@ -955,7 +984,7 @@ test('replacing a single edge in sm works', async done => {
   done();
 });
 
-test('replacing a multiple edges in sm works', async done => {
+test('replacing multiple edges in sm works', async done => {
   const { smJSInstance, mockTodoDef } = await setupTest();
   const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
     smJSInstance
@@ -1236,6 +1265,59 @@ test('grouped transactions work as expected', async () => {
   expect(todos[0].title).toBe('todo 1');
   expect(todos[1].title).toBe('todo 2');
   expect(onSuccessMock).toHaveBeenCalledTimes(2);
+});
+
+test.only('optimistic updates work', async done => {
+  const { smJSInstance, mockTodoDef } = await setupTest();
+
+  const transactionResult = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNodes({
+        nodes: [
+          {
+            data: {
+              type: mockTodoDef.type,
+              title: 'Do the deed',
+            },
+          },
+        ],
+      });
+    })
+    .execute();
+
+  const createdTodoId = transactionResult[0].data.CreateNodes[0].id as string;
+
+  const {
+    data: { todo },
+  } = await smJSInstance.query({
+    todo: queryDefinition({
+      def: mockTodoDef,
+      map: undefined,
+      id: createdTodoId,
+    }),
+  });
+
+  expect((todo as any).title).toBe('Do the deed');
+
+  smJSInstance
+    .transaction(ctx => {
+      ctx.updateNode({
+        data: {
+          id: createdTodoId,
+          title: 'Do the other deed',
+        },
+      });
+    })
+    .execute();
+
+  // DO is immediately update
+  // even though this was a query with no associated subscription
+
+  // this is as good of an E2E test as I can think of for this particular feature
+  // We'll need to rely on the unit tests within OptimisticUpdates.spec for any other edge case testing
+  expect((todo as any).title).toBe('Do the other deed');
+
+  done();
 });
 
 async function getToken(): Promise<string> {

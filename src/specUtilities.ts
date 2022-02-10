@@ -124,7 +124,10 @@ export function generateDOInstance<
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
-  initialData?: { version: string } & Record<string, any>;
+  initialData: {
+    id: string;
+    version: string;
+  } & Record<string, any>;
 }) {
   const smJS = new SMJS(getDefaultConfig());
   const DOclass = smJS.def<

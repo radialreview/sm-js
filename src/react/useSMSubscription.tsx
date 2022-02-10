@@ -112,7 +112,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
         const contextForThisSub =
           smContext.ongoingSubscriptionRecord[subscriptionId];
         const thisQueryIsMostRecent =
-          contextForThisSub.lastQueryTimestamp === queryTimestamp;
+          contextForThisSub?.lastQueryTimestamp === queryTimestamp;
         if (thisQueryIsMostRecent) {
           contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
           smContext.updateSubscriptionInfo(subscriptionId, {

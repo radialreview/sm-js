@@ -1,5 +1,5 @@
 import { deepClone } from './dataUtilities';
-import { NodeDO } from './types';
+import { Maybe, NodeDO } from './types';
 
 /**
  * This class is responsible for handling all logic pertaining optimistic updates.
@@ -41,11 +41,6 @@ export class OptimisticUpdatesOrchestrator {
 
   public onDOConstructed = (DO: NodeDO) => {
     if (!DO.id) throw Error('No id found in DO');
-    if (this.DOsById[DO.id])
-      throw Error(
-        `The DO with the id "${DO.id}" was previously constructed and it is unexpected that this is happening a second time.
-        There may be 2 instances of the same node type being initialized.`
-      );
     this.DOsById[DO.id] = DO;
   };
 
@@ -78,12 +73,13 @@ export class OptimisticUpdatesOrchestrator {
     payload: Record<string, any>;
   }) => {
     const DO = this.getDOById(update.id);
-    const userId = update.payload.lastUpdatedBy;
-    if (!userId) {
-      throw Error(
-        'For optimistic update reverts (in case of update failure) to work, all incoming updates must contain a "lastUpdatedBy" property containing the id of the user triggering the update.'
-      );
-    }
+    // No DO found in cache means we're likely in a unit test, or possible the node was dropped right as the update was request
+    // Better to simply do nothing than to throw an error here.
+    if (!DO)
+      return {
+        onUpdateSuccessful: () => {},
+        onUpdateFailed: () => {},
+      };
 
     const rollbackState = {
       // persisted data gets extended on the node, so cloning it here so it doesn't get mutated by an incoming update
@@ -126,6 +122,7 @@ export class OptimisticUpdatesOrchestrator {
       inFlightRequestsForThisNode.length === opts.updateIdx + 1;
     if (wasLastTriggeredUpdate) {
       const DO = this.getDOById(opts.id);
+      if (!DO) return;
       const hasPreviousInFlightUpdate = inFlightRequestsForThisNode.length > 1;
       if (hasPreviousInFlightUpdate) {
         const previousInFlightRollbackState =
@@ -159,13 +156,8 @@ export class OptimisticUpdatesOrchestrator {
     this.cleanupIfNoInFlightRequests(opts.id);
   }
 
-  private getDOById(id: string) {
+  private getDOById(id: string): Maybe<NodeDO> {
     const DO = this.DOsById[id];
-    if (!this.DOsById[id]) {
-      throw Error(
-        `The DO with the id ${id} was not found in the OptimisticUpdatesOrchestrator's cache. Ensure you're calling "onDOConstructed".`
-      );
-    }
     return DO;
   }
 

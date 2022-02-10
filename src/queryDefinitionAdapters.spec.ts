@@ -147,6 +147,7 @@ describe('getQueryInfo.queryGQLString', () => {
               users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
             id,
             version,
+            lastUpdatedBy,
             address,
             address__IS_NULL__,
             address__dot__state,
@@ -155,9 +156,11 @@ describe('getQueryInfo.queryGQLString', () => {
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
+                lastUpdatedBy,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
+                    lastUpdatedBy,
                     firstName
                 }
             }
@@ -184,6 +187,7 @@ describe('getQueryInfo.queryGQLString', () => {
               users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
             id,
             version,
+            lastUpdatedBy,
             address,
             address__IS_NULL__,
             address__dot__state,
@@ -192,9 +196,11 @@ describe('getQueryInfo.queryGQLString', () => {
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
+                lastUpdatedBy,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
+                    lastUpdatedBy,
                     firstName
                 }
             }
@@ -202,6 +208,7 @@ describe('getQueryInfo.queryGQLString', () => {
           otherAlias: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
             id,
             version,
+            lastUpdatedBy,
             address,
             address__IS_NULL__,
             address__dot__state,
@@ -210,9 +217,11 @@ describe('getQueryInfo.queryGQLString', () => {
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
+                lastUpdatedBy,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
+                    lastUpdatedBy,
                     firstName
                 }
             }
@@ -235,6 +244,7 @@ describe('getQueryInfo.queryGQLString', () => {
               users: GetNodesByIdNew(ids: [\\"mock-id\\"]) {
             id,
             version,
+            lastUpdatedBy,
             address,
             address__IS_NULL__,
             address__dot__state,
@@ -243,9 +253,11 @@ describe('getQueryInfo.queryGQLString', () => {
             todos: GetChildren(type: \\"todo\\") {
                 id,
                 version,
+                lastUpdatedBy,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
+                    lastUpdatedBy,
                     firstName
                 }
             }
@@ -268,6 +280,7 @@ describe('getQueryInfo.queryGQLString', () => {
               todos: GetNodesNew(type: \\"todo\\") {
             id,
             version,
+            lastUpdatedBy,
             task,
             done,
             assigneeId,
@@ -299,6 +312,7 @@ describe('getQueryInfo.queryGQLString', () => {
               todos: GetNodesNew(type: \\"todo\\") {
             id,
             version,
+            lastUpdatedBy,
             task,
             done,
             assigneeId,
@@ -331,7 +345,8 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
               todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
             id,
-            version
+            version,
+            lastUpdatedBy
           }
           }"
     `);
@@ -374,6 +389,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                 
                     id,
                     version,
+                    lastUpdatedBy,
                     address,
                     address__IS_NULL__,
                     address__dot__state,
@@ -382,9 +398,11 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
+                        lastUpdatedBy,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
+                            lastUpdatedBy,
                             firstName
                         }
                     }
@@ -417,6 +435,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                 
                     id,
                     version,
+                    lastUpdatedBy,
                     address,
                     address__IS_NULL__,
                     address__dot__state,
@@ -425,9 +444,11 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
+                        lastUpdatedBy,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
+                            lastUpdatedBy,
                             firstName
                         }
                     }
@@ -441,6 +462,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                 
                     id,
                     version,
+                    lastUpdatedBy,
                     address,
                     address__IS_NULL__,
                     address__dot__state,
@@ -449,9 +471,11 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
+                        lastUpdatedBy,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
+                            lastUpdatedBy,
                             firstName
                         }
                     }
@@ -480,6 +504,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                 
                     id,
                     version,
+                    lastUpdatedBy,
                     address,
                     address__IS_NULL__,
                     address__dot__state,
@@ -488,9 +513,11 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     todos: GetChildren(type: \\"todo\\") {
                         id,
                         version,
+                        lastUpdatedBy,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
+                            lastUpdatedBy,
                             firstName
                         }
                     }
