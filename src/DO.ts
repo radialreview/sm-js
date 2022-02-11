@@ -196,8 +196,9 @@ export function createDOFactory(smJSInstance: ISMJS) {
           opts.smData instanceof SMData &&
           opts.smData.isOptional &&
           opts.persistedData == null
-        )
+        ) {
           return null;
+        }
 
         const property = this.getSMData(opts.smData as ISMData);
 
@@ -250,10 +251,6 @@ export function createDOFactory(smJSInstance: ISMJS) {
             }
           }
         } else if (property instanceof SMData) {
-          if (opts.persistedData === null) {
-            return null;
-          }
-
           // sm.string, sm.boolean, sm.number
           if (opts.persistedData != null) {
             return property.parser(opts.persistedData);

@@ -8,7 +8,6 @@ import { SMNotCachedException, SMDataParsingException } from './exceptions';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import {
   SM_DATA_TYPES,
-  IS_NULL_IDENTIFIER,
   OBJECT_PROPERTY_SEPARATOR,
   OBJECT_IDENTIFIER,
 } from './smDataTypes';
@@ -201,15 +200,12 @@ export function RepositoryFactory<
     }) {
       const newStylePropertiesQueriedForThisObject = Object.keys(
         opts.allDataReceived
-      ).filter(
-        key =>
-          key.startsWith(`${opts.rootProp}${OBJECT_PROPERTY_SEPARATOR}`) &&
-          !key.endsWith(IS_NULL_IDENTIFIER)
+      ).filter(key =>
+        key.startsWith(`${opts.rootProp}${OBJECT_PROPERTY_SEPARATOR}`)
       );
 
       return newStylePropertiesQueriedForThisObject.reduce((acc, prop) => {
         const [root, ...nests] = prop.split(OBJECT_PROPERTY_SEPARATOR);
-
         this.nest({
           nests,
           root: acc,
@@ -255,14 +251,17 @@ export function RepositoryFactory<
         const nextNest = opts.nests[0];
         opts.root[nextNest] = opts.val;
       } else {
-        const [nextNest, ...reaminingNests] = opts.nests;
-        if (opts.root[nextNest] == null) opts.root[nextNest] = {};
+        const [nextNest, ...remainingNests] = opts.nests;
 
-        this.nest({
-          nests: reaminingNests,
-          root: opts.root[nextNest],
-          val: opts.val,
-        });
+        if (opts.root[nextNest] == null) {
+          opts.root[nextNest] = null;
+        } else {
+          this.nest({
+            nests: remainingNests,
+            root: opts.root[nextNest],
+            val: opts.val,
+          });
+        }
       }
     }
   }

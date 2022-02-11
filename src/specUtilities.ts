@@ -193,6 +193,7 @@ export const mockQueryDataReturn = {
       version: '1',
       address: '__object__',
       address__dot__state: 'FL',
+      address__dot__apt: '__object__',
       address__dot__apt__dot__floor: '1',
       address__dot__apt__dot__number: '1',
       todos: [
