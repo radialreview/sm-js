@@ -1,9 +1,7 @@
 import { gql } from '@apollo/client/core';
-
 import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
-  IS_NULL_IDENTIFIER,
   OBJECT_PROPERTY_SEPARATOR,
 } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
@@ -125,12 +123,8 @@ function getQueriedProperties(opts: {
         data.type === SM_DATA_TYPES.object ||
         data.type === SM_DATA_TYPES.maybeObject
       ) {
-        if (opts.isRootLevel) {
-          // query for any data stored in old format (stringified json at the root of the node)
-          acc.push(key);
-          // why? check comment above the definition of IS_NULL_IDENTIFIER
-          acc.push(`${key}${IS_NULL_IDENTIFIER}`);
-        }
+        // query for any data stored in old format (stringified json at the root of the node)
+        acc.push(key);
 
         // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
         acc.push(
@@ -167,13 +161,8 @@ function getAllNodeProperties(opts: {
         data.type === SM_DATA_TYPES.object ||
         data.type === SM_DATA_TYPES.maybeObject
       ) {
-        if (opts.isRootLevel) {
-          // query for any data stored in old format (stringified json at the root of the node)
-          acc.push(key);
-          // why? check comment above the definition of IS_NULL_IDENTIFIER
-          acc.push(`${key}${IS_NULL_IDENTIFIER}`);
-        }
-
+        // query for any data stored in old format (stringified json at the root of the node)
+        acc.push(key);
         // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
         acc.push(
           ...getAllNodeProperties({

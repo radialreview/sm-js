@@ -89,7 +89,6 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation: {
   under?: string | Array<string>;
 }): string {
   const dataToPersistInSM = convertNodeDataToSMPersistedData(operation.data);
-
   let mutationArgs: Array<string> = [
     `node: {
         ${dataToPersistInSM}

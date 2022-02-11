@@ -341,10 +341,6 @@ export const children = <TSMNode extends ISMNode>(opts: {
   }) as IChildrenQueryBuilder<TSMNode>;
 };
 
-// Used to mark an object type as null
-// when objects are spread accross multiple root level properties instead of as stringified json
-export const IS_NULL_IDENTIFIER = '__IS_NULL__';
-
 export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 export const OBJECT_IDENTIFIER = '__object__';

@@ -121,7 +121,6 @@ describe('smData.repository', () => {
     repository.onDataReceived({
       id: 'mock-id',
       version: '1',
-      [`settings${smData.IS_NULL_IDENTIFIER}`]: false,
       settings: smData.OBJECT_IDENTIFIER,
       settings__dot__schedule: smData.OBJECT_IDENTIFIER,
       settings__dot__schedule__dot__startTime: '321',
@@ -166,6 +165,7 @@ describe('smData.repository', () => {
       version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
+      settings__dot__schedule: null,
       settings__dot__schedule__dot__startTime: null, // mimicking what the BE would return from querying this bit of the object
     } as { id: string });
 
@@ -256,7 +256,8 @@ describe('smData.repository', () => {
           }),
         }),
         optionalObject: smData.object.optional({
-          nested: smData.object({
+          string: smData.string,
+          nestedOptional: smData.object.optional({
             foo: smData.string,
           }),
         }),
@@ -267,12 +268,21 @@ describe('smData.repository', () => {
       id: '123',
       version: '1',
       object: null,
-      optionalObject: null,
+      optionalObject: smData.OBJECT_IDENTIFIER,
+      optionalObject__dot__string: 'hello',
+      optionalObject__dot__nestedOptional: null,
+      optionalObject__dot__nestedOptional__dot__foo: null,
     });
 
     const cached = repository.byId('123');
 
-    expect(cached.object).toEqual({ nested: { foo: '' } });
-    expect(cached.optionalObject).toEqual(null);
+    expect(cached.object).toEqual({
+      nested: { foo: '' },
+    });
+
+    expect(cached.optionalObject).toEqual({
+      string: 'hello',
+      nestedOptional: null,
+    });
   });
 });

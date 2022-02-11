@@ -38,6 +38,7 @@ async function setupTest() {
       id: string,
       number: number,
       string: string,
+      otherString: string.optional,
       object: object.optional({
         property: string,
         otherProperty: string,
@@ -1115,8 +1116,8 @@ test('dropping a property in sm works', async done => {
     }),
   });
 
-  expect((thingAfterDrop as any).object.property).toBe(null);
-  expect((thingAfterDrop as any).object.nestedObject.nestedProperty).toBe(null);
+  expect((thingAfterDrop as any).object.property).toBe('');
+  expect((thingAfterDrop as any).object.nestedObject).toBe(null);
   expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
   done();
 });
