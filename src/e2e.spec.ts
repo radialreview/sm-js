@@ -1267,7 +1267,7 @@ test('grouped transactions work as expected', async () => {
   expect(onSuccessMock).toHaveBeenCalledTimes(2);
 });
 
-test.only('optimistic updates work', async done => {
+test('optimistic updates work', async done => {
   const { smJSInstance, mockTodoDef } = await setupTest();
 
   const transactionResult = await smJSInstance
