@@ -62,7 +62,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     );
   });
 
-  it.only('handles querying partial objects within a node', () => {
+  it('handles querying partial objects within a node', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
