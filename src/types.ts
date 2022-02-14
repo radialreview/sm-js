@@ -218,6 +218,12 @@ export interface ISMData<
   isOptional: boolean;
 }
 
+export type SMDataEnum<Enum extends string | number | null> = ISMData<
+  Enum,
+  Enum,
+  undefined
+>;
+
 /**
  * Utility to extract the parsed value of an SMData type
  */

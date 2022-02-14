@@ -16,7 +16,7 @@ import {
   ISMNode,
 } from './types';
 
-export { ISMNode } from './types';
+export { ISMNode, SMDataEnum } from './types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';

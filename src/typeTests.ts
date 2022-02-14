@@ -12,6 +12,8 @@ import {
   ExtractQueriedDataFromMapFn,
   IChildrenQueryBuilder,
   MapFnForNode,
+  Maybe,
+  SMDataEnum,
 } from './types';
 
 /**
@@ -34,6 +36,7 @@ const userProperties = {
     state: string,
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
+  optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
 };
 const userRelational = {
   todos: () =>
@@ -137,6 +140,18 @@ const userNode = smJS.def({
   const withFooOnly = { FOO: 1 };
   // @ts-expect-error property 'BAR' is in the enum `fooBarEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].fooBarEnum];
+
+  const withBarAndBaz = { BAR: 1, BAZ: 2 };
+  const withBarOnly = { BAR: 1 };
+  const optionalEnum = shorthandQueryResults.data.users[0].optionalBarBazEnum;
+  // @ts-expect-error no null check
+  withBarAndBaz[optionalEnum];
+  if (optionalEnum) {
+    withBarAndBaz[optionalEnum];
+
+    // @ts-expect-error 'BAZ' in enum but omitted from the object above
+    withBarOnly[optionalEnum];
+  }
 
   // @ts-expect-error invalid type
   shorthandQueryResults.data.users[0].id as number;
