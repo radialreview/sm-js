@@ -19,7 +19,7 @@ import {
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
-export * from './gqlClient'
+export * from './gqlClient';
 
 export class SMJS implements ISMJS {
   public gqlClient: ISMJS['gqlClient'];
@@ -97,5 +97,9 @@ export class SMJS implements ISMJS {
 
   public setToken(opts: { tokenName: string; token: string }): void {
     this.tokens[opts.tokenName] = opts.token;
+  }
+
+  public clearTokens() {
+    this.tokens = {};
   }
 }
