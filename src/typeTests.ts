@@ -33,6 +33,7 @@ const userProperties = {
   address: object({
     state: string,
   }),
+  fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
 };
 const userRelational = {
   todos: () =>
@@ -130,8 +131,16 @@ const userNode = smJS.def({
     users: userNode,
   });
   shorthandQueryResults.data.users[0].id as string;
+
+  const withFooAndBar = { FOO: 1, BAR: 2 };
+  withFooAndBar[shorthandQueryResults.data.users[0].fooBarEnum];
+  const withFooOnly = { FOO: 1 };
+  // @ts-expect-error property 'BAR' is in the enum `fooBarEnum` but "BAR" was omitted from the object above
+  withFooOnly[shorthandQueryResults.data.users[0].fooBarEnum];
+
   // @ts-expect-error invalid type
   shorthandQueryResults.data.users[0].id as number;
+
   // @ts-expect-error wasn't queried
   shorthandQueryResults.data.users[0].nonqueried as number;
 
@@ -184,6 +193,7 @@ const userNode = smJS.def({
       def: userNode,
       map: userData => ({
         id: userData.id,
+        fooBarEnum: userData.fooBarEnum,
         todos: userData.todos({
           map: todoData => ({
             id: todoData.id,

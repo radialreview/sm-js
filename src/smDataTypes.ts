@@ -67,10 +67,15 @@ export class SMData<
  * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
  */
 
-export const string = (defaultValue: string) =>
-  new SMData<string, string, undefined>({
+export const string = <TStringType extends string = string>(
+  defaultValue: TStringType
+) =>
+  new SMData<TStringType, TStringType, undefined>({
     type: SM_DATA_TYPES.string,
-    parser: value => (value != null ? String(value) : value),
+    parser: value =>
+      value != null
+        ? ((String(value) as unknown) as TStringType)
+        : (value as TStringType),
     defaultValue,
     isOptional: false,
   });
