@@ -1,31 +1,40 @@
 import React from 'react';
 
-import smJS from './smJS';
-import { string, useSubscription } from 'sm-js';
-
-const userNode = smJS.def({
-  type: 'tt-user',
-  properties: {
-    id: string,
-    firstName: string,
-  },
-});
-
-smJS.setToken({
-  tokenName: 'default',
-  token:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImY5ZGIxYjA5LTdiMGItNDMzYy1iZDg2LTg5M2MzZmQxNDFmMCIsIk5hbWVzcGFjZUFwcGxpY2F0aW9uSWQiOiIyIiwibmJmIjoxNjQzNjU5MTc4LCJleHAiOjE2NDM3NDU1NzgsImlhdCI6MTY0MzY1OTE3OH0.xqtLXnNH3JnfZr8Tw3XPCsOY8gUvzDi8BvrX7ynhawg',
-});
+import { useSubscription, queryDefinition } from 'sm-js';
+import { userNode } from './smJS';
 
 function MyComponent() {
   const { data } = useSubscription({
-    users: userNode,
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        address: userData.address,
+        todos: userData.todos({
+          map: todoData => ({
+            id: todoData.id,
+            task: todoData.task,
+          }),
+        }),
+      }),
+    }),
   });
 
   return (
     <div className="App">
       {data.users.map(user => (
-        <div key={user.id}>{user.firstName}</div>
+        <div key={user.id}>
+          {user.firstName} {user.lastName}
+          <br />
+          todos:{' '}
+          {user.todos.length
+            ? user.todos.map(todo => todo.task).join(', ')
+            : 'None.'}
+          <br />
+          <br />
+        </div>
       ))}
     </div>
   );

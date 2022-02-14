@@ -332,10 +332,17 @@ export interface IDOMethods {
   /**
    * Called when we get data from SM for this particular DO instance, found by its id
    */
-  onDataReceived(data: Record<string, any>): void;
+  onDataReceived(data: Record<string, any>, opts?: {__unsafeIgnoreVersion?: boolean}): void;
 }
 
-export type NodeDO = Record<string, any> & IDOMethods;
+export interface IDOAccessors {
+  id: string
+  version: number
+  lastUpdatedBy: string
+  persistedData: Record<string,any>
+}
+
+export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,

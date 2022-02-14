@@ -32,13 +32,23 @@ describe('DOProxyGenerator', () => {
   });
 
   it('adds getters for relational results', () => {
-    const todos = new Array(5)
-      .fill(0)
-      .map(() => generateDOProxy({ properties: { id: smData.string } }));
+    const todos = new Array(5).fill(0).map((_, idx) =>
+      generateDOProxy({
+        properties: { id: smData.string },
+        initialData: {
+          version: '1',
+          id: `mockId${idx}`,
+        },
+      })
+    );
 
     const doProxy = generateDOProxy({
       properties: {
         id: smData.string,
+      },
+      initialData: {
+        version: '1',
+        id: 'mockId',
       },
       relationalResults: {
         todos: todos,
@@ -58,6 +68,10 @@ describe('DOProxyGenerator', () => {
       properties: {
         id: smData.string,
       },
+      initialData: {
+        version: '1',
+        id: 'mockId',
+      },
       allPropertiesQueried: [],
     });
 
@@ -71,6 +85,10 @@ describe('DOProxyGenerator', () => {
           nestedString: smData.string,
           nestedNumber: smData.number,
         }),
+      },
+      initialData: {
+        version: '1',
+        id: 'mockId',
       },
       allPropertiesQueried: ['object', 'object__dot__nestedString'],
     });
@@ -87,6 +105,10 @@ describe('DOProxyGenerator', () => {
           nestedString: smData.string,
           nestedNumber: smData.number,
         }),
+      },
+      initialData: {
+        version: '1',
+        id: 'mockId',
       },
       computed: {
         computedValue: data => {
@@ -106,7 +128,8 @@ function generateDOProxy<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   properties: TNodeData;
-  initialData?: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
+  initialData: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
+    id: string;
     version: string;
   };
   computed?: NodeComputedFns<TNodeData, Record<string, any>>;

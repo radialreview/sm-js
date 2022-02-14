@@ -41,17 +41,27 @@ export function createDOFactory(smJSInstance: ISMJS) {
     return class DO implements TDOClass {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
+      public id: string;
+      public lastUpdatedBy: string;
+      public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
-      private _persistedData: Record<string, any> = {};
 
-      constructor(initialData?: DeepPartial<TNodeData> & { version: number }) {
+      constructor(
+        initialData: DeepPartial<TNodeData> & {
+          version: number;
+          id: string;
+          lastUpdatedBy: string;
+        }
+      ) {
         this._defaults = this.getDefaultData(node.properties);
-        if (initialData?.version) {
+        this.id = initialData.id;
+        this.lastUpdatedBy = initialData.lastUpdatedBy;
+        if (initialData.version != null) {
           this.version = Number(initialData.version);
         }
 
         if (initialData) {
-          this._persistedData = this.parseReceivedData({
+          this.persistedData = this.parseReceivedData({
             initialData,
             nodeProperties: node.properties,
           });
@@ -59,7 +69,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
         this.parsedData = this.getParsedData({
           smData: node.properties,
-          persistedData: this._persistedData,
+          persistedData: this.persistedData,
           defaultData: this._defaults,
         });
 
@@ -271,31 +281,39 @@ export function createDOFactory(smJSInstance: ISMJS) {
         }
       }
 
-      public onDataReceived = (receivedData: DeepPartial<TNodeData>) => {
+      public onDataReceived = (
+        receivedData: { version: number; lastUpdatedBy: string } & DeepPartial<
+          TNodeData
+        >,
+        opts?: { __unsafeIgnoreVersion: boolean }
+      ) => {
         if (receivedData.version == null) {
           throw Error('Message received for a node was missing a version');
         }
 
-        const { version, ...restReceivedData } = receivedData;
-        const newVersion = Number(version);
+        const newVersion = Number(receivedData.version);
 
-        if (newVersion >= this.version) {
+        // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+        // it allows setting the data on the DO to a version older than the last optimistic update
+        // so that we can revert on a failed request
+        if (opts?.__unsafeIgnoreVersion || newVersion >= this.version) {
           this.version = newVersion;
+          this.lastUpdatedBy = receivedData.lastUpdatedBy;
 
           const newData = this.parseReceivedData({
-            initialData: restReceivedData,
+            initialData: receivedData,
             nodeProperties: node.properties,
           });
 
           this.extendPersistedWithNewlyReceivedData({
             smData: node.properties,
-            object: this._persistedData,
+            object: this.persistedData,
             extension: newData,
           });
 
           this.parsedData = this.getParsedData({
             smData: node.properties,
-            persistedData: this._persistedData,
+            persistedData: this.persistedData,
             defaultData: this._defaults,
           });
         }

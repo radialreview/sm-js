@@ -90,6 +90,7 @@ export function generateQuerier({
 
           results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
         } catch (e) {
+          console.error(e);
           const error = getError(
             new Error(`Error applying query results\n${e}`)
           );
@@ -304,6 +305,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
           batched: opts.batched,
         });
       } catch (e) {
+        console.error(e);
         const error = getError(
           new Error(`Error querying initial data set\n${e}`)
         );

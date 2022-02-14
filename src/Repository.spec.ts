@@ -39,6 +39,9 @@ function generateRepositoryInstance<
   return RepositoryFactory({
     DOClass,
     def,
+    onDataReceived: ({ applyUpdateToDO }) => {
+      applyUpdateToDO();
+    },
   });
 }
 
