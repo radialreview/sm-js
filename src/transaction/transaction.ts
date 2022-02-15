@@ -82,6 +82,7 @@ export interface IPendingTransaction {
   operations: TOperationsByType;
   execute: () => Promise<any>;
   callbackResult?: void | Promise<any> | Array<IPendingTransaction>;
+  token: string;
 }
 
 type OperationType =
@@ -572,6 +573,7 @@ export function createTransaction(
       operations: operationsByType,
       execute,
       callbackResult: result,
+      token,
     };
 
     function transactionGroup(
@@ -583,6 +585,16 @@ export function createTransaction(
 
       async function execute() {
         try {
+          const allTokensMatch = transactions.every(
+            ({ token }) => token === transactions[0].token
+          );
+
+          if (!allTokensMatch) {
+            throw new Error(
+              'transactionGroup - All grouped transactions must use the same authentication token.'
+            );
+          }
+
           if (asyncCallbacks.length) {
             await Promise.all(asyncCallbacks);
           }
@@ -616,6 +628,7 @@ export function createTransaction(
       return {
         operations: operationsByType,
         execute,
+        token,
       };
     }
   };
