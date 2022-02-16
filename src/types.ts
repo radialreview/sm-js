@@ -183,9 +183,9 @@ export interface ISMJS {
 
 export type NodeDefArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any> = {},
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
-  TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {}
+  TNodeComputedData extends Record<string, any>,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+  TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
   type: string;
   properties: TNodeData;
