@@ -351,7 +351,7 @@ export type NodeComputedFns<
   TNodeComputedData
 > = {
   [key in keyof TNodeComputedData]: (
-    data: GetExpectedNodeDataType<TNodeData, TNodeComputedData>
+    data: GetExpectedNodeDataType<TNodeData, {}>
   ) => TNodeComputedData[key];
 };
 
