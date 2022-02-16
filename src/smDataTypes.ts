@@ -37,6 +37,7 @@ export class SMData<
   TSMValue,
   TBoxedValue extends
     | ISMData
+    | SMDataDefaultFn
     | Record<string, ISMData | SMDataDefaultFn>
     | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
@@ -224,16 +225,16 @@ export const record = <
 >(
   boxedValue: TBoxedValue
 ) => {
-  const parsedBoxedValue: ISMData =
+  const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
-      : (boxedValue as ISMData);
+      ? ((boxedValue as any)._default as TBoxedValue)
+      : (boxedValue as TBoxedValue);
 
   return new SMData<
     Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
     Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
-    typeof parsedBoxedValue
+    TBoxedValue
   >({
     type: SM_DATA_TYPES.record,
     parser: val => val,

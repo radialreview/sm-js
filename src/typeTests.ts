@@ -7,7 +7,7 @@ import {
   number,
   children,
 } from './';
-import { object } from './smDataTypes';
+import { object, record } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   IChildrenQueryBuilder,
@@ -37,6 +37,7 @@ const userProperties = {
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
   optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
+  recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
 };
 const userRelational = {
   todos: () =>
@@ -140,6 +141,11 @@ const userNode = smJS.def({
   const withFooOnly = { FOO: 1 };
   // @ts-expect-error property 'BAR' is in the enum `fooBarEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].fooBarEnum];
+
+  withFooAndBar[shorthandQueryResults.data.users[0].recordEnum['some-key']];
+
+  // @ts-expect-error property 'BAR' is in the enum used in the boxed value of the record `recordEnum` but "BAR" was omitted from the object above
+  withFooOnly[shorthandQueryResults.data.users[0].recordEnum['some-key']];
 
   const withBarAndBaz = { BAR: 1, BAZ: 2 };
   const withBarOnly = { BAR: 1 };

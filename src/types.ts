@@ -208,6 +208,7 @@ export interface ISMData<
    */
   TBoxedValue extends
     | ISMData
+    | SMDataDefaultFn
     | Record<string, ISMData | SMDataDefaultFn>
     | undefined = any
 > {
