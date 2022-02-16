@@ -32,6 +32,7 @@ const todoNode = smJS.def({
 const userProperties = {
   id: string,
   firstName: string,
+  lastName: string,
   address: object({
     state: string,
   }),
@@ -47,6 +48,11 @@ const userNode = smJS.def({
   type: 'user',
   properties: userProperties,
   relational: userRelational,
+  computed: {
+    fullName: ({ firstName, lastName }) => {
+      return firstName + ' ' + lastName;
+    },
+  },
 });
 
 (async function MapFnTests() {
@@ -164,6 +170,11 @@ const userNode = smJS.def({
 
   // @ts-expect-error wasn't queried
   shorthandQueryResults.data.users[0].nonqueried as number;
+
+  // computed data test
+  shorthandQueryResults.data.users[0].fullName as string;
+  // @ts-expect-error invalid type
+  shorthandQueryResults.data.users[0].fullName as number;
 
   // def and map defined in this query
   // but no specific ids or "under" provided
