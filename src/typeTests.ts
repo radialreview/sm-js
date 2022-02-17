@@ -44,13 +44,20 @@ const userRelational = {
   todos: () =>
     children({ def: todoNode }) as IChildrenQueryBuilder<typeof todoNode>,
 };
-const userNode = smJS.def({
+const userNode = smJS.def<
+  typeof userProperties,
+  { fullName: string; avatar: string },
+  { todos: IChildrenQueryBuilder<typeof todoNode> }
+>({
   type: 'user',
   properties: userProperties,
   relational: userRelational,
   computed: {
     fullName: ({ firstName, lastName }) => {
       return firstName + ' ' + lastName;
+    },
+    avatar: ({ fullName }) => {
+      return fullName + '.jpg';
     },
   },
 });
