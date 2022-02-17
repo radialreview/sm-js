@@ -433,6 +433,7 @@ test('transaction awaits the callback if it returns a promise', async done => {
 test('transactions that receive an array of transaction results should group them all', async () => {
   try {
     const smJSInstance = new SMJS(getMockConfig());
+
     smJSInstance.gqlClient.mutate = () => {
       const result = [
         {
@@ -507,6 +508,52 @@ test('transactions that receive an array of transaction results should group the
     expect(mutateSpy).toHaveBeenCalledTimes(2);
   } catch (e) {
     console.log(e);
+  }
+});
+
+test('providing different tokens in a group of transactions throws an error', async () => {
+  const smJSInstance = new SMJS(getMockConfig());
+
+  smJSInstance.setToken({
+    tokenName: 'user',
+    token: '123',
+  });
+
+  smJSInstance.setToken({
+    tokenName: 'admin',
+    token: '456',
+  });
+
+  const t1 = smJSInstance.transaction(
+    ctx => {
+      ctx.createNode({
+        data: {
+          type: 'mockNode',
+          name: 'test',
+        },
+      });
+    },
+    { tokenName: 'user' }
+  );
+
+  const t2 = smJSInstance.transaction(
+    ctx => {
+      ctx.createNode({
+        data: {
+          type: 'mockNode',
+          name: 'test2',
+        },
+      });
+    },
+    { tokenName: 'admin' }
+  );
+
+  try {
+    await smJSInstance.transaction([t1, t2]).execute();
+  } catch (e) {
+    expect((e as any).message).toBe(
+      'transactionGroup - All grouped transactions must use the same authentication token.'
+    );
   }
 });
 

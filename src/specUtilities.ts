@@ -268,7 +268,7 @@ export function getMockConfig(): SMConfig {
     gqlClient: {
       query: () => new Promise(res => res(mockQueryDataReturn)),
       subscribe: () => () => {},
-      mutate: () => new Promise(res => res(null)),
+      mutate: () => new Promise(res => res([])),
     },
   };
 }
