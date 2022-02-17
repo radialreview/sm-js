@@ -348,7 +348,7 @@ export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData
+  TNodeComputedData extends Record<string, any>
 > = {
   [key in keyof TNodeComputedData]: (
     data: GetExpectedNodeDataType<TNodeData, {}>

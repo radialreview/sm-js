@@ -177,16 +177,26 @@ boolean.optional = new SMData<
   isOptional: true,
 });
 
-export const object = <
-  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
->(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
-    GetExpectedNodeDataType<TBoxedValue>,
-    GetExpectedNodeDataType<TBoxedValue>,
+type ObjectSMDataType = {
+  <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+    boxedValue: TBoxedValue
+  ): SMData<
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetExpectedNodeDataType<TBoxedValue, {}>,
     TBoxedValue
-  >({
+  >;
+  _default: any;
+  optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+    boxedValue: TBoxedValue
+  ) => SMData<
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    TBoxedValue
+  >;
+};
+
+export const object: ObjectSMDataType = boxedValue =>
+  new SMData({
     type: SM_DATA_TYPES.object,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -197,18 +207,10 @@ export const object = <
     isOptional: false,
   });
 
-object._default = null as any;
+object._default = null;
 
-object.optional = <
-  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
->(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
-    Maybe<GetExpectedNodeDataType<TBoxedValue>>,
-    Maybe<GetExpectedNodeDataType<TBoxedValue>>,
-    TBoxedValue
-  >({
+object.optional = boxedValue =>
+  new SMData({
     type: SM_DATA_TYPES.maybeObject,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
