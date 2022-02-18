@@ -1,5 +1,5 @@
-import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode } from './types';
-export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS, } from './types';
+import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition } from './types';
+export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS };
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
