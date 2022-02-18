@@ -282,9 +282,10 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       public onDataReceived = (
-        receivedData: { version: number; lastUpdatedBy: string } & DeepPartial<
-          TNodeData
-        >,
+        receivedData: {
+          version: number;
+          lastUpdatedBy: string;
+        } & DeepPartial<TNodeData>,
         opts?: { __unsafeIgnoreVersion: boolean }
       ) => {
         if (receivedData.version == null) {

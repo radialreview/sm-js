@@ -1479,6 +1479,52 @@ test('#ref_ foreign keys work', async () => {
   });
 });
 
+test('Querying an id for the wrong node type throws an error', async done => {
+  const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
+  try {
+    const tx = await smJSInstance
+      .transaction(ctx => {
+        ctx.createNodes({
+          nodes: [
+            {
+              data: {
+                type: mockTodoDef.type,
+                title: 'todo',
+              },
+            },
+            {
+              data: {
+                type: mockThingDef.type,
+                string: 'hi',
+                number: 2,
+              },
+            },
+          ],
+        });
+      })
+      .execute();
+
+    const [{ id: todoId }] = tx[0].data.CreateNodes as Array<{
+      id: string;
+    }>;
+
+    await smJSInstance.query({
+      thing: queryDefinition({
+        def: mockThingDef,
+        map: undefined,
+        id: todoId,
+      }),
+    });
+  } catch (e) {
+    expect(
+      (e as any).message.includes(
+        'Attempted to query a node with an id belonging to a different type - Expected: mock-thing Received: mock-todo'
+      )
+    ).toEqual(true);
+    done();
+  }
+});
+
 async function getToken(): Promise<string> {
   const data = await fetch(
     'https://appservice.dev02.tt-devs.com/api/user/login',

@@ -26,6 +26,7 @@ export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',
   'version',
   'lastUpdatedBy',
+  'type',
 ];
 
 /**

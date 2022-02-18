@@ -45,7 +45,14 @@ export function RepositoryFactory<
   class Repository implements ISMNodeRepository {
     private cached: Record<string, NodeDO> = {};
 
-    public onDataReceived(data: { id: string } & Record<string, any>) {
+    public onDataReceived(
+      data: { id: string; type: string } & Record<string, any>
+    ) {
+      if (opts.def.type !== data.type) {
+        throw Error(
+          `Attempted to query a node with an id belonging to a different type - Expected: ${opts.def.type} Received: ${data.type}`
+        );
+      }
       const cached = this.cached[data.id];
 
       const parsedData = this.parseDataFromSM<TNodeData>(data);
