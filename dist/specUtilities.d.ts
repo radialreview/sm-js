@@ -427,6 +427,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
 export declare const mockQueryDataReturn: {
     users: {
         id: string;
+        type: string;
         version: string;
         address: string;
         address__dot__state: string;
@@ -436,8 +437,10 @@ export declare const mockQueryDataReturn: {
         todos: {
             version: string;
             id: string;
+            type: string;
             assignee: {
                 id: string;
+                type: string;
                 version: string;
                 firstName: string;
             }[];
@@ -447,6 +450,7 @@ export declare const mockQueryDataReturn: {
 export declare const mockQueryResultExpectations: {
     users: {
         id: string;
+        type: string;
         address: {
             state: string;
             apt: {
@@ -456,8 +460,10 @@ export declare const mockQueryResultExpectations: {
         };
         todos: {
             id: string;
+            type: string;
             assignee: {
                 id: string;
+                type: string;
                 firstName: string;
                 version: number;
             };
@@ -471,6 +477,7 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
     users: {
         node: {
             id: string;
+            type: string;
             address__dot__state: string;
             version: string;
         };

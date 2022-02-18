@@ -514,6 +514,7 @@ function createDOFactory(smJSInstance) {
 
         this.version = -1;
         this.persistedData = {};
+        this.type = node.type;
 
         this.getDefaultData = function (nodePropertiesOrSMData) {
           if (nodePropertiesOrSMData instanceof SMData) {
@@ -1364,7 +1365,7 @@ function prepareForFE(beData) {
   }, {});
 }
 
-var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy'];
+var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
@@ -1842,6 +1843,10 @@ function RepositoryFactory(opts) {
     var _proto = Repository.prototype;
 
     _proto.onDataReceived = function onDataReceived(data) {
+      if (opts.def.type !== data.type) {
+        throw Error("Attempted to query a node with an id belonging to a different type - Expected: " + opts.def.type + " Received: " + data.type);
+      }
+
       var cached = this.cached[data.id];
       var parsedData = this.parseDataFromSM(data);
 
