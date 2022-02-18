@@ -147,6 +147,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             address,
             address__dot__state,
             address__dot__apt,
@@ -156,10 +157,12 @@ describe('getQueryInfo.queryGQLString', () => {
                 id,
                 version,
                 lastUpdatedBy,
+                type,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     firstName
                 }
             }
@@ -187,6 +190,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             address,
             address__dot__state,
             address__dot__apt,
@@ -196,10 +200,12 @@ describe('getQueryInfo.queryGQLString', () => {
                 id,
                 version,
                 lastUpdatedBy,
+                type,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     firstName
                 }
             }
@@ -208,6 +214,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             address,
             address__dot__state,
             address__dot__apt,
@@ -217,10 +224,12 @@ describe('getQueryInfo.queryGQLString', () => {
                 id,
                 version,
                 lastUpdatedBy,
+                type,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     firstName
                 }
             }
@@ -244,6 +253,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             address,
             address__dot__state,
             address__dot__apt,
@@ -253,10 +263,12 @@ describe('getQueryInfo.queryGQLString', () => {
                 id,
                 version,
                 lastUpdatedBy,
+                type,
                 assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     firstName
                 }
             }
@@ -280,6 +292,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             task,
             done,
             assigneeId,
@@ -312,6 +325,7 @@ describe('getQueryInfo.queryGQLString', () => {
             id,
             version,
             lastUpdatedBy,
+            type,
             task,
             done,
             assigneeId,
@@ -345,7 +359,8 @@ describe('getQueryInfo.queryGQLString', () => {
               todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
             id,
             version,
-            lastUpdatedBy
+            lastUpdatedBy,
+            type
           }
           }"
     `);
@@ -389,6 +404,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     address,
                     address__dot__state,
                     address__dot__apt,
@@ -398,10 +414,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                         id,
                         version,
                         lastUpdatedBy,
+                        type,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
                             lastUpdatedBy,
+                            type,
                             firstName
                         }
                     }
@@ -435,6 +453,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     address,
                     address__dot__state,
                     address__dot__apt,
@@ -444,10 +463,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                         id,
                         version,
                         lastUpdatedBy,
+                        type,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
                             lastUpdatedBy,
+                            type,
                             firstName
                         }
                     }
@@ -462,6 +483,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     address,
                     address__dot__state,
                     address__dot__apt,
@@ -471,10 +493,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                         id,
                         version,
                         lastUpdatedBy,
+                        type,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
                             lastUpdatedBy,
+                            type,
                             firstName
                         }
                     }
@@ -504,6 +528,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     id,
                     version,
                     lastUpdatedBy,
+                    type,
                     address,
                     address__dot__state,
                     address__dot__apt,
@@ -513,10 +538,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                         id,
                         version,
                         lastUpdatedBy,
+                        type,
                         assignee: GetReferences(propertyNames: \\"assigneeId\\") {
                             id,
                             version,
                             lastUpdatedBy,
+                            type,
                             firstName
                         }
                     }

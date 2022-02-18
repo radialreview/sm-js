@@ -45,6 +45,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
       public lastUpdatedBy: string;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
+      public type = node.type;
 
       constructor(
         initialData: DeepPartial<TNodeData> & {
