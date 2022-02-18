@@ -1,5 +1,6 @@
 import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
 import { Maybe } from '../types';
+import { AdditionalEdgeProperties } from './edges/types';
 import { NodeData } from './types';
 
 export const JSON_TAG = '__JSON__';
@@ -10,7 +11,10 @@ export const JSON_TAG = '__JSON__';
  * @param nodeData an object with arbitrary data
  * @returns stringified params ready for mutation
  */
-export function convertNodeDataToSMPersistedData(nodeData: NodeData): string {
+export function convertNodeDataToSMPersistedData(
+  nodeData: NodeData,
+  opts?: { skipBooleanStringWrapping?: boolean }
+): string {
   const parsedData = Object.entries(nodeData).reduce((acc, [key, value]) => {
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
@@ -20,6 +24,20 @@ export function convertNodeDataToSMPersistedData(nodeData: NodeData): string {
       return {
         ...acc,
         childNodes: value.map(item => convertNodeDataToSMPersistedData(item)),
+      };
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error(`"additionalEdges" is supposed to be an array`);
+      }
+      return {
+        ...acc,
+        additionalEdges: value.map(item =>
+          convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true,
+          })
+        ),
       };
     }
 
@@ -34,86 +52,112 @@ export function convertNodeDataToSMPersistedData(nodeData: NodeData): string {
       if (i > 0) {
         acc += '\n';
       }
-      if (key === 'childNodes') {
+      if (key === 'childNodes' || key === 'additionalEdges') {
         return acc + `${key}: [\n{\n${value.join('\n}\n{\n')}\n}\n]`;
       }
-      return acc + `${key}: ${value === null ? value : `"${value}"`}`;
+
+      const shouldBeRawBoolean =
+        (value === 'true' || value === 'false') &&
+        !!opts?.skipBooleanStringWrapping;
+
+      return (
+        acc +
+        `${key}: ${value === null || shouldBeRawBoolean ? value : `"${value}"`}`
+      );
     },
     ``
   );
-
   return stringified;
-}
 
-function escapeText(text: string): string {
-  return text
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n');
-}
+  function convertEdgeDirectionNames(edgeItem: AdditionalEdgeProperties) {
+    if (edgeItem.hasOwnProperty('to')) {
+      const { to, ...restOfEdgeItem } = edgeItem;
 
-function prepareForBE(opts: {
-  key: string;
-  value: any;
-}): Record<string, Maybe<string>> {
-  if (opts.value === null) {
-    return { [opts.key]: null };
-  } else if (Array.isArray(opts.value)) {
-    return {
-      [opts.key]: `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}`,
-    };
-  } else if (typeof opts.value === 'object') {
-    return prepareObjectForBE({ [opts.key]: opts.value });
-  } else if (typeof opts.value === 'string') {
-    return { [opts.key]: escapeText(opts.value) };
-  } else if (
-    typeof opts.value === 'boolean' ||
-    typeof opts.value === 'number'
-  ) {
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      return { [opts.key]: null };
+      return {
+        ...restOfEdgeItem,
+        targetId: to,
+      };
+    } else if (edgeItem.hasOwnProperty('from')) {
+      const { from, ...restOfEdgeItem } = edgeItem;
+
+      return {
+        ...restOfEdgeItem,
+        sourceId: edgeItem.from,
+      };
     }
-    return { [opts.key]: String(opts.value) };
-  } else {
-    throw Error(
-      `I don't yet know how to handle feData of type "${typeof opts.value}"`
-    );
+    throw new Error('convertEdgeDirectionNames - received invalid data');
   }
-}
 
-/**
- * Takes an object node value and flattens it to be sent to SM
- *
- * @param obj an object with arbitrary data
- * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
- * @returns a flat object where the keys are of "key__dot__value" syntax
- *
- * For example:
- * ```typescript
- * const obj = {settings: {schedule: {day: 'Monday'} } }
- *  const result = prepareValueForBE(obj)
- * ```
- * The result will be:
- *  ```typescript
- *  {
- * settings: '__object__',
- * settings__dot__schedule: '__object__',
- * settings__dot__schedule__dot__day: 'Monday',
- * }
- * ```
- */
-function prepareObjectForBE(obj: Record<string, any>, parentKey?: string) {
-  return Object.entries(obj).reduce((acc, [key, val]) => {
-    const preparedKey = parentKey
-      ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
-      : key;
+  function escapeText(text: string): string {
+    return text
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n');
+  }
 
-    if (typeof val === 'object' && val != null) {
-      acc[preparedKey] = OBJECT_IDENTIFIER;
-      acc = { ...acc, ...prepareObjectForBE(val, preparedKey) };
+  function prepareForBE(opts: {
+    key: string;
+    value: any;
+  }): Record<string, Maybe<string | boolean>> {
+    if (opts.value === null) {
+      return { [opts.key]: null };
+    } else if (Array.isArray(opts.value)) {
+      return {
+        [opts.key]: `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}`,
+      };
+    } else if (typeof opts.value === 'object') {
+      return prepareObjectForBE({ [opts.key]: opts.value });
+    } else if (typeof opts.value === 'string') {
+      return { [opts.key]: escapeText(opts.value) };
+    } else if (
+      typeof opts.value === 'boolean' ||
+      typeof opts.value === 'number'
+    ) {
+      if (typeof opts.value === 'number' && isNaN(opts.value)) {
+        return { [opts.key]: null };
+      }
+      return { [opts.key]: String(opts.value) };
     } else {
-      acc[preparedKey] = val;
+      throw Error(
+        `I don't yet know how to handle feData of type "${typeof opts.value}"`
+      );
     }
-    return acc;
-  }, {} as Record<string, any>);
+  }
+
+  /**
+   * Takes an object node value and flattens it to be sent to SM
+   *
+   * @param obj an object with arbitrary data
+   * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+   * @returns a flat object where the keys are of "key__dot__value" syntax
+   *
+   * For example:
+   * ```typescript
+   * const obj = {settings: {schedule: {day: 'Monday'} } }
+   *  const result = prepareValueForBE(obj)
+   * ```
+   * The result will be:
+   *  ```typescript
+   *  {
+   * settings: '__object__',
+   * settings__dot__schedule: '__object__',
+   * settings__dot__schedule__dot__day: 'Monday',
+   * }
+   * ```
+   */
+  function prepareObjectForBE(obj: Record<string, any>, parentKey?: string) {
+    return Object.entries(obj).reduce((acc, [key, val]) => {
+      const preparedKey = parentKey
+        ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+        : key;
+
+      if (typeof val === 'object' && val != null) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+        acc = { ...acc, ...prepareObjectForBE(val, preparedKey) };
+      } else {
+        acc[preparedKey] = val;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  }
 }

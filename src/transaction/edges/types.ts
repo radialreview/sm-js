@@ -30,6 +30,20 @@ export type CreateEdgesOperation = {
   }>;
 };
 
+// when creating additionalEdges, each edge can have either a "to" OR a "from", not both
+interface IAdditionalEdgesWithFrom extends EdgePermissions {
+  from: string;
+  to?: never;
+}
+interface IAdditionalEdgesWithTo extends EdgePermissions {
+  to: string;
+  from?: never;
+}
+
+export type AdditionalEdgeProperties =
+  | IAdditionalEdgesWithFrom
+  | IAdditionalEdgesWithTo;
+
 export type CreateEdgeOpts = Omit<
   CreateEdgeOperation,
   'type' | 'smOperationName'

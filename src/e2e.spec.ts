@@ -72,6 +72,11 @@ async function setupTest() {
     done: boolean(false),
   };
 
+  const mockUserProperties = {
+    id: string,
+    name: string,
+  };
+
   type TodoProperties = typeof mockTodoProperties;
 
   type TodoRelationalData = {
@@ -114,11 +119,17 @@ async function setupTest() {
     },
   });
 
+  const mockUserDef = smJSInstance.def({
+    type: 'mock-user',
+    properties: mockUserProperties,
+  });
+
   return {
     smJSInstance,
     token,
     mockThingDef,
     mockTodoDef,
+    mockUserDef,
   };
 }
 
@@ -1371,46 +1382,82 @@ test('optimistic updates work', async done => {
 });
 
 test('#ref_ foreign keys work', async () => {
-  const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
+  const {
+    smJSInstance,
+    mockTodoDef,
+    mockThingDef,
+    mockUserDef,
+  } = await setupTest();
 
   const tx = await smJSInstance
     .transaction(ctx => {
       const thingId = 'thing';
-
-      ctx.createNode({
-        data: {
-          id: thingId,
-          type: mockThingDef.type,
-          number: 1,
-          string: 'hi',
-          childNodes: [
-            {
-              type: mockTodoDef.type,
-              title: 'todo',
-              done: false,
-              assigneeId: `#ref_${thingId}`,
+      ctx.createNodes({
+        nodes: [
+          {
+            data: {
+              type: mockUserDef.type,
+              name: 'Joe',
+              additionalEdges: [
+                {
+                  to: `#ref_${thingId}`,
+                  view: true,
+                  edit: true,
+                  manage: true,
+                },
+              ],
             },
-            {
-              type: mockTodoDef.type,
-              title: 'todo2',
-              done: false,
-              assigneeId: `#ref_${thingId}`,
+          },
+          {
+            data: {
+              id: thingId,
+              type: mockThingDef.type,
+              number: 1,
+              string: 'hi',
+              childNodes: [
+                {
+                  type: mockTodoDef.type,
+                  title: 'todo',
+                  done: false,
+                  assigneeId: `#ref_${thingId}`,
+                },
+                {
+                  id: 'mockTodo',
+                  type: mockTodoDef.type,
+                  title: 'todo2',
+                  done: false,
+                  assigneeId: `#ref_${thingId}`,
+                },
+              ],
             },
-          ],
-        },
+          },
+        ],
       });
     })
     .execute();
+  const createdUserId = tx[0].data.CreateNodes[0].id;
 
-  const createdThingId = tx[0].data.CreateNodes[0].id;
+  const createdThingId = tx[0].data.CreateNodes[1].id;
+
+  const {
+    data: { thingsUnderUser },
+  } = await smJSInstance.query({
+    thingsUnderUser: queryDefinition({
+      def: mockThingDef,
+      underIds: [createdUserId],
+      map: ({ id }) => ({ id }),
+    }),
+  });
 
   const {
     data: { thing },
   } = await smJSInstance.query({
     thing: queryDefinition({
       def: mockThingDef,
-      map: ({ id, todos }) => ({
+      map: ({ id, todos, number, string }) => ({
         id,
+        number,
+        string,
         todos: todos({
           map: ({ id, title, done, assigneeId }) => ({
             id,
@@ -1423,6 +1470,9 @@ test('#ref_ foreign keys work', async () => {
       id: createdThingId,
     }),
   });
+
+  expect((thingsUnderUser[0] as any).id).toBe(createdThingId);
+  expect((thing as any).todos.length).toBe(2);
 
   (thing as any).todos.forEach((todo: any) => {
     expect(todo.assigneeId).toBe(createdThingId);
