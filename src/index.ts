@@ -16,13 +16,7 @@ import {
   ISMNode,
 } from './types';
 
-export {
-  ISMNode,
-  SMDataEnum,
-  MapFnForNode,
-  QueryDefinition,
-  ISMJS,
-} from './types';
+export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition } from './types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
