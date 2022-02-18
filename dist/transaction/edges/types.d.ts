@@ -28,6 +28,15 @@ export declare type CreateEdgesOperation = {
         onSuccess?: () => any;
     }>;
 };
+interface IAdditionalEdgesWithFrom extends EdgePermissions {
+    from: string;
+    to?: never;
+}
+interface IAdditionalEdgesWithTo extends EdgePermissions {
+    to: string;
+    from?: never;
+}
+export declare type AdditionalEdgeProperties = IAdditionalEdgesWithFrom | IAdditionalEdgesWithTo;
 export declare type CreateEdgeOpts = Omit<CreateEdgeOperation, 'type' | 'smOperationName'>;
 export declare type CreateEdgesOpts = Omit<CreateEdgesOperation, 'type' | 'smOperationName'>;
 export declare type DropEdgeProperties = {
@@ -94,3 +103,4 @@ export declare type UpdateEdgesOperation = {
 };
 export declare type UpdateEdgeOpts = Omit<UpdateEdgeOperation, 'type' | 'smOperationName'>;
 export declare type UpdateEdgesOpts = Omit<UpdateEdgesOperation, 'type' | 'smOperationName'>;
+export {};

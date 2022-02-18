@@ -6,4 +6,6 @@ export declare const JSON_TAG = "__JSON__";
  * @param nodeData an object with arbitrary data
  * @returns stringified params ready for mutation
  */
-export declare function convertNodeDataToSMPersistedData(nodeData: NodeData): string;
+export declare function convertNodeDataToSMPersistedData(nodeData: NodeData, opts?: {
+    skipBooleanStringWrapping?: boolean;
+}): string;

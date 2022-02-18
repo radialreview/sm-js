@@ -1,4 +1,7 @@
+import { AdditionalEdgeProperties } from './edges/types';
+
 export type NodeData = {
   type?: string;
   childNodes?: Array<NodeData>;
+  additionalEdges?: Array<AdditionalEdgeProperties>;
 } & Record<string, any>;

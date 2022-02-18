@@ -7,9 +7,15 @@ import {
   boolean,
   object,
   getDefaultConfig,
+  reference,
 } from '.';
 import { createMockQueryDefinitions } from './specUtilities';
-import { ISMJS } from './types';
+import {
+  IByReferenceQueryBuilder,
+  IChildrenQueryBuilder,
+  ISMJS,
+  ISMNode,
+} from './types';
 
 let consoleError: typeof console.error;
 beforeAll(() => {
@@ -39,38 +45,92 @@ async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
   const token = await getToken();
-  smJSInstance.setToken({ tokenName: 'default', token });
 
-  const mockThingDef: any = smJSInstance.def({
-    type: 'mock-thing',
-    properties: {
-      id: string,
-      number: number,
-      string: string,
-      otherString: string.optional,
-      object: object.optional({
-        property: string,
-        otherProperty: string,
-        nestedObject: object.optional({
-          nestedProperty: string,
-        }),
+  smJSInstance.setToken({
+    tokenName: 'default',
+    token,
+  });
+
+  const mockThingProperties = {
+    id: string,
+    number: number,
+    string: string,
+    otherString: string.optional,
+    object: object.optional({
+      property: string,
+      otherProperty: string,
+      nestedObject: object.optional({
+        nestedProperty: string,
       }),
-    },
+    }),
+  };
+
+  const mockTodoProperties = {
+    id: string,
+    title: string,
+    assigneeId: string.optional,
+    done: boolean(false),
+  };
+
+  const mockUserProperties = {
+    id: string,
+    name: string,
+  };
+
+  type TodoProperties = typeof mockTodoProperties;
+
+  type TodoRelationalData = {
+    assignee: IByReferenceQueryBuilder<ThingNode>;
+  };
+
+  type TodoMutations = {};
+
+  type TodoNode = ISMNode<
+    TodoProperties,
+    {},
+    TodoRelationalData,
+    TodoMutations
+  >;
+  type ThingProperties = typeof mockThingProperties;
+
+  type ThingRelationalData = {
+    todos: IChildrenQueryBuilder<TodoNode>;
+  };
+
+  type ThingNode = ISMNode<ThingProperties, {}, ThingRelationalData, {}>;
+
+  const mockThingDef: ThingNode = smJSInstance.def({
+    type: 'mock-thing',
+    properties: mockThingProperties,
     relational: {
       todos: () => children({ def: mockTodoDef }),
     },
   });
 
-  const mockTodoDef = smJSInstance.def({
+  const mockTodoDef: TodoNode = smJSInstance.def({
     type: 'mock-todo',
-    properties: {
-      id: string,
-      title: string,
-      done: boolean(false),
+    properties: mockTodoProperties,
+    relational: {
+      assignee: () =>
+        reference<any, any>({
+          def: mockThingDef,
+          idProp: 'assigneeId',
+        }),
     },
   });
 
-  return { smJSInstance, token, mockThingDef, mockTodoDef };
+  const mockUserDef = smJSInstance.def({
+    type: 'mock-user',
+    properties: mockUserProperties,
+  });
+
+  return {
+    smJSInstance,
+    token,
+    mockThingDef,
+    mockTodoDef,
+    mockUserDef,
+  };
 }
 
 test('querying data from SM works', async done => {
@@ -1319,6 +1379,104 @@ test('optimistic updates work', async done => {
   expect((todo as any).title).toBe('Do the other deed');
 
   done();
+});
+
+test('#ref_ foreign keys work', async () => {
+  const {
+    smJSInstance,
+    mockTodoDef,
+    mockThingDef,
+    mockUserDef,
+  } = await setupTest();
+
+  const tx = await smJSInstance
+    .transaction(ctx => {
+      const thingId = 'thing';
+      ctx.createNodes({
+        nodes: [
+          {
+            data: {
+              type: mockUserDef.type,
+              name: 'Joe',
+              additionalEdges: [
+                {
+                  to: `#ref_${thingId}`,
+                  view: true,
+                  edit: true,
+                  manage: true,
+                },
+              ],
+            },
+          },
+          {
+            data: {
+              id: thingId,
+              type: mockThingDef.type,
+              number: 1,
+              string: 'hi',
+              childNodes: [
+                {
+                  type: mockTodoDef.type,
+                  title: 'todo',
+                  done: false,
+                  assigneeId: `#ref_${thingId}`,
+                },
+                {
+                  id: 'mockTodo',
+                  type: mockTodoDef.type,
+                  title: 'todo2',
+                  done: false,
+                  assigneeId: `#ref_${thingId}`,
+                },
+              ],
+            },
+          },
+        ],
+      });
+    })
+    .execute();
+  const createdUserId = tx[0].data.CreateNodes[0].id;
+
+  const createdThingId = tx[0].data.CreateNodes[1].id;
+
+  const {
+    data: { thingsUnderUser },
+  } = await smJSInstance.query({
+    thingsUnderUser: queryDefinition({
+      def: mockThingDef,
+      underIds: [createdUserId],
+      map: ({ id }) => ({ id }),
+    }),
+  });
+
+  const {
+    data: { thing },
+  } = await smJSInstance.query({
+    thing: queryDefinition({
+      def: mockThingDef,
+      map: ({ id, todos, number, string }) => ({
+        id,
+        number,
+        string,
+        todos: todos({
+          map: ({ id, title, done, assigneeId }) => ({
+            id,
+            title,
+            done,
+            assigneeId,
+          }),
+        }),
+      }),
+      id: createdThingId,
+    }),
+  });
+
+  expect((thingsUnderUser[0] as any).id).toBe(createdThingId);
+  expect((thing as any).todos.length).toBe(2);
+
+  (thing as any).todos.forEach((todo: any) => {
+    expect(todo.assigneeId).toBe(createdThingId);
+  });
 });
 
 async function getToken(): Promise<string> {
