@@ -273,19 +273,17 @@ record._default = null as any;
 export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
-  const parsedBoxedValue: ISMData =
+  const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
-      : (boxedValue as ISMData);
+      ? ((boxedValue as any)._default as TBoxedValue)
+      : (boxedValue as TBoxedValue);
 
-  function smArray(
-    defaultValue: Array<GetSMDataType<typeof parsedBoxedValue>>
-  ) {
+  function smArray(defaultValue: Array<GetSMDataType<TBoxedValue>>) {
     return new SMData<
-      Array<GetSMDataType<typeof parsedBoxedValue>>,
-      Array<GetSMDataType<typeof parsedBoxedValue>>,
-      typeof parsedBoxedValue
+      Array<GetSMDataType<TBoxedValue>>,
+      Array<GetSMDataType<TBoxedValue>>,
+      TBoxedValue
     >({
       type: SM_DATA_TYPES.array,
       parser: value => value,
@@ -296,9 +294,9 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   }
 
   smArray.optional = new SMData<
-    Maybe<Array<GetSMDataType<typeof parsedBoxedValue>>>,
-    Maybe<Array<GetSMDataType<typeof parsedBoxedValue>>>,
-    typeof parsedBoxedValue
+    Maybe<Array<GetSMDataType<TBoxedValue>>>,
+    Maybe<Array<GetSMDataType<TBoxedValue>>>,
+    TBoxedValue
   >({
     type: SM_DATA_TYPES.maybeArray,
     parser: value => value,

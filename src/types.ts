@@ -351,7 +351,7 @@ export type NodeComputedFns<
   TNodeComputedData extends Record<string, any>
 > = {
   [key in keyof TNodeComputedData]: (
-    data: GetExpectedNodeDataType<TNodeData, {}>
+    data: GetExpectedNodeDataType<TNodeData, TNodeComputedData>
   ) => TNodeComputedData[key];
 };
 
@@ -373,11 +373,12 @@ export interface ISMNode<
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
+  TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>,
   TNodeDO = NodeDO
 > {
   _isSMNodeDef: true;
   smData: TNodeData;
-  smComputed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  smComputed?: TNodeComputedFns;
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
   type: string;
@@ -442,7 +443,7 @@ export interface ISMQueryPagination {}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
-  NodeRelationalQueryBuilder<ISMNode<any, any, any>>
+  NodeRelationalQueryBuilder<ISMNode>
 >;
 
 export interface ISMNodeRepository {

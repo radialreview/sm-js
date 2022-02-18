@@ -1,4 +1,4 @@
-/* eslint @typescript-eslint/no-unused-vars: 0 */
+/* eslint @typescript-eslint/no-unused-vars: 0, @typescript-eslint/no-unused-expressions: 0 */
 import {
   getDefaultConfig,
   queryDefinition,
@@ -7,10 +7,12 @@ import {
   number,
   children,
 } from './';
-import { object, record } from './smDataTypes';
+import { object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
+  IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
+  ISMNode,
   MapFnForNode,
   Maybe,
   SMDataEnum,
@@ -20,14 +22,41 @@ import {
  * This file should only contain TS tests
  */
 const smJS = new SMJS(getDefaultConfig());
-const todoNode = smJS.def({
+const todoProperties = {
+  id: string,
+  task: string,
+  dueDate: number,
+  assignee: string,
+};
+const todoRelational = {
+  assignee: () =>
+    reference<typeof todoNode, typeof userNode>({
+      def: userNode,
+      idProp: 'assignee',
+    }),
+};
+
+type TodoNode = ISMNode<
+  typeof todoProperties,
+  {},
+  { assignee: IByReferenceQueryBuilder<UserNode> }
+>;
+const todoNode: TodoNode = smJS.def({
   type: 'todo',
-  properties: {
-    id: string,
-    task: string,
-    dueDate: number,
-  },
+  properties: todoProperties,
+  relational: todoRelational,
 });
+
+const objectUnion = {
+  type: string('number'),
+  number: number,
+  string: string,
+} as
+  | { type: SMDataEnum<'number'>; number: typeof number }
+  | {
+      type: SMDataEnum<'string'>;
+      string: typeof string;
+    };
 
 const userProperties = {
   id: string,
@@ -39,16 +68,18 @@ const userProperties = {
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
   optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
   recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
+  objectUnion: object(objectUnion),
 };
 const userRelational = {
-  todos: () =>
-    children({ def: todoNode }) as IChildrenQueryBuilder<typeof todoNode>,
+  todos: () => children({ def: todoNode }) as IChildrenQueryBuilder<TodoNode>,
 };
-const userNode = smJS.def<
+
+type UserNode = ISMNode<
   typeof userProperties,
   { fullName: string; avatar: string },
-  { todos: IChildrenQueryBuilder<typeof todoNode> }
->({
+  { todos: IChildrenQueryBuilder<TodoNode> }
+>;
+const userNode: UserNode = smJS.def({
   type: 'user',
   properties: userProperties,
   relational: userRelational,
@@ -159,6 +190,17 @@ const userNode = smJS.def<
 
   // @ts-expect-error property 'BAR' is in the enum used in the boxed value of the record `recordEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].recordEnum['some-key']];
+
+  const objUni = shorthandQueryResults.data.users[0].objectUnion;
+  if (objUni.type === 'string') {
+    objUni.string as string;
+    // @ts-expect-error not in uni when type is string
+    objUni.number as number;
+  } else {
+    objUni.number;
+    // @ts-expect-error no in uni when type is number
+    objUni.string as string;
+  }
 
   const withBarAndBaz = { BAR: 1, BAZ: 2 };
   const withBarOnly = { BAR: 1 };
