@@ -392,9 +392,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
               propName: relationalProp,
               relationalQueryGetter: relationalData[
                 relationalProp
-              ] as () => NodeRelationalQueryBuilder<
-                ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData>
-              >,
+              ] as () => NodeRelationalQueryBuilder<any>,
             });
           });
         }
