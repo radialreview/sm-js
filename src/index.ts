@@ -14,15 +14,12 @@ import {
   NodeMutationFn,
   NodeDefArgs,
   ISMNode,
-} from './types';
-
-export {
-  ISMNode,
   SMDataEnum,
   MapFnForNode,
   QueryDefinition,
-  ISMJS,
 } from './types';
+
+export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS };
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
