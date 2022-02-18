@@ -37,6 +37,7 @@ export class SMData<
   TSMValue,
   TBoxedValue extends
     | ISMData
+    | SMDataDefaultFn
     | Record<string, ISMData | SMDataDefaultFn>
     | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
@@ -67,10 +68,15 @@ export class SMData<
  * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
  */
 
-export const string = (defaultValue: string) =>
-  new SMData<string, string, undefined>({
+export const string = <TStringType extends string = string>(
+  defaultValue: TStringType
+) =>
+  new SMData<TStringType, TStringType, undefined>({
     type: SM_DATA_TYPES.string,
-    parser: value => (value != null ? String(value) : value),
+    parser: value =>
+      value != null
+        ? ((String(value) as unknown) as TStringType)
+        : (value as TStringType),
     defaultValue,
     isOptional: false,
   });
@@ -171,16 +177,26 @@ boolean.optional = new SMData<
   isOptional: true,
 });
 
-export const object = <
-  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
->(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
-    GetExpectedNodeDataType<TBoxedValue>,
-    GetExpectedNodeDataType<TBoxedValue>,
+type ObjectSMDataType = {
+  <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+    boxedValue: TBoxedValue
+  ): SMData<
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetExpectedNodeDataType<TBoxedValue, {}>,
     TBoxedValue
-  >({
+  >;
+  _default: any;
+  optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+    boxedValue: TBoxedValue
+  ) => SMData<
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetExpectedNodeDataType<TBoxedValue, {}>,
+    TBoxedValue
+  >;
+};
+
+export const object: ObjectSMDataType = boxedValue =>
+  new SMData({
     type: SM_DATA_TYPES.object,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -191,18 +207,10 @@ export const object = <
     isOptional: false,
   });
 
-object._default = null as any;
+object._default = null;
 
-object.optional = <
-  TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
->(
-  boxedValue: TBoxedValue
-) =>
-  new SMData<
-    Maybe<GetExpectedNodeDataType<TBoxedValue>>,
-    Maybe<GetExpectedNodeDataType<TBoxedValue>>,
-    TBoxedValue
-  >({
+object.optional = boxedValue =>
+  new SMData({
     type: SM_DATA_TYPES.maybeObject,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -219,16 +227,16 @@ export const record = <
 >(
   boxedValue: TBoxedValue
 ) => {
-  const parsedBoxedValue: ISMData =
+  const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
-      : (boxedValue as ISMData);
+      ? ((boxedValue as any)._default as TBoxedValue)
+      : (boxedValue as TBoxedValue);
 
   return new SMData<
     Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
     Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
-    typeof parsedBoxedValue
+    TBoxedValue
   >({
     type: SM_DATA_TYPES.record,
     parser: val => val,
@@ -265,19 +273,17 @@ record._default = null as any;
 export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
-  const parsedBoxedValue: ISMData =
+  const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
-      : (boxedValue as ISMData);
+      ? ((boxedValue as any)._default as TBoxedValue)
+      : (boxedValue as TBoxedValue);
 
-  function smArray(
-    defaultValue: Array<GetSMDataType<typeof parsedBoxedValue>>
-  ) {
+  function smArray(defaultValue: Array<GetSMDataType<TBoxedValue>>) {
     return new SMData<
-      Array<GetSMDataType<typeof parsedBoxedValue>>,
-      Array<GetSMDataType<typeof parsedBoxedValue>>,
-      typeof parsedBoxedValue
+      Array<GetSMDataType<TBoxedValue>>,
+      Array<GetSMDataType<TBoxedValue>>,
+      TBoxedValue
     >({
       type: SM_DATA_TYPES.array,
       parser: value => value,
@@ -288,9 +294,9 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   }
 
   smArray.optional = new SMData<
-    Maybe<Array<GetSMDataType<typeof parsedBoxedValue>>>,
-    Maybe<Array<GetSMDataType<typeof parsedBoxedValue>>>,
-    typeof parsedBoxedValue
+    Maybe<Array<GetSMDataType<TBoxedValue>>>,
+    Maybe<Array<GetSMDataType<TBoxedValue>>>,
+    TBoxedValue
   >({
     type: SM_DATA_TYPES.maybeArray,
     parser: value => value,

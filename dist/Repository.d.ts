@@ -8,4 +8,12 @@ export declare function RepositoryFactory<TNodeData extends Record<string, ISMDa
         properties: TNodeData;
     };
     DOClass: new (initialData?: Record<string, any>) => NodeDO;
+    onDataReceived(opts: {
+        data: {
+            id: string;
+        } & Record<string, any>;
+        applyUpdateToDO: () => void;
+    }): void;
+    onDOConstructed?(DO: NodeDO): void;
+    onDODeleted?(DO: NodeDO): void;
 }): ISMNodeRepository;

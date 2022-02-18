@@ -129,7 +129,7 @@ export interface ISMJS {
     }): TDOClass;
     SMQueryManager: new (queryRecord: QueryRecord) => ISMQueryManager;
 }
-export declare type NodeDefArgs<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}> = {
+export declare type NodeDefArgs<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn>> = {
     type: string;
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
@@ -146,7 +146,7 @@ export interface ISMData<TParsedValue = any, TSMValue = any,
  * for arrays is the smData type of each item in that array
  * for objects is a record of strings to smData (matching the structure the smData.object received as an argument)
  */
-TBoxedValue extends ISMData | Record<string, ISMData | SMDataDefaultFn> | undefined = any> {
+TBoxedValue extends ISMData | SMDataDefaultFn | Record<string, ISMData | SMDataDefaultFn> | undefined = any> {
     type: string;
     parser(smValue: TSMValue): TParsedValue;
     boxedValue: TBoxedValue;
@@ -164,11 +164,11 @@ export declare type GetParsedValueTypeFromDefaultFn<TDefaultFn extends (_default
 /**
  * Utility to extract the expected data type of a node based on its' data structure
  */
-export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>> = {
-    [key in keyof TSMData]: TSMData[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue>> : GetExpectedNodeDataType<TBoxedValue> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TSMData[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TSMData[key]> : never;
-};
+export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = {
+    [key in keyof TSMData]: TSMData[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>> : GetExpectedNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TSMData[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TSMData[key]> : never;
+} & TComputedData;
 export declare type GetExpectedRelationalDataType<TRelationalData extends NodeRelationalQueryBuilderRecord> = {
-    [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>>> : never;
+    [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never;
 };
 /**
  * Takes in any object and returns a Partial of that object type
@@ -192,20 +192,28 @@ export interface IDOMethods {
     /**
      * Called when we get data from SM for this particular DO instance, found by its id
      */
-    onDataReceived(data: Record<string, any>): void;
+    onDataReceived(data: Record<string, any>, opts?: {
+        __unsafeIgnoreVersion?: boolean;
+    }): void;
 }
-export declare type NodeDO = Record<string, any> & IDOMethods;
-export declare type NodeComputedFns<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData> = {
-    [key in keyof TNodeComputedData]: (data: GetExpectedNodeDataType<TNodeData> & TNodeComputedData) => TNodeComputedData[key];
+export interface IDOAccessors {
+    id: string;
+    version: number;
+    lastUpdatedBy: string;
+    persistedData: Record<string, any>;
+}
+export declare type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
+export declare type NodeComputedFns<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>> = {
+    [key in keyof TNodeComputedData]: (data: GetExpectedNodeDataType<TNodeData, TNodeComputedData>) => TNodeComputedData[key];
 };
 export declare type NodeRelationalFns<TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
     [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
 export declare type NodeMutationFn = () => Promise<any>;
-export interface ISMNode<TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}, TNodeDO = NodeDO> {
+export interface ISMNode<TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}, TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>, TNodeDO = NodeDO> {
     _isSMNodeDef: true;
     smData: TNodeData;
-    smComputed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+    smComputed?: TNodeComputedFns;
     smRelational?: NodeRelationalFns<TNodeRelationalData>;
     smMutations?: TNodeMutations;
     type: string;
@@ -247,7 +255,7 @@ export interface IChildrenQuery<TSMNode extends ISMNode, TMapFn extends MapFnFor
 }
 export interface ISMQueryPagination {
 }
-export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder<ISMNode<any, any, any>>>;
+export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder<ISMNode>>;
 export interface ISMNodeRepository {
     byId(id: string): NodeDO;
     onDataReceived(data: {
@@ -290,7 +298,7 @@ export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> 
         def: infer TSMNode;
     } ? TSMNode extends ISMNode ? TQueryDefinitions[Key] extends {
         id: string;
-    } ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>> & ExtractNodeComputedData<TSMNode> : Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>> & ExtractNodeComputedData<TSMNode>> : never : never : TQueryDefinitions[Key] extends ISMNode ? Array<GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>> & ExtractNodeComputedData<TQueryDefinitions[Key]>> : never;
+    } ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinitions[Key] extends ISMNode ? Array<GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>> : never;
 };
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
 export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<TNodeData, TNodeRelationalData>) => RequestedData<TNodeData, TNodeComputedData>;

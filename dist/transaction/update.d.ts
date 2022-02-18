@@ -8,7 +8,8 @@ export declare type UpdateNodesOperation = {
             id: string;
         } & NodeData;
         position?: number;
-        onSuccess?: (data: any) => any;
+        onSuccess?: (data: any) => void;
+        onFail?: () => void;
     }>;
     name?: string;
 };
@@ -20,7 +21,8 @@ export declare type UpdateNodeOperation = {
         id: string;
     } & NodeData;
     name?: string;
-    onSuccess?: (data: any) => any;
+    onSuccess?: (data: any) => void;
+    onFail?: () => void;
 };
 export declare function updateNode(operation: Omit<UpdateNodeOperation, 'type' | 'smOperationName'>): UpdateNodeOperation;
 export declare function getMutationsFromTransactionUpdateOperations(operations: Array<UpdateNodeOperation | UpdateNodesOperation>): Array<DocumentNode>;

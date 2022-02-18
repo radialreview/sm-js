@@ -6,4 +6,4 @@ export declare function createDOProxyGenerator(smJSInstance: ISMJS): <TNodeData 
     allPropertiesQueried: Array<string>;
     relationalResults: Maybe<TRelationalResults>;
     relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
-}) => Record<string, any> & import("./types").IDOMethods & TRelationalResults & IDOProxy;
+}) => Record<string, any> & import("./types").IDOMethods & import("./types").IDOAccessors & TRelationalResults & IDOProxy;

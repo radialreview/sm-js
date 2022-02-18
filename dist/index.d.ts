@@ -1,7 +1,9 @@
 import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode } from './types';
+export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS, } from './types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
+export * from './gqlClient';
 export declare class SMJS implements ISMJS {
     gqlClient: ISMJS['gqlClient'];
     plugins: ISMJS['plugins'];
@@ -12,6 +14,7 @@ export declare class SMJS implements ISMJS {
     tokens: Record<string, string>;
     DOFactory: ISMJS['DOFactory'];
     DOProxyGenerator: ISMJS['DOProxyGenerator'];
+    private optimisticUpdatesOrchestrator;
     constructor(config: SMConfig);
     def<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
     getToken(opts: {
@@ -21,4 +24,5 @@ export declare class SMJS implements ISMJS {
         tokenName: string;
         token: string;
     }): void;
+    clearTokens(): void;
 }

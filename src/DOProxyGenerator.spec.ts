@@ -128,7 +128,7 @@ function generateDOProxy<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   properties: TNodeData;
-  initialData: DeepPartial<GetExpectedNodeDataType<TNodeData>> & {
+  initialData: DeepPartial<GetExpectedNodeDataType<TNodeData, {}>> & {
     id: string;
     version: string;
   };
