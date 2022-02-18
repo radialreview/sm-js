@@ -32,13 +32,23 @@ export interface IPendingTransaction {
     operations: TOperationsByType;
     execute: () => Promise<any>;
     callbackResult?: void | Promise<any> | Array<IPendingTransaction>;
+    token: string;
 }
 declare type OperationType = CreateNodeOperation | CreateNodesOperation | UpdateNodeOperation | UpdateNodesOperation | DropNodeOperation | CreateEdgeOperation | CreateEdgesOperation | DropEdgeOperation | DropEdgesOperation | UpdateEdgeOperation | UpdateEdgesOperation | ReplaceEdgeOperation | ReplaceEdgesOperation;
-export declare function createTransaction(smJSInstance: ISMJS): (callback: IPendingTransaction[] | ((context: ITransactionContext) => void | Promise<void>), opts?: {
+export declare function createTransaction(smJSInstance: ISMJS, globalOperationHandlers: {
+    onUpdateRequested(update: {
+        id: string;
+        payload: Record<string, any>;
+    }): {
+        onUpdateFailed(): void;
+        onUpdateSuccessful(): void;
+    };
+}): (callback: IPendingTransaction[] | ((context: ITransactionContext) => void | Promise<void>), opts?: {
     tokenName: string;
-} | undefined) => Pick<IPendingTransaction, "operations" | "execute"> | {
+} | undefined) => Pick<IPendingTransaction, "operations" | "execute" | "token"> | {
     operations: Record<"createNode" | "createNodes" | "updateNode" | "updateNodes" | "dropNode" | "createEdge" | "createEdges" | "dropEdge" | "dropEdges" | "updateEdge" | "updateEdges" | "replaceEdge" | "replaceEdges", TIndexedOperationType[]>;
     execute: () => Promise<TExecutionResult>;
     callbackResult: void | Promise<void>;
+    token: string;
 };
 export {};

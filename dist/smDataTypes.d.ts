@@ -13,7 +13,7 @@ export declare const SM_DATA_TYPES: {
     array: string;
     maybeArray: string;
 };
-export declare class SMData<TParsedValue, TSMValue, TBoxedValue extends ISMData | Record<string, ISMData | SMDataDefaultFn> | undefined> implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
+export declare class SMData<TParsedValue, TSMValue, TBoxedValue extends ISMData | SMDataDefaultFn | Record<string, ISMData | SMDataDefaultFn> | undefined> implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
     type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
     parser: (smValue: TSMValue) => TParsedValue;
     boxedValue: TBoxedValue;
@@ -33,8 +33,8 @@ export declare class SMData<TParsedValue, TSMValue, TBoxedValue extends ISMData 
  * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
  */
 export declare const string: {
-    (defaultValue: string): SMData<string, string, undefined>;
-    _default: SMData<string, string, undefined>;
+    <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+    _default: SMData<"", "", undefined>;
     optional: SMData<Maybe<string>, Maybe<string>, undefined>;
 };
 export declare const number: {
@@ -47,33 +47,35 @@ export declare const boolean: {
     _default: ISMData<boolean, string | boolean, undefined>;
     optional: SMData<Maybe<boolean>, Maybe<string | boolean>, undefined>;
 };
-export declare const object: {
-    <TBoxedValue extends Record<string, ISMData<any, any, any> | SMDataDefaultFn>>(boxedValue: TBoxedValue): SMData<GetExpectedNodeDataType<TBoxedValue>, GetExpectedNodeDataType<TBoxedValue>, TBoxedValue>;
+declare type ObjectSMDataType = {
+    <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue): SMData<GetExpectedNodeDataType<TBoxedValue, {}>, GetExpectedNodeDataType<TBoxedValue, {}>, TBoxedValue>;
     _default: any;
-    optional<TBoxedValue_1 extends Record<string, ISMData<any, any, any> | SMDataDefaultFn>>(boxedValue: TBoxedValue_1): SMData<Maybe<GetExpectedNodeDataType<TBoxedValue_1>>, Maybe<GetExpectedNodeDataType<TBoxedValue_1>>, TBoxedValue_1>;
+    optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue) => SMData<GetExpectedNodeDataType<TBoxedValue, {}>, GetExpectedNodeDataType<TBoxedValue, {}>, TBoxedValue>;
 };
+export declare const object: ObjectSMDataType;
 export declare const record: {
-    <TKey extends string, TBoxedValue extends ISMData<any, any, any> | SMDataDefaultFn>(boxedValue: TBoxedValue): SMData<Record<TKey, any>, Record<TKey, any>, ISMData<any, any, any>>;
+    <TKey extends string, TBoxedValue extends ISMData<any, any, any> | SMDataDefaultFn>(boxedValue: TBoxedValue): SMData<Record<TKey, GetSMDataType<TBoxedValue>>, Record<TKey, GetSMDataType<TBoxedValue>>, TBoxedValue>;
     optional<TBoxedValue_1 extends ISMData<any, any, any> | SMDataDefaultFn>(boxedValue: TBoxedValue_1): SMData<Maybe<Record<string, any>>, Maybe<Record<string, any>>, ISMData<any, any, any>>;
     _default: any;
 };
 export declare const array: <TBoxedValue extends ISMData<any, any, any> | SMDataDefaultFn>(boxedValue: TBoxedValue) => {
-    (defaultValue: any[]): SMData<any[], any[], ISMData<any, any, any>>;
-    optional: SMData<Maybe<any[]>, Maybe<any[]>, ISMData<any, any, any>>;
-    _default: SMData<any[], any[], ISMData<any, any, any>>;
+    (defaultValue: GetSMDataType<TBoxedValue>[]): SMData<GetSMDataType<TBoxedValue>[], GetSMDataType<TBoxedValue>[], TBoxedValue>;
+    optional: SMData<Maybe<GetSMDataType<TBoxedValue>[]>, Maybe<GetSMDataType<TBoxedValue>[]>, TBoxedValue>;
+    _default: SMData<GetSMDataType<TBoxedValue>[], GetSMDataType<TBoxedValue>[], TBoxedValue>;
 };
 export declare const SM_RELATIONAL_TYPES: {
     byReference: "bR";
     children: "bP";
 };
-export declare const reference: <TParentHoldingReference extends ISMNode<{}, {}, {}, {}, import("./types").NodeDO>, TReferencedNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeDO> = ISMNode<{}, {}, {}, {}, import("./types").NodeDO>>(opts: {
+export declare const reference: <TParentHoldingReference extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TReferencedNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: TReferencedNode;
     idProp: keyof TParentHoldingReference["smData"];
 }) => IByReferenceQueryBuilder<TReferencedNode>;
-export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeDO>>(opts: {
+export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: TSMNode;
     depth?: number | undefined;
 }) => IChildrenQueryBuilder<TSMNode>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare const OBJECT_IDENTIFIER = "__object__";
 export declare function queryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined>(queryDefinition: QueryDefinition<TSMNode, TMapFn>): QueryDefinition<TSMNode, TMapFn>;
+export {};
