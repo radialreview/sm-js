@@ -193,6 +193,7 @@ export const mockQueryDataReturn = {
   users: [
     {
       id: 'mock-user-id',
+      type: 'tt-user',
       version: '1',
       address: '__object__',
       address__dot__state: 'FL',
@@ -203,7 +204,15 @@ export const mockQueryDataReturn = {
         {
           version: '1',
           id: 'mock-todo-id',
-          assignee: [{ id: 'mock-user-id', version: '1', firstName: 'Joe' }],
+          type: 'todo',
+          assignee: [
+            {
+              id: 'mock-user-id',
+              type: 'tt-user',
+              version: '1',
+              firstName: 'Joe',
+            },
+          ],
         },
       ],
     },
@@ -212,17 +221,20 @@ export const mockQueryDataReturn = {
 
 const expectedAssignee = {
   id: 'mock-user-id',
+  type: 'tt-user',
   firstName: 'Joe',
   version: 1,
 };
 const expectedTodo = {
   id: 'mock-todo-id',
+  type: 'todo',
   assignee: expectedAssignee,
   version: 1,
 };
 const expectedUsers = [
   {
     id: 'mock-user-id',
+    type: 'tt-user',
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
     version: 1,
@@ -249,6 +261,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
       node: {
         // same prop values
         id: 'mock-user-id',
+        type: 'tt-user',
         address__dot__state: 'AK',
         version: '2',
       },

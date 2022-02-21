@@ -45,6 +45,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
       public lastUpdatedBy: string;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
+      public type = node.type;
 
       constructor(
         initialData: DeepPartial<TNodeData> & {
@@ -282,9 +283,10 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       public onDataReceived = (
-        receivedData: { version: number; lastUpdatedBy: string } & DeepPartial<
-          TNodeData
-        >,
+        receivedData: {
+          version: number;
+          lastUpdatedBy: string;
+        } & DeepPartial<TNodeData>,
         opts?: { __unsafeIgnoreVersion: boolean }
       ) => {
         if (receivedData.version == null) {

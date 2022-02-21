@@ -56,6 +56,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
       task: 'test task',
     });
@@ -71,6 +72,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
       task: 'test task',
     });
@@ -91,6 +93,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
       task: 'test task',
     });
@@ -99,6 +102,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
       task: 'updated test task',
     });
@@ -123,6 +127,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
+      type: 'mockNodeType',
       version: '1',
       settings: smData.OBJECT_IDENTIFIER,
       settings__dot__schedule: smData.OBJECT_IDENTIFIER,
@@ -143,6 +148,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
+      type: 'mockNodeType',
       people: `__JSON__["joe", "bob"]`,
     } as { id: string });
 
@@ -165,6 +171,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: 'mock-id',
+      type: 'mockNodeType',
       version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
@@ -201,6 +208,7 @@ describe('smData.repository', () => {
     expect(() =>
       repository.onDataReceived({
         id: 'mock-id',
+        type: 'mockNodeType',
         version: '1',
         task: 'my task',
         assignee: 'test', // purposely adding a property which is relational to test that we don't throw "tried to set a property without a setter"
@@ -238,6 +246,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
     });
 
@@ -269,6 +278,7 @@ describe('smData.repository', () => {
 
     repository.onDataReceived({
       id: '123',
+      type: 'mockNodeType',
       version: '1',
       object: null,
       optionalObject: smData.OBJECT_IDENTIFIER,
