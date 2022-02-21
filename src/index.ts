@@ -19,6 +19,7 @@ import {
   QueryDefinition,
   QueryFilterForNode,
   GetExpectedNodeDataType,
+  DeepPartial,
 } from './types';
 
 export {
@@ -29,6 +30,7 @@ export {
   QueryDefinition,
   ISMJS,
   GetExpectedNodeDataType,
+  DeepPartial,
 };
 export * from './smDataTypes';
 export * from './react';
