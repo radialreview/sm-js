@@ -17,9 +17,17 @@ import {
   SMDataEnum,
   MapFnForNode,
   QueryDefinition,
+  QueryFilterForNode,
 } from './types';
 
-export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS };
+export {
+  ISMNode,
+  SMDataEnum,
+  MapFnForNode,
+  QueryFilterForNode,
+  QueryDefinition,
+  ISMJS,
+};
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
