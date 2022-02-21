@@ -18,6 +18,7 @@ import {
   MapFnForNode,
   QueryDefinition,
   QueryFilterForNode,
+  GetExpectedNodeDataType,
 } from './types';
 
 export {
@@ -27,6 +28,7 @@ export {
   QueryFilterForNode,
   QueryDefinition,
   ISMJS,
+  GetExpectedNodeDataType,
 };
 export * from './smDataTypes';
 export * from './react';
