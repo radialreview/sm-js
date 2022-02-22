@@ -17,9 +17,19 @@ import {
   SMDataEnum,
   MapFnForNode,
   QueryDefinition,
+  IChildrenQueryBuilder,
+  IByReferenceQueryBuilder,
 } from './types';
 
-export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS };
+export {
+  ISMNode,
+  SMDataEnum,
+  MapFnForNode,
+  QueryDefinition,
+  ISMJS,
+  IChildrenQueryBuilder,
+  IByReferenceQueryBuilder,
+};
 export * from './smDataTypes';
 export * from './react';
 export * from './config';

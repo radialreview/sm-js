@@ -1,4 +1,12 @@
-import { relational, getDefaultConfig, SMJS, string, reference } from 'sm-js';
+import {
+  relational,
+  getDefaultConfig,
+  SMJS,
+  string,
+  // reference,
+  // IByReferenceQueryBuilder,
+  // ISMNode,
+} from 'sm-js';
 
 const smJS = new SMJS(getDefaultConfig());
 
@@ -15,7 +23,6 @@ const todoProperties = {
   task: string,
   assigneeId: string.optional,
 };
-
 export const todoNode = smJS.def({
   type: 'todo',
   properties: todoProperties,
