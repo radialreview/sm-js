@@ -3,9 +3,10 @@ import {
   getDefaultConfig,
   SMJS,
   string,
-  // reference,
-  // IByReferenceQueryBuilder,
-  // ISMNode,
+  reference,
+  IByReferenceQueryBuilder,
+  IChildrenQueryBuilder,
+  ISMNode,
 } from 'sm-js';
 
 const smJS = new SMJS(getDefaultConfig());
@@ -13,7 +14,7 @@ const smJS = new SMJS(getDefaultConfig());
 smJS.setToken({
   tokenName: 'default',
   token:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImY5ZGIxYjA5LTdiMGItNDMzYy1iZDg2LTg5M2MzZmQxNDFmMCIsIk5hbWVzcGFjZUFwcGxpY2F0aW9uSWQiOiIyIiwibmJmIjoxNjQ0NDM4NDg4LCJleHAiOjE2NDQ1MjQ4ODgsImlhdCI6MTY0NDQzODQ4OH0.kt1mR159rr7r4YlABL3k_t7vr_ZnzAz-UUdX6hUYSDg',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjRjYmNjMzA3LTZiZTMtMDdlMy1hOGJjLTJmOTBkZDZkNjUzNCIsIk5hbWVzcGFjZUFwcGxpY2F0aW9uSWQiOiIyIiwibmJmIjoxNjQ1NTUwNjMxLCJleHAiOjE2NDU2MzcwMzEsImlhdCI6MTY0NTU1MDYzMX0.Tk_59TCwefh5feKVdLBgba_AtxdUgthYiG7erF-4qI0',
 });
 
 export default smJS;
@@ -23,26 +24,47 @@ const todoProperties = {
   task: string,
   assigneeId: string.optional,
 };
-export const todoNode = smJS.def({
+
+const userProperties = {
+  id: string,
+  firstName: string,
+  lastName: string,
+  address: string,
+};
+
+type TodoProperties = typeof todoProperties;
+
+type TodoRelationalData = {
+  assignee: IByReferenceQueryBuilder<UserNode>;
+};
+
+type TodoMutations = {};
+
+type TodoNode = ISMNode<TodoProperties, {}, TodoRelationalData, TodoMutations>;
+
+type UserProperties = typeof userProperties;
+
+type UserRelationalData = {
+  todos: IChildrenQueryBuilder<TodoNode>;
+};
+
+type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
+
+export const todoNode: TodoNode = smJS.def({
   type: 'todo',
   properties: todoProperties,
-  // relational: {
-  //   assignee: () =>
-  //     reference<any, any>({
-  //       def: userNode,
-  //       idProp: 'assigneeId',
-  //     }),
-  // },
+  relational: {
+    assignee: () =>
+      reference<TodoNode, UserNode>({
+        def: userNode,
+        idProp: 'assigneeId',
+      }),
+  },
 });
 
-export const userNode = smJS.def({
-  type: 'tt-user',
-  properties: {
-    id: string,
-    firstName: string,
-    lastName: string,
-    address: string,
-  },
+export const userNode: UserNode = smJS.def({
+  type: 'demo-user',
+  properties: userProperties,
   relational: {
     todos: () => relational({ def: todoNode, name: 'assigned' }),
   },
