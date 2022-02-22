@@ -201,7 +201,7 @@ describe('smData.repository', () => {
         task: smData.string,
       },
       relational: {
-        assignee: () => smData.children({ def: generateUserNode(smJS) }),
+        assignee: () => smData.relational({ def: generateUserNode(smJS) }),
       },
     });
 

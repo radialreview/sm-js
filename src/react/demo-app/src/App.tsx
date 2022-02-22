@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useSubscription, queryDefinition } from 'sm-js';
-import { userNode } from './smJS';
+import { userNode, todoNode } from './smJS';
 
 function MyComponent() {
   const { data } = useSubscription({

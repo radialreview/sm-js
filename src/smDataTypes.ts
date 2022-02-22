@@ -330,8 +330,12 @@ export const reference = <
   }) as IByReferenceQueryBuilder<TReferencedNode>;
 };
 
-export const children = <TSMNode extends ISMNode>(opts: {
+export const relational = <TSMNode extends ISMNode>({
+  depth = 1,
+  ...opts
+}: {
   def: TSMNode;
+  name?: string;
   depth?: number;
 }) => {
   return ((queryBuilderOpts: {
@@ -342,7 +346,7 @@ export const children = <TSMNode extends ISMNode>(opts: {
       ...opts,
       _smRelational: SM_RELATIONAL_TYPES.children,
       map: queryBuilderOpts.map,
-      depth: opts.depth,
+      depth,
     };
   }) as IChildrenQueryBuilder<TSMNode>;
 };

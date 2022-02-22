@@ -1,4 +1,4 @@
-import { children, getDefaultConfig, SMJS, string } from 'sm-js';
+import { relational, getDefaultConfig, SMJS, string, reference } from 'sm-js';
 
 const smJS = new SMJS(getDefaultConfig());
 
@@ -10,12 +10,22 @@ smJS.setToken({
 
 export default smJS;
 
+const todoProperties = {
+  id: string,
+  task: string,
+  assigneeId: string.optional,
+};
+
 export const todoNode = smJS.def({
   type: 'todo',
-  properties: {
-    id: string,
-    task: string,
-  },
+  properties: todoProperties,
+  // relational: {
+  //   assignee: () =>
+  //     reference<any, any>({
+  //       def: userNode,
+  //       idProp: 'assigneeId',
+  //     }),
+  // },
 });
 
 export const userNode = smJS.def({
@@ -27,6 +37,6 @@ export const userNode = smJS.def({
     address: string,
   },
   relational: {
-    todos: () => children({ def: todoNode, depth: 1 }),
+    todos: () => relational({ def: todoNode, name: 'assigned' }),
   },
 });

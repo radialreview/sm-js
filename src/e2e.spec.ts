@@ -3,7 +3,7 @@ import {
   number,
   queryDefinition,
   string,
-  children,
+  relational,
   boolean,
   object,
   getDefaultConfig,
@@ -103,7 +103,7 @@ async function setupTest() {
     type: 'mock-thing',
     properties: mockThingProperties,
     relational: {
-      todos: () => children({ def: mockTodoDef }),
+      todos: () => relational({ def: mockTodoDef }),
     },
   });
 
