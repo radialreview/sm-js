@@ -1,5 +1,6 @@
 import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, IChildrenQueryBuilder, IByReferenceQueryBuilder } from './types';
 export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS, IChildrenQueryBuilder, IByReferenceQueryBuilder, };
+export { NodeData } from './transaction/types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';

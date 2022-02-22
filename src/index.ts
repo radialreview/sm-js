@@ -30,6 +30,7 @@ export {
   IChildrenQueryBuilder,
   IByReferenceQueryBuilder,
 };
+export { NodeData } from './transaction/types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
