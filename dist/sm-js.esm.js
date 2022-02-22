@@ -261,6 +261,7 @@ function throwLocallyLogInProd(error) {
   }
 }
 
+var _excluded = ["depth"];
 var SM_DATA_TYPES = {
   string: 's',
   maybeString: 'mS',
@@ -479,12 +480,16 @@ var reference = function reference(opts) {
     });
   };
 };
-var children = function children(opts) {
+var relational = function relational(_ref) {
+  var _ref$depth = _ref.depth,
+      depth = _ref$depth === void 0 ? 1 : _ref$depth,
+      opts = _objectWithoutPropertiesLoose(_ref, _excluded);
+
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
       _smRelational: SM_RELATIONAL_TYPES.children,
       map: queryBuilderOpts.map,
-      depth: opts.depth
+      depth: depth
     });
   };
 };
@@ -3732,7 +3737,7 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   return gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _excluded = ["to"],
+var _excluded$1 = ["to"],
     _excluded2 = ["from"];
 var JSON_TAG$1 = '__JSON__';
 /**
@@ -3798,7 +3803,7 @@ function convertNodeDataToSMPersistedData(nodeData, opts) {
   function convertEdgeDirectionNames(edgeItem) {
     if (edgeItem.hasOwnProperty('to')) {
       var to = edgeItem.to,
-          restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
+          restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$1);
 
       return _extends({}, restOfEdgeItem, {
         targetId: to
@@ -4937,5 +4942,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
+export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, array, _boolean as boolean, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, relational, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

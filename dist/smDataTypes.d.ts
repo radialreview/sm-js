@@ -71,8 +71,9 @@ export declare const reference: <TParentHoldingReference extends ISMNode<{}, {},
     def: TReferencedNode;
     idProp: keyof TParentHoldingReference["smData"];
 }) => IByReferenceQueryBuilder<TReferencedNode>;
-export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
+export declare const relational: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>({ depth, ...opts }: {
     def: TSMNode;
+    name?: string | undefined;
     depth?: number | undefined;
 }) => IChildrenQueryBuilder<TSMNode>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
