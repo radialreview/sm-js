@@ -110,6 +110,7 @@ export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 export interface ISMJS {
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
+  clearTokens(): void
   query<TQueryDefinitions extends QueryDefinitions>(
     queryDefinition: TQueryDefinitions,
     opts?: QueryOpts<TQueryDefinitions>
