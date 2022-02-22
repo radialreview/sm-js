@@ -100,6 +100,7 @@ export interface ISMJS {
         tokenName: string;
         token: string;
     }): void;
+    clearTokens(): void;
     query<TQueryDefinitions extends QueryDefinitions>(queryDefinition: TQueryDefinitions, opts?: QueryOpts<TQueryDefinitions>): Promise<QueryReturn<TQueryDefinitions>>;
     subscribe<TQueryDefinitions extends QueryDefinitions, TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>>(queryDefinitions: TQueryDefinitions, opts: TSubscriptionOpts): Promise<TSubscriptionOpts extends {
         skipInitialQuery: true;
