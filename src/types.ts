@@ -456,13 +456,11 @@ export interface ISMNodeRepository {
 export type QueryFilter<TSMNode extends ISMNode> = Partial<{[key in keyof ExtractNodeData<TSMNode>]:string}>
 
 export type QueryDefinitionTarget =
-  {
-    underIds?: Array<string>;
-    depth?: number
-    id?: string
-    ids?: Array<string>
-  }
-  
+  | { underIds: Array<string> }
+  | { depth: number }
+  | { id: string }
+  | { ids: Array<string> }
+    
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TSMNode extends ISMNode,
