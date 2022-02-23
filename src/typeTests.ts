@@ -330,4 +330,18 @@ const userNode: UserNode = smJS.def({
   withPartialObject.data.users[0].address.state as string;
   // @ts-expect-error
   withPartialObject.data.users[0].address.bogus as string;
+
+  const byId = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+      }),
+      id: 'som-user-id',
+    }),
+  });
+
+  byId.data.users.id as string;
+  // @ts-expect-error
+  byId.data.users.bogus as string;
 })();
