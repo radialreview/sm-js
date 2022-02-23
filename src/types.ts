@@ -453,11 +453,7 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-
-type Exactly<T, U extends T> = {[K in keyof U]: K extends keyof T ? T[K] : never};
-
-export type QueryFilter<TSMNode extends ISMNode> = Partial<Record<keyof ExtractNodeData<TSMNode>,string>>
-
+export type QueryFilter<TSMNode extends ISMNode> = Partial<{[key in keyof ExtractNodeData<TSMNode>]:string}>
 
 export type QueryDefinitionTarget =
   {
@@ -471,12 +467,11 @@ export type QueryDefinitionTarget =
 export type QueryDefinition<
   TSMNode extends ISMNode,
   TMapFn extends MapFnForNode<TSMNode>,
-  TQueryFilter extends QueryFilter<TSMNode>,
   TQueryDefinitionTarget extends QueryDefinitionTarget
 > = { 
   def: TSMNode;
   map: TMapFn;
-  filter?: Exactly<Partial<Record<keyof ExtractNodeData<TSMNode>, string>>, TQueryFilter>
+  filter?: QueryFilter<TSMNode>
   target?: TQueryDefinitionTarget
 };
 

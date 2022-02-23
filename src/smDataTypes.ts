@@ -15,7 +15,6 @@ import {
   Maybe,
   QueryDefinition,
   QueryDefinitionTarget,
-  QueryFilter,
   SMDataDefaultFn,
 } from './types';
 
@@ -359,15 +358,7 @@ export const OBJECT_IDENTIFIER = '__object__';
 export function queryDefinition<
   TSMNode extends ISMNode,
   TMapFn extends MapFnForNode<TSMNode>,
-  TQueryFilter extends QueryFilter<TSMNode>,
   TQueryDefinitionTarget extends QueryDefinitionTarget
->(
-  queryDefinition: QueryDefinition<
-    TSMNode,
-    TMapFn,
-    TQueryFilter,
-    TQueryDefinitionTarget
-  >
-) {
+>(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>) {
   return queryDefinition;
 }
