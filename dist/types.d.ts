@@ -264,7 +264,6 @@ export interface ISMNodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
-<<<<<<< HEAD
 export declare type QueryFilter<TSMNode extends ISMNode> = Partial<{
     [key in keyof ExtractNodeData<TSMNode>]: string;
 }>;
@@ -276,23 +275,6 @@ export declare type QueryDefinitionTarget = {
     id: string;
 } | {
     ids: Array<string>;
-=======
-export declare type QueryFilterForNode<TSMNode extends ISMNode> = Partial<{
-    [key in keyof ExtractNodeData<TSMNode>]: string;
-}>;
-export declare type QueryDefinitionTarget<TSMNode extends ISMNode> = {
-    underIds: Array<string>;
-    depth?: number;
-    filter?: QueryFilterForNode<TSMNode>;
-} | {
-    ids: Array<string>;
-    filter?: QueryFilterForNode<TSMNode>;
-} | {
-    id: string;
-} | {
-    filter?: QueryFilterForNode<TSMNode>;
-    depth?: number;
->>>>>>> origin/v0.0.1
 };
 export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TSMNode;
