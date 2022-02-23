@@ -1,4 +1,4 @@
-import { GetExpectedNodeDataType, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionParams, SMDataDefaultFn } from './types';
+import { GetExpectedNodeDataType, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, QueryFilter, SMDataDefaultFn } from './types';
 export declare const SM_DATA_TYPES: {
     string: string;
     maybeString: string;
@@ -77,9 +77,5 @@ export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("
 }) => IChildrenQueryBuilder<TSMNode>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare const OBJECT_IDENTIFIER = "__object__";
-export declare function queryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionParams extends QueryDefinitionParams<TSMNode> | undefined>(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionParams>): {
-    params: TQueryDefinitionParams | undefined;
-    def: TSMNode;
-    map: TMapFn;
-};
+export declare function queryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryFilter extends QueryFilter<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget>(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryFilter, TQueryDefinitionTarget>): QueryDefinition<TSMNode, TMapFn, TQueryFilter, TQueryDefinitionTarget>;
 export {};

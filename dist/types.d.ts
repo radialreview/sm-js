@@ -264,26 +264,21 @@ export interface ISMNodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
-export declare type QueryFilterForNode<TSMNode extends ISMNode> = Partial<{
-    [key in keyof ExtractNodeData<TSMNode>]: string;
-}>;
-export declare type QueryDefinitionParams<TSMNode extends ISMNode> = {
-    underIds: Array<string>;
-    depth?: number;
-    filter?: QueryFilterForNode<TSMNode>;
-} | {
-    ids: Array<string>;
-    filter?: QueryFilterForNode<TSMNode>;
-} | {
-    id: string;
-} | {
-    filter?: QueryFilterForNode<TSMNode>;
-    depth?: number;
+declare type Exactly<T, U extends T> = {
+    [K in keyof U]: K extends keyof T ? T[K] : never;
 };
-export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionParams extends QueryDefinitionParams<TSMNode> | undefined> = {
+export declare type QueryFilter<TSMNode extends ISMNode> = Partial<Record<keyof ExtractNodeData<TSMNode>, string>>;
+export declare type QueryDefinitionTarget = {
+    underIds?: Array<string>;
+    depth?: number;
+    id?: string;
+    ids?: Array<string>;
+};
+export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryFilter extends QueryFilter<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TSMNode;
     map: TMapFn;
-    params?: TQueryDefinitionParams;
+    filter?: Exactly<Partial<Record<keyof ExtractNodeData<TSMNode>, string>>, TQueryFilter>;
+    target?: TQueryDefinitionTarget;
 };
 export declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
@@ -293,16 +288,16 @@ export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> 
         def: infer TSMNode;
         map: infer TMapFn;
     } ? TSMNode extends ISMNode ? TMapFn extends MapFnForNode<TSMNode> ? TQueryDefinitions[Key] extends {
-        params?: {
-            id?: string;
+        target?: {
+            id: string;
         };
     } ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinitions[Key] extends {
         def: ISMNode;
     } ? TQueryDefinitions[Key] extends {
         def: infer TSMNode;
     } ? TSMNode extends ISMNode ? TQueryDefinitions[Key] extends {
-        params?: {
-            id?: string;
+        target?: {
+            id: string;
         };
     } ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinitions[Key] extends ISMNode ? Array<GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>> : never;
 };
@@ -322,7 +317,7 @@ declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISM
 };
 declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
 declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any>> = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn> ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : never;
-declare type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TNodeData, any> ? TNodeData : never;
+export declare type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TNodeData, any> ? TNodeData : never;
 declare type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeComputedData> ? TNodeComputedData : never;
 declare type ExtractNodeRelationalData<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, any, infer TNodeRelationalData> ? TNodeRelationalData : never;
 /**
