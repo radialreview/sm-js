@@ -14,6 +14,7 @@ import {
   NodeComputedFns,
   NodeRelationalFns,
   SMConfig,
+  QueryDefinitionTarget,
 } from './types';
 
 const userProperties = {
@@ -150,7 +151,7 @@ export function createMockQueryDefinitions(
     useUnder: true,
   }
 ) {
-  let target = {};
+  let target = {} as QueryDefinitionTarget;
   if ('useIds' in opts) {
     target = { ids: ['mock-id'] };
   } else if ('useUnder' in opts) {
