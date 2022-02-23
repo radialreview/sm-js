@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, QueryFilter, GetExpectedNodeDataType, DeepPartial } from './types';
 export { ISMNode, SMDataEnum, MapFnForNode, QueryFilter, QueryDefinition, ISMJS, GetExpectedNodeDataType, DeepPartial, };
+=======
+import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, QueryFilterForNode, GetExpectedNodeDataType, DeepPartial } from './types';
+export { ISMNode, SMDataEnum, MapFnForNode, QueryFilterForNode, QueryDefinition, ISMJS, GetExpectedNodeDataType, DeepPartial, };
+>>>>>>> origin/v0.0.1
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
