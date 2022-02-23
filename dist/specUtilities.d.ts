@@ -422,7 +422,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 };
             }>;
         }>;
-    }, Partial<Record<"id" | "firstName" | "lastName" | "address", string>>, import("./types").QueryDefinitionTarget>;
+    }, import("./types").QueryDefinitionTarget>;
 };
 export declare const mockQueryDataReturn: {
     users: {

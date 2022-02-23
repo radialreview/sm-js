@@ -264,20 +264,19 @@ export interface ISMNodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
-declare type Exactly<T, U extends T> = {
-    [K in keyof U]: K extends keyof T ? T[K] : never;
-};
-export declare type QueryFilter<TSMNode extends ISMNode> = Partial<Record<keyof ExtractNodeData<TSMNode>, string>>;
+export declare type QueryFilter<TSMNode extends ISMNode> = Partial<{
+    [key in keyof ExtractNodeData<TSMNode>]: string;
+}>;
 export declare type QueryDefinitionTarget = {
     underIds?: Array<string>;
     depth?: number;
     id?: string;
     ids?: Array<string>;
 };
-export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryFilter extends QueryFilter<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
+export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TSMNode;
     map: TMapFn;
-    filter?: Exactly<Partial<Record<keyof ExtractNodeData<TSMNode>, string>>, TQueryFilter>;
+    filter?: QueryFilter<TSMNode>;
     target?: TQueryDefinitionTarget;
 };
 export declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
