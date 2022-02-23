@@ -273,7 +273,7 @@ export declare type QueryDefinitionTarget = {
     id?: string;
     ids?: Array<string>;
 };
-export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
+export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TSMNode;
     map: TMapFn;
     filter?: QueryFilter<TSMNode>;

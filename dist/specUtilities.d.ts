@@ -422,7 +422,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 };
             }>;
         }>;
-    }, import("./types").QueryDefinitionTarget>;
+    }, {}>;
 };
 export declare const mockQueryDataReturn: {
     users: {

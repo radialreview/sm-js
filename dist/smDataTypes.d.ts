@@ -77,5 +77,5 @@ export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("
 }) => IChildrenQueryBuilder<TSMNode>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare const OBJECT_IDENTIFIER = "__object__";
-export declare function queryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>, TQueryDefinitionTarget extends QueryDefinitionTarget>(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>): QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>;
+export declare function queryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget>(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>): QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>;
 export {};
