@@ -17,9 +17,21 @@ import {
   SMDataEnum,
   MapFnForNode,
   QueryDefinition,
+  QueryFilterForNode,
+  GetExpectedNodeDataType,
+  DeepPartial,
 } from './types';
 
-export { ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, ISMJS };
+export {
+  ISMNode,
+  SMDataEnum,
+  MapFnForNode,
+  QueryFilterForNode,
+  QueryDefinition,
+  ISMJS,
+  GetExpectedNodeDataType,
+  DeepPartial,
+};
 export * from './smDataTypes';
 export * from './react';
 export * from './config';

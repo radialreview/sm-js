@@ -110,6 +110,7 @@ export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 export interface ISMJS {
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
+  clearTokens(): void
   query<TQueryDefinitions extends QueryDefinitions>(
     queryDefinition: TQueryDefinitions,
     opts?: QueryOpts<TQueryDefinitions>
@@ -452,26 +453,24 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-// @TODO figure out what this should actually be with Brendan
-export type QueryFilter<TNodeData> = Partial<{
-  [key in keyof TNodeData]: string
+export type QueryFilterForNode<TSMNode extends ISMNode> = Partial<{
+  [key in keyof ExtractNodeData<TSMNode>]: string
 }>;
 
 export type QueryDefinitionTarget<
   TSMNode extends ISMNode,
-  TNodeData = ExtractNodeData<TSMNode>
 > =
   | {
       underIds: Array<string>;
       depth?: number;
-      filter?: QueryFilter<TNodeData>;
+      filter?: QueryFilterForNode<TSMNode>;
     }
   | {
       ids: Array<string>;
-      filter?: QueryFilter<TNodeData>;
+      filter?: QueryFilterForNode<TSMNode>;
     }
   | { id: string }
-  | { filter?: QueryFilter<TNodeData>; depth?: number }; // underIds can be omitted
+  | { filter?: QueryFilterForNode<TSMNode>; depth?: number }; // underIds can be omitted
 
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
