@@ -268,10 +268,13 @@ export declare type QueryFilter<TSMNode extends ISMNode> = Partial<{
     [key in keyof ExtractNodeData<TSMNode>]: string;
 }>;
 export declare type QueryDefinitionTarget = {
-    underIds?: Array<string>;
-    depth?: number;
-    id?: string;
-    ids?: Array<string>;
+    underIds: Array<string>;
+} | {
+    depth: number;
+} | {
+    id: string;
+} | {
+    ids: Array<string>;
 };
 export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TSMNode;
