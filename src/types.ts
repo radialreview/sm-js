@@ -453,34 +453,31 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type QueryFilterForNode<TSMNode extends ISMNode> = Partial<{
-  [key in keyof ExtractNodeData<TSMNode>]: string
-}>;
 
-export type QueryDefinitionParams<
-  TSMNode extends ISMNode,
-> =
-  | {
-      underIds: Array<string>;
-      depth?: number;
-      filter?: QueryFilterForNode<TSMNode>;
-    }
-  | {
-      ids: Array<string>;
-      filter?: QueryFilterForNode<TSMNode>;
-    }
-  | { id: string }
-  | { filter?: QueryFilterForNode<TSMNode>; depth?: number }; // underIds can be omitted
+type Exactly<T, U extends T> = {[K in keyof U]: K extends keyof T ? T[K] : never};
 
+export type QueryFilter<TSMNode extends ISMNode> = Partial<Record<keyof ExtractNodeData<TSMNode>,string>>
+
+
+export type QueryDefinitionTarget =
+  {
+    underIds?: Array<string>;
+    depth?: number
+    id?: string
+    ids?: Array<string>
+  }
+  
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined,
-  TQueryDefinitionParams extends QueryDefinitionParams<TSMNode> | undefined
+  TMapFn extends MapFnForNode<TSMNode>,
+  TQueryFilter extends QueryFilter<TSMNode>,
+  TQueryDefinitionTarget extends QueryDefinitionTarget
 > = { 
   def: TSMNode;
   map: TMapFn;
-  params?: TQueryDefinitionParams
+  filter?: Exactly<Partial<Record<keyof ExtractNodeData<TSMNode>, string>>, TQueryFilter>
+  target?: TQueryDefinitionTarget
 };
 
 // A query takes a record where you can specify aliases for each node type you're querying (including 2 aliases for different sets of the same node type)
@@ -514,7 +511,7 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
       TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFnForNode<TSMNode>
-          ? TQueryDefinitions[Key] extends { params?: { id?: string } }
+          ? TQueryDefinitions[Key] extends { target?: { id: string } }
             ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
             : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
           : never
@@ -523,7 +520,7 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
     ? TQueryDefinitions[Key] extends { def: infer TSMNode }
       ? TSMNode extends ISMNode
-        ? TQueryDefinitions[Key] extends { params?: { id?: string } }
+        ? TQueryDefinitions[Key] extends { target?: { id: string } }
           ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
           : Array<
               GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
@@ -638,7 +635,7 @@ type ExtractQueriedDataFromByReferenceQuery<
   ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
   : never;
 
-type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
+export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
   infer TNodeData,
   any
 >

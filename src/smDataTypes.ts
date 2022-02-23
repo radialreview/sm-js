@@ -14,7 +14,8 @@ import {
   MapFnForNode,
   Maybe,
   QueryDefinition,
-  QueryDefinitionParams,
+  QueryDefinitionTarget,
+  QueryFilter,
   SMDataDefaultFn,
 } from './types';
 
@@ -357,8 +358,16 @@ export const OBJECT_IDENTIFIER = '__object__';
 // See this for a simplified example https://www.typescriptlang.org/play?#code/GYVwdgxgLglg9mABBBwYHMA8ARAhlXAFQE8AHAUwD4AKFMNdALkQHkBbGKTASQGUYw6ADbkAwqgw58RMlQA0iAOQB9ZTADOJCr1zByAVXXlCACzET0AMXDR4YAIT3FlAJTM+A4efqS8BLVSIAN4AUIiIAE7kUCARSEEAdEl0DHIqapqyOnqGxmbiPlY2sAiOisxQESDkiAC+IfUhAlDkEcC4EDXchHAAJnB+uMFhiDC9zOqVniME6gDWE1OCDSEhdJOIUH0D0u49-YOIALzBo+NKAIwATADMigqzC0r9m2aIveTkvYp1q1CyiAAitUIsRLGApP5ZJRjohqL1dohBgEXMcYQAFXARWC4ISQmQUSirZqtdqdRAeQQiAoMfEBGGhcLhdIaALZAxGUzeBjWSAlBxOCpVchyEbhBEEZjI2SipmIACOIOIzGBrTBEOlhJWTTALTaHS6AFkQEJYDSMMNwgBtObkZWISYRTwAXXc-Cp3MkuDAxCJjXWUEQbGIADk+uRBu5jaaYOb0LDGYgQEYIpptupmInxYitgdpLKmYq1cxqEEzg9cPM6qijjDS+XNpW5tWRrUC7ihPs4BnkBZS2L3jntoMC+Ei6CS2WxhWq7Ua3Wp70Z82562XCsgA
 export function queryDefinition<
   TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined,
-  TQueryDefinitionParams extends QueryDefinitionParams<TSMNode> | undefined
->(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionParams>) {
-  return { ...queryDefinition, params: queryDefinition.params || undefined };
+  TMapFn extends MapFnForNode<TSMNode>,
+  TQueryFilter extends QueryFilter<TSMNode>,
+  TQueryDefinitionTarget extends QueryDefinitionTarget
+>(
+  queryDefinition: QueryDefinition<
+    TSMNode,
+    TMapFn,
+    TQueryFilter,
+    TQueryDefinitionTarget
+  >
+) {
+  return queryDefinition;
 }
