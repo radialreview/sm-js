@@ -17,7 +17,7 @@ import {
   SMDataEnum,
   MapFnForNode,
   QueryDefinition,
-  QueryFilterForNode,
+  QueryFilter,
   GetExpectedNodeDataType,
   DeepPartial,
 } from './types';
@@ -26,7 +26,7 @@ export {
   ISMNode,
   SMDataEnum,
   MapFnForNode,
-  QueryFilterForNode,
+  QueryFilter,
   QueryDefinition,
   ISMJS,
   GetExpectedNodeDataType,

@@ -324,19 +324,20 @@ export function getQueryRecordFromQueryDefinition(opts: {
       relational,
     };
 
-    if ('ids' in queryDefinition) {
-      (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
-        queryDefinition.ids;
-    } else if ('id' in queryDefinition) {
-      (queryRecordEntry as QueryRecordEntry & { id: string }).id =
-        queryDefinition.id;
-    } else if ('underIds' in queryDefinition) {
-      (queryRecordEntry as QueryRecordEntry & {
-        underIds: Array<string>;
-      }).underIds = queryDefinition.underIds;
-      if ('depth' in queryDefinition) {
+    if (queryDefinition.target) {
+      if (queryDefinition.target.ids) {
+        (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
+          queryDefinition.target.ids;
+      } else if (queryDefinition.target.id) {
+        (queryRecordEntry as QueryRecordEntry & { id: string }).id =
+          queryDefinition.target.id;
+      } else if (queryDefinition.target.underIds) {
+        (queryRecordEntry as QueryRecordEntry & {
+          underIds: Array<string>;
+        }).underIds = queryDefinition.target.underIds;
+      } else if (queryDefinition.target.depth) {
         (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
-          queryDefinition.depth;
+          queryDefinition.target.depth;
       }
     }
 

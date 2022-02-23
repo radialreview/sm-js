@@ -328,12 +328,12 @@ test('creating a single node in sm works', async done => {
     thing: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id,
+      target: { id },
     }),
   });
 
-  expect((thing as any).number).toBe(timestamp);
-  expect((thing as any).string).toBe('mock string');
+  expect(thing.number).toBe(timestamp);
+  expect(thing.string).toBe('mock string');
   done();
 });
 
@@ -373,7 +373,9 @@ test('creating multiple nodes in sm works', async done => {
     things: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      underIds: [id1, id2],
+      target: {
+        underIds: [id1, id2],
+      },
     }),
   });
 
@@ -423,7 +425,9 @@ test('creating multiple nodes in multiple operations in sm works', async done =>
     things: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      ids: [id1, id2],
+      target: {
+        ids: [id1, id2],
+      },
     }),
   });
 
@@ -466,11 +470,11 @@ test('updating a single node in sm works', async done => {
     thing: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id,
+      target: { id },
     }),
   });
 
-  expect((thing as any).number).toBe(timestamp + 10);
+  expect(thing.number).toBe(timestamp + 10);
   done();
 });
 
@@ -526,7 +530,9 @@ test('updating several nodes in sm works', async done => {
     thing: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      ids: [id1, id2],
+      target: {
+        ids: [id1, id2],
+      },
     }),
   });
 
@@ -560,7 +566,7 @@ test('dropping a node in sm works', async done => {
         thing: queryDefinition({
           def: mockThingDef,
           map: undefined,
-          id,
+          target: { id },
         }),
       },
       { queryId: 'mock-query' }
@@ -680,7 +686,7 @@ test('creating a single edge in sm works', async done => {
     todo: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      underIds: [thingId],
+      target: { underIds: [thingId] },
     }),
   });
 
@@ -729,7 +735,7 @@ test('creating multiple edges in sm works', async done => {
     todo: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      underIds: [thingId],
+      target: { underIds: [thingId] },
     }),
   });
 
@@ -763,7 +769,7 @@ test('updating a single edge in sm works', async done => {
     todo: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      underIds: [thingId],
+      target: { underIds: [thingId] },
     }),
   });
 
@@ -830,7 +836,7 @@ test('updating multiple edges in sm works', async done => {
     todo: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      underIds: [thingId],
+      target: { underIds: [thingId] },
     }),
   });
 
@@ -892,7 +898,7 @@ test('dropping a single edge in sm works', async done => {
       todo: queryDefinition({
         def: mockTodoDef,
         map: undefined,
-        underIds: [thingId],
+        target: { underIds: [thingId] },
       }),
     });
   };
@@ -962,7 +968,7 @@ test('dropping a multiple edges in sm works', async done => {
       todo: queryDefinition({
         def: mockTodoDef,
         map: undefined,
-        underIds: [thingId],
+        target: { underIds: [thingId] },
       }),
     });
   };
@@ -1025,7 +1031,7 @@ test('replacing a single edge in sm works', async done => {
       todo: queryDefinition({
         def: mockTodoDef,
         map: undefined,
-        underIds: [thingId],
+        target: { underIds: [thingId] },
       }),
     });
   };
@@ -1103,7 +1109,7 @@ test('replacing multiple edges in sm works', async done => {
       todo: queryDefinition({
         def: mockTodoDef,
         map: undefined,
-        underIds: [thingId],
+        target: { underIds: [thingId] },
       }),
     });
   };
@@ -1193,11 +1199,11 @@ test('dropping a property in sm works', async done => {
     thing: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id: createdThingId,
+      target: { id: createdThingId },
     }),
   });
 
-  expect((thing as any).object.property).toBe('value');
+  expect(thing.object.property).toBe('value');
 
   await smJSInstance
     .transaction(ctx => {
@@ -1219,13 +1225,13 @@ test('dropping a property in sm works', async done => {
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id: createdThingId,
+      target: { id: createdThingId },
     }),
   });
 
-  expect((thingAfterDrop as any).object.property).toBe('');
-  expect((thingAfterDrop as any).object.nestedObject).toBe(null);
-  expect((thingAfterDrop as any).object.otherProperty).toBe('otherValue');
+  expect(thingAfterDrop.object.property).toBe('');
+  expect(thingAfterDrop.object.nestedObject).toBe(null);
+  expect(thingAfterDrop.object.otherProperty).toBe('otherValue');
   done();
 });
 
@@ -1264,12 +1270,12 @@ test('dropping an object will drop all the properties', async done => {
     thing: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id: createdThingId,
+      target: { id: createdThingId },
     }),
   });
 
-  expect((thing as any).object.property).toBe('value');
-  expect((thing as any).object.nestedObject.nestedProperty).toBe('nestedValue');
+  expect(thing.object.property).toBe('value');
+  expect(thing.object.nestedObject.nestedProperty).toBe('nestedValue');
   await smJSInstance
     .transaction(ctx => {
       ctx.updateNode({
@@ -1287,11 +1293,11 @@ test('dropping an object will drop all the properties', async done => {
     thingAfterDrop: queryDefinition({
       def: mockThingDef,
       map: undefined,
-      id: createdThingId,
+      target: { id: createdThingId },
     }),
   });
 
-  expect((thingAfterDrop as any).object).toBe(null);
+  expect(thingAfterDrop.object).toBe(null);
 
   done();
 });
@@ -1337,7 +1343,7 @@ test('grouped transactions work as expected', async () => {
     todos: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      ids: [id1, id2],
+      target: { ids: [id1, id2] },
     }),
   });
 
@@ -1372,11 +1378,11 @@ test('optimistic updates work', async done => {
     todo: queryDefinition({
       def: mockTodoDef,
       map: undefined,
-      id: createdTodoId,
+      target: { id: createdTodoId },
     }),
   });
 
-  expect((todo as any).title).toBe('Do the deed');
+  expect(todo.title).toBe('Do the deed');
 
   smJSInstance
     .transaction(ctx => {
@@ -1394,7 +1400,7 @@ test('optimistic updates work', async done => {
 
   // this is as good of an E2E test as I can think of for this particular feature
   // We'll need to rely on the unit tests within OptimisticUpdates.spec for any other edge case testing
-  expect((todo as any).title).toBe('Do the other deed');
+  expect(todo.title).toBe('Do the other deed');
 
   done();
 });
@@ -1462,7 +1468,7 @@ test('#ref_ foreign keys work', async () => {
   } = await smJSInstance.query({
     thingsUnderUser: queryDefinition({
       def: mockThingDef,
-      underIds: [createdUserId],
+      target: { underIds: [createdUserId] },
       map: ({ id }) => ({ id }),
     }),
   });
@@ -1485,14 +1491,14 @@ test('#ref_ foreign keys work', async () => {
           }),
         }),
       }),
-      id: createdThingId,
+      target: { id: createdThingId },
     }),
   });
 
-  expect((thingsUnderUser[0] as any).id).toBe(createdThingId);
-  expect((thing as any).todos.length).toBe(2);
+  expect(thingsUnderUser[0].id).toBe(createdThingId);
+  expect(thing.todos.length).toBe(2);
 
-  (thing as any).todos.forEach((todo: any) => {
+  thing.todos.forEach(todo => {
     expect(todo.assigneeId).toBe(createdThingId);
   });
 });
@@ -1530,7 +1536,7 @@ test('Querying an id for the wrong node type throws an error', async done => {
       thing: queryDefinition({
         def: mockThingDef,
         map: undefined,
-        id: todoId,
+        target: { id: todoId },
       }),
     });
   } catch (e) {

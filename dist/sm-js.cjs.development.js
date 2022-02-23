@@ -1601,15 +1601,15 @@ function getQueryRecordFromQueryDefinition(opts) {
       relational: relational
     };
 
-    if ('ids' in queryDefinition) {
-      queryRecordEntry.ids = queryDefinition.ids;
-    } else if ('id' in queryDefinition) {
-      queryRecordEntry.id = queryDefinition.id;
-    } else if ('underIds' in queryDefinition) {
-      queryRecordEntry.underIds = queryDefinition.underIds;
-
-      if ('depth' in queryDefinition) {
-        queryRecordEntry.depth = queryDefinition.depth;
+    if (queryDefinition.target) {
+      if (queryDefinition.target.ids) {
+        queryRecordEntry.ids = queryDefinition.target.ids;
+      } else if (queryDefinition.target.id) {
+        queryRecordEntry.id = queryDefinition.target.id;
+      } else if (queryDefinition.target.underIds) {
+        queryRecordEntry.underIds = queryDefinition.target.underIds;
+      } else if (queryDefinition.target.depth) {
+        queryRecordEntry.depth = queryDefinition.target.depth;
       }
     }
 

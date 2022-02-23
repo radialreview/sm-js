@@ -1,6 +1,6 @@
 import * as smData from './smDataTypes';
 import { SMJS } from '.';
-import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig } from './types';
+import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig, QueryDefinitionTarget } from './types';
 declare const userProperties: {
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -422,7 +422,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 };
             }>;
         }>;
-    }>;
+    }, QueryDefinitionTarget>;
 };
 export declare const mockQueryDataReturn: {
     users: {

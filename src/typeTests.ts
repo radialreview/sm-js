@@ -249,25 +249,36 @@ const userNode: UserNode = smJS.def({
   // @ts-expect-error not queried
   targetOmmissionResults.data.users[0].firstName as string;
 
-  // def and map defined in this query
+  // def and map and a filter defined in this query
   // but no specific ids or "under" provided
-  const targetWithFilters = await smJS.query({
+  await smJS.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({ id: userData.id }),
       filter: {
         firstName: 'Meida',
-        // @ts-expect-error
-        nonExistingProp: 'Test',
+        // @ts-expect-error not a property in the user node
+        bogus: '',
       },
     }),
   });
 
-  targetWithFilters.data.users[0].id as string;
+  // can't use the result of the query above, since it's invalid and breaks type checking
+  const validTargetWithFilters = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({ id: userData.id }),
+      filter: {
+        firstName: 'Meida',
+      },
+    }),
+  });
+
+  validTargetWithFilters.data.users[0].id as string;
   // @ts-expect-error invalid type
-  targetWithFilters.data.users[0].id as number;
+  validTargetWithFilters.data.users[0].id as number;
   // @ts-expect-error not queried
-  targetWithFilters.data.users[0].notqueried as number;
+  validTargetWithFilters.data.users[0].notqueried as number;
 
   const withRelationalResults = await smJS.query({
     users: queryDefinition({
@@ -330,4 +341,20 @@ const userNode: UserNode = smJS.def({
   withPartialObject.data.users[0].address.state as string;
   // @ts-expect-error
   withPartialObject.data.users[0].address.bogus as string;
+
+  const byId = await smJS.query({
+    user: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+      }),
+      target: {
+        id: 'some-user-id',
+      },
+    }),
+  });
+
+  byId.data.user.id as string;
+  // @ts-expect-error
+  byId.data.user.bogus as string;
 })();
