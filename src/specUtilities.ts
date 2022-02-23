@@ -184,7 +184,7 @@ export function createMockQueryDefinitions(
           }),
         }),
       }),
-      ...target,
+      target,
     }),
   };
 }

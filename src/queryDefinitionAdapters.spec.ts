@@ -3,7 +3,6 @@ import {
   generateUserNode,
   generateTodoNode,
   TodoNode,
-  UserNode,
   getMockConfig,
 } from './specUtilities';
 import {
@@ -27,16 +26,16 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryDefinitions: {
         todos: queryDefinition({
           def: todoNode,
-          underIds: ['mock-id'],
-          map: (({ id, task }) => ({ id, task })) as MapFnForNode<TodoNode>,
+          map: ({ id, task }) => ({ id, task }),
+          target: { underIds: ['mock-id'] },
         }),
         users: queryDefinition({
           def: userNode,
-          underIds: ['other-mock-id'],
-          map: (({ firstName, lastName }) => ({
+          map: ({ firstName, lastName }) => ({
             firstName,
             lastName,
-          })) as MapFnForNode<UserNode>,
+          }),
+          target: { underIds: ['other-mock-id'] },
         }),
       },
     });

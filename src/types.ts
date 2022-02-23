@@ -466,7 +466,7 @@ export type QueryDefinitionTarget =
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode>,
+  TMapFn extends MapFnForNode<TSMNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget
 > = { 
   def: TSMNode;
