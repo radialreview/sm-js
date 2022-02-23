@@ -457,7 +457,7 @@ export type QueryFilterForNode<TSMNode extends ISMNode> = Partial<{
   [key in keyof ExtractNodeData<TSMNode>]: string
 }>;
 
-export type QueryDefinitionTarget<
+export type QueryDefinitionParams<
   TSMNode extends ISMNode,
 > =
   | {
@@ -475,11 +475,13 @@ export type QueryDefinitionTarget<
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined
-> = {
+  TMapFn extends MapFnForNode<TSMNode> | undefined,
+  TQueryDefinitionParams extends QueryDefinitionParams<TSMNode> | undefined
+> = { 
   def: TSMNode;
   map: TMapFn;
-} & QueryDefinitionTarget<TSMNode>;
+  params?: TQueryDefinitionParams
+};
 
 // A query takes a record where you can specify aliases for each node type you're querying (including 2 aliases for different sets of the same node type)
 //
@@ -512,7 +514,7 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
       TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
       ? TSMNode extends ISMNode
         ? TMapFn extends MapFnForNode<TSMNode>
-          ? TQueryDefinitions[Key] extends { id: string }
+          ? TQueryDefinitions[Key] extends { params?: { id?: string } }
             ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
             : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
           : never
@@ -521,7 +523,7 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
     ? TQueryDefinitions[Key] extends { def: infer TSMNode }
       ? TSMNode extends ISMNode
-        ? TQueryDefinitions[Key] extends { id: string }
+        ? TQueryDefinitions[Key] extends { params?: { id?: string } }
           ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
           : Array<
               GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 

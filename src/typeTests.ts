@@ -249,16 +249,18 @@ const userNode: UserNode = smJS.def({
   // @ts-expect-error not queried
   targetOmmissionResults.data.users[0].firstName as string;
 
-  // def and map defined in this query
+  // def and map and a filter defined in this query
   // but no specific ids or "under" provided
   const targetWithFilters = await smJS.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({ id: userData.id }),
-      filter: {
-        firstName: 'Meida',
-        // @ts-expect-error
-        nonExistingProp: 'Test',
+      params: {
+        filter: {
+          firstName: 'Meida',
+          // @ts-expect-error doesn't exist in user data
+          bogus: '',
+        },
       },
     }),
   });
@@ -337,7 +339,9 @@ const userNode: UserNode = smJS.def({
       map: userData => ({
         id: userData.id,
       }),
-      id: 'som-user-id',
+      params: {
+        id: 'some-user-id',
+      },
     }),
   });
 
