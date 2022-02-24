@@ -5,7 +5,8 @@ import { QueryDefinitions, QueryDataReturn } from '../types';
 import { SMContext } from './context';
 
 export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
-  queryDefinitions: TQueryDefinitions
+  queryDefinitions: TQueryDefinitions,
+  opts?: { tokenName?: string }
 ): { data: QueryDataReturn<TQueryDefinitions>; querying: boolean } {
   const smContext = React.useContext(SMContext);
 
@@ -76,6 +77,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
 
     const suspendPromise = smContext.smJSInstance
       .subscribe(queryDefinitions, {
+        tokenName: opts?.tokenName,
         onData: ({ results: newResults }) => {
           const contextForThisSub =
             smContext.ongoingSubscriptionRecord[subscriptionId];
@@ -131,7 +133,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
         querying: boolean;
       };
     }
-  } else if (preExistingContextForThisSubscription.suspendPromise) {
+  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
     throw preExistingContextForThisSubscription.suspendPromise;
   } else if (error) {
     throw error;

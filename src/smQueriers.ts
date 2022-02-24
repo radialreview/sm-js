@@ -172,7 +172,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       const error = getError(
         new Error(
           `No token registered with the name "${tokenName}".\n` +
-            'Please register this token prior to using it with sm.setToken(tokenName, { token })) '
+            'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
         )
       );
       if (opts.onError) {

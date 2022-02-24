@@ -38,6 +38,37 @@ test('it throws an error when used outside the context of an SMProvider', done =
   }
 });
 
+test('it throws an error when a non registered token is used', done => {
+  const { smJS } = setupTests();
+  function MyComponent() {
+    try {
+      useSubscription(createMockQueryDefinitions(smJS), {
+        tokenName: 'invalid',
+      });
+    } catch (e) {
+      if (e instanceof Promise) {
+        return null;
+      }
+
+      expect(e).toMatchInlineSnapshot(`
+        [Error: No token registered with the name "invalid".
+        Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
+      `);
+      done();
+    }
+
+    return null;
+  }
+
+  render(
+    <React.Suspense fallback={'loading'}>
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+});
+
 test('it throws a promise that resolves when the query for the data requested resolves, to enable React.Suspense integration', done => {
   let resolvePromise: (value: unknown) => void;
   const mockPromise = new Promise(res => {
