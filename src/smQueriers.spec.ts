@@ -454,7 +454,7 @@ test('sm.subscribe throws an error when the user specifies a token which has not
   } catch (e) {
     expect(e).toMatchInlineSnapshot(`
       [Error: No token registered with the name "invalidTokenName".
-      Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
+      Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
     `);
     done();
   }

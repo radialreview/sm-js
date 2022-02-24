@@ -52,7 +52,7 @@ test('it throws an error when a non registered token is used', done => {
 
       expect(e).toMatchInlineSnapshot(`
         [Error: No token registered with the name "invalid".
-        Please register this token prior to using it with sm.setToken(tokenName, { token })) ]
+        Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
       `);
       done();
     }
