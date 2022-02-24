@@ -3981,7 +3981,7 @@ var SMProvider = function SMProvider(props) {
   }, props.children);
 };
 
-function useSubscription(queryDefinitions) {
+function useSubscription(queryDefinitions, opts) {
   var _preExistingContextFo;
 
   var smContext = React.useContext(SMContext);
@@ -4048,6 +4048,7 @@ function useSubscription(queryDefinitions) {
       lastQueryTimestamp: queryTimestamp
     });
     var suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
+      tokenName: opts == null ? void 0 : opts.tokenName,
       onData: function onData(_ref) {
         var newResults = _ref.results;
         var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
@@ -4101,7 +4102,7 @@ function useSubscription(queryDefinitions) {
         querying: querying
       };
     }
-  } else if (preExistingContextForThisSubscription.suspendPromise) {
+  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
     throw preExistingContextForThisSubscription.suspendPromise;
   } else if (error) {
     throw error;
