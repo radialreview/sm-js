@@ -22,7 +22,9 @@ import {
   DeepPartial,
   QueryDefinitionTarget,
   IChildrenQuery,
+  IChildrenQueryBuilder,
   IByReferenceQuery,
+  IByReferenceQueryBuilder,
 } from './types';
 
 export {
@@ -36,7 +38,9 @@ export {
   DeepPartial,
   QueryDefinitionTarget,
   IChildrenQuery,
+  IChildrenQueryBuilder,
   IByReferenceQuery,
+  IByReferenceQueryBuilder,
 };
 export * from './smDataTypes';
 export * from './react';
