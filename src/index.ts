@@ -21,6 +21,8 @@ import {
   GetExpectedNodeDataType,
   DeepPartial,
   QueryDefinitionTarget,
+  IChildrenQuery,
+  IByReferenceQuery,
 } from './types';
 
 export {
@@ -33,6 +35,8 @@ export {
   GetExpectedNodeDataType,
   DeepPartial,
   QueryDefinitionTarget,
+  IChildrenQuery,
+  IByReferenceQuery,
 };
 export * from './smDataTypes';
 export * from './react';
