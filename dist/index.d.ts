@@ -1,5 +1,5 @@
-import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, QueryFilter, GetExpectedNodeDataType, DeepPartial, QueryDefinitionTarget } from './types';
-export { ISMNode, SMDataEnum, MapFnForNode, QueryFilter, QueryDefinition, ISMJS, GetExpectedNodeDataType, DeepPartial, QueryDefinitionTarget, };
+import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMDataEnum, MapFnForNode, QueryDefinition, QueryFilter, GetExpectedNodeDataType, DeepPartial, QueryDefinitionTarget, IChildrenQuery, IByReferenceQuery } from './types';
+export { ISMNode, SMDataEnum, MapFnForNode, QueryFilter, QueryDefinition, ISMJS, GetExpectedNodeDataType, DeepPartial, QueryDefinitionTarget, IChildrenQuery, IByReferenceQuery, };
 export * from './smDataTypes';
 export * from './react';
 export * from './config';
