@@ -3074,7 +3074,7 @@ function generateSubscriber(smJSInstance) {
                 break;
               }
 
-              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken(tokenName, { token })) '));
+              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) '));
 
               if (!opts.onError) {
                 _context2.next = 17;
