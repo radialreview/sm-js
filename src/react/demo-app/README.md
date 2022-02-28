@@ -12,20 +12,19 @@ SaaS Master exposes a very simple GraphQL API that can be operated by any progra
 In SM, there are two primary data structures, nodes and edges.
 
 SM does not operate like most databases. Objects are not rows in tables, objects are standalone entities in a graph.\
-As a developer building with SM, you're not required to concern yourself with the intricacies of this concept.\
-The main take away is that just because you create two objects of the same type, they are not inherently related.\
+As a developer building with SM, simply know that a node contains schema-less json data.\
+In other words, just because you create two objects of the same type, they are not inherently related.\
 The two objects exist completely independent of each other, there is no shared table.
 
-Edges are the other primary data structure in SM. Edges are very similar to nodes in that they can store arbitrary data.\
-However, the purpose of the edge is to relate two nodes with each other.\
-In addition to data you as a developer want to include on the edge (such as naming the relationship)\
-every edge contains permission data.
+Edges are the other primary data structure in SM.\
+The purpose of the edge is to relate two nodes with each other.\
+While you can store schema-less data on an edge, their main purpose is to facilitate permissions.
 
 ### Edge Permissions
 
 Permissions are a primary concern in SM, not just an after thought.\
 Instead of maintaining access control lists or roles, SM stores the permissions of every node on edges.\
-With the exception of a terminating permission, permissions are generally transitive.\
+With the exception of a terminating permission, permissions are generally cascading.\
 That means if Node A has permission to view Node B and Node B has permission to view Node C, then Node A has permission to view Node C.
 
 #### View Permission
@@ -46,6 +45,45 @@ Note: Should we rename this to "append"?
 The add child permission allows you to grant the node that you have "add child" permission to permission to other nodes.
 
 ## Getting started with sm-js SDK
+
+### Hello World!
+
+Below is the most concise example of writing data to SM.
+
+```TS
+smJS.transaction(ctx => {
+    ctx.createNode({
+        data: {
+            type: 'car',
+            make: 'Jeep',
+            model: 'Grand Cherokee',
+            color: 'Gray',
+            year: 2001
+        },
+    });
+}).execute();
+```
+
+and if you want to get that data back out
+
+```TS
+const { data } = useSubscription({
+    cars: queryDefinition({
+      type: 'car',
+      map: userData => ({
+        id: 'id',
+        make: 'make',
+        model: 'model',
+        year: 'year',
+        }),
+      }),
+    });
+```
+
+not only does that give you all of our data back, it also creates an observable object that is updated in real-time using web sockets behind the scenes.
+
+While this makes getting up and running with SM quick, any meaningful project will want type definitions, type safety, etc.\
+This kind of functionality is also supported by our library.
 
 ### Defining your nodes
 
@@ -157,50 +195,3 @@ TODO: Explain
     }),
   });
 ```
-
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
