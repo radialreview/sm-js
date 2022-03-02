@@ -317,12 +317,14 @@ export const SM_RELATIONAL_TYPES = {
 
 export const reference = <
   TParentHoldingReference extends ISMNode,
-  TReferencedNode extends ISMNode = ISMNode
+  TReferencedNode extends ISMNode | Maybe<ISMNode> = ISMNode
 >(opts: {
-  def: TReferencedNode;
+  def: NonNullable<TReferencedNode>;
   idProp: keyof TParentHoldingReference['smData'];
 }) => {
-  return ((queryBuilderOpts: { map: MapFnForNode<TReferencedNode> }) => {
+  return ((queryBuilderOpts: {
+    map: MapFnForNode<NonNullable<TReferencedNode>>;
+  }) => {
     return {
       ...opts,
       _smRelational: SM_RELATIONAL_TYPES.byReference,

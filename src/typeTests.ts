@@ -27,6 +27,7 @@ const todoProperties = {
   task: string,
   dueDate: number,
   assignee: string,
+  meetingId: string.optional,
 };
 const todoRelational = {
   assignee: () =>
@@ -34,17 +35,38 @@ const todoRelational = {
       def: userNode,
       idProp: 'assignee',
     }),
+  meeting: () =>
+    reference<typeof todoNode, Maybe<typeof meetingNode>>({
+      def: meetingNode,
+      idProp: 'meetingId',
+    }),
 };
+
+const meetingProperties = {
+  name: string,
+};
+
+type MeetingNode = ISMNode<typeof meetingProperties>;
 
 type TodoNode = ISMNode<
   typeof todoProperties,
   {},
-  { assignee: IByReferenceQueryBuilder<UserNode> }
+  {
+    assignee: IByReferenceQueryBuilder<UserNode>;
+    meeting: IByReferenceQueryBuilder<Maybe<MeetingNode>>;
+  }
 >;
 const todoNode: TodoNode = smJS.def({
   type: 'todo',
   properties: todoProperties,
   relational: todoRelational,
+});
+
+const meetingNode = smJS.def({
+  type: 'meeting',
+  properties: {
+    name: string,
+  },
 });
 
 const objectUnion = {
@@ -292,6 +314,12 @@ const userNode: UserNode = smJS.def({
             dueDate: todoData.dueDate,
             // @ts-expect-error doesn't exist in todo data
             nonExisting: todoData.doesntExist,
+            meeting: todoData.meeting({
+              map: ({ name }) => ({ name }),
+            }),
+            assignee: todoData.assignee({
+              map: ({ firstName }) => ({ firstName }),
+            }),
           }),
         }),
       }),
@@ -305,6 +333,13 @@ const userNode: UserNode = smJS.def({
   withRelationalResults.data.users[0].todos[0].dueDate as number;
   // @ts-expect-error not queried
   withRelationalResults.data.users[0].todos[0].task as string;
+
+  withRelationalResults.data.users[0].todos[0].assignee.firstName as string;
+
+  // @ts-expect-error meeting should be nullable
+  withRelationalResults.data.users[0].todos[0].meeting.name as string;
+
+  withRelationalResults.data.users[0].todos[0].meeting?.name as string;
 
   const withOnlyRelationalResults = await smJS.query({
     users: queryDefinition({

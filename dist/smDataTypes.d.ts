@@ -67,8 +67,8 @@ export declare const SM_RELATIONAL_TYPES: {
     byReference: "bR";
     children: "bP";
 };
-export declare const reference: <TParentHoldingReference extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TReferencedNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
-    def: TReferencedNode;
+export declare const reference: <TParentHoldingReference extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TReferencedNode extends Maybe<ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
+    def: NonNullable<TReferencedNode>;
     idProp: keyof TParentHoldingReference["smData"];
 }) => IByReferenceQueryBuilder<TReferencedNode>;
 export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
