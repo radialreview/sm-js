@@ -606,7 +606,9 @@ type ExtractQueriedDataFromMapFnReturn<
   >
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
     : TMapFnReturn[Key] extends IChildrenQuery<any, any>
-    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>    
+    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>  
+    : TMapFnReturn[Key] extends MapFnForNode<TSMNode>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>  
     // when we're querying data on the node we used as the "def"
     : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
