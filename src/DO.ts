@@ -1,3 +1,4 @@
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import { SMData, SM_DATA_TYPES } from './smDataTypes';
 import {
   ISMJS,
@@ -83,7 +84,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
           }
         });
 
-        this.initializeNodePropGettersAndSetters();
+        this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
         this.initializeNodeMutations();
@@ -355,11 +356,17 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       /**
-       * initializes getters and setters for properties that are stored on this node in SM
+       * initializes getters for properties that are stored on this node in SM
        * as properties on this DO instance
        */
-      private initializeNodePropGettersAndSetters() {
+      private initializeNodePropGetters() {
         Object.keys(node.properties).forEach(prop => {
+          if (PROPERTIES_QUERIED_FOR_ALL_NODES.includes(prop)) {
+            // do not create getters for any properties included in the node definition which are already being queried by sm-js regardless
+            // since the code in this DO relies on setting those properties directly using this.version or this.lastUpdatedBy
+            return;
+          }
+
           const property = this.getSMData(node.properties[prop]);
 
           if (this.isObjectType(property.type)) {
