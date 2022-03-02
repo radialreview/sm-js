@@ -287,7 +287,7 @@ export type GetExpectedRelationalDataType<
   [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<
     infer TSMNode
   >
-    ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>,ExtractNodeComputedData<TSMNode>>
+    ? GetExpectedNodeDataType<ExtractNodeData<NonNullable<TSMNode>>,ExtractNodeComputedData<NonNullable<TSMNode>>>
     : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode>
     ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>>
     : never;
@@ -392,27 +392,27 @@ export interface ISMNode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TSMNode extends ISMNode> =
+export type NodeRelationalQueryBuilder<TSMNode extends ISMNode | null> =
   | IByReferenceQueryBuilder<TSMNode>
-  | IChildrenQueryBuilder<TSMNode>;
+  | IChildrenQueryBuilder<NonNullable<TSMNode>>;
 
 export type NodeRelationalQuery<TSMNode extends ISMNode> =
   | IChildrenQuery<TSMNode, any>
   | IByReferenceQuery<TSMNode, any>;
 
-export interface IByReferenceQueryBuilder<TSMNode extends ISMNode> {
-  <TMapFn extends MapFnForNode<TSMNode>>(opts: {
+export interface IByReferenceQueryBuilder<TSMNode extends ISMNode | null> {
+  <TMapFn extends MapFnForNode<NonNullable<TSMNode>>>(opts: {
     map: TMapFn;
   }): IByReferenceQuery<TSMNode, TMapFn>;
 }
 
 type SMRelationalTypesRecord = typeof SM_RELATIONAL_TYPES;
 export interface IByReferenceQuery<
-  TSMNode extends ISMNode,
+  TSMNode extends ISMNode | null,
   TMapFn extends MapFn<
-    ExtractNodeData<TSMNode>,
-    ExtractNodeComputedData<TSMNode>,
-    ExtractNodeRelationalData<TSMNode>
+    ExtractNodeData<NonNullable<TSMNode>>,
+    ExtractNodeComputedData<NonNullable<TSMNode>>,
+    ExtractNodeRelationalData<NonNullable<TSMNode>>
   >
 > {
   _smRelational: SMRelationalTypesRecord['byReference'];
@@ -444,7 +444,7 @@ export interface ISMQueryPagination {}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
-  NodeRelationalQueryBuilder<ISMNode>
+  NodeRelationalQueryBuilder<Maybe<ISMNode>>
 >;
 
 export interface ISMNodeRepository {
@@ -606,11 +606,11 @@ type ExtractQueriedDataFromMapFnReturn<
   >
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
     : TMapFnReturn[Key] extends IChildrenQuery<any, any>
-    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>
-    : TMapFnReturn[Key] extends MapFnForNode<TSMNode>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
+    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>    
+    // when we're querying data on the node we used as the "def"
     : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
+    // when we're querying data inside a nested object
     : TMapFnReturn[Key] extends MapFn<any, any, any>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
     : never;
@@ -625,7 +625,9 @@ type ExtractQueriedDataFromChildrenQuery<
 type ExtractQueriedDataFromByReferenceQuery<
   TByReferenceQuery extends IByReferenceQuery<any, any>
 > = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn>
-  ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
+  ? TSMNode extends null
+    ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>>
+    : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>
   : never;
 
 export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
