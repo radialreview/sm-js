@@ -4,8 +4,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var lodash = require('lodash');
 var core = require('@apollo/client/core');
+var lodash = require('lodash');
 var React = _interopDefault(require('react'));
 var ws = require('@apollo/client/link/ws');
 var http = require('@apollo/client/link/http');
@@ -503,6 +503,467 @@ function queryDefinition(queryDefinition) {
   return queryDefinition;
 }
 
+var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
+/**
+ * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
+ * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
+ *
+ * This fn executs those fns at query time, and returns a record of relational query builders
+ */
+
+function getRelationalQueryBuildersFromRelationalFns(relationaFns) {
+  if (!relationaFns) return {};
+  return Object.keys(relationaFns).reduce(function (acc, key) {
+    acc[key] = relationaFns[key]();
+    return acc;
+  }, {});
+}
+
+function getMapFnReturn(opts) {
+  var mapFnOpts = _extends({}, opts.properties, getRelationalQueryBuildersFromRelationalFns(opts.relational));
+
+  Object.keys(opts.properties).forEach(function (key) {
+    var data = opts.properties[key];
+
+    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+      mapFnOpts[key] = function (opts) {
+        return opts.map;
+      };
+    }
+  });
+  return opts.mapFn(mapFnOpts);
+}
+/**
+ * The functions in this file are responsible for translating queryDefinitionss to gql documents
+ * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
+ * other fns are exported for testing purposes only
+ */
+
+
+function getQueriedProperties(opts) {
+  var mapFnReturn = getMapFnReturn({
+    mapFn: opts.mapFn,
+    properties: opts.smData,
+    relational: opts.smRelational
+  });
+
+  if (mapFnReturn == null) {
+    // @TODO ran into this issue when I forgot to call the query for a nested object, figure out a way to give a better error message
+    // user: useAuthenticatedOrgUserData(
+    //   ({ id, orgRole, accessLevel, preferences }) => ({
+    //     id,
+    //     orgRole,
+    //     accessLevel,
+    //     preferences: preferences({
+    //       query: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
+    //     }),
+    //   })
+    // ),
+    throw Error("The query with the id '" + opts.queryId + "' has an unexpected value in the query result.");
+  }
+
+  return Object.keys(mapFnReturn).reduce(function (acc, key) {
+    var isData = !!opts.smData[key];
+    if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
+
+    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      return acc;
+    }
+
+    var data = opts.smData[key];
+
+    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+      // query for any data stored in old format (stringified json at the root of the node)
+      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
+
+      acc.push.apply(acc, getQueriedProperties({
+        queryId: opts.queryId,
+        mapFn: mapFnReturn[key],
+        smData: data.boxedValue
+      }).map(function (nestedKey) {
+        return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
+      }));
+      return acc;
+    }
+
+    return [].concat(acc, [key]);
+  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+}
+
+function getAllNodeProperties(opts) {
+  return Object.keys(opts.nodeProperties).reduce(function (acc, key) {
+    // we are already querying these properties, can ignore any explicit requests for it
+    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      return acc;
+    }
+
+    var data = opts.nodeProperties[key];
+
+    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+      // query for any data stored in old format (stringified json at the root of the node)
+      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
+
+      acc.push.apply(acc, getAllNodeProperties({
+        nodeProperties: opts.nodeProperties[key].boxedValue,
+        isRootLevel: false
+      }).map(function (nestedKey) {
+        return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
+      }));
+      return acc;
+    }
+
+    return [].concat(acc, [key]);
+  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+}
+
+function getRelationalQueries(opts) {
+  var mapFnReturn = getMapFnReturn({
+    mapFn: opts.mapFn,
+    properties: opts.smData,
+    relational: opts.smRelational
+  });
+  var relationalQueries = Object.keys(mapFnReturn).reduce(function (acc, key) {
+    var isData = !!opts.smData[key];
+    var isComputed = opts.smComputed ? !!opts.smComputed[key] : false;
+
+    if (isData || isComputed) {
+      return acc;
+    } else {
+      var relationalQuery = mapFnReturn[key];
+
+      if (relationalQuery._smRelational == null) {
+        throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
+      }
+
+      var mapFn = function mapFn(data) {
+        return relationalQuery.map(data);
+      };
+
+      var relationalQueryRecord = {
+        def: relationalQuery.def,
+        properties: getQueriedProperties({
+          queryId: opts.queryId,
+          mapFn: mapFn,
+          smData: relationalQuery.def.smData,
+          smComputed: relationalQuery.def.smComputed,
+          smRelational: relationalQuery.def.smRelational,
+          isRootLevel: true
+        })
+      };
+      var relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
+        queryId: opts.queryId,
+        mapFn: mapFn,
+        smData: relationalQuery.def.smData,
+        smComputed: relationalQuery.def.smComputed,
+        smRelational: relationalQuery.def.smRelational
+      });
+
+      if (relationalQueriesWithinThisRelationalQuery) {
+        relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
+      }
+
+      var relationalType = relationalQuery._smRelational;
+
+      if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+        relationalQueryRecord.byReference = true;
+        relationalQueryRecord.idProp = relationalQuery.idProp;
+      } else if (relationalType === SM_RELATIONAL_TYPES.children) {
+        relationalQueryRecord.children = true;
+
+        if ('depth' in relationalQuery) {
+          relationalQueryRecord.depth = relationalQuery.depth;
+        }
+      } else {
+        throw Error("relationalType \"" + relationalType + "\" is not valid.");
+      }
+
+      acc[key] = relationalQueryRecord;
+      return acc;
+    }
+  }, {});
+  if (Object.keys(relationalQueries).length === 0) return undefined;
+  return relationalQueries;
+}
+
+function getQueryRecordFromQueryDefinition(opts) {
+  var queryRecord = {};
+  Object.keys(opts.queryDefinitions).forEach(function (queryDefinitionsAlias) {
+    var queryDefinition = opts.queryDefinitions[queryDefinitionsAlias];
+    var queriedProps;
+    var nodeDef;
+    var relational;
+
+    if (queryDefinition._isSMNodeDef) {
+      // shorthand syntax where the dev only specified a node defition, nothing else
+      nodeDef = queryDefinition;
+      queriedProps = getAllNodeProperties({
+        nodeProperties: nodeDef.smData,
+        isRootLevel: true
+      });
+    } else {
+      nodeDef = queryDefinition.def;
+
+      if (queryDefinition.map) {
+        queriedProps = getQueriedProperties({
+          mapFn: queryDefinition.map,
+          queryId: opts.queryId,
+          smData: queryDefinition.def.smData,
+          smComputed: queryDefinition.def.smComputed,
+          smRelational: queryDefinition.def.smRelational,
+          isRootLevel: true
+        });
+        relational = getRelationalQueries({
+          mapFn: queryDefinition.map,
+          queryId: opts.queryId,
+          smData: nodeDef.smData,
+          smComputed: nodeDef.smComputed,
+          smRelational: nodeDef.smRelational
+        });
+      } else {
+        queriedProps = getAllNodeProperties({
+          nodeProperties: nodeDef.smData,
+          isRootLevel: true
+        });
+      }
+    }
+
+    var queryRecordEntry = {
+      def: nodeDef,
+      properties: queriedProps,
+      relational: relational
+    };
+
+    if (queryDefinition.target) {
+      if (queryDefinition.target.ids) {
+        queryRecordEntry.ids = queryDefinition.target.ids;
+      } else if (queryDefinition.target.id) {
+        queryRecordEntry.id = queryDefinition.target.id;
+      } else if (queryDefinition.target.underIds) {
+        queryRecordEntry.underIds = queryDefinition.target.underIds;
+      } else if (queryDefinition.target.depth) {
+        queryRecordEntry.depth = queryDefinition.target.depth;
+      }
+    }
+
+    if ('filter' in queryDefinition) {
+      queryRecordEntry.filter = queryDefinition.filter;
+    }
+
+    queryRecord[queryDefinitionsAlias] = queryRecordEntry;
+  });
+  return queryRecord;
+}
+
+function getIdsString(ids) {
+  return "[" + ids.map(function (id) {
+    return "\"" + id + "\"";
+  }).join(',') + "]";
+}
+
+function getKeyValueFilterString(clause) {
+  return "{" + Object.entries(clause).reduce(function (acc, _ref) {
+    var key = _ref[0],
+        value = _ref[1];
+    acc += key + ": " + JSON.stringify(value);
+    return acc;
+  }, '') + "}";
+}
+
+function getGetNodeOptions(opts) {
+  var options = ["type: \"" + opts.def.type + "\""];
+
+  if (opts.underIds) {
+    options.push("underIds: [" + opts.underIds.map(function (id) {
+      return "\"" + id + "\"";
+    }).join(',') + "]");
+  }
+
+  if (opts.depth !== null && opts.depth !== undefined) {
+    options.push("depth: " + opts.depth);
+  }
+
+  if (opts.filter !== null && opts.filter !== undefined) {
+    options.push(Array.isArray(opts.filter) ? "filter: [" + opts.filter.map(getKeyValueFilterString).join(',') + "]" : "filter: " + getKeyValueFilterString(opts.filter));
+  }
+
+  return options.join(', ');
+} // subscriptions use a slightly different set of arguments for now
+// https://tractiontools.atlassian.net/secure/RapidBoard.jspa?rapidView=53&projectKey=SMT&modal=detail&selectedIssue=SMT-636
+
+
+function getSubscriptionGetNodeOptions(opts) {
+  var options = ["type: \"" + opts.def.type + "\""];
+
+  if (opts.under) {
+    options.push("underIds: [\"" + opts.under + "\"]");
+  } // @TODO uncomment when subscriptions support depth params
+  // if (opts.depth != null) {
+  //   options.push(`depth: ${opts.depth}`)
+  // }
+
+
+  return options.join(', ');
+}
+
+function getSpaces(numberOfSpaces) {
+  return new Array(numberOfSpaces).fill(' ').join('');
+}
+
+function getQueryPropertiesString(opts) {
+  var propsString = "\n" + getSpaces((opts.nestLevel + 2) * 2);
+  propsString += opts.queryRecordEntry.properties.join(",\n" + getSpaces((opts.nestLevel + 2) * 2));
+
+  if (opts.queryRecordEntry.relational) {
+    propsString += (propsString !== '' ? ',' : '') + getRelationalQueryString({
+      relationalQueryRecord: opts.queryRecordEntry.relational,
+      nestLevel: opts.nestLevel + 2
+    });
+  }
+
+  return propsString;
+}
+
+function getRelationalQueryString(opts) {
+  return Object.keys(opts.relationalQueryRecord).reduce(function (acc, alias) {
+    var relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
+    var operation;
+
+    if ('byReference' in relationalQueryRecordEntry) {
+      operation = "GetReferences(propertyNames: \"" + relationalQueryRecordEntry.idProp + "\")";
+    } else if ('children' in relationalQueryRecordEntry) {
+      var depthString = 'depth' in relationalQueryRecordEntry ? relationalQueryRecordEntry.depth !== undefined ? ",depth: " + relationalQueryRecordEntry.depth : '' : '';
+      operation = "GetChildren(type: \"" + relationalQueryRecordEntry.def.type + "\"" + depthString + ")";
+    } else {
+      throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
+    }
+
+    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {") + getQueryPropertiesString({
+      queryRecordEntry: relationalQueryRecordEntry,
+      nestLevel: opts.nestLevel
+    }) + ("\n" + getSpaces(opts.nestLevel * 2) + "}");
+  }, '');
+}
+
+function getRootLevelQueryString(opts) {
+  var operation;
+
+  if ('ids' in opts) {
+    operation = "GetNodesByIdNew(ids: " + getIdsString(opts.ids) + ")";
+  } else if ('id' in opts) {
+    operation = "GetNodesByIdNew(ids: " + getIdsString([opts.id]) + ")";
+  } else {
+    operation = "GetNodesNew(" + getGetNodeOptions(opts) + ")";
+  }
+
+  return opts.alias + ": " + operation + " {" + ("" + getQueryPropertiesString({
+    queryRecordEntry: opts,
+    nestLevel: 1
+  })) + ("\n" + getSpaces(4) + "}");
+}
+
+function getQueryInfo(opts) {
+  var queryRecord = getQueryRecordFromQueryDefinition(opts);
+  var queryGQLString = ("\n    query " + getSanitizedQueryId({
+    queryId: opts.queryId
+  }) + " {\n        " + Object.keys(queryRecord).map(function (alias) {
+    return getRootLevelQueryString(_extends({
+      alias: alias
+    }, queryRecord[alias]));
+  }).join('\n    ') + "\n    }\n  ").trim();
+  var subscriptionConfigs = Object.keys(queryRecord).reduce(function (subscriptionConfigsAcc, alias) {
+    var subscriptionName = getSanitizedQueryId({
+      queryId: opts.queryId + '_' + alias
+    });
+    var queryRecordEntry = queryRecord[alias];
+    var operations;
+
+    if ('ids' in queryRecordEntry) {
+      operations = ["GetNodesById(ids: " + getIdsString(queryRecordEntry.ids) + ", monitorChildEvents: true)"];
+    } else if ('id' in queryRecordEntry) {
+      operations = ["GetNodesById(ids: " + getIdsString([queryRecordEntry.id]) + ", monitorChildEvents: true)"];
+    } else if ('underIds' in queryRecordEntry) {
+      operations = queryRecordEntry.underIds.map(function (underId) {
+        return "GetNodesNew(" + getSubscriptionGetNodeOptions(_extends({}, queryRecordEntry, {
+          under: underId
+        })) + ", monitorChildEvents: true)";
+      });
+    } else {
+      operations = ["GetNodesNew(" + getSubscriptionGetNodeOptions(queryRecordEntry) + ", monitorChildEvents: true)"];
+    }
+
+    var gqlStrings = operations.map(function (operation) {
+      return ("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
+        queryRecordEntry: queryRecordEntry,
+        nestLevel: 5
+      }) + "\n        }\n        operation { action, path }\n      }\n    }\n        ").trim();
+    });
+
+    function extractNodeFromSubscriptionMessage(subscriptionMessage) {
+      if (!subscriptionMessage[alias].node) {
+        throw new SMUnexpectedSubscriptionMessageException({
+          subscriptionMessage: subscriptionMessage,
+          description: 'No "node" found in message'
+        });
+      }
+
+      return subscriptionMessage[alias].node;
+    }
+
+    function extractOperationFromSubscriptionMessage(subscriptionMessage) {
+      if (!subscriptionMessage[alias].operation) {
+        throw new SMUnexpectedSubscriptionMessageException({
+          subscriptionMessage: subscriptionMessage,
+          description: 'No "operation" found in message'
+        });
+      }
+
+      return subscriptionMessage[alias].operation;
+    }
+
+    gqlStrings.forEach(function (gqlString) {
+      subscriptionConfigsAcc.push({
+        alias: alias,
+        gqlString: gqlString,
+        extractNodeFromSubscriptionMessage: extractNodeFromSubscriptionMessage,
+        extractOperationFromSubscriptionMessage: extractOperationFromSubscriptionMessage
+      });
+    });
+    return subscriptionConfigsAcc;
+  }, []);
+  return {
+    subscriptionConfigs: subscriptionConfigs,
+    queryGQLString: queryGQLString,
+    queryRecord: queryRecord
+  };
+}
+/**
+ * Converts a queryDefinitions into a gql doc that can be sent to the gqlClient
+ * Returns a queryRecord for easily deduping requests based on the data that is being requested
+ * Can later also be used to build a diff to request only the necessary data
+ * taking into account the previous query record to avoid requesting data already in memory
+ */
+
+function convertQueryDefinitionToQueryInfo(opts) {
+  var _getQueryInfo = getQueryInfo(opts),
+      queryGQLString = _getQueryInfo.queryGQLString,
+      subscriptionConfigs = _getQueryInfo.subscriptionConfigs,
+      queryRecord = _getQueryInfo.queryRecord;
+
+  return {
+    queryGQL: core.gql(queryGQLString),
+    subscriptionConfigs: subscriptionConfigs.map(function (subscriptionConfig) {
+      return _extends({}, subscriptionConfig, {
+        gql: core.gql(subscriptionConfig.gqlString)
+      });
+    }),
+    queryRecord: queryRecord
+  };
+}
+
+function getSanitizedQueryId(opts) {
+  return opts.queryId.replace(/-/g, '_');
+}
+
 function createDOFactory(smJSInstance) {
   /**
    * Returns a DO class, since there is one instance of the DO class
@@ -667,7 +1128,7 @@ function createDOFactory(smJSInstance) {
             });
           }
         });
-        this.initializeNodePropGettersAndSetters();
+        this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
         this.initializeNodeMutations();
@@ -820,15 +1281,21 @@ function createDOFactory(smJSInstance) {
         });
       }
       /**
-       * initializes getters and setters for properties that are stored on this node in SM
+       * initializes getters for properties that are stored on this node in SM
        * as properties on this DO instance
        */
       ;
 
-      _proto.initializeNodePropGettersAndSetters = function initializeNodePropGettersAndSetters() {
+      _proto.initializeNodePropGetters = function initializeNodePropGetters() {
         var _this5 = this;
 
         Object.keys(node.properties).forEach(function (prop) {
+          if (PROPERTIES_QUERIED_FOR_ALL_NODES.includes(prop)) {
+            // do not create getters for any properties included in the node definition which are already being queried by sm-js regardless
+            // since the code in this DO relies on setting those properties directly using this.version or this.lastUpdatedBy
+            return;
+          }
+
           var property = _this5.getSMData(node.properties[prop]);
 
           if (_this5.isObjectType(property.type)) {
@@ -1369,467 +1836,6 @@ function prepareForFE(beData) {
     var value = beData[key];
     return _extends({}, prepared, (_extends2 = {}, _extends2[key] = prepareValueForFE(value), _extends2));
   }, {});
-}
-
-var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
-/**
- * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
- * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
- *
- * This fn executs those fns at query time, and returns a record of relational query builders
- */
-
-function getRelationalQueryBuildersFromRelationalFns(relationaFns) {
-  if (!relationaFns) return {};
-  return Object.keys(relationaFns).reduce(function (acc, key) {
-    acc[key] = relationaFns[key]();
-    return acc;
-  }, {});
-}
-
-function getMapFnReturn(opts) {
-  var mapFnOpts = _extends({}, opts.properties, getRelationalQueryBuildersFromRelationalFns(opts.relational));
-
-  Object.keys(opts.properties).forEach(function (key) {
-    var data = opts.properties[key];
-
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
-      mapFnOpts[key] = function (opts) {
-        return opts.map;
-      };
-    }
-  });
-  return opts.mapFn(mapFnOpts);
-}
-/**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
-
-
-function getQueriedProperties(opts) {
-  var mapFnReturn = getMapFnReturn({
-    mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational
-  });
-
-  if (mapFnReturn == null) {
-    // @TODO ran into this issue when I forgot to call the query for a nested object, figure out a way to give a better error message
-    // user: useAuthenticatedOrgUserData(
-    //   ({ id, orgRole, accessLevel, preferences }) => ({
-    //     id,
-    //     orgRole,
-    //     accessLevel,
-    //     preferences: preferences({
-    //       query: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
-    //     }),
-    //   })
-    // ),
-    throw Error("The query with the id '" + opts.queryId + "' has an unexpected value in the query result.");
-  }
-
-  return Object.keys(mapFnReturn).reduce(function (acc, key) {
-    var isData = !!opts.smData[key];
-    if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
-
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
-      return acc;
-    }
-
-    var data = opts.smData[key];
-
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
-      // query for any data stored in old format (stringified json at the root of the node)
-      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
-
-      acc.push.apply(acc, getQueriedProperties({
-        queryId: opts.queryId,
-        mapFn: mapFnReturn[key],
-        smData: data.boxedValue
-      }).map(function (nestedKey) {
-        return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
-      }));
-      return acc;
-    }
-
-    return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
-}
-
-function getAllNodeProperties(opts) {
-  return Object.keys(opts.nodeProperties).reduce(function (acc, key) {
-    // we are already querying these properties, can ignore any explicit requests for it
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
-      return acc;
-    }
-
-    var data = opts.nodeProperties[key];
-
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
-      // query for any data stored in old format (stringified json at the root of the node)
-      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
-
-      acc.push.apply(acc, getAllNodeProperties({
-        nodeProperties: opts.nodeProperties[key].boxedValue,
-        isRootLevel: false
-      }).map(function (nestedKey) {
-        return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
-      }));
-      return acc;
-    }
-
-    return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
-}
-
-function getRelationalQueries(opts) {
-  var mapFnReturn = getMapFnReturn({
-    mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational
-  });
-  var relationalQueries = Object.keys(mapFnReturn).reduce(function (acc, key) {
-    var isData = !!opts.smData[key];
-    var isComputed = opts.smComputed ? !!opts.smComputed[key] : false;
-
-    if (isData || isComputed) {
-      return acc;
-    } else {
-      var relationalQuery = mapFnReturn[key];
-
-      if (relationalQuery._smRelational == null) {
-        throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
-      }
-
-      var mapFn = function mapFn(data) {
-        return relationalQuery.map(data);
-      };
-
-      var relationalQueryRecord = {
-        def: relationalQuery.def,
-        properties: getQueriedProperties({
-          queryId: opts.queryId,
-          mapFn: mapFn,
-          smData: relationalQuery.def.smData,
-          smComputed: relationalQuery.def.smComputed,
-          smRelational: relationalQuery.def.smRelational,
-          isRootLevel: true
-        })
-      };
-      var relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
-        queryId: opts.queryId,
-        mapFn: mapFn,
-        smData: relationalQuery.def.smData,
-        smComputed: relationalQuery.def.smComputed,
-        smRelational: relationalQuery.def.smRelational
-      });
-
-      if (relationalQueriesWithinThisRelationalQuery) {
-        relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
-      }
-
-      var relationalType = relationalQuery._smRelational;
-
-      if (relationalType === SM_RELATIONAL_TYPES.byReference) {
-        relationalQueryRecord.byReference = true;
-        relationalQueryRecord.idProp = relationalQuery.idProp;
-      } else if (relationalType === SM_RELATIONAL_TYPES.children) {
-        relationalQueryRecord.children = true;
-
-        if ('depth' in relationalQuery) {
-          relationalQueryRecord.depth = relationalQuery.depth;
-        }
-      } else {
-        throw Error("relationalType \"" + relationalType + "\" is not valid.");
-      }
-
-      acc[key] = relationalQueryRecord;
-      return acc;
-    }
-  }, {});
-  if (Object.keys(relationalQueries).length === 0) return undefined;
-  return relationalQueries;
-}
-
-function getQueryRecordFromQueryDefinition(opts) {
-  var queryRecord = {};
-  Object.keys(opts.queryDefinitions).forEach(function (queryDefinitionsAlias) {
-    var queryDefinition = opts.queryDefinitions[queryDefinitionsAlias];
-    var queriedProps;
-    var nodeDef;
-    var relational;
-
-    if (queryDefinition._isSMNodeDef) {
-      // shorthand syntax where the dev only specified a node defition, nothing else
-      nodeDef = queryDefinition;
-      queriedProps = getAllNodeProperties({
-        nodeProperties: nodeDef.smData,
-        isRootLevel: true
-      });
-    } else {
-      nodeDef = queryDefinition.def;
-
-      if (queryDefinition.map) {
-        queriedProps = getQueriedProperties({
-          mapFn: queryDefinition.map,
-          queryId: opts.queryId,
-          smData: queryDefinition.def.smData,
-          smComputed: queryDefinition.def.smComputed,
-          smRelational: queryDefinition.def.smRelational,
-          isRootLevel: true
-        });
-        relational = getRelationalQueries({
-          mapFn: queryDefinition.map,
-          queryId: opts.queryId,
-          smData: nodeDef.smData,
-          smComputed: nodeDef.smComputed,
-          smRelational: nodeDef.smRelational
-        });
-      } else {
-        queriedProps = getAllNodeProperties({
-          nodeProperties: nodeDef.smData,
-          isRootLevel: true
-        });
-      }
-    }
-
-    var queryRecordEntry = {
-      def: nodeDef,
-      properties: queriedProps,
-      relational: relational
-    };
-
-    if (queryDefinition.target) {
-      if (queryDefinition.target.ids) {
-        queryRecordEntry.ids = queryDefinition.target.ids;
-      } else if (queryDefinition.target.id) {
-        queryRecordEntry.id = queryDefinition.target.id;
-      } else if (queryDefinition.target.underIds) {
-        queryRecordEntry.underIds = queryDefinition.target.underIds;
-      } else if (queryDefinition.target.depth) {
-        queryRecordEntry.depth = queryDefinition.target.depth;
-      }
-    }
-
-    if ('filter' in queryDefinition) {
-      queryRecordEntry.filter = queryDefinition.filter;
-    }
-
-    queryRecord[queryDefinitionsAlias] = queryRecordEntry;
-  });
-  return queryRecord;
-}
-
-function getIdsString(ids) {
-  return "[" + ids.map(function (id) {
-    return "\"" + id + "\"";
-  }).join(',') + "]";
-}
-
-function getKeyValueFilterString(clause) {
-  return "{" + Object.entries(clause).reduce(function (acc, _ref) {
-    var key = _ref[0],
-        value = _ref[1];
-    acc += key + ": " + JSON.stringify(value);
-    return acc;
-  }, '') + "}";
-}
-
-function getGetNodeOptions(opts) {
-  var options = ["type: \"" + opts.def.type + "\""];
-
-  if (opts.underIds) {
-    options.push("underIds: [" + opts.underIds.map(function (id) {
-      return "\"" + id + "\"";
-    }).join(',') + "]");
-  }
-
-  if (opts.depth !== null && opts.depth !== undefined) {
-    options.push("depth: " + opts.depth);
-  }
-
-  if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(Array.isArray(opts.filter) ? "filter: [" + opts.filter.map(getKeyValueFilterString).join(',') + "]" : "filter: " + getKeyValueFilterString(opts.filter));
-  }
-
-  return options.join(', ');
-} // subscriptions use a slightly different set of arguments for now
-// https://tractiontools.atlassian.net/secure/RapidBoard.jspa?rapidView=53&projectKey=SMT&modal=detail&selectedIssue=SMT-636
-
-
-function getSubscriptionGetNodeOptions(opts) {
-  var options = ["type: \"" + opts.def.type + "\""];
-
-  if (opts.under) {
-    options.push("underIds: [\"" + opts.under + "\"]");
-  } // @TODO uncomment when subscriptions support depth params
-  // if (opts.depth != null) {
-  //   options.push(`depth: ${opts.depth}`)
-  // }
-
-
-  return options.join(', ');
-}
-
-function getSpaces(numberOfSpaces) {
-  return new Array(numberOfSpaces).fill(' ').join('');
-}
-
-function getQueryPropertiesString(opts) {
-  var propsString = "\n" + getSpaces((opts.nestLevel + 2) * 2);
-  propsString += opts.queryRecordEntry.properties.join(",\n" + getSpaces((opts.nestLevel + 2) * 2));
-
-  if (opts.queryRecordEntry.relational) {
-    propsString += (propsString !== '' ? ',' : '') + getRelationalQueryString({
-      relationalQueryRecord: opts.queryRecordEntry.relational,
-      nestLevel: opts.nestLevel + 2
-    });
-  }
-
-  return propsString;
-}
-
-function getRelationalQueryString(opts) {
-  return Object.keys(opts.relationalQueryRecord).reduce(function (acc, alias) {
-    var relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
-    var operation;
-
-    if ('byReference' in relationalQueryRecordEntry) {
-      operation = "GetReferences(propertyNames: \"" + relationalQueryRecordEntry.idProp + "\")";
-    } else if ('children' in relationalQueryRecordEntry) {
-      var depthString = 'depth' in relationalQueryRecordEntry ? relationalQueryRecordEntry.depth !== undefined ? ",depth: " + relationalQueryRecordEntry.depth : '' : '';
-      operation = "GetChildren(type: \"" + relationalQueryRecordEntry.def.type + "\"" + depthString + ")";
-    } else {
-      throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
-    }
-
-    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {") + getQueryPropertiesString({
-      queryRecordEntry: relationalQueryRecordEntry,
-      nestLevel: opts.nestLevel
-    }) + ("\n" + getSpaces(opts.nestLevel * 2) + "}");
-  }, '');
-}
-
-function getRootLevelQueryString(opts) {
-  var operation;
-
-  if ('ids' in opts) {
-    operation = "GetNodesByIdNew(ids: " + getIdsString(opts.ids) + ")";
-  } else if ('id' in opts) {
-    operation = "GetNodesByIdNew(ids: " + getIdsString([opts.id]) + ")";
-  } else {
-    operation = "GetNodesNew(" + getGetNodeOptions(opts) + ")";
-  }
-
-  return opts.alias + ": " + operation + " {" + ("" + getQueryPropertiesString({
-    queryRecordEntry: opts,
-    nestLevel: 1
-  })) + ("\n" + getSpaces(4) + "}");
-}
-
-function getQueryInfo(opts) {
-  var queryRecord = getQueryRecordFromQueryDefinition(opts);
-  var queryGQLString = ("\n    query " + getSanitizedQueryId({
-    queryId: opts.queryId
-  }) + " {\n        " + Object.keys(queryRecord).map(function (alias) {
-    return getRootLevelQueryString(_extends({
-      alias: alias
-    }, queryRecord[alias]));
-  }).join('\n    ') + "\n    }\n  ").trim();
-  var subscriptionConfigs = Object.keys(queryRecord).reduce(function (subscriptionConfigsAcc, alias) {
-    var subscriptionName = getSanitizedQueryId({
-      queryId: opts.queryId + '_' + alias
-    });
-    var queryRecordEntry = queryRecord[alias];
-    var operations;
-
-    if ('ids' in queryRecordEntry) {
-      operations = ["GetNodesById(ids: " + getIdsString(queryRecordEntry.ids) + ", monitorChildEvents: true)"];
-    } else if ('id' in queryRecordEntry) {
-      operations = ["GetNodesById(ids: " + getIdsString([queryRecordEntry.id]) + ", monitorChildEvents: true)"];
-    } else if ('underIds' in queryRecordEntry) {
-      operations = queryRecordEntry.underIds.map(function (underId) {
-        return "GetNodesNew(" + getSubscriptionGetNodeOptions(_extends({}, queryRecordEntry, {
-          under: underId
-        })) + ", monitorChildEvents: true)";
-      });
-    } else {
-      operations = ["GetNodesNew(" + getSubscriptionGetNodeOptions(queryRecordEntry) + ", monitorChildEvents: true)"];
-    }
-
-    var gqlStrings = operations.map(function (operation) {
-      return ("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
-        queryRecordEntry: queryRecordEntry,
-        nestLevel: 5
-      }) + "\n        }\n        operation { action, path }\n      }\n    }\n        ").trim();
-    });
-
-    function extractNodeFromSubscriptionMessage(subscriptionMessage) {
-      if (!subscriptionMessage[alias].node) {
-        throw new SMUnexpectedSubscriptionMessageException({
-          subscriptionMessage: subscriptionMessage,
-          description: 'No "node" found in message'
-        });
-      }
-
-      return subscriptionMessage[alias].node;
-    }
-
-    function extractOperationFromSubscriptionMessage(subscriptionMessage) {
-      if (!subscriptionMessage[alias].operation) {
-        throw new SMUnexpectedSubscriptionMessageException({
-          subscriptionMessage: subscriptionMessage,
-          description: 'No "operation" found in message'
-        });
-      }
-
-      return subscriptionMessage[alias].operation;
-    }
-
-    gqlStrings.forEach(function (gqlString) {
-      subscriptionConfigsAcc.push({
-        alias: alias,
-        gqlString: gqlString,
-        extractNodeFromSubscriptionMessage: extractNodeFromSubscriptionMessage,
-        extractOperationFromSubscriptionMessage: extractOperationFromSubscriptionMessage
-      });
-    });
-    return subscriptionConfigsAcc;
-  }, []);
-  return {
-    subscriptionConfigs: subscriptionConfigs,
-    queryGQLString: queryGQLString,
-    queryRecord: queryRecord
-  };
-}
-/**
- * Converts a queryDefinitions into a gql doc that can be sent to the gqlClient
- * Returns a queryRecord for easily deduping requests based on the data that is being requested
- * Can later also be used to build a diff to request only the necessary data
- * taking into account the previous query record to avoid requesting data already in memory
- */
-
-function convertQueryDefinitionToQueryInfo(opts) {
-  var _getQueryInfo = getQueryInfo(opts),
-      queryGQLString = _getQueryInfo.queryGQLString,
-      subscriptionConfigs = _getQueryInfo.subscriptionConfigs,
-      queryRecord = _getQueryInfo.queryRecord;
-
-  return {
-    queryGQL: core.gql(queryGQLString),
-    subscriptionConfigs: subscriptionConfigs.map(function (subscriptionConfig) {
-      return _extends({}, subscriptionConfig, {
-        gql: core.gql(subscriptionConfig.gqlString)
-      });
-    }),
-    queryRecord: queryRecord
-  };
-}
-
-function getSanitizedQueryId(opts) {
-  return opts.queryId.replace(/-/g, '_');
 }
 
 /**
