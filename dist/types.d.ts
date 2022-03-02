@@ -169,7 +169,7 @@ export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMDa
     [key in keyof TSMData]: TSMData[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>> : GetExpectedNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TSMData[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TSMData[key]> : never;
 } & TComputedData;
 export declare type GetExpectedRelationalDataType<TRelationalData extends NodeRelationalQueryBuilderRecord> = {
-    [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never;
+    [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<NonNullable<TSMNode>>, ExtractNodeComputedData<NonNullable<TSMNode>>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never;
 };
 /**
  * Takes in any object and returns a Partial of that object type
@@ -226,15 +226,15 @@ export interface ISMNode<TNodeData extends Record<string, ISMData | SMDataDefaul
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export declare type NodeRelationalQueryBuilder<TSMNode extends ISMNode> = IByReferenceQueryBuilder<TSMNode> | IChildrenQueryBuilder<TSMNode>;
+export declare type NodeRelationalQueryBuilder<TSMNode extends ISMNode | null> = IByReferenceQueryBuilder<TSMNode> | IChildrenQueryBuilder<NonNullable<TSMNode>>;
 export declare type NodeRelationalQuery<TSMNode extends ISMNode> = IChildrenQuery<TSMNode, any> | IByReferenceQuery<TSMNode, any>;
-export interface IByReferenceQueryBuilder<TSMNode extends ISMNode> {
-    <TMapFn extends MapFnForNode<TSMNode>>(opts: {
+export interface IByReferenceQueryBuilder<TSMNode extends ISMNode | null> {
+    <TMapFn extends MapFnForNode<NonNullable<TSMNode>>>(opts: {
         map: TMapFn;
     }): IByReferenceQuery<TSMNode, TMapFn>;
 }
 declare type SMRelationalTypesRecord = typeof SM_RELATIONAL_TYPES;
-export interface IByReferenceQuery<TSMNode extends ISMNode, TMapFn extends MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>> {
+export interface IByReferenceQuery<TSMNode extends ISMNode | null, TMapFn extends MapFn<ExtractNodeData<NonNullable<TSMNode>>, ExtractNodeComputedData<NonNullable<TSMNode>>, ExtractNodeRelationalData<NonNullable<TSMNode>>>> {
     _smRelational: SMRelationalTypesRecord['byReference'];
     def: TSMNode;
     idProp: string;
@@ -256,7 +256,7 @@ export interface IChildrenQuery<TSMNode extends ISMNode, TMapFn extends MapFnFor
 }
 export interface ISMQueryPagination {
 }
-export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder<ISMNode>>;
+export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder<Maybe<ISMNode>>>;
 export interface ISMNodeRepository {
     byId(id: string): NodeDO;
     onDataReceived(data: {
@@ -315,10 +315,10 @@ declare type RequestedData<TNodeData extends Record<string, ISMData | SMDataDefa
 } | {}>;
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TSMNode>, TSMNode extends ISMNode> = ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode> & ExtractNodeComputedData<TSMNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISMNode> = {
-    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TSMNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
+    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
 };
 declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
-declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any>> = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn> ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : never;
+declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any>> = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn> ? TSMNode extends null ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>> : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>> : never;
 export declare type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TNodeData, any> ? TNodeData : never;
 declare type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeComputedData> ? TNodeComputedData : never;
 declare type ExtractNodeRelationalData<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, any, infer TNodeRelationalData> ? TNodeRelationalData : never;
