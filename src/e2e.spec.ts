@@ -307,7 +307,11 @@ test('creating a single node in sm works', async done => {
   const transactionResult = await smJSInstance
     .transaction(ctx => {
       ctx.createNode({
-        data: { type: 'mock-thing', number: timestamp, string: 'mock string' },
+        data: {
+          type: 'mock-thing',
+          number: timestamp,
+          string: 'mock string',
+        },
       });
 
       ctx.createNode({

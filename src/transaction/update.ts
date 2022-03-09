@@ -1,15 +1,19 @@
 import { DocumentNode, gql } from '@apollo/client/core';
 import { OBJECT_PROPERTY_SEPARATOR } from '..';
 
+import {
+  DeepPartial,
+  GetResultingNodeDataTypeFromNodeDefinition,
+  ISMNode,
+} from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
-import { NodeData } from './types';
 
 export type UpdateNodesOperation = {
   type: 'updateNodes';
   smOperationName: 'UpdateNodes';
   nodes: Array<{
-    data: { id: string } & NodeData;
+    data: { id: string } & Record<string, any>;
     position?: number;
     onSuccess?: (data: any) => void;
     onFail?: () => void;
@@ -27,18 +31,24 @@ export function updateNodes(
   };
 }
 
-export type UpdateNodeOperation = {
+export type UpdateNodeOperation<
+  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+> = {
   type: 'updateNode';
   smOperationName: 'UpdateNodes';
-  data: { id: string } & NodeData;
+  data: { id: string } & DeepPartial<
+    GetResultingNodeDataTypeFromNodeDefinition<TSMNode>
+  >;
   name?: string;
   onSuccess?: (data: any) => void;
   onFail?: () => void;
 };
 
-export function updateNode(
-  operation: Omit<UpdateNodeOperation, 'type' | 'smOperationName'>
-): UpdateNodeOperation {
+export function updateNode<
+  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+>(
+  operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
+): UpdateNodeOperation<TSMNode> {
   return {
     type: 'updateNode',
     smOperationName: 'UpdateNodes',
@@ -68,7 +78,7 @@ export function getMutationsFromTransactionUpdateOperations(
 
   const allUpdateNodeOperations: Array<{
     id: string;
-  } & NodeData> = operations.flatMap(operation => {
+  }> = operations.flatMap(operation => {
     if (operation.type === 'updateNode') {
       return operation.data;
     } else if (operation.type === 'updateNodes') {
@@ -123,11 +133,9 @@ export function getMutationsFromTransactionUpdateOperations(
   ].concat(dropPropertiesMutations);
 }
 
-function convertUpdateNodeOperationToUpdateNodesMutationArguments(
-  operation: {
-    id: string;
-  } & NodeData
-): string {
+function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation: {
+  id: string;
+}): string {
   const dataToPersistInSM = convertNodeDataToSMPersistedData(operation);
 
   return `{

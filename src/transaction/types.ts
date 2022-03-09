@@ -1,7 +1,10 @@
 import { AdditionalEdgeProperties } from './edges/types';
 
-export type NodeData = {
-  type?: string;
-  childNodes?: Array<NodeData>;
-  additionalEdges?: Array<AdditionalEdgeProperties>;
-} & Record<string, any>;
+export type RequiredNodeDataForCreate = {
+  type: string;
+};
+
+export type OptionalNodeDataForCreate = {
+  childNodes: Array<RequiredNodeDataForCreate & Record<string, any>>;
+  additionalEdges: Array<AdditionalEdgeProperties>;
+};

@@ -1,14 +1,22 @@
 import { gql } from '@apollo/client/core';
-import { DocumentNode } from '../types';
+import { ISMNode } from '..';
+
+import {
+  DocumentNode,
+  DeepPartial,
+  GetResultingNodeDataTypeFromNodeDefinition,
+} from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
-import { NodeData } from './types';
+import { RequiredNodeDataForCreate, OptionalNodeDataForCreate } from './types';
 
 export type CreateNodesOperation = {
   type: 'createNodes';
   smOperationName: 'CreateNodes';
   nodes: Array<{
-    data: NodeData;
+    data: RequiredNodeDataForCreate &
+      Partial<OptionalNodeDataForCreate> &
+      Record<string, any>;
     under?: string | Array<string>;
     position?: number;
     onSuccess?: (data: any) => any;
@@ -26,19 +34,27 @@ export function createNodes(
   };
 }
 
-export type CreateNodeOperation = {
+export type CreateNodeOperation<
+  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+> = {
   type: 'createNode';
   smOperationName: 'CreateNodes';
-  data: NodeData;
+  data: RequiredNodeDataForCreate &
+    Partial<OptionalNodeDataForCreate> &
+    // when creating a node, all we need is a deep partial of all the node's data
+    // since, at query time, sm-js will fill any properties which were not provided on create
+    DeepPartial<GetResultingNodeDataTypeFromNodeDefinition<TSMNode>>;
   under?: string | Array<string>;
   name?: string;
   position?: number;
   onSuccess?: (data: any) => any;
 };
 
-export function createNode(
-  operation: Omit<CreateNodeOperation, 'type' | 'smOperationName'>
-): CreateNodeOperation {
+export function createNode<
+  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+>(
+  operation: Omit<CreateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
+): CreateNodeOperation<TSMNode> {
   return {
     type: 'createNode',
     smOperationName: 'CreateNodes',
@@ -51,7 +67,7 @@ export function getMutationsFromTransactionCreateOperations(
 ): Array<DocumentNode> {
   if (!operations.length) return [];
   const allCreateNodeOperations: Array<{
-    data: NodeData;
+    data: RequiredNodeDataForCreate;
     under?: string | Array<string>;
   }> = operations.flatMap(operation => {
     if (operation.type === 'createNode') {
@@ -85,7 +101,7 @@ export function getMutationsFromTransactionCreateOperations(
 }
 
 function convertCreateNodeOperationToCreateNodesMutationArguments(operation: {
-  data: NodeData;
+  data: RequiredNodeDataForCreate;
   under?: string | Array<string>;
 }): string {
   const dataToPersistInSM = convertNodeDataToSMPersistedData(operation.data);
