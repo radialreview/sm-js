@@ -257,14 +257,25 @@ export type GetParsedValueTypeFromDefaultFn<
 > = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any>
   ? TParsedValue
   : never;
-/**
- * Utility to extract the expected data type of a node based on its' data structure
- */
-export type GetExpectedNodeDataType<
-  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
-  TComputedData extends Record<string, any>
-> = {
-  [key in keyof TSMData]: TSMData[key] extends
+
+  /**
+   * Utility to extract the resulting data type from the properties definition of a node
+   * for example
+   * 
+   * {
+   *   flag: boolean(false), // boolean and string types from sm-js
+   *   name: string
+   * }
+   * 
+   * will return
+   * 
+   * {
+   *   flag: boolean, // boolean and string native types from TS
+   *   name: string
+   * }
+   */
+export type GetResultingNodeDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
+  [key in keyof TProperties]: TProperties[key] extends
     | ISMData<infer TParsedValue, any, infer TBoxedValue>
     | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
     ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
@@ -276,10 +287,20 @@ export type GetExpectedNodeDataType<
         ? Maybe<Array<TArrayItemType>>
         : Array<TArrayItemType>
       : TParsedValue
-    : TSMData[key] extends SMDataDefaultFn
-    ? GetParsedValueTypeFromDefaultFn<TSMData[key]>
+    : TProperties[key] extends SMDataDefaultFn
+    ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
     : never;
-} & TComputedData;
+}
+
+export type GetResultingNodeDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingNodeDataTypeFromProperties<TProperties> : never
+
+/**
+ * Utility to extract the expected data type of a node based on its' properties and computed data
+ */
+export type GetExpectedNodeDataType<
+  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
+  TComputedData extends Record<string, any>
+> = GetResultingNodeDataTypeFromProperties<TSMData> & TComputedData;
 
 export type GetExpectedRelationalDataType<
   TRelationalData extends NodeRelationalQueryBuilderRecord

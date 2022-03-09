@@ -1,7 +1,6 @@
 import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
 import { Maybe } from '../types';
 import { AdditionalEdgeProperties } from './edges/types';
-import { NodeData } from './types';
 
 export const JSON_TAG = '__JSON__';
 
@@ -12,7 +11,7 @@ export const JSON_TAG = '__JSON__';
  * @returns stringified params ready for mutation
  */
 export function convertNodeDataToSMPersistedData(
-  nodeData: NodeData,
+  nodeData: Record<string, any>,
   opts?: { skipBooleanStringWrapping?: boolean }
 ): string {
   const parsedData = Object.entries(nodeData).reduce((acc, [key, value]) => {

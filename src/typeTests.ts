@@ -7,9 +7,10 @@ import {
   number,
   children,
 } from './';
-import { object, record, reference } from './smDataTypes';
+import { boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
+  GetResultingNodeDataTypeFromNodeDefinition,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
@@ -191,10 +192,48 @@ const userNode: UserNode = smJS.def({
   };
 })();
 
-// These are the most important
+(function TypeInferrenceTests() {
+  type UserNodeData = GetResultingNodeDataTypeFromNodeDefinition<UserNode>;
+  const validUserNodeData: UserNodeData = {
+    id: '',
+    firstName: '',
+    lastName: '',
+    address: {
+      state: '',
+    },
+    fooBarEnum: 'FOO',
+    optionalBarBazEnum: null,
+    recordEnum: {
+      someStringKey: 'FOO',
+    },
+    objectUnion: {
+      type: 'string',
+      string: '',
+    },
+  };
+
+  const invalidPropAtRoot: UserNodeData = {
+    ...validUserNodeData,
+    // @ts-expect-error
+    someFakeProp: '',
+  };
+  invalidPropAtRoot;
+
+  const invalidNestedProp: UserNodeData = {
+    ...validUserNodeData,
+    address: {
+      ...validUserNodeData.address,
+      // @ts-expect-error
+      badProp: '',
+    },
+  };
+  invalidNestedProp;
+})();
+
+// ResultingDevExperience tests are the most important
 // While the other tests in this file check that the share generic types are doing what they're supposed to
 // devs consuming this library will only notice changes in these test results
-(async function ResultingDevExperienceTests() {
+(async function ResultingDevExperienceQueryTests() {
   // shorthand syntax tests
   // no map fn or target defined
   const shorthandQueryResults = await smJS.query({
@@ -392,4 +431,56 @@ const userNode: UserNode = smJS.def({
   byId.data.user.id as string;
   // @ts-expect-error
   byId.data.user.bogus as string;
+})();
+
+(async function ResultingDevExperienceWriteTests() {
+  const nodeProperties = {
+    name: string,
+    settings: object({
+      flagEnabled: boolean(false),
+    }),
+  };
+  type NodeType = ISMNode<typeof nodeProperties>;
+
+  smJS.transaction(ctx => {
+    ctx.createNode<NodeType>({
+      data: {
+        type: 'some-type',
+        name: 'some name',
+        // @ts-expect-error not in nodeProperties
+        badProp: '',
+      },
+    });
+
+    ctx.createNode<NodeType>({
+      data: {
+        type: 'some-type',
+        name: 'some name',
+        settings: {
+          // @ts-expect-error invalid type, should be boolean
+          flagEnabled: null,
+        },
+      },
+    });
+
+    ctx.updateNode<NodeType>({
+      data: {
+        id: 'some-id',
+        name: 'some-name',
+        // @ts-expect-error not in nodeProperties
+        badProp: '',
+      },
+    });
+
+    ctx.updateNode<NodeType>({
+      data: {
+        type: 'some-type',
+        name: 'some name',
+        settings: {
+          // @ts-expect-error invalid type, should be boolean
+          flagEnabled: null,
+        },
+      },
+    });
+  });
 })();
