@@ -163,11 +163,29 @@ declare type GetSMBoxedValue<TSMData extends ISMData<any, any, Record<string, IS
 export declare type QueryFilterEqualsKeyValue<NodeType> = Partial<Record<keyof NodeType, string>>;
 export declare type GetParsedValueTypeFromDefaultFn<TDefaultFn extends (_default: any) => ISMData> = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any> ? TParsedValue : never;
 /**
- * Utility to extract the expected data type of a node based on its' data structure
+ * Utility to extract the resulting data type from the properties definition of a node
+ * for example
+ *
+ * {
+ *   flag: boolean(false), // boolean and string types from sm-js
+ *   name: string
+ * }
+ *
+ * will return
+ *
+ * {
+ *   flag: boolean, // boolean and string native types from TS
+ *   name: string
+ * }
  */
-export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = {
-    [key in keyof TSMData]: TSMData[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>> : GetExpectedNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TSMData[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TSMData[key]> : never;
-} & TComputedData;
+export declare type GetResultingNodeDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> = {
+    [key in keyof TProperties]: TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>> : GetExpectedNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TProperties[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TProperties[key]> : never;
+};
+export declare type GetResultingNodeDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingNodeDataTypeFromProperties<TProperties> : never;
+/**
+ * Utility to extract the expected data type of a node based on its' properties and computed data
+ */
+export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingNodeDataTypeFromProperties<TSMData> & TComputedData;
 export declare type GetExpectedRelationalDataType<TRelationalData extends NodeRelationalQueryBuilderRecord> = {
     [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<NonNullable<TSMNode>>, ExtractNodeComputedData<NonNullable<TSMNode>>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never;
 };
