@@ -333,7 +333,7 @@ declare type RequestedData<TNodeData extends Record<string, ISMData | SMDataDefa
 } | {}>;
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TSMNode>, TSMNode extends ISMNode> = ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode> & ExtractNodeComputedData<TSMNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISMNode> = {
-    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TSMNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
+    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TSMNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
         map: MapFn<infer TBoxedValue, any, any>;
     }) => MapFn<any, any, any> ? GetResultingDataTypeFromProperties<TBoxedValue> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
 };
