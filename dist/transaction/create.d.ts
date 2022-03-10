@@ -1,5 +1,5 @@
 import { ISMNode } from '..';
-import { DocumentNode, DeepPartial, GetResultingNodeDataTypeFromNodeDefinition } from '../types';
+import { DocumentNode, DeepPartial, GetResultingDataTypeFromNodeDefinition } from '../types';
 import { RequiredNodeDataForCreate, OptionalNodeDataForCreate } from './types';
 export declare type CreateNodesOperation = {
     type: 'createNodes';
@@ -16,7 +16,7 @@ export declare function createNodes(operation: Omit<CreateNodesOperation, 'type'
 export declare type CreateNodeOperation<TSMNode extends ISMNode = ISMNode<Record<string, any>>> = {
     type: 'createNode';
     smOperationName: 'CreateNodes';
-    data: RequiredNodeDataForCreate & Partial<OptionalNodeDataForCreate> & DeepPartial<GetResultingNodeDataTypeFromNodeDefinition<TSMNode>>;
+    data: RequiredNodeDataForCreate & Partial<OptionalNodeDataForCreate> & DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
     under?: string | Array<string>;
     name?: string;
     position?: number;
