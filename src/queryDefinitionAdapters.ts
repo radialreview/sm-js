@@ -95,24 +95,25 @@ function getQueriedProperties(opts: {
     relational: opts.smRelational,
   });
 
-  if (mapFnReturn == null) {
-    // @TODO ran into this issue when I forgot to call the query for a nested object, figure out a way to give a better error message
-    // user: useAuthenticatedOrgUserData(
-    //   ({ id, orgRole, accessLevel, preferences }) => ({
-    //     id,
-    //     orgRole,
-    //     accessLevel,
-    //     preferences: preferences({
-    //       query: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
-    //     }),
-    //   })
-    // ),
-    throw Error(
-      `The query with the id '${opts.queryId}' has an unexpected value in the query result.`
-    );
-  }
+  // if (mapFnReturn == null) {
+  //   console.log('opts', opts);
+  //   // @TODO ran into this issue when I forgot to call the map fn for a nested object, figure out a way to give a better error message
+  //   // user: useAuthenticatedOrgUserData(
+  //   //   ({ id, orgRole, accessLevel, preferences }) => ({
+  //   //     id,
+  //   //     orgRole,
+  //   //     accessLevel,
+  //   //     preferences: preferences({
+  //   //       map: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
+  //   //     }),
+  //   //   })
+  //   // ),
+  //   throw Error(
+  //     `The query with the id '${opts.queryId}' has an unexpected value in the query result.`
+  //   );
+  // }
 
-  return Object.keys(mapFnReturn).reduce(
+  return Object.keys(mapFnReturn || opts.smData).reduce(
     (acc, key) => {
       const isData = !!opts.smData[key];
 
@@ -135,7 +136,9 @@ function getQueriedProperties(opts: {
         acc.push(
           ...getQueriedProperties({
             queryId: opts.queryId,
-            mapFn: mapFnReturn[key] as MapFn<any, any, any>,
+            mapFn: (mapFnReturn
+              ? mapFnReturn[key]
+              : () => data.boxedValue) as MapFn<any, any, any>,
             smData: (data.boxedValue as unknown) as Record<string, ISMData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -210,6 +213,26 @@ function getRelationalQueries(opts: {
       return acc;
     } else {
       const relationalQuery = mapFnReturn[key] as NodeRelationalQuery<ISMNode>;
+
+      /**
+       * happens when a map function for a relational query returns all the data for that node
+       * example:
+       *
+       * users: queryDefinition({
+       *   def: userNode,
+       *   map: ({ todos }) => ({
+       *     todos: todos({
+       *       map: (allTodoData) => allTodoData
+       *     })
+       *   })
+       * })
+       *
+       * this function will receive any relational properties in the todo node in the return of the map fn for that todo
+       * but they will be functions, instead of the expected objects
+       */
+      if (typeof relationalQuery === 'function') {
+        return acc;
+      }
 
       if (relationalQuery._smRelational == null) {
         throw Error(
