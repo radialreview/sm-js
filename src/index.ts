@@ -25,6 +25,7 @@ import {
   IChildrenQueryBuilder,
   IByReferenceQuery,
   IByReferenceQueryBuilder,
+  GetResultingDataTypeFromNodeDefinition,
 } from './types';
 
 export {
@@ -41,6 +42,7 @@ export {
   IChildrenQueryBuilder,
   IByReferenceQuery,
   IByReferenceQueryBuilder,
+  GetResultingDataTypeFromNodeDefinition,
 };
 export * from './smDataTypes';
 export * from './react';

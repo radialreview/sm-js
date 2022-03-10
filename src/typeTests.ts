@@ -455,8 +455,8 @@ const userNode: UserNode = smJS.def({
   });
 
   withRelationalMapFnReturningAllData.data.users[0].todos[0].id as string;
-  // @ts-expect-error should not query relational data
-  withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee;
+  // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
+  withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

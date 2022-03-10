@@ -621,24 +621,33 @@ type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
   TSMNode extends ISMNode
 > = {
-  [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<
-    any,
-    any
-  >
+  [Key in keyof TMapFnReturn]:
+    // when we passed through a relational property without specifying a mapFn
+    TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any>
+    ? never
+    :
+    TMapFnReturn[Key] extends IByReferenceQuery<any,any>
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
-    : TMapFnReturn[Key] extends IChildrenQuery<any, any>
+    :
+    TMapFnReturn[Key] extends IChildrenQuery<any, any>
     ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>  
-    : TMapFnReturn[Key] extends MapFnForNode<TSMNode>
+    :
+    TMapFnReturn[Key] extends MapFnForNode<TSMNode>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>  
+    :
     // when we're querying data on the node we used as the "def"
-    : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
+    TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
-    : TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,any>}) => MapFn<any, any, any>
+    :
+    // when we passed through an object property without specifying a mapFn
+    TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,any>}) => MapFn<any, any, any>
     ? GetResultingDataTypeFromProperties<TBoxedValue>
+    :
     // when we're querying data inside a nested object
-    : TMapFnReturn[Key] extends MapFn<any, any, any>
+    TMapFnReturn[Key] extends MapFn<any, any, any>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
-    : never;
+    :
+    never;
 };
 
 type ExtractQueriedDataFromChildrenQuery<
