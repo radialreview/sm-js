@@ -95,24 +95,24 @@ function getQueriedProperties(opts: {
     relational: opts.smRelational,
   });
 
-  // if (mapFnReturn == null) {
-  //   console.log('opts', opts);
-  //   // @TODO ran into this issue when I forgot to call the map fn for a nested object, figure out a way to give a better error message
-  //   // user: useAuthenticatedOrgUserData(
-  //   //   ({ id, orgRole, accessLevel, preferences }) => ({
-  //   //     id,
-  //   //     orgRole,
-  //   //     accessLevel,
-  //   //     preferences: preferences({
-  //   //       map: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
-  //   //     }),
-  //   //   })
-  //   // ),
-  //   throw Error(
-  //     `The query with the id '${opts.queryId}' has an unexpected value in the query result.`
-  //   );
-  // }
-
+  /**
+   * a mapFnReturn will be null when the dev returns an object type in a map fn, but does not specify a map fn for that object
+   * for example:
+   *
+   * map: ({ settings }) => ({
+   *   settings: settings
+   * })
+   *
+   * instead of
+   *
+   * map: ({ settings }) => ({
+   *   settings: settings({
+   *     map: ({ flagEnabled }) => ({ flagEnabled })
+   *   })
+   * })
+   *
+   * in this case, we just assume they want to query the entire object
+   */
   return Object.keys(mapFnReturn || opts.smData).reduce(
     (acc, key) => {
       const isData = !!opts.smData[key];

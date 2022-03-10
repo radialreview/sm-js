@@ -4,7 +4,7 @@ import { ISMNode } from '..';
 import {
   DocumentNode,
   DeepPartial,
-  GetResultingNodeDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromNodeDefinition,
 } from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
@@ -43,7 +43,7 @@ export type CreateNodeOperation<
     Partial<OptionalNodeDataForCreate> &
     // when creating a node, all we need is a deep partial of all the node's data
     // since, at query time, sm-js will fill any properties which were not provided on create
-    DeepPartial<GetResultingNodeDataTypeFromNodeDefinition<TSMNode>>;
+    DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
   under?: string | Array<string>;
   name?: string;
   position?: number;

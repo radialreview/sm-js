@@ -274,7 +274,7 @@ export type GetParsedValueTypeFromDefaultFn<
    *   name: string
    * }
    */
-export type GetResultingNodeDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
+export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
   [key in keyof TProperties]: TProperties[key] extends
     | ISMData<infer TParsedValue, any, infer TBoxedValue>
     | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
@@ -292,7 +292,7 @@ export type GetResultingNodeDataTypeFromProperties<TProperties extends Record<st
     : never;
 }
 
-export type GetResultingNodeDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingNodeDataTypeFromProperties<TProperties> : never
+export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -300,7 +300,7 @@ export type GetResultingNodeDataTypeFromNodeDefinition<TSMNode extends ISMNode> 
 export type GetExpectedNodeDataType<
   TSMData extends Record<string, ISMData | SMDataDefaultFn>,
   TComputedData extends Record<string, any>
-> = GetResultingNodeDataTypeFromProperties<TSMData> & TComputedData;
+> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 
 export type GetExpectedRelationalDataType<
   TRelationalData extends NodeRelationalQueryBuilderRecord
@@ -633,6 +633,8 @@ type ExtractQueriedDataFromMapFnReturn<
     // when we're querying data on the node we used as the "def"
     : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
+    : TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,any>}) => MapFn<any, any, any>
+    ? GetResultingDataTypeFromProperties<TBoxedValue>
     // when we're querying data inside a nested object
     : TMapFnReturn[Key] extends MapFn<any, any, any>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>

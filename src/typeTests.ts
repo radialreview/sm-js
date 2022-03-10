@@ -10,7 +10,7 @@ import {
 import { boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
-  GetResultingNodeDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromNodeDefinition,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
@@ -193,7 +193,7 @@ const userNode: UserNode = smJS.def({
 })();
 
 (function TypeInferrenceTests() {
-  type UserNodeData = GetResultingNodeDataTypeFromNodeDefinition<UserNode>;
+  type UserNodeData = GetResultingDataTypeFromNodeDefinition<UserNode>;
   const validUserNodeData: UserNodeData = {
     id: '',
     firstName: '',
@@ -431,6 +431,17 @@ const userNode: UserNode = smJS.def({
   byId.data.user.id as string;
   // @ts-expect-error
   byId.data.user.bogus as string;
+
+  const withMapFnFromObjectOmitted = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        address: userData.address,
+      }),
+    }),
+  });
+
+  withMapFnFromObjectOmitted.data.users[0].address.state as string;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
