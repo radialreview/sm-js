@@ -17,6 +17,8 @@ import {
   ISMNode,
 } from './types';
 
+const env = require('../env.json');
+
 let consoleError: typeof console.error;
 beforeAll(() => {
   consoleError = console.error;
@@ -41,16 +43,10 @@ function removeVersionsFromResults(results: any) {
   }));
 }
 
-const credentials = {
-  authUrl: 'example.com',
-  email: 'me@example.com',
-  password: '123',
-};
-
 async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
-  const token = await getToken(credentials);
+  const token = await getToken(env.credentials);
 
   smJSInstance.setToken({
     tokenName: 'default',
