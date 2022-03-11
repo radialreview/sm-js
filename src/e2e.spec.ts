@@ -41,10 +41,16 @@ function removeVersionsFromResults(results: any) {
   }));
 }
 
+const credentials = {
+  authUrl: 'example.com',
+  email: 'me@example.com',
+  password: '123',
+};
+
 async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
-  const token = await getToken();
+  const token = await getToken(credentials);
 
   smJSInstance.setToken({
     tokenName: 'default',
@@ -1553,22 +1559,23 @@ test('Querying an id for the wrong node type throws an error', async done => {
   }
 });
 
-async function getToken(): Promise<string> {
-  const data = await fetch(
-    'https://appservice.dev02.tt-devs.com/api/user/login',
-    {
-      method: 'POST',
-      headers: {
-        applicationId: '1',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: 'meida.m+60@meetings.io',
-        password: 'Password1!',
-        timeZone: null,
-      }),
-    }
-  )
+async function getToken(opts: {
+  authUrl: string;
+  email: string;
+  password: string;
+}): Promise<string> {
+  const data = await fetch(opts.authUrl, {
+    method: 'POST',
+    headers: {
+      applicationId: '1',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: opts.email,
+      password: opts.password,
+      timeZone: null,
+    }),
+  })
     .then((res: any) => {
       return res.json();
     })
