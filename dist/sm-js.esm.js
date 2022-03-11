@@ -540,23 +540,26 @@ function getQueriedProperties(opts) {
     properties: opts.smData,
     relational: opts.smRelational
   });
+  /**
+   * a mapFnReturn will be null when the dev returns an object type in a map fn, but does not specify a map fn for that object
+   * for example:
+   *
+   * map: ({ settings }) => ({
+   *   settings: settings
+   * })
+   *
+   * instead of
+   *
+   * map: ({ settings }) => ({
+   *   settings: settings({
+   *     map: ({ flagEnabled }) => ({ flagEnabled })
+   *   })
+   * })
+   *
+   * in this case, we just assume they want to query the entire object
+   */
 
-  if (mapFnReturn == null) {
-    // @TODO ran into this issue when I forgot to call the query for a nested object, figure out a way to give a better error message
-    // user: useAuthenticatedOrgUserData(
-    //   ({ id, orgRole, accessLevel, preferences }) => ({
-    //     id,
-    //     orgRole,
-    //     accessLevel,
-    //     preferences: preferences({
-    //       query: ({ universityLevel }) => ({ universityLevel }), => this university level is a nested object
-    //     }),
-    //   })
-    // ),
-    throw Error("The query with the id '" + opts.queryId + "' has an unexpected value in the query result.");
-  }
-
-  return Object.keys(mapFnReturn).reduce(function (acc, key) {
+  return Object.keys(mapFnReturn || opts.smData).reduce(function (acc, key) {
     var isData = !!opts.smData[key];
     if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
 
@@ -572,7 +575,9 @@ function getQueriedProperties(opts) {
 
       acc.push.apply(acc, getQueriedProperties({
         queryId: opts.queryId,
-        mapFn: mapFnReturn[key],
+        mapFn: mapFnReturn ? mapFnReturn[key] : function () {
+          return data.boxedValue;
+        },
         smData: data.boxedValue
       }).map(function (nestedKey) {
         return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
@@ -624,6 +629,26 @@ function getRelationalQueries(opts) {
       return acc;
     } else {
       var relationalQuery = mapFnReturn[key];
+      /**
+       * happens when a map function for a relational query returns all the data for that node
+       * example:
+       *
+       * users: queryDefinition({
+       *   def: userNode,
+       *   map: ({ todos }) => ({
+       *     todos: todos({
+       *       map: (allTodoData) => allTodoData
+       *     })
+       *   })
+       * })
+       *
+       * this function will receive any relational properties in the todo node in the return of the map fn for that todo
+       * but they will be functions, instead of the expected objects
+       */
+
+      if (typeof relationalQuery === 'function') {
+        return acc;
+      }
 
       if (relationalQuery._smRelational == null) {
         throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");

@@ -128,6 +128,80 @@ describe('getQueryRecordFromQueryDefinition', () => {
       })
     );
   });
+
+  it('handles omitting map fn for objects, and will query all data in that object', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(smJSInstance),
+            map: ({ settings }) => ({
+              settings,
+            }),
+          }),
+        },
+      }).todos.properties
+    ).toEqual([
+      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      'settings',
+      'settings__dot__archiveAfterMeeting',
+      'settings__dot__nestedSettings',
+      'settings__dot__nestedSettings__dot__nestedNestedMaybe',
+    ]);
+  });
+
+  it('handles querying all data for a relational query result, by making a map function that passes through all data', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+    const relationalResults = getQueryRecordFromQueryDefinition({
+      queryId: 'queryId',
+      queryDefinitions: {
+        todos: queryDefinition({
+          def: generateTodoNode(smJSInstance),
+          map: ({ id, assignee }) => ({
+            id,
+            assignee: assignee({
+              map: allData => allData,
+            }),
+          }),
+        }),
+      },
+    }).todos.relational;
+
+    expect(relationalResults).toEqual(
+      expect.objectContaining({
+        assignee: expect.objectContaining({
+          def: expect.objectContaining({ type: 'tt-user' }),
+          properties: [
+            ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+            'firstName',
+            'lastName',
+            'address',
+            'address__dot__streetName',
+            'address__dot__zipCode',
+            'address__dot__state',
+            'address__dot__apt',
+            'address__dot__apt__dot__number',
+            'address__dot__apt__dot__floor',
+          ],
+          byReference: true,
+          idProp: 'assigneeId',
+        }),
+      })
+    );
+
+    // no relational properties queried for each assignee, you have to call the relational builders
+    // if the dev wants relational properties included in that query, they must explicitely call the relational query builder
+    // map: allUserData => ({
+    //   ...allUserData,
+    //   organization: allUserData.organization({
+    //       map: orgData => orgData
+    //   })
+    // })
+    expect(relationalResults?.assignee.relational).toBe(undefined);
+  });
 });
 
 describe('getQueryInfo.queryGQLString', () => {

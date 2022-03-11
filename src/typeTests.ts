@@ -10,7 +10,7 @@ import {
 import { boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
-  GetResultingNodeDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromNodeDefinition,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
@@ -27,14 +27,14 @@ const todoProperties = {
   id: string,
   task: string,
   dueDate: number,
-  assignee: string,
+  assigneeId: string,
   meetingId: string.optional,
 };
 const todoRelational = {
   assignee: () =>
     reference<typeof todoNode, typeof userNode>({
       def: userNode,
-      idProp: 'assignee',
+      idProp: 'assigneeId',
     }),
   meeting: () =>
     reference<typeof todoNode, Maybe<typeof meetingNode>>({
@@ -193,7 +193,7 @@ const userNode: UserNode = smJS.def({
 })();
 
 (function TypeInferrenceTests() {
-  type UserNodeData = GetResultingNodeDataTypeFromNodeDefinition<UserNode>;
+  type UserNodeData = GetResultingDataTypeFromNodeDefinition<UserNode>;
   const validUserNodeData: UserNodeData = {
     id: '',
     firstName: '',
@@ -431,6 +431,32 @@ const userNode: UserNode = smJS.def({
   byId.data.user.id as string;
   // @ts-expect-error
   byId.data.user.bogus as string;
+
+  const withMapFnFromObjectOmitted = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        address: userData.address,
+      }),
+    }),
+  });
+
+  withMapFnFromObjectOmitted.data.users[0].address.state as string;
+
+  const withRelationalMapFnReturningAllData = await smJS.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todos: userData.todos({
+          map: allTodoData => allTodoData,
+        }),
+      }),
+    }),
+  });
+
+  withRelationalMapFnReturningAllData.data.users[0].todos[0].id as string;
+  // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
+  withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

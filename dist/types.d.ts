@@ -178,14 +178,14 @@ export declare type GetParsedValueTypeFromDefaultFn<TDefaultFn extends (_default
  *   name: string
  * }
  */
-export declare type GetResultingNodeDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> = {
+export declare type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> = {
     [key in keyof TProperties]: TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TParsedValue extends null ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>> : GetExpectedNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? TParsedValue extends null ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TProperties[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TProperties[key]> : never;
 };
-export declare type GetResultingNodeDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingNodeDataTypeFromProperties<TProperties> : never;
+export declare type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  */
-export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingNodeDataTypeFromProperties<TSMData> & TComputedData;
+export declare type GetExpectedNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 export declare type GetExpectedRelationalDataType<TRelationalData extends NodeRelationalQueryBuilderRecord> = {
     [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<infer TSMNode> ? GetExpectedNodeDataType<ExtractNodeData<NonNullable<TSMNode>>, ExtractNodeComputedData<NonNullable<TSMNode>>> : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode> ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never;
 };
@@ -333,7 +333,9 @@ declare type RequestedData<TNodeData extends Record<string, ISMData | SMDataDefa
 } | {}>;
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TSMNode>, TSMNode extends ISMNode> = ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode> & ExtractNodeComputedData<TSMNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISMNode> = {
-    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TSMNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
+    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IByReferenceQuery<any, any> ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IChildrenQuery<any, any> ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TSMNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : TMapFnReturn[Key] extends ISMData | SMDataDefaultFn ? GetSMDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
+        map: MapFn<infer TBoxedValue, any, any>;
+    }) => MapFn<any, any, any> ? GetResultingDataTypeFromProperties<TBoxedValue> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
 };
 declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
 declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any>> = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn> ? TSMNode extends null ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>> : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>> : never;

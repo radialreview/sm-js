@@ -3,7 +3,7 @@ import { OBJECT_PROPERTY_SEPARATOR } from '..';
 
 import {
   DeepPartial,
-  GetResultingNodeDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromNodeDefinition,
   ISMNode,
 } from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
@@ -37,7 +37,7 @@ export type UpdateNodeOperation<
   type: 'updateNode';
   smOperationName: 'UpdateNodes';
   data: { id: string } & DeepPartial<
-    GetResultingNodeDataTypeFromNodeDefinition<TSMNode>
+    GetResultingDataTypeFromNodeDefinition<TSMNode>
   >;
   name?: string;
   onSuccess?: (data: any) => void;

@@ -1,5 +1,5 @@
 import { DocumentNode } from '@apollo/client/core';
-import { DeepPartial, GetResultingNodeDataTypeFromNodeDefinition, ISMNode } from '../types';
+import { DeepPartial, GetResultingDataTypeFromNodeDefinition, ISMNode } from '../types';
 export declare type UpdateNodesOperation = {
     type: 'updateNodes';
     smOperationName: 'UpdateNodes';
@@ -19,7 +19,7 @@ export declare type UpdateNodeOperation<TSMNode extends ISMNode = ISMNode<Record
     smOperationName: 'UpdateNodes';
     data: {
         id: string;
-    } & DeepPartial<GetResultingNodeDataTypeFromNodeDefinition<TSMNode>>;
+    } & DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
     name?: string;
     onSuccess?: (data: any) => void;
     onFail?: () => void;
