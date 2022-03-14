@@ -1,3 +1,4 @@
+import { NULL_TAG } from './dataConversions';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import { SMData, SM_DATA_TYPES } from './smDataTypes';
 import {
@@ -74,7 +75,6 @@ export function createDOFactory(smJSInstance: ISMJS) {
           persistedData: this.persistedData,
           defaultData: this._defaults,
         });
-
         smJSInstance.plugins?.forEach(plugin => {
           if (plugin.DO?.onConstruct) {
             plugin.DO.onConstruct({
@@ -264,6 +264,12 @@ export function createDOFactory(smJSInstance: ISMJS) {
           }
         } else if (property instanceof SMData) {
           // sm.string, sm.boolean, sm.number
+
+          // if a property was nulled using our old format, parse as native null
+          if (opts.persistedData === NULL_TAG && opts.smData.isOptional) {
+            return null;
+          }
+
           if (opts.persistedData != null) {
             return property.parser(opts.persistedData);
           }

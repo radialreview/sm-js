@@ -11,6 +11,7 @@ import {
   SMDataDefaultFn,
   IChildrenQueryBuilder,
 } from './types';
+import { NULL_TAG } from './dataConversions';
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
@@ -269,6 +270,8 @@ describe('smData.repository', () => {
         }),
         optionalObject: smData.object.optional({
           string: smData.string,
+          oldStyleString: smData.string.optional,
+          requiredString2: smData.string,
           nestedOptional: smData.object.optional({
             foo: smData.string,
           }),
@@ -283,6 +286,8 @@ describe('smData.repository', () => {
       object: null,
       optionalObject: smData.OBJECT_IDENTIFIER,
       optionalObject__dot__string: 'hello',
+      optionalObject__dot__oldStyleString: NULL_TAG,
+      optionalObject__dot__requiredString2: NULL_TAG,
       optionalObject__dot__nestedOptional: null,
       optionalObject__dot__nestedOptional__dot__foo: null,
     });
@@ -295,6 +300,8 @@ describe('smData.repository', () => {
 
     expect(cached.optionalObject).toEqual({
       string: 'hello',
+      oldStyleString: null,
+      requiredString2: '',
       nestedOptional: null,
     });
   });
