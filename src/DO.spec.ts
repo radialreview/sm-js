@@ -302,4 +302,36 @@ describe('smData.DO', () => {
 
     expect(doInstance.object.nested.nestedNumber).toBe(1);
   });
+
+  test('records with objects are parsed correctly', () => {
+    const properties = {
+      rootLevelRecord: smData.record(
+        smData.object({
+          testString: smData.string,
+          testOptionalNumber: smData.number.optional,
+        })
+      ),
+    };
+
+    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+      properties,
+      initialData: {
+        id: '321',
+        version: '1',
+        rootLevelRecord: {
+          foo: {
+            testString: 'test string value',
+            testOptionalNumber: null,
+          },
+        },
+      },
+    });
+
+    expect(doInstance.rootLevelRecord).toEqual({
+      foo: {
+        testString: 'test string value',
+        testOptionalNumber: null,
+      },
+    });
+  });
 });
