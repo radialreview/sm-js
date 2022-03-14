@@ -266,7 +266,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
           // sm.string, sm.boolean, sm.number
 
           // if a property was nulled using our old format, parse as native null
-          if (opts.persistedData === NULL_TAG) {
+          if (opts.persistedData === NULL_TAG && opts.smData.isOptional) {
             return null;
           }
 

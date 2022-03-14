@@ -276,11 +276,13 @@ export function RepositoryFactory<
       root: Record<string, any>;
       val: any;
     }) {
+      const parsedVal = opts.val === NULL_TAG ? null : opts.val;
+
       if (opts.nests.length === 0) {
-        opts.root = opts.val;
+        opts.root = parsedVal;
       } else if (opts.nests.length === 1) {
         const nextNest = opts.nests[0];
-        opts.root[nextNest] = opts.val;
+        opts.root[nextNest] = parsedVal;
       } else {
         const [nextNest, ...remainingNests] = opts.nests;
 
@@ -290,7 +292,7 @@ export function RepositoryFactory<
           this.nest({
             nests: remainingNests,
             root: opts.root[nextNest],
-            val: opts.val,
+            val: parsedVal,
           });
         }
       }
