@@ -134,11 +134,14 @@ export function RepositoryFactory<
 
         if (!isDataStoredOnTheNode) return parsed;
 
+        const type = (opts.def.properties[key] as ISMData)?.type;
         const isObjectData =
           key.includes(OBJECT_PROPERTY_SEPARATOR) ||
-          (opts.def.properties[key] as ISMData).type === SM_DATA_TYPES.object ||
-          (opts.def.properties[key] as ISMData).type ===
-            SM_DATA_TYPES.maybeObject;
+          type === SM_DATA_TYPES.object ||
+          type === SM_DATA_TYPES.maybeObject;
+
+        const isRecordData =
+          type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord;
 
         const isArrayData = (() => {
           if (isObjectData) {
@@ -185,7 +188,7 @@ export function RepositoryFactory<
             } catch (e) {
               throw new SMDataParsingException({
                 receivedData,
-                message: 'Could not parse json stored in old format',
+                message: `Could not parse json stored in old format for an object in the key "${key}"`,
               });
             }
           }
@@ -212,6 +215,22 @@ export function RepositoryFactory<
             val:
               receivedData[key] === OBJECT_IDENTIFIER ? {} : receivedData[key],
           });
+
+          return parsed;
+        } else if (isRecordData) {
+          if (
+            typeof receivedData[key] === 'string' &&
+            receivedData[key].startsWith(JSON_TAG)
+          ) {
+            parsed[key as keyof TNodeData] = parseJSONFromBE(receivedData[key]);
+          } else if (receivedData[key] == null) {
+            parsed[key as keyof TNodeData] = null as any;
+          } else {
+            throw new SMDataParsingException({
+              receivedData,
+              message: `Could not parse json stored in old format for a record in the key "${key}"`,
+            });
+          }
 
           return parsed;
         } else if (isArrayData) {

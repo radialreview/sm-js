@@ -167,6 +167,18 @@ describe('smData.repository', () => {
             startTime: smData.number,
           }),
         }),
+        recordProp: smData.record(
+          smData.object({
+            stringProp: smData.string,
+            optionalNumberProp: smData.number.optional,
+          })
+        ),
+        optionalRecordProp: smData.record.optional(
+          smData.object({
+            stringProp: smData.string,
+            optionalNumberProp: smData.number.optional,
+          })
+        ),
       },
     });
 
@@ -176,12 +188,20 @@ describe('smData.repository', () => {
       version: '1',
       settings:
         '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
+      recordProp:
+        '__JSON__{\u0022foo\u0022:{\u0022stringProp\u0022:\u0022mock string\u0022, \u0022optionalNumberProp\u0022:null}}',
+      optionalRecordProp: null,
       settings__dot__schedule: null,
       settings__dot__schedule__dot__startTime: null, // mimicking what the BE would return from querying this bit of the object
     } as { id: string });
 
     const DO = repository.byId('mock-id');
     expect(DO.settings.schedule.startTime).toBe(321);
+    expect(DO.recordProp.foo).toEqual({
+      stringProp: 'mock string',
+      optionalNumberProp: null,
+    });
+    expect(DO.optionalRecordProp).toBe(null);
   });
 
   // When we get back data from a query, we want to call DO.onDataReceived without having to manually parse the data
