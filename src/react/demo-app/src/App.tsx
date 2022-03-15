@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useSubscription, queryDefinition } from 'sm-js';
-import { userNode } from './smJS';
+import smJS, { userNode, authenticate } from './smJS';
 
 function MyComponent() {
   const { data } = useSubscription({
@@ -41,12 +41,51 @@ function MyComponent() {
 }
 
 function App() {
-  const [showData, setShowData] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(
+    !!smJS.getToken({ tokenName: 'default' })
+  );
+  const [showData, setShowData] = React.useState(isAuthenticated);
+
+  React.useEffect(() => {
+    async function authenticateAndSetToken() {
+      const res = await authenticate({
+        username: 'INSERT APP USER ID HERE',
+        password: 'INSERT PASSWORD HERE',
+      });
+
+      if (!res[0].data.Authenticate) {
+        throw new Error('Authentication failed');
+      }
+
+      const {
+        data: {
+          Authenticate: { token },
+        },
+      } = res[0];
+
+      if (!token) {
+        console.log('no token');
+      }
+
+      smJS.setToken({
+        tokenName: 'default',
+        token,
+      });
+
+      setIsAuthenticated(true);
+    }
+    if (!isAuthenticated) {
+      authenticateAndSetToken();
+    }
+  }, [isAuthenticated]);
 
   return (
     <>
-      {showData && <MyComponent />}
-      <button onClick={() => setShowData(showData => !showData)}>
+      {isAuthenticated && showData && <MyComponent />}
+      <button
+        disabled={!isAuthenticated}
+        onClick={() => setShowData(showData => !showData)}
+      >
         Toggle showing data
       </button>
     </>
