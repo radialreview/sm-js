@@ -5,12 +5,6 @@ const config = getDefaultConfig();
 
 const smJS = new SMJS(config);
 
-export const setToken = (opts: { tokenName: string; token: string }) =>
-  smJS.setToken({
-    tokenName: opts.tokenName,
-    token: opts.token,
-  });
-
 export default smJS;
 
 export const todoNode = smJS.def({
