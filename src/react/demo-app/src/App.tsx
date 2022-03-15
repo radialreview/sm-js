@@ -63,10 +63,6 @@ function App() {
         },
       } = res[0];
 
-      if (!token) {
-        console.log('no token');
-      }
-
       smJS.setToken({
         tokenName: 'default',
         token,
