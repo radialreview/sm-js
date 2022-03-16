@@ -4,7 +4,7 @@ import {
   throwLocallyLogInProd,
 } from './exceptions';
 import {
-  GetExpectedNodeDataType,
+  GetAllAvailableNodeDataType,
   GetSMDataType,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
@@ -182,16 +182,16 @@ type ObjectSMDataType = {
   <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
     boxedValue: TBoxedValue
   ): SMData<
-    GetExpectedNodeDataType<TBoxedValue, {}>,
-    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetAllAvailableNodeDataType<TBoxedValue, {}>,
+    GetAllAvailableNodeDataType<TBoxedValue, {}>,
     TBoxedValue
   >;
   _default: any;
   optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
     boxedValue: TBoxedValue
   ) => SMData<
-    GetExpectedNodeDataType<TBoxedValue, {}>,
-    GetExpectedNodeDataType<TBoxedValue, {}>,
+    GetAllAvailableNodeDataType<TBoxedValue, {}>,
+    GetAllAvailableNodeDataType<TBoxedValue, {}>,
     TBoxedValue
   >;
 };

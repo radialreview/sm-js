@@ -18,7 +18,7 @@ import {
   MapFnForNode,
   QueryDefinition,
   QueryFilter,
-  GetExpectedNodeDataType,
+  GetAllAvailableNodeDataType,
   DeepPartial,
   QueryDefinitionTarget,
   IChildrenQuery,
@@ -26,6 +26,7 @@ import {
   IByReferenceQuery,
   IByReferenceQueryBuilder,
   GetResultingDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromProperties,
 } from './types';
 
 export {
@@ -35,7 +36,7 @@ export {
   QueryFilter,
   QueryDefinition,
   ISMJS,
-  GetExpectedNodeDataType,
+  GetAllAvailableNodeDataType,
   DeepPartial,
   QueryDefinitionTarget,
   IChildrenQuery,
@@ -43,6 +44,7 @@ export {
   IByReferenceQuery,
   IByReferenceQueryBuilder,
   GetResultingDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromProperties,
 };
 export * from './smDataTypes';
 export * from './react';

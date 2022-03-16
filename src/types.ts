@@ -280,8 +280,8 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
     | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
     ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
       ? TParsedValue extends null
-        ? Maybe<GetExpectedNodeDataType<TBoxedValue, {}>>
-        : GetExpectedNodeDataType<TBoxedValue, {}>
+        ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
+        : GetAllAvailableNodeDataType<TBoxedValue, {}>
       : TParsedValue extends Array<infer TArrayItemType>
       ? TParsedValue extends null
         ? Maybe<Array<TArrayItemType>>
@@ -296,8 +296,9 @@ export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TS
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
+ * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
-export type GetExpectedNodeDataType<
+export type GetAllAvailableNodeDataType<
   TSMData extends Record<string, ISMData | SMDataDefaultFn>,
   TComputedData extends Record<string, any>
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
@@ -308,9 +309,9 @@ export type GetExpectedRelationalDataType<
   [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<
     infer TSMNode
   >
-    ? GetExpectedNodeDataType<ExtractNodeData<NonNullable<TSMNode>>,ExtractNodeComputedData<NonNullable<TSMNode>>>
+    ? GetAllAvailableNodeDataType<ExtractNodeData<NonNullable<TSMNode>>,ExtractNodeComputedData<NonNullable<TSMNode>>>
     : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode>
-    ? Array<GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>>
+    ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>>
     : never;
 };
 
@@ -373,7 +374,7 @@ export type NodeComputedFns<
   TNodeComputedData extends Record<string, any>
 > = {
   [key in keyof TNodeComputedData]: (
-    data: GetExpectedNodeDataType<TNodeData, TNodeComputedData>
+    data: GetAllAvailableNodeDataType<TNodeData, TNodeComputedData>
   ) => TNodeComputedData[key];
 };
 
@@ -535,9 +536,9 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     ? TQueryDefinitions[Key] extends { def: infer TSMNode }
       ? TSMNode extends ISMNode
         ? TQueryDefinitions[Key] extends { target?: { id: string } }
-          ? GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
+          ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
           : Array<
-              GetExpectedNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
+              GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
             >
         : never
       : never
@@ -546,7 +547,7 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
        * shorthand syntax used, only a node definition was provided
        */
       Array<
-        GetExpectedNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>
+        GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>
       >
     : never;
 };
