@@ -17,7 +17,7 @@ import {
   NodeDO,
   ISMNodeRepository,
   DeepPartial,
-  GetExpectedNodeDataType,
+  GetAllAvailableNodeDataType,
 } from './types';
 
 /**
@@ -111,7 +111,7 @@ export function RepositoryFactory<
     >(
       receivedData: any
     ): { id: string; version: number } & DeepPartial<
-      GetExpectedNodeDataType<TNodeData, {}>
+      GetAllAvailableNodeDataType<TNodeData, {}>
     > {
       const oldStyleObjects: Record<string, any> = {};
       return Object.keys(receivedData).reduce((parsed, key: string) => {
@@ -240,7 +240,7 @@ export function RepositoryFactory<
           parsed[key as keyof TNodeData] = receivedData[key];
           return parsed;
         }
-      }, {} as { id: string; version: number } & DeepPartial<GetExpectedNodeDataType<TNodeData, {}>>);
+      }, {} as { id: string; version: number } & DeepPartial<GetAllAvailableNodeDataType<TNodeData, {}>>);
     }
 
     private getOnlyQueriedData(opts: {

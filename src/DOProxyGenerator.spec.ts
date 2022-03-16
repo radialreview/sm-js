@@ -6,7 +6,7 @@ import {
 } from './exceptions';
 import {
   DeepPartial,
-  GetExpectedNodeDataType,
+  GetAllAvailableNodeDataType,
   ISMData,
   Maybe,
   NodeComputedFns,
@@ -128,7 +128,7 @@ function generateDOProxy<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>
 >(opts: {
   properties: TNodeData;
-  initialData: DeepPartial<GetExpectedNodeDataType<TNodeData, {}>> & {
+  initialData: DeepPartial<GetAllAvailableNodeDataType<TNodeData, {}>> & {
     id: string;
     version: string;
   };
