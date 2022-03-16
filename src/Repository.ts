@@ -153,7 +153,7 @@ export function RepositoryFactory<
           const smDataType =
             typeof receivedDataValue === 'function'
               ? ((receivedDataValue as any)._default as ISMData).type
-              : (receivedData as ISMData).type;
+              : receivedDataValue.type;
 
           return (
             smDataType === SM_DATA_TYPES.array ||
