@@ -189,31 +189,31 @@ declare const todoProperties: {
         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     };
     meetingId: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-    settings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+    settings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+        nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, {
+        }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
-    }>, import("./types").GetResultingDataTypeFromProperties<{
+    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+        nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, {
+        }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
-    }>, {
+    }>>, {
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+        nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>, {
+        }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
     }>;
@@ -510,31 +510,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
             };
             meetingId: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            settings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+            settings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-                nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, import("./types").GetResultingDataTypeFromProperties<{
+                }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, {
+                }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
-            }>, import("./types").GetResultingDataTypeFromProperties<{
+            }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-                nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, import("./types").GetResultingDataTypeFromProperties<{
+                }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, {
+                }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
-            }>, {
+            }>>, {
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-                nestedSettings: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, import("./types").GetResultingDataTypeFromProperties<{
+                }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>, {
+                }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
             }>;

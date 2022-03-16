@@ -50,7 +50,7 @@ export declare const boolean: {
 declare type ObjectSMDataType = {
     <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue): SMData<GetAllAvailableNodeDataType<TBoxedValue, {}>, GetAllAvailableNodeDataType<TBoxedValue, {}>, TBoxedValue>;
     _default: any;
-    optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue) => SMData<GetAllAvailableNodeDataType<TBoxedValue, {}>, GetAllAvailableNodeDataType<TBoxedValue, {}>, TBoxedValue>;
+    optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue) => SMData<Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>, Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>, TBoxedValue>;
 };
 export declare const object: ObjectSMDataType;
 export declare const record: {
