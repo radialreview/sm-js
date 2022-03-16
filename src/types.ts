@@ -1,5 +1,9 @@
+import { createDOFactory } from './DO';
+import { createDOProxyGenerator } from './DOProxyGenerator';
 import { SM_RELATIONAL_TYPES } from './smDataTypes';
-import { IPendingTransaction, ITransactionContext } from './transaction/transaction';
+import { generateQuerier, generateSubscriber } from './smQueriers';
+import { createSMQueryManager } from './SMQueryManager';
+import { createTransaction } from './transaction/transaction';
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
@@ -111,21 +115,15 @@ export interface ISMJS {
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
   clearTokens(): void
-  query<TQueryDefinitions extends QueryDefinitions>(
-    queryDefinition: TQueryDefinitions,
-    opts?: QueryOpts<TQueryDefinitions>
-  ): Promise<QueryReturn<TQueryDefinitions>>;
-  subscribe<
-    TQueryDefinitions extends QueryDefinitions,
-    TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>
-  >(
-    queryDefinitions: TQueryDefinitions,
-    opts: TSubscriptionOpts
-  ): Promise<
-    TSubscriptionOpts extends { skipInitialQuery: true }
-      ? SubscriptionMeta
-      : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta
-  >;
+  query: ReturnType<typeof generateQuerier>
+  subscribe: ReturnType<typeof generateSubscriber>
+  transaction: ReturnType<typeof createTransaction>
+  gqlClient: ISMGQLClient;
+  plugins: Array<SMPlugin> | undefined;
+  DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
+  DOFactory: ReturnType<typeof createDOFactory>
+  SMQueryManager:ReturnType<typeof createSMQueryManager>
+
   def<
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
@@ -142,44 +140,6 @@ export interface ISMJS {
       TNodeMutations
     >
   ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
-  transaction(
-    callback:
-      | ((context: ITransactionContext) => void | Promise<void>)
-      | Array<IPendingTransaction>,
-    opts?: { tokenName: string }
-  ): IPendingTransaction
-
-  gqlClient: ISMGQLClient;
-  plugins: Array<SMPlugin> | undefined;
-  DOProxyGenerator<
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-    TNodeComputedData extends Record<string, any>,
-    TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
-  >(opts: {
-    node: ISMNode<TNodeData, TNodeComputedData>;
-    queryId: string;
-    do: NodeDO;
-    allPropertiesQueried: Array<string>;
-    relationalResults: Maybe<TRelationalResults>;
-    relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
-  }): NodeDO & TRelationalResults & IDOProxy;
-  DOFactory<
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-    TNodeComputedData extends Record<string, any>,
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<
-      string,
-      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-    >,
-    TDOClass = new (initialData?: Record<string, any>) => NodeDO
-  >(node: {
-    type: string;
-    properties: TNodeData;
-    computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
-    relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
-  }): TDOClass;
-  SMQueryManager: new (queryRecord: QueryRecord) => ISMQueryManager;
 }
 
 export type NodeDefArgs<
