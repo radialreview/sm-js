@@ -190,8 +190,8 @@ type ObjectSMDataType = {
   optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
     boxedValue: TBoxedValue
   ) => SMData<
-    GetAllAvailableNodeDataType<TBoxedValue, {}>,
-    GetAllAvailableNodeDataType<TBoxedValue, {}>,
+    Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>,
+    Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>,
     TBoxedValue
   >;
 };

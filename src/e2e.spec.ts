@@ -1209,7 +1209,7 @@ test('dropping a property in sm works', async done => {
     }),
   });
 
-  expect(thing.object.property).toBe('value');
+  expect(thing.object?.property).toBe('value');
 
   await smJSInstance
     .transaction(ctx => {
@@ -1235,9 +1235,9 @@ test('dropping a property in sm works', async done => {
     }),
   });
 
-  expect(thingAfterDrop.object.property).toBe('');
-  expect(thingAfterDrop.object.nestedObject).toBe(null);
-  expect(thingAfterDrop.object.otherProperty).toBe('otherValue');
+  expect(thingAfterDrop.object?.property).toBe('');
+  expect(thingAfterDrop.object?.nestedObject).toBe(null);
+  expect(thingAfterDrop.object?.otherProperty).toBe('otherValue');
   done();
 });
 
@@ -1280,8 +1280,8 @@ test('dropping an object will drop all the properties', async done => {
     }),
   });
 
-  expect(thing.object.property).toBe('value');
-  expect(thing.object.nestedObject.nestedProperty).toBe('nestedValue');
+  expect(thing.object?.property).toBe('value');
+  expect(thing.object?.nestedObject?.nestedProperty).toBe('nestedValue');
   await smJSInstance
     .transaction(ctx => {
       ctx.updateNode({

@@ -11,6 +11,7 @@ import { boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
+  GetResultingDataTypeFromProperties,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
@@ -228,6 +229,19 @@ const userNode: UserNode = smJS.def({
     },
   };
   invalidNestedProp;
+})();
+
+(function DataTypeInferenceUtilTests() {
+  const propertiesWithOptionalObject = {
+    string: string,
+    optionalString: string.optional,
+    optional: object.optional({ foo: string }),
+  };
+  ({
+    string: '',
+    optionalString: null,
+    optional: null,
+  } as GetResultingDataTypeFromProperties<typeof propertiesWithOptionalObject>);
 })();
 
 // ResultingDevExperience tests are the most important
