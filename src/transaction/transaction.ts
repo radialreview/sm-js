@@ -119,7 +119,7 @@ export function createTransaction(
     callback:
       | ((context: ITransactionContext) => void | Promise<void>)
       | Array<IPendingTransaction>,
-    opts?: { tokenName: string }
+    opts?: { tokenName?: string }
   ) {
     const operationsByType: TOperationsByType = {
       createNode: [],
