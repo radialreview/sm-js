@@ -1,4 +1,4 @@
-import { GetExpectedNodeDataType, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn } from './types';
+import { GetAllAvailableNodeDataType, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn } from './types';
 export declare const SM_DATA_TYPES: {
     string: string;
     maybeString: string;
@@ -48,9 +48,9 @@ export declare const boolean: {
     optional: SMData<Maybe<boolean>, Maybe<string | boolean>, undefined>;
 };
 declare type ObjectSMDataType = {
-    <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue): SMData<GetExpectedNodeDataType<TBoxedValue, {}>, GetExpectedNodeDataType<TBoxedValue, {}>, TBoxedValue>;
+    <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue): SMData<GetAllAvailableNodeDataType<TBoxedValue, {}>, GetAllAvailableNodeDataType<TBoxedValue, {}>, TBoxedValue>;
     _default: any;
-    optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue) => SMData<GetExpectedNodeDataType<TBoxedValue, {}>, GetExpectedNodeDataType<TBoxedValue, {}>, TBoxedValue>;
+    optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(boxedValue: TBoxedValue) => SMData<GetAllAvailableNodeDataType<TBoxedValue, {}>, GetAllAvailableNodeDataType<TBoxedValue, {}>, TBoxedValue>;
 };
 export declare const object: ObjectSMDataType;
 export declare const record: {

@@ -1966,7 +1966,7 @@ function RepositoryFactory(opts) {
           }
 
           var receivedDataValue = opts.def.properties[key];
-          var smDataType = typeof receivedDataValue === 'function' ? receivedDataValue._default.type : receivedData.type;
+          var smDataType = typeof receivedDataValue === 'function' ? receivedDataValue._default.type : receivedDataValue.type;
           return smDataType === SM_DATA_TYPES.array || smDataType === SM_DATA_TYPES.maybeArray;
         }(); // point 2 above
 
