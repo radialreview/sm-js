@@ -12,13 +12,14 @@ import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
-  GetValidReferenceIdPropFromNode,
+  ValidReferenceIdPropFromNode,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
   MapFnForNode,
   Maybe,
   SMDataEnum,
+  ValidFilterForNode,
 } from './types';
 
 /**
@@ -240,17 +241,36 @@ const userNode: UserNode = smJS.def({
   invalidNestedProp;
 
   // @ts-expect-error array props are not valid id reference props
-  const idProp1: GetValidReferenceIdPropFromNode<UserNode> = 'arrayOfString';
+  const idProp1: ValidReferenceIdPropFromNode<UserNode> = 'arrayOfString';
   // @ts-expect-error objects are not valid id reference props
-  const idProp2: GetValidReferenceIdPropFromNode<UserNode> = 'address';
+  const idProp2: ValidReferenceIdPropFromNode<UserNode> = 'address';
 
-  const idProp3: GetValidReferenceIdPropFromNode<UserNode> = 'address.state';
+  const idProp3: ValidReferenceIdPropFromNode<UserNode> = 'address.state';
   idProp3;
-  const idProp4: GetValidReferenceIdPropFromNode<UserNode> =
+  const idProp4: ValidReferenceIdPropFromNode<UserNode> =
     'address.nestedInAddress.nestedNestedInAddress';
   idProp4;
-  const idProp5: GetValidReferenceIdPropFromNode<UserNode> = 'firstName';
+  const idProp5: ValidReferenceIdPropFromNode<UserNode> = 'firstName';
   idProp5;
+
+  const filter1: ValidFilterForNode<UserNode> = {
+    firstName: 'some first name',
+  };
+  filter1;
+  const filter2: ValidFilterForNode<UserNode> = {
+    address: { state: 'some state' },
+  };
+  filter2;
+  // @ts-expect-error can't search enums
+  const filter3: ValidFilterForNode<UserNode> = {
+    recordEnum: { FOO: 'BAR' },
+  };
+  filter3;
+  // @ts-expect-error can't search arrays
+  const filter4: ValidFilterForNode<UserNode> = {
+    arrayOfString: ['test'],
+  };
+  filter4;
 })();
 
 (function DataTypeInferenceUtilTests() {

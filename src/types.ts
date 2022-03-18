@@ -356,7 +356,7 @@ type GetValidReferenceIdProp<TObject extends Record<string,any>> = keyof Convert
  * 
  * The resulting valid id references would be 'string' | 'object.nestedString' | 'object.nestedObject.nestedNestedBoolean'
  */
-export type GetValidReferenceIdPropFromNode<TSMNode extends ISMNode> = GetValidReferenceIdProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
+export type ValidReferenceIdPropFromNode<TSMNode extends ISMNode> = GetValidReferenceIdProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
 
 /**
  * A record that lives on each instance of a DOProxy to determine
@@ -502,7 +502,25 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type QueryFilter<TSMNode extends ISMNode> = Partial<{[key in keyof ExtractNodeData<TSMNode>]:string}>
+/**
+ * Returns the valid filter for a node
+ * excluding properties which are arrays and records
+ * and including properties which are nested in objects
+ */
+export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
+  [
+    TKey in keyof GetResultingDataTypeFromNodeDefinition<TSMNode> as
+      TKey extends keyof ExtractNodeData<TSMNode>
+        ? ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType>
+          ? IsArray<TSMDataParsedValueType> extends true
+            ? never
+            : TKey
+          : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
+            ? TKey
+            : never
+        : never
+  ]: GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+}>
 
 export type QueryDefinitionTarget =
   | { underIds: Array<string> }
@@ -518,7 +536,7 @@ export type QueryDefinition<
 > = { 
   def: TSMNode;
   map: TMapFn;
-  filter?: QueryFilter<TSMNode>
+  filter?: ValidFilterForNode<TSMNode>
   target?: TQueryDefinitionTarget
 };
 

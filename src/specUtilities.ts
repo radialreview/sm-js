@@ -71,9 +71,11 @@ const todoProperties = {
     nestedSettings: smData.object.optional({
       nestedNestedMaybe: smData.string.optional,
     }),
+    nestedRecord: smData.record(smData.boolean),
   }),
   dataSetIds: smData.array(smData.string),
   comments: smData.array(smData.string.optional).optional,
+  record: smData.record(smData.string),
 };
 
 export type TodoProperties = typeof todoProperties;

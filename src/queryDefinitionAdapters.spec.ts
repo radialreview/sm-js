@@ -470,6 +470,34 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
+  it('supports filters for nested properties', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(smJSInstance),
+            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            filter: {
+              settings: { nestedSettings: { nestedNestedMaybe: 'mock value' } },
+            },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+          }"
+    `);
+  });
+
   it('returns a valid gql string', () => {
     const smJSInstance = new SMJS(getMockConfig());
     expect(() =>
