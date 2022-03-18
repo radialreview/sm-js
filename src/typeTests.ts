@@ -7,11 +7,12 @@ import {
   number,
   children,
 } from './';
-import { boolean, object, record, reference } from './smDataTypes';
+import { array, boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
+  GetValidReferenceIdPropFromNode,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
@@ -88,11 +89,15 @@ const userProperties = {
   lastName: string,
   address: object({
     state: string,
+    nestedInAddress: object({
+      nestedNestedInAddress: boolean,
+    }),
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
   optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
   recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
   objectUnion: object(objectUnion),
+  arrayOfString: array(string),
 };
 const userRelational = {
   todos: () => children({ def: todoNode }) as IChildrenQueryBuilder<TodoNode>,
@@ -201,6 +206,9 @@ const userNode: UserNode = smJS.def({
     lastName: '',
     address: {
       state: '',
+      nestedInAddress: {
+        nestedNestedInAddress: true,
+      },
     },
     fooBarEnum: 'FOO',
     optionalBarBazEnum: null,
@@ -211,6 +219,7 @@ const userNode: UserNode = smJS.def({
       type: 'string',
       string: '',
     },
+    arrayOfString: [],
   };
 
   const invalidPropAtRoot: UserNodeData = {
@@ -229,6 +238,19 @@ const userNode: UserNode = smJS.def({
     },
   };
   invalidNestedProp;
+
+  // @ts-expect-error array props are not valid id reference props
+  const idProp1: GetValidReferenceIdPropFromNode<UserNode> = 'arrayOfString';
+  // @ts-expect-error objects are not valid id reference props
+  const idProp2: GetValidReferenceIdPropFromNode<UserNode> = 'address';
+
+  const idProp3: GetValidReferenceIdPropFromNode<UserNode> = 'address.state';
+  idProp3;
+  const idProp4: GetValidReferenceIdPropFromNode<UserNode> =
+    'address.nestedInAddress.nestedNestedInAddress';
+  idProp4;
+  const idProp5: GetValidReferenceIdPropFromNode<UserNode> = 'firstName';
+  idProp5;
 })();
 
 (function DataTypeInferenceUtilTests() {
