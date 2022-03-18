@@ -531,6 +531,25 @@ const userNode: UserNode = smJS.def({
   withRelationalMapFnReturningAllData.data.users[0].todos[0].id as string;
   // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
   withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
+
+  const mockNode = smJS.def({
+    type: 'test',
+    properties: {
+      t: string,
+    },
+  });
+
+  // This mock node is all inferred, without the use of explicit types
+  const withExplicitTypesOmitted = await smJS.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: ({ t }) => ({ t }),
+    }),
+  });
+
+  withExplicitTypesOmitted.data.mock[0].t as string;
+  // @ts-expect-error
+  withExplicitTypesOmitted.data.mock[0].foo as string;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
