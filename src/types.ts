@@ -235,9 +235,8 @@ export type GetParsedValueTypeFromDefaultFn<
    * }
    */
 export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
-  [key in keyof TProperties]: TProperties[key] extends
-    | ISMData<infer TParsedValue, any, infer TBoxedValue>
-    | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
+  [key in keyof TProperties]:
+    TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
     ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
       ? TParsedValue extends null
         ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
@@ -291,14 +290,14 @@ export type DeepPartial<ObjectType extends Record<string, any>> = Partial<
   }
 >;
 
-type IsObject<TObject extends Record<string,any>> =
+type IsArray<Thing extends any, Y = true, N = false> = Thing extends Array<any> ? Y : N
+
+type IsObject<TObject extends Record<string,any>, Y = true, N = false> =
   IsArray<TObject> extends true
     ? false
     : TObject extends Record<string, any>
-      ? true
-      : false
-
-type IsArray<Thing extends any> = Thing extends Array<any> ? true : false
+      ? Y
+      : N
 
 type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
   // object properties
@@ -509,21 +508,21 @@ export interface ISMNodeRepository {
  */
 export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
   [
-    TKey in keyof GetResultingDataTypeFromNodeDefinition<TSMNode> as
-      TKey extends keyof ExtractNodeData<TSMNode>
-        ? ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType>
-          ? IsArray<TSMDataParsedValueType> extends true
-            ? never
-            : TKey
-          : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
-            ? TKey
-            : never
-        : never
-  ]: GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+    TKey in keyof ExtractNodeData<TSMNode> as
+      ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType>
+        ? true extends IsArray<TSMDataParsedValueType>
+          ? never
+          : TKey
+        : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
+          ? never
+          : never  
+  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode>
+    ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+    : never
 }>
 
 export type QueryDefinitionTarget =
-  | { underIds: Array<string> }
+  | { underIds: Array<string>, depth?: number }
   | { depth: number }
   | { id: string }
   | { ids: Array<string> }

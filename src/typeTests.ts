@@ -266,8 +266,8 @@ const userNode: UserNode = smJS.def({
     recordEnum: { FOO: 'BAR' },
   };
   filter3;
-  // @ts-expect-error can't search arrays
   const filter4: ValidFilterForNode<UserNode> = {
+    // @ts-expect-error can't search arrays
     arrayOfString: ['test'],
   };
   filter4;
