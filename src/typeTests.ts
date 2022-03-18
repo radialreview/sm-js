@@ -88,6 +88,9 @@ const userProperties = {
   id: string,
   firstName: string,
   lastName: string,
+  bool: boolean(true),
+  maybeBool: boolean.optional,
+  maybeStr: string.optional,
   address: object({
     state: string,
     nestedInAddress: object({
@@ -204,6 +207,9 @@ const userNode: UserNode = smJS.def({
   const validUserNodeData: UserNodeData = {
     id: '',
     firstName: '',
+    bool: true,
+    maybeBool: null,
+    maybeStr: null,
     lastName: '',
     address: {
       state: '',
@@ -261,8 +267,8 @@ const userNode: UserNode = smJS.def({
     address: { state: 'some state' },
   };
   filter2;
-  // @ts-expect-error can't search enums
   const filter3: ValidFilterForNode<UserNode> = {
+    // @ts-expect-error can't search enums
     recordEnum: { FOO: 'BAR' },
   };
   filter3;
@@ -271,6 +277,18 @@ const userNode: UserNode = smJS.def({
     arrayOfString: ['test'],
   };
   filter4;
+  const filter5: ValidFilterForNode<UserNode> = {
+    bool: true,
+  };
+  filter5;
+  const filter6: ValidFilterForNode<UserNode> = {
+    maybeBool: null,
+  };
+  filter6;
+  const filter7: ValidFilterForNode<UserNode> = {
+    maybeStr: null,
+  };
+  filter7;
 })();
 
 (function DataTypeInferenceUtilTests() {

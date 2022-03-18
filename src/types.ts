@@ -237,18 +237,18 @@ export type GetParsedValueTypeFromDefaultFn<
 export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
   [key in keyof TProperties]:
     TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
-    ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
-      ? TParsedValue extends null
-        ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
-        : GetAllAvailableNodeDataType<TBoxedValue, {}>
-      : TParsedValue extends Array<infer TArrayItemType>
-      ? TParsedValue extends null
-        ? Maybe<Array<TArrayItemType>>
-        : Array<TArrayItemType>
-      : TParsedValue
-    : TProperties[key] extends SMDataDefaultFn
-    ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
-    : never;
+      ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+        ? TParsedValue extends null
+          ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataType<TBoxedValue, {}>
+        : TParsedValue extends Array<infer TArrayItemType>
+          ? TParsedValue extends null
+            ? Maybe<Array<TArrayItemType>>
+            : Array<TArrayItemType>
+          : TParsedValue
+      : TProperties[key] extends SMDataDefaultFn
+        ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        : never;
 }
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
@@ -509,13 +509,19 @@ export interface ISMNodeRepository {
 export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
   [
     TKey in keyof ExtractNodeData<TSMNode> as
-      ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType>
-        ? true extends IsArray<TSMDataParsedValueType>
+      ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType, any, infer TBoxedValue>
+        ? IsArray<TSMDataParsedValueType> extends true
           ? never
-          : TKey
+          : TBoxedValue extends undefined 
+            ? TKey
+            : TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+              ? TKey
+              : never
         : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
-          ? never
-          : never  
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TSMNode>[TKey]>> extends true
+            ? never
+            : TKey
+          : TKey  
   ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode>
     ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
     : never
