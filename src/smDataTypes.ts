@@ -330,7 +330,7 @@ export const reference = <
       _smRelational: SM_RELATIONAL_TYPES.byReference,
       map: queryBuilderOpts.map,
     };
-  }) as IByReferenceQueryBuilder<TReferencedNode>;
+  }) as IByReferenceQueryBuilder<TParentHoldingReference, TReferencedNode>;
 };
 
 export const children = <TSMNode extends ISMNode>(opts: {

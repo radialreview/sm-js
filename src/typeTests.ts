@@ -56,8 +56,8 @@ type TodoNode = ISMNode<
   typeof todoProperties,
   {},
   {
-    assignee: IByReferenceQueryBuilder<UserNode>;
-    meeting: IByReferenceQueryBuilder<Maybe<MeetingNode>>;
+    assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
+    meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
   }
 >;
 const todoNode: TodoNode = smJS.def({

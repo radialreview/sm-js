@@ -44,7 +44,7 @@ function getRelationalQueryBuildersFromRelationalFns(
     acc[key] = relationaFns[key]();
 
     return acc;
-  }, {} as NodeRelationalQueryBuilderRecord);
+  }, {} as NodeRelationalQueryBuilderRecord<any>);
 }
 
 function getMapFnReturn(opts: {
@@ -84,7 +84,7 @@ function getQueriedProperties(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
   isRootLevel?: true;
@@ -198,7 +198,7 @@ function getRelationalQueries(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
@@ -274,7 +274,11 @@ function getRelationalQueries(opts: {
         }).byReference = true;
         (relationalQueryRecord as RelationalQueryRecordEntry & {
           idProp: string;
-        }).idProp = (relationalQuery as IByReferenceQuery<ISMNode, any>).idProp;
+        }).idProp = (relationalQuery as IByReferenceQuery<
+          ISMNode,
+          any,
+          any
+        >).idProp;
       } else if (relationalType === SM_RELATIONAL_TYPES.children) {
         (relationalQueryRecord as RelationalQueryRecordEntry & {
           children: true;
