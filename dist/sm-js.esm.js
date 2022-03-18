@@ -622,8 +622,8 @@ function getQueriedProperties(opts) {
 
       acc.push.apply(acc, getQueriedProperties({
         queryId: opts.queryId,
-        mapFn: mapFnReturn ? mapFnReturn[key] : function () {
-          return data.boxedValue;
+        mapFn: mapFnReturn && typeof mapFnReturn[key] === 'function' ? mapFnReturn[key] : function () {
+          return null;
         },
         smData: data.boxedValue
       }).map(function (nestedKey) {

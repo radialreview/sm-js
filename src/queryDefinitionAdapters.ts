@@ -136,12 +136,13 @@ function getQueriedProperties(opts: {
         acc.push(
           ...getQueriedProperties({
             queryId: opts.queryId,
-            mapFn: (mapFnReturn
+            mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
-              : () => data.boxedValue) as MapFn<any, any, any>,
+              : () => null) as MapFn<any, any, any>,
             smData: (data.boxedValue as unknown) as Record<string, ISMData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
+
         return acc;
       }
 

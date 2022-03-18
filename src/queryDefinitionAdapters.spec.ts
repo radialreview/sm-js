@@ -10,7 +10,7 @@ import {
   getQueryInfo,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
 } from './queryDefinitionAdapters';
-import { queryDefinition } from './smDataTypes';
+import { object, queryDefinition, string } from './smDataTypes';
 import { gql } from '@apollo/client/core';
 import { SMJS } from '.';
 import { MapFnForNode, QueryRecordEntry } from './types';
@@ -153,7 +153,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     ]);
   });
 
-  it('handles querying all data for a relational query result, by making a map function that passes through all data', () => {
+  it('handles querying all data for a relational query result, by using a map function that passes through all data for that node', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const relationalResults = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
@@ -201,6 +201,37 @@ describe('getQueryRecordFromQueryDefinition', () => {
     //   })
     // })
     expect(relationalResults?.assignee.relational).toBe(undefined);
+
+    const withDoubleNestedObjResults = getQueryRecordFromQueryDefinition({
+      queryId: 'queryId2',
+      queryDefinitions: {
+        mockNodes: queryDefinition({
+          def: smJSInstance.def({
+            type: 'mock-node-type',
+            properties: {
+              obj: object({
+                nested: object({
+                  doubleNested: object({
+                    label: string,
+                  }),
+                }),
+              }),
+            },
+          }),
+          map: ({ obj }) => ({
+            obj,
+          }),
+        }),
+      },
+    });
+
+    expect(withDoubleNestedObjResults.mockNodes.properties).toEqual([
+      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      'obj',
+      'obj__dot__nested',
+      'obj__dot__nested__dot__doubleNested',
+      'obj__dot__nested__dot__doubleNested__dot__label',
+    ]);
   });
 });
 
