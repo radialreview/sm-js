@@ -291,6 +291,73 @@ export type DeepPartial<ObjectType extends Record<string, any>> = Partial<
   }
 >;
 
+type IsObject<TObject extends Record<string,any>> =
+  IsArray<TObject> extends true
+    ? false
+    : TObject extends Record<string, any>
+      ? true
+      : false
+
+type IsArray<Thing extends any> = Thing extends Array<any> ? true : false
+
+type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
+  // object properties
+  {
+    [TKey in keyof TObject
+      // skip values that aren't objects, those get handled below so this is easier to read
+      as IsObject<TObject[TKey]> extends true
+        // TS forces us to do this check, otherwise it thinks key may be a symbol
+        ? TKey extends string
+          // don't want to prefix the property at all if a prefix was not provided (we're at the top level and haven't called this type recursively)
+          ? TPrefix extends ''
+            ? keyof ConvertToRootLevelDotNotation<TObject[TKey], TKey>
+            // otherwise TPrefix every property with the prefix
+            : keyof ConvertToRootLevelDotNotation<TObject[TKey], `${TPrefix}.${TKey}`>
+          : never
+        : never
+    ]: string
+  }
+  &
+  // primitive properties
+  {
+    [TKey in keyof TObject
+    // objects get their keys mapped above
+      as IsObject<TObject[TKey]> extends true
+        ? never
+        // arrays are not searchable
+        : IsArray<TObject[TKey]> extends true
+          ? never
+          : TPrefix extends ''
+            ? TKey
+            : TKey extends string
+              ? `${TPrefix}.${TKey}`
+              : never
+    ]: TObject[TKey]
+  }
+
+type GetValidReferenceIdProp<TObject extends Record<string,any>> = keyof ConvertToRootLevelDotNotation<TObject>
+
+/**
+ * Returns a union of all valid idReference props from a node's data type
+ * excluding properties which are arrays
+ * and converting nested properties to dot notation
+ * 
+ * For example, if a node's data is
+ * {
+ *  string: string
+ *  object: {
+ *    nestedString: string
+ *    nestedObject: {
+ *      nestedNestedBoolean: boolean
+ *    }
+ *  }
+ *  arr: []
+ * }
+ * 
+ * The resulting valid id references would be 'string' | 'object.nestedString' | 'object.nestedObject.nestedNestedBoolean'
+ */
+export type GetValidReferenceIdPropFromNode<TSMNode extends ISMNode> = GetValidReferenceIdProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
+
 /**
  * A record that lives on each instance of a DOProxy to determine
  * if each data property on that DO is currently guaranteed to be up to date.
