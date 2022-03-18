@@ -94,7 +94,7 @@ const userProperties = {
   address: object({
     state: string,
     nestedInAddress: object({
-      nestedNestedInAddress: boolean,
+      nestedNestedInAddress: boolean(true),
     }),
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
