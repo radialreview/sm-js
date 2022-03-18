@@ -101,7 +101,9 @@ export function createDOFactory(smJSInstance: ISMJS) {
             const property = this.getSMData(propValue);
 
             const propExistsInInitialData =
-              propName in initialData && initialData[propName] != null;
+              propName in initialData &&
+              initialData[propName] != null &&
+              initialData[propName] !== NULL_TAG;
 
             if (this.isObjectType(property.type) && propExistsInInitialData) {
               acc[propName] = this.parseReceivedData({
