@@ -545,6 +545,168 @@ function queryDefinition(queryDefinition) {
   return queryDefinition;
 }
 
+var _excluded = ["to"],
+    _excluded2 = ["from"];
+var JSON_TAG$1 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE(obj, parentKey) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null) {
+      acc[preparedKey] = OBJECT_IDENTIFIER;
+      acc = _extends({}, acc, prepareObjectForBE(val, preparedKey));
+    } else {
+      acc[preparedKey] = val;
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref3;
+
+    return _ref3 = {}, _ref3[opts.key] = null, _ref3;
+  } else if (Array.isArray(opts.value)) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
+  } else if (typeof opts.value === 'string') {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref7;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref6;
+
+      return _ref6 = {}, _ref6[opts.key] = null, _ref6;
+    }
+
+    return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        value = _ref8[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
+}
+
 var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
@@ -827,11 +989,17 @@ function getIdsString(ids) {
   }).join(',') + "]";
 }
 
-function getKeyValueFilterString(clause) {
-  return "{" + Object.entries(clause).reduce(function (acc, _ref) {
+function getKeyValueFilterString(filter) {
+  var convertedToDotFormat = prepareObjectForBE(filter);
+  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
     var key = _ref[0],
         value = _ref[1];
     acc += key + ": " + JSON.stringify(value);
+
+    if (idx < entries.length - 1) {
+      acc += ", ";
+    }
+
     return acc;
   }, '') + "}";
 }
@@ -850,7 +1018,7 @@ function getGetNodeOptions(opts) {
   }
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(Array.isArray(opts.filter) ? "filter: [" + opts.filter.map(getKeyValueFilterString).join(',') + "]" : "filter: " + getKeyValueFilterString(opts.filter));
+    options.push("filter: " + getKeyValueFilterString(opts.filter));
   }
 
   return options.join(', ');
@@ -3786,164 +3954,6 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'UpdateEdge');
   return gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
-}
-
-var _excluded = ["to"],
-    _excluded2 = ["from"];
-var JSON_TAG$1 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = Object.entries(nodeData).reduce(function (acc, _ref) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, prepareForBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref2, i) {
-    var key = _ref2[0],
-        value = _ref2[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-
-  function convertEdgeDirectionNames(edgeItem) {
-    if (edgeItem.hasOwnProperty('to')) {
-      var to = edgeItem.to,
-          restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
-
-      return _extends({}, restOfEdgeItem, {
-        targetId: to
-      });
-    } else if (edgeItem.hasOwnProperty('from')) {
-      var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
-
-      return _extends({}, _restOfEdgeItem, {
-        sourceId: edgeItem.from
-      });
-    }
-
-    throw new Error('convertEdgeDirectionNames - received invalid data');
-  }
-
-  function escapeText(text) {
-    return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-  }
-
-  function prepareForBE(opts) {
-    if (opts.value === null) {
-      var _ref3;
-
-      return _ref3 = {}, _ref3[opts.key] = null, _ref3;
-    } else if (Array.isArray(opts.value)) {
-      var _ref4;
-
-      return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
-    } else if (typeof opts.value === 'object') {
-      var _prepareObjectForBE;
-
-      return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
-    } else if (typeof opts.value === 'string') {
-      var _ref5;
-
-      return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
-    } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-      var _ref7;
-
-      if (typeof opts.value === 'number' && isNaN(opts.value)) {
-        var _ref6;
-
-        return _ref6 = {}, _ref6[opts.key] = null, _ref6;
-      }
-
-      return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
-    } else {
-      throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-    }
-  }
-  /**
-   * Takes an object node value and flattens it to be sent to SM
-   *
-   * @param obj an object with arbitrary data
-   * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
-   * @returns a flat object where the keys are of "key__dot__value" syntax
-   *
-   * For example:
-   * ```typescript
-   * const obj = {settings: {schedule: {day: 'Monday'} } }
-   *  const result = prepareValueForBE(obj)
-   * ```
-   * The result will be:
-   *  ```typescript
-   *  {
-   * settings: '__object__',
-   * settings__dot__schedule: '__object__',
-   * settings__dot__schedule__dot__day: 'Monday',
-   * }
-   * ```
-   */
-
-
-  function prepareObjectForBE(obj, parentKey) {
-    return Object.entries(obj).reduce(function (acc, _ref8) {
-      var key = _ref8[0],
-          val = _ref8[1];
-      var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
-
-      if (typeof val === 'object' && val != null) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
-        acc = _extends({}, acc, prepareObjectForBE(val, preparedKey));
-      } else {
-        acc[preparedKey] = val;
-      }
-
-      return acc;
-    }, {});
-  }
 }
 
 var _templateObject$4;
