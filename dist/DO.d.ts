@@ -1,5 +1,5 @@
-import { ISMJS, ISMData, SMDataDefaultFn, NodeMutationFn, NodeDO, NodeComputedFns, NodeRelationalFns, NodeRelationalQueryBuilder, ISMNode } from './types';
-export declare function createDOFactory(smJSInstance: ISMJS): <TNodeData extends Record<string, ISMData<any, any, any> | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends Record<string, NodeRelationalQueryBuilder<import("./types").Maybe<ISMNode<{}, {}, {}, {}, NodeComputedFns<{}, {}>, NodeDO>>>>, TNodeMutations extends Record<string, NodeMutationFn>, TDOClass = new (initialData?: Record<string, any> | undefined) => NodeDO>(node: {
+import { ISMJS, ISMData, SMDataDefaultFn, NodeMutationFn, NodeDO, NodeComputedFns, NodeRelationalFns } from './types';
+export declare function createDOFactory(smJSInstance: ISMJS): <TNodeData extends Record<string, ISMData<any, any, any> | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends any, TNodeMutations extends Record<string, NodeMutationFn>, TDOClass = new (initialData?: Record<string, any> | undefined) => NodeDO>(node: {
     type: string;
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData, TNodeComputedData> | undefined;

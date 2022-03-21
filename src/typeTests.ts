@@ -7,17 +7,19 @@ import {
   number,
   children,
 } from './';
-import { boolean, object, record, reference } from './smDataTypes';
+import { array, boolean, object, record, reference } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
+  ValidReferenceIdPropFromNode,
   IByReferenceQueryBuilder,
   IChildrenQueryBuilder,
   ISMNode,
   MapFnForNode,
   Maybe,
   SMDataEnum,
+  ValidFilterForNode,
 } from './types';
 
 /**
@@ -54,10 +56,11 @@ type TodoNode = ISMNode<
   typeof todoProperties,
   {},
   {
-    assignee: IByReferenceQueryBuilder<UserNode>;
-    meeting: IByReferenceQueryBuilder<Maybe<MeetingNode>>;
+    assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
+    meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
   }
 >;
+
 const todoNode: TodoNode = smJS.def({
   type: 'todo',
   properties: todoProperties,
@@ -86,22 +89,44 @@ const userProperties = {
   id: string,
   firstName: string,
   lastName: string,
+  bool: boolean(true),
+  maybeBool: boolean.optional,
+  maybeStr: string.optional,
   address: object({
     state: string,
+    nestedInAddress: object({
+      nestedNestedInAddress: boolean(true),
+    }),
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
   optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
   recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
   objectUnion: object(objectUnion),
+  arrayOfString: array(string),
 };
 const userRelational = {
   todos: () => children({ def: todoNode }) as IChildrenQueryBuilder<TodoNode>,
+  state: () =>
+    reference({
+      def: stateNode,
+      idProp: 'address.state',
+    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
+  invalid: () =>
+    reference({
+      def: stateNode,
+      // @ts-expect-error not a valid id prop in user node
+      idProp: 'address.statesz',
+    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
 };
 
 type UserNode = ISMNode<
   typeof userProperties,
   { fullName: string; avatar: string },
-  { todos: IChildrenQueryBuilder<TodoNode> }
+  {
+    todos: IChildrenQueryBuilder<TodoNode>;
+    state: IByReferenceQueryBuilder<UserNode, StateNode>;
+    invalid: IByReferenceQueryBuilder<UserNode, StateNode>;
+  }
 >;
 const userNode: UserNode = smJS.def({
   type: 'user',
@@ -117,6 +142,14 @@ const userNode: UserNode = smJS.def({
   },
 });
 
+const stateNodeProperties = {
+  name: string,
+};
+type StateNode = ISMNode<typeof stateNodeProperties>;
+const stateNode: StateNode = smJS.def({
+  type: 'state',
+  properties: stateNodeProperties,
+});
 (async function MapFnTests() {
   // @ts-ignore
   const mapFn: MapFnForNode<typeof userNode> = ({
@@ -198,9 +231,15 @@ const userNode: UserNode = smJS.def({
   const validUserNodeData: UserNodeData = {
     id: '',
     firstName: '',
+    bool: true,
+    maybeBool: null,
+    maybeStr: null,
     lastName: '',
     address: {
       state: '',
+      nestedInAddress: {
+        nestedNestedInAddress: true,
+      },
     },
     fooBarEnum: 'FOO',
     optionalBarBazEnum: null,
@@ -211,6 +250,7 @@ const userNode: UserNode = smJS.def({
       type: 'string',
       string: '',
     },
+    arrayOfString: [],
   };
 
   const invalidPropAtRoot: UserNodeData = {
@@ -229,6 +269,50 @@ const userNode: UserNode = smJS.def({
     },
   };
   invalidNestedProp;
+
+  // @ts-expect-error array props are not valid id reference props
+  const idProp1: ValidReferenceIdPropFromNode<UserNode> = 'arrayOfString';
+  // @ts-expect-error objects are not valid id reference props
+  const idProp2: ValidReferenceIdPropFromNode<UserNode> = 'address';
+
+  const idProp3: ValidReferenceIdPropFromNode<UserNode> = 'address.state';
+  idProp3;
+  const idProp4: ValidReferenceIdPropFromNode<UserNode> =
+    'address.nestedInAddress.nestedNestedInAddress';
+  idProp4;
+  const idProp5: ValidReferenceIdPropFromNode<UserNode> = 'firstName';
+  idProp5;
+
+  const filter1: ValidFilterForNode<UserNode> = {
+    firstName: 'some first name',
+  };
+  filter1;
+  const filter2: ValidFilterForNode<UserNode> = {
+    address: { state: 'some state' },
+  };
+  filter2;
+  const filter3: ValidFilterForNode<UserNode> = {
+    // @ts-expect-error can't search enums
+    recordEnum: { FOO: 'BAR' },
+  };
+  filter3;
+  const filter4: ValidFilterForNode<UserNode> = {
+    // @ts-expect-error can't search arrays
+    arrayOfString: ['test'],
+  };
+  filter4;
+  const filter5: ValidFilterForNode<UserNode> = {
+    bool: true,
+  };
+  filter5;
+  const filter6: ValidFilterForNode<UserNode> = {
+    maybeBool: null,
+  };
+  filter6;
+  const filter7: ValidFilterForNode<UserNode> = {
+    maybeStr: null,
+  };
+  filter7;
 })();
 
 (function DataTypeInferenceUtilTests() {
@@ -471,6 +555,25 @@ const userNode: UserNode = smJS.def({
   withRelationalMapFnReturningAllData.data.users[0].todos[0].id as string;
   // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
   withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
+
+  const mockNode = smJS.def({
+    type: 'test',
+    properties: {
+      t: string,
+    },
+  });
+
+  // This mock node is all inferred, without the use of explicit types
+  const withExplicitTypesOmitted = await smJS.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: ({ t }) => ({ t }),
+    }),
+  });
+
+  withExplicitTypesOmitted.data.mock[0].t as string;
+  // @ts-expect-error
+  withExplicitTypesOmitted.data.mock[0].foo as string;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

@@ -1,10 +1,10 @@
-import { QueryDefinitions, QueryRecordEntry } from './types';
+import { ISMNode, QueryDefinitions, QueryRecordEntry, ValidFilterForNode } from './types';
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: string[];
 export declare function getQueryRecordFromQueryDefinition(opts: {
     queryId: string;
     queryDefinitions: QueryDefinitions;
 }): Record<string, QueryRecordEntry>;
-export declare function getKeyValueFilterString<NodeType>(clause: Partial<Record<keyof NodeType, string>>): string;
+export declare function getKeyValueFilterString<TSMNode extends ISMNode>(filter: ValidFilterForNode<TSMNode>): string;
 export declare type SubscriptionConfig = {
     alias: string;
     gqlString: string;

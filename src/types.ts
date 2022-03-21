@@ -127,7 +127,7 @@ export interface ISMJS {
   def<
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
     TNodeMutations extends Record<
       string,
       /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
@@ -145,7 +145,7 @@ export interface ISMJS {
 export type NodeDefArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
   type: string;
@@ -208,10 +208,6 @@ type GetSMBoxedValue<
     ? TBoxedValue
 : never;
 
-export type QueryFilterEqualsKeyValue<NodeType> = Partial<
-  Record<keyof NodeType, string>
->;
-
 export type GetParsedValueTypeFromDefaultFn<
   TDefaultFn extends (_default: any) => ISMData
 > = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any>
@@ -235,21 +231,20 @@ export type GetParsedValueTypeFromDefaultFn<
    * }
    */
 export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
-  [key in keyof TProperties]: TProperties[key] extends
-    | ISMData<infer TParsedValue, any, infer TBoxedValue>
-    | DeepPartial<ISMData<infer TParsedValue, any, infer TBoxedValue>>
-    ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
-      ? TParsedValue extends null
-        ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
-        : GetAllAvailableNodeDataType<TBoxedValue, {}>
-      : TParsedValue extends Array<infer TArrayItemType>
-      ? TParsedValue extends null
-        ? Maybe<Array<TArrayItemType>>
-        : Array<TArrayItemType>
-      : TParsedValue
-    : TProperties[key] extends SMDataDefaultFn
-    ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
-    : never;
+  [key in keyof TProperties]:
+    TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+        ? TParsedValue extends null
+          ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataType<TBoxedValue, {}>
+        : TParsedValue extends Array<infer TArrayItemType>
+          ? TParsedValue extends null
+            ? Maybe<Array<TArrayItemType>>
+            : Array<TArrayItemType>
+          : TParsedValue
+      : TProperties[key] extends SMDataDefaultFn
+        ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        : never;
 }
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
@@ -264,14 +259,15 @@ export type GetAllAvailableNodeDataType<
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 
 export type GetExpectedRelationalDataType<
-  TRelationalData extends NodeRelationalQueryBuilderRecord
+  TRelationalData extends NodeRelationalQueryBuilderRecord<any>
 > = {
   [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<
-    infer TSMNode
+    any,
+    infer TTargetNode
   >
-    ? GetAllAvailableNodeDataType<ExtractNodeData<NonNullable<TSMNode>>,ExtractNodeComputedData<NonNullable<TSMNode>>>
-    : TRelationalData[key] extends IChildrenQueryBuilder<infer TSMNode>
-    ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>>
+    ? GetAllAvailableNodeDataType<ExtractNodeData<NonNullable<TTargetNode>>,ExtractNodeComputedData<NonNullable<TTargetNode>>>
+    : TRelationalData[key] extends IChildrenQueryBuilder<infer TOriginNode>
+    ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TOriginNode>, ExtractNodeComputedData<TOriginNode>>>
     : never;
 };
 
@@ -290,6 +286,77 @@ export type DeepPartial<ObjectType extends Record<string, any>> = Partial<
       : ObjectType[Key];
   }
 >;
+
+type IsArray<Thing extends any, Y = true, N = false> = Thing extends Array<any> ? Y : N
+
+type IsObject<TObject extends Record<string,any>, Y = true, N = false> =
+  IsArray<TObject> extends true
+    ? false
+    : TObject extends Record<string, any>
+      ? Y
+      : N
+
+/**
+ * Note: this is used solely for obtaining the keys in an object converted to the dot notation
+ * it was not possible to have the correct value types be mapped over, which is why all values are "never"
+ */
+type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
+  // object properties
+  {
+    [TKey in keyof TObject
+      // skip values that aren't objects, those get handled below so this is easier to read
+      as IsObject<TObject[TKey]> extends true
+        // TS forces us to do this check, otherwise it thinks key may be a symbol
+        ? TKey extends string
+          // don't want to prefix the property at all if a prefix was not provided (we're at the top level and haven't called this type recursively)
+          ? TPrefix extends ''
+            ? keyof ConvertToRootLevelDotNotation<TObject[TKey], TKey>
+            // otherwise TPrefix every property with the prefix
+            : keyof ConvertToRootLevelDotNotation<TObject[TKey], `${TPrefix}.${TKey}`>
+          : never
+        : never
+    ]: never
+  }
+  &
+  // primitive properties
+  {
+    [TKey in keyof TObject
+    // objects get their keys mapped above
+      as IsObject<TObject[TKey]> extends true
+        ? never
+        // arrays are not searchable
+        : IsArray<TObject[TKey]> extends true
+          ? never
+          : TPrefix extends ''
+            ? TKey
+            : TKey extends string
+              ? `${TPrefix}.${TKey}`
+              : never
+    ]: never
+  }
+
+type ValidReferenceIdProp<TObject extends Record<string,any>> = keyof ConvertToRootLevelDotNotation<TObject>
+
+/**
+ * Returns a union of all valid idReference props from a node's data type
+ * excluding properties which are arrays
+ * and converting nested properties to dot notation
+ * 
+ * For example, if a node's data is
+ * {
+ *  string: string
+ *  object: {
+ *    nestedString: string
+ *    nestedObject: {
+ *      nestedNestedBoolean: boolean
+ *    }
+ *  }
+ *  arr: []
+ * }
+ * 
+ * The resulting valid id references would be 'string' | 'object.nestedString' | 'object.nestedObject.nestedNestedBoolean'
+ */
+export type ValidReferenceIdPropFromNode<TSMNode extends ISMNode> = ValidReferenceIdProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
 
 /**
  * A record that lives on each instance of a DOProxy to determine
@@ -339,7 +406,7 @@ export type NodeComputedFns<
 };
 
 export type NodeRelationalFns<
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>
 > = {
   [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
@@ -354,6 +421,7 @@ export type NodeMutationFn<
 export interface ISMNode<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
+  // @ts-ignore
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
   TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>,
@@ -362,6 +430,7 @@ export interface ISMNode<
   _isSMNodeDef: true;
   smData: TNodeData;
   smComputed?: TNodeComputedFns;
+  // @ts-ignore
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
   type: string;
@@ -374,32 +443,33 @@ export interface ISMNode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TSMNode extends ISMNode | null> =
-  | IByReferenceQueryBuilder<TSMNode>
-  | IChildrenQueryBuilder<NonNullable<TSMNode>>;
+export type NodeRelationalQueryBuilder<TOriginNode extends ISMNode> =
+  | IByReferenceQueryBuilder<TOriginNode, ISMNode<any>>
+  | IChildrenQueryBuilder<TOriginNode>;
 
-export type NodeRelationalQuery<TSMNode extends ISMNode> =
-  | IChildrenQuery<TSMNode, any>
-  | IByReferenceQuery<TSMNode, any>;
+export type NodeRelationalQuery<TOriginNode extends ISMNode> =
+  | IChildrenQuery<TOriginNode, any>
+  | IByReferenceQuery<TOriginNode, any, any>;
 
-export interface IByReferenceQueryBuilder<TSMNode extends ISMNode | null> {
-  <TMapFn extends MapFnForNode<NonNullable<TSMNode>>>(opts: {
+export interface IByReferenceQueryBuilder<TOriginNode extends ISMNode<any>, TTargetNode extends ISMNode | null> {
+  <TMapFn extends MapFnForNode<NonNullable<TTargetNode>>>(opts: {
     map: TMapFn;
-  }): IByReferenceQuery<TSMNode, TMapFn>;
+  }): IByReferenceQuery<TOriginNode, TTargetNode, TMapFn>;
 }
 
 type SMRelationalTypesRecord = typeof SM_RELATIONAL_TYPES;
 export interface IByReferenceQuery<
-  TSMNode extends ISMNode | null,
+  TOriginNode extends ISMNode,
+  TTargetNode extends ISMNode | null,
   TMapFn extends MapFn<
-    ExtractNodeData<NonNullable<TSMNode>>,
-    ExtractNodeComputedData<NonNullable<TSMNode>>,
-    ExtractNodeRelationalData<NonNullable<TSMNode>>
+    ExtractNodeData<NonNullable<TTargetNode>>,
+    ExtractNodeComputedData<NonNullable<TTargetNode>>,
+    ExtractNodeRelationalData<NonNullable<TTargetNode>>
   >
 > {
   _smRelational: SMRelationalTypesRecord['byReference'];
-  def: TSMNode;
-  idProp: string;
+  def: TTargetNode;
+  idProp: ValidReferenceIdPropFromNode<TOriginNode>;
   map: TMapFn;
 }
 
@@ -424,9 +494,9 @@ export interface IChildrenQuery<
 
 export interface ISMQueryPagination {}
 
-export type NodeRelationalQueryBuilderRecord = Record<
+export type NodeRelationalQueryBuilderRecord<TNodeType extends ISMNode> = Record<
   string,
-  NodeRelationalQueryBuilder<Maybe<ISMNode>>
+  NodeRelationalQueryBuilder<TNodeType>
 >;
 
 export interface ISMNodeRepository {
@@ -435,10 +505,34 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type QueryFilter<TSMNode extends ISMNode> = Partial<{[key in keyof ExtractNodeData<TSMNode>]:string}>
+/**
+ * Returns the valid filter for a node
+ * excluding properties which are arrays and records
+ * and including properties which are nested in objects
+ */
+export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
+  [
+    TKey in keyof ExtractNodeData<TSMNode> as
+      ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType, any, infer TBoxedValue>
+        ? IsArray<TSMDataParsedValueType> extends true
+          ? never
+          : TBoxedValue extends undefined 
+            ? TKey
+            : TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+              ? TKey
+              : never
+        : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TSMNode>[TKey]>> extends true
+            ? never
+            : TKey
+          : TKey  
+  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode>
+    ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+    : never
+}>
 
 export type QueryDefinitionTarget =
-  | { underIds: Array<string> }
+  | { underIds: Array<string>, depth?: number }
   | { depth: number }
   | { id: string }
   | { ids: Array<string> }
@@ -451,7 +545,7 @@ export type QueryDefinition<
 > = { 
   def: TSMNode;
   map: TMapFn;
-  filter?: QueryFilter<TSMNode>
+  filter?: ValidFilterForNode<TSMNode>
   target?: TQueryDefinitionTarget
 };
 
@@ -521,14 +615,14 @@ export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
 export type MapFn<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
 > = (
   data: GetMapFnArgs<TNodeData, TNodeRelationalData>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>
 > = {
   [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>>
     ? TNodeData[key]
@@ -587,7 +681,7 @@ type ExtractQueriedDataFromMapFnReturn<
     TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any>
     ? never
     :
-    TMapFnReturn[Key] extends IByReferenceQuery<any,any>
+    TMapFnReturn[Key] extends IByReferenceQuery<any,any,any>
     ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
     :
     TMapFnReturn[Key] extends IChildrenQuery<any, any>
@@ -618,11 +712,11 @@ type ExtractQueriedDataFromChildrenQuery<
   : never;
 
 type ExtractQueriedDataFromByReferenceQuery<
-  TByReferenceQuery extends IByReferenceQuery<any, any>
-> = TByReferenceQuery extends IByReferenceQuery<infer TSMNode, infer TMapFn>
-  ? TSMNode extends null
-    ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>>
-    : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TSMNode>>
+  TByReferenceQuery extends IByReferenceQuery<any, any, any>
+> = TByReferenceQuery extends IByReferenceQuery<any, infer TTargetNode, infer TMapFn>
+  ? TTargetNode extends null
+    ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TTargetNode>>>
+    : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TTargetNode>>
   : never;
 
 export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<

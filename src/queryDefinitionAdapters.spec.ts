@@ -10,10 +10,21 @@ import {
   getQueryInfo,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
 } from './queryDefinitionAdapters';
-import { object, queryDefinition, string } from './smDataTypes';
+import {
+  object,
+  OBJECT_PROPERTY_SEPARATOR,
+  queryDefinition,
+  reference,
+  string,
+} from './smDataTypes';
 import { gql } from '@apollo/client/core';
 import { SMJS } from '.';
-import { MapFnForNode, QueryRecordEntry } from './types';
+import {
+  IByReferenceQueryBuilder,
+  ISMNode,
+  MapFnForNode,
+  QueryRecordEntry,
+} from './types';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
@@ -129,6 +140,58 @@ describe('getQueryRecordFromQueryDefinition', () => {
     );
   });
 
+  it('handles reference queries that use dot notation', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+    const userNodeProperties = {
+      settings: object({
+        mainTodoId: string,
+      }),
+    };
+    type UserNode = ISMNode<
+      typeof userNodeProperties,
+      {},
+      { todo: IByReferenceQueryBuilder<UserNode, TodoNode> }
+    >;
+    const userNode: UserNode = smJSInstance.def({
+      type: 'user',
+      properties: {
+        settings: object({
+          mainTodoId: string,
+        }),
+      },
+      relational: {
+        todo: () =>
+          reference({
+            def: generateTodoNode(smJSInstance),
+            idProp: 'settings.mainTodoId',
+          }),
+      },
+    });
+
+    expect(
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: userNode,
+            map: ({ todo }) => ({
+              todo: todo({
+                map: ({ id }) => ({ id }),
+              }),
+            }),
+          }),
+        },
+      }).users.relational
+    ).toEqual(
+      expect.objectContaining({
+        todo: expect.objectContaining({
+          def: expect.objectContaining({ type: 'todo' }),
+          idProp: `settings${OBJECT_PROPERTY_SEPARATOR}mainTodoId`,
+        }),
+      })
+    );
+  });
+
   it('handles omitting map fn for objects, and will query all data in that object', () => {
     const smJSInstance = new SMJS(getMockConfig());
 
@@ -150,6 +213,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       'settings__dot__archiveAfterMeeting',
       'settings__dot__nestedSettings',
       'settings__dot__nestedSettings__dot__nestedNestedMaybe',
+      'settings__dot__nestedRecord',
     ]);
   });
 
@@ -405,8 +469,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__archiveAfterMeeting,
             settings__dot__nestedSettings,
             settings__dot__nestedSettings__dot__nestedNestedMaybe,
+            settings__dot__nestedRecord,
             dataSetIds,
-            comments
+            comments,
+            record
           }
           }"
     `);
@@ -438,8 +504,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__archiveAfterMeeting,
             settings__dot__nestedSettings,
             settings__dot__nestedSettings__dot__nestedNestedMaybe,
+            settings__dot__nestedRecord,
             dataSetIds,
-            comments
+            comments,
+            record
           }
           }"
     `);
@@ -461,6 +529,34 @@ describe('getQueryInfo.queryGQLString', () => {
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
               todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+          }"
+    `);
+  });
+
+  it('supports filters for nested properties', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(smJSInstance),
+            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            filter: {
+              settings: { nestedSettings: { nestedNestedMaybe: 'mock value' } },
+            },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\", filter: {settings__dot__nestedSettings__dot__nestedNestedMaybe: \\"mock value\\"}) {
             id,
             version,
             lastUpdatedBy,

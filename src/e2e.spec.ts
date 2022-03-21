@@ -82,7 +82,7 @@ async function setupTest() {
   type TodoProperties = typeof mockTodoProperties;
 
   type TodoRelationalData = {
-    assignee: IByReferenceQueryBuilder<ThingNode>;
+    assignee: IByReferenceQueryBuilder<TodoNode, ThingNode>;
   };
 
   type TodoMutations = {};
@@ -114,7 +114,7 @@ async function setupTest() {
     properties: mockTodoProperties,
     relational: {
       assignee: () =>
-        reference<any, any>({
+        reference<TodoNode, ThingNode>({
           def: mockThingDef,
           idProp: 'assigneeId',
         }),

@@ -198,6 +198,7 @@ declare const todoProperties: {
         }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
+        nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
     }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
@@ -207,6 +208,7 @@ declare const todoProperties: {
         }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
+        nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
     }>>, {
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
@@ -216,6 +218,7 @@ declare const todoProperties: {
         }>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
+        nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
     }>;
     dataSetIds: {
         (defaultValue: string[]): smData.SMData<string[], string[], {
@@ -235,10 +238,15 @@ declare const todoProperties: {
         }>;
     };
     comments: smData.SMData<import("./types").Maybe<import("./types").Maybe<string>[]>, import("./types").Maybe<import("./types").Maybe<string>[]>, smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>>;
+    record: smData.SMData<Record<string, string>, Record<string, string>, {
+        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+        _default: smData.SMData<"", "", undefined>;
+        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>;
 };
 export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
-    assignee: IByReferenceQueryBuilder<UserNode>;
+    assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
 };
 export declare type TodoMutations = {};
 export declare type TodoNode = ISMNode<TodoProperties, {}, TodoRelationalData, TodoMutations>;
@@ -519,6 +527,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
+                nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
             }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
                 nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
@@ -528,6 +537,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
+                nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
             }>>, {
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
                 nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
@@ -537,6 +547,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 }>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
+                nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
             }>;
             dataSetIds: {
                 (defaultValue: string[]): smData.SMData<string[], string[], {
@@ -556,13 +567,18 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 }>;
             };
             comments: smData.SMData<import("./types").Maybe<import("./types").Maybe<string>[]>, import("./types").Maybe<import("./types").Maybe<string>[]>, smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>>;
+            record: smData.SMData<Record<string, string>, Record<string, string>, {
+                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                _default: smData.SMData<"", "", undefined>;
+                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+            }>;
         }, TodoRelationalData>) => {
             id: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                 _default: smData.SMData<"", "", undefined>;
                 optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
             };
-            assignee: import("./types").IByReferenceQuery<UserNode, ({ id, firstName }: import("./types").GetMapFnArgs<{
+            assignee: import("./types").IByReferenceQuery<TodoNode, UserNode, ({ id, firstName }: import("./types").GetMapFnArgs<{
                 id: {
                     <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                     _default: smData.SMData<"", "", undefined>;

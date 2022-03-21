@@ -19,8 +19,9 @@ import {
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
-  QueryFilterEqualsKeyValue,
+  ValidFilterForNode,
 } from './types';
+import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',
@@ -44,7 +45,7 @@ function getRelationalQueryBuildersFromRelationalFns(
     acc[key] = relationaFns[key]();
 
     return acc;
-  }, {} as NodeRelationalQueryBuilderRecord);
+  }, {} as NodeRelationalQueryBuilderRecord<any>);
 }
 
 function getMapFnReturn(opts: {
@@ -84,7 +85,7 @@ function getQueriedProperties(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
   isRootLevel?: true;
@@ -198,7 +199,7 @@ function getRelationalQueries(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
@@ -274,7 +275,11 @@ function getRelationalQueries(opts: {
         }).byReference = true;
         (relationalQueryRecord as RelationalQueryRecordEntry & {
           idProp: string;
-        }).idProp = (relationalQuery as IByReferenceQuery<ISMNode, any>).idProp;
+        }).idProp = (relationalQuery as IByReferenceQuery<
+          ISMNode,
+          any,
+          any
+        >).idProp;
       } else if (relationalType === SM_RELATIONAL_TYPES.children) {
         (relationalQueryRecord as RelationalQueryRecordEntry & {
           children: true;
@@ -379,23 +384,29 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<NodeType>(
-  clause: Partial<Record<keyof NodeType, string>>
+export function getKeyValueFilterString<TSMNode extends ISMNode>(
+  filter: ValidFilterForNode<TSMNode>
 ) {
-  return `{${Object.entries(clause).reduce((acc, [key, value]) => {
-    acc += `${key}: ${JSON.stringify(value)}`;
-    return acc;
-  }, '')}}`;
+  const convertedToDotFormat = prepareObjectForBE(filter, {
+    omitObjectIdentifier: true,
+  });
+  return `{${Object.entries(convertedToDotFormat).reduce(
+    (acc, [key, value], idx, entries) => {
+      acc += `${key}: ${JSON.stringify(value)}`;
+      if (idx < entries.length - 1) {
+        acc += `, `;
+      }
+      return acc;
+    },
+    ''
+  )}}`;
 }
 
-function getGetNodeOptions(opts: {
-  def: ISMNode;
+function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
+  def: TSMNode;
   underIds?: Array<string>;
   depth?: number;
-  /** @TODO_TECH_DEBT_10_22 - https://tractiontools.atlassian.net/browse/MIO-335 */
-  filter?:
-    | Array<QueryFilterEqualsKeyValue<ISMNode>>
-    | QueryFilterEqualsKeyValue<ISMNode>;
+  filter?: ValidFilterForNode<TSMNode>;
 }) {
   const options: Array<string> = [`type: "${opts.def.type}"`];
 
@@ -408,11 +419,7 @@ function getGetNodeOptions(opts: {
   }
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(
-      Array.isArray(opts.filter)
-        ? `filter: [${opts.filter.map(getKeyValueFilterString).join(',')}]`
-        : `filter: ${getKeyValueFilterString(opts.filter)}`
-    );
+    options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
   }
 
   return options.join(', ');

@@ -527,6 +527,7 @@ var SM_RELATIONAL_TYPES = {
 var reference = function reference(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
+      idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
       _smRelational: SM_RELATIONAL_TYPES.byReference,
       map: queryBuilderOpts.map
     });
@@ -548,6 +549,175 @@ var OBJECT_IDENTIFIER = '__object__'; // HACK ALERT! Exists only to make TS work
 
 function queryDefinition(queryDefinition) {
   return queryDefinition;
+}
+
+var _excluded = ["to"],
+    _excluded2 = ["from"];
+var JSON_TAG$1 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE(obj, opts) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, prepareObjectForBE(val, _extends({}, opts, {
+        parentKey: preparedKey
+      })));
+    } else {
+      acc[preparedKey] = val;
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref3;
+
+    return _ref3 = {}, _ref3[opts.key] = null, _ref3;
+  } else if (Array.isArray(opts.value)) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
+  } else if (typeof opts.value === 'string') {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref7;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref6;
+
+      return _ref6 = {}, _ref6[opts.key] = null, _ref6;
+    }
+
+    return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        value = _ref8[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
@@ -832,11 +1002,19 @@ function getIdsString(ids) {
   }).join(',') + "]";
 }
 
-function getKeyValueFilterString(clause) {
-  return "{" + Object.entries(clause).reduce(function (acc, _ref) {
+function getKeyValueFilterString(filter) {
+  var convertedToDotFormat = prepareObjectForBE(filter, {
+    omitObjectIdentifier: true
+  });
+  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
     var key = _ref[0],
         value = _ref[1];
     acc += key + ": " + JSON.stringify(value);
+
+    if (idx < entries.length - 1) {
+      acc += ", ";
+    }
+
     return acc;
   }, '') + "}";
 }
@@ -855,7 +1033,7 @@ function getGetNodeOptions(opts) {
   }
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(Array.isArray(opts.filter) ? "filter: [" + opts.filter.map(getKeyValueFilterString).join(',') + "]" : "filter: " + getKeyValueFilterString(opts.filter));
+    options.push("filter: " + getKeyValueFilterString(opts.filter));
   }
 
   return options.join(', ');
@@ -3793,164 +3971,6 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _excluded = ["to"],
-    _excluded2 = ["from"];
-var JSON_TAG$1 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = Object.entries(nodeData).reduce(function (acc, _ref) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, prepareForBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref2, i) {
-    var key = _ref2[0],
-        value = _ref2[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-
-  function convertEdgeDirectionNames(edgeItem) {
-    if (edgeItem.hasOwnProperty('to')) {
-      var to = edgeItem.to,
-          restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
-
-      return _extends({}, restOfEdgeItem, {
-        targetId: to
-      });
-    } else if (edgeItem.hasOwnProperty('from')) {
-      var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
-
-      return _extends({}, _restOfEdgeItem, {
-        sourceId: edgeItem.from
-      });
-    }
-
-    throw new Error('convertEdgeDirectionNames - received invalid data');
-  }
-
-  function escapeText(text) {
-    return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-  }
-
-  function prepareForBE(opts) {
-    if (opts.value === null) {
-      var _ref3;
-
-      return _ref3 = {}, _ref3[opts.key] = null, _ref3;
-    } else if (Array.isArray(opts.value)) {
-      var _ref4;
-
-      return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
-    } else if (typeof opts.value === 'object') {
-      var _prepareObjectForBE;
-
-      return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
-    } else if (typeof opts.value === 'string') {
-      var _ref5;
-
-      return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
-    } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-      var _ref7;
-
-      if (typeof opts.value === 'number' && isNaN(opts.value)) {
-        var _ref6;
-
-        return _ref6 = {}, _ref6[opts.key] = null, _ref6;
-      }
-
-      return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
-    } else {
-      throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-    }
-  }
-  /**
-   * Takes an object node value and flattens it to be sent to SM
-   *
-   * @param obj an object with arbitrary data
-   * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
-   * @returns a flat object where the keys are of "key__dot__value" syntax
-   *
-   * For example:
-   * ```typescript
-   * const obj = {settings: {schedule: {day: 'Monday'} } }
-   *  const result = prepareValueForBE(obj)
-   * ```
-   * The result will be:
-   *  ```typescript
-   *  {
-   * settings: '__object__',
-   * settings__dot__schedule: '__object__',
-   * settings__dot__schedule__dot__day: 'Monday',
-   * }
-   * ```
-   */
-
-
-  function prepareObjectForBE(obj, parentKey) {
-    return Object.entries(obj).reduce(function (acc, _ref8) {
-      var key = _ref8[0],
-          val = _ref8[1];
-      var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
-
-      if (typeof val === 'object' && val != null) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
-        acc = _extends({}, acc, prepareObjectForBE(val, preparedKey));
-      } else {
-        acc[preparedKey] = val;
-      }
-
-      return acc;
-    }, {});
-  }
-}
-
 var _templateObject$4;
 function createNodes(operation) {
   return _extends({
@@ -3991,6 +4011,377 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
   }
 
   return "{\n    " + mutationArgs.join('\n') + "\n  }";
+}
+
+var SMContext = /*#__PURE__*/React.createContext(undefined);
+var SMProvider = function SMProvider(props) {
+  var existingContext = React.useContext(SMContext);
+
+  if (existingContext) {
+    throw Error('Another instance of an SMProvider was already detected higher up the render tree.\nHaving multiple instances of SMProviders is not supported and may lead to unexpected results.');
+  }
+
+  var ongoingSubscriptionRecord = React.useRef({});
+  var cleanupTimeoutRecord = React.useRef({});
+  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
+    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
+  }, []);
+  var scheduleCleanup = React.useCallback(function (subscriptionId) {
+    function cleanup() {
+      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
+
+      if (existingContextSubscription) {
+        existingContextSubscription.unsub && existingContextSubscription.unsub();
+        delete ongoingSubscriptionRecord.current[subscriptionId];
+      }
+    }
+
+    if (props.subscriptionTTLMs != null) {
+      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
+    } else {
+      cleanup();
+    }
+  }, [props.subscriptionTTLMs]);
+  var cancelCleanup = React.useCallback(function (subscriptionId) {
+    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
+  }, []);
+  return React.createElement(SMContext.Provider, {
+    value: {
+      smJSInstance: props.smJS,
+      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
+      updateSubscriptionInfo: updateSubscriptionInfo,
+      scheduleCleanup: scheduleCleanup,
+      cancelCleanup: cancelCleanup
+    }
+  }, props.children);
+};
+
+function useSubscription(queryDefinitions, opts) {
+  var _preExistingContextFo;
+
+  var smContext = React.useContext(SMContext);
+
+  if (!smContext) {
+    throw Error('You must wrap your app with an SMProvider before using useSubscription.');
+  }
+
+  var obj = {
+    stack: ''
+  };
+  Error.captureStackTrace(obj, useSubscription);
+
+  if (obj.stack === '') {
+    // Should be supported in all browsers, but better safe than sorry
+    throw Error('Error.captureStackTrace not supported');
+  }
+
+  var subscriptionId = obj.stack.split('\n')[1];
+  var preExistingContextForThisSubscription = smContext.ongoingSubscriptionRecord[subscriptionId];
+
+  var _React$useState = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results),
+      results = _React$useState[0],
+      setResults = _React$useState[1];
+
+  var _React$useState2 = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error),
+      error = _React$useState2[0],
+      setError = _React$useState2[1];
+
+  var _React$useState3 = React.useState((preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying : true),
+      querying = _React$useState3[0],
+      setQuerying = _React$useState3[1];
+
+  React.useEffect(function () {
+    smContext.cancelCleanup(subscriptionId);
+    return function () {
+      smContext.scheduleCleanup(subscriptionId);
+    };
+  }, [smContext, subscriptionId]); // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
+  // state of the component rendered before the fallback occured.
+  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
+  // and call that in "onData" instead.
+
+  smContext.updateSubscriptionInfo(subscriptionId, {
+    onResults: setResults,
+    onError: setError,
+    setQuerying: setQuerying
+  });
+  var queryDefinitionHasBeenUpdated = (preExistingContextForThisSubscription == null ? void 0 : (_preExistingContextFo = preExistingContextForThisSubscription.queryInfo) == null ? void 0 : _preExistingContextFo.queryGQL) != null && preExistingContextForThisSubscription.queryInfo.queryGQL !== convertQueryDefinitionToQueryInfo({
+    queryDefinitions: queryDefinitions,
+    queryId: preExistingContextForThisSubscription.queryInfo.queryId
+  }).queryGQL;
+
+  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
+    if (queryDefinitionHasBeenUpdated) {
+      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
+    }
+
+    var queryTimestamp = new Date().valueOf();
+    setQuerying(true);
+    smContext.updateSubscriptionInfo(subscriptionId, {
+      querying: true,
+      lastQueryTimestamp: queryTimestamp
+    });
+    var suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
+      tokenName: opts == null ? void 0 : opts.tokenName,
+      onData: function onData(_ref) {
+        var newResults = _ref.results;
+        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
+        var thisQueryIsMostRecent = contextForThisSub.lastQueryTimestamp === queryTimestamp;
+
+        if (thisQueryIsMostRecent) {
+          contextForThisSub.onResults && contextForThisSub.onResults(newResults);
+          smContext.updateSubscriptionInfo(subscriptionId, {
+            results: newResults
+          });
+        }
+      },
+      onError: function onError(error) {
+        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
+        contextForThisSub.onError && contextForThisSub.onError(error);
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          error: error
+        });
+      },
+      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          unsub: subscriptionCanceller
+        });
+      },
+      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: queryInfo
+        });
+      }
+    })["finally"](function () {
+      var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
+      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
+
+      if (thisQueryIsMostRecent) {
+        contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
+        smContext.updateSubscriptionInfo(subscriptionId, {
+          suspendPromise: undefined,
+          querying: false
+        });
+      }
+    });
+
+    if (!preExistingContextForThisSubscription) {
+      smContext.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise: suspendPromise
+      });
+      throw suspendPromise;
+    } else {
+      return {
+        data: results,
+        querying: querying
+      };
+    }
+  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
+    throw preExistingContextForThisSubscription.suspendPromise;
+  } else if (error) {
+    throw error;
+  } else {
+    return {
+      data: results,
+      querying: querying
+    };
+  }
+}
+
+require('isomorphic-fetch');
+
+function getGQLCLient(gqlClientOpts) {
+  var wsLink = new ws.WebSocketLink({
+    uri: gqlClientOpts.wsUrl,
+    options: {
+      reconnect: true
+    }
+  });
+  var nonBatchedLink = new http.HttpLink({
+    uri: gqlClientOpts.httpUrl
+  });
+  var queryBatchLink = core.split(function (operation) {
+    return operation.getContext().batchedQuery !== false;
+  }, new batchHttp.BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    batchMax: 30,
+    batchInterval: 50
+  }), nonBatchedLink);
+  var mutationBatchLink = core.split(function (operation) {
+    return operation.getContext().batchedMutation;
+  }, new batchHttp.BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    // no batch max for explicitly batched mutations
+    // to ensure transactional integrity
+    batchMax: Number.MAX_SAFE_INTEGER,
+    batchInterval: 0
+  }), queryBatchLink);
+  var requestLink = core.split( // split based on operation type
+  function (_ref) {
+    var query = _ref.query;
+    var definition = utilities.getMainDefinition(query);
+    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
+  }, wsLink, mutationBatchLink);
+
+  function getContextWithToken(opts) {
+    return {
+      headers: {
+        Authorization: "Bearer " + opts.token
+      }
+    };
+  }
+
+  function authenticateSubscriptionDocument(opts) {
+    var _opts$gql$loc;
+
+    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
+
+    if (!documentBody) {
+      throw new Error('No documentBody found');
+    }
+
+    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
+
+    if (operationsThatRequireToken.some(function (operation) {
+      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
+    })) {
+      var documentBodyWithAuthTokensInjected = documentBody;
+      operationsThatRequireToken.forEach(function (operation) {
+        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
+      });
+      return core.gql(documentBodyWithAuthTokensInjected);
+    }
+
+    return opts.gql;
+  }
+
+  var authLink = new core.ApolloLink(function (operation, forward) {
+    return new core.Observable(function (observer) {
+      var handle;
+      Promise.resolve(operation).then(function () {
+        handle = forward(operation).subscribe({
+          next: observer.next.bind(observer),
+          error: observer.error.bind(observer),
+          complete: observer.complete.bind(observer)
+        });
+      })["catch"](observer.error.bind(observer));
+      return function () {
+        if (handle) handle.unsubscribe();
+      };
+    });
+  });
+  var baseClient = new core.ApolloClient({
+    link: core.ApolloLink.from([authLink, requestLink]),
+    cache: new core.InMemoryCache(),
+    defaultOptions: {
+      watchQuery: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'ignore'
+      },
+      query: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
+      }
+    }
+  });
+  var gqlClient = {
+    query: function () {
+      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+        var _yield$baseClient$que, data;
+
+        return runtime_1.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return baseClient.query({
+                  query: opts.gql,
+                  context: _extends({
+                    batchedQuery: opts.batched != null ? opts.batched : true
+                  }, getContextWithToken({
+                    token: opts.token
+                  }))
+                });
+
+              case 2:
+                _yield$baseClient$que = _context.sent;
+                data = _yield$baseClient$que.data;
+                return _context.abrupt("return", data);
+
+              case 5:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      function query(_x) {
+        return _query.apply(this, arguments);
+      }
+
+      return query;
+    }(),
+    subscribe: function subscribe(opts) {
+      var subscription = baseClient.subscribe({
+        query: authenticateSubscriptionDocument(opts)
+      }).subscribe({
+        next: function next(message) {
+          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
+        },
+        error: opts.onError
+      });
+      return function () {
+        return subscription.unsubscribe();
+      };
+    },
+    mutate: function () {
+      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.next = 2;
+                return Promise.all(opts.mutations.map(function (mutation) {
+                  return baseClient.mutate({
+                    mutation: mutation,
+                    context: _extends({
+                      batchedMutation: true
+                    }, getContextWithToken({
+                      token: opts.token
+                    }))
+                  });
+                }));
+
+              case 2:
+                return _context2.abrupt("return", _context2.sent);
+
+              case 3:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }));
+
+      function mutate(_x2) {
+        return _mutate.apply(this, arguments);
+      }
+
+      return mutate;
+    }()
+  };
+  return gqlClient;
+}
+
+function getDefaultConfig() {
+  return {
+    gqlClient: getGQLCLient({
+      httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
+      wsUrl: 'wss://saasmaster.dev02.tt-devs.com/'
+    })
+  };
 }
 
 var _templateObject$5, _templateObject2;
@@ -4570,377 +4961,6 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
         token: token
       };
     }
-  };
-}
-
-var SMContext = /*#__PURE__*/React.createContext(undefined);
-var SMProvider = function SMProvider(props) {
-  var existingContext = React.useContext(SMContext);
-
-  if (existingContext) {
-    throw Error('Another instance of an SMProvider was already detected higher up the render tree.\nHaving multiple instances of SMProviders is not supported and may lead to unexpected results.');
-  }
-
-  var ongoingSubscriptionRecord = React.useRef({});
-  var cleanupTimeoutRecord = React.useRef({});
-  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
-    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
-  }, []);
-  var scheduleCleanup = React.useCallback(function (subscriptionId) {
-    function cleanup() {
-      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
-
-      if (existingContextSubscription) {
-        existingContextSubscription.unsub && existingContextSubscription.unsub();
-        delete ongoingSubscriptionRecord.current[subscriptionId];
-      }
-    }
-
-    if (props.subscriptionTTLMs != null) {
-      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
-    } else {
-      cleanup();
-    }
-  }, [props.subscriptionTTLMs]);
-  var cancelCleanup = React.useCallback(function (subscriptionId) {
-    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
-  }, []);
-  return React.createElement(SMContext.Provider, {
-    value: {
-      smJSInstance: props.smJS,
-      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
-      updateSubscriptionInfo: updateSubscriptionInfo,
-      scheduleCleanup: scheduleCleanup,
-      cancelCleanup: cancelCleanup
-    }
-  }, props.children);
-};
-
-function useSubscription(queryDefinitions, opts) {
-  var _preExistingContextFo;
-
-  var smContext = React.useContext(SMContext);
-
-  if (!smContext) {
-    throw Error('You must wrap your app with an SMProvider before using useSubscription.');
-  }
-
-  var obj = {
-    stack: ''
-  };
-  Error.captureStackTrace(obj, useSubscription);
-
-  if (obj.stack === '') {
-    // Should be supported in all browsers, but better safe than sorry
-    throw Error('Error.captureStackTrace not supported');
-  }
-
-  var subscriptionId = obj.stack.split('\n')[1];
-  var preExistingContextForThisSubscription = smContext.ongoingSubscriptionRecord[subscriptionId];
-
-  var _React$useState = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results),
-      results = _React$useState[0],
-      setResults = _React$useState[1];
-
-  var _React$useState2 = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error),
-      error = _React$useState2[0],
-      setError = _React$useState2[1];
-
-  var _React$useState3 = React.useState((preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying : true),
-      querying = _React$useState3[0],
-      setQuerying = _React$useState3[1];
-
-  React.useEffect(function () {
-    smContext.cancelCleanup(subscriptionId);
-    return function () {
-      smContext.scheduleCleanup(subscriptionId);
-    };
-  }, [smContext, subscriptionId]); // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
-  // state of the component rendered before the fallback occured.
-  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
-  // and call that in "onData" instead.
-
-  smContext.updateSubscriptionInfo(subscriptionId, {
-    onResults: setResults,
-    onError: setError,
-    setQuerying: setQuerying
-  });
-  var queryDefinitionHasBeenUpdated = (preExistingContextForThisSubscription == null ? void 0 : (_preExistingContextFo = preExistingContextForThisSubscription.queryInfo) == null ? void 0 : _preExistingContextFo.queryGQL) != null && preExistingContextForThisSubscription.queryInfo.queryGQL !== convertQueryDefinitionToQueryInfo({
-    queryDefinitions: queryDefinitions,
-    queryId: preExistingContextForThisSubscription.queryInfo.queryId
-  }).queryGQL;
-
-  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
-    if (queryDefinitionHasBeenUpdated) {
-      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
-    }
-
-    var queryTimestamp = new Date().valueOf();
-    setQuerying(true);
-    smContext.updateSubscriptionInfo(subscriptionId, {
-      querying: true,
-      lastQueryTimestamp: queryTimestamp
-    });
-    var suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
-      tokenName: opts == null ? void 0 : opts.tokenName,
-      onData: function onData(_ref) {
-        var newResults = _ref.results;
-        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
-        var thisQueryIsMostRecent = contextForThisSub.lastQueryTimestamp === queryTimestamp;
-
-        if (thisQueryIsMostRecent) {
-          contextForThisSub.onResults && contextForThisSub.onResults(newResults);
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            results: newResults
-          });
-        }
-      },
-      onError: function onError(error) {
-        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
-        contextForThisSub.onError && contextForThisSub.onError(error);
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          error: error
-        });
-      },
-      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          unsub: subscriptionCanceller
-        });
-      },
-      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          queryInfo: queryInfo
-        });
-      }
-    })["finally"](function () {
-      var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
-      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
-
-      if (thisQueryIsMostRecent) {
-        contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          suspendPromise: undefined,
-          querying: false
-        });
-      }
-    });
-
-    if (!preExistingContextForThisSubscription) {
-      smContext.updateSubscriptionInfo(subscriptionId, {
-        suspendPromise: suspendPromise
-      });
-      throw suspendPromise;
-    } else {
-      return {
-        data: results,
-        querying: querying
-      };
-    }
-  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
-    throw preExistingContextForThisSubscription.suspendPromise;
-  } else if (error) {
-    throw error;
-  } else {
-    return {
-      data: results,
-      querying: querying
-    };
-  }
-}
-
-require('isomorphic-fetch');
-
-function getGQLCLient(gqlClientOpts) {
-  var wsLink = new ws.WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true
-    }
-  });
-  var nonBatchedLink = new http.HttpLink({
-    uri: gqlClientOpts.httpUrl
-  });
-  var queryBatchLink = core.split(function (operation) {
-    return operation.getContext().batchedQuery !== false;
-  }, new batchHttp.BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    batchMax: 30,
-    batchInterval: 50
-  }), nonBatchedLink);
-  var mutationBatchLink = core.split(function (operation) {
-    return operation.getContext().batchedMutation;
-  }, new batchHttp.BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    // no batch max for explicitly batched mutations
-    // to ensure transactional integrity
-    batchMax: Number.MAX_SAFE_INTEGER,
-    batchInterval: 0
-  }), queryBatchLink);
-  var requestLink = core.split( // split based on operation type
-  function (_ref) {
-    var query = _ref.query;
-    var definition = utilities.getMainDefinition(query);
-    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
-  }, wsLink, mutationBatchLink);
-
-  function getContextWithToken(opts) {
-    return {
-      headers: {
-        Authorization: "Bearer " + opts.token
-      }
-    };
-  }
-
-  function authenticateSubscriptionDocument(opts) {
-    var _opts$gql$loc;
-
-    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
-
-    if (!documentBody) {
-      throw new Error('No documentBody found');
-    }
-
-    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
-
-    if (operationsThatRequireToken.some(function (operation) {
-      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
-    })) {
-      var documentBodyWithAuthTokensInjected = documentBody;
-      operationsThatRequireToken.forEach(function (operation) {
-        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
-      });
-      return core.gql(documentBodyWithAuthTokensInjected);
-    }
-
-    return opts.gql;
-  }
-
-  var authLink = new core.ApolloLink(function (operation, forward) {
-    return new core.Observable(function (observer) {
-      var handle;
-      Promise.resolve(operation).then(function () {
-        handle = forward(operation).subscribe({
-          next: observer.next.bind(observer),
-          error: observer.error.bind(observer),
-          complete: observer.complete.bind(observer)
-        });
-      })["catch"](observer.error.bind(observer));
-      return function () {
-        if (handle) handle.unsubscribe();
-      };
-    });
-  });
-  var baseClient = new core.ApolloClient({
-    link: core.ApolloLink.from([authLink, requestLink]),
-    cache: new core.InMemoryCache(),
-    defaultOptions: {
-      watchQuery: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'ignore'
-      },
-      query: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }
-    }
-  });
-  var gqlClient = {
-    query: function () {
-      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _yield$baseClient$que, data;
-
-        return runtime_1.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                _context.next = 2;
-                return baseClient.query({
-                  query: opts.gql,
-                  context: _extends({
-                    batchedQuery: opts.batched != null ? opts.batched : true
-                  }, getContextWithToken({
-                    token: opts.token
-                  }))
-                });
-
-              case 2:
-                _yield$baseClient$que = _context.sent;
-                data = _yield$baseClient$que.data;
-                return _context.abrupt("return", data);
-
-              case 5:
-              case "end":
-                return _context.stop();
-            }
-          }
-        }, _callee);
-      }));
-
-      function query(_x) {
-        return _query.apply(this, arguments);
-      }
-
-      return query;
-    }(),
-    subscribe: function subscribe(opts) {
-      var subscription = baseClient.subscribe({
-        query: authenticateSubscriptionDocument(opts)
-      }).subscribe({
-        next: function next(message) {
-          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
-        },
-        error: opts.onError
-      });
-      return function () {
-        return subscription.unsubscribe();
-      };
-    },
-    mutate: function () {
-      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.next = 2;
-                return Promise.all(opts.mutations.map(function (mutation) {
-                  return baseClient.mutate({
-                    mutation: mutation,
-                    context: _extends({
-                      batchedMutation: true
-                    }, getContextWithToken({
-                      token: opts.token
-                    }))
-                  });
-                }));
-
-              case 2:
-                return _context2.abrupt("return", _context2.sent);
-
-              case 3:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2);
-      }));
-
-      function mutate(_x2) {
-        return _mutate.apply(this, arguments);
-      }
-
-      return mutate;
-    }()
-  };
-  return gqlClient;
-}
-
-function getDefaultConfig() {
-  return {
-    gqlClient: getGQLCLient({
-      httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
-      wsUrl: 'wss://saasmaster.dev02.tt-devs.com/'
-    })
   };
 }
 
