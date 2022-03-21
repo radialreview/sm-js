@@ -51,6 +51,8 @@ function escapeText(text: string): string {
  *
  * @param obj an object with arbitrary data
  * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
  * @returns a flat object where the keys are of "key__dot__value" syntax
  *
  * For example:
@@ -69,16 +71,24 @@ function escapeText(text: string): string {
  */
 export function prepareObjectForBE(
   obj: Record<string, any>,
-  parentKey?: string
+  opts?: {
+    parentKey?: string;
+    omitObjectIdentifier?: boolean;
+  }
 ) {
   return Object.entries(obj).reduce((acc, [key, val]) => {
-    const preparedKey = parentKey
-      ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+    const preparedKey = opts?.parentKey
+      ? `${opts.parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
       : key;
 
     if (typeof val === 'object' && val != null) {
-      acc[preparedKey] = OBJECT_IDENTIFIER;
-      acc = { ...acc, ...prepareObjectForBE(val, preparedKey) };
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+      acc = {
+        ...acc,
+        ...prepareObjectForBE(val, { ...opts, parentKey: preparedKey }),
+      };
     } else {
       acc[preparedKey] = val;
     }

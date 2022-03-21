@@ -387,7 +387,9 @@ function getIdsString(ids: Array<string>) {
 export function getKeyValueFilterString<TSMNode extends ISMNode>(
   filter: ValidFilterForNode<TSMNode>
 ) {
-  const convertedToDotFormat = prepareObjectForBE(filter);
+  const convertedToDotFormat = prepareObjectForBE(filter, {
+    omitObjectIdentifier: true,
+  });
   return `{${Object.entries(convertedToDotFormat).reduce(
     (acc, [key, value], idx, entries) => {
       acc += `${key}: ${JSON.stringify(value)}`;
