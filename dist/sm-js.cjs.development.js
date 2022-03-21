@@ -527,6 +527,7 @@ var SM_RELATIONAL_TYPES = {
 var reference = function reference(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
+      idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
       _smRelational: SM_RELATIONAL_TYPES.byReference,
       map: queryBuilderOpts.map
     });
