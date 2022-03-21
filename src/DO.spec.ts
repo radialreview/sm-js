@@ -1,4 +1,5 @@
 import { SMJS } from '.';
+import { NULL_TAG } from './dataConversions';
 import * as smData from './smDataTypes';
 import {
   TodoNode,
@@ -333,5 +334,21 @@ describe('smData.DO', () => {
         testOptionalNumber: null,
       },
     });
+  });
+
+  test('root level properties that receive NULL_TAG are coerced properly', () => {
+    const properties = {
+      meetingIds: smData.array(smData.string).optional,
+    };
+    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+      properties,
+      initialData: {
+        id: '123',
+        version: '1',
+        meetingIds: NULL_TAG,
+      },
+    });
+
+    expect(doInstance.meetingIds).toEqual(null);
   });
 });
