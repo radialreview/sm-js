@@ -19,8 +19,9 @@ import {
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
-  QueryFilterEqualsKeyValue,
+  ValidFilterForNode,
 } from './types';
+import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',
@@ -383,23 +384,27 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<NodeType>(
-  clause: Partial<Record<keyof NodeType, string>>
+export function getKeyValueFilterString<TSMNode extends ISMNode>(
+  filter: ValidFilterForNode<TSMNode>
 ) {
-  return `{${Object.entries(clause).reduce((acc, [key, value]) => {
-    acc += `${key}: ${JSON.stringify(value)}`;
-    return acc;
-  }, '')}}`;
+  const convertedToDotFormat = prepareObjectForBE(filter);
+  return `{${Object.entries(convertedToDotFormat).reduce(
+    (acc, [key, value], idx, entries) => {
+      acc += `${key}: ${JSON.stringify(value)}`;
+      if (idx < entries.length - 1) {
+        acc += `, `;
+      }
+      return acc;
+    },
+    ''
+  )}}`;
 }
 
-function getGetNodeOptions(opts: {
-  def: ISMNode;
+function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
+  def: TSMNode;
   underIds?: Array<string>;
   depth?: number;
-  /** @TODO_TECH_DEBT_10_22 - https://tractiontools.atlassian.net/browse/MIO-335 */
-  filter?:
-    | Array<QueryFilterEqualsKeyValue<ISMNode>>
-    | QueryFilterEqualsKeyValue<ISMNode>;
+  filter?: ValidFilterForNode<TSMNode>;
 }) {
   const options: Array<string> = [`type: "${opts.def.type}"`];
 
@@ -412,11 +417,7 @@ function getGetNodeOptions(opts: {
   }
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(
-      Array.isArray(opts.filter)
-        ? `filter: [${opts.filter.map(getKeyValueFilterString).join(',')}]`
-        : `filter: ${getKeyValueFilterString(opts.filter)}`
-    );
+    options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
   }
 
   return options.join(', ');

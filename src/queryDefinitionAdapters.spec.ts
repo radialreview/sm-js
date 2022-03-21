@@ -556,7 +556,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", filter: {settings: {\\"nestedSettings\\":{\\"nestedNestedMaybe\\":\\"mock value\\"}}}) {
+              todos: GetNodesNew(type: \\"todo\\", filter: {settings: \\"__object__\\", settings__dot__nestedSettings: \\"__object__\\", settings__dot__nestedSettings__dot__nestedNestedMaybe: \\"mock value\\"}) {
             id,
             version,
             lastUpdatedBy,

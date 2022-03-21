@@ -208,10 +208,6 @@ type GetSMBoxedValue<
     ? TBoxedValue
 : never;
 
-export type QueryFilterEqualsKeyValue<NodeType> = Partial<
-  Record<keyof NodeType, string>
->;
-
 export type GetParsedValueTypeFromDefaultFn<
   TDefaultFn extends (_default: any) => ISMData
 > = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any>
