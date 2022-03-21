@@ -13,6 +13,8 @@ export declare function convertNodeDataToSMPersistedData(nodeData: Record<string
  *
  * @param obj an object with arbitrary data
  * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
  * @returns a flat object where the keys are of "key__dot__value" syntax
  *
  * For example:
@@ -29,4 +31,7 @@ export declare function convertNodeDataToSMPersistedData(nodeData: Record<string
  * }
  * ```
  */
-export declare function prepareObjectForBE(obj: Record<string, any>, parentKey?: string): Record<string, any>;
+export declare function prepareObjectForBE(obj: Record<string, any>, opts?: {
+    parentKey?: string;
+    omitObjectIdentifier?: boolean;
+}): Record<string, any>;

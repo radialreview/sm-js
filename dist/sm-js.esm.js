@@ -583,6 +583,8 @@ function escapeText(text) {
  *
  * @param obj an object with arbitrary data
  * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
  * @returns a flat object where the keys are of "key__dot__value" syntax
  *
  * For example:
@@ -601,15 +603,20 @@ function escapeText(text) {
  */
 
 
-function prepareObjectForBE(obj, parentKey) {
+function prepareObjectForBE(obj, opts) {
   return Object.entries(obj).reduce(function (acc, _ref2) {
     var key = _ref2[0],
         val = _ref2[1];
-    var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
 
     if (typeof val === 'object' && val != null) {
-      acc[preparedKey] = OBJECT_IDENTIFIER;
-      acc = _extends({}, acc, prepareObjectForBE(val, preparedKey));
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, prepareObjectForBE(val, _extends({}, opts, {
+        parentKey: preparedKey
+      })));
     } else {
       acc[preparedKey] = val;
     }
@@ -990,7 +997,9 @@ function getIdsString(ids) {
 }
 
 function getKeyValueFilterString(filter) {
-  var convertedToDotFormat = prepareObjectForBE(filter);
+  var convertedToDotFormat = prepareObjectForBE(filter, {
+    omitObjectIdentifier: true
+  });
   return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
     var key = _ref[0],
         value = _ref[1];
