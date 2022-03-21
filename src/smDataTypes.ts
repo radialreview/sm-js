@@ -16,6 +16,7 @@ import {
   QueryDefinition,
   QueryDefinitionTarget,
   SMDataDefaultFn,
+  ValidReferenceIdPropFromNode,
 } from './types';
 
 export const SM_DATA_TYPES = {
@@ -316,21 +317,21 @@ export const SM_RELATIONAL_TYPES = {
 };
 
 export const reference = <
-  TParentHoldingReference extends ISMNode,
-  TReferencedNode extends ISMNode | Maybe<ISMNode> = ISMNode
+  TOriginNode extends ISMNode,
+  TTargetNode extends ISMNode | Maybe<ISMNode> = ISMNode
 >(opts: {
-  def: NonNullable<TReferencedNode>;
-  idProp: keyof TParentHoldingReference['smData'];
+  def: NonNullable<TTargetNode>;
+  idProp: ValidReferenceIdPropFromNode<TOriginNode>;
 }) => {
   return ((queryBuilderOpts: {
-    map: MapFnForNode<NonNullable<TReferencedNode>>;
+    map: MapFnForNode<NonNullable<TTargetNode>>;
   }) => {
     return {
       ...opts,
       _smRelational: SM_RELATIONAL_TYPES.byReference,
       map: queryBuilderOpts.map,
     };
-  }) as IByReferenceQueryBuilder<TParentHoldingReference, TReferencedNode>;
+  }) as IByReferenceQueryBuilder<TOriginNode, TTargetNode>;
 };
 
 export const children = <TSMNode extends ISMNode>(opts: {

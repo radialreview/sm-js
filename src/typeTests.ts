@@ -60,6 +60,7 @@ type TodoNode = ISMNode<
     meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
   }
 >;
+
 const todoNode: TodoNode = smJS.def({
   type: 'todo',
   properties: todoProperties,
@@ -105,12 +106,27 @@ const userProperties = {
 };
 const userRelational = {
   todos: () => children({ def: todoNode }) as IChildrenQueryBuilder<TodoNode>,
+  state: () =>
+    reference({
+      def: stateNode,
+      idProp: 'address.state',
+    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
+  invalid: () =>
+    reference({
+      def: stateNode,
+      // @ts-expect-error not a valid id prop in user node
+      idProp: 'address.statesz',
+    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
 };
 
 type UserNode = ISMNode<
   typeof userProperties,
   { fullName: string; avatar: string },
-  { todos: IChildrenQueryBuilder<TodoNode> }
+  {
+    todos: IChildrenQueryBuilder<TodoNode>;
+    state: IByReferenceQueryBuilder<UserNode, StateNode>;
+    invalid: IByReferenceQueryBuilder<UserNode, StateNode>;
+  }
 >;
 const userNode: UserNode = smJS.def({
   type: 'user',
@@ -126,6 +142,14 @@ const userNode: UserNode = smJS.def({
   },
 });
 
+const stateNodeProperties = {
+  name: string,
+};
+type StateNode = ISMNode<typeof stateNodeProperties>;
+const stateNode: StateNode = smJS.def({
+  type: 'state',
+  properties: stateNodeProperties,
+});
 (async function MapFnTests() {
   // @ts-ignore
   const mapFn: MapFnForNode<typeof userNode> = ({
