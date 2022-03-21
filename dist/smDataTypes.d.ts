@@ -1,4 +1,4 @@
-import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn } from './types';
+import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn, ValidReferenceIdPropFromNode } from './types';
 export declare const SM_DATA_TYPES: {
     string: string;
     maybeString: string;
@@ -67,10 +67,10 @@ export declare const SM_RELATIONAL_TYPES: {
     byReference: "bR";
     children: "bP";
 };
-export declare const reference: <TParentHoldingReference extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TReferencedNode extends Maybe<ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
-    def: NonNullable<TReferencedNode>;
-    idProp: keyof TParentHoldingReference["smData"];
-}) => IByReferenceQueryBuilder<TParentHoldingReference, TReferencedNode>;
+export declare const reference: <TOriginNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TTargetNode extends Maybe<ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
+    def: NonNullable<TTargetNode>;
+    idProp: any;
+}) => IByReferenceQueryBuilder<TOriginNode, TTargetNode>;
 export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: TSMNode;
     depth?: number | undefined;
