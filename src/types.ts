@@ -300,6 +300,10 @@ type IsObject<TObject extends Record<string,any>, Y = true, N = false> =
       ? Y
       : N
 
+/**
+ * Note: this is used solely for obtaining the keys in an object converted to the dot notation
+ * it was not possible to have the correct value types be mapped over, which is why all values are "never"
+ */
 type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
   // object properties
   {
@@ -315,7 +319,7 @@ type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix 
             : keyof ConvertToRootLevelDotNotation<TObject[TKey], `${TPrefix}.${TKey}`>
           : never
         : never
-    ]: string
+    ]: never
   }
   &
   // primitive properties
@@ -332,7 +336,7 @@ type ConvertToRootLevelDotNotation<TObject extends Record<string, any>, TPrefix 
             : TKey extends string
               ? `${TPrefix}.${TKey}`
               : never
-    ]: TObject[TKey]
+    ]: never
   }
 
 type ValidReferenceIdProp<TObject extends Record<string,any>> = keyof ConvertToRootLevelDotNotation<TObject>

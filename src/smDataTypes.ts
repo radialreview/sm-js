@@ -328,6 +328,10 @@ export const reference = <
   }) => {
     return {
       ...opts,
+      idProp: (opts.idProp as string).replaceAll(
+        '.',
+        OBJECT_PROPERTY_SEPARATOR
+      ) as ValidReferenceIdPropFromNode<TOriginNode>,
       _smRelational: SM_RELATIONAL_TYPES.byReference,
       map: queryBuilderOpts.map,
     };
