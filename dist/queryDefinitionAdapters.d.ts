@@ -1,9 +1,4 @@
 import { ISMNode, QueryDefinitions, QueryRecord, ValidFilterForNode } from './types';
-export declare const OBJECT_IDENTIFIER = "__object__";
-export declare function prepareObjectForBE(obj: Record<string, any>, opts?: {
-    parentKey?: string;
-    omitObjectIdentifier?: boolean;
-}): Record<string, any>;
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: string[];
 export declare function getQueryRecordFromQueryDefinition(opts: {
     queryId: string;
