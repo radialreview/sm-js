@@ -522,13 +522,13 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(smJSInstance),
             map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
-            filter: { task: 'get it done' },
+            filter: { task: 'get it done', done: false, meetingId: null },
           }),
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
+              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\", done: \\"false\\", meetingId: null}) {
             id,
             version,
             lastUpdatedBy,
