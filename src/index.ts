@@ -82,14 +82,6 @@ export class SMJS implements ISMJS {
   public def<
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any> = {},
-    // the tsignore here is necessary
-    // because the generic that NodeRelationalQueryBuilderRecord needs is
-    // the node definition for the origin of the relational queries
-    // which when defining a node, is the node being defined
-    // attempting to replicate the node here would always end up in a loop
-    // since we need the relational data to construct a node
-    // and need the node to construct the relational data (without this ts ignore)
-    // @ts-ignore
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
     TNodeMutations extends Record<
       string,
@@ -99,7 +91,6 @@ export class SMJS implements ISMJS {
     def: NodeDefArgs<
       TNodeData,
       TNodeComputedData,
-      // @ts-ignore
       TNodeRelationalData,
       TNodeMutations
     >

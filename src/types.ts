@@ -127,7 +127,7 @@ export interface ISMJS {
   def<
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
     TNodeMutations extends Record<
       string,
       /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
@@ -145,7 +145,7 @@ export interface ISMJS {
 export type NodeDefArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
   type: string;
@@ -259,7 +259,7 @@ export type GetAllAvailableNodeDataType<
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 
 export type GetExpectedRelationalDataType<
-  TRelationalData extends NodeRelationalQueryBuilderRecord<any>
+  TRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
   [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<
     any,
@@ -406,7 +406,7 @@ export type NodeComputedFns<
 };
 
 export type NodeRelationalFns<
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
   [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
@@ -421,7 +421,6 @@ export type NodeMutationFn<
 export interface ISMNode<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
-  // @ts-ignore
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
   TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>,
@@ -430,7 +429,6 @@ export interface ISMNode<
   _isSMNodeDef: true;
   smData: TNodeData;
   smComputed?: TNodeComputedFns;
-  // @ts-ignore
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
   type: string;
@@ -494,9 +492,17 @@ export interface IChildrenQuery<
 
 export interface ISMQueryPagination {}
 
-export type NodeRelationalQueryBuilderRecord<TNodeType extends ISMNode> = Record<
+export type NodeRelationalQueryBuilderRecord = Record<
   string,
-  NodeRelationalQueryBuilder<TNodeType>
+  // the tsignore here is necessary
+  // because the generic that NodeRelationalQueryBuilder needs is
+  // the node definition for the origin of the relational queries
+  // which when defining a node, is the node being defined
+  // attempting to replicate the node here would always end up in a loop
+  // since we need the relational data to construct a node
+  // and need the node to construct the relational data (without this ts ignore)
+  // @ts-ignore
+  NodeRelationalQueryBuilder
 >;
 
 export interface ISMNodeRepository {
@@ -615,14 +621,14 @@ export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
 export type MapFn<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>,
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
   data: GetMapFnArgs<TNodeData, TNodeRelationalData>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord<any>
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 > = {
   [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>>
     ? TNodeData[key]
