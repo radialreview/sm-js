@@ -355,14 +355,17 @@ export function getQueryRecordFromQueryDefinition(opts: {
       if (queryDefinition.target.ids) {
         (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
           queryDefinition.target.ids;
-      } else if (queryDefinition.target.id) {
+      }
+      if (queryDefinition.target.id) {
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
-      } else if (queryDefinition.target.underIds) {
+      }
+      if (queryDefinition.target.underIds) {
         (queryRecordEntry as QueryRecordEntry & {
           underIds: Array<string>;
         }).underIds = queryDefinition.target.underIds;
-      } else if (queryDefinition.target.depth) {
+      }
+      if (queryDefinition.target.depth) {
         (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
           queryDefinition.target.depth;
       }

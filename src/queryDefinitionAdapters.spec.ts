@@ -538,6 +538,31 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
+  it('supports combinations of target params', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(smJSInstance),
+            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            target: { underIds: ['userA'], depth: 1 },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\", underIds: [\\"userA\\"], depth: 1) {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+          }"
+    `);
+  });
+
   it('supports filters for nested properties', () => {
     const smJSInstance = new SMJS(getMockConfig());
 
