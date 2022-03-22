@@ -985,11 +985,17 @@ function getQueryRecordFromQueryDefinition(opts) {
     if (queryDefinition.target) {
       if (queryDefinition.target.ids) {
         queryRecordEntry.ids = queryDefinition.target.ids;
-      } else if (queryDefinition.target.id) {
+      }
+
+      if (queryDefinition.target.id) {
         queryRecordEntry.id = queryDefinition.target.id;
-      } else if (queryDefinition.target.underIds) {
+      }
+
+      if (queryDefinition.target.underIds) {
         queryRecordEntry.underIds = queryDefinition.target.underIds;
-      } else if (queryDefinition.target.depth) {
+      }
+
+      if (queryDefinition.target.depth) {
         queryRecordEntry.depth = queryDefinition.target.depth;
       }
     }
