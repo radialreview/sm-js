@@ -1016,7 +1016,7 @@ function getKeyValueFilterString(filter) {
   return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
     var key = _ref[0],
         value = _ref[1];
-    acc += key + ": " + JSON.stringify(value);
+    acc += key + ": " + (value == null ? null : "\"" + String(value) + "\"");
 
     if (idx < entries.length - 1) {
       acc += ", ";
