@@ -44,6 +44,14 @@ const todoRelational = {
       def: meetingNode,
       idProp: 'meetingId',
     }),
+  assigneeUnion: () =>
+    reference<
+      typeof todoNode,
+      { meetingGuest: MeetingGuestNode; orgUser: UserNode }
+    >({
+      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
+      idProp: 'meetingId',
+    }),
 };
 
 const meetingProperties = {
@@ -128,6 +136,7 @@ type UserNode = ISMNode<
     invalid: IByReferenceQueryBuilder<UserNode, StateNode>;
   }
 >;
+
 const userNode: UserNode = smJS.def({
   type: 'user',
   properties: userProperties,
@@ -140,6 +149,15 @@ const userNode: UserNode = smJS.def({
       return fullName + '.jpg';
     },
   },
+});
+
+const meetingGuestProperties = {
+  firstName: string,
+};
+type MeetingGuestNode = ISMNode<typeof meetingGuestProperties>;
+const meetingGuestNode: MeetingGuestNode = smJS.def({
+  type: 'meeting-guest',
+  properties: meetingGuestProperties,
 });
 
 const stateNodeProperties = {
@@ -574,6 +592,26 @@ const stateNode: StateNode = smJS.def({
   withExplicitTypesOmitted.data.mock[0].t as string;
   // @ts-expect-error
   withExplicitTypesOmitted.data.mock[0].foo as string;
+
+  const withRelationalUnion = await smJS.query({
+    users: queryDefinition({
+      def: todoNode,
+      map: todoData => ({
+        assignee: todoData.assignee({
+          orgUser: {
+            map: ({ lastName }) => ({ lastName }),
+          },
+          meetingGuest: {
+            map: ({ firstName }) => ({ firstName }),
+          },
+        }),
+      }),
+    }),
+  });
+
+  withRelationalUnion.data.users.assignee.type as 'meeting-guest' | 'user';
+  // @ts-expect-error must enforce type guards, since all members of union do not contain firstName
+  withRelationalUnion.data.users.assignee.firstName;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
