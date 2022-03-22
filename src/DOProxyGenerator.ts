@@ -2,7 +2,7 @@ import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
 } from './exceptions';
-import { OBJECT_PROPERTY_SEPARATOR, SM_DATA_TYPES } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 import {
   ISMJS,
   ISMData,
@@ -12,6 +12,7 @@ import {
   NodeDO,
   Maybe,
   RelationalQueryRecordEntry,
+  SM_DATA_TYPES,
 } from './types';
 
 export function createDOProxyGenerator(smJSInstance: ISMJS) {

@@ -1,9 +1,14 @@
-import { ISMNode, QueryDefinitions, QueryRecordEntry, ValidFilterForNode } from './types';
+import { ISMNode, QueryDefinitions, QueryRecord, ValidFilterForNode } from './types';
+export declare const OBJECT_IDENTIFIER = "__object__";
+export declare function prepareObjectForBE(obj: Record<string, any>, opts?: {
+    parentKey?: string;
+    omitObjectIdentifier?: boolean;
+}): Record<string, any>;
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: string[];
 export declare function getQueryRecordFromQueryDefinition(opts: {
     queryId: string;
     queryDefinitions: QueryDefinitions;
-}): Record<string, QueryRecordEntry>;
+}): QueryRecord;
 export declare function getKeyValueFilterString<TSMNode extends ISMNode>(filter: ValidFilterForNode<TSMNode>): string;
 export declare type SubscriptionConfig = {
     alias: string;
@@ -17,7 +22,7 @@ export declare function getQueryInfo(opts: {
 }): {
     subscriptionConfigs: SubscriptionConfig[];
     queryGQLString: string;
-    queryRecord: Record<string, QueryRecordEntry>;
+    queryRecord: QueryRecord;
 };
 /**
  * Converts a queryDefinitions into a gql doc that can be sent to the gqlClient
@@ -29,13 +34,13 @@ export declare function convertQueryDefinitionToQueryInfo(opts: {
     queryDefinitions: QueryDefinitions;
     queryId: string;
 }): {
-    queryGQL: any;
+    queryGQL: import("graphql/language/ast").DocumentNode;
     subscriptionConfigs: {
-        gql: any;
+        gql: import("graphql/language/ast").DocumentNode;
         alias: string;
         gqlString: string;
         extractNodeFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
         extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
     }[];
-    queryRecord: Record<string, QueryRecordEntry>;
+    queryRecord: QueryRecord;
 };

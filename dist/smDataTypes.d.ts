@@ -1,26 +1,12 @@
-import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn, ValidReferenceIdPropFromNode } from './types';
-export declare const SM_DATA_TYPES: {
-    string: string;
-    maybeString: string;
-    number: string;
-    maybeNumber: string;
-    boolean: string;
-    maybeBoolean: string;
-    object: string;
-    maybeObject: string;
-    record: string;
-    maybeRecord: string;
-    array: string;
-    maybeArray: string;
-};
+import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinition, QueryDefinitionTarget, SMDataDefaultFn, ValidReferenceIdPropFromNode, SM_DATA_TYPES } from './types';
 export declare class SMData<TParsedValue, TSMValue, TBoxedValue extends ISMData | SMDataDefaultFn | Record<string, ISMData | SMDataDefaultFn> | undefined> implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
-    type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
+    type: SM_DATA_TYPES;
     parser: (smValue: TSMValue) => TParsedValue;
     boxedValue: TBoxedValue;
     defaultValue: Maybe<TParsedValue>;
     isOptional: boolean;
     constructor(opts: {
-        type: string;
+        type: SM_DATA_TYPES;
         parser: (smValue: TSMValue) => TParsedValue;
         boxedValue?: TBoxedValue;
         defaultValue?: TParsedValue;
@@ -63,13 +49,9 @@ export declare const array: <TBoxedValue extends ISMData<any, any, any> | SMData
     optional: SMData<Maybe<GetSMDataType<TBoxedValue>[]>, Maybe<GetSMDataType<TBoxedValue>[]>, TBoxedValue>;
     _default: SMData<GetSMDataType<TBoxedValue>[], GetSMDataType<TBoxedValue>[], TBoxedValue>;
 };
-export declare const SM_RELATIONAL_TYPES: {
-    byReference: "bR";
-    children: "bP";
-};
 export declare const reference: <TOriginNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TTargetNode extends Maybe<ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>> = ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: NonNullable<TTargetNode>;
-    idProp: any;
+    idProp: ValidReferenceIdPropFromNode<TOriginNode>;
 }) => IByReferenceQueryBuilder<TOriginNode, TTargetNode>;
 export declare const children: <TSMNode extends ISMNode<{}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: TSMNode;

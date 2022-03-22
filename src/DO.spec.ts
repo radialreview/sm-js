@@ -7,7 +7,7 @@ import {
   generateDOInstance,
   getMockConfig,
 } from './specUtilities';
-import { IChildrenQueryBuilder, ISMData } from './types';
+import { IChildrenQueryBuilder, ISMData, SM_RELATIONAL_TYPES } from './types';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -165,7 +165,7 @@ describe('smData.DO', () => {
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
         map: queryFn,
-        _smRelational: smData.SM_RELATIONAL_TYPES.children,
+        _smRelational: SM_RELATIONAL_TYPES.children,
       })
     );
   });

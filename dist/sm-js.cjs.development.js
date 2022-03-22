@@ -240,6 +240,7 @@ var SMNotUpToDateException = /*#__PURE__*/function (_Error) {
     var _this;
 
     _this = _Error.call(this, "SMNotUpToDate exception - The property \"" + opts.propName + "\" on the DO for the node type " + opts.nodeType + " was read but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
+    _this.propName = void 0;
     _this.propName = opts.propName;
     return _this;
   }
@@ -298,6 +299,7 @@ var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error7) {
     var _this2;
 
     _this2 = _Error7.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
   }
@@ -314,23 +316,38 @@ function throwLocallyLogInProd(error) {
   }
 }
 
-var SM_DATA_TYPES = {
-  string: 's',
-  maybeString: 'mS',
-  number: 'n',
-  maybeNumber: 'mN',
-  "boolean": 'b',
-  maybeBoolean: 'mB',
-  object: 'o',
-  maybeObject: 'mO',
-  record: 'r',
-  maybeRecord: 'mR',
-  array: 'a',
-  maybeArray: 'mA'
-};
+var SM_DATA_TYPES;
+
+(function (SM_DATA_TYPES) {
+  SM_DATA_TYPES["string"] = "s";
+  SM_DATA_TYPES["maybeString"] = "mS";
+  SM_DATA_TYPES["number"] = "n";
+  SM_DATA_TYPES["maybeNumber"] = "mN";
+  SM_DATA_TYPES["boolean"] = "b";
+  SM_DATA_TYPES["maybeBoolean"] = "mB";
+  SM_DATA_TYPES["object"] = "o";
+  SM_DATA_TYPES["maybeObject"] = "mO";
+  SM_DATA_TYPES["record"] = "r";
+  SM_DATA_TYPES["maybeRecord"] = "mR";
+  SM_DATA_TYPES["array"] = "a";
+  SM_DATA_TYPES["maybeArray"] = "mA";
+})(SM_DATA_TYPES || (SM_DATA_TYPES = {}));
+
+var SM_RELATIONAL_TYPES;
+
+(function (SM_RELATIONAL_TYPES) {
+  SM_RELATIONAL_TYPES["byReference"] = "bR";
+  SM_RELATIONAL_TYPES["children"] = "bP";
+})(SM_RELATIONAL_TYPES || (SM_RELATIONAL_TYPES = {}));
+
 var SMData = function SMData(opts) {
   var _opts$defaultValue;
 
+  this.type = void 0;
+  this.parser = void 0;
+  this.boxedValue = void 0;
+  this.defaultValue = void 0;
+  this.isOptional = void 0;
   this.type = opts.type;
   this.parser = opts.parser;
   this.boxedValue = opts.boxedValue;
@@ -520,10 +537,6 @@ var array = function array(boxedValue) {
   smArray._default = smArray([]);
   return smArray;
 };
-var SM_RELATIONAL_TYPES = {
-  byReference: 'bR',
-  children: 'bP'
-};
 var reference = function reference(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
@@ -551,73 +564,16 @@ function queryDefinition(queryDefinition) {
   return queryDefinition;
 }
 
-var _excluded = ["to"],
-    _excluded2 = ["from"];
-var JSON_TAG$1 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = prepareForBE(nodeData);
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-}
-
-function escapeText(text) {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-}
-/**
- * Takes an object node value and flattens it to be sent to SM
- *
- * @param obj an object with arbitrary data
- * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
- * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
- *  used to construct filters since there we don't care what the parent property is set to
- * @returns a flat object where the keys are of "key__dot__value" syntax
- *
- * For example:
- * ```typescript
- * const obj = {settings: {schedule: {day: 'Monday'} } }
- *  const result = prepareValueForBE(obj)
- * ```
- * The result will be:
- *  ```typescript
- *  {
- * settings: '__object__',
- * settings__dot__schedule: '__object__',
- * settings__dot__schedule__dot__day: 'Monday',
- * }
- * ```
- */
-
-
+var OBJECT_IDENTIFIER$1 = '__object__';
 function prepareObjectForBE(obj, opts) {
-  return Object.entries(obj).reduce(function (acc, _ref2) {
-    var key = _ref2[0],
-        val = _ref2[1];
+  return Object.entries(obj).reduce(function (acc, _ref) {
+    var key = _ref[0],
+        val = _ref[1];
     var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
 
     if (typeof val === 'object' && val != null) {
       if (!opts || !opts.omitObjectIdentifier) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
+        acc[preparedKey] = OBJECT_IDENTIFIER$1;
       }
 
       acc = _extends({}, acc, prepareObjectForBE(val, _extends({}, opts, {
@@ -630,96 +586,6 @@ function prepareObjectForBE(obj, opts) {
     return acc;
   }, {});
 }
-
-function convertPropertyToBE(opts) {
-  if (opts.value === null) {
-    var _ref3;
-
-    return _ref3 = {}, _ref3[opts.key] = null, _ref3;
-  } else if (Array.isArray(opts.value)) {
-    var _ref4;
-
-    return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
-  } else if (typeof opts.value === 'object') {
-    var _prepareObjectForBE;
-
-    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
-  } else if (typeof opts.value === 'string') {
-    var _ref5;
-
-    return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
-  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-    var _ref7;
-
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      var _ref6;
-
-      return _ref6 = {}, _ref6[opts.key] = null, _ref6;
-    }
-
-    return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
-  } else {
-    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-  }
-}
-
-function convertEdgeDirectionNames(edgeItem) {
-  if (edgeItem.hasOwnProperty('to')) {
-    var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
-
-    return _extends({}, restOfEdgeItem, {
-      targetId: to
-    });
-  } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
-
-    return _extends({}, _restOfEdgeItem, {
-      sourceId: edgeItem.from
-    });
-  }
-
-  throw new Error('convertEdgeDirectionNames - received invalid data');
-}
-
-function prepareForBE(obj) {
-  return Object.entries(obj).reduce(function (acc, _ref8) {
-    var key = _ref8[0],
-        value = _ref8[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, convertPropertyToBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-}
-
 var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
@@ -1006,9 +872,9 @@ function getKeyValueFilterString(filter) {
   var convertedToDotFormat = prepareObjectForBE(filter, {
     omitObjectIdentifier: true
   });
-  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
-    var key = _ref[0],
-        value = _ref[1];
+  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref2, idx, entries) {
+    var key = _ref2[0],
+        value = _ref2[1];
     acc += key + ": " + JSON.stringify(value);
 
     if (idx < entries.length - 1) {
@@ -1229,8 +1095,12 @@ function createDOFactory(smJSInstance) {
         var _this = this,
             _smJSInstance$plugins;
 
+        this.parsedData = void 0;
         this.version = -1;
+        this.id = void 0;
+        this.lastUpdatedBy = void 0;
         this.persistedData = {};
+        this._defaults = void 0;
         this.type = node.type;
 
         this.getDefaultData = function (nodePropertiesOrSMData) {
@@ -1312,11 +1182,6 @@ function createDOFactory(smJSInstance) {
             });
           }
         };
-        /**
-         * Object type props have different getters and setters than non object type
-         * because when an object property is set we extend the previous value, instead of replacing its reference entirely (we've seen great performance gains doing this)
-         */
-
 
         this.setObjectProp = function (propNameForThisObject) {
           Object.defineProperty(_this, propNameForThisObject, {
@@ -1457,7 +1322,8 @@ function createDOFactory(smJSInstance) {
                 acc[key] = _this3.getParsedData({
                   smData: property.boxedValue,
                   persistedData: opts.persistedData[key],
-                  defaultData: opts.defaultData
+                  defaultData: opts.defaultData //opts.defaultData,
+
                 }); // no default value for values in a record
 
                 return acc;
@@ -1607,7 +1473,12 @@ function createDOFactory(smJSInstance) {
             });
           });
         }
-      };
+      }
+      /**
+       * Object type props have different getters and setters than non object type
+       * because when an object property is set we extend the previous value, instead of replacing its reference entirely (we've seen great performance gains doing this)
+       */
+      ;
 
       _proto.setComputedProp = function setComputedProp(opts) {
         var _this9 = this,
@@ -3439,6 +3310,7 @@ function createSMQueryManager(smJSInstance) {
   return /*#__PURE__*/function () {
     function SMQueryManager(queryRecord) {
       this.state = {};
+      this.queryRecord = void 0;
       this.queryRecord = queryRecord;
     }
 
@@ -3969,6 +3841,175 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'UpdateEdge');
   return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
+}
+
+var _excluded = ["to"],
+    _excluded2 = ["from"];
+var JSON_TAG$1 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE$1(obj, opts) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, prepareObjectForBE$1(val, _extends({}, opts, {
+        parentKey: preparedKey
+      })));
+    } else {
+      acc[preparedKey] = val;
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref3;
+
+    return _ref3 = {}, _ref3[opts.key] = null, _ref3;
+  } else if (Array.isArray(opts.value)) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE$1((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
+  } else if (typeof opts.value === 'string') {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref7;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref6;
+
+      return _ref6 = {}, _ref6[opts.key] = null, _ref6;
+    }
+
+    return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        value = _ref8[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
 }
 
 var _templateObject$4;
@@ -4966,7 +5007,16 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
 
 var SMJS = /*#__PURE__*/function () {
   function SMJS(config) {
+    this.gqlClient = void 0;
+    this.plugins = void 0;
+    this.query = void 0;
+    this.subscribe = void 0;
+    this.SMQueryManager = void 0;
+    this.transaction = void 0;
     this.tokens = {};
+    this.DOFactory = void 0;
+    this.DOProxyGenerator = void 0;
+    this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
     this.query = generateQuerier({
@@ -5025,8 +5075,6 @@ exports.SMContext = SMContext;
 exports.SMData = SMData;
 exports.SMJS = SMJS;
 exports.SMProvider = SMProvider;
-exports.SM_DATA_TYPES = SM_DATA_TYPES;
-exports.SM_RELATIONAL_TYPES = SM_RELATIONAL_TYPES;
 exports.array = array;
 exports.boolean = _boolean;
 exports.children = children;

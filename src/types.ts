@@ -1,6 +1,5 @@
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
-import { SM_RELATIONAL_TYPES } from './smDataTypes';
 import { generateQuerier, generateSubscriber } from './smQueriers';
 import { createSMQueryManager } from './SMQueryManager';
 import { createTransaction } from './transaction/transaction';
@@ -258,19 +257,6 @@ export type GetAllAvailableNodeDataType<
   TComputedData extends Record<string, any>
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 
-export type GetExpectedRelationalDataType<
-  TRelationalData extends NodeRelationalQueryBuilderRecord
-> = {
-  [key in keyof TRelationalData]: TRelationalData[key] extends IByReferenceQueryBuilder<
-    any,
-    infer TTargetNode
-  >
-    ? GetAllAvailableNodeDataType<ExtractNodeData<NonNullable<TTargetNode>>,ExtractNodeComputedData<NonNullable<TTargetNode>>>
-    : TRelationalData[key] extends IChildrenQueryBuilder<infer TOriginNode>
-    ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TOriginNode>, ExtractNodeComputedData<TOriginNode>>>
-    : never;
-};
-
 /**
  * Takes in any object and returns a Partial of that object type
  * for nested objects, those will also be turned into partials
@@ -455,7 +441,26 @@ export interface IByReferenceQueryBuilder<TOriginNode extends ISMNode<any>, TTar
   }): IByReferenceQuery<TOriginNode, TTargetNode, TMapFn>;
 }
 
-type SMRelationalTypesRecord = typeof SM_RELATIONAL_TYPES;
+
+export enum SM_DATA_TYPES {
+  string = 's',
+  maybeString = 'mS',
+  number = 'n',
+  maybeNumber = 'mN',
+  boolean = 'b',
+  maybeBoolean = 'mB',
+  object = 'o',
+  maybeObject = 'mO',
+  record = 'r',
+  maybeRecord = 'mR',
+  array = 'a',
+  maybeArray = 'mA',
+}
+
+export enum SM_RELATIONAL_TYPES {
+  byReference = 'bR',
+  children = 'bP'
+}
 export interface IByReferenceQuery<
   TOriginNode extends ISMNode,
   TTargetNode extends ISMNode | null,
@@ -465,7 +470,7 @@ export interface IByReferenceQuery<
     ExtractNodeRelationalData<NonNullable<TTargetNode>>
   >
 > {
-  _smRelational: SMRelationalTypesRecord['byReference'];
+  _smRelational: SM_RELATIONAL_TYPES.byReference;
   def: TTargetNode;
   idProp: ValidReferenceIdPropFromNode<TOriginNode>;
   map: TMapFn;
@@ -482,7 +487,7 @@ export interface IChildrenQuery<
   TSMNode extends ISMNode,
   TMapFn extends MapFnForNode<TSMNode>
 > {
-  _smRelational: SMRelationalTypesRecord['children'];
+  _smRelational: SM_RELATIONAL_TYPES.children;
   def: TSMNode;
   filtersAndPagination?: ISMQueryPagination;
   map: TMapFn;

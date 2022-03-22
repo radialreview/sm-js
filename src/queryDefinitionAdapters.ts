@@ -1,9 +1,5 @@
 import { gql } from '@apollo/client/core';
-import {
-  SM_DATA_TYPES,
-  SM_RELATIONAL_TYPES,
-  OBJECT_PROPERTY_SEPARATOR,
-} from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 import {
   NodeRelationalFns,
@@ -20,8 +16,38 @@ import {
   QueryRecord,
   QueryRecordEntry,
   ValidFilterForNode,
+  SM_DATA_TYPES,
+  SM_RELATIONAL_TYPES,
 } from './types';
-import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
+
+export const OBJECT_IDENTIFIER = '__object__';
+
+export function prepareObjectForBE(
+  obj: Record<string, any>,
+  opts?: {
+    parentKey?: string;
+    omitObjectIdentifier?: boolean;
+  }
+) {
+  return Object.entries(obj).reduce((acc, [key, val]) => {
+    const preparedKey = opts?.parentKey
+      ? `${opts.parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+      : key;
+
+    if (typeof val === 'object' && val != null) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+      acc = {
+        ...acc,
+        ...prepareObjectForBE(val, { ...opts, parentKey: preparedKey }),
+      };
+    } else {
+      acc[preparedKey] = val;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+}
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',

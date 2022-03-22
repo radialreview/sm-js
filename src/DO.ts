@@ -1,6 +1,6 @@
 import { NULL_TAG } from './dataConversions';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
-import { SMData, SM_DATA_TYPES } from './smDataTypes';
+import { SMData } from './smDataTypes';
 import {
   ISMJS,
   ISMData,
@@ -13,6 +13,7 @@ import {
   DeepPartial,
   NodeRelationalQueryBuilder,
   ISMNode,
+  SM_DATA_TYPES,
 } from './types';
 
 export function createDOFactory(smJSInstance: ISMJS) {
