@@ -1,9 +1,5 @@
 import { gql } from '@apollo/client/core';
-import {
-  SM_DATA_TYPES,
-  SM_RELATIONAL_TYPES,
-  OBJECT_PROPERTY_SEPARATOR,
-} from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 import { SMUnexpectedSubscriptionMessageException } from './exceptions';
 import {
   NodeRelationalFns,
@@ -20,6 +16,8 @@ import {
   QueryRecord,
   QueryRecordEntry,
   ValidFilterForNode,
+  SM_DATA_TYPES,
+  SM_RELATIONAL_TYPES,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 
@@ -45,7 +43,7 @@ function getRelationalQueryBuildersFromRelationalFns(
     acc[key] = relationaFns[key]();
 
     return acc;
-  }, {} as NodeRelationalQueryBuilderRecord<any>);
+  }, {} as NodeRelationalQueryBuilderRecord);
 }
 
 function getMapFnReturn(opts: {
@@ -85,7 +83,7 @@ function getQueriedProperties(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
   isRootLevel?: true;
@@ -199,7 +197,7 @@ function getRelationalQueries(opts: {
   mapFn: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord<any>>;
+  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
@@ -357,14 +355,17 @@ export function getQueryRecordFromQueryDefinition(opts: {
       if (queryDefinition.target.ids) {
         (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
           queryDefinition.target.ids;
-      } else if (queryDefinition.target.id) {
+      }
+      if (queryDefinition.target.id) {
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
-      } else if (queryDefinition.target.underIds) {
+      }
+      if (queryDefinition.target.underIds) {
         (queryRecordEntry as QueryRecordEntry & {
           underIds: Array<string>;
         }).underIds = queryDefinition.target.underIds;
-      } else if (queryDefinition.target.depth) {
+      }
+      if (queryDefinition.target.depth) {
         (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
           queryDefinition.target.depth;
       }
@@ -392,7 +393,7 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   });
   return `{${Object.entries(convertedToDotFormat).reduce(
     (acc, [key, value], idx, entries) => {
-      acc += `${key}: ${JSON.stringify(value)}`;
+      acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
       if (idx < entries.length - 1) {
         acc += `, `;
       }

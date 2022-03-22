@@ -234,6 +234,7 @@ var SMNotUpToDateException = /*#__PURE__*/function (_Error) {
     var _this;
 
     _this = _Error.call(this, "SMNotUpToDate exception - The property \"" + opts.propName + "\" on the DO for the node type " + opts.nodeType + " was read but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
+    _this.propName = void 0;
     _this.propName = opts.propName;
     return _this;
   }
@@ -292,6 +293,7 @@ var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error7) {
     var _this2;
 
     _this2 = _Error7.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
   }
@@ -308,23 +310,38 @@ function throwLocallyLogInProd(error) {
   }
 }
 
-var SM_DATA_TYPES = {
-  string: 's',
-  maybeString: 'mS',
-  number: 'n',
-  maybeNumber: 'mN',
-  "boolean": 'b',
-  maybeBoolean: 'mB',
-  object: 'o',
-  maybeObject: 'mO',
-  record: 'r',
-  maybeRecord: 'mR',
-  array: 'a',
-  maybeArray: 'mA'
-};
+var SM_DATA_TYPES;
+
+(function (SM_DATA_TYPES) {
+  SM_DATA_TYPES["string"] = "s";
+  SM_DATA_TYPES["maybeString"] = "mS";
+  SM_DATA_TYPES["number"] = "n";
+  SM_DATA_TYPES["maybeNumber"] = "mN";
+  SM_DATA_TYPES["boolean"] = "b";
+  SM_DATA_TYPES["maybeBoolean"] = "mB";
+  SM_DATA_TYPES["object"] = "o";
+  SM_DATA_TYPES["maybeObject"] = "mO";
+  SM_DATA_TYPES["record"] = "r";
+  SM_DATA_TYPES["maybeRecord"] = "mR";
+  SM_DATA_TYPES["array"] = "a";
+  SM_DATA_TYPES["maybeArray"] = "mA";
+})(SM_DATA_TYPES || (SM_DATA_TYPES = {}));
+
+var SM_RELATIONAL_TYPES;
+
+(function (SM_RELATIONAL_TYPES) {
+  SM_RELATIONAL_TYPES["byReference"] = "bR";
+  SM_RELATIONAL_TYPES["children"] = "bP";
+})(SM_RELATIONAL_TYPES || (SM_RELATIONAL_TYPES = {}));
+
 var SMData = function SMData(opts) {
   var _opts$defaultValue;
 
+  this.type = void 0;
+  this.parser = void 0;
+  this.boxedValue = void 0;
+  this.defaultValue = void 0;
+  this.isOptional = void 0;
   this.type = opts.type;
   this.parser = opts.parser;
   this.boxedValue = opts.boxedValue;
@@ -513,10 +530,6 @@ var array = function array(boxedValue) {
   });
   smArray._default = smArray([]);
   return smArray;
-};
-var SM_RELATIONAL_TYPES = {
-  byReference: 'bR',
-  children: 'bP'
 };
 var reference = function reference(opts) {
   return function (queryBuilderOpts) {
@@ -972,11 +985,17 @@ function getQueryRecordFromQueryDefinition(opts) {
     if (queryDefinition.target) {
       if (queryDefinition.target.ids) {
         queryRecordEntry.ids = queryDefinition.target.ids;
-      } else if (queryDefinition.target.id) {
+      }
+
+      if (queryDefinition.target.id) {
         queryRecordEntry.id = queryDefinition.target.id;
-      } else if (queryDefinition.target.underIds) {
+      }
+
+      if (queryDefinition.target.underIds) {
         queryRecordEntry.underIds = queryDefinition.target.underIds;
-      } else if (queryDefinition.target.depth) {
+      }
+
+      if (queryDefinition.target.depth) {
         queryRecordEntry.depth = queryDefinition.target.depth;
       }
     }
@@ -1003,7 +1022,7 @@ function getKeyValueFilterString(filter) {
   return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
     var key = _ref[0],
         value = _ref[1];
-    acc += key + ": " + JSON.stringify(value);
+    acc += key + ": " + (value == null ? null : "\"" + String(value) + "\"");
 
     if (idx < entries.length - 1) {
       acc += ", ";
@@ -1223,8 +1242,12 @@ function createDOFactory(smJSInstance) {
         var _this = this,
             _smJSInstance$plugins;
 
+        this.parsedData = void 0;
         this.version = -1;
+        this.id = void 0;
+        this.lastUpdatedBy = void 0;
         this.persistedData = {};
+        this._defaults = void 0;
         this.type = node.type;
 
         this.getDefaultData = function (nodePropertiesOrSMData) {
@@ -1306,11 +1329,6 @@ function createDOFactory(smJSInstance) {
             });
           }
         };
-        /**
-         * Object type props have different getters and setters than non object type
-         * because when an object property is set we extend the previous value, instead of replacing its reference entirely (we've seen great performance gains doing this)
-         */
-
 
         this.setObjectProp = function (propNameForThisObject) {
           Object.defineProperty(_this, propNameForThisObject, {
@@ -1451,7 +1469,8 @@ function createDOFactory(smJSInstance) {
                 acc[key] = _this3.getParsedData({
                   smData: property.boxedValue,
                   persistedData: opts.persistedData[key],
-                  defaultData: opts.defaultData
+                  defaultData: opts.defaultData //opts.defaultData,
+
                 }); // no default value for values in a record
 
                 return acc;
@@ -1601,7 +1620,12 @@ function createDOFactory(smJSInstance) {
             });
           });
         }
-      };
+      }
+      /**
+       * Object type props have different getters and setters than non object type
+       * because when an object property is set we extend the previous value, instead of replacing its reference entirely (we've seen great performance gains doing this)
+       */
+      ;
 
       _proto.setComputedProp = function setComputedProp(opts) {
         var _this9 = this,
@@ -3433,6 +3457,7 @@ function createSMQueryManager(smJSInstance) {
   return /*#__PURE__*/function () {
     function SMQueryManager(queryRecord) {
       this.state = {};
+      this.queryRecord = void 0;
       this.queryRecord = queryRecord;
     }
 
@@ -4960,7 +4985,16 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
 
 var SMJS = /*#__PURE__*/function () {
   function SMJS(config) {
+    this.gqlClient = void 0;
+    this.plugins = void 0;
+    this.query = void 0;
+    this.subscribe = void 0;
+    this.SMQueryManager = void 0;
+    this.transaction = void 0;
     this.tokens = {};
+    this.DOFactory = void 0;
+    this.DOProxyGenerator = void 0;
+    this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
     this.query = generateQuerier({
@@ -5013,5 +5047,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
+export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

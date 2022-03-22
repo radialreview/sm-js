@@ -6,11 +6,7 @@ import {
 } from './dataConversions';
 import { SMNotCachedException, SMDataParsingException } from './exceptions';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
-import {
-  SM_DATA_TYPES,
-  OBJECT_PROPERTY_SEPARATOR,
-  OBJECT_IDENTIFIER,
-} from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR, OBJECT_IDENTIFIER } from './smDataTypes';
 import {
   ISMData,
   SMDataDefaultFn,
@@ -18,6 +14,7 @@ import {
   ISMNodeRepository,
   DeepPartial,
   GetAllAvailableNodeDataType,
+  SM_DATA_TYPES,
 } from './types';
 
 /**

@@ -45,8 +45,8 @@ export declare function createTransaction(smJSInstance: ISMJS, globalOperationHa
     };
 }): (callback: IPendingTransaction[] | ((context: ITransactionContext) => void | Promise<void>), opts?: {
     tokenName?: string | undefined;
-} | undefined) => Pick<IPendingTransaction, "operations" | "execute" | "token"> | {
-    operations: Record<"createNode" | "createNodes" | "updateNode" | "updateNodes" | "dropNode" | "createEdge" | "createEdges" | "dropEdge" | "dropEdges" | "updateEdge" | "updateEdges" | "replaceEdge" | "replaceEdges", TIndexedOperationType[]>;
+} | undefined) => Omit<IPendingTransaction, "callbackResult"> | {
+    operations: TOperationsByType;
     execute: () => Promise<TExecutionResult>;
     callbackResult: void | Promise<void>;
     token: string;

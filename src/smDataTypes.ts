@@ -17,22 +17,9 @@ import {
   QueryDefinitionTarget,
   SMDataDefaultFn,
   ValidReferenceIdPropFromNode,
+  SM_DATA_TYPES,
+  SM_RELATIONAL_TYPES,
 } from './types';
-
-export const SM_DATA_TYPES = {
-  string: 's',
-  maybeString: 'mS',
-  number: 'n',
-  maybeNumber: 'mN',
-  boolean: 'b',
-  maybeBoolean: 'mB',
-  object: 'o',
-  maybeObject: 'mO',
-  record: 'r',
-  maybeRecord: 'mR',
-  array: 'a',
-  maybeArray: 'mA',
-};
 
 export class SMData<
   TParsedValue,
@@ -43,14 +30,14 @@ export class SMData<
     | Record<string, ISMData | SMDataDefaultFn>
     | undefined
 > implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
-  type: typeof SM_DATA_TYPES[keyof typeof SM_DATA_TYPES];
+  type: SM_DATA_TYPES;
   parser: (smValue: TSMValue) => TParsedValue;
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
 
   constructor(opts: {
-    type: string;
+    type: SM_DATA_TYPES;
     parser: (smValue: TSMValue) => TParsedValue;
     boxedValue?: TBoxedValue;
     defaultValue?: TParsedValue;
@@ -309,11 +296,6 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   smArray._default = smArray([]);
 
   return smArray;
-};
-
-export const SM_RELATIONAL_TYPES = {
-  byReference: 'bR' as 'bR',
-  children: 'bP' as 'bP',
 };
 
 export const reference = <

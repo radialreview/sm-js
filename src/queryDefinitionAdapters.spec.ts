@@ -522,13 +522,38 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(smJSInstance),
             map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
-            filter: { task: 'get it done' },
+            filter: { task: 'get it done', done: false, meetingId: null },
           }),
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\"}) {
+              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\", done: \\"false\\", meetingId: null}) {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+          }"
+    `);
+  });
+
+  it('supports combinations of target params', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(smJSInstance),
+            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            target: { underIds: ['userA'], depth: 1 },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              todos: GetNodesNew(type: \\"todo\\", underIds: [\\"userA\\"], depth: 1) {
             id,
             version,
             lastUpdatedBy,

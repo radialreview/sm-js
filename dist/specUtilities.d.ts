@@ -1,6 +1,6 @@
 import * as smData from './smDataTypes';
 import { SMJS } from '.';
-import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig, QueryDefinitionTarget } from './types';
+import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig } from './types';
 declare const userProperties: {
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -754,7 +754,16 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 };
             }>;
         }>;
-    }, QueryDefinitionTarget>;
+    }, {
+        underIds: string[];
+        depth?: number | undefined;
+    } | {
+        depth: number;
+    } | {
+        id: string;
+    } | {
+        ids: string[];
+    }>;
 };
 export declare const mockQueryDataReturn: {
     users: {
@@ -804,7 +813,7 @@ export declare const mockQueryResultExpectations: {
         version: number;
     }[];
 };
-export declare function getMockQueryRecord(smJSInstance: ISMJS): Record<string, import("./types").QueryRecordEntry>;
+export declare function getMockQueryRecord(smJSInstance: ISMJS): import("./types").QueryRecord;
 export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
     users: {
         node: {
@@ -818,7 +827,7 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
             path: string;
         };
         queryId: string;
-        queryRecord: Record<string, import("./types").QueryRecordEntry>;
+        queryRecord: import("./types").QueryRecord;
         subscriptionAlias: string;
     };
 };
