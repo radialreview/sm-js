@@ -858,6 +858,48 @@ function getRelationalQueries(opts) {
     if (isData || isComputed) {
       return acc;
     } else {
+      var addRelationalQueryRecord = function addRelationalQueryRecord(queryRecord) {
+        var relationalQueryRecord = {
+          def: queryRecord.def,
+          properties: getQueriedProperties({
+            queryId: opts.queryId,
+            mapFn: queryRecord.mapFn,
+            smData: queryRecord.def.smData,
+            smComputed: queryRecord.def.smComputed,
+            smRelational: queryRecord.def.smRelational,
+            isRootLevel: true
+          })
+        };
+        var relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
+          queryId: opts.queryId,
+          mapFn: queryRecord.mapFn,
+          smData: queryRecord.def.smData,
+          smComputed: queryRecord.def.smComputed,
+          smRelational: queryRecord.def.smRelational
+        });
+
+        if (relationalQueriesWithinThisRelationalQuery) {
+          relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
+        }
+
+        var relationalType = queryRecord._smRelational;
+
+        if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+          relationalQueryRecord.byReference = true;
+          relationalQueryRecord.idProp = relationalQuery.idProp;
+        } else if (relationalType === SM_RELATIONAL_TYPES.children) {
+          relationalQueryRecord.children = true;
+
+          if ('depth' in relationalQuery) {
+            relationalQueryRecord.depth = relationalQuery.depth;
+          }
+        } else {
+          throw Error("relationalType \"" + relationalType + "\" is not valid.");
+        }
+
+        acc[queryRecord.key] = relationalQueryRecord;
+      };
+
       var relationalQuery = mapFnReturn[key];
       /**
        * happens when a map function for a relational query returns all the data for that node
@@ -884,49 +926,40 @@ function getRelationalQueries(opts) {
         throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
       }
 
-      var mapFn = function mapFn(data) {
-        return relationalQuery.map(data);
-      };
-
-      var relationalQueryRecord = {
-        def: relationalQuery.def,
-        properties: getQueriedProperties({
-          queryId: opts.queryId,
-          mapFn: mapFn,
-          smData: relationalQuery.def.smData,
-          smComputed: relationalQuery.def.smComputed,
-          smRelational: relationalQuery.def.smRelational,
-          isRootLevel: true
-        })
-      };
-      var relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
-        queryId: opts.queryId,
-        mapFn: mapFn,
-        smData: relationalQuery.def.smData,
-        smComputed: relationalQuery.def.smComputed,
-        smRelational: relationalQuery.def.smRelational
-      });
-
-      if (relationalQueriesWithinThisRelationalQuery) {
-        relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
-      }
-
-      var relationalType = relationalQuery._smRelational;
-
-      if (relationalType === SM_RELATIONAL_TYPES.byReference) {
-        relationalQueryRecord.byReference = true;
-        relationalQueryRecord.idProp = relationalQuery.idProp;
-      } else if (relationalType === SM_RELATIONAL_TYPES.children) {
-        relationalQueryRecord.children = true;
-
-        if ('depth' in relationalQuery) {
-          relationalQueryRecord.depth = relationalQuery.depth;
+      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference) {
+        if ('map' in relationalQuery.queryBuilderOpts && typeof relationalQuery.queryBuilderOpts.map === 'function') {
+          // non union
+          var queryBuilderOpts = relationalQuery.queryBuilderOpts;
+          addRelationalQueryRecord({
+            _smRelational: relationalQuery._smRelational,
+            key: key,
+            def: relationalQuery.def,
+            mapFn: queryBuilderOpts.map
+          });
+        } else {
+          // union
+          var _queryBuilderOpts = relationalQuery.queryBuilderOpts;
+          Object.keys(_queryBuilderOpts).forEach(function (unionType) {
+            addRelationalQueryRecord({
+              _smRelational: relationalQuery._smRelational,
+              key: key + "_" + unionType,
+              def: relationalQuery.def[unionType],
+              mapFn: _queryBuilderOpts[unionType].map
+            });
+          });
         }
+      } else if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.children) {
+        addRelationalQueryRecord({
+          _smRelational: relationalQuery._smRelational,
+          key: key,
+          def: relationalQuery.def,
+          mapFn: relationalQuery.map
+        });
       } else {
-        throw Error("relationalType \"" + relationalType + "\" is not valid.");
+        throw Error( // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
+        "The relational query type " + relationalQuery._smRelational + " is not valid");
       }
 
-      acc[key] = relationalQueryRecord;
       return acc;
     }
   }, {});

@@ -292,6 +292,7 @@ export interface IByReferenceQuery<TOriginNode extends ISMNode, TTargetNodeOrTar
     _smRelational: SM_RELATIONAL_TYPES.byReference;
     idProp: ValidReferenceIdPropFromNode<TOriginNode>;
     queryBuilderOpts: TQueryBuilderOpts;
+    def: TTargetNodeOrTargetNodeRecord;
 }
 export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
     <TMapFn extends MapFnForNode<TSMNode>>(opts: {
