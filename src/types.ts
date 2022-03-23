@@ -126,6 +126,7 @@ export interface ISMJS {
   SMQueryManager:ReturnType<typeof createSMQueryManager>
 
   def<
+    TNodeType extends string,
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
@@ -135,21 +136,23 @@ export interface ISMJS {
     >
   >(
     def: NodeDefArgs<
+      TNodeType,
       TNodeData,
       TNodeComputedData,
       TNodeRelationalData,
       TNodeMutations
     >
-  ): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  ): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
 }
 
 export type NodeDefArgs<
+  TNodeType extends string,
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
-  type: string;
+  type: TNodeType;
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
@@ -248,7 +251,7 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
         : never;
 }
 
-export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -407,6 +410,7 @@ export type NodeMutationFn<
   ) => Promise<any>;
 
 export interface ISMNode<
+  TNodeType extends string = any,
   TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
@@ -419,7 +423,7 @@ export interface ISMNode<
   smComputed?: TNodeComputedFns;
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
-  type: string;
+  type: TNodeType;
   repository: ISMNodeRepository;
   do: new (data?: Record<string, any>) => TNodeDO;
 }
@@ -430,7 +434,7 @@ export interface ISMNode<
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
 export type NodeRelationalQueryBuilder<TOriginNode extends ISMNode> =
-  | IByReferenceQueryBuilder<TOriginNode, ISMNode<any>>
+  | IByReferenceQueryBuilder<TOriginNode, ISMNode>
   | IChildrenQueryBuilder<TOriginNode>;
 
 export type NodeRelationalQuery<TOriginNode extends ISMNode> =
@@ -697,7 +701,7 @@ export type ExtractQueriedDataFromMapFn<
 type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
   TSMNode extends ISMNode
-> = {
+> = { type: TSMNode['type'] } & {
   [Key in keyof TMapFnReturn]:
     // when we passed through a relational property without specifying a mapFn
     TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any>
@@ -785,13 +789,14 @@ type ExtractResultsUnionFromReferenceBuilder<
 type ExtractObjectValues<TObject extends Record<string,any>> = TObject extends Record<string, infer TValueType> ? TValueType : never
 
 export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
-  infer TNodeData,
-  any
+  any,
+  infer TNodeData
 >
   ? TNodeData
   : never;
 
 type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
+  any,
   any,
   infer TNodeComputedData
 >
@@ -800,7 +805,7 @@ type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
 
 type ExtractNodeRelationalData<
   TSMNode extends ISMNode
-> = TSMNode extends ISMNode<any, any, infer TNodeRelationalData>
+> = TSMNode extends ISMNode<any, any, any, infer TNodeRelationalData>
   ? TNodeRelationalData
   : never;
 

@@ -66,9 +66,10 @@ const meetingProperties = {
   name: string,
 };
 
-type MeetingNode = ISMNode<typeof meetingProperties>;
+type MeetingNode = ISMNode<'meeting', typeof meetingProperties>;
 
 type TodoNode = ISMNode<
+  'todo',
   typeof todoProperties,
   {},
   {
@@ -144,6 +145,7 @@ const userRelational = {
 };
 
 type UserNode = ISMNode<
+  'user',
   typeof userProperties,
   { fullName: string; avatar: string },
   {
@@ -171,16 +173,16 @@ const meetingGuestProperties = {
   id: string,
   firstName: string,
 };
-type MeetingGuestNode = ISMNode<typeof meetingGuestProperties>;
+type MeetingGuestNode = ISMNode<'meeting-guest', typeof meetingGuestProperties>;
 const meetingGuestNode: MeetingGuestNode = smJS.def({
-  type: 'meeting-guest',
+  type: 'meeting-guest' as 'meeting-guest',
   properties: meetingGuestProperties,
 });
 
 const stateNodeProperties = {
   name: string,
 };
-type StateNode = ISMNode<typeof stateNodeProperties>;
+type StateNode = ISMNode<'state', typeof stateNodeProperties>;
 const stateNode: StateNode = smJS.def({
   type: 'state',
   properties: stateNodeProperties,
@@ -622,23 +624,43 @@ const stateNode: StateNode = smJS.def({
             map: ({ id, firstName }) => ({ id, firstName }),
           },
         }),
+        assigneeNonNullable: todoData.assigneeUnionNonNullable({
+          orgUser: {
+            map: ({ id, lastName, address }) => ({ id, lastName, address }),
+          },
+          meetingGuest: {
+            map: ({ id, firstName }) => ({ id, firstName }),
+          },
+        }),
       }),
     }),
   });
 
   const assigneeNullable = withRelationalUnion.data.users[0].assigneeNullable;
-  if (assigneeNullable && 'lastName' in assigneeNullable) {
+  if (assigneeNullable && assigneeNullable.type === 'user') {
+    assigneeNullable.id;
+    // @ts-expect-error no first name being queried for org user
+    assigneeNullable.firstName;
     assigneeNullable.address as { state: string };
   } else if (assigneeNullable) {
+    assigneeNullable.id;
     assigneeNullable.firstName as string;
+    // @ts-expect-error no address for meeting guest being queried
+    assigneeNullable.address;
   }
 
-  // @ts-expect-error no type check
+  // @ts-expect-error no null check
+  withRelationalUnion.data.users[0].assigneeNullable.id;
+  // @ts-expect-error no type check/type guard
   withRelationalUnion.data.users[0].assigneeNullable?.firstName;
+  // common properties don't need type guards
   withRelationalUnion.data.users[0].assigneeNullable?.id as string;
   withRelationalUnion.data.users[0].assigneeNullable?.type as
     | 'meeting-guest'
     | 'user';
+
+  // no need for a null check if the reference does not return a maybe type
+  withRelationalUnion.data.users[0].assigneeNonNullable.id;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
@@ -648,7 +670,7 @@ const stateNode: StateNode = smJS.def({
       flagEnabled: boolean(false),
     }),
   };
-  type NodeType = ISMNode<typeof nodeProperties>;
+  type NodeType = ISMNode<'some-type', typeof nodeProperties>;
 
   smJS.transaction(ctx => {
     ctx.createNode<NodeType>({
