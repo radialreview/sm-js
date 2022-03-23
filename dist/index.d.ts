@@ -16,7 +16,7 @@ export declare class SMJS implements ISMJS {
     DOProxyGenerator: ISMJS['DOProxyGenerator'];
     private optimisticUpdatesOrchestrator;
     constructor(config: SMConfig);
-    def<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
     getToken(opts: {
         tokenName: string;
     }): string;
