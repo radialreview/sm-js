@@ -44,7 +44,15 @@ const todoRelational = {
       def: meetingNode,
       idProp: 'meetingId',
     }),
-  assigneeUnion: () =>
+  assigneeUnionNullable: () =>
+    reference<
+      typeof todoNode,
+      Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
+    >({
+      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
+      idProp: 'meetingId',
+    }),
+  assigneeUnionNonNullable: () =>
     reference<
       typeof todoNode,
       { meetingGuest: MeetingGuestNode; orgUser: UserNode }
@@ -66,6 +74,14 @@ type TodoNode = ISMNode<
   {
     assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
     meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
+    assigneeUnionNullable: IByReferenceQueryBuilder<
+      TodoNode,
+      Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
+    >;
+    assigneeUnionNonNullable: IByReferenceQueryBuilder<
+      TodoNode,
+      { meetingGuest: MeetingGuestNode; orgUser: UserNode }
+    >;
   }
 >;
 
@@ -152,6 +168,7 @@ const userNode: UserNode = smJS.def({
 });
 
 const meetingGuestProperties = {
+  id: string,
   firstName: string,
 };
 type MeetingGuestNode = ISMNode<typeof meetingGuestProperties>;
@@ -597,21 +614,31 @@ const stateNode: StateNode = smJS.def({
     users: queryDefinition({
       def: todoNode,
       map: todoData => ({
-        assignee: todoData.assignee({
+        assigneeNullable: todoData.assigneeUnionNullable({
           orgUser: {
-            map: ({ lastName }) => ({ lastName }),
+            map: ({ id, lastName, address }) => ({ id, lastName, address }),
           },
           meetingGuest: {
-            map: ({ firstName }) => ({ firstName }),
+            map: ({ id, firstName }) => ({ id, firstName }),
           },
         }),
       }),
     }),
   });
 
-  withRelationalUnion.data.users.assignee.type as 'meeting-guest' | 'user';
-  // @ts-expect-error must enforce type guards, since all members of union do not contain firstName
-  withRelationalUnion.data.users.assignee.firstName;
+  const assigneeNullable = withRelationalUnion.data.users[0].assigneeNullable;
+  if (assigneeNullable && 'lastName' in assigneeNullable) {
+    assigneeNullable.address as { state: string };
+  } else if (assigneeNullable) {
+    assigneeNullable.firstName as string;
+  }
+
+  // @ts-expect-error no type check
+  withRelationalUnion.data.users[0].assigneeNullable?.firstName;
+  withRelationalUnion.data.users[0].assigneeNullable?.id as string;
+  withRelationalUnion.data.users[0].assigneeNullable?.type as
+    | 'meeting-guest'
+    | 'user';
 })();
 
 (async function ResultingDevExperienceWriteTests() {

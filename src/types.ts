@@ -8,6 +8,8 @@ export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
 export type Maybe<T> = T | null;
 
+export type IsMaybe<Type> = null extends Type ? true : false
+
 export type SMDataDefaultFn = (_default: any) => ISMData;
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
@@ -233,11 +235,11 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
   [key in keyof TProperties]:
     TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
       ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
-        ? TParsedValue extends null
+        ? IsMaybe<TParsedValue> extends true
           ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
           : GetAllAvailableNodeDataType<TBoxedValue, {}>
         : TParsedValue extends Array<infer TArrayItemType>
-          ? TParsedValue extends null
+          ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
             : Array<TArrayItemType>
           : TParsedValue
@@ -435,10 +437,24 @@ export type NodeRelationalQuery<TOriginNode extends ISMNode> =
   | IChildrenQuery<TOriginNode, any>
   | IByReferenceQuery<TOriginNode, any, any>;
 
-export interface IByReferenceQueryBuilder<TOriginNode extends ISMNode<any>, TTargetNode extends ISMNode | null> {
-  <TMapFn extends MapFnForNode<NonNullable<TTargetNode>>>(opts: {
-    map: TMapFn;
-  }): IByReferenceQuery<TOriginNode, TTargetNode, TMapFn>;
+
+export type ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+  TTargetNodeOrTargetNodeRecord extends ISMNode
+  ? {
+      map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+  }
+  : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+    ? {
+      [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
+    }
+    : never
+export interface IByReferenceQueryBuilder<
+  TOriginNode extends ISMNode,
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>
+> {
+  <TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
+    queryBuilderOpts: TQueryBuilderOpts
+  ): IByReferenceQuery<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
 }
 
 
@@ -463,17 +479,12 @@ export enum SM_RELATIONAL_TYPES {
 }
 export interface IByReferenceQuery<
   TOriginNode extends ISMNode,
-  TTargetNode extends ISMNode | null,
-  TMapFn extends MapFn<
-    ExtractNodeData<NonNullable<TTargetNode>>,
-    ExtractNodeComputedData<NonNullable<TTargetNode>>,
-    ExtractNodeRelationalData<NonNullable<TTargetNode>>
-  >
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
+  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
 > {
   _smRelational: SM_RELATIONAL_TYPES.byReference;
-  def: TTargetNode;
   idProp: ValidReferenceIdPropFromNode<TOriginNode>;
-  map: TMapFn;
+  queryBuilderOpts: TQueryBuilderOpts
 }
 
 export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
@@ -724,11 +735,54 @@ type ExtractQueriedDataFromChildrenQuery<
 
 type ExtractQueriedDataFromByReferenceQuery<
   TByReferenceQuery extends IByReferenceQuery<any, any, any>
-> = TByReferenceQuery extends IByReferenceQuery<any, infer TTargetNode, infer TMapFn>
-  ? TTargetNode extends null
-    ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TTargetNode>>>
-    : ExtractQueriedDataFromMapFn<TMapFn, NonNullable<TTargetNode>>
-  : never;
+> = 
+  TByReferenceQuery extends IByReferenceQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
+    ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
+      ? TTargetNodeOrTargetNodeRecord extends ISMNode
+        ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
+          ? Maybe<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>
+          : never
+        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+          ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
+            ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>>
+            : never
+          : never
+      : TTargetNodeOrTargetNodeRecord extends ISMNode
+        ? TQueryBuilderOpts extends { map: MapFnForNode<TTargetNodeOrTargetNodeRecord> }
+          ? ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>
+          : never
+        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+        ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
+            ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>
+            : never
+          : never
+    : never
+
+type ExtractResultsUnionFromReferenceBuilder<
+  TOriginNode extends ISMNode,
+  TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>,
+  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
+> = ExtractObjectValues<{
+  [key in keyof TQueryBuilderOpts]:
+      key extends keyof TTargetNodeOrTargetNodeRecord 
+        ? TQueryBuilderOpts[key] extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
+          ?
+            ExtractQueriedDataFromByReferenceQuery<
+              IByReferenceQuery<
+                TOriginNode,
+                TTargetNodeOrTargetNodeRecord[key],
+                // says this doesn't satisfy the constraint of ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
+                // but it does, and it works anyway
+                // @ts-ignore
+                { map: TQueryBuilderOpts[key]['map'] }
+               > 
+            >
+          : never
+        : never
+}>
+
+
+type ExtractObjectValues<TObject extends Record<string,any>> = TObject extends Record<string, infer TValueType> ? TValueType : never
 
 export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
   infer TNodeData,
