@@ -536,7 +536,7 @@ var reference = function reference(opts) {
     return _extends({}, opts, {
       idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
       _smRelational: SM_RELATIONAL_TYPES.byReference,
-      map: queryBuilderOpts.map
+      queryBuilderOpts: queryBuilderOpts
     });
   };
 };
