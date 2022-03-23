@@ -18,6 +18,7 @@ import {
   ValidFilterForNode,
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
+  ByReferenceQueryBuilderOpts,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 
@@ -240,58 +241,113 @@ function getRelationalQueries(opts: {
         );
       }
 
-      const mapFn = (data: any) => relationalQuery.map(data);
-
-      const relationalQueryRecord: BaseQueryRecordEntry = {
-        def: relationalQuery.def,
-        properties: getQueriedProperties({
-          queryId: opts.queryId,
-          mapFn: mapFn,
-          smData: relationalQuery.def.smData,
-          smComputed: relationalQuery.def.smComputed,
-          smRelational: relationalQuery.def.smRelational,
-          isRootLevel: true,
-        }),
-      };
-
-      const relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
-        queryId: opts.queryId,
-        mapFn: mapFn,
-        smData: relationalQuery.def.smData,
-        smComputed: relationalQuery.def.smComputed,
-        smRelational: relationalQuery.def.smRelational,
-      });
-
-      if (relationalQueriesWithinThisRelationalQuery) {
-        relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
-      }
-
-      const relationalType = relationalQuery._smRelational;
-      if (relationalType === SM_RELATIONAL_TYPES.byReference) {
-        (relationalQueryRecord as RelationalQueryRecordEntry & {
-          byReference: true;
-        }).byReference = true;
-        (relationalQueryRecord as RelationalQueryRecordEntry & {
-          idProp: string;
-        }).idProp = (relationalQuery as IByReferenceQuery<
-          ISMNode,
-          any,
-          any
-        >).idProp;
-      } else if (relationalType === SM_RELATIONAL_TYPES.children) {
-        (relationalQueryRecord as RelationalQueryRecordEntry & {
-          children: true;
-        }).children = true;
-        if ('depth' in relationalQuery) {
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            depth?: number;
-          }).depth = relationalQuery.depth;
+      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference) {
+        if (
+          'map' in relationalQuery.queryBuilderOpts &&
+          typeof relationalQuery.queryBuilderOpts.map === 'function'
+        ) {
+          // non union
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
+            ISMNode
+          >;
+          addRelationalQueryRecord({
+            _smRelational: relationalQuery._smRelational,
+            key,
+            def: relationalQuery.def,
+            mapFn: queryBuilderOpts.map,
+          });
+        } else {
+          // union
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
+            Record<string, ISMNode>
+          >;
+          Object.keys(queryBuilderOpts).forEach(unionType => {
+            addRelationalQueryRecord({
+              _smRelational: relationalQuery._smRelational,
+              key: `${key}_${unionType}`,
+              def: relationalQuery.def[unionType],
+              mapFn: queryBuilderOpts[unionType].map,
+            });
+          });
         }
+      } else if (
+        relationalQuery._smRelational === SM_RELATIONAL_TYPES.children
+      ) {
+        addRelationalQueryRecord({
+          _smRelational: relationalQuery._smRelational,
+          key,
+          def: relationalQuery.def,
+          mapFn: relationalQuery.map,
+        });
       } else {
-        throw Error(`relationalType "${relationalType}" is not valid.`);
+        throw Error(
+          // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
+          `The relational query type ${relationalQuery._smRelational} is not valid`
+        );
       }
 
-      acc[key] = relationalQueryRecord as RelationalQueryRecordEntry;
+      function addRelationalQueryRecord(queryRecord: {
+        _smRelational: SM_RELATIONAL_TYPES;
+        def: ISMNode;
+        mapFn: (data: any) => any;
+        key: string;
+      }) {
+        const relationalQueryRecord: BaseQueryRecordEntry = {
+          def: queryRecord.def,
+          properties: getQueriedProperties({
+            queryId: opts.queryId,
+            mapFn: queryRecord.mapFn,
+            smData: queryRecord.def.smData,
+            smComputed: queryRecord.def.smComputed,
+            smRelational: queryRecord.def.smRelational,
+            isRootLevel: true,
+          }),
+        };
+
+        const relationalQueriesWithinThisRelationalQuery = getRelationalQueries(
+          {
+            queryId: opts.queryId,
+            mapFn: queryRecord.mapFn,
+            smData: queryRecord.def.smData,
+            smComputed: queryRecord.def.smComputed,
+            smRelational: queryRecord.def.smRelational,
+          }
+        );
+
+        if (relationalQueriesWithinThisRelationalQuery) {
+          relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
+        }
+
+        const relationalType = queryRecord._smRelational;
+        if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            byReference: true;
+          }).byReference = true;
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            idProp: string;
+          }).idProp = (relationalQuery as IByReferenceQuery<
+            ISMNode,
+            any,
+            any
+          >).idProp;
+        } else if (relationalType === SM_RELATIONAL_TYPES.children) {
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            children: true;
+          }).children = true;
+          if ('depth' in relationalQuery) {
+            (relationalQueryRecord as RelationalQueryRecordEntry & {
+              depth?: number;
+            }).depth = relationalQuery.depth;
+          }
+        } else {
+          throw Error(`relationalType "${relationalType}" is not valid.`);
+        }
+
+        acc[
+          queryRecord.key
+        ] = relationalQueryRecord as RelationalQueryRecordEntry;
+      }
+
       return acc;
     }
   }, {} as Record<string, RelationalQueryRecordEntry>);

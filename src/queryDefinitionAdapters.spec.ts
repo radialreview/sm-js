@@ -142,13 +142,14 @@ describe('getQueryRecordFromQueryDefinition', () => {
 
   it('handles reference queries that use dot notation', () => {
     const smJSInstance = new SMJS(getMockConfig());
-    const userNodeProperties = {
+    const userProperties = {
       settings: object({
         mainTodoId: string,
       }),
     };
     type UserNode = ISMNode<
-      typeof userNodeProperties,
+      'user',
+      typeof userProperties,
       {},
       { todo: IByReferenceQueryBuilder<UserNode, TodoNode> }
     >;
@@ -190,6 +191,87 @@ describe('getQueryRecordFromQueryDefinition', () => {
         }),
       })
     );
+  });
+
+  it('handles reference queries which return a union of node types', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+    const userProperties = {
+      id: string,
+      firstName: string,
+      lastName: string,
+    };
+    const meetingGuestProperties = {
+      id: string,
+      firstName: string,
+    };
+    type UserNode = ISMNode<'user', typeof userProperties>;
+    type MeetingGuestNode = ISMNode<
+      'meeting-guest',
+      typeof meetingGuestProperties
+    >;
+    const userNode: UserNode = smJSInstance.def({
+      type: 'user',
+      properties: userProperties,
+    });
+    const meetingGuestNode: MeetingGuestNode = smJSInstance.def({
+      type: 'meeting-guest',
+      properties: meetingGuestProperties,
+    });
+
+    const todoProperties = {
+      id: string,
+      assigneeId: string,
+    };
+    type TodoNode = ISMNode<
+      'todo',
+      typeof todoProperties,
+      {},
+      {
+        assignee: IByReferenceQueryBuilder<
+          TodoNode,
+          { user: UserNode; meetingGuest: MeetingGuestNode }
+        >;
+      }
+    >;
+    const todoNode: TodoNode = smJSInstance.def({
+      type: 'todo',
+      properties: todoProperties,
+      relational: {
+        assignee: () =>
+          reference({
+            idProp: 'assigneeId',
+            def: { user: userNode, meetingGuest: meetingGuestNode },
+          }),
+      },
+    });
+
+    expect(
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: todoNode,
+            map: ({ assignee }) => ({
+              assignee: assignee({
+                user: { map: ({ id, lastName }) => ({ id, lastName }) },
+                meetingGuest: {
+                  map: ({ id, firstName }) => ({ id, firstName }),
+                },
+              }),
+            }),
+          }),
+        },
+      }).todos.relational
+    ).toEqual({
+      assignee_user: expect.objectContaining({
+        def: userNode,
+        properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'lastName'],
+      }),
+      assignee_meetingGuest: expect.objectContaining({
+        def: meetingGuestNode,
+        properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
+      }),
+    });
   });
 
   it('handles omitting map fn for objects, and will query all data in that object', () => {

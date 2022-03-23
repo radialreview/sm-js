@@ -489,6 +489,7 @@ export interface IByReferenceQuery<
   _smRelational: SM_RELATIONAL_TYPES.byReference;
   idProp: ValidReferenceIdPropFromNode<TOriginNode>;
   queryBuilderOpts: TQueryBuilderOpts
+  def: TTargetNodeOrTargetNodeRecord
 }
 
 export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {

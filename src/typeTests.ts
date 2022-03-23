@@ -35,28 +35,25 @@ const todoProperties = {
 };
 const todoRelational = {
   assignee: () =>
-    reference<typeof todoNode, typeof userNode>({
+    reference<TodoNode, UserNode>({
       def: userNode,
       idProp: 'assigneeId',
     }),
   meeting: () =>
-    reference<typeof todoNode, Maybe<typeof meetingNode>>({
+    reference<TodoNode, Maybe<MeetingNode>>({
       def: meetingNode,
       idProp: 'meetingId',
     }),
   assigneeUnionNullable: () =>
     reference<
-      typeof todoNode,
+      TodoNode,
       Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
     >({
       def: { meetingGuest: meetingGuestNode, orgUser: userNode },
       idProp: 'meetingId',
     }),
   assigneeUnionNonNullable: () =>
-    reference<
-      typeof todoNode,
-      { meetingGuest: MeetingGuestNode; orgUser: UserNode }
-    >({
+    reference<TodoNode, { meetingGuest: MeetingGuestNode; orgUser: UserNode }>({
       def: { meetingGuest: meetingGuestNode, orgUser: userNode },
       idProp: 'meetingId',
     }),
@@ -189,7 +186,7 @@ const stateNode: StateNode = smJS.def({
 });
 (async function MapFnTests() {
   // @ts-ignore
-  const mapFn: MapFnForNode<typeof userNode> = ({
+  const mapFn: MapFnForNode<UserNode> = ({
     id,
     // @ts-expect-error
     yeahThisDoesntExist,
@@ -201,7 +198,7 @@ const stateNode: StateNode = smJS.def({
   });
 
   // @ts-ignore
-  const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
+  const mapFnWithRelationalQueries: MapFnForNode<UserNode> = ({
     id,
     todos,
     // @ts-expect-error
@@ -226,14 +223,14 @@ const stateNode: StateNode = smJS.def({
   // @ts-ignore
   const returnedDataFromRandomFn: ExtractQueriedDataFromMapFn<
     typeof randomMapFn,
-    typeof userNode
+    UserNode
   > = {
     id: 'test',
     // @ts-expect-error
     bogus: '',
   };
 
-  const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
+  const mapFnWithRelationalQueries: MapFnForNode<UserNode> = ({
     id,
     todos,
   }) => ({
@@ -249,7 +246,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-ignore
   const returnedData: ExtractQueriedDataFromMapFn<
     typeof mapFnWithRelationalQueries,
-    typeof userNode
+    UserNode
   > = {
     // "id" seems to be falling through the never case in ExtractQueriedDataFromMapFnReturn
     // however doesn't seem to be causing issues in the resulting dev experience tests
