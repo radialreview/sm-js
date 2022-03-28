@@ -35,7 +35,7 @@ export function createNodes(
 }
 
 export type CreateNodeOperation<
-  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
 > = {
   type: 'createNode';
   smOperationName: 'CreateNodes';
@@ -51,7 +51,7 @@ export type CreateNodeOperation<
 };
 
 export function createNode<
-  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
 >(
   operation: Omit<CreateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
 ): CreateNodeOperation<TSMNode> {
