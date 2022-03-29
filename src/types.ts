@@ -742,6 +742,10 @@ type ExtractQueriedDataFromChildrenQuery<
 // even though ExtractQueriedDataFromByReferenceQuery does not call ExtractResultsUnionFromReferenceBuilder unless it's dealing with a record of node definitions (union representation)
 // borrowed this solution from this article
 // https://www.angularfix.com/2022/01/why-am-i-getting-instantiation-is.html
+// relavant github discussions:
+// https://github.com/microsoft/TypeScript/issues/34933
+// https://github.com/microsoft/TypeScript/pull/44997
+// https://github.com/microsoft/TypeScript/pull/45025
 type Prev = [never, 0, 1];
 
 type ExtractQueriedDataFromByReferenceQuery<
