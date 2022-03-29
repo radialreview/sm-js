@@ -615,7 +615,12 @@ const stateNode: StateNode = smJS.def({
       map: todoData => ({
         assigneeNullable: todoData.assigneeUnionNullable({
           orgUser: {
-            map: ({ id, lastName, address }) => ({ id, lastName, address }),
+            map: ({ id, lastName, address, todos }) => ({
+              id,
+              lastName,
+              address,
+              todos: todos({ map: allData => allData }),
+            }),
           },
           meetingGuest: {
             map: ({ id, firstName }) => ({ id, firstName }),
@@ -623,7 +628,11 @@ const stateNode: StateNode = smJS.def({
         }),
         assigneeNonNullable: todoData.assigneeUnionNonNullable({
           orgUser: {
-            map: ({ id, lastName, address }) => ({ id, lastName, address }),
+            map: ({ id, lastName, address }) => ({
+              id,
+              lastName,
+              address,
+            }),
           },
           meetingGuest: {
             map: ({ id, firstName }) => ({ id, firstName }),
@@ -636,6 +645,8 @@ const stateNode: StateNode = smJS.def({
   const assigneeNullable = withRelationalUnion.data.users[0].assigneeNullable;
   if (assigneeNullable && assigneeNullable.type === 'user') {
     assigneeNullable.id;
+    // to ensure the depth param in ExtractQueriedDataFromByReferenceQuery does not mess with depths greater than 1
+    assigneeNullable.todos[0].assigneeId;
     // @ts-expect-error no first name being queried for org user
     assigneeNullable.firstName;
     assigneeNullable.address as { state: string };
