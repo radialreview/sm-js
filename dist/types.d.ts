@@ -382,23 +382,26 @@ declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISM
     }) => MapFn<any, any, any> ? GetResultingDataTypeFromProperties<TBoxedValue> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
 };
 declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
-declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any, any>> = TByReferenceQuery extends IByReferenceQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts> ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true ? TTargetNodeOrTargetNodeRecord extends ISMNode ? TQueryBuilderOpts extends {
+declare type Prev = [never, 0, 1];
+declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any, any>, D extends Prev[number] = 1> = [
+    D
+] extends [never] ? never : TByReferenceQuery extends IByReferenceQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts> ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true ? TTargetNodeOrTargetNodeRecord extends ISMNode ? TQueryBuilderOpts extends {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
 } ? Maybe<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>> : never : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode> ? TQueryBuilderOpts extends {
     [key in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
     };
-} ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>> : never : never : TTargetNodeOrTargetNodeRecord extends ISMNode ? TQueryBuilderOpts extends {
+} ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>> : never : never : TTargetNodeOrTargetNodeRecord extends ISMNode ? TQueryBuilderOpts extends {
     map: MapFnForNode<TTargetNodeOrTargetNodeRecord>;
 } ? ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord> : never : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode> ? TQueryBuilderOpts extends {
     [key in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
     };
-} ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts> : never : never : never;
-declare type ExtractResultsUnionFromReferenceBuilder<TOriginNode extends ISMNode, TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>, TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>> = ExtractObjectValues<{
+} ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]> : never : never : never;
+declare type ExtractResultsUnionFromReferenceBuilder<TOriginNode extends ISMNode, TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>, TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>, D extends Prev[number]> = ExtractObjectValues<{
     [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromByReferenceQuery<IByReferenceQuery<TOriginNode, TTargetNodeOrTargetNodeRecord[key], {
         map: TQueryBuilderOpts[key]['map'];
-    }>> : never : never;
+    }>, D> : never : never;
 }>;
 declare type ExtractObjectValues<TObject extends Record<string, any>> = TObject extends Record<string, infer TValueType> ? TValueType : never;
 export declare type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeData> ? TNodeData : never;
