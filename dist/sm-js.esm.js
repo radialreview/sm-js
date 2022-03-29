@@ -3154,13 +3154,9 @@ function generateQuerier(_ref) {
           switch (_context.prev = _context.next) {
             case 0:
               getError = function _getError(error, stack) {
-                if (opts != null && opts.onError) {
-                  return error;
-                } else {
-                  // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-                  error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
-                  return error;
-                }
+                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+                error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
+                return error;
               };
 
               startStack = new Error().stack;
@@ -3304,7 +3300,7 @@ function generateSubscriber(smJSInstance) {
                       onError: function onError(e) {
                         // Can never throw here. The dev consuming this would have no way of catching it
                         // To catch an error in a subscription they must provide onError
-                        var error = getError(new Error("Error in a subscription message", e.stack));
+                        var error = getError(new Error("Error in a subscription message"), e.stack);
 
                         if (opts.onError) {
                           opts.onError(error);
@@ -3315,7 +3311,7 @@ function generateSubscriber(smJSInstance) {
                     });
                   });
                 } catch (e) {
-                  var _error3 = getError(new Error("Error initializating subscriptions", e.stack));
+                  var _error3 = getError(new Error("Error initializating subscriptions"), e.stack);
 
                   if (opts != null && opts.onError) {
                     opts.onError(_error3);
@@ -3350,13 +3346,9 @@ function generateSubscriber(smJSInstance) {
               };
 
               getError = function _getError2(error, stack) {
-                if (opts.onError) {
-                  return error;
-                } else {
-                  // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-                  error.stack = '\n' + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
-                  return error;
-                }
+                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+                error.stack = '\n' + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
+                return error;
               };
 
               // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
@@ -3434,17 +3426,16 @@ function generateSubscriber(smJSInstance) {
               });
 
             case 32:
-              _context2.next = 44;
+              _context2.next = 43;
               break;
 
             case 34:
               _context2.prev = 34;
               _context2.t0 = _context2["catch"](29);
-              console.error(_context2.t0);
-              _error4 = getError(new Error("Error querying initial data set", _context2.t0.stack));
+              _error4 = getError(new Error("Error querying initial data set"), _context2.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 43;
+                _context2.next = 42;
                 break;
               }
 
@@ -3455,10 +3446,10 @@ function generateSubscriber(smJSInstance) {
                 error: _error4
               });
 
-            case 43:
+            case 42:
               throw _error4;
 
-            case 44:
+            case 43:
               if (mustAwaitQuery) {
                 mustAwaitQuery = false;
                 messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
@@ -3475,7 +3466,7 @@ function generateSubscriber(smJSInstance) {
                 error: null
               });
 
-            case 48:
+            case 47:
             case "end":
               return _context2.stop();
           }
