@@ -738,9 +738,17 @@ type ExtractQueriedDataFromChildrenQuery<
   ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
   : never;
 
+// Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
+// even though ExtractQueriedDataFromByReferenceQuery does not call ExtractResultsUnionFromReferenceBuilder unless it's dealing with a record of node definitions (union representation)
+// borrowed this solution from this article
+// https://www.angularfix.com/2022/01/why-am-i-getting-instantiation-is.html
+type Prev = [never, 0, 1];
+
 type ExtractQueriedDataFromByReferenceQuery<
-  TByReferenceQuery extends IByReferenceQuery<any, any, any>
+  TByReferenceQuery extends IByReferenceQuery<any, any, any>,
+  D extends Prev[number] = 1
 > = 
+  [D] extends [never] ? never :
   TByReferenceQuery extends IByReferenceQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
       ? TTargetNodeOrTargetNodeRecord extends ISMNode
@@ -749,7 +757,7 @@ type ExtractQueriedDataFromByReferenceQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>>
+            ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
       : TTargetNodeOrTargetNodeRecord extends ISMNode
@@ -758,7 +766,7 @@ type ExtractQueriedDataFromByReferenceQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>
+            ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>
             : never
           : never
     : never
@@ -766,7 +774,8 @@ type ExtractQueriedDataFromByReferenceQuery<
 type ExtractResultsUnionFromReferenceBuilder<
   TOriginNode extends ISMNode,
   TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>,
-  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
+  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>,
+  D extends Prev[number]
 > = ExtractObjectValues<{
   [key in keyof TQueryBuilderOpts]:
       key extends keyof TTargetNodeOrTargetNodeRecord 
@@ -780,12 +789,12 @@ type ExtractResultsUnionFromReferenceBuilder<
                 // but it does, and it works anyway
                 // @ts-ignore
                 { map: TQueryBuilderOpts[key]['map'] }
-               > 
+               >,
+               D
             >
           : never
         : never
 }>
-
 
 type ExtractObjectValues<TObject extends Record<string,any>> = TObject extends Record<string, infer TValueType> ? TValueType : never
 
