@@ -43,18 +43,14 @@ export function generateQuerier({
     const token = smJSInstance.getToken({ tokenName });
 
     function getError(error: any, stack?: string) {
-      if (opts?.onError) {
-        return error;
-      } else {
-        // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-        error.stack =
-          `\n` +
-          (stack || error.stack) +
-          '\n' +
-          startStack.substring(startStack.indexOf('\n') + 1);
+      // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+      error.stack =
+        `\n` +
+        (stack || error.stack) +
+        '\n' +
+        startStack.substring(startStack.indexOf('\n') + 1);
 
-        return error;
-      }
+      return error;
     }
 
     if (!token) {
@@ -153,18 +149,14 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       opts.onQueryInfoConstructed({ queryGQL, queryId });
 
     function getError(error: any, stack?: any) {
-      if (opts.onError) {
-        return error;
-      } else {
-        // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-        error.stack =
-          '\n' +
-          (stack || error.stack) +
-          '\n' +
-          startStack.substring(startStack.indexOf('\n') + 1);
+      // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+      error.stack =
+        '\n' +
+        (stack || error.stack) +
+        '\n' +
+        startStack.substring(startStack.indexOf('\n') + 1);
 
-        return error;
-      }
+      return error;
     }
 
     const tokenName = opts?.tokenName || 'default';
@@ -265,7 +257,8 @@ export function generateSubscriber(smJSInstance: ISMJS) {
               // Can never throw here. The dev consuming this would have no way of catching it
               // To catch an error in a subscription they must provide onError
               const error = getError(
-                new Error(`Error in a subscription message`, e.stack)
+                new Error(`Error in a subscription message`),
+                e.stack
               );
 
               if (opts.onError) {
@@ -278,7 +271,8 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         });
       } catch (e) {
         const error = getError(
-          new Error(`Error initializating subscriptions`, (e as any).stack)
+          new Error(`Error initializating subscriptions`),
+          (e as any).stack
         );
 
         if (opts?.onError) {
@@ -307,9 +301,9 @@ export function generateSubscriber(smJSInstance: ISMJS) {
           batched: opts.batched,
         });
       } catch (e) {
-        console.error(e);
         const error = getError(
-          new Error(`Error querying initial data set`, (e as any).stack)
+          new Error(`Error querying initial data set`),
+          (e as any).stack
         );
 
         if (opts?.onError) {

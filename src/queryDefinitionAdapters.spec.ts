@@ -196,7 +196,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     );
   });
 
-  it.only('handles reference queries which return a union of node types', () => {
+  it('handles reference queries which return a union of node types', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const userProperties = {
       id: string,
@@ -248,25 +248,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
       },
     });
 
-    console.log(
-      'queryRecord',
-      getQueryRecordFromQueryDefinition({
-        queryId: 'queryId',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: todoNode,
-            map: ({ assignee }) => ({
-              assignee: assignee({
-                user: { map: ({ id, lastName }) => ({ id, lastName }) },
-                meetingGuest: {
-                  map: ({ id, firstName }) => ({ id, firstName }),
-                },
-              }),
-            }),
-          }),
-        },
-      }).todos.relational
-    );
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
