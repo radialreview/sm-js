@@ -694,15 +694,15 @@ type RequestedData<
 export type ExtractQueriedDataFromMapFn<
   TMapFn extends MapFnForNode<TSMNode>,
   TSMNode extends ISMNode
-> = ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode> &
-  // ExtractNodeMutations<TSMNode> &
+> = { type: TSMNode['type'] } &
+  (ReturnType<TMapFn> extends infer TReturn ? ExtractQueriedDataFromMapFnReturn<TReturn, TSMNode> : never) &
   ExtractNodeComputedData<TSMNode>;
 
 // From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
   TSMNode extends ISMNode
-> = { type: TSMNode['type'] } & {
+> = {
   [Key in keyof TMapFnReturn]:
     // when we passed through a relational property without specifying a mapFn
     TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any>
@@ -819,39 +819,6 @@ type ExtractNodeRelationalData<
 //   ? TNodeMutations
 //   : never;
 
-/**
- * a record of all the queries identified in this query definitions
- * looks something like this
- *
- * {
- *   // alias
- *   usersTodos: {
- *     // the SMNode we're querying
- *     def: todo,
- *     // id used as under
- *     under: ['some-id-I-want-to-get-children-for'],
- *     // ^ could have under or ids, not both
- *     ids: ['some-specific-node-id-im-trying-to-query'],
- *     // properties being queried on this todo, Array<keyof Todo>
- *     properties: ['id', 'task'],
- *     // relational data being queried
- *     relational: {
- *       // alias for the relational query result
- *       assignee: {
- *         // the SM node for the relational data we're querying
- *         def: user,
- *         properties: ['firstName', 'lastName'],
- *
- *         // if the todo node defines the assignee as being a "child" of a todo (meaning there would have to be a V edge from todo to user).
- *         // This would also return an array of users, instead of a single user in that case.
- *         children: true,
- *         // OR if the todo node defines the assignee as being stored with a foreign key (in todo.assigneeId)
- *         byReference: true, idProp: 'assigneeId',
- *       }
- *     }
- *   })
- * }
- */
 export type BaseQueryRecordEntry = {
   def: ISMNode;
   properties: Array<string>;

@@ -45,11 +45,12 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
    *      Instead, we'll throw an error and tell them - hey, you tried to read this property from this node type in this query, but you didn't request it/aren't subscribed to it!
    */
   return function DOProxyGenerator<
+    TNodeType extends string,
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
   >(opts: {
-    node: ISMNode<TNodeData, TNodeComputedData>;
+    node: ISMNode<TNodeType, TNodeData, TNodeComputedData>;
     queryId: string;
     do: NodeDO;
     // The DOProxy protects the dev from reading a property that we haven't actually queried from SM

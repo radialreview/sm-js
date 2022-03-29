@@ -8,7 +8,6 @@ import {
 import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
-  PROPERTIES_QUERIED_FOR_ALL_NODES,
 } from './queryDefinitionAdapters';
 import {
   object,
@@ -25,6 +24,10 @@ import {
   MapFnForNode,
   QueryRecordEntry,
 } from './types';
+import {
+  PROPERTIES_QUERIED_FOR_ALL_NODES,
+  RELATIONAL_UNION_QUERY_SEPARATOR,
+} from './consts';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
@@ -193,7 +196,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     );
   });
 
-  it('handles reference queries which return a union of node types', () => {
+  it.only('handles reference queries which return a union of node types', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const userProperties = {
       id: string,
@@ -245,6 +248,25 @@ describe('getQueryRecordFromQueryDefinition', () => {
       },
     });
 
+    console.log(
+      'queryRecord',
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: todoNode,
+            map: ({ assignee }) => ({
+              assignee: assignee({
+                user: { map: ({ id, lastName }) => ({ id, lastName }) },
+                meetingGuest: {
+                  map: ({ id, firstName }) => ({ id, firstName }),
+                },
+              }),
+            }),
+          }),
+        },
+      }).todos.relational
+    );
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
@@ -263,14 +285,18 @@ describe('getQueryRecordFromQueryDefinition', () => {
         },
       }).todos.relational
     ).toEqual({
-      assignee_user: expect.objectContaining({
-        def: userNode,
-        properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'lastName'],
-      }),
-      assignee_meetingGuest: expect.objectContaining({
-        def: meetingGuestNode,
-        properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
-      }),
+      [`assignee${RELATIONAL_UNION_QUERY_SEPARATOR}user`]: expect.objectContaining(
+        {
+          def: userNode,
+          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'lastName'],
+        }
+      ),
+      [`assignee${RELATIONAL_UNION_QUERY_SEPARATOR}meetingGuest`]: expect.objectContaining(
+        {
+          def: meetingGuestNode,
+          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
+        }
+      ),
     });
   });
 

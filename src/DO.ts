@@ -1,5 +1,5 @@
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { NULL_TAG } from './dataConversions';
-import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import { SMData } from './smDataTypes';
 import {
   ISMJS,
@@ -493,7 +493,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
       private setRelationalProp(opts: {
         propName: string;
         relationalQueryGetter: () => NodeRelationalQueryBuilder<
-          ISMNode<TNodeData, TNodeComputedData, TNodeRelationalData>
+          ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>
         >;
       }) {
         Object.defineProperty(this, opts.propName, {

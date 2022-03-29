@@ -21,13 +21,10 @@ import {
   ByReferenceQueryBuilderOpts,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
-
-export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
-  'id',
-  'version',
-  'lastUpdatedBy',
-  'type',
-];
+import {
+  PROPERTIES_QUERIED_FOR_ALL_NODES,
+  RELATIONAL_UNION_QUERY_SEPARATOR,
+} from './consts';
 
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
@@ -264,7 +261,7 @@ function getRelationalQueries(opts: {
           Object.keys(queryBuilderOpts).forEach(unionType => {
             addRelationalQueryRecord({
               _smRelational: relationalQuery._smRelational,
-              key: `${key}_${unionType}`,
+              key: `${key}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
               def: relationalQuery.def[unionType],
               mapFn: queryBuilderOpts[unionType].map,
             });
@@ -408,15 +405,35 @@ export function getQueryRecordFromQueryDefinition(opts: {
     };
 
     if (queryDefinition.target) {
-      if (queryDefinition.target.ids) {
+      if ('ids' in queryDefinition.target) {
+        if (
+          (queryDefinition.target.ids as Array<string>).some(
+            id => typeof id !== 'string'
+          )
+        ) {
+          throw Error('Invalid id in target.ids');
+        }
+
         (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
           queryDefinition.target.ids;
       }
-      if (queryDefinition.target.id) {
+      if ('id' in queryDefinition.target) {
+        if (typeof queryDefinition.target.id !== 'string') {
+          throw Error('Invalid id in target.id');
+        }
+
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
       }
-      if (queryDefinition.target.underIds) {
+      if ('underIds' in queryDefinition.target) {
+        if (
+          (queryDefinition.target.underIds as Array<string>).some(
+            id => typeof id !== 'string'
+          )
+        ) {
+          throw Error('Invalid id in target.underIds');
+        }
+
         (queryRecordEntry as QueryRecordEntry & {
           underIds: Array<string>;
         }).underIds = queryDefinition.target.underIds;

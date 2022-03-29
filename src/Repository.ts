@@ -1,3 +1,4 @@
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import {
   JSON_TAG,
   NULL_TAG,
@@ -5,7 +6,6 @@ import {
   prepareValueForFE,
 } from './dataConversions';
 import { SMNotCachedException, SMDataParsingException } from './exceptions';
-import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './queryDefinitionAdapters';
 import { OBJECT_PROPERTY_SEPARATOR, OBJECT_IDENTIFIER } from './smDataTypes';
 import {
   ISMData,

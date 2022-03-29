@@ -6,10 +6,12 @@ import {
   mockQueryDataReturn,
   getMockSubscriptionMessage,
   getMockConfig,
+  generateUserNode,
 } from '../specUtilities';
 import { useSubscription } from './';
 import { SMProvider, SMJS } from '..';
 import { deepClone } from '../dataUtilities';
+import { queryDefinition } from '../smDataTypes';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -131,7 +133,23 @@ test('it re-renders the component when a subscription message causes a change in
   smJS.gqlClient.subscribe = mockSubscribe;
 
   function MyComponent() {
-    const { data } = useSubscription(createMockQueryDefinitions(smJS));
+    const { data } = useSubscription({
+      users: queryDefinition({
+        def: generateUserNode(smJS),
+        map: ({ id, address, todos }) => ({
+          id,
+          address,
+          todos: todos({
+            map: ({ id, assignee }) => ({
+              id,
+              assignee: assignee({
+                map: ({ id, firstName }) => ({ id, firstName }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    });
 
     return (
       <>
