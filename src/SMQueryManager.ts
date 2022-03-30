@@ -154,7 +154,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         const nodeRepository = opts.queryRecord[queryAlias].def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
-          dataForThisAlias.flatMap(data => nodeRepository.onDataReceived(data));
+          dataForThisAlias.forEach(data => nodeRepository.onDataReceived(data));
         } else {
           nodeRepository.onDataReceived(dataForThisAlias);
         }
@@ -169,23 +169,23 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                 )
               : dataForThisAlias[relationalAlias];
 
-            if (relationalDataForThisAlias) {
+            relationalDataForThisAlias.forEach((relationalDataEntry: any) => {
               const relationalQuery = relationalQueries[relationalAlias];
 
               if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
-                const node = relationalDataForThisAlias[0];
+                const node = relationalDataEntry;
                 if (node && node.type !== relationalQuery.def.type) return;
               }
 
               this.notifyRepositories({
                 data: {
-                  [relationalAlias]: relationalDataForThisAlias,
+                  [relationalAlias]: relationalDataEntry,
                 },
                 queryRecord: {
                   [relationalAlias]: relationalQuery,
                 },
               });
-            }
+            });
           });
         }
       });

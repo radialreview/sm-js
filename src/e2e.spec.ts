@@ -1561,7 +1561,7 @@ test('querying an id for the wrong node type throws an error', async done => {
   }
 });
 
-test.only('reference unions work', async () => {
+test('reference unions work', async () => {
   const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
   const todoTitle = 'get it done';
   const txResult = await smJSInstance
@@ -1692,8 +1692,8 @@ test.only('reference unions work', async () => {
   });
 
   expect(result2.data.mockNode.todoOrThing.type).toBe(mockThingDef.type);
-  if (result.data.mockNode.todoOrThing.type === mockThingDef.type) {
-    expect(result.data.mockNode.todoOrThing.string).toBe(mockThingString);
+  if (result2.data.mockNode.todoOrThing.type === mockThingDef.type) {
+    expect(result2.data.mockNode.todoOrThing.string).toBe(mockThingString);
   }
 
   await smJSInstance
