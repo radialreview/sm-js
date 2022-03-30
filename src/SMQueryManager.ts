@@ -573,7 +573,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
             : null;
 
           if (
-            !firstResult ||
+            firstResult &&
             firstResult.type !==
               opts.relationalQueries[relationalQueryAlias].def.type
           )
