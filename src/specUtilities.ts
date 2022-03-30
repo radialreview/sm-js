@@ -40,7 +40,13 @@ type UserRelationalData = {
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
+export type UserNode = ISMNode<
+  'tt-user',
+  UserProperties,
+  {},
+  UserRelationalData,
+  {}
+>;
 
 // factory functions so that tests don't share DO repositories
 export function generateUserNode(
@@ -87,6 +93,7 @@ export type TodoRelationalData = {
 export type TodoMutations = {};
 
 export type TodoNode = ISMNode<
+  'todo',
   TodoProperties,
   {},
   TodoRelationalData,
@@ -115,6 +122,7 @@ export function generateTodoNode(
 }
 
 export function generateDOInstance<
+  TNodeType extends string,
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   // the tsignore here is necessary
@@ -143,12 +151,13 @@ export function generateDOInstance<
 }) {
   const smJS = new SMJS(getDefaultConfig());
   const DOclass = smJS.def<
+    TNodeType,
     TNodeData,
     TNodeComputedData,
     TNodeRelationalData,
     TNodeMutations
   >({
-    type: 'mockNodeType',
+    type: 'mockNodeType' as TNodeType,
     properties: opts.properties,
     computed: opts.computed,
     relational: opts.relational,

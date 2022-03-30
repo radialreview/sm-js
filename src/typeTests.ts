@@ -35,13 +35,26 @@ const todoProperties = {
 };
 const todoRelational = {
   assignee: () =>
-    reference<typeof todoNode, typeof userNode>({
+    reference<TodoNode, UserNode>({
       def: userNode,
       idProp: 'assigneeId',
     }),
   meeting: () =>
-    reference<typeof todoNode, Maybe<typeof meetingNode>>({
+    reference<TodoNode, Maybe<MeetingNode>>({
       def: meetingNode,
+      idProp: 'meetingId',
+    }),
+  assigneeUnionNullable: () =>
+    reference<
+      TodoNode,
+      Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
+    >({
+      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
+      idProp: 'meetingId',
+    }),
+  assigneeUnionNonNullable: () =>
+    reference<TodoNode, { meetingGuest: MeetingGuestNode; orgUser: UserNode }>({
+      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
       idProp: 'meetingId',
     }),
 };
@@ -50,14 +63,23 @@ const meetingProperties = {
   name: string,
 };
 
-type MeetingNode = ISMNode<typeof meetingProperties>;
+type MeetingNode = ISMNode<'meeting', typeof meetingProperties>;
 
 type TodoNode = ISMNode<
+  'todo',
   typeof todoProperties,
   {},
   {
     assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
     meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
+    assigneeUnionNullable: IByReferenceQueryBuilder<
+      TodoNode,
+      Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
+    >;
+    assigneeUnionNonNullable: IByReferenceQueryBuilder<
+      TodoNode,
+      { meetingGuest: MeetingGuestNode; orgUser: UserNode }
+    >;
   }
 >;
 
@@ -120,6 +142,7 @@ const userRelational = {
 };
 
 type UserNode = ISMNode<
+  'user',
   typeof userProperties,
   { fullName: string; avatar: string },
   {
@@ -128,6 +151,7 @@ type UserNode = ISMNode<
     invalid: IByReferenceQueryBuilder<UserNode, StateNode>;
   }
 >;
+
 const userNode: UserNode = smJS.def({
   type: 'user',
   properties: userProperties,
@@ -142,17 +166,27 @@ const userNode: UserNode = smJS.def({
   },
 });
 
+const meetingGuestProperties = {
+  id: string,
+  firstName: string,
+};
+type MeetingGuestNode = ISMNode<'meeting-guest', typeof meetingGuestProperties>;
+const meetingGuestNode: MeetingGuestNode = smJS.def({
+  type: 'meeting-guest' as 'meeting-guest',
+  properties: meetingGuestProperties,
+});
+
 const stateNodeProperties = {
   name: string,
 };
-type StateNode = ISMNode<typeof stateNodeProperties>;
+type StateNode = ISMNode<'state', typeof stateNodeProperties>;
 const stateNode: StateNode = smJS.def({
   type: 'state',
   properties: stateNodeProperties,
 });
 (async function MapFnTests() {
   // @ts-ignore
-  const mapFn: MapFnForNode<typeof userNode> = ({
+  const mapFn: MapFnForNode<UserNode> = ({
     id,
     // @ts-expect-error
     yeahThisDoesntExist,
@@ -164,7 +198,7 @@ const stateNode: StateNode = smJS.def({
   });
 
   // @ts-ignore
-  const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
+  const mapFnWithRelationalQueries: MapFnForNode<UserNode> = ({
     id,
     todos,
     // @ts-expect-error
@@ -189,14 +223,14 @@ const stateNode: StateNode = smJS.def({
   // @ts-ignore
   const returnedDataFromRandomFn: ExtractQueriedDataFromMapFn<
     typeof randomMapFn,
-    typeof userNode
+    UserNode
   > = {
     id: 'test',
     // @ts-expect-error
     bogus: '',
   };
 
-  const mapFnWithRelationalQueries: MapFnForNode<typeof userNode> = ({
+  const mapFnWithRelationalQueries: MapFnForNode<UserNode> = ({
     id,
     todos,
   }) => ({
@@ -212,7 +246,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-ignore
   const returnedData: ExtractQueriedDataFromMapFn<
     typeof mapFnWithRelationalQueries,
-    typeof userNode
+    UserNode
   > = {
     // "id" seems to be falling through the never case in ExtractQueriedDataFromMapFnReturn
     // however doesn't seem to be causing issues in the resulting dev experience tests
@@ -574,6 +608,67 @@ const stateNode: StateNode = smJS.def({
   withExplicitTypesOmitted.data.mock[0].t as string;
   // @ts-expect-error
   withExplicitTypesOmitted.data.mock[0].foo as string;
+
+  const withRelationalUnion = await smJS.query({
+    users: queryDefinition({
+      def: todoNode,
+      map: todoData => ({
+        assigneeNullable: todoData.assigneeUnionNullable({
+          orgUser: {
+            map: ({ id, lastName, address, todos }) => ({
+              id,
+              lastName,
+              address,
+              todos: todos({ map: allData => allData }),
+            }),
+          },
+          meetingGuest: {
+            map: ({ id, firstName }) => ({ id, firstName }),
+          },
+        }),
+        assigneeNonNullable: todoData.assigneeUnionNonNullable({
+          orgUser: {
+            map: ({ id, lastName, address }) => ({
+              id,
+              lastName,
+              address,
+            }),
+          },
+          meetingGuest: {
+            map: ({ id, firstName }) => ({ id, firstName }),
+          },
+        }),
+      }),
+    }),
+  });
+
+  const assigneeNullable = withRelationalUnion.data.users[0].assigneeNullable;
+  if (assigneeNullable && assigneeNullable.type === 'user') {
+    assigneeNullable.id;
+    // to ensure the depth param in ExtractQueriedDataFromByReferenceQuery does not mess with depths greater than 1
+    assigneeNullable.todos[0].assigneeId;
+    // @ts-expect-error no first name being queried for org user
+    assigneeNullable.firstName;
+    assigneeNullable.address as { state: string };
+  } else if (assigneeNullable) {
+    assigneeNullable.id;
+    assigneeNullable.firstName as string;
+    // @ts-expect-error no address for meeting guest being queried
+    assigneeNullable.address;
+  }
+
+  // @ts-expect-error no null check
+  withRelationalUnion.data.users[0].assigneeNullable.id;
+  // @ts-expect-error no type check/type guard
+  withRelationalUnion.data.users[0].assigneeNullable?.firstName;
+  // common properties don't need type guards
+  withRelationalUnion.data.users[0].assigneeNullable?.id as string;
+  withRelationalUnion.data.users[0].assigneeNullable?.type as
+    | 'meeting-guest'
+    | 'user';
+
+  // no need for a null check if the reference does not return a maybe type
+  withRelationalUnion.data.users[0].assigneeNonNullable.id;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
@@ -583,7 +678,7 @@ const stateNode: StateNode = smJS.def({
       flagEnabled: boolean(false),
     }),
   };
-  type NodeType = ISMNode<typeof nodeProperties>;
+  type NodeType = ISMNode<'some-type', typeof nodeProperties>;
 
   smJS.transaction(ctx => {
     ctx.createNode<NodeType>({

@@ -19,6 +19,7 @@ import {
   ValidReferenceIdPropFromNode,
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
+  ByReferenceQueryBuilderOpts,
 } from './types';
 
 export class SMData<
@@ -300,14 +301,22 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
 
 export const reference = <
   TOriginNode extends ISMNode,
-  TTargetNode extends ISMNode | Maybe<ISMNode> = ISMNode
+  TTargetNodeOrTargetNodeRecord extends
+    | ISMNode
+    | Maybe<ISMNode>
+    | Record<string, ISMNode>
+    | Maybe<Record<string, ISMNode>>
 >(opts: {
-  def: NonNullable<TTargetNode>;
+  def: NonNullable<TTargetNodeOrTargetNodeRecord>;
   idProp: ValidReferenceIdPropFromNode<TOriginNode>;
 }) => {
-  return ((queryBuilderOpts: {
-    map: MapFnForNode<NonNullable<TTargetNode>>;
-  }) => {
+  return (<
+    TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<
+      TTargetNodeOrTargetNodeRecord
+    >
+  >(
+    queryBuilderOpts: TQueryBuilderOpts
+  ) => {
     return {
       ...opts,
       idProp: (opts.idProp as string).replaceAll(
@@ -315,9 +324,9 @@ export const reference = <
         OBJECT_PROPERTY_SEPARATOR
       ) as ValidReferenceIdPropFromNode<TOriginNode>,
       _smRelational: SM_RELATIONAL_TYPES.byReference,
-      map: queryBuilderOpts.map,
+      queryBuilderOpts,
     };
-  }) as IByReferenceQueryBuilder<TOriginNode, TTargetNode>;
+  }) as IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
 };
 
 export const children = <TSMNode extends ISMNode>(opts: {

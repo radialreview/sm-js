@@ -32,7 +32,7 @@ export function updateNodes(
 }
 
 export type UpdateNodeOperation<
-  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
 > = {
   type: 'updateNode';
   smOperationName: 'UpdateNodes';
@@ -45,7 +45,7 @@ export type UpdateNodeOperation<
 };
 
 export function updateNode<
-  TSMNode extends ISMNode = ISMNode<Record<string, any>>
+  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
 >(
   operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
 ): UpdateNodeOperation<TSMNode> {

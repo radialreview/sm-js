@@ -59,10 +59,8 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
             nodeData: Record<string, any> | Array<Record<string, any>>;
             queryId: string;
             queryAlias: string;
-            queryRecord?: {
-                [key: string]: BaseQueryRecordEntry;
-            } | undefined;
-        }): SMQueryManagerStateEntry;
+            queryRecord?: QueryRecord;
+        }): Maybe<SMQueryManagerStateEntry>;
         updateProxiesAndStateFromSubscriptionMessage(opts: {
             node: any;
             queryId: string;
@@ -79,6 +77,11 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
             queryRecord: BaseQueryRecordEntry;
             node: Record<string, any>;
         }): Record<string, any> | null;
+        removeUnionSuffix(alias: string): string;
+        getApplicableRelationalQueries(opts: {
+            relationalQueries: Record<string, RelationalQueryRecordEntry>;
+            nodeData: Record<string, any>;
+        }): Record<string, RelationalQueryRecordEntry>;
     };
 };
 export {};

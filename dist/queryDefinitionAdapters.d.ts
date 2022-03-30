@@ -1,5 +1,4 @@
 import { ISMNode, QueryDefinitions, QueryRecord, ValidFilterForNode } from './types';
-export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: string[];
 export declare function getQueryRecordFromQueryDefinition(opts: {
     queryId: string;
     queryDefinitions: QueryDefinitions;

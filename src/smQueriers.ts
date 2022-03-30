@@ -42,18 +42,15 @@ export function generateQuerier({
     const tokenName = opts?.tokenName || 'default';
     const token = smJSInstance.getToken({ tokenName });
 
-    function getError(error: any) {
-      if (opts?.onError) {
-        return error;
-      } else {
-        // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-        error.stack =
-          error.stack +
-          '\n' +
-          startStack.substring(startStack.indexOf('\n') + 1);
+    function getError(error: any, stack?: string) {
+      // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+      error.stack =
+        `\n` +
+        (stack || error.stack) +
+        '\n' +
+        startStack.substring(startStack.indexOf('\n') + 1);
 
-        return error;
-      }
+      return error;
     }
 
     if (!token) {
@@ -90,9 +87,9 @@ export function generateQuerier({
 
           results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
         } catch (e) {
-          console.error(e);
           const error = getError(
-            new Error(`Error applying query results\n${e}`)
+            new Error(`Error applying query results`),
+            (e as any).stack
           );
 
           if (opts?.onError) {
@@ -107,7 +104,7 @@ export function generateQuerier({
         return { data: results, error: null };
       })
       .catch(e => {
-        const error = getError(new Error(`Error querying data\n${e}`));
+        const error = getError(new Error(`Error querying data`), e.stack);
         if (opts?.onError) {
           opts.onError(error);
           return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
@@ -151,18 +148,15 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     opts.onQueryInfoConstructed &&
       opts.onQueryInfoConstructed({ queryGQL, queryId });
 
-    function getError(error: any) {
-      if (opts.onError) {
-        return error;
-      } else {
-        // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-        error.stack =
-          error.stack +
-          '\n' +
-          startStack.substring(startStack.indexOf('\n') + 1);
+    function getError(error: any, stack?: any) {
+      // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+      error.stack =
+        '\n' +
+        (stack || error.stack) +
+        '\n' +
+        startStack.substring(startStack.indexOf('\n') + 1);
 
-        return error;
-      }
+      return error;
     }
 
     const tokenName = opts?.tokenName || 'default';
@@ -210,7 +204,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         });
       } catch (e) {
         const error = getError(
-          new Error(`Error applying subscription message\n${e}`)
+          new Error(`Error applying subscription message`, (e as any).stack)
         );
 
         if (opts.onError) {
@@ -263,7 +257,8 @@ export function generateSubscriber(smJSInstance: ISMJS) {
               // Can never throw here. The dev consuming this would have no way of catching it
               // To catch an error in a subscription they must provide onError
               const error = getError(
-                new Error(`Error in a subscription message\n${e}`)
+                new Error(`Error in a subscription message`),
+                e.stack
               );
 
               if (opts.onError) {
@@ -276,7 +271,8 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         });
       } catch (e) {
         const error = getError(
-          new Error(`Error initializating subscriptions\n${e}`)
+          new Error(`Error initializating subscriptions`),
+          (e as any).stack
         );
 
         if (opts?.onError) {
@@ -305,9 +301,9 @@ export function generateSubscriber(smJSInstance: ISMJS) {
           batched: opts.batched,
         });
       } catch (e) {
-        console.error(e);
         const error = getError(
-          new Error(`Error querying initial data set\n${e}`)
+          new Error(`Error querying initial data set`),
+          (e as any).stack
         );
 
         if (opts?.onError) {

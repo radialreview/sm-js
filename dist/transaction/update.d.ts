@@ -14,7 +14,7 @@ export declare type UpdateNodesOperation = {
     name?: string;
 };
 export declare function updateNodes(operation: Omit<UpdateNodesOperation, 'type' | 'smOperationName'>): UpdateNodesOperation;
-export declare type UpdateNodeOperation<TSMNode extends ISMNode = ISMNode<Record<string, any>>> = {
+export declare type UpdateNodeOperation<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>> = {
     type: 'updateNode';
     smOperationName: 'UpdateNodes';
     data: {
@@ -24,5 +24,5 @@ export declare type UpdateNodeOperation<TSMNode extends ISMNode = ISMNode<Record
     onSuccess?: (data: any) => void;
     onFail?: () => void;
 };
-export declare function updateNode<TSMNode extends ISMNode = ISMNode<Record<string, any>>>(operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>): UpdateNodeOperation<TSMNode>;
+export declare function updateNode<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>>(operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>): UpdateNodeOperation<TSMNode>;
 export declare function getMutationsFromTransactionUpdateOperations(operations: Array<UpdateNodeOperation | UpdateNodesOperation>): Array<DocumentNode>;

@@ -1,3 +1,4 @@
+import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
 import { SMDataParsingException } from './exceptions';
 import {
   IDOProxy,
@@ -113,15 +114,20 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     public getResultsFromState(
       state: SMQueryManagerState
     ): Record<string, any> {
-      return Object.keys(state).reduce((resultsAcc, queryAlias) => {
+      const acc = Object.keys(state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
-        resultsAcc[queryAlias] = Array.isArray(idsOrId)
+
+        const resultsAlias = this.removeUnionSuffix(queryAlias);
+
+        resultsAcc[resultsAlias] = Array.isArray(idsOrId)
           ? idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy)
           : stateForThisAlias.proxyCache[idsOrId].proxy;
 
         return resultsAcc;
       }, {} as Record<string, any>);
+
+      return acc;
     }
 
     /**
@@ -166,6 +172,11 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
             if (relationalDataForThisAlias) {
               const relationalQuery = relationalQueries[relationalAlias];
 
+              if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
+                const node = relationalDataForThisAlias[0];
+                if (node && node.type !== relationalQuery.def.type) return;
+              }
+
               this.notifyRepositories({
                 data: {
                   [relationalAlias]: relationalDataForThisAlias,
@@ -190,11 +201,14 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     }): SMQueryManagerState {
       return Object.keys(this.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
-          resultingStateAcc[queryAlias] = this.buildCacheEntry({
+          const cacheEntry = this.buildCacheEntry({
             nodeData: opts.queryResult[queryAlias],
             queryId: opts.queryId,
             queryAlias,
           });
+
+          if (!cacheEntry) return resultingStateAcc;
+          resultingStateAcc[queryAlias] = cacheEntry;
 
           return resultingStateAcc;
         },
@@ -206,11 +220,20 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       nodeData: Record<string, any> | Array<Record<string, any>>;
       queryId: string;
       queryAlias: string;
-      queryRecord?: { [key: string]: BaseQueryRecordEntry };
-    }): SMQueryManagerStateEntry {
+      queryRecord?: QueryRecord;
+    }): Maybe<SMQueryManagerStateEntry> {
       const { nodeData, queryAlias } = opts;
       const queryRecord = opts.queryRecord || this.queryRecord;
       const { relational } = queryRecord[opts.queryAlias];
+
+      // if the query alias includes a relational union query separator
+      // and the first item in the array of results has a type that does not match the type of the node def in this query record
+      // this means that the result node likely matches a different type in that union
+      if (queryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
+        const node = (opts.nodeData as Array<any>)[0];
+        if (node && node.type !== queryRecord[opts.queryAlias].def.type)
+          return null;
+      }
 
       const buildRelationalStateForNode = (
         node: Record<string, any>
@@ -220,18 +243,20 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         return Object.keys(relational).reduce(
           (relationalStateAcc, relationalAlias) => {
             const relationalDataForThisAlias = node[relationalAlias];
+            if (!relationalDataForThisAlias) return relationalStateAcc;
 
-            if (relationalDataForThisAlias) {
-              return {
-                ...relationalStateAcc,
-                [relationalAlias]: this.buildCacheEntry({
-                  nodeData: relationalDataForThisAlias,
-                  queryId: opts.queryId,
-                  queryAlias: relationalAlias,
-                  queryRecord: relational,
-                }),
-              };
-            } else return relationalStateAcc;
+            const cacheEntry = this.buildCacheEntry({
+              nodeData: relationalDataForThisAlias,
+              queryId: opts.queryId,
+              queryAlias: relationalAlias,
+              queryRecord: (relational as unknown) as QueryRecord,
+            });
+            if (!cacheEntry) return relationalStateAcc;
+
+            return {
+              ...relationalStateAcc,
+              [this.removeUnionSuffix(relationalAlias)]: cacheEntry,
+            };
           },
           {} as SMQueryManagerState
         );
@@ -246,7 +271,12 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         const proxy = smJSInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: relational || null,
+          relationalQueries: relational
+            ? this.getApplicableRelationalQueries({
+                relationalQueries: relational,
+                nodeData: node,
+              })
+            : null,
           queryId: opts.queryId,
           relationalResults: !relationalState
             ? null
@@ -330,12 +360,14 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         );
         stateForThisAlias.proxyCache[nodeId] = newCacheEntry;
       } else {
-        const { proxyCache } = this.buildCacheEntry({
+        const cacheEntry = this.buildCacheEntry({
           nodeData: node,
           queryId,
           queryAlias: subscriptionAlias,
           queryRecord: this.queryRecord,
         });
+        if (!cacheEntry) return;
+        const { proxyCache } = cacheEntry;
 
         const newlyGeneratedProxy = proxyCache[node.id];
 
@@ -403,12 +435,16 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                 : currentRelationalState[relationalAlias];
 
               if (!currentStateForThisAlias) {
-                relationalStateAcc[relationalAlias] = this.buildCacheEntry({
+                const cacheEntry = this.buildCacheEntry({
                   nodeData: relationalDataForThisAlias,
                   queryId,
                   queryAlias: relationalAlias,
-                  queryRecord: relationalQueryRecord,
+                  queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
                 });
+
+                if (!cacheEntry) return relationalStateAcc;
+
+                relationalStateAcc[relationalAlias] = cacheEntry;
 
                 return relationalStateAcc;
               }
@@ -423,17 +459,19 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                     currentStateForThisAlias.proxyCache[node.id]?.proxy;
 
                   if (!existingProxy) {
-                    const newCacheEntry = this.buildCacheEntry({
+                    const cacheEntry = this.buildCacheEntry({
                       nodeData: node,
                       queryId: queryId,
                       queryAlias: relationalAlias,
-                      queryRecord: relationalQueryRecord,
+                      queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
                     });
+
+                    if (!cacheEntry) return;
 
                     relationalStateAcc[relationalAlias] = {
                       proxyCache: {
                         ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: newCacheEntry.proxyCache[node.id],
+                        [node.id]: cacheEntry,
                       },
                       idsOrIdInCurrentResult: [
                         ...(relationalStateAcc[relationalAlias]
@@ -509,6 +547,46 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
             {} as Record<string, any>
           )
         : null;
+    }
+
+    public removeUnionSuffix(alias: string) {
+      if (alias.includes(RELATIONAL_UNION_QUERY_SEPARATOR))
+        return alias.split(RELATIONAL_UNION_QUERY_SEPARATOR)[0];
+      else return alias;
+    }
+
+    public getApplicableRelationalQueries(opts: {
+      relationalQueries: Record<string, RelationalQueryRecordEntry>;
+      nodeData: Record<string, any>;
+    }) {
+      return Object.keys(opts.relationalQueries).reduce(
+        (acc, relationalQueryAlias) => {
+          if (!relationalQueryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR))
+            return {
+              ...acc,
+              [relationalQueryAlias]:
+                opts.relationalQueries[relationalQueryAlias],
+            };
+
+          const firstResult = opts.nodeData[relationalQueryAlias]
+            ? opts.nodeData[relationalQueryAlias][0]
+            : null;
+
+          if (
+            !firstResult ||
+            firstResult.type !==
+              opts.relationalQueries[relationalQueryAlias].def.type
+          )
+            return acc;
+
+          return {
+            ...acc,
+            [this.removeUnionSuffix(relationalQueryAlias)]: opts
+              .relationalQueries[relationalQueryAlias],
+          };
+        },
+        {} as Record<string, RelationalQueryRecordEntry>
+      );
     }
   };
 }

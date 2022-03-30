@@ -80,6 +80,7 @@ export class SMJS implements ISMJS {
   }
 
   public def<
+    TNodeType extends string,
     TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
     TNodeComputedData extends Record<string, any> = {},
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
@@ -89,12 +90,14 @@ export class SMJS implements ISMJS {
     > = {}
   >(
     def: NodeDefArgs<
+      TNodeType,
       TNodeData,
       TNodeComputedData,
       TNodeRelationalData,
       TNodeMutations
     >
   ): ISMNode<
+    TNodeType,
     TNodeData,
     TNodeComputedData,
     TNodeRelationalData,

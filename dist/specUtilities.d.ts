@@ -169,7 +169,7 @@ declare type UserProperties = typeof userProperties;
 declare type UserRelationalData = {
     todos: IChildrenQueryBuilder<TodoNode>;
 };
-export declare type UserNode = ISMNode<UserProperties, {}, UserRelationalData, {}>;
+export declare type UserNode = ISMNode<'tt-user', UserProperties, {}, UserRelationalData, {}>;
 export declare function generateUserNode(smJSInstance: ISMJS, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     id: {
@@ -249,9 +249,9 @@ export declare type TodoRelationalData = {
     assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
 };
 export declare type TodoMutations = {};
-export declare type TodoNode = ISMNode<TodoProperties, {}, TodoRelationalData, TodoMutations>;
+export declare type TodoNode = ISMNode<'todo', TodoProperties, {}, TodoRelationalData, TodoMutations>;
 export declare function generateTodoNode(smJSInstance: ISMJS, cachedUserNode?: UserNode): TodoNode;
-export declare function generateDOInstance<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(opts: {
+export declare function generateDOInstance<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(opts: {
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
@@ -578,179 +578,181 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
                 _default: smData.SMData<"", "", undefined>;
                 optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
             };
-            assignee: import("./types").IByReferenceQuery<TodoNode, UserNode, ({ id, firstName }: import("./types").GetMapFnArgs<{
-                id: {
-                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                    _default: smData.SMData<"", "", undefined>;
-                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                firstName: {
-                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                    _default: smData.SMData<"", "", undefined>;
-                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                lastName: smData.SMData<"joe", "joe", undefined>;
-                address: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
-                    streetName: {
+            assignee: import("./types").IByReferenceQuery<TodoNode, UserNode, {
+                map: ({ id, firstName }: import("./types").GetMapFnArgs<{
+                    id: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                         _default: smData.SMData<"", "", undefined>;
                         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     };
-                    zipCode: {
+                    firstName: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                         _default: smData.SMData<"", "", undefined>;
                         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     };
-                    state: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
-                    apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                    lastName: smData.SMData<"joe", "joe", undefined>;
+                    address: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                        streetName: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        zipCode: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
+                        state: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                        };
+                        apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, {
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>;
                     }>, import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        streetName: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        zipCode: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
+                        state: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                        };
+                        apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, {
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>;
                     }>, {
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        streetName: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        zipCode: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
+                        state: {
+                            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                            _default: smData.SMData<"", "", undefined>;
+                            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                        };
+                        apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>, {
+                            number: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                            floor: {
+                                (defaultValue: number): smData.SMData<number, string, undefined>;
+                                _default: smData.SMData<number, string, undefined>;
+                                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                            };
+                        }>;
                     }>;
-                }>, import("./types").GetResultingDataTypeFromProperties<{
-                    streetName: {
+                }, UserRelationalData>) => {
+                    id: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                         _default: smData.SMData<"", "", undefined>;
                         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     };
-                    zipCode: {
+                    firstName: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                         _default: smData.SMData<"", "", undefined>;
                         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     };
-                    state: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
-                    apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>, import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>, {
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>;
-                }>, {
-                    streetName: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
-                    zipCode: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
-                    state: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
-                    apt: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>, import("./types").GetResultingDataTypeFromProperties<{
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>, {
-                        number: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        floor: {
-                            (defaultValue: number): smData.SMData<number, string, undefined>;
-                            _default: smData.SMData<number, string, undefined>;
-                            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    }>;
-                }>;
-            }, UserRelationalData>) => {
-                id: {
-                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                    _default: smData.SMData<"", "", undefined>;
-                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                firstName: {
-                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                    _default: smData.SMData<"", "", undefined>;
-                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 };
             }>;
         }>;

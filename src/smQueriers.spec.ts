@@ -68,10 +68,7 @@ test('sm.query calls "onError" when the query fails', done => {
 
   smJSInstance.query(queryDefinitions, {
     onError: e => {
-      expect(e).toMatchInlineSnapshot(`
-        [Error: Error querying data
-        Error: Something went wrong]
-      `);
+      expect(e.stack.includes(`Error: Something went wrong`)).toBe(true);
       done();
     },
   });
@@ -87,10 +84,7 @@ test('sm.query throws an error when the query fails and no "onError" handler is 
   try {
     await smJSInstance.query(queryDefinitions);
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: Error querying data
-      Error: Something went wrong]
-    `);
+    expect((e as any).stack.includes(`Error: Something went wrong`)).toBe(true);
     done();
   }
 });
@@ -103,10 +97,12 @@ test('sm.query throws an error when the user specifies a token which has not bee
       tokenName: 'invalidTokenName',
     });
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: No token registered with the name "invalidTokenName".
-      Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
-    `);
+    expect(
+      (e as any).stack.includes(
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with sm.setToken({ tokenName, token }))`
+      )
+    ).toBe(true);
+
     done();
   }
 });
@@ -353,10 +349,7 @@ test('sm.subscribe throws an error when a subscription initialization error occu
       onData: () => {},
     });
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: Error initializating subscriptions
-      Error: Some error]
-    `);
+    expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
     done();
   }
 });
@@ -372,10 +365,7 @@ test('sm.subscribe calls onError when a subscription initialization error occurs
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
-      expect(e).toMatchInlineSnapshot(`
-        [Error: Error initializating subscriptions
-        Error: Some error]
-      `);
+      expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
       done();
     },
   });
@@ -395,10 +385,9 @@ test('sm.subscribe calls onError when an ongoing subscription error occurs', asy
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
-      expect(e).toMatchInlineSnapshot(`
-        [Error: Error in a subscription message
-        Error: Something went wrong]
-      `);
+      expect((e as any).stack.includes(`Error: Something went wrong`)).toBe(
+        true
+      );
       done();
     },
   });
@@ -414,10 +403,7 @@ test('sm.subscribe calls onError when a query error occurs', async done => {
   smJSInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
-      expect(e).toMatchInlineSnapshot(`
-        [Error: Error querying initial data set
-        Error: Some error]
-      `);
+      expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
       done();
     },
   });
@@ -435,10 +421,7 @@ test('sm.subscribe throws an error when a query error occurs and no onError hand
       onData: () => {},
     });
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: Error querying initial data set
-      Error: Some error]
-    `);
+    expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
     done();
   }
 });
@@ -452,10 +435,11 @@ test('sm.subscribe throws an error when the user specifies a token which has not
       tokenName: 'invalidTokenName',
     });
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: No token registered with the name "invalidTokenName".
-      Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
-    `);
+    expect(
+      (e as any).stack.includes(
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with sm.setToken({ tokenName, token }))`
+      )
+    ).toBe(true);
     done();
   }
 });

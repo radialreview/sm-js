@@ -87,6 +87,7 @@ describe('smData.DO', () => {
     };
 
     const { doInstance } = generateDOInstance<
+      'mock-type',
       typeof properties,
       { dropdownOpt: { value: string; display: string } },
       {},
@@ -118,6 +119,7 @@ describe('smData.DO', () => {
     };
 
     const { doInstance } = generateDOInstance<
+      'mock-type',
       typeof properties,
       { taskWithTest: string; taskWithTestAndTest2: string },
       {},
@@ -145,6 +147,7 @@ describe('smData.DO', () => {
   test('relational properties are available on the DO', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const { doInstance } = generateDOInstance<
+      'mock-type',
       {},
       {},
       { todos: IChildrenQueryBuilder<TodoNode> },
@@ -184,7 +187,13 @@ describe('smData.DO', () => {
       maybeArr: smData.array(smData.number.optional).optional,
     };
 
-    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<
+      'mock-type',
+      typeof properties,
+      {},
+      {},
+      {}
+    >({
       properties,
       initialData: {
         version: '1',
@@ -228,7 +237,13 @@ describe('smData.DO', () => {
       }),
     };
 
-    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<
+      'mock-type',
+      typeof properties,
+      {},
+      {},
+      {}
+    >({
       properties,
       initialData: {
         id: '321',
@@ -314,7 +329,13 @@ describe('smData.DO', () => {
       ),
     };
 
-    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<
+      'mock-type',
+      typeof properties,
+      {},
+      {},
+      {}
+    >({
       properties,
       initialData: {
         id: '321',
@@ -340,7 +361,13 @@ describe('smData.DO', () => {
     const properties = {
       meetingIds: smData.array(smData.string).optional,
     };
-    const { doInstance } = generateDOInstance<typeof properties, {}, {}, {}>({
+    const { doInstance } = generateDOInstance<
+      'mock-type',
+      typeof properties,
+      {},
+      {},
+      {}
+    >({
       properties,
       initialData: {
         id: '123',

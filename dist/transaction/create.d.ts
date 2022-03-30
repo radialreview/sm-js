@@ -13,7 +13,7 @@ export declare type CreateNodesOperation = {
     name?: string;
 };
 export declare function createNodes(operation: Omit<CreateNodesOperation, 'type' | 'smOperationName'>): CreateNodesOperation;
-export declare type CreateNodeOperation<TSMNode extends ISMNode = ISMNode<Record<string, any>>> = {
+export declare type CreateNodeOperation<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>> = {
     type: 'createNode';
     smOperationName: 'CreateNodes';
     data: RequiredNodeDataForCreate & Partial<OptionalNodeDataForCreate> & DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
@@ -22,5 +22,5 @@ export declare type CreateNodeOperation<TSMNode extends ISMNode = ISMNode<Record
     position?: number;
     onSuccess?: (data: any) => any;
 };
-export declare function createNode<TSMNode extends ISMNode = ISMNode<Record<string, any>>>(operation: Omit<CreateNodeOperation<TSMNode>, 'type' | 'smOperationName'>): CreateNodeOperation<TSMNode>;
+export declare function createNode<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>>(operation: Omit<CreateNodeOperation<TSMNode>, 'type' | 'smOperationName'>): CreateNodeOperation<TSMNode>;
 export declare function getMutationsFromTransactionCreateOperations(operations: Array<CreateNodeOperation | CreateNodesOperation>): Array<DocumentNode>;

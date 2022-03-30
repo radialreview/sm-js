@@ -43,6 +43,61 @@ function removeVersionsFromResults(results: any) {
   }));
 }
 
+const mockThingProperties = {
+  id: string,
+  number: number,
+  string: string,
+  otherString: string.optional,
+  object: object.optional({
+    property: string,
+    otherProperty: string,
+    nestedObject: object.optional({
+      nestedProperty: string,
+    }),
+  }),
+};
+
+const mockTodoProperties = {
+  id: string,
+  title: string,
+  assigneeId: string.optional,
+  done: boolean(false),
+};
+
+const mockUserProperties = {
+  id: string,
+  name: string,
+};
+
+type TodoProperties = typeof mockTodoProperties;
+
+type TodoRelationalData = {
+  assignee: IByReferenceQueryBuilder<TodoNode, ThingNode>;
+};
+
+type TodoMutations = {};
+
+type TodoNode = ISMNode<
+  'mock-todo',
+  TodoProperties,
+  {},
+  TodoRelationalData,
+  TodoMutations
+>;
+type ThingProperties = typeof mockThingProperties;
+
+type ThingRelationalData = {
+  todos: IChildrenQueryBuilder<TodoNode>;
+};
+
+type ThingNode = ISMNode<
+  'mock-thing',
+  ThingProperties,
+  {},
+  ThingRelationalData,
+  {}
+>;
+
 async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
@@ -52,54 +107,6 @@ async function setupTest() {
     tokenName: 'default',
     token,
   });
-
-  const mockThingProperties = {
-    id: string,
-    number: number,
-    string: string,
-    otherString: string.optional,
-    object: object.optional({
-      property: string,
-      otherProperty: string,
-      nestedObject: object.optional({
-        nestedProperty: string,
-      }),
-    }),
-  };
-
-  const mockTodoProperties = {
-    id: string,
-    title: string,
-    assigneeId: string.optional,
-    done: boolean(false),
-  };
-
-  const mockUserProperties = {
-    id: string,
-    name: string,
-  };
-
-  type TodoProperties = typeof mockTodoProperties;
-
-  type TodoRelationalData = {
-    assignee: IByReferenceQueryBuilder<TodoNode, ThingNode>;
-  };
-
-  type TodoMutations = {};
-
-  type TodoNode = ISMNode<
-    TodoProperties,
-    {},
-    TodoRelationalData,
-    TodoMutations
-  >;
-  type ThingProperties = typeof mockThingProperties;
-
-  type ThingRelationalData = {
-    todos: IChildrenQueryBuilder<TodoNode>;
-  };
-
-  type ThingNode = ISMNode<ThingProperties, {}, ThingRelationalData, {}>;
 
   const mockThingDef: ThingNode = smJSInstance.def({
     type: 'mock-thing',
@@ -583,12 +590,11 @@ test('dropping a node in sm works', async done => {
       )
     );
   } catch (e) {
-    expect(e).toMatchInlineSnapshot(`
-      [Error: Error querying data
-      Error: Error applying query results
-      Error: SMDataParsing exception - Queried a node by id for the query with the id "mock-query" but received back an empty array
-      Data: [].]
-    `);
+    expect(
+      (e as any).stack.includes(
+        `Error: SMDataParsing exception - Queried a node by id for the query with the id "mock-query" but received back an empty array`
+      )
+    ).toBe(true);
     done();
   }
 });
@@ -1509,7 +1515,7 @@ test('#ref_ foreign keys work', async () => {
   });
 });
 
-test('Querying an id for the wrong node type throws an error', async done => {
+test('querying an id for the wrong node type throws an error', async done => {
   const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
   try {
     const tx = await smJSInstance
@@ -1547,11 +1553,147 @@ test('Querying an id for the wrong node type throws an error', async done => {
     });
   } catch (e) {
     expect(
-      (e as any).message.includes(
+      (e as any).stack.includes(
         'Attempted to query a node with an id belonging to a different type - Expected: mock-thing Received: mock-todo'
       )
     ).toEqual(true);
     done();
+  }
+});
+
+test('reference unions work', async () => {
+  const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
+  const todoTitle = 'get it done';
+  const txResult = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNode({
+        data: {
+          type: mockTodoDef.type,
+          title: todoTitle,
+        },
+      });
+    })
+    .execute();
+
+  const [{ id: todoId }] = txResult[0].data.CreateNodes as Array<{
+    id: string;
+  }>;
+
+  type MockNodeType = ISMNode<
+    'mock-node',
+    { todoOrThingId: typeof string },
+    {},
+    {
+      todoOrThing: IByReferenceQueryBuilder<
+        MockNodeType,
+        { todo: TodoNode; thing: ThingNode }
+      >;
+    }
+  >;
+  const mockNodeType: MockNodeType = smJSInstance.def({
+    type: 'mock-node',
+    properties: {
+      todoOrThingId: string,
+    },
+    relational: {
+      todoOrThing: () =>
+        reference<MockNodeType, { todo: TodoNode; thing: ThingNode }>({
+          idProp: 'todoOrThingId',
+          def: { todo: mockTodoDef, thing: mockThingDef },
+        }),
+    },
+  });
+
+  const txResult2 = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNode<MockNodeType>({
+        data: {
+          type: mockNodeType.type,
+          todoOrThingId: todoId,
+        },
+      });
+    })
+    .execute();
+
+  const [{ id: mockNodeId }] = txResult2[0].data.CreateNodes as Array<{
+    id: string;
+  }>;
+
+  const result = await smJSInstance.query({
+    mockNode: queryDefinition({
+      def: mockNodeType,
+      map: ({ todoOrThingId, todoOrThing }) => ({
+        todoOrThingId,
+        todoOrThing: todoOrThing({
+          thing: {
+            map: thingData => thingData,
+          },
+          todo: {
+            map: todoData => todoData,
+          },
+        }),
+      }),
+      target: {
+        id: mockNodeId,
+      },
+    }),
+  });
+
+  expect(result.data.mockNode.todoOrThing.type).toBe(mockTodoDef.type);
+  if (result.data.mockNode.todoOrThing.type === mockTodoDef.type) {
+    expect(result.data.mockNode.todoOrThing.title).toBe(todoTitle);
+  }
+
+  const mockThingString = 'some mock string';
+  const txResult3 = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNode<ThingNode>({
+        data: {
+          type: mockThingDef.type,
+          string: mockThingString,
+        },
+      });
+    })
+    .execute();
+
+  const [{ id: mockThingId }] = txResult3[0].data.CreateNodes as Array<{
+    id: string;
+  }>;
+
+  await smJSInstance
+    .transaction(ctx => {
+      ctx.updateNode<MockNodeType>({
+        data: {
+          id: mockNodeId,
+          todoOrThingId: mockThingId,
+        },
+      });
+    })
+    .execute();
+
+  const result2 = await smJSInstance.query({
+    mockNode: queryDefinition({
+      def: mockNodeType,
+      map: ({ todoOrThingId, todoOrThing }) => ({
+        todoOrThingId,
+        todoOrThing: todoOrThing({
+          thing: {
+            map: thingData => thingData,
+          },
+          todo: {
+            map: todoData => todoData,
+          },
+        }),
+      }),
+      target: {
+        id: mockNodeId,
+      },
+    }),
+  });
+
+  expect(result2.data.mockNode.todoOrThing.type).toBe(mockThingDef.type);
+  if (result.data.mockNode.todoOrThing.type === mockThingDef.type) {
+    expect(result.data.mockNode.todoOrThing.string).toBe(mockThingString);
   }
 });
 
