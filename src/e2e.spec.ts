@@ -1561,36 +1561,21 @@ test('querying an id for the wrong node type throws an error', async done => {
   }
 });
 
-test('reference unions work', async () => {
+type MockNodeType = ISMNode<
+  'mock-node',
+  { todoOrThingId: typeof string },
+  {},
+  {
+    todoOrThing: IByReferenceQueryBuilder<
+      MockNodeType,
+      { todo: TodoNode; thing: ThingNode }
+    >;
+  }
+>;
+async function getReferenceTestUtils() {
   const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
-  const todoTitle = 'get it done';
-  const txResult = await smJSInstance
-    .transaction(ctx => {
-      ctx.createNode({
-        data: {
-          type: mockTodoDef.type,
-          title: todoTitle,
-        },
-      });
-    })
-    .execute();
 
-  const [{ id: todoId }] = txResult[0].data.CreateNodes as Array<{
-    id: string;
-  }>;
-
-  type MockNodeType = ISMNode<
-    'mock-node',
-    { todoOrThingId: typeof string },
-    {},
-    {
-      todoOrThing: IByReferenceQueryBuilder<
-        MockNodeType,
-        { todo: TodoNode; thing: ThingNode }
-      >;
-    }
-  >;
-  const mockNodeType: MockNodeType = smJSInstance.def({
+  const mockNodeDef: MockNodeType = smJSInstance.def({
     type: 'mock-node',
     properties: {
       todoOrThingId: string,
@@ -1604,24 +1589,84 @@ test('reference unions work', async () => {
     },
   });
 
-  const txResult2 = await smJSInstance
-    .transaction(ctx => {
-      ctx.createNode<MockNodeType>({
-        data: {
-          type: mockNodeType.type,
-          todoOrThingId: todoId,
-        },
-      });
-    })
-    .execute();
+  const todoTitle = 'get it done';
+  async function createTodo() {
+    const txResult = await smJSInstance
+      .transaction(ctx => {
+        ctx.createNode({
+          data: {
+            type: mockTodoDef.type,
+            title: todoTitle,
+          },
+        });
+      })
+      .execute();
 
-  const [{ id: mockNodeId }] = txResult2[0].data.CreateNodes as Array<{
-    id: string;
-  }>;
+    const [{ id: todoId }] = txResult[0].data.CreateNodes as Array<{
+      id: string;
+    }>;
+    return todoId;
+  }
 
-  const result = await smJSInstance.query({
-    mockNode: queryDefinition({
-      def: mockNodeType,
+  async function createMockNode(todoOrThingId: string) {
+    const txResult = await smJSInstance
+      .transaction(ctx => {
+        ctx.createNode<MockNodeType>({
+          data: {
+            type: mockNodeDef.type,
+            todoOrThingId,
+          },
+        });
+      })
+      .execute();
+
+    const [{ id: mockNodeId }] = txResult[0].data.CreateNodes as Array<{
+      id: string;
+    }>;
+
+    return mockNodeId;
+  }
+
+  const mockThingString = 'some mock string';
+
+  async function createThing() {
+    const txResult3 = await smJSInstance
+      .transaction(ctx => {
+        ctx.createNode<ThingNode>({
+          data: {
+            type: mockThingDef.type,
+            string: mockThingString,
+          },
+        });
+      })
+      .execute();
+
+    const [{ id: mockThingId }] = txResult3[0].data.CreateNodes as Array<{
+      id: string;
+    }>;
+
+    return mockThingId;
+  }
+
+  async function updateMockNode(opts: {
+    mockNodeId: string;
+    todoOrThingId: string;
+  }) {
+    await smJSInstance
+      .transaction(ctx => {
+        ctx.updateNode<MockNodeType>({
+          data: {
+            id: opts.mockNodeId,
+            todoOrThingId: opts.todoOrThingId,
+          },
+        });
+      })
+      .execute();
+  }
+
+  function getQD(mockNodeId: string) {
+    return queryDefinition({
+      def: mockNodeDef,
       map: ({ todoOrThingId, todoOrThing }) => ({
         todoOrThingId,
         todoOrThing: todoOrThing({
@@ -1636,7 +1681,42 @@ test('reference unions work', async () => {
       target: {
         id: mockNodeId,
       },
-    }),
+    });
+  }
+
+  return {
+    todoTitle,
+    createTodo,
+    mockNodeDef,
+    createMockNode,
+    getQD,
+    smJSInstance,
+    mockTodoDef,
+    mockThingDef,
+    createThing,
+    mockThingString,
+    updateMockNode,
+  };
+}
+
+test('reference unions work', async () => {
+  const {
+    createTodo,
+    todoTitle,
+    createMockNode,
+    getQD,
+    smJSInstance,
+    mockTodoDef,
+    mockThingDef,
+    createThing,
+    mockThingString,
+    updateMockNode,
+  } = await getReferenceTestUtils();
+
+  const todoId = await createTodo();
+  const mockNodeId = await createMockNode(todoId);
+  const result = await smJSInstance.query({
+    mockNode: getQD(mockNodeId),
   });
 
   expect(result.data.mockNode.todoOrThing.type).toBe(mockTodoDef.type);
@@ -1644,51 +1724,10 @@ test('reference unions work', async () => {
     expect(result.data.mockNode.todoOrThing.title).toBe(todoTitle);
   }
 
-  const mockThingString = 'some mock string';
-  const txResult3 = await smJSInstance
-    .transaction(ctx => {
-      ctx.createNode<ThingNode>({
-        data: {
-          type: mockThingDef.type,
-          string: mockThingString,
-        },
-      });
-    })
-    .execute();
-
-  const [{ id: mockThingId }] = txResult3[0].data.CreateNodes as Array<{
-    id: string;
-  }>;
-
-  await smJSInstance
-    .transaction(ctx => {
-      ctx.updateNode<MockNodeType>({
-        data: {
-          id: mockNodeId,
-          todoOrThingId: mockThingId,
-        },
-      });
-    })
-    .execute();
-
+  const thingId = await createThing();
+  await updateMockNode({ mockNodeId, todoOrThingId: thingId });
   const result2 = await smJSInstance.query({
-    mockNode: queryDefinition({
-      def: mockNodeType,
-      map: ({ todoOrThingId, todoOrThing }) => ({
-        todoOrThingId,
-        todoOrThing: todoOrThing({
-          thing: {
-            map: thingData => thingData,
-          },
-          todo: {
-            map: todoData => todoData,
-          },
-        }),
-      }),
-      target: {
-        id: mockNodeId,
-      },
-    }),
+    mockNode: getQD(mockNodeId),
   });
 
   expect(result2.data.mockNode.todoOrThing.type).toBe(mockThingDef.type);
@@ -1696,38 +1735,66 @@ test('reference unions work', async () => {
     expect(result2.data.mockNode.todoOrThing.string).toBe(mockThingString);
   }
 
-  await smJSInstance
-    .transaction(ctx => {
-      ctx.updateNode<MockNodeType>({
-        data: {
-          id: mockNodeId,
-          todoOrThingId: (null as unknown) as string,
-        },
-      });
-    })
-    .execute();
+  await updateMockNode({
+    mockNodeId,
+    todoOrThingId: (null as unknown) as string,
+  });
 
   const result3 = await smJSInstance.query({
-    mockNode: queryDefinition({
-      def: mockNodeType,
-      map: ({ todoOrThingId, todoOrThing }) => ({
-        todoOrThingId,
-        todoOrThing: todoOrThing({
-          thing: {
-            map: thingData => thingData,
-          },
-          todo: {
-            map: todoData => todoData,
-          },
-        }),
-      }),
-      target: {
-        id: mockNodeId,
-      },
-    }),
+    mockNode: getQD(mockNodeId),
   });
 
   expect(result3.data.mockNode.todoOrThing).toBe(undefined);
+}, 10000);
+
+test('reference unions have their updates applied correctly', async done => {
+  const {
+    createTodo,
+    createMockNode,
+    getQD,
+    smJSInstance,
+    mockTodoDef,
+    mockThingDef,
+    createThing,
+    updateMockNode,
+  } = await getReferenceTestUtils();
+
+  const todoId = await createTodo();
+  const mockNodeId = await createMockNode(todoId);
+
+  let subDataIdx = 0;
+  const sub = await smJSInstance.subscribe(
+    {
+      mockNode: getQD(mockNodeId),
+    },
+    {
+      onData: ({ results }) => {
+        try {
+          if (subDataIdx === 0) {
+            expect(results.mockNode.todoOrThing.type).toBe(mockTodoDef.type);
+          } else if (subDataIdx === 1) {
+            expect(results.mockNode.todoOrThing.type).toBe(mockThingDef.type);
+          } else if (subDataIdx === 2) {
+            expect(results.mockNode.todoOrThing).toBe(undefined);
+            sub.unsub();
+            done();
+          }
+          subDataIdx++;
+        } catch (e) {
+          done(e);
+        }
+      },
+      onError: e => done(e),
+    }
+  );
+
+  const thingId = await createThing();
+  await updateMockNode({ mockNodeId, todoOrThingId: thingId });
+
+  await updateMockNode({
+    mockNodeId,
+    todoOrThingId: (null as unknown) as string,
+  });
 }, 10000);
 
 async function getToken(opts: {
