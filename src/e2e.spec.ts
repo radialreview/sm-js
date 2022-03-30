@@ -1692,10 +1692,43 @@ test('reference unions work', async () => {
   });
 
   expect(result2.data.mockNode.todoOrThing.type).toBe(mockThingDef.type);
-  if (result.data.mockNode.todoOrThing.type === mockThingDef.type) {
-    expect(result.data.mockNode.todoOrThing.string).toBe(mockThingString);
+  if (result2.data.mockNode.todoOrThing.type === mockThingDef.type) {
+    expect(result2.data.mockNode.todoOrThing.string).toBe(mockThingString);
   }
-});
+
+  await smJSInstance
+    .transaction(ctx => {
+      ctx.updateNode<MockNodeType>({
+        data: {
+          id: mockNodeId,
+          todoOrThingId: (null as unknown) as string,
+        },
+      });
+    })
+    .execute();
+
+  const result3 = await smJSInstance.query({
+    mockNode: queryDefinition({
+      def: mockNodeType,
+      map: ({ todoOrThingId, todoOrThing }) => ({
+        todoOrThingId,
+        todoOrThing: todoOrThing({
+          thing: {
+            map: thingData => thingData,
+          },
+          todo: {
+            map: todoData => todoData,
+          },
+        }),
+      }),
+      target: {
+        id: mockNodeId,
+      },
+    }),
+  });
+
+  expect(result3.data.mockNode.todoOrThing).toBe(undefined);
+}, 10000);
 
 async function getToken(opts: {
   authUrl: string;

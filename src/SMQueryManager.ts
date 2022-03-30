@@ -154,7 +154,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         const nodeRepository = opts.queryRecord[queryAlias].def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
-          dataForThisAlias.flatMap(data => nodeRepository.onDataReceived(data));
+          dataForThisAlias.forEach(data => nodeRepository.onDataReceived(data));
         } else {
           nodeRepository.onDataReceived(dataForThisAlias);
         }
@@ -169,23 +169,23 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                 )
               : dataForThisAlias[relationalAlias];
 
-            if (relationalDataForThisAlias) {
+            relationalDataForThisAlias.forEach((relationalDataEntry: any) => {
               const relationalQuery = relationalQueries[relationalAlias];
 
               if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
-                const node = relationalDataForThisAlias[0];
+                const node = relationalDataEntry;
                 if (node && node.type !== relationalQuery.def.type) return;
               }
 
               this.notifyRepositories({
                 data: {
-                  [relationalAlias]: relationalDataForThisAlias,
+                  [relationalAlias]: relationalDataEntry,
                 },
                 queryRecord: {
                   [relationalAlias]: relationalQuery,
                 },
               });
-            }
+            });
           });
         }
       });
@@ -572,8 +572,11 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
             ? opts.nodeData[relationalQueryAlias][0]
             : null;
 
+          // if the node.type returned in the relational query results does not match that of the relational query alias, skip adding this relational query
+          // this happens when a reference union is queried, for all nodes in the union type that do not match the type in the result
+          // and ensures that the correct node definition is used when building the decorated results for this query/subscription
           if (
-            !firstResult ||
+            firstResult &&
             firstResult.type !==
               opts.relationalQueries[relationalQueryAlias].def.type
           )
