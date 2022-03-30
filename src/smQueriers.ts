@@ -204,7 +204,8 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         });
       } catch (e) {
         const error = getError(
-          new Error(`Error applying subscription message`, (e as any).stack)
+          new Error(`Error applying subscription message`),
+          (e as any).stack
         );
 
         if (opts.onError) {

@@ -3341,7 +3341,7 @@ function generateSubscriber(smJSInstance) {
                     subscriptionAlias: data.subscriptionConfig.alias
                   });
                 } catch (e) {
-                  var _error2 = getError(new Error("Error applying subscription message", e.stack));
+                  var _error2 = getError(new Error("Error applying subscription message"), e.stack);
 
                   if (opts.onError) {
                     opts.onError(_error2);
