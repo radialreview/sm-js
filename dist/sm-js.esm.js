@@ -3586,7 +3586,7 @@ function createSMQueryManager(smJSInstance) {
         var nodeRepository = opts.queryRecord[queryAlias].def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
-          dataForThisAlias.flatMap(function (data) {
+          dataForThisAlias.forEach(function (data) {
             return nodeRepository.onDataReceived(data);
           });
         } else {
@@ -3600,22 +3600,21 @@ function createSMQueryManager(smJSInstance) {
             var relationalDataForThisAlias = Array.isArray(dataForThisAlias) ? dataForThisAlias.flatMap(function (dataEntry) {
               return dataEntry[relationalAlias];
             }) : dataForThisAlias[relationalAlias];
-
-            if (relationalDataForThisAlias) {
+            relationalDataForThisAlias.forEach(function (relationalDataEntry) {
               var _data2, _queryRecord2;
 
               var relationalQuery = relationalQueries[relationalAlias];
 
               if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
-                var node = relationalDataForThisAlias[0];
+                var node = relationalDataEntry;
                 if (node && node.type !== relationalQuery.def.type) return;
               }
 
               _this2.notifyRepositories({
-                data: (_data2 = {}, _data2[relationalAlias] = relationalDataForThisAlias, _data2),
+                data: (_data2 = {}, _data2[relationalAlias] = relationalDataEntry, _data2),
                 queryRecord: (_queryRecord2 = {}, _queryRecord2[relationalAlias] = relationalQuery, _queryRecord2)
               });
-            }
+            });
           });
         }
       });
