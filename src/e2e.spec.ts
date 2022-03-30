@@ -1561,7 +1561,7 @@ test('querying an id for the wrong node type throws an error', async done => {
   }
 });
 
-test('reference unions work', async () => {
+test.only('reference unions work', async () => {
   const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
   const todoTitle = 'get it done';
   const txResult = await smJSInstance
@@ -1695,7 +1695,40 @@ test('reference unions work', async () => {
   if (result.data.mockNode.todoOrThing.type === mockThingDef.type) {
     expect(result.data.mockNode.todoOrThing.string).toBe(mockThingString);
   }
-});
+
+  await smJSInstance
+    .transaction(ctx => {
+      ctx.updateNode<MockNodeType>({
+        data: {
+          id: mockNodeId,
+          todoOrThingId: (null as unknown) as string,
+        },
+      });
+    })
+    .execute();
+
+  const result3 = await smJSInstance.query({
+    mockNode: queryDefinition({
+      def: mockNodeType,
+      map: ({ todoOrThingId, todoOrThing }) => ({
+        todoOrThingId,
+        todoOrThing: todoOrThing({
+          thing: {
+            map: thingData => thingData,
+          },
+          todo: {
+            map: todoData => todoData,
+          },
+        }),
+      }),
+      target: {
+        id: mockNodeId,
+      },
+    }),
+  });
+
+  expect(result3.data.mockNode.todoOrThing).toBe(undefined);
+}, 10000);
 
 async function getToken(opts: {
   authUrl: string;
