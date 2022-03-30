@@ -3903,7 +3903,7 @@ function createSMQueryManager(smJSInstance) {
 
         if (!relationalQueryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) return _extends({}, acc, (_extends5 = {}, _extends5[relationalQueryAlias] = opts.relationalQueries[relationalQueryAlias], _extends5));
         var firstResult = opts.nodeData[relationalQueryAlias] ? opts.nodeData[relationalQueryAlias][0] : null;
-        if (!firstResult || firstResult.type !== opts.relationalQueries[relationalQueryAlias].def.type) return acc;
+        if (firstResult && firstResult.type !== opts.relationalQueries[relationalQueryAlias].def.type) return acc;
         return _extends({}, acc, (_extends6 = {}, _extends6[_this6.removeUnionSuffix(relationalQueryAlias)] = opts.relationalQueries[relationalQueryAlias], _extends6));
       }, {});
     };
