@@ -490,7 +490,7 @@ export function getKeyValueArrayFilterString<TSMNode extends ISMNode>(
   return `[${Object.entries(convertedToDotFormat).reduce(
     (acc, [key, value], idx) => {
       if (idx > 0) {
-        acc + ', ';
+        acc += ', ';
       }
 
       const parsedValue = value == null ? value : `"${String(value)}"`;
