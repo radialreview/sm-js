@@ -496,6 +496,7 @@ export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
   <TMapFn extends MapFnForNode<TSMNode>>(opts: {
     map: TMapFn;
     pagination?: ISMQueryPagination;
+    filter?: ValidFilterForNode<TSMNode>
   }): IChildrenQuery<TSMNode, TMapFn>;
 }
 
@@ -505,9 +506,9 @@ export interface IChildrenQuery<
 > {
   _smRelational: SM_RELATIONAL_TYPES.children;
   def: TSMNode;
-  filtersAndPagination?: ISMQueryPagination;
   map: TMapFn;
   pagination?: ISMQueryPagination;
+  filter?: ValidFilterForNode<TSMNode>
   depth?: number;
 }
 

@@ -1561,6 +1561,59 @@ test('querying an id for the wrong node type throws an error', async done => {
   }
 });
 
+test('children queries with filters work', async () => {
+  const { smJSInstance } = await setupTest();
+
+  const mockChildThing = smJSInstance.def({
+    type: 'mock-child-thing',
+    properties: {
+      done: boolean,
+    },
+  });
+  const mockThing = smJSInstance.def({
+    type: 'mock-thing',
+    properties: {},
+    relational: {
+      mockChildren: () => children({ def: mockChildThing }),
+    },
+  });
+
+  const result = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNode({
+        data: {
+          type: mockThing.type,
+          childNodes: [true, true, false, false, true].map(done => ({
+            type: mockChildThing.type,
+            done,
+          })),
+        },
+      });
+    })
+    .execute();
+
+  const [{ id: thingId }] = result[0].data.CreateNodes as Array<{
+    id: string;
+  }>;
+
+  const queryResult = await smJSInstance.query({
+    thing: queryDefinition({
+      def: mockThing,
+      map: ({ mockChildren }) => ({
+        mockChildren: mockChildren({
+          map: allData => allData,
+          filter: { done: true },
+        }),
+      }),
+      target: {
+        id: thingId,
+      },
+    }),
+  });
+
+  expect(queryResult.data.thing.mockChildren.length).toBe(3);
+});
+
 type MockNodeType = ISMNode<
   'mock-node',
   { todoOrThingId: typeof string },
