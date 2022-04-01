@@ -4423,8 +4423,7 @@ function getGQLCLient(gqlClientOpts) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                console.log('query gql', opts.gql);
-                _context.next = 3;
+                _context.next = 2;
                 return baseClient.query({
                   query: opts.gql,
                   context: _extends({
@@ -4434,12 +4433,12 @@ function getGQLCLient(gqlClientOpts) {
                   }))
                 });
 
-              case 3:
+              case 2:
                 _yield$baseClient$que = _context.sent;
                 data = _yield$baseClient$que.data;
                 return _context.abrupt("return", data);
 
-              case 6:
+              case 5:
               case "end":
                 return _context.stop();
             }
@@ -4454,12 +4453,12 @@ function getGQLCLient(gqlClientOpts) {
       return query;
     }(),
     subscribe: function subscribe(opts) {
-      console.log('sub gql', opts.gql);
+      // console.log('sub gql', authenticateSubscriptionDocument(opts));
       var subscription = baseClient.subscribe({
         query: authenticateSubscriptionDocument(opts)
       }).subscribe({
         next: function next(message) {
-          console.log('message', JSON.stringify(message, null, 2));
+          // console.log('message', JSON.stringify(message, null, 2));
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
         },
         error: opts.onError
