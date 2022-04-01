@@ -20,6 +20,7 @@ import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
   ByReferenceQueryBuilderOpts,
+  ChildrenQueryBuilderOpts,
 } from './types';
 
 export class SMData<
@@ -329,21 +330,18 @@ export const reference = <
   }) as IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
 };
 
-export const children = <TSMNode extends ISMNode>(opts: {
-  def: TSMNode;
+export const children = <TTargetNode extends ISMNode>(opts: {
+  def: TTargetNode;
   depth?: number;
 }) => {
-  return ((queryBuilderOpts: {
-    map: MapFnForNode<TSMNode>;
-    pagination: ISMQueryPagination;
-  }) => {
+  return ((queryBuilderOpts: ChildrenQueryBuilderOpts<TTargetNode>) => {
     return {
-      ...opts,
       _smRelational: SM_RELATIONAL_TYPES.children,
-      map: queryBuilderOpts.map,
       depth: opts.depth,
+      ...opts,
+      ...queryBuilderOpts,
     };
-  }) as IChildrenQueryBuilder<TSMNode>;
+  }) as IChildrenQueryBuilder<TTargetNode>;
 };
 
 export const OBJECT_PROPERTY_SEPARATOR = '__dot__';

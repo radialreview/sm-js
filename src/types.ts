@@ -428,6 +428,26 @@ export interface ISMNode<
   do: new (data?: Record<string, any>) => TNodeDO;
 }
 
+export enum SM_DATA_TYPES {
+  string = 's',
+  maybeString = 'mS',
+  number = 'n',
+  maybeNumber = 'mN',
+  boolean = 'b',
+  maybeBoolean = 'mB',
+  object = 'o',
+  maybeObject = 'mO',
+  record = 'r',
+  maybeRecord = 'mR',
+  array = 'a',
+  maybeArray = 'mA',
+}
+
+export enum SM_RELATIONAL_TYPES {
+  byReference = 'bR',
+  children = 'bP'
+}
+
 /**
  * These inform the library how to query for data that is related to the node type we're building.
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
@@ -461,26 +481,6 @@ export interface IByReferenceQueryBuilder<
   ): IByReferenceQuery<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
 }
 
-
-export enum SM_DATA_TYPES {
-  string = 's',
-  maybeString = 'mS',
-  number = 'n',
-  maybeNumber = 'mN',
-  boolean = 'b',
-  maybeBoolean = 'mB',
-  object = 'o',
-  maybeObject = 'mO',
-  record = 'r',
-  maybeRecord = 'mR',
-  array = 'a',
-  maybeArray = 'mA',
-}
-
-export enum SM_RELATIONAL_TYPES {
-  byReference = 'bR',
-  children = 'bP'
-}
 export interface IByReferenceQuery<
   TOriginNode extends ISMNode,
   TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
@@ -492,23 +492,28 @@ export interface IByReferenceQuery<
   def: TTargetNodeOrTargetNodeRecord
 }
 
-export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
-  <TMapFn extends MapFnForNode<TSMNode>>(opts: {
-    map: TMapFn;
-    pagination?: ISMQueryPagination;
-    filter?: ValidFilterForNode<TSMNode>
-  }): IChildrenQuery<TSMNode, TMapFn>;
+export type ChildrenQueryBuilderOpts<TTargetNode extends ISMNode> = {
+  map: MapFnForNode<TTargetNode>,
+  filter?: ValidFilterForNode<TTargetNode> ,
+  pagination?: ISMQueryPagination
+}
+export interface IChildrenQueryBuilder<
+TTargetNode extends ISMNode
+> {
+  <
+    TQueryBuilderOpts extends ChildrenQueryBuilderOpts<TTargetNode>
+  >(opts: TQueryBuilderOpts): IChildrenQuery<TTargetNode, TQueryBuilderOpts>;
 }
 
 export interface IChildrenQuery<
-  TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode>
+TTargetNode extends ISMNode,
+  TQueryBuilderOpts extends ChildrenQueryBuilderOpts<TTargetNode>
 > {
   _smRelational: SM_RELATIONAL_TYPES.children;
-  def: TSMNode;
-  map: TMapFn;
+  def: TTargetNode;
+  map: TQueryBuilderOpts['map'];
   pagination?: ISMQueryPagination;
-  filter?: ValidFilterForNode<TSMNode>
+  filter?: ValidFilterForNode<TTargetNode>
   depth?: number;
 }
 
@@ -735,8 +740,8 @@ type ExtractQueriedDataFromMapFnReturn<
 
 type ExtractQueriedDataFromChildrenQuery<
   TChildrenQuery extends IChildrenQuery<any, any>
-> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TQueryBuilderOpts>
+  ? Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TSMNode>>
   : never;
 
 // Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
