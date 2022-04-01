@@ -885,7 +885,7 @@ export type QueryRecordEntry = BaseQueryRecordEntry &
   );
 
 export type RelationalQueryRecordEntry =
-  | (BaseQueryRecordEntry & { children: true; depth?: number }) // will use GetChildren to query this data
+  | (BaseQueryRecordEntry & { children: true; filter?: ValidFilterForNode<ISMNode>, depth?: number }) // will use GetChildren to query this data
   | (BaseQueryRecordEntry & { byReference: true; idProp: string }); // will use GetReference to query this data
 
 export type QueryRecord = Record<string, QueryRecordEntry>;

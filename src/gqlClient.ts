@@ -149,6 +149,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: ISMGQLClient = {
     query: async opts => {
+      console.log('query gql', opts.gql);
       const { data } = await baseClient.query({
         query: opts.gql,
         context: {
@@ -160,12 +161,14 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return data;
     },
     subscribe: opts => {
+      console.log('sub gql', opts.gql);
       const subscription = baseClient
         .subscribe({
           query: authenticateSubscriptionDocument(opts),
         })
         .subscribe({
           next: message => {
+            console.log('message', JSON.stringify(message, null, 2));
             if (!message.data)
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)

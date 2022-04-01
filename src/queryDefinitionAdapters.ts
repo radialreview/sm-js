@@ -336,6 +336,11 @@ function getRelationalQueries(opts: {
               depth?: number;
             }).depth = relationalQuery.depth;
           }
+          if ('filter' in relationalQuery) {
+            (relationalQueryRecord as RelationalQueryRecordEntry & {
+              filter?: ValidFilterForNode<ISMNode>;
+            }).filter = relationalQuery.filter;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
@@ -476,6 +481,27 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   )}}`;
 }
 
+export function getKeyValueArrayFilterString<TSMNode extends ISMNode>(
+  filter: ValidFilterForNode<TSMNode>
+) {
+  const convertedToDotFormat = prepareObjectForBE(filter, {
+    omitObjectIdentifier: true,
+  });
+  return `[${Object.entries(convertedToDotFormat).reduce(
+    (acc, [key, value], idx) => {
+      if (idx > 0) {
+        acc + ', ';
+      }
+
+      const parsedValue = value == null ? value : `"${String(value)}"`;
+      acc += `{key: "${key}", value: ${parsedValue}}`;
+
+      return acc;
+    },
+    ''
+  )}]`;
+}
+
 function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
   def: TSMNode;
   underIds?: Array<string>;
@@ -558,12 +584,18 @@ function getRelationalQueryString(opts: {
       operation = `GetReferences(propertyNames: "${relationalQueryRecordEntry.idProp}")`;
     } else if ('children' in relationalQueryRecordEntry) {
       const depthString =
-        'depth' in relationalQueryRecordEntry
-          ? relationalQueryRecordEntry.depth !== undefined
-            ? `,depth: ${relationalQueryRecordEntry.depth}`
-            : ''
+        'depth' in relationalQueryRecordEntry &&
+        relationalQueryRecordEntry.depth !== undefined
+          ? `,depth: ${relationalQueryRecordEntry.depth}`
           : '';
-      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString})`;
+      const filterString =
+        'filter' in relationalQueryRecordEntry &&
+        relationalQueryRecordEntry.filter !== undefined
+          ? `,filter: ${getKeyValueArrayFilterString(
+              relationalQueryRecordEntry.filter
+            )}`
+          : '';
+      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString}${filterString})`;
     } else {
       throw Error(
         `relationalQueryRecordEntry is invalid\n${JSON.stringify(

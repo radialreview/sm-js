@@ -1561,13 +1561,13 @@ test('querying an id for the wrong node type throws an error', async done => {
   }
 });
 
-test('children queries with filters work', async () => {
+test.only('children queries with filters work', async () => {
   const { smJSInstance } = await setupTest();
 
   const mockChildThing = smJSInstance.def({
     type: 'mock-child-thing',
     properties: {
-      done: boolean,
+      done: boolean(false),
     },
   });
   const mockThing = smJSInstance.def({
@@ -1612,6 +1612,91 @@ test('children queries with filters work', async () => {
   });
 
   expect(queryResult.data.thing.mockChildren.length).toBe(3);
+});
+
+test.only('children subscriptions with filters work', async done => {
+  const { smJSInstance } = await setupTest();
+
+  const mockChildThing = smJSInstance.def({
+    type: 'mock-child-thing',
+    properties: {
+      id: string,
+      done: boolean(false),
+    },
+  });
+  const mockThing = smJSInstance.def({
+    type: 'mock-thing',
+    properties: {},
+    relational: {
+      mockChildren: () => children({ def: mockChildThing }),
+    },
+  });
+
+  const result = await smJSInstance
+    .transaction(ctx => {
+      ctx.createNode({
+        data: {
+          type: mockThing.type,
+          childNodes: [true, true, false, false, true].map(done => ({
+            type: mockChildThing.type,
+            done,
+          })),
+        },
+      });
+    })
+    .execute();
+
+  const [{ id: thingId }] = result[0].data.CreateNodes as Array<{
+    id: string;
+  }>;
+
+  let subDataReceivedIdx = 0;
+  const { unsub } = await smJSInstance.subscribe(
+    {
+      thing: queryDefinition({
+        def: mockThing,
+        map: ({ mockChildren }) => ({
+          mockChildren: mockChildren({
+            map: allData => allData,
+            filter: { done: true },
+          }),
+        }),
+        target: {
+          id: thingId,
+        },
+      }),
+    },
+    {
+      onData: ({ results }) => {
+        if (subDataReceivedIdx === 0) {
+          expect(results.thing.mockChildren.length).toBe(3);
+
+          try {
+            const firstChild = results.thing.mockChildren[0];
+            smJSInstance
+              .transaction(ctx => {
+                ctx.updateNode({
+                  data: {
+                    id: firstChild.id,
+                    done: false,
+                  },
+                });
+              })
+              .execute();
+          } catch (e) {
+            done(e);
+          }
+        } else {
+          expect(results.thing.mockChildren.length).toBe(2);
+          done();
+          unsub();
+        }
+
+        subDataReceivedIdx++;
+      },
+      onError: done,
+    }
+  );
 });
 
 type MockNodeType = ISMNode<

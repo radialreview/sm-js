@@ -10,7 +10,6 @@ import {
   IChildrenQueryBuilder,
   ISMData,
   ISMNode,
-  ISMQueryPagination,
   MapFnForNode,
   Maybe,
   QueryDefinition,
