@@ -2957,6 +2957,10 @@ function getKeyValueArrayFilterString(filter) {
     var key = _ref2[0],
         value = _ref2[1];
 
+    if (idx > 0) {
+      acc += ', ';
+    }
+
     var parsedValue = value == null ? value : "\"" + String(value) + "\"";
     acc += "{key: \"" + key + "\", value: " + parsedValue + "}";
     return acc;
