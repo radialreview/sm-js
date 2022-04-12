@@ -363,6 +363,15 @@ export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> 
         };
     } ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinitions[Key] extends ISMNode ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>> : never;
 };
+export declare type UseSubscriptionReturn<TQueryDefinitions, TOpts> = TOpts extends {
+    doNotSuspend: true;
+} ? {
+    data?: QueryDataReturn<TQueryDefinitions>;
+    querying: boolean;
+} : {
+    data: QueryDataReturn<TQueryDefinitions>;
+    querying: boolean;
+};
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
 export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<TNodeData, TNodeRelationalData>) => RequestedData<TNodeData, TNodeComputedData>;
 export declare type GetMapFnArgs<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
