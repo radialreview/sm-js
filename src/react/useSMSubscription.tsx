@@ -1,13 +1,20 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
-import { QueryDefinitions, QueryDataReturn } from '../types';
+import {
+  QueryDefinitions,
+  QueryDataReturn,
+  UseSubscriptionReturn,
+} from '../types';
 
 import { SMContext } from './context';
 
-export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
+export function useSubscription<
+  TQueryDefinitions extends QueryDefinitions,
+  TOpts extends { tokenName?: string; doNotSuspend?: boolean }
+>(
   queryDefinitions: TQueryDefinitions,
-  opts?: { tokenName?: string }
-): { data: QueryDataReturn<TQueryDefinitions>; querying: boolean } {
+  opts?: TOpts
+): UseSubscriptionReturn<TQueryDefinitions, TOpts> {
   const smContext = React.useContext(SMContext);
 
   if (!smContext) {
@@ -37,6 +44,19 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
       ? preExistingContextForThisSubscription?.querying
       : true
   );
+
+  const handlePromise = (p: Promise<any>) => {
+    if (opts?.doNotSuspend) {
+      noAwait(p);
+      return { data: results, querying } as UseSubscriptionReturn<
+        TQueryDefinitions,
+        TOpts
+      >;
+    } else {
+      throw p;
+    }
+  };
+
   React.useEffect(() => {
     smContext.cancelCleanup(subscriptionId);
     return () => {
@@ -62,6 +82,7 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
         queryDefinitions,
         queryId: preExistingContextForThisSubscription.queryInfo.queryId,
       }).queryGQL;
+
   if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
     if (queryDefinitionHasBeenUpdated) {
       preExistingContextForThisSubscription.unsub &&
@@ -125,22 +146,48 @@ export function useSubscription<TQueryDefinitions extends QueryDefinitions>(
       });
 
     if (!preExistingContextForThisSubscription) {
-      smContext.updateSubscriptionInfo(subscriptionId, { suspendPromise });
-      throw suspendPromise;
+      smContext.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise,
+      });
+      return handlePromise(suspendPromise);
     } else {
-      return { data: results, querying } as {
-        data: QueryDataReturn<TQueryDefinitions>;
-        querying: boolean;
-      };
+      return { data: results, querying } as UseSubscriptionReturn<
+        TQueryDefinitions,
+        TOpts
+      >;
     }
   } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
-    throw preExistingContextForThisSubscription.suspendPromise;
+    return handlePromise(preExistingContextForThisSubscription.suspendPromise);
   } else if (error) {
     throw error;
   } else {
-    return { data: results, querying } as {
-      data: QueryDataReturn<TQueryDefinitions>;
-      querying: boolean;
-    };
+    return { data: results, querying } as UseSubscriptionReturn<
+      TQueryDefinitions,
+      TOpts
+    >;
+  }
+}
+
+function noAwait(
+  thenable: ((...args: Array<any>) => Promise<any>) | Promise<any>
+) {
+  const handle = (p: Promise<any>) => {
+    if (!(p instanceof Promise)) {
+      throw new Error('noAwait: function arguments must return a promise');
+    }
+
+    p.then(() => null).catch(e => {
+      if (e instanceof Error) {
+        console.log(e);
+      }
+    });
+  };
+
+  if (thenable instanceof Promise) {
+    handle(thenable);
+  } else if (typeof thenable === 'function') {
+    handle(thenable());
+  } else {
+    throw new Error('noAwait: argument must be a function or a promise');
   }
 }

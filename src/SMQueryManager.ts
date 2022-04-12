@@ -169,23 +169,27 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                 )
               : dataForThisAlias[relationalAlias];
 
-            relationalDataForThisAlias.forEach((relationalDataEntry: any) => {
-              const relationalQuery = relationalQueries[relationalAlias];
+            (relationalDataForThisAlias || []).forEach(
+              (relationalDataEntry: any) => {
+                const relationalQuery = relationalQueries[relationalAlias];
 
-              if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
-                const node = relationalDataEntry;
-                if (node && node.type !== relationalQuery.def.type) return;
+                if (
+                  relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)
+                ) {
+                  const node = relationalDataEntry;
+                  if (node && node.type !== relationalQuery.def.type) return;
+                }
+
+                this.notifyRepositories({
+                  data: {
+                    [relationalAlias]: relationalDataEntry,
+                  },
+                  queryRecord: {
+                    [relationalAlias]: relationalQuery,
+                  },
+                });
               }
-
-              this.notifyRepositories({
-                data: {
-                  [relationalAlias]: relationalDataEntry,
-                },
-                queryRecord: {
-                  [relationalAlias]: relationalQuery,
-                },
-              });
-            });
+            );
           });
         }
       });

@@ -274,6 +274,37 @@ test('if the query record provided is updated, unsubscribes from the previously 
   );
 });
 
+test('suspense barrier is not triggered when doNotSuspend is true', async () => {
+  const LOADING_TEXT = 'loading';
+  const { smJS } = setupTests();
+
+  const result = render(
+    <React.Suspense fallback={LOADING_TEXT}>
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  expect(result.queryByText(LOADING_TEXT)).toBeNull();
+
+  await result.findByText('FL');
+
+  function MyComponent() {
+    const { data } = useSubscription(createMockQueryDefinitions(smJS), {
+      doNotSuspend: true,
+    });
+
+    return (
+      <>
+        {data?.users.map(user => (
+          <div key={user.id}>{user.address.state}</div>
+        ))}
+      </>
+    );
+  }
+});
+
 function setupTests() {
   const smJS = new SMJS(getMockConfig());
   smJS.setToken({ tokenName: 'default', token: 'mock token' });

@@ -633,6 +633,13 @@ export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     : never;
 };
 
+export type UseSubscriptionReturn<
+  TQueryDefinitions,
+  TOpts
+> = TOpts extends { doNotSuspend: true }
+  ? { data?: QueryDataReturn<TQueryDefinitions>; querying: boolean }
+  : { data: QueryDataReturn<TQueryDefinitions>; querying: boolean };
+
 export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
   ExtractNodeData<TSMNode>,
   ExtractNodeComputedData<TSMNode>,
