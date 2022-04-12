@@ -3606,7 +3606,7 @@ function createSMQueryManager(smJSInstance) {
             var relationalDataForThisAlias = Array.isArray(dataForThisAlias) ? dataForThisAlias.flatMap(function (dataEntry) {
               return dataEntry[relationalAlias];
             }) : dataForThisAlias[relationalAlias];
-            (relationalDataForThisAlias || []).forEach(function (relationalDataEntry) {
+            relationalDataForThisAlias.forEach(function (relationalDataEntry) {
               var _data2, _queryRecord2;
 
               var relationalQuery = relationalQueries[relationalAlias];
