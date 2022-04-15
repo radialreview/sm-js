@@ -27,6 +27,7 @@ import {
   IByReferenceQueryBuilder,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
+  GetResultingDataFromQueryDefinition,
 } from './types';
 
 export {
@@ -45,6 +46,7 @@ export {
   IByReferenceQueryBuilder,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
+  GetResultingDataFromQueryDefinition,
 };
 export * from './smDataTypes';
 export * from './react';

@@ -598,40 +598,42 @@ export type QueryDefinition<
 export type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 
 export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
-  [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
-    map: MapFn<any, any, any>;
-  }
-    ? /**
-       * full query definition provided, with a map fn
-       */
-      TQueryDefinitions[Key] extends { def: infer TSMNode; map: infer TMapFn }
-      ? TSMNode extends ISMNode
-        ? TMapFn extends MapFnForNode<TSMNode>
-          ? TQueryDefinitions[Key] extends { target?: { id: string } }
-            ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
-            : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
-          : never
-        : never
-      : never
-    : TQueryDefinitions[Key] extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
-    ? TQueryDefinitions[Key] extends { def: infer TSMNode }
-      ? TSMNode extends ISMNode
-        ? TQueryDefinitions[Key] extends { target?: { id: string } }
-          ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
-          : Array<
-              GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
-            >
-        : never
-      : never
-    : TQueryDefinitions[Key] extends ISMNode
-    ? /**
-       * shorthand syntax used, only a node definition was provided
-       */
-      Array<
-        GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>
-      >
-    : never;
+  [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
 };
+
+export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode> = TQueryDefinition extends {
+  map: MapFn<any, any, any>;
+}
+  ? /**
+     * full query definition provided, with a map fn
+     */
+    TQueryDefinition extends { def: infer TSMNode; map: infer TMapFn }
+    ? TSMNode extends ISMNode
+      ? TMapFn extends MapFnForNode<TSMNode>
+        ? TQueryDefinition extends { target?: { id: string } }
+          ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
+          : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+        : never
+      : never
+    : never
+  : TQueryDefinition extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
+  ? TQueryDefinition extends { def: infer TSMNode }
+    ? TSMNode extends ISMNode
+      ? TQueryDefinition extends { target?: { id: string } }
+        ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
+        : Array<
+            GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
+          >
+      : never
+    : never
+  : TQueryDefinition extends ISMNode
+  ? /**
+     * shorthand syntax used, only a node definition was provided
+     */
+    Array<
+      GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinition>, ExtractNodeComputedData<TQueryDefinition>>
+    >
+  : never;
 
 export type UseSubscriptionReturn<
   TQueryDefinitions,
