@@ -20,6 +20,9 @@ import {
   Maybe,
   SMDataEnum,
   ValidFilterForNode,
+  QueryDefinition,
+  GetResultingDataFromQueryDefinition,
+  GetMapFnArgs,
 } from './types';
 
 /**
@@ -669,6 +672,37 @@ const stateNode: StateNode = smJS.def({
 
   // no need for a null check if the reference does not return a maybe type
   withRelationalUnion.data.users[0].assigneeNonNullable.id;
+
+  // Validates that "GetResultingDataFromQueryDefinition" works
+  // For this type inference to work, it's important that the return of the map function is inferred by TS completely
+  // This means that we can not use
+  // const userMapFn: MapFnForNode<UserNode> = ({firstName}) =>({firstName})
+  // because the return type of a MapFnForNode is assumed as a random partial of the data on a node
+  // by only typing the arguments of the map function, TS then infers the return from the actual function instead of assuming a random partial
+  const userMapFn = ({ firstName }: GetMapFnArgs<UserNode>) => ({ firstName });
+  type UserQueryDefinition = QueryDefinition<UserNode, typeof userMapFn, any>;
+  type UserData = GetResultingDataFromQueryDefinition<UserQueryDefinition>;
+  const validUserData: UserData = {
+    type: 'user',
+    firstName: 'UserFirstName',
+    fullName: 'Full name',
+    avatar: 'avatar.jpg',
+  };
+  validUserData;
+  // @ts-expect-error missing firstName
+  const invalidUserDataMissingQueriedData: UserData = {
+    type: 'user',
+    fullName: 'Full name',
+    avatar: 'avatar.jpg',
+  };
+  invalidUserDataMissingQueriedData;
+  // @ts-expect-error missing fullName
+  const invalidUserDataMissingComputedProperty: UserData = {
+    type: 'user',
+    firstName: 'UserFirstName',
+    avatar: 'avatar.jpg',
+  };
+  invalidUserDataMissingComputedProperty;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

@@ -599,6 +599,7 @@ export type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 
 export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
+  
 };
 
 export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode> = TQueryDefinition extends {
@@ -653,27 +654,29 @@ export type MapFn<
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
-  data: GetMapFnArgs<TNodeData, TNodeRelationalData>
+  data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
-> = {
-  [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>>
-    ? TNodeData[key]
-    : TNodeData[key] extends ISMData<
-        any,
-        any,
-        Record<string, ISMData | SMDataDefaultFn>
-      >
-    // allows devs to query a partial of an object within a node
-    ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
-        map: TMapFn;
-      }) => TMapFn
-    : TNodeData[key];
-} &
-  TNodeRelationalData;
+  TSMNode extends ISMNode,
+> = TSMNode extends ISMNode<any, infer TNodeData, any, infer TNodeRelationalData>
+  ? {
+    [key in keyof TNodeData]: 
+      TNodeData[key] extends ISMData<Maybe<Array<any>>>
+        ? TNodeData[key]
+        : TNodeData[key] extends ISMData<
+            any,
+            any,
+            Record<string, ISMData | SMDataDefaultFn>
+          >
+        // allows devs to query a partial of an object within a node
+        ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
+            map: TMapFn;
+          }) => TMapFn
+        : TNodeData[key];
+    } &
+      TNodeRelationalData
+  : never;
 
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
