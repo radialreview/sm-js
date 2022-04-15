@@ -344,25 +344,26 @@ export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapF
 };
 export declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
-    [Key in keyof TQueryDefinitions]: TQueryDefinitions[Key] extends {
-        map: MapFn<any, any, any>;
-    } ? TQueryDefinitions[Key] extends {
-        def: infer TSMNode;
-        map: infer TMapFn;
-    } ? TSMNode extends ISMNode ? TMapFn extends MapFnForNode<TSMNode> ? TQueryDefinitions[Key] extends {
-        target?: {
-            id: string;
-        };
-    } ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinitions[Key] extends {
-        def: ISMNode;
-    } ? TQueryDefinitions[Key] extends {
-        def: infer TSMNode;
-    } ? TSMNode extends ISMNode ? TQueryDefinitions[Key] extends {
-        target?: {
-            id: string;
-        };
-    } ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinitions[Key] extends ISMNode ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinitions[Key]>, ExtractNodeComputedData<TQueryDefinitions[Key]>>> : never;
+    [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };
+export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any, any, any> | ISMNode> = TQueryDefinition extends {
+    map: MapFn<any, any, any>;
+} ? TQueryDefinition extends {
+    def: infer TSMNode;
+    map: infer TMapFn;
+} ? TSMNode extends ISMNode ? TMapFn extends MapFnForNode<TSMNode> ? TQueryDefinition extends {
+    target?: {
+        id: string;
+    };
+} ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
+    def: ISMNode;
+} ? TQueryDefinition extends {
+    def: infer TSMNode;
+} ? TSMNode extends ISMNode ? TQueryDefinition extends {
+    target?: {
+        id: string;
+    };
+} ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinition extends ISMNode ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinition>, ExtractNodeComputedData<TQueryDefinition>>> : never;
 export declare type UseSubscriptionReturn<TQueryDefinitions, TOpts> = TOpts extends {
     doNotSuspend: true;
 } ? {
@@ -373,12 +374,12 @@ export declare type UseSubscriptionReturn<TQueryDefinitions, TOpts> = TOpts exte
     querying: boolean;
 };
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
-export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<TNodeData, TNodeRelationalData>) => RequestedData<TNodeData, TNodeComputedData>;
-export declare type GetMapFnArgs<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
+export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>) => RequestedData<TNodeData, TNodeComputedData>;
+export declare type GetMapFnArgs<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeData, any, infer TNodeRelationalData> ? {
     [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>> ? TNodeData[key] : TNodeData[key] extends ISMData<any, any, Record<string, ISMData | SMDataDefaultFn>> ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;
     }) => TMapFn : TNodeData[key];
-} & TNodeRelationalData;
+} & TNodeRelationalData : never;
 declare type RequestedData<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>> = Partial<{
     [Key in keyof TNodeData | keyof TNodeComputedData]: Key extends keyof TNodeData ? TNodeData[Key] extends ISMData<Maybe<Array<any>>> ? TNodeData[Key] : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> : TNodeData[Key] : Key extends keyof TNodeComputedData ? TNodeComputedData[Key] : never;
 } | {}>;
