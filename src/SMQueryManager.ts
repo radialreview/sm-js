@@ -169,10 +169,6 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                 )
               : dataForThisAlias[relationalAlias];
 
-            if (relationalDataForThisAlias == null) {
-              console.log('rel', relationalQueries);
-              console.log('data', dataForThisAlias);
-            }
             relationalDataForThisAlias.forEach((relationalDataEntry: any) => {
               const relationalQuery = relationalQueries[relationalAlias];
 
