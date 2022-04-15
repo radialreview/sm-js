@@ -374,12 +374,12 @@ export declare type UseSubscriptionReturn<TQueryDefinitions, TOpts> = TOpts exte
     querying: boolean;
 };
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
-export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<TNodeData, TNodeRelationalData>) => RequestedData<TNodeData, TNodeComputedData>;
-export declare type GetMapFnArgs<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
+export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>) => RequestedData<TNodeData, TNodeComputedData>;
+export declare type GetMapFnArgs<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeData, any, infer TNodeRelationalData> ? {
     [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>> ? TNodeData[key] : TNodeData[key] extends ISMData<any, any, Record<string, ISMData | SMDataDefaultFn>> ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;
     }) => TMapFn : TNodeData[key];
-} & TNodeRelationalData;
+} & TNodeRelationalData : never;
 declare type RequestedData<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>> = Partial<{
     [Key in keyof TNodeData | keyof TNodeComputedData]: Key extends keyof TNodeData ? TNodeData[Key] extends ISMData<Maybe<Array<any>>> ? TNodeData[Key] : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> : TNodeData[Key] : Key extends keyof TNodeComputedData ? TNodeComputedData[Key] : never;
 } | {}>;
