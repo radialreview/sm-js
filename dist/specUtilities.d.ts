@@ -609,6 +609,17 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
             type: string;
             address__dot__state: string;
             version: string;
+            todos: {
+                version: string;
+                id: string;
+                type: string;
+                assignee: {
+                    id: string;
+                    type: string;
+                    version: string;
+                    firstName: string;
+                }[];
+            }[];
         };
         operation: {
             action: "UpdateNode";
