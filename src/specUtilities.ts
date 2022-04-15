@@ -285,6 +285,21 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
         type: 'tt-user',
         address__dot__state: 'AK',
         version: '2',
+        todos: [
+          {
+            version: '1',
+            id: 'mock-todo-id',
+            type: 'todo',
+            assignee: [
+              {
+                id: 'mock-user-id',
+                type: 'tt-user',
+                version: '1',
+                firstName: 'Joe',
+              },
+            ],
+          },
+        ],
       },
       operation: {
         action: 'UpdateNode' as 'UpdateNode',
