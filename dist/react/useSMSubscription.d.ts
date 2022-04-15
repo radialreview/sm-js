@@ -1,7 +1,5 @@
-import { QueryDefinitions, QueryDataReturn } from '../types';
-export declare function useSubscription<TQueryDefinitions extends QueryDefinitions>(queryDefinitions: TQueryDefinitions, opts?: {
+import { QueryDefinitions, UseSubscriptionReturn } from '../types';
+export declare function useSubscription<TQueryDefinitions extends QueryDefinitions, TOpts extends {
     tokenName?: string;
-}): {
-    data: QueryDataReturn<TQueryDefinitions>;
-    querying: boolean;
-};
+    doNotSuspend?: boolean;
+}>(queryDefinitions: TQueryDefinitions, opts?: TOpts): UseSubscriptionReturn<TQueryDefinitions, TOpts>;
