@@ -4189,7 +4189,7 @@ function useSubscription(queryDefinitions, opts) {
     throw Error('Error.captureStackTrace not supported');
   }
 
-  var subscriptionId = obj.stack.split('\n')[1];
+  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
   var preExistingContextForThisSubscription = smContext.ongoingSubscriptionRecord[subscriptionId];
 
   var _React$useState = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results),
@@ -4316,10 +4316,25 @@ function useSubscription(queryDefinitions, opts) {
 }
 function useSubscriptions(queryDefintionGroups, opts) {
   var promises = [];
+  var obj = {
+    stack: ''
+  };
+  Error.captureStackTrace(obj, useSubscription);
+
+  if (obj.stack === '') {
+    // Should be supported in all browsers, but better safe than sorry
+    throw Error('Error.captureStackTrace not supported');
+  }
+
+  var subscriptionId = obj.stack.split('\n')[1];
   return Object.keys(queryDefintionGroups).reduce(function (acc, queryDefinitionGroupKey, idx, keys) {
     // wrap these in a try catch to allow queuing all subscriptions in parallel
     try {
-      acc[queryDefinitionGroupKey] = useSubscription(queryDefintionGroups[queryDefinitionGroupKey], opts ? opts[queryDefinitionGroupKey] : undefined);
+      acc[queryDefinitionGroupKey] = useSubscription(queryDefintionGroups[queryDefinitionGroupKey], opts ? _extends({}, opts[queryDefinitionGroupKey], {
+        subscriptionId: subscriptionId + idx
+      }) : {
+        subscriptionId: subscriptionId + idx
+      });
     } catch (e) {
       if (e instanceof Promise) promises.push(e);else throw e;
     }
