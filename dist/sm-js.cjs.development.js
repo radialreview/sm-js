@@ -3847,7 +3847,7 @@ function createSMQueryManager(smJSInstance) {
 
               if (!_cacheEntry) return;
               relationalStateAcc[relationalAlias] = {
-                proxyCache: _extends({}, relationalStateAcc[relationalAlias].proxyCache, (_extends3 = {}, _extends3[node.id] = _cacheEntry, _extends3)),
+                proxyCache: _extends({}, relationalStateAcc[relationalAlias].proxyCache, (_extends3 = {}, _extends3[node.id] = _cacheEntry.proxyCache[node.id], _extends3)),
                 idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id])
               };
             } else {

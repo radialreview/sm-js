@@ -471,7 +471,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
                     relationalStateAcc[relationalAlias] = {
                       proxyCache: {
                         ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: cacheEntry,
+                        [node.id]: cacheEntry.proxyCache[node.id],
                       },
                       idsOrIdInCurrentResult: [
                         ...(relationalStateAcc[relationalAlias]

@@ -1901,6 +1901,91 @@ test(
   TIMEOUT_MS
 );
 
+test(
+  'child data works and updates in real time',
+  async done => {
+    const { smJSInstance, mockTodoDef } = await getReferenceTestUtils();
+
+    const mockTodoGroupNode = smJSInstance.def({
+      type: 'mock-todo-group',
+      properties: {},
+      relational: {
+        todos: () => children({ def: mockTodoDef }),
+      },
+    });
+
+    const response = await smJSInstance
+      .transaction(ctx => {
+        ctx.createNode<typeof mockTodoGroupNode>({
+          data: {
+            type: mockTodoGroupNode.type,
+          },
+        });
+      })
+      .execute();
+
+    const mockTodoGroupNodeId = response[0].data.CreateNodes[0].id;
+
+    let iteration = 0;
+    const { unsub } = await smJSInstance.subscribe(
+      {
+        todoGroup: queryDefinition({
+          def: mockTodoGroupNode,
+          target: {
+            id: mockTodoGroupNodeId,
+          },
+          map: ({ todos }) => ({
+            todos: todos({
+              map: allData => allData,
+            }),
+          }),
+        }),
+      },
+      {
+        onData: ({ results }) => {
+          if (iteration === 0) {
+            expect(results.todoGroup.todos.length).toBe(0);
+            // create todo under the group
+
+            smJSInstance
+              .transaction(ctx => {
+                ctx.createNode({
+                  data: {
+                    type: mockTodoDef.type,
+                  },
+                  under: mockTodoGroupNodeId,
+                });
+              })
+              .execute();
+          } else if (iteration === 1) {
+            expect(results.todoGroup.todos.length).toBe(1);
+            expect(typeof results.todoGroup.todos[0].id).toBe('string');
+
+            smJSInstance
+              .transaction(ctx => {
+                ctx.createNode({
+                  data: {
+                    type: mockTodoDef.type,
+                  },
+                  under: mockTodoGroupNodeId,
+                });
+              })
+              .execute();
+          } else if (iteration === 2) {
+            expect(results.todoGroup.todos.length).toBe(2);
+            expect(typeof results.todoGroup.todos[1].id).toBe('string');
+
+            unsub();
+            done();
+          }
+          iteration++;
+        },
+      }
+    );
+  },
+  TIMEOUT_MS
+);
+
 async function getToken(opts: {
   authUrl: string;
   email: string;
