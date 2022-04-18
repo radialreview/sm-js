@@ -4308,6 +4308,23 @@ function useSubscription(queryDefinitions, opts) {
     };
   }
 }
+function useSubscriptions(queryDefintionGroups, opts) {
+  var promises = [];
+  return Object.keys(queryDefintionGroups).reduce(function (acc, queryDefinitionGroupKey, idx, keys) {
+    // wrap these in a try catch to allow queuing all subscriptions in parallel
+    try {
+      acc[queryDefinitionGroupKey] = useSubscription(queryDefintionGroups[queryDefinitionGroupKey], opts ? opts[queryDefinitionGroupKey] : undefined);
+    } catch (e) {
+      if (e instanceof Promise) promises.push(e);else throw e;
+    }
+
+    if (idx === keys.length - 1 && promises.length) {
+      throw Promise.all(promises);
+    }
+
+    return acc;
+  }, {});
+}
 
 function noAwait(thenable) {
   var handle = function handle(p) {
@@ -5172,5 +5189,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
+export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription, useSubscriptions };
 //# sourceMappingURL=sm-js.esm.js.map
