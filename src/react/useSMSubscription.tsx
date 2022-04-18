@@ -8,9 +8,11 @@ import {
 
 import { SMContext } from './context';
 
+type UseSubscriptionOpts = { tokenName?: string; doNotSuspend?: boolean };
+
 export function useSubscription<
   TQueryDefinitions extends QueryDefinitions,
-  TOpts extends { tokenName?: string; doNotSuspend?: boolean }
+  TOpts extends UseSubscriptionOpts
 >(
   queryDefinitions: TQueryDefinitions,
   opts?: TOpts
@@ -166,6 +168,49 @@ export function useSubscription<
       TOpts
     >;
   }
+}
+
+export function useSubscriptions<
+  TQueryDefinitionGroups extends Record<string, QueryDefinitions>,
+  TUseSubscriptionsOpts extends {
+    [key in keyof TQueryDefinitionGroups]?: UseSubscriptionOpts;
+  }
+>(
+  queryDefintionGroups: TQueryDefinitionGroups,
+  opts?: TUseSubscriptionsOpts
+): {
+  [key in keyof TQueryDefinitionGroups]: UseSubscriptionReturn<
+    TQueryDefinitionGroups[key],
+    TUseSubscriptionsOpts[key]
+  >;
+} {
+  let promises: Array<Promise<any>> = [];
+  return Object.keys(queryDefintionGroups).reduce(
+    (acc, queryDefinitionGroupKey: keyof TQueryDefinitionGroups, idx, keys) => {
+      // wrap these in a try catch to allow queuing all subscriptions in parallel
+      try {
+        acc[queryDefinitionGroupKey] = useSubscription(
+          queryDefintionGroups[queryDefinitionGroupKey],
+          opts ? opts[queryDefinitionGroupKey] : undefined
+        );
+      } catch (e) {
+        if (e instanceof Promise) promises.push(e);
+        else throw e;
+      }
+
+      if (idx === keys.length - 1 && promises.length) {
+        throw Promise.all(promises);
+      }
+
+      return acc;
+    },
+    {} as {
+      [key in keyof TQueryDefinitionGroups]: UseSubscriptionReturn<
+        TQueryDefinitionGroups[key],
+        TUseSubscriptionsOpts[key]
+      >;
+    }
+  );
 }
 
 function noAwait(
