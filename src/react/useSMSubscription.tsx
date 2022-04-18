@@ -8,7 +8,11 @@ import {
 
 import { SMContext } from './context';
 
-type UseSubscriptionOpts = { tokenName?: string; doNotSuspend?: boolean };
+type UseSubscriptionOpts = {
+  tokenName?: string;
+  doNotSuspend?: boolean;
+  subscriptionId?: string;
+};
 
 export function useSubscription<
   TQueryDefinitions extends QueryDefinitions,
@@ -31,7 +35,7 @@ export function useSubscription<
     // Should be supported in all browsers, but better safe than sorry
     throw Error('Error.captureStackTrace not supported');
   }
-  const subscriptionId = obj.stack.split('\n')[1];
+  const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
   const preExistingContextForThisSubscription =
     smContext.ongoingSubscriptionRecord[subscriptionId];
 
@@ -185,13 +189,26 @@ export function useSubscriptions<
   >;
 } {
   let promises: Array<Promise<any>> = [];
+  const obj = { stack: '' };
+  Error.captureStackTrace(obj, useSubscription);
+  if (obj.stack === '') {
+    // Should be supported in all browsers, but better safe than sorry
+    throw Error('Error.captureStackTrace not supported');
+  }
+  const subscriptionId = obj.stack.split('\n')[1];
+
   return Object.keys(queryDefintionGroups).reduce(
     (acc, queryDefinitionGroupKey: keyof TQueryDefinitionGroups, idx, keys) => {
       // wrap these in a try catch to allow queuing all subscriptions in parallel
       try {
         acc[queryDefinitionGroupKey] = useSubscription(
           queryDefintionGroups[queryDefinitionGroupKey],
-          opts ? opts[queryDefinitionGroupKey] : undefined
+          opts
+            ? {
+                ...opts[queryDefinitionGroupKey],
+                subscriptionId: subscriptionId + idx,
+              }
+            : { subscriptionId: subscriptionId + idx }
         );
       } catch (e) {
         if (e instanceof Promise) promises.push(e);

@@ -705,7 +705,7 @@ const stateNode: StateNode = smJS.def({
   };
   invalidUserDataMissingComputedProperty;
 
-  const useSubscriptionsData = await useSubscriptions(
+  const useSubscriptionsData = useSubscriptions(
     {
       notSuspended: {
         users: queryDefinition({
