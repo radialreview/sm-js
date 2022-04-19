@@ -4,9 +4,10 @@ import {
   QueryDefinitions,
   QueryDataReturn,
   UseSubscriptionReturn,
+  Maybe,
 } from '../types';
 
-import { SMContext } from './context';
+import { ISMContext, SMContext } from './context';
 
 type UseSubscriptionOpts = {
   tokenName?: string;
@@ -36,142 +37,60 @@ export function useSubscription<
     throw Error('Error.captureStackTrace not supported');
   }
   const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
-  const preExistingContextForThisSubscription =
-    smContext.ongoingSubscriptionRecord[subscriptionId];
+
+  const state = getStateForQuery({
+    subscriptionId,
+    smContext,
+  });
 
   const [results, setResults] = React.useState<
     QueryDataReturn<TQueryDefinitions> | undefined
-  >(preExistingContextForThisSubscription?.results);
-  const [error, setError] = React.useState<any>(
-    preExistingContextForThisSubscription?.error
-  );
-  const [querying, setQuerying] = React.useState<boolean>(
-    preExistingContextForThisSubscription?.querying != null
-      ? preExistingContextForThisSubscription?.querying
-      : true
-  );
+  >(state.results);
+  const [error, setError] = React.useState<any>(state.error);
+  const [querying, setQuerying] = React.useState<boolean>(state.querying);
 
-  const handlePromise = (p: Promise<any>) => {
-    if (opts?.doNotSuspend) {
-      noAwait(p);
-      return { data: results, querying } as UseSubscriptionReturn<
-        TQueryDefinitions,
-        TOpts
-      >;
-    } else {
-      throw p;
-    }
-  };
+  let qdReturn: Maybe<UseSubscriptionReturn<TQueryDefinitions, TOpts> & {
+    cancelCleanup(): void;
+    scheduleCleanup(): void;
+  }> = null;
+  let qdError: Maybe<any> = null;
+  try {
+    // handleQueryDefinitions throws a promise if a query is suspending rendering
+    // we catch that promise here and re-throw it further down, so that we can manage cleanup
+    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
+    qdReturn = handleQueryDefitions({
+      smContext,
+      queryDefinitions,
+      subscriptionOpts: { ...opts, subscriptionId },
+      data: {
+        results: results,
+        error: error,
+        querying: querying,
+      },
+      handlers: {
+        onResults: setResults,
+        onError: setError,
+        setQuerying,
+      },
+    });
+  } catch (e) {
+    qdError = e;
+    qdReturn = null;
+  }
 
   React.useEffect(() => {
-    smContext.cancelCleanup(subscriptionId);
+    qdReturn?.cancelCleanup();
     return () => {
-      smContext.scheduleCleanup(subscriptionId);
+      qdReturn?.scheduleCleanup();
     };
   }, [smContext, subscriptionId]);
 
-  // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
-  // state of the component rendered before the fallback occured.
-  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
-  // and call that in "onData" instead.
-  smContext.updateSubscriptionInfo(subscriptionId, {
-    onResults: setResults,
-    onError: setError,
-    setQuerying: setQuerying,
-  });
+  if (qdError) throw qdError;
 
-  const queryDefinitionHasBeenUpdated =
-    preExistingContextForThisSubscription?.queryInfo?.queryGQL != null &&
-    preExistingContextForThisSubscription.queryInfo.queryGQL !==
-      convertQueryDefinitionToQueryInfo({
-        queryDefinitions,
-        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
-      }).queryGQL;
-
-  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
-    if (queryDefinitionHasBeenUpdated) {
-      preExistingContextForThisSubscription.unsub &&
-        preExistingContextForThisSubscription.unsub();
-    }
-
-    const queryTimestamp = new Date().valueOf();
-    setQuerying(true);
-    smContext.updateSubscriptionInfo(subscriptionId, {
-      querying: true,
-      lastQueryTimestamp: queryTimestamp,
-    });
-
-    const suspendPromise = smContext.smJSInstance
-      .subscribe(queryDefinitions, {
-        tokenName: opts?.tokenName,
-        onData: ({ results: newResults }) => {
-          const contextForThisSub =
-            smContext.ongoingSubscriptionRecord[subscriptionId];
-          const thisQueryIsMostRecent =
-            contextForThisSub.lastQueryTimestamp === queryTimestamp;
-          if (thisQueryIsMostRecent) {
-            contextForThisSub.onResults &&
-              contextForThisSub.onResults(newResults);
-            smContext.updateSubscriptionInfo(subscriptionId, {
-              results: newResults,
-            });
-          }
-        },
-        onError: error => {
-          const contextForThisSub =
-            smContext.ongoingSubscriptionRecord[subscriptionId];
-          contextForThisSub.onError && contextForThisSub.onError(error);
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            error,
-          });
-        },
-        onSubscriptionInitialized: subscriptionCanceller => {
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            unsub: subscriptionCanceller,
-          });
-        },
-        onQueryInfoConstructed: queryInfo => {
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            queryInfo,
-          });
-        },
-      })
-      .finally(() => {
-        const contextForThisSub =
-          smContext.ongoingSubscriptionRecord[subscriptionId];
-        const thisQueryIsMostRecent =
-          contextForThisSub?.lastQueryTimestamp === queryTimestamp;
-        if (thisQueryIsMostRecent) {
-          contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            suspendPromise: undefined,
-            querying: false,
-          });
-        }
-      });
-
-    if (!preExistingContextForThisSubscription) {
-      smContext.updateSubscriptionInfo(subscriptionId, {
-        suspendPromise,
-      });
-      return handlePromise(suspendPromise);
-    } else {
-      return { data: results, querying } as UseSubscriptionReturn<
-        TQueryDefinitions,
-        TOpts
-      >;
-    }
-  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
-    return handlePromise(preExistingContextForThisSubscription.suspendPromise);
-  } else if (error) {
-    throw error;
-  } else {
-    return { data: results, querying } as UseSubscriptionReturn<
-      TQueryDefinitions,
-      TOpts
-    >;
-  }
+  return qdReturn as UseSubscriptionReturn<TQueryDefinitions, TOpts> & {
+    cancelCleanup(): void;
+    scheduleCleanup(): void;
+  };
 }
 
 export function useSubscriptions<
@@ -228,6 +147,192 @@ export function useSubscriptions<
       >;
     }
   );
+}
+
+function getStateForQuery(opts: {
+  smContext: ISMContext;
+  subscriptionId: string;
+}) {
+  const subscriptionId = opts.subscriptionId;
+  const preExistingContextForThisSubscription =
+    opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+
+  const results = preExistingContextForThisSubscription?.results;
+  const error = preExistingContextForThisSubscription?.error;
+  const querying =
+    preExistingContextForThisSubscription?.querying != null
+      ? preExistingContextForThisSubscription?.querying
+      : true;
+
+  return { results, error, querying };
+}
+
+function handleQueryDefitions<
+  TQueryDefinitions extends QueryDefinitions,
+  TUseSubscriptionOpts extends UseSubscriptionOpts & { subscriptionId: string }
+>(opts: {
+  smContext: ISMContext;
+  queryDefinitions: TQueryDefinitions;
+  subscriptionOpts: TUseSubscriptionOpts;
+  data: {
+    results: QueryDataReturn<TQueryDefinitions> | undefined;
+    error: any;
+    querying: boolean;
+  };
+  handlers: {
+    onResults(results: any): void;
+    onError(error: any): void;
+    setQuerying(querying: boolean): void;
+  };
+}): UseSubscriptionReturn<TQueryDefinitions, TUseSubscriptionOpts> & {
+  cancelCleanup(): void;
+  scheduleCleanup(): void;
+} {
+  type TReturn = UseSubscriptionReturn<
+    TQueryDefinitions,
+    TUseSubscriptionOpts
+  > & {
+    cancelCleanup(): void;
+    scheduleCleanup(): void;
+  };
+
+  const subscriptionId = opts.subscriptionOpts.subscriptionId;
+  const preExistingContextForThisSubscription =
+    opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+
+  function cancelCleanup() {
+    opts.smContext.cancelCleanup(subscriptionId);
+  }
+
+  function scheduleCleanup() {
+    opts.smContext.scheduleCleanup(subscriptionId);
+  }
+
+  const handlePromise = (p: Promise<any>) => {
+    if (opts.subscriptionOpts.doNotSuspend) {
+      noAwait(p);
+      return {
+        data: opts.data.results,
+        querying: opts.data.querying,
+        cancelCleanup,
+        scheduleCleanup,
+      } as TReturn;
+    } else {
+      throw p;
+    }
+  };
+
+  // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
+  // state of the component rendered before the fallback occured.
+  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
+  // and call that in "onData" instead.
+  opts.smContext.updateSubscriptionInfo(subscriptionId, {
+    onResults: opts.handlers.onResults,
+    onError: opts.handlers.onError,
+    setQuerying: opts.handlers.setQuerying,
+  });
+
+  const queryDefinitionHasBeenUpdated =
+    preExistingContextForThisSubscription?.queryInfo?.queryGQL != null &&
+    preExistingContextForThisSubscription.queryInfo.queryGQL !==
+      convertQueryDefinitionToQueryInfo({
+        queryDefinitions: opts.queryDefinitions,
+        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
+      }).queryGQL;
+
+  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
+    if (queryDefinitionHasBeenUpdated) {
+      preExistingContextForThisSubscription.unsub &&
+        preExistingContextForThisSubscription.unsub();
+    }
+
+    const queryTimestamp = new Date().valueOf();
+    opts.handlers.setQuerying(true);
+    opts.smContext.updateSubscriptionInfo(subscriptionId, {
+      querying: true,
+      lastQueryTimestamp: queryTimestamp,
+    });
+
+    const suspendPromise = opts.smContext.smJSInstance
+      .subscribe(opts.queryDefinitions, {
+        tokenName: opts.subscriptionOpts.tokenName,
+        onData: ({ results: newResults }) => {
+          const contextForThisSub =
+            opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+          const thisQueryIsMostRecent =
+            contextForThisSub.lastQueryTimestamp === queryTimestamp;
+          if (thisQueryIsMostRecent) {
+            contextForThisSub.onResults &&
+              contextForThisSub.onResults(newResults);
+            opts.smContext.updateSubscriptionInfo(subscriptionId, {
+              results: newResults,
+            });
+          }
+        },
+        onError: error => {
+          const contextForThisSub =
+            opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+          contextForThisSub.onError && contextForThisSub.onError(error);
+          opts.smContext.updateSubscriptionInfo(subscriptionId, {
+            error,
+          });
+        },
+        onSubscriptionInitialized: subscriptionCanceller => {
+          opts.smContext.updateSubscriptionInfo(subscriptionId, {
+            unsub: subscriptionCanceller,
+          });
+        },
+        onQueryInfoConstructed: queryInfo => {
+          opts.smContext.updateSubscriptionInfo(subscriptionId, {
+            queryInfo,
+          });
+        },
+      })
+      .finally(() => {
+        const contextForThisSub =
+          opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+        const thisQueryIsMostRecent =
+          contextForThisSub?.lastQueryTimestamp === queryTimestamp;
+        if (thisQueryIsMostRecent) {
+          contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
+          opts.smContext.updateSubscriptionInfo(subscriptionId, {
+            suspendPromise: undefined,
+            querying: false,
+          });
+        }
+      });
+
+    if (!preExistingContextForThisSubscription) {
+      opts.smContext.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise,
+      });
+      return handlePromise(suspendPromise) as TReturn;
+    } else {
+      return {
+        data: opts.data.results,
+        querying: opts.data.querying,
+        cancelCleanup,
+        scheduleCleanup,
+      } as TReturn;
+    }
+  } else if (
+    opts.data.querying &&
+    preExistingContextForThisSubscription.suspendPromise
+  ) {
+    return handlePromise(
+      preExistingContextForThisSubscription.suspendPromise
+    ) as TReturn;
+  } else if (opts.data.error) {
+    throw opts.data.error;
+  } else {
+    return {
+      data: opts.data.results,
+      querying: opts.data.querying,
+      scheduleCleanup,
+      cancelCleanup,
+    } as TReturn;
+  }
 }
 
 function noAwait(

@@ -44,7 +44,7 @@ function MyComponent() {
 
   console.log('nonSuspended', nonSuspended);
   console.log('regular', regular);
-
+  return null;
   return (
     <div className="App">
       {regular.data.users.map(user => (

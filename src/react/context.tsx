@@ -13,7 +13,7 @@ interface ISMContextSubscription {
   lastQueryTimestamp?: number;
 }
 
-interface ISMContext {
+export interface ISMContext {
   smJSInstance: ISMJS;
   ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
   updateSubscriptionInfo: (
