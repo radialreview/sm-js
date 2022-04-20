@@ -3144,22 +3144,90 @@ function getSanitizedQueryId(opts) {
 }
 
 var queryIdx = 0;
+
+function splitQueryDefinitionsByToken(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
+    var alias = _ref[0],
+        queryDefinition = _ref[1];
+    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] = split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] || {};
+    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME][alias] = queryDefinition;
+    return split;
+  }, {});
+}
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
  * Which ensures that the socket messages are applied to the correct base set of results
  */
 
-function generateQuerier(_ref) {
-  var smJSInstance = _ref.smJSInstance,
-      queryManager = _ref.queryManager;
-  return /*#__PURE__*/function () {
-    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
-      var startStack, queryId, _convertQueryDefiniti, queryGQL, queryRecord, tokenName, token, getError, error;
 
-      return runtime_1.wrap(function _callee$(_context) {
+function generateQuerier(_ref2) {
+  var smJSInstance = _ref2.smJSInstance,
+      queryManager = _ref2.queryManager;
+  return /*#__PURE__*/function () {
+    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
+      var startStack, queryId, getError, getToken, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, _error;
+
+      return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context.prev = _context.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
+              _performQueries = function _performQueries3() {
+                _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+                  var allResults;
+                  return runtime_1.wrap(function _callee$(_context) {
+                    while (1) {
+                      switch (_context.prev = _context.next) {
+                        case 0:
+                          _context.next = 2;
+                          return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref3) {
+                            var tokenName = _ref3[0],
+                                queryDefinitions = _ref3[1];
+
+                            var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+                              queryDefinitions: queryDefinitions,
+                              queryId: queryId
+                            }),
+                                queryGQL = _convertQueryDefiniti.queryGQL;
+
+                            return smJSInstance.gqlClient.query({
+                              gql: queryGQL,
+                              token: getToken(tokenName),
+                              batched: opts == null ? void 0 : opts.batched
+                            });
+                          }));
+
+                        case 2:
+                          allResults = _context.sent;
+                          return _context.abrupt("return", allResults.reduce(function (acc, resultsForToken) {
+                            return _extends({}, acc, resultsForToken);
+                          }, {}));
+
+                        case 4:
+                        case "end":
+                          return _context.stop();
+                      }
+                    }
+                  }, _callee);
+                }));
+                return _performQueries.apply(this, arguments);
+              };
+
+              performQueries = function _performQueries2() {
+                return _performQueries.apply(this, arguments);
+              };
+
+              getToken = function _getToken(tokenName) {
+                var token = smJSInstance.getToken({
+                  tokenName: tokenName
+                });
+
+                if (!token) {
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
+                }
+
+                return token;
+              };
+
               getError = function _getError(error, stack) {
                 // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
                 error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
@@ -3168,92 +3236,75 @@ function generateQuerier(_ref) {
 
               startStack = new Error().stack;
               queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
-              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
+              _context2.prev = 7;
+              _context2.next = 10;
+              return performQueries();
+
+            case 10:
+              results = _context2.sent;
+              qM = queryManager || new smJSInstance.SMQueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
-              }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
-              tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
-              token = smJSInstance.getToken({
-                tokenName: tokenName
+              }).queryRecord);
+              _context2.prev = 12;
+              qM.onQueryResult({
+                queryId: queryId,
+                queryResult: results
               });
+              _context2.next = 25;
+              break;
 
-              if (token) {
-                _context.next = 14;
-                break;
-              }
-
-              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) '));
+            case 16:
+              _context2.prev = 16;
+              _context2.t0 = _context2["catch"](12);
+              error = getError(new Error("Error applying query results"), _context2.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context.next = 13;
+                _context2.next = 24;
                 break;
               }
 
               opts.onError(error);
-              return _context.abrupt("return", {
+              return _context2.abrupt("return", {
                 data: {},
                 error: error
               });
 
-            case 13:
+            case 24:
               throw error;
 
-            case 14:
-              return _context.abrupt("return", smJSInstance.gqlClient.query({
-                gql: queryGQL,
-                token: token,
-                batched: opts == null ? void 0 : opts.batched
-              }).then(function (queryResult) {
-                var results;
+            case 25:
+              return _context2.abrupt("return", {
+                data: qM.getResults(),
+                error: undefined
+              });
 
-                try {
-                  var qM = queryManager || new smJSInstance.SMQueryManager(queryRecord);
-                  qM.onQueryResult({
-                    queryId: queryId,
-                    queryResult: queryResult
-                  });
-                  results = qM.getResults();
-                } catch (e) {
-                  var _error = getError(new Error("Error applying query results"), e.stack);
+            case 28:
+              _context2.prev = 28;
+              _context2.t1 = _context2["catch"](7);
+              _error = getError(new Error("Error querying data"), _context2.t1.stack);
 
-                  if (opts != null && opts.onError) {
-                    opts.onError(_error);
-                    return {
-                      data: {},
-                      error: _error
-                    };
-                  } else {
-                    throw _error;
-                  }
-                }
+              if (!(opts != null && opts.onError)) {
+                _context2.next = 36;
+                break;
+              }
 
-                (opts == null ? void 0 : opts.onData) && opts.onData({
-                  results: results
-                });
-                return {
-                  data: results,
-                  error: null
-                };
-              })["catch"](function (e) {
-                var error = getError(new Error("Error querying data"), e.stack);
+              opts.onError(_error);
+              return _context2.abrupt("return", {
+                data: {},
+                error: _error
+              });
 
-                if (opts != null && opts.onError) {
-                  opts.onError(error);
-                  return {
-                    data: {},
-                    error: error
-                  };
-                } else {
-                  throw error;
-                }
-              }));
+            case 36:
+              throw _error;
 
-            case 15:
+            case 37:
             case "end":
-              return _context.stop();
+              return _context2.stop();
           }
         }
-      }, _callee);
+      }, _callee2, null, [[7, 28], [12, 16]]);
     }));
 
     function query(_x, _x2) {
@@ -3265,12 +3316,12 @@ function generateQuerier(_ref) {
 }
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
-    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, _convertQueryDefiniti2, queryGQL, queryRecord, subscriptionConfigs, getError, tokenName, token, error, queryManager, updateQueryManagerWithSubscriptionMessage, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, query, _error4, data;
+    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
+      var startStack, queryId, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, _error2, data;
 
-      return runtime_1.wrap(function _callee2$(_context2) {
+      return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
-          switch (_context2.prev = _context2.next) {
+          switch (_context3.prev = _context3.next) {
             case 0:
               unsub = function _unsub() {
                 subscriptionCancellers.forEach(function (cancel) {
@@ -3279,11 +3330,21 @@ function generateSubscriber(smJSInstance) {
               };
 
               initSubs = function _initSubs() {
-                try {
-                  subscriptionCancellers = subscriptionConfigs.map(function (subscriptionConfig) {
+                var queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
+                Object.entries(queryDefinitionsSplitByToken).forEach(function (_ref4) {
+                  var tokenName = _ref4[0],
+                      queryDefinitions = _ref4[1];
+
+                  var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
+                    queryDefinitions: queryDefinitions,
+                    queryId: queryId
+                  }),
+                      subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
+
+                  subscriptionCancellers.push.apply(subscriptionCancellers, subscriptionConfigs.map(function (subscriptionConfig) {
                     return smJSInstance.gqlClient.subscribe({
                       gql: subscriptionConfig.gql,
-                      token: token,
+                      token: getToken(tokenName),
                       onMessage: function onMessage(message) {
                         if (mustAwaitQuery) {
                           messageQueue.push({
@@ -3316,16 +3377,20 @@ function generateSubscriber(smJSInstance) {
                         }
                       }
                     });
-                  });
-                } catch (e) {
-                  var _error3 = getError(new Error("Error initializating subscriptions"), e.stack);
+                  }));
+                });
+              };
 
-                  if (opts != null && opts.onError) {
-                    opts.onError(_error3);
-                  } else {
-                    throw _error3;
-                  }
+              getToken = function _getToken2(tokenName) {
+                var token = smJSInstance.getToken({
+                  tokenName: tokenName
+                });
+
+                if (!token) {
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
                 }
+
+                return token;
               };
 
               updateQueryManagerWithSubscriptionMessage = function _updateQueryManagerWi(data) {
@@ -3342,12 +3407,12 @@ function generateSubscriber(smJSInstance) {
                     subscriptionAlias: data.subscriptionConfig.alias
                   });
                 } catch (e) {
-                  var _error2 = getError(new Error("Error applying subscription message"), e.stack);
+                  var error = getError(new Error("Error applying subscription message"), e.stack);
 
                   if (opts.onError) {
-                    opts.onError(_error2);
+                    opts.onError(error);
                   } else {
-                    console.error(_error2);
+                    console.error(error);
                   }
                 }
               };
@@ -3364,39 +3429,11 @@ function generateSubscriber(smJSInstance) {
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
-              }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, subscriptionConfigs = _convertQueryDefiniti2.subscriptionConfigs;
+              }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord;
               opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
                 queryGQL: queryGQL,
                 queryId: queryId
               });
-              tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
-              token = smJSInstance.getToken({
-                tokenName: tokenName
-              });
-
-              if (token) {
-                _context2.next = 18;
-                break;
-              }
-
-              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) '));
-
-              if (!opts.onError) {
-                _context2.next = 17;
-                break;
-              }
-
-              opts.onError(error);
-              return _context2.abrupt("return", {
-                data: {},
-                unsub: unsub,
-                error: error
-              });
-
-            case 17:
-              throw error;
-
-            case 18:
               queryManager = new smJSInstance.SMQueryManager(queryRecord);
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from SM to the client. This would result in a missed update.
@@ -3407,56 +3444,79 @@ function generateSubscriber(smJSInstance) {
 
               mustAwaitQuery = !opts.skipInitialQuery;
               messageQueue = [];
+              _context3.prev = 13;
               initSubs();
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
+              _context3.next = 27;
+              break;
 
-              if (!opts.skipInitialQuery) {
-                _context2.next = 28;
+            case 18:
+              _context3.prev = 18;
+              _context3.t0 = _context3["catch"](13);
+              error = getError(new Error("Error initializating subscriptions"), _context3.t0.stack);
+
+              if (!(opts != null && opts.onError)) {
+                _context3.next = 26;
                 break;
               }
 
-              return _context2.abrupt("return", {
+              opts.onError(error);
+              return _context3.abrupt("return", {
+                data: {},
+                unsub: unsub,
+                error: error
+              });
+
+            case 26:
+              throw error;
+
+            case 27:
+              if (!opts.skipInitialQuery) {
+                _context3.next = 31;
+                break;
+              }
+
+              return _context3.abrupt("return", {
                 unsub: unsub
               });
 
-            case 28:
+            case 31:
               query = generateQuerier({
                 smJSInstance: smJSInstance,
                 queryManager: queryManager
               });
-              _context2.prev = 29;
-              _context2.next = 32;
+              _context3.prev = 32;
+              _context3.next = 35;
               return query(queryDefinitions, {
                 queryId: opts.queryId,
-                tokenName: opts.tokenName,
                 batched: opts.batched
               });
 
-            case 32:
-              _context2.next = 43;
+            case 35:
+              _context3.next = 46;
               break;
 
-            case 34:
-              _context2.prev = 34;
-              _context2.t0 = _context2["catch"](29);
-              _error4 = getError(new Error("Error querying initial data set"), _context2.t0.stack);
+            case 37:
+              _context3.prev = 37;
+              _context3.t1 = _context3["catch"](32);
+              _error2 = getError(new Error("Error querying initial data set"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 42;
+                _context3.next = 45;
                 break;
               }
 
-              opts.onError(_error4);
-              return _context2.abrupt("return", {
+              opts.onError(_error2);
+              return _context3.abrupt("return", {
                 data: {},
                 unsub: unsub,
-                error: _error4
+                error: _error2
               });
 
-            case 42:
-              throw _error4;
+            case 45:
+              throw _error2;
 
-            case 43:
+            case 46:
               if (mustAwaitQuery) {
                 mustAwaitQuery = false;
                 messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
@@ -3467,18 +3527,18 @@ function generateSubscriber(smJSInstance) {
               opts.onData({
                 results: data
               });
-              return _context2.abrupt("return", {
+              return _context3.abrupt("return", {
                 data: data,
                 unsub: unsub,
                 error: null
               });
 
-            case 47:
+            case 50:
             case "end":
-              return _context2.stop();
+              return _context3.stop();
           }
         }
-      }, _callee2, null, [[29, 34]]);
+      }, _callee3, null, [[13, 18], [32, 37]]);
     }));
 
     function subscribe(_x3, _x4) {
@@ -4211,7 +4271,7 @@ function useSubscription(queryDefinitions, opts) {
   var qdError = null;
 
   try {
-    // handleQueryDefinitions throws a promise if a query is suspending rendering
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
     // we catch that promise here and re-throw it further down, so that we can manage cleanup
     // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
     qdStateManager = buildQueryDefinitionStateManager({
@@ -4342,9 +4402,6 @@ function buildQueryDefinitionStateManager(opts) {
   // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
   //
   // returns a promise if there's an unresolved request and "suspend" is set to true
-  // Questions:
-  // querying state - when to set querying to "false"?
-  // suspend promise - store one in parent sub state?
 
 
   function handleNewQueryDefitions(subOpts) {
@@ -4371,11 +4428,7 @@ function buildQueryDefinitionStateManager(opts) {
     var queryDefinitionHasBeenUpdated = newQueryInfo && (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo) && preExistingContextForThisSubscription.queryInfo.queryGQL !== newQueryInfo.queryGQL;
 
     if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
-      if (preExistingContextForThisSubscription.suspendPromise) {
-        return preExistingContextForThisSubscription.suspendPromise;
-      }
-
-      return undefined;
+      return preExistingContextForThisSubscription.suspendPromise;
     }
 
     if (queryDefinitionHasBeenUpdated) {
@@ -4383,7 +4436,6 @@ function buildQueryDefinitionStateManager(opts) {
     }
 
     var queryTimestamp = new Date().valueOf();
-    opts.handlers.setQuerying(true);
     opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true
     });
@@ -4391,6 +4443,8 @@ function buildQueryDefinitionStateManager(opts) {
       querying: true,
       lastQueryTimestamp: queryTimestamp
     });
+    console.log('querying');
+    opts.handlers.setQuerying(true);
     var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
@@ -4447,9 +4501,11 @@ function buildQueryDefinitionStateManager(opts) {
         });
 
         if (allQueriesHaveResolved) {
+          opts.handlers.setQuerying(false);
           opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false
           });
+          console.log('set querying false');
         }
       }
     });
@@ -4463,6 +4519,8 @@ function buildQueryDefinitionStateManager(opts) {
     if (suspend) return suspendPromise;
     return undefined;
   }
+
+  if (opts.data.error || opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error) throw opts.data.error || opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error;
 
   if (Object.keys(suspendDisabled).length) {
     handleNewQueryDefitions({
@@ -4483,7 +4541,6 @@ function buildQueryDefinitionStateManager(opts) {
     if (suspendPromise) throw suspendPromise;
   }
 
-  if (opts.data.error) throw opts.data.error;
   return {
     data: opts.data.results,
     error: opts.data.error,

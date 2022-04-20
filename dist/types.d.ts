@@ -73,7 +73,6 @@ export declare type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
     }) => void;
     onError?: (...args: any) => void;
     queryId?: string;
-    tokenName?: string;
     batched?: boolean;
 };
 export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
@@ -88,7 +87,6 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
     }) => void;
     skipInitialQuery?: boolean;
     queryId?: string;
-    tokenName?: string;
     batched?: boolean;
 };
 export declare type SubscriptionCanceller = () => void;
