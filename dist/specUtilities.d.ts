@@ -264,14 +264,17 @@ export declare function generateDOInstance<TNodeType extends string, TNodeData e
     doInstance: import("./types").NodeDO;
     smJSInstance: SMJS;
 };
-export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
-    useIds: true;
+export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: ({
+    useIds?: true;
 } | {
-    useUnder: true;
+    useUnder?: true;
 } | {
-    useNoUnder: true;
+    useNoUnder?: true;
+}) & {
+    tokenName?: string;
+    doNotSuspend?: boolean;
 }): {
-    users: import("./types").QueryDefinition<UserNode, ({ id, todos, address }: {
+    users: import("./types").UseSubscriptionQueryDefinition<UserNode, ({ id, todos, address }: {
         id: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
             _default: smData.SMData<"", "", undefined>;
@@ -551,6 +554,8 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: {
         id: string;
     } | {
         ids: string[];
+    }, {
+        doNotSuspend: boolean | undefined;
     }>;
 };
 export declare const mockQueryDataReturn: {

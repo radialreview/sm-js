@@ -341,8 +341,16 @@ export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapF
     map: TMapFn;
     filter?: ValidFilterForNode<TSMNode>;
     target?: TQueryDefinitionTarget;
+    tokenName?: string;
 };
 export declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
+export declare type UseSubscriptionQueryDefinitionOpts = {
+    doNotSuspend?: boolean;
+};
+export declare type UseSubscriptionQueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts> = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {
+    useSubOpts?: TUseSubscriptionQueryDefinitionOpts;
+};
+export declare type UseSubscriptionQueryDefinitions = Record<string, UseSubscriptionQueryDefinition | ISMNode>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };
@@ -364,14 +372,16 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
         id: string;
     };
 } ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> : Array<GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>> : never : never : TQueryDefinition extends ISMNode ? Array<GetAllAvailableNodeDataType<ExtractNodeData<TQueryDefinition>, ExtractNodeComputedData<TQueryDefinition>>> : never;
-export declare type UseSubscriptionReturn<TQueryDefinitions, TOpts> = TOpts extends {
-    doNotSuspend: true;
-} ? {
-    data?: QueryDataReturn<TQueryDefinitions>;
+export declare type UseSubscriptionReturn<TQueryDefinitions extends UseSubscriptionQueryDefinitions> = {
+    data: {
+        [key in keyof TQueryDefinitions]: TQueryDefinitions[key] extends {
+            useSubOpts?: {
+                doNotSuspend: true;
+            };
+        } ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>;
+    };
     querying: boolean;
-} : {
-    data: QueryDataReturn<TQueryDefinitions>;
-    querying: boolean;
+    error: any;
 };
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
 export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>) => RequestedData<TNodeData, TNodeComputedData>;
