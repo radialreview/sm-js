@@ -7601,7 +7601,7 @@ slash@^4.0.0:
 
 "sm-js@git+ssh://git@github.com/radialreview/sm-js.git#MM-160":
   version "0.1.0"
-  resolved "git+ssh://git@github.com/radialreview/sm-js.git#155637e734059ab3501d4c133c7d8d58bdd1a182"
+  resolved "git+ssh://git@github.com/radialreview/sm-js.git#880985748a2e4d93fc08c994bbb7b09dc0686df1"
   dependencies:
     "@apollo/client" "^3.4.17"
     graphql "^16.1.0"

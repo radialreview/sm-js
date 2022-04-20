@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { queryDefinition, useSubscription, useSubscriptions } from 'sm-js';
+import { queryDefinition, useSubscription,DEFAULT_TOKEN_NAME } from 'sm-js';
 import smJS, {
   userNode,
   authenticate,
