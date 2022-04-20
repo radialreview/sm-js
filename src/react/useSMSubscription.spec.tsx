@@ -190,20 +190,22 @@ test('it cancels the subscription after the component that establishes the subsc
   }, 100);
 });
 
-test.only('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
+test('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
   const { smJS } = setupTests();
   let requestIdx = 0;
   smJS.gqlClient.query = jest.fn(() => {
     return new Promise(res => {
       if (requestIdx === 0) {
-        res(mockQueryDataReturn);
+        setTimeout(() => {
+          res(mockQueryDataReturn);
+        }, 100);
         requestIdx++;
       } else {
         const updatedQueryDataReturn = deepClone(mockQueryDataReturn);
         updatedQueryDataReturn.users[0].address__dot__state = 'Not FL';
         setTimeout(() => {
           res(updatedQueryDataReturn);
-        }, 1000);
+        }, 100);
       }
     });
   });
@@ -220,13 +222,10 @@ test.only('if the query record provided is updated, performs a new query and ret
 
     React.useEffect(() => {
       setTimeout(() => {
-        console.log('changing');
         setUpdateQueryDefinition(true);
-      }, 1000);
+      }, 200);
     }, []);
 
-    // console.log('data', data.users[0].address.state);
-    // console.log('querying', querying);
     if (querying) return <>querying</>;
     return <>{data.users[0].address.state}</>;
   }
