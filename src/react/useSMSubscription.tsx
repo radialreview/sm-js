@@ -51,7 +51,7 @@ export function useSubscription<
   }> = null;
   let qdError: Maybe<any> = null;
   try {
-    // handleQueryDefinitions throws a promise if a query is suspending rendering
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
     // we catch that promise here and re-throw it further down, so that we can manage cleanup
     // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
     qdStateManager = buildQueryDefinitionStateManager({
@@ -238,10 +238,6 @@ function buildQueryDefinitionStateManager<
   // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
   //
   // returns a promise if there's an unresolved request and "suspend" is set to true
-
-  // Questions:
-  // querying state - when to set querying to "false"?
-  // suspend promise - store one in parent sub state?
   function handleNewQueryDefitions(subOpts: {
     queryDefinitions: UseSubscriptionQueryDefinitions;
     parentSubscriptionId: string;
@@ -281,10 +277,7 @@ function buildQueryDefinitionStateManager<
       preExistingContextForThisSubscription &&
       !queryDefinitionHasBeenUpdated
     ) {
-      if (preExistingContextForThisSubscription.suspendPromise) {
-        return preExistingContextForThisSubscription.suspendPromise;
-      }
-      return undefined;
+      return preExistingContextForThisSubscription.suspendPromise;
     }
 
     if (queryDefinitionHasBeenUpdated) {
@@ -293,7 +286,6 @@ function buildQueryDefinitionStateManager<
     }
 
     const queryTimestamp = new Date().valueOf();
-    opts.handlers.setQuerying(true);
     opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true,
     });
@@ -301,6 +293,8 @@ function buildQueryDefinitionStateManager<
       querying: true,
       lastQueryTimestamp: queryTimestamp,
     });
+    console.log('querying');
+    opts.handlers.setQuerying(true);
     const suspendPromise = opts.smContext.smJSInstance
       .subscribe(queryDefinitions, {
         onData: ({ results: newResults }) => {
@@ -369,9 +363,11 @@ function buildQueryDefinitionStateManager<
             state => state && state.querying
           );
           if (allQueriesHaveResolved) {
+            opts.handlers.setQuerying(false);
             opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
               querying: false,
             });
+            console.log('set querying false');
           }
         }
       });
@@ -386,6 +382,13 @@ function buildQueryDefinitionStateManager<
 
     return undefined;
   }
+
+  if (
+    opts.data.error ||
+    opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error
+  )
+    throw opts.data.error ||
+      opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error;
 
   if (Object.keys(suspendDisabled).length) {
     handleNewQueryDefitions({
@@ -406,8 +409,6 @@ function buildQueryDefinitionStateManager<
 
     if (suspendPromise) throw suspendPromise;
   }
-
-  if (opts.data.error) throw opts.data.error;
 
   return {
     data: opts.data.results,

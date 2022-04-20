@@ -81,7 +81,6 @@ export type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
   // This is by design, for consistency with the interface of sm.subscribe
   onError?: (...args: any) => void;
   queryId?: string;
-  tokenName?: string;
   batched?: boolean;
 };
 
@@ -106,7 +105,6 @@ export type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
   }) => void;
   skipInitialQuery?: boolean;
   queryId?: string;
-  tokenName?: string;
   batched?: boolean;
 };
 

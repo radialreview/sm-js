@@ -13,9 +13,30 @@ import {
   SubscriptionOpts,
   SubscriptionMeta,
   SubscriptionCanceller,
+  QueryDefinition,
 } from './types';
 
 let queryIdx = 0;
+
+function splitQueryDefinitionsByToken<
+  TQueryDefinitions extends QueryDefinitions
+>(queryDefinitions: TQueryDefinitions): Record<string, QueryDefinitions> {
+  return Object.entries(queryDefinitions).reduce(
+    (
+      split,
+      [alias, queryDefinition]: [string, QueryDefinition<any, any, any>]
+    ) => {
+      split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] =
+        split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] || {};
+      split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME][
+        alias
+      ] = queryDefinition;
+
+      return split;
+    },
+    {} as Record<string, QueryDefinitions>
+  );
+}
 
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
@@ -33,15 +54,7 @@ export function generateQuerier({
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
     const startStack = new Error().stack as string;
-
     const queryId = opts?.queryId || `smQuery${queryIdx++}`;
-    const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
-      queryDefinitions,
-      queryId,
-    });
-
-    const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
-    const token = smJSInstance.getToken({ tokenName });
 
     function getError(error: any, stack?: string) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
@@ -54,14 +67,85 @@ export function generateQuerier({
       return error;
     }
 
-    if (!token) {
-      const error = getError(
-        new Error(
+    function getToken(tokenName: string) {
+      const token = smJSInstance.getToken({ tokenName });
+
+      if (!token) {
+        throw new Error(
           `No token registered with the name "${tokenName}".\n` +
             'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
+        );
+      }
+
+      return token;
+    }
+
+    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+      queryDefinitions
+    );
+
+    async function performQueries() {
+      const allResults = await Promise.all(
+        Object.entries(queryDefinitionsSplitByToken).map(
+          ([tokenName, queryDefinitions]) => {
+            const { queryGQL } = convertQueryDefinitionToQueryInfo({
+              queryDefinitions,
+              queryId,
+            });
+
+            return smJSInstance.gqlClient.query({
+              gql: queryGQL,
+              token: getToken(tokenName),
+              batched: opts?.batched,
+            });
+          }
         )
       );
 
+      return allResults.reduce((acc, resultsForToken) => {
+        return {
+          ...acc,
+          ...resultsForToken,
+        };
+      }, {});
+    }
+
+    try {
+      const results = await performQueries();
+
+      const qM =
+        queryManager ||
+        new smJSInstance.SMQueryManager(
+          convertQueryDefinitionToQueryInfo({
+            queryDefinitions,
+            queryId,
+          }).queryRecord
+        );
+      try {
+        qM.onQueryResult({ queryId, queryResult: results });
+      } catch (e) {
+        const error = getError(
+          new Error(`Error applying query results`),
+          (e as any).stack
+        );
+
+        if (opts?.onError) {
+          opts.onError(error);
+          return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
+        } else {
+          throw error;
+        }
+      }
+
+      return {
+        data: qM.getResults() as QueryDataReturn<TQueryDefinitions>,
+        error: undefined,
+      };
+    } catch (e) {
+      const error = getError(
+        new Error(`Error querying data`),
+        (e as any).stack
+      );
       if (opts?.onError) {
         opts.onError(error);
         return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
@@ -69,50 +153,6 @@ export function generateQuerier({
         throw error;
       }
     }
-
-    return smJSInstance.gqlClient
-      .query({
-        gql: queryGQL,
-        token: token,
-        batched: opts?.batched,
-      })
-      .then((queryResult: any) => {
-        let results;
-        try {
-          const qM =
-            queryManager || new smJSInstance.SMQueryManager(queryRecord);
-          qM.onQueryResult({
-            queryId,
-            queryResult,
-          });
-
-          results = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
-        } catch (e) {
-          const error = getError(
-            new Error(`Error applying query results`),
-            (e as any).stack
-          );
-
-          if (opts?.onError) {
-            opts.onError(error);
-            return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
-          } else {
-            throw error;
-          }
-        }
-
-        opts?.onData && opts.onData({ results });
-        return { data: results, error: null };
-      })
-      .catch(e => {
-        const error = getError(new Error(`Error querying data`), e.stack);
-        if (opts?.onError) {
-          opts.onError(error);
-          return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
-        } else {
-          throw error;
-        }
-      });
   };
 }
 
@@ -137,11 +177,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
     const startStack = new Error().stack as string;
     const queryId = opts?.queryId || `smQuery${queryIdx++}`;
-    const {
-      queryGQL,
-      queryRecord,
-      subscriptionConfigs,
-    } = convertQueryDefinitionToQueryInfo({
+    const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
       queryDefinitions,
       queryId,
     });
@@ -158,28 +194,6 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         startStack.substring(startStack.indexOf('\n') + 1);
 
       return error;
-    }
-
-    const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
-    const token = smJSInstance.getToken({ tokenName });
-
-    if (!token) {
-      const error = getError(
-        new Error(
-          `No token registered with the name "${tokenName}".\n` +
-            'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
-        )
-      );
-      if (opts.onError) {
-        opts.onError(error);
-        return { data: {}, unsub, error } as TSubscriptionOpts extends {
-          skipInitialQuery: true;
-        }
-          ? SubscriptionMeta
-          : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
-      } else {
-        throw error;
-      }
     }
 
     const queryManager = new smJSInstance.SMQueryManager(queryRecord);
@@ -217,6 +231,19 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       }
     }
 
+    function getToken(tokenName: string) {
+      const token = smJSInstance.getToken({ tokenName });
+
+      if (!token) {
+        throw new Error(
+          `No token registered with the name "${tokenName}".\n` +
+            'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
+        );
+      }
+
+      return token;
+    }
+
     let subscriptionCancellers: Array<SubscriptionCanceller> = [];
     // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
     // while the data for that node is being transfered from SM to the client. This would result in a missed update.
@@ -230,67 +257,84 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       subscriptionConfig: SubscriptionConfig;
     }> = [];
     function initSubs() {
-      try {
-        subscriptionCancellers = subscriptionConfigs.map(subscriptionConfig => {
-          return smJSInstance.gqlClient.subscribe({
-            gql: subscriptionConfig.gql,
-            token: token,
-            onMessage: message => {
-              if (mustAwaitQuery) {
-                messageQueue.push({ message, subscriptionConfig });
-                return;
-              }
+      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+        queryDefinitions
+      );
 
-              updateQueryManagerWithSubscriptionMessage({
-                message,
-                subscriptionConfig,
-              });
-
-              // @TODO When called with skipInitialQuery, results should be null
-              // and we should simply expose a "delta" from the message
-              // probably don't need a query manager in that case either.
-              opts.onData({
-                results: queryManager.getResults() as QueryDataReturn<
-                  TQueryDefinitions
-                >,
-              });
-            },
-            onError: e => {
-              // Can never throw here. The dev consuming this would have no way of catching it
-              // To catch an error in a subscription they must provide onError
-              const error = getError(
-                new Error(`Error in a subscription message`),
-                e.stack
-              );
-
-              if (opts.onError) {
-                opts.onError(error);
-              } else {
-                console.error(error);
-              }
-            },
+      Object.entries(queryDefinitionsSplitByToken).forEach(
+        ([tokenName, queryDefinitions]) => {
+          const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
+            queryDefinitions,
+            queryId,
           });
-        });
-      } catch (e) {
-        const error = getError(
-          new Error(`Error initializating subscriptions`),
-          (e as any).stack
-        );
 
-        if (opts?.onError) {
-          opts.onError(error);
-        } else {
-          throw error;
+          subscriptionCancellers.push(
+            ...subscriptionConfigs.map(subscriptionConfig => {
+              return smJSInstance.gqlClient.subscribe({
+                gql: subscriptionConfig.gql,
+                token: getToken(tokenName),
+                onMessage: message => {
+                  if (mustAwaitQuery) {
+                    messageQueue.push({ message, subscriptionConfig });
+                    return;
+                  }
+
+                  updateQueryManagerWithSubscriptionMessage({
+                    message,
+                    subscriptionConfig,
+                  });
+
+                  // @TODO When called with skipInitialQuery, results should be null
+                  // and we should simply expose a "delta" from the message
+                  // probably don't need a query manager in that case either.
+                  opts.onData({
+                    results: queryManager.getResults() as QueryDataReturn<
+                      TQueryDefinitions
+                    >,
+                  });
+                },
+                onError: e => {
+                  // Can never throw here. The dev consuming this would have no way of catching it
+                  // To catch an error in a subscription they must provide onError
+                  const error = getError(
+                    new Error(`Error in a subscription message`),
+                    e.stack
+                  );
+
+                  if (opts.onError) {
+                    opts.onError(error);
+                  } else {
+                    console.error(error);
+                  }
+                },
+              });
+            })
+          );
         }
-      }
+      );
     }
 
     function unsub() {
       subscriptionCancellers.forEach(cancel => cancel());
     }
 
-    initSubs();
-    opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
+    try {
+      initSubs();
+      opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
+    } catch (e) {
+      const error = getError(
+        new Error(`Error initializating subscriptions`),
+        (e as any).stack
+      );
+
+      if (opts?.onError) {
+        opts.onError(error);
+        return { data: {}, unsub, error } as ReturnType;
+      } else {
+        throw error;
+      }
+    }
+
     if (opts.skipInitialQuery) {
       return { unsub } as ReturnType;
     } else {
@@ -299,7 +343,6 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         // this query method will post its results to the queryManager declared above
         await query(queryDefinitions, {
           queryId: opts.queryId,
-          tokenName: opts.tokenName,
           batched: opts.batched,
         });
       } catch (e) {

@@ -51,9 +51,12 @@ test('it throws an error when a non registered token is used', done => {
         return null;
       }
 
-      expect(e).toMatchInlineSnapshot(`
-        [Error: No token registered with the name "invalid".
-        Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
+      const [first, second] = (e as any).stack.trim().split('\n');
+      expect([first, second]).toMatchInlineSnapshot(`
+        Array [
+          "Error: No token registered with the name \\"invalid\\".",
+          "Please register this token prior to using it with sm.setToken({ tokenName, token })) ",
+        ]
       `);
       done();
     }
@@ -187,7 +190,7 @@ test('it cancels the subscription after the component that establishes the subsc
   }, 100);
 });
 
-test('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
+test.only('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
   const { smJS } = setupTests();
   let requestIdx = 0;
   smJS.gqlClient.query = jest.fn(() => {
@@ -198,7 +201,9 @@ test('if the query record provided is updated, performs a new query and returns 
       } else {
         const updatedQueryDataReturn = deepClone(mockQueryDataReturn);
         updatedQueryDataReturn.users[0].address__dot__state = 'Not FL';
-        res(updatedQueryDataReturn);
+        setTimeout(() => {
+          res(updatedQueryDataReturn);
+        }, 1000);
       }
     });
   });
@@ -215,10 +220,13 @@ test('if the query record provided is updated, performs a new query and returns 
 
     React.useEffect(() => {
       setTimeout(() => {
+        console.log('changing');
         setUpdateQueryDefinition(true);
-      }, 50);
+      }, 1000);
     }, []);
 
+    // console.log('data', data.users[0].address.state);
+    // console.log('querying', querying);
     if (querying) return <>querying</>;
     return <>{data.users[0].address.state}</>;
   }
