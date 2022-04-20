@@ -1,27 +1,20 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
 import {
-  QueryDefinitions,
   QueryDataReturn,
   UseSubscriptionReturn,
   Maybe,
+  UseSubscriptionQueryDefinitions,
 } from '../types';
 
-import { ISMContext, SMContext } from './context';
-
-type UseSubscriptionOpts = {
-  tokenName?: string;
-  doNotSuspend?: boolean;
-  subscriptionId?: string;
-};
+import { ISMContext, ISMContextSubscription, SMContext } from './context';
 
 export function useSubscription<
-  TQueryDefinitions extends QueryDefinitions,
-  TOpts extends UseSubscriptionOpts
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions
 >(
   queryDefinitions: TQueryDefinitions,
-  opts?: TOpts
-): UseSubscriptionReturn<TQueryDefinitions, TOpts> {
+  opts?: { subscriptionId: string }
+): UseSubscriptionReturn<TQueryDefinitions> {
   const smContext = React.useContext(SMContext);
 
   if (!smContext) {
@@ -38,18 +31,21 @@ export function useSubscription<
   }
   const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
 
-  const state = getStateForQuery({
+  const preExistingState = getPreexistingState({
     subscriptionId,
     smContext,
+    queryDefinitions,
   });
 
   const [results, setResults] = React.useState<
-    QueryDataReturn<TQueryDefinitions> | undefined
-  >(state.results);
-  const [error, setError] = React.useState<any>(state.error);
-  const [querying, setQuerying] = React.useState<boolean>(state.querying);
+    QueryDataReturn<TQueryDefinitions>
+  >(preExistingState.results);
+  const [error, setError] = React.useState<any>(preExistingState.error);
+  const [querying, setQuerying] = React.useState<boolean>(
+    preExistingState.querying
+  );
 
-  let qdReturn: Maybe<UseSubscriptionReturn<TQueryDefinitions, TOpts> & {
+  let qdStateManager: Maybe<UseSubscriptionReturn<TQueryDefinitions> & {
     cancelCleanup(): void;
     scheduleCleanup(): void;
   }> = null;
@@ -58,10 +54,10 @@ export function useSubscription<
     // handleQueryDefinitions throws a promise if a query is suspending rendering
     // we catch that promise here and re-throw it further down, so that we can manage cleanup
     // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
-    qdReturn = handleQueryDefitions({
+    qdStateManager = buildQueryDefinitionStateManager({
       smContext,
+      subscriptionId,
       queryDefinitions,
-      subscriptionOpts: { ...opts, subscriptionId },
       data: {
         results: results,
         error: error,
@@ -75,89 +71,44 @@ export function useSubscription<
     });
   } catch (e) {
     qdError = e;
-    qdReturn = null;
+    qdStateManager = null;
   }
 
   React.useEffect(() => {
-    qdReturn?.cancelCleanup();
+    qdStateManager?.cancelCleanup();
     return () => {
-      qdReturn?.scheduleCleanup();
+      qdStateManager?.scheduleCleanup();
     };
   }, [smContext, subscriptionId]);
 
   if (qdError) throw qdError;
 
-  return qdReturn as UseSubscriptionReturn<TQueryDefinitions, TOpts> & {
+  return qdStateManager as UseSubscriptionReturn<TQueryDefinitions> & {
     cancelCleanup(): void;
     scheduleCleanup(): void;
   };
 }
 
-export function useSubscriptions<
-  TQueryDefinitionGroups extends Record<string, QueryDefinitions>,
-  TUseSubscriptionsOpts extends {
-    [key in keyof TQueryDefinitionGroups]?: UseSubscriptionOpts;
-  }
->(
-  queryDefintionGroups: TQueryDefinitionGroups,
-  opts?: TUseSubscriptionsOpts
-): {
-  [key in keyof TQueryDefinitionGroups]: UseSubscriptionReturn<
-    TQueryDefinitionGroups[key],
-    TUseSubscriptionsOpts[key]
-  >;
-} {
-  let promises: Array<Promise<any>> = [];
-  const obj = { stack: '' };
-  Error.captureStackTrace(obj, useSubscription);
-  if (obj.stack === '') {
-    // Should be supported in all browsers, but better safe than sorry
-    throw Error('Error.captureStackTrace not supported');
-  }
-  const subscriptionId = obj.stack.split('\n')[1];
-
-  return Object.keys(queryDefintionGroups).reduce(
-    (acc, queryDefinitionGroupKey: keyof TQueryDefinitionGroups, idx, keys) => {
-      // wrap these in a try catch to allow queuing all subscriptions in parallel
-      try {
-        acc[queryDefinitionGroupKey] = useSubscription(
-          queryDefintionGroups[queryDefinitionGroupKey],
-          opts
-            ? {
-                ...opts[queryDefinitionGroupKey],
-                subscriptionId: subscriptionId + idx,
-              }
-            : { subscriptionId: subscriptionId + idx }
-        );
-      } catch (e) {
-        if (e instanceof Promise) promises.push(e);
-        else throw e;
-      }
-
-      if (idx === keys.length - 1 && promises.length) {
-        throw Promise.all(promises);
-      }
-
-      return acc;
-    },
-    {} as {
-      [key in keyof TQueryDefinitionGroups]: UseSubscriptionReturn<
-        TQueryDefinitionGroups[key],
-        TUseSubscriptionsOpts[key]
-      >;
-    }
-  );
-}
-
-function getStateForQuery(opts: {
+function getPreexistingState<
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions
+>(opts: {
   smContext: ISMContext;
   subscriptionId: string;
+  queryDefinitions: TQueryDefinitions;
 }) {
   const subscriptionId = opts.subscriptionId;
   const preExistingContextForThisSubscription =
     opts.smContext.ongoingSubscriptionRecord[subscriptionId];
 
-  const results = preExistingContextForThisSubscription?.results;
+  const results =
+    preExistingContextForThisSubscription?.results ||
+    Object.keys(opts.queryDefinitions).reduce(
+      (acc, key: keyof TQueryDefinitions) => {
+        acc[key] = null;
+        return acc;
+      },
+      {} as { [key in keyof TQueryDefinitions]: null }
+    );
   const error = preExistingContextForThisSubscription?.error;
   const querying =
     preExistingContextForThisSubscription?.querying != null
@@ -167,13 +118,43 @@ function getStateForQuery(opts: {
   return { results, error, querying };
 }
 
-function handleQueryDefitions<
-  TQueryDefinitions extends QueryDefinitions,
-  TUseSubscriptionOpts extends UseSubscriptionOpts & { subscriptionId: string }
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+function splitQueryDefinitions(
+  queryDefinitions: UseSubscriptionQueryDefinitions
+): {
+  suspendEnabled: UseSubscriptionQueryDefinitions;
+  suspendDisabled: UseSubscriptionQueryDefinitions;
+} {
+  return Object.entries(queryDefinitions).reduce(
+    (split, [alias, queryDefinition]) => {
+      const suspend =
+        queryDefinition.useSubOpts?.doNotSuspend != null
+          ? !queryDefinition.useSubOpts.doNotSuspend
+          : true;
+
+      split[suspend ? 'suspendEnabled' : 'suspendDisabled'][
+        alias
+      ] = queryDefinition;
+      return split;
+    },
+    { suspendEnabled: {}, suspendDisabled: {} } as {
+      suspendEnabled: UseSubscriptionQueryDefinitions;
+      suspendDisabled: UseSubscriptionQueryDefinitions;
+    }
+  );
+}
+
+function buildQueryDefinitionStateManager<
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions
 >(opts: {
   smContext: ISMContext;
+  subscriptionId: string;
   queryDefinitions: TQueryDefinitions;
-  subscriptionOpts: TUseSubscriptionOpts;
   data: {
     results: QueryDataReturn<TQueryDefinitions> | undefined;
     error: any;
@@ -184,64 +165,123 @@ function handleQueryDefitions<
     onError(error: any): void;
     setQuerying(querying: boolean): void;
   };
-}): UseSubscriptionReturn<TQueryDefinitions, TUseSubscriptionOpts> & {
+}): UseSubscriptionReturn<TQueryDefinitions> & {
   cancelCleanup(): void;
   scheduleCleanup(): void;
 } {
-  type TReturn = UseSubscriptionReturn<
-    TQueryDefinitions,
-    TUseSubscriptionOpts
-  > & {
+  type TReturn = UseSubscriptionReturn<TQueryDefinitions> & {
     cancelCleanup(): void;
     scheduleCleanup(): void;
   };
 
-  const subscriptionId = opts.subscriptionOpts.subscriptionId;
-  const preExistingContextForThisSubscription =
-    opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+  // When a subscription is initialized, the state of the subscription is split
+  // suspended subscriptions and non suspended subscriptions are initialized separately,
+  // so that rendering can continue as soon as possible.
+  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
+  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
+  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
+  const parentSubscriptionId = opts.subscriptionId;
+  const preExistingContextForThisParentSubscription =
+    opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+  if (!preExistingContextForThisParentSubscription) {
+    opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId] = {};
+  }
 
   function cancelCleanup() {
-    opts.smContext.cancelCleanup(subscriptionId);
+    opts.smContext.cancelCleanup(parentSubscriptionId);
   }
 
   function scheduleCleanup() {
-    opts.smContext.scheduleCleanup(subscriptionId);
+    opts.smContext.scheduleCleanup(parentSubscriptionId);
   }
 
-  const handlePromise = (p: Promise<any>) => {
-    if (opts.subscriptionOpts.doNotSuspend) {
-      noAwait(p);
-      return {
-        data: opts.data.results,
-        querying: opts.data.querying,
-        cancelCleanup,
-        scheduleCleanup,
-      } as TReturn;
-    } else {
-      throw p;
-    }
-  };
-
-  // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
+  // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
   // state of the component rendered before the fallback occured.
   // To avoid that, we keep a reference to the most up to date results setter in the subscription context
   // and call that in "onData" instead.
-  opts.smContext.updateSubscriptionInfo(subscriptionId, {
+  opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
     onResults: opts.handlers.onResults,
     onError: opts.handlers.onError,
     setQuerying: opts.handlers.setQuerying,
   });
 
-  const queryDefinitionHasBeenUpdated =
-    preExistingContextForThisSubscription?.queryInfo?.queryGQL != null &&
-    preExistingContextForThisSubscription.queryInfo.queryGQL !==
-      convertQueryDefinitionToQueryInfo({
-        queryDefinitions: opts.queryDefinitions,
-        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
-      }).queryGQL;
+  const { suspendDisabled, suspendEnabled } = splitQueryDefinitions(
+    opts.queryDefinitions
+  );
 
-  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
+  const subscriptionIds = {
+    suspendEnabled: 'suspendEnalbed',
+    suspendDisabled: 'suspendDisabled',
+  };
+
+  const allSubscriptionIds = Object.values(subscriptionIds).map(
+    subscriptionId => parentSubscriptionId + subscriptionId
+  );
+  function getAllSubscriptionStates(): Array<
+    ISMContextSubscription | undefined
+  > {
+    return allSubscriptionIds.map(
+      subscriptionId => opts.smContext.ongoingSubscriptionRecord[subscriptionId]
+    );
+  }
+
+  // From the received queried definitions
+  // and a static parentSubscriptionId+subscriptionSuffix identifier
+  // initializes subscriptions and updates the useSubscription state on the hook
+  // Also maintains a copy of that state at the context level, such that the component rendering the hook
+  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
+  //
+  // returns a promise if there's an unresolved request and "suspend" is set to true
+
+  // Questions:
+  // querying state - when to set querying to "false"?
+  // suspend promise - store one in parent sub state?
+  function handleNewQueryDefitions(subOpts: {
+    queryDefinitions: UseSubscriptionQueryDefinitions;
+    parentSubscriptionId: string;
+    subscriptionSuffix: string;
+    suspend: boolean;
+  }): Promise<any> | undefined {
+    const {
+      queryDefinitions,
+      parentSubscriptionId,
+      subscriptionSuffix,
+      suspend,
+    } = subOpts;
+    const subscriptionId = parentSubscriptionId + subscriptionSuffix;
+
+    const preExistingContextForThisSubscription =
+      opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+
+    if (!preExistingContextForThisSubscription) {
+      opts.smContext.ongoingSubscriptionRecord[subscriptionId] = {};
+    }
+
+    let newQueryInfo;
+    if (preExistingContextForThisSubscription?.queryInfo) {
+      newQueryInfo = convertQueryDefinitionToQueryInfo({
+        queryDefinitions: subOpts.queryDefinitions,
+        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
+      });
+    }
+
+    const queryDefinitionHasBeenUpdated =
+      newQueryInfo &&
+      preExistingContextForThisSubscription?.queryInfo &&
+      preExistingContextForThisSubscription.queryInfo.queryGQL !==
+        newQueryInfo.queryGQL;
+
+    if (
+      preExistingContextForThisSubscription &&
+      !queryDefinitionHasBeenUpdated
+    ) {
+      if (preExistingContextForThisSubscription.suspendPromise) {
+        return preExistingContextForThisSubscription.suspendPromise;
+      }
+      return undefined;
+    }
+
     if (queryDefinitionHasBeenUpdated) {
       preExistingContextForThisSubscription.unsub &&
         preExistingContextForThisSubscription.unsub();
@@ -249,38 +289,54 @@ function handleQueryDefitions<
 
     const queryTimestamp = new Date().valueOf();
     opts.handlers.setQuerying(true);
+    opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+      querying: true,
+    });
     opts.smContext.updateSubscriptionInfo(subscriptionId, {
       querying: true,
       lastQueryTimestamp: queryTimestamp,
     });
-
     const suspendPromise = opts.smContext.smJSInstance
-      .subscribe(opts.queryDefinitions, {
-        tokenName: opts.subscriptionOpts.tokenName,
+      .subscribe(queryDefinitions, {
         onData: ({ results: newResults }) => {
-          const contextForThisSub =
-            opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+          const contextForThisParentSub =
+            opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
           const thisQueryIsMostRecent =
-            contextForThisSub.lastQueryTimestamp === queryTimestamp;
+            contextForThisParentSub.lastQueryTimestamp === queryTimestamp;
           if (thisQueryIsMostRecent) {
-            contextForThisSub.onResults &&
-              contextForThisSub.onResults(newResults);
-            opts.smContext.updateSubscriptionInfo(subscriptionId, {
-              results: newResults,
-            });
+            contextForThisParentSub.onResults &&
+              contextForThisParentSub.onResults({
+                ...opts.data.results,
+                ...newResults,
+              });
+            opts.smContext.updateSubscriptionInfo(
+              subOpts.parentSubscriptionId,
+              {
+                results: { ...opts.data.results, ...newResults },
+              }
+            );
           }
         },
         onError: error => {
-          const contextForThisSub =
-            opts.smContext.ongoingSubscriptionRecord[subscriptionId];
-          contextForThisSub.onError && contextForThisSub.onError(error);
-          opts.smContext.updateSubscriptionInfo(subscriptionId, {
+          const contextForThisParentSub =
+            opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+          contextForThisParentSub.onError &&
+            contextForThisParentSub.onError(error);
+          opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
             error,
           });
         },
         onSubscriptionInitialized: subscriptionCanceller => {
           opts.smContext.updateSubscriptionInfo(subscriptionId, {
-            unsub: subscriptionCanceller,
+            unsub: () => subscriptionCanceller(),
+          });
+          opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+            unsub: () => {
+              getAllSubscriptionStates().map(
+                subscriptionState =>
+                  subscriptionState?.unsub && subscriptionState?.unsub()
+              );
+            },
           });
         },
         onQueryInfoConstructed: queryInfo => {
@@ -300,61 +356,53 @@ function handleQueryDefitions<
             suspendPromise: undefined,
             querying: false,
           });
+
+          // if all the queries have resolved, we can set "querying" to false for the parent subscription state
+          const allQueriesHaveResolved = !getAllSubscriptionStates().some(
+            state => state && state.querying
+          );
+          if (allQueriesHaveResolved) {
+            opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+              querying: false,
+            });
+          }
         }
       });
 
-    if (!preExistingContextForThisSubscription) {
+    if (!preExistingContextForThisSubscription && suspend) {
       opts.smContext.updateSubscriptionInfo(subscriptionId, {
         suspendPromise,
       });
-      return handlePromise(suspendPromise) as TReturn;
-    } else {
-      return {
-        data: opts.data.results,
-        querying: opts.data.querying,
-        cancelCleanup,
-        scheduleCleanup,
-      } as TReturn;
-    }
-  } else if (
-    opts.data.querying &&
-    preExistingContextForThisSubscription.suspendPromise
-  ) {
-    return handlePromise(
-      preExistingContextForThisSubscription.suspendPromise
-    ) as TReturn;
-  } else if (opts.data.error) {
-    throw opts.data.error;
-  } else {
-    return {
-      data: opts.data.results,
-      querying: opts.data.querying,
-      scheduleCleanup,
-      cancelCleanup,
-    } as TReturn;
-  }
-}
-
-function noAwait(
-  thenable: ((...args: Array<any>) => Promise<any>) | Promise<any>
-) {
-  const handle = (p: Promise<any>) => {
-    if (!(p instanceof Promise)) {
-      throw new Error('noAwait: function arguments must return a promise');
     }
 
-    p.then(() => null).catch(e => {
-      if (e instanceof Error) {
-        console.log(e);
-      }
-    });
-  };
+    if (suspend) return suspendPromise;
 
-  if (thenable instanceof Promise) {
-    handle(thenable);
-  } else if (typeof thenable === 'function') {
-    handle(thenable());
-  } else {
-    throw new Error('noAwait: argument must be a function or a promise');
+    return undefined;
   }
+
+  const suspendPromise = handleNewQueryDefitions({
+    queryDefinitions: suspendEnabled,
+    parentSubscriptionId,
+    subscriptionSuffix: subscriptionIds.suspendEnabled,
+    suspend: true,
+  });
+
+  handleNewQueryDefitions({
+    queryDefinitions: suspendDisabled,
+    parentSubscriptionId,
+    subscriptionSuffix: subscriptionIds.suspendDisabled,
+    suspend: false,
+  });
+
+  if (suspendPromise) throw suspendPromise;
+
+  if (opts.data.error) throw opts.data.error;
+
+  return {
+    data: opts.data.results,
+    error: opts.data.error,
+    querying: opts.data.querying,
+    scheduleCleanup,
+    cancelCleanup,
+  } as TReturn;
 }

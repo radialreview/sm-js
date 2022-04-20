@@ -1,3 +1,4 @@
+import { DEFAULT_TOKEN_NAME } from './consts';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
@@ -39,7 +40,7 @@ export function generateQuerier({
       queryId,
     });
 
-    const tokenName = opts?.tokenName || 'default';
+    const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
     const token = smJSInstance.getToken({ tokenName });
 
     function getError(error: any, stack?: string) {
@@ -159,7 +160,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       return error;
     }
 
-    const tokenName = opts?.tokenName || 'default';
+    const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
     const token = smJSInstance.getToken({ tokenName });
 
     if (!token) {

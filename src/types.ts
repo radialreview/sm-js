@@ -574,6 +574,7 @@ export type QueryDefinition<
   map: TMapFn;
   filter?: ValidFilterForNode<TSMNode>
   target?: TQueryDefinitionTarget
+  tokenName?: string
 };
 
 // A query takes a record where you can specify aliases for each node type you're querying (including 2 aliases for different sets of the same node type)
@@ -596,6 +597,21 @@ export type QueryDefinition<
 // eslint-disable-next-line
 // @ts-ignore
 export type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
+
+export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
+
+export type UseSubscriptionQueryDefinition<
+  TSMNode extends ISMNode,
+  TMapFn extends MapFnForNode<TSMNode> | undefined,
+  TQueryDefinitionTarget extends QueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts
+> = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {useSubOpts?: TUseSubscriptionQueryDefinitionOpts}
+// adding params to UseSubscriptionQueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
+// in UseSubscriptionQueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
+// strangely, if we simply tell TS to ignore the error it works perfectly
+// eslint-disable-next-line
+// @ts-ignore
+export type UseSubscriptionQueryDefinitions = Record<string,  UseSubscriptionQueryDefinition | ISMNode>
 
 export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
   [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
@@ -637,12 +653,18 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   : never;
 
 export type UseSubscriptionReturn<
-  TQueryDefinitions,
-  TOpts
-> = TOpts extends { doNotSuspend: true }
-  ? { data?: QueryDataReturn<TQueryDefinitions>; querying: boolean }
-  : { data: QueryDataReturn<TQueryDefinitions>; querying: boolean };
-
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions
+> = {
+  data: {
+    [key in keyof TQueryDefinitions]:
+      TQueryDefinitions[key] extends { useSubOpts?:{ doNotSuspend: true } }
+          ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>>
+          : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>
+  },
+  querying: boolean,
+  error: any
+}
+  
 export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
   ExtractNodeData<TSMNode>,
   ExtractNodeComputedData<TSMNode>,
@@ -669,7 +691,7 @@ export type GetMapFnArgs<
             any,
             Record<string, ISMData | SMDataDefaultFn>
           >
-        // allows devs to query a partial of an object within a node
+        // allows querying a partial of an object within a node
         ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
             map: TMapFn;
           }) => TMapFn

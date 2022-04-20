@@ -44,6 +44,7 @@ import {
   getMutationsFromTransactionDropOperations,
 } from './drop';
 import { ISMJS } from '../types';
+import { DEFAULT_TOKEN_NAME } from '../consts';
 
 export interface ITransactionContext {
   createNodes: typeof createNodes;
@@ -366,7 +367,7 @@ export function createTransaction(
       ];
     }
 
-    const tokenName = opts?.tokenName || 'default';
+    const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
     const token = smJSInstance.getToken({ tokenName });
 
     /**

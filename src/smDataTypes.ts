@@ -13,13 +13,14 @@ import {
   ISMQueryPagination,
   MapFnForNode,
   Maybe,
-  QueryDefinition,
   QueryDefinitionTarget,
   SMDataDefaultFn,
   ValidReferenceIdPropFromNode,
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
   ByReferenceQueryBuilderOpts,
+  UseSubscriptionQueryDefinitionOpts,
+  UseSubscriptionQueryDefinition,
 } from './types';
 
 export class SMData<
@@ -356,7 +357,15 @@ export const OBJECT_IDENTIFIER = '__object__';
 export function queryDefinition<
   TSMNode extends ISMNode,
   TMapFn extends MapFnForNode<TSMNode> | undefined,
-  TQueryDefinitionTarget extends QueryDefinitionTarget
->(queryDefinition: QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget>) {
+  TQueryDefinitionTarget extends QueryDefinitionTarget,
+  TUseSubscriptionOpts extends UseSubscriptionQueryDefinitionOpts
+>(
+  queryDefinition: UseSubscriptionQueryDefinition<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionOpts
+  >
+) {
   return queryDefinition;
 }

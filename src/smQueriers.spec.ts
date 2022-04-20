@@ -7,6 +7,7 @@ import {
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { SMJS } from '.';
+import { DEFAULT_TOKEN_NAME } from './consts';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -20,7 +21,7 @@ afterAll(() => {
 test('sm.query uses the gql client, passing in the expected params', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();
   const token = 'mock token';
-  smJSInstance.setToken({ tokenName: 'default', token });
+  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
   const queryId = 'MockQueryId';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
@@ -446,7 +447,7 @@ test('sm.subscribe throws an error when the user specifies a token which has not
 
 function setupTest() {
   const smJSInstance = new SMJS(getMockConfig());
-  smJSInstance.setToken({ tokenName: 'default', token: 'mock token' });
+  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 
   return { smJSInstance, queryDefinitions };

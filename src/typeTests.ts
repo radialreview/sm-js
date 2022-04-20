@@ -6,7 +6,7 @@ import {
   string,
   number,
   children,
-  useSubscriptions,
+  useSubscription,
 } from './';
 import { array, boolean, object, record, reference } from './smDataTypes';
 import {
@@ -705,35 +705,30 @@ const stateNode: StateNode = smJS.def({
   };
   invalidUserDataMissingComputedProperty;
 
-  const useSubscriptionsData = useSubscriptions(
-    {
-      notSuspended: {
-        users: queryDefinition({
-          def: userNode,
-          map: undefined,
-        }),
-      },
-      regular: {
-        users: queryDefinition({
-          def: userNode,
-          map: undefined,
-        }),
-      },
-    },
-    {
-      notSuspended: {
+  const useSubscriptionsData = useSubscription({
+    usersNotSuspended: queryDefinition({
+      def: userNode,
+      map: undefined,
+      useSubOpts: {
         doNotSuspend: true,
       },
-    }
-  );
+    }),
+    users: queryDefinition({
+      def: userNode,
+      map: undefined,
+    }),
+  });
 
-  // @ts-expect-error no null check, data access is not suspended
-  useSubscriptionsData.notSuspended.data.users[0].avatar;
-  useSubscriptionsData.notSuspended.data?.users[0].avatar;
+  useSubscriptionsData.data.users[0].avatar;
+  // @ts-expect-error when not suspended, results may be null
+  useSubscriptionsData.data.usersNotSuspended[0].avatar;
+  // good with null check
+  useSubscriptionsData.data.usersNotSuspended
+    ? useSubscriptionsData.data.usersNotSuspended[0].avatar
+    : null;
 
-  useSubscriptionsData.regular.data.users[0].avatar;
   // @ts-expect-error basic sanity check
-  useSubscriptionsData.regular.data.users[0].bogus;
+  useSubscriptionsData.data.users[0].bogus;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

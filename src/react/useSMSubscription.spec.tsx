@@ -10,6 +10,7 @@ import {
 import { useSubscription } from './';
 import { SMProvider, SMJS } from '..';
 import { deepClone } from '../dataUtilities';
+import { DEFAULT_TOKEN_NAME } from '../consts';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -42,9 +43,9 @@ test('it throws an error when a non registered token is used', done => {
   const { smJS } = setupTests();
   function MyComponent() {
     try {
-      useSubscription(createMockQueryDefinitions(smJS), {
-        tokenName: 'invalid',
-      });
+      useSubscription(
+        createMockQueryDefinitions(smJS, { tokenName: 'invalid' })
+      );
     } catch (e) {
       if (e instanceof Promise) {
         return null;
@@ -291,9 +292,9 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
   await result.findByText('FL');
 
   function MyComponent() {
-    const { data } = useSubscription(createMockQueryDefinitions(smJS), {
-      doNotSuspend: true,
-    });
+    const { data } = useSubscription(
+      createMockQueryDefinitions(smJS, { doNotSuspend: true })
+    );
 
     return (
       <>
@@ -307,7 +308,7 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
 
 function setupTests() {
   const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  smJS.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
 
   return { smJS };
 }
