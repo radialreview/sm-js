@@ -4309,14 +4309,13 @@ function useSubscription(queryDefinitions, opts) {
 }
 
 function getPreexistingState(opts) {
-  var subscriptionId = opts.subscriptionId;
-  var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+  var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[opts.subscriptionId];
   var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
     acc[key] = null;
     return acc;
   }, {});
   var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
-  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying : true;
+  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
   return {
     results: results,
     error: error,
@@ -4405,6 +4404,8 @@ function buildQueryDefinitionStateManager(opts) {
 
 
   function handleNewQueryDefitions(subOpts) {
+    var _opts$smContext$ongoi;
+
     var queryDefinitions = subOpts.queryDefinitions,
         parentSubscriptionId = subOpts.parentSubscriptionId,
         subscriptionSuffix = subOpts.subscriptionSuffix,
@@ -4436,15 +4437,15 @@ function buildQueryDefinitionStateManager(opts) {
     }
 
     var queryTimestamp = new Date().valueOf();
-    opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
-      querying: true
-    });
     opts.smContext.updateSubscriptionInfo(subscriptionId, {
       querying: true,
       lastQueryTimestamp: queryTimestamp
     });
-    console.log('querying');
-    opts.handlers.setQuerying(true);
+    opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+      querying: true
+    });
+    var setQuerying = (_opts$smContext$ongoi = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi.setQuerying;
+    setQuerying && setQuerying(true);
     var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
@@ -4474,8 +4475,8 @@ function buildQueryDefinitionStateManager(opts) {
         });
         opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
           unsub: function unsub() {
-            getAllSubscriptionStates().map(function (subscriptionState) {
-              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && (subscriptionState == null ? void 0 : subscriptionState.unsub());
+            getAllSubscriptionStates().forEach(function (subscriptionState) {
+              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
             });
           }
         });
@@ -4490,7 +4491,6 @@ function buildQueryDefinitionStateManager(opts) {
       var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
 
       if (thisQueryIsMostRecent) {
-        contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
         opts.smContext.updateSubscriptionInfo(subscriptionId, {
           suspendPromise: undefined,
           querying: false
@@ -4501,11 +4501,15 @@ function buildQueryDefinitionStateManager(opts) {
         });
 
         if (allQueriesHaveResolved) {
-          opts.handlers.setQuerying(false);
+          var _opts$smContext$ongoi2;
+
           opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false
           });
-          console.log('set querying false');
+
+          var _setQuerying = (_opts$smContext$ongoi2 = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi2.setQuerying;
+
+          _setQuerying && _setQuerying(false);
         }
       }
     });
@@ -4514,13 +4518,13 @@ function buildQueryDefinitionStateManager(opts) {
       opts.smContext.updateSubscriptionInfo(subscriptionId, {
         suspendPromise: suspendPromise
       });
+      return suspendPromise;
     }
 
-    if (suspend) return suspendPromise;
     return undefined;
   }
 
-  if (opts.data.error || opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error) throw opts.data.error || opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId].error;
+  if (opts.data.error) throw opts.data.error;
 
   if (Object.keys(suspendDisabled).length) {
     handleNewQueryDefitions({
