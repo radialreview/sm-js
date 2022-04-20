@@ -298,7 +298,7 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
 
     return (
       <>
-        {data?.users.map(user => (
+        {data.users?.map(user => (
           <div key={user.id}>{user.address.state}</div>
         ))}
       </>

@@ -137,17 +137,27 @@ function splitQueryDefinitions(
           ? !queryDefinition.useSubOpts.doNotSuspend
           : true;
 
-      split[suspend ? 'suspendEnabled' : 'suspendDisabled'][
-        alias
-      ] = queryDefinition;
+      split[
+        suspend
+          ? subscriptionIds.suspendEnabled
+          : subscriptionIds.suspendDisabled
+      ][alias] = queryDefinition;
       return split;
     },
-    { suspendEnabled: {}, suspendDisabled: {} } as {
+    {
+      [subscriptionIds.suspendEnabled]: {},
+      [subscriptionIds.suspendDisabled]: {},
+    } as {
       suspendEnabled: UseSubscriptionQueryDefinitions;
       suspendDisabled: UseSubscriptionQueryDefinitions;
     }
   );
 }
+
+const subscriptionIds = {
+  suspendEnabled: 'suspendEnabled' as 'suspendEnabled',
+  suspendDisabled: 'suspendDisabled' as 'suspendDisabled',
+};
 
 function buildQueryDefinitionStateManager<
   TQueryDefinitions extends UseSubscriptionQueryDefinitions
@@ -209,11 +219,6 @@ function buildQueryDefinitionStateManager<
   const { suspendDisabled, suspendEnabled } = splitQueryDefinitions(
     opts.queryDefinitions
   );
-
-  const subscriptionIds = {
-    suspendEnabled: 'suspendEnalbed',
-    suspendDisabled: 'suspendDisabled',
-  };
 
   const allSubscriptionIds = Object.values(subscriptionIds).map(
     subscriptionId => parentSubscriptionId + subscriptionId
@@ -299,11 +304,13 @@ function buildQueryDefinitionStateManager<
     const suspendPromise = opts.smContext.smJSInstance
       .subscribe(queryDefinitions, {
         onData: ({ results: newResults }) => {
-          const contextForThisParentSub =
-            opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+          const contextforThisSub =
+            opts.smContext.ongoingSubscriptionRecord[subscriptionId];
           const thisQueryIsMostRecent =
-            contextForThisParentSub.lastQueryTimestamp === queryTimestamp;
+            contextforThisSub.lastQueryTimestamp === queryTimestamp;
           if (thisQueryIsMostRecent) {
+            const contextForThisParentSub =
+              opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
             contextForThisParentSub.onResults &&
               contextForThisParentSub.onResults({
                 ...opts.data.results,
@@ -380,21 +387,25 @@ function buildQueryDefinitionStateManager<
     return undefined;
   }
 
-  const suspendPromise = handleNewQueryDefitions({
-    queryDefinitions: suspendEnabled,
-    parentSubscriptionId,
-    subscriptionSuffix: subscriptionIds.suspendEnabled,
-    suspend: true,
-  });
+  if (Object.keys(suspendDisabled).length) {
+    handleNewQueryDefitions({
+      queryDefinitions: suspendDisabled,
+      parentSubscriptionId,
+      subscriptionSuffix: subscriptionIds.suspendDisabled,
+      suspend: false,
+    });
+  }
 
-  handleNewQueryDefitions({
-    queryDefinitions: suspendDisabled,
-    parentSubscriptionId,
-    subscriptionSuffix: subscriptionIds.suspendDisabled,
-    suspend: false,
-  });
+  if (Object.keys(suspendEnabled).length) {
+    const suspendPromise = handleNewQueryDefitions({
+      queryDefinitions: suspendEnabled,
+      parentSubscriptionId,
+      subscriptionSuffix: subscriptionIds.suspendEnabled,
+      suspend: true,
+    });
 
-  if (suspendPromise) throw suspendPromise;
+    if (suspendPromise) throw suspendPromise;
+  }
 
   if (opts.data.error) throw opts.data.error;
 
