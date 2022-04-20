@@ -5387,5 +5387,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
+export { DEFAULT_TOKEN_NAME, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map
