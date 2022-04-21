@@ -110,6 +110,42 @@ test('sm.query throws an error when the user specifies a token which has not bee
   }
 });
 
+test('sm.query can query data using multiple tokens, by making parallel requests', () => {
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
+
+  smJSInstance.setToken({ tokenName: 'mainToken', token: '123' });
+  smJSInstance.setToken({ tokenName: 'altToken', token: '321' });
+
+  const mainTokenQD = createMockQueryDefinitions(smJSInstance, {
+    tokenName: 'mainToken',
+  }).users;
+  const altTokenQD = createMockQueryDefinitions(smJSInstance, {
+    tokenName: 'altToken',
+  }).users;
+
+  smJSInstance.gqlClient.query = jest.fn(async () => ({
+    mainTokenQD: mockQueryDataReturn.users,
+    altTokenQD: mockQueryDataReturn.users,
+  }));
+
+  smJSInstance.query({
+    mainTokenQD,
+    altTokenQD,
+  });
+
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+    expect.objectContaining({
+      token: '123',
+    })
+  );
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+    expect.objectContaining({
+      token: '321',
+    })
+  );
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();
 

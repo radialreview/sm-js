@@ -313,6 +313,40 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
   }
 });
 
+test('queries that do not suspend rendering go out in separate requests', async () => {
+  const LOADING_TEXT = 'loading';
+  const { smJS } = setupTests();
+
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  smJS.gqlClient.query = mockQuery;
+
+  render(
+    <React.Suspense fallback={LOADING_TEXT}>
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  function MyComponent() {
+    const { users: usersSuspended } = createMockQueryDefinitions(smJS, {
+      doNotSuspend: false,
+    });
+    const { users: usersNotSuspended } = createMockQueryDefinitions(smJS, {
+      doNotSuspend: true,
+    });
+
+    useSubscription({
+      usersNotSuspended,
+      usersSuspended,
+    });
+
+    return null;
+  }
+
+  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+});
+
 function setupTests() {
   const smJS = new SMJS(getMockConfig());
   smJS.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
