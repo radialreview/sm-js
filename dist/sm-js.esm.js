@@ -3179,7 +3179,7 @@ function generateQuerier(_ref2) {
 
                             var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                               queryDefinitions: queryDefinitions,
-                              queryId: queryId
+                              queryId: queryId + tokenName
                             }),
                                 queryGQL = _convertQueryDefiniti.queryGQL;
 
@@ -3331,7 +3331,7 @@ function generateSubscriber(smJSInstance) {
 
                   var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId
+                    queryId: queryId + tokenName
                   }),
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
