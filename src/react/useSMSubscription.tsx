@@ -79,7 +79,7 @@ export function useSubscription<
     return () => {
       qdStateManager?.scheduleCleanup();
     };
-  }, [smContext, subscriptionId]);
+  }, [smContext, subscriptionId, qdStateManager]);
 
   if (qdError) throw qdError;
 

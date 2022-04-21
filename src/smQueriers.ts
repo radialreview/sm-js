@@ -90,7 +90,7 @@ export function generateQuerier({
           ([tokenName, queryDefinitions]) => {
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
               queryDefinitions,
-              queryId: queryId + tokenName,
+              queryId: queryId + '_' + tokenName,
             });
 
             return smJSInstance.gqlClient.query({
@@ -137,8 +137,12 @@ export function generateQuerier({
         }
       }
 
+      const qmResults = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
+
+      opts?.onData && opts.onData({ results: qmResults });
+
       return {
-        data: qM.getResults() as QueryDataReturn<TQueryDefinitions>,
+        data: qmResults as QueryDataReturn<TQueryDefinitions>,
         error: undefined,
       };
     } catch (e) {
@@ -265,7 +269,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         ([tokenName, queryDefinitions]) => {
           const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
-            queryId: queryId + tokenName,
+            queryId: queryId + '_' + tokenName,
           });
 
           subscriptionCancellers.push(

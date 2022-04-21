@@ -25,7 +25,7 @@ test('sm.query uses the gql client, passing in the expected params', async done 
   const queryId = 'MockQueryId';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
-    queryId,
+    queryId: queryId + '_default', // the token being used
   }).queryGQL.loc?.source.body;
 
   const mockQuery = jest.fn(async opts => {
@@ -91,12 +91,14 @@ test('sm.query throws an error when the query fails and no "onError" handler is 
 });
 
 test('sm.query throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.query(queryDefinitions, {
-      tokenName: 'invalidTokenName',
-    });
+    await smJSInstance.query(
+      createMockQueryDefinitions(smJSInstance, {
+        tokenName: 'invalidTokenName',
+      })
+    );
   } catch (e) {
     expect(
       (e as any).stack.includes(
@@ -428,13 +430,17 @@ test('sm.subscribe throws an error when a query error occurs and no onError hand
 });
 
 test('sm.subscribe throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.subscribe(queryDefinitions, {
-      onData: () => {},
-      tokenName: 'invalidTokenName',
-    });
+    await smJSInstance.subscribe(
+      createMockQueryDefinitions(smJSInstance, {
+        tokenName: 'invalidTokenName',
+      }),
+      {
+        onData: () => {},
+      }
+    );
   } catch (e) {
     expect(
       (e as any).stack.includes(
@@ -450,5 +456,5 @@ function setupTest() {
   smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 
-  return { smJSInstance, queryDefinitions };
+  return { smJSInstance, queryDefinitions, createMockQueryDefinitions };
 }
