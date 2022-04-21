@@ -198,10 +198,12 @@ function buildQueryDefinitionStateManager<
 
   function cancelCleanup() {
     opts.smContext.cancelCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(subId => opts.smContext.cancelCleanup(subId));
   }
 
   function scheduleCleanup() {
     opts.smContext.scheduleCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(subId => opts.smContext.scheduleCleanup(subId));
   }
 
   // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'

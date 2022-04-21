@@ -54,23 +54,23 @@ function MyComponent() {
   console.log('querying', querying)
   console.log('nonSuspended', users);
   console.log('regular', todos);
-  return null;
-  // return (
-  //   <div className="App">
-  //     {regular.data.users.map(user => (
-  //       <div key={user.id}>
-  //         {user.firstName} {user.lastName}
-  //         <br />
-  //         todos:{' '}
-  //         {user.todos.length
-  //           ? user.todos.map(todo => todo.task).join(', ')
-  //           : 'None.'}
-  //         <br />
-  //         <br />
-  //       </div>
-  //     ))}
-  //   </div>
-  // );
+  
+  return (
+    <div className="App">
+      {users?.map(user => (
+        <div key={user.id}>
+          {user.firstName} {user.lastName}
+          <br />
+          todos:{' '}
+          {user.todos.length
+            ? user.todos.map(todo => todo.task).join(', ')
+            : 'None.'}
+          <br />
+          <br />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function App() {
