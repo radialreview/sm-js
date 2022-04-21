@@ -46,31 +46,3 @@ export async function authenticate(opts: {
   `;
   return config.gqlClient.mutate({ mutations: [mutation], token: '' });
 }
-
-export async function authenticateWithAPI(opts: {
-  email: string;
-  password: string;
-}): Promise<string> {
-  const data = await fetch(
-    'https://appservice.dev02.tt-devs.com/api/user/login',
-    {
-      method: 'POST',
-      headers: {
-        applicationId: '1',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: opts.email,
-        password: opts.password,
-        timeZone: null,
-      }),
-    }
-  )
-    .then((res: any) => {
-      return res.json();
-    })
-    .catch(console.log);
-
-  if (!data.orgUserToken) throw Error('Failed to get token');
-  return data.orgUserToken as string;
-}

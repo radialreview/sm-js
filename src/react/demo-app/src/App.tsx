@@ -1,64 +1,30 @@
 import React from 'react';
 
-import { queryDefinition, useSubscription } from 'sm-js';
-import smJS, {
-  userNode,
-
-  todoNode,
-  authenticateWithAPI,
-} from './smJS';
+import { useSubscription, queryDefinition } from 'sm-js';
+import smJS, { userNode, authenticate } from './smJS';
 
 function MyComponent() {
-  const {
-    data: { users, todos },
-    querying
-  } = useSubscription(
-    {
-      // regular: {
-      users: queryDefinition({
-        def: userNode,
-        map: userData => ({
-          id: userData.id,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          address: userData.address,
-          todos: userData.todos({
-            map: todoData => ({
-              id: todoData.id,
-              task: todoData.task,
-            }),
+  const { data } = useSubscription({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        address: userData.address,
+        todos: userData.todos({
+          map: todoData => ({
+            id: todoData.id,
+            task: todoData.task,
           }),
         }),
-        tokenName: 'altToken',
-        useSubOpts: {
-          doNotSuspend: true
-        }
       }),
-      // },
-      // nonSuspended: {
-      todos: queryDefinition({
-        def: todoNode,
-        map: undefined,
-        useSubOpts: {
-          doNotSuspend: true
-        }
-      }),
-      // },
-    }
-    // {
-    //   nonSuspended: {
-    //     doNotSuspend: true,
-    //   },
-    // }
-  );
+    }),
+  });
 
-  console.log('querying', querying)
-  console.log('nonSuspended', users);
-  console.log('regular', todos);
-  
   return (
     <div className="App">
-      {users?.map(user => (
+      {data.users.map(user => (
         <div key={user.id}>
           {user.firstName} {user.lastName}
           <br />
@@ -82,41 +48,25 @@ function App() {
 
   React.useEffect(() => {
     async function authenticateAndSetToken() {
-      // const res = await authenticate({
-      //   username: 'meida.m+60@meetings.io',
-      //   password: 'Password1!',
-      // });
-
-      // if (!res[0].data.Authenticate) {
-      //   throw new Error('Authentication failed');
-      // }
-
-      // const {
-      //   data: {
-      //     Authenticate: { token },
-      //   },
-      // } = res[0];
-
-      const token = await authenticateWithAPI({
-        email: 'meida.m+60@meetings.io',
-        password: 'Password1!',
+      const res = await authenticate({
+        username: 'INSERT APP USER ID HERE',
+        password: 'INSERT PASSWORD HERE',
       });
+
+      if (!res[0].data.Authenticate) {
+        throw new Error('Authentication failed');
+      }
+
+      const {
+        data: {
+          Authenticate: { token },
+        },
+      } = res[0];
 
       smJS.setToken({
         tokenName: 'default',
         token,
       });
-
-      const altToken = await authenticateWithAPI({
-        email: 'meida.m+2@meetings.io',
-        password: 'Password1!',
-      });
-
-      smJS.setToken({
-        tokenName: 'altToken',
-        token: altToken,
-      });
-
 
       setIsAuthenticated(true);
     }

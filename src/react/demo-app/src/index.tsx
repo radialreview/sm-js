@@ -8,11 +8,11 @@ import smJS from './smJS';
 
 ReactDOM.render(
   <React.StrictMode>
-    {/* <React.Suspense fallback={'loading'}> */}
+    <React.Suspense fallback={'loading'}>
       <SMProvider smJS={smJS}>
         <App />
       </SMProvider>
-    {/* </React.Suspense> */}
+    </React.Suspense>
   </React.StrictMode>,
   document.getElementById('root')
 );
