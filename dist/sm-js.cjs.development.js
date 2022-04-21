@@ -4365,10 +4365,16 @@ function buildQueryDefinitionStateManager(opts) {
 
   function cancelCleanup() {
     opts.smContext.cancelCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.smContext.cancelCleanup(subId);
+    });
   }
 
   function scheduleCleanup() {
     opts.smContext.scheduleCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.smContext.scheduleCleanup(subId);
+    });
   } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
   // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
   // state of the component rendered before the fallback occured.
