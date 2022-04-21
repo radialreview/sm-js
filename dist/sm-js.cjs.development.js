@@ -3165,7 +3165,7 @@ function generateQuerier(_ref2) {
       queryManager = _ref2.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, _error;
+      var startStack, queryId, getError, getToken, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
 
       return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
@@ -3185,7 +3185,7 @@ function generateQuerier(_ref2) {
 
                             var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                               queryDefinitions: queryDefinitions,
-                              queryId: queryId + tokenName
+                              queryId: queryId + '_' + tokenName
                             }),
                                 queryGQL = _convertQueryDefiniti.queryGQL;
 
@@ -3275,18 +3275,22 @@ function generateQuerier(_ref2) {
               throw error;
 
             case 25:
+              qmResults = qM.getResults();
+              (opts == null ? void 0 : opts.onData) && opts.onData({
+                results: qmResults
+              });
               return _context2.abrupt("return", {
-                data: qM.getResults(),
+                data: qmResults,
                 error: undefined
               });
 
-            case 28:
-              _context2.prev = 28;
+            case 30:
+              _context2.prev = 30;
               _context2.t1 = _context2["catch"](7);
               _error = getError(new Error("Error querying data"), _context2.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 36;
+                _context2.next = 38;
                 break;
               }
 
@@ -3296,15 +3300,15 @@ function generateQuerier(_ref2) {
                 error: _error
               });
 
-            case 36:
+            case 38:
               throw _error;
 
-            case 37:
+            case 39:
             case "end":
               return _context2.stop();
           }
         }
-      }, _callee2, null, [[7, 28], [12, 16]]);
+      }, _callee2, null, [[7, 30], [12, 16]]);
     }));
 
     function query(_x, _x2) {
@@ -3337,7 +3341,7 @@ function generateSubscriber(smJSInstance) {
 
                   var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId + tokenName
+                    queryId: queryId + '_' + tokenName
                   }),
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
@@ -4303,7 +4307,7 @@ function useSubscription(queryDefinitions, opts) {
 
       (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.scheduleCleanup();
     };
-  }, [smContext, subscriptionId]);
+  }, [smContext, subscriptionId, qdStateManager]);
   if (qdError) throw qdError;
   return qdStateManager;
 }
