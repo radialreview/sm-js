@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { queryDefinition, useSubscription,DEFAULT_TOKEN_NAME } from 'sm-js';
+import { queryDefinition, useSubscription } from 'sm-js';
 import smJS, {
   userNode,
-  authenticate,
+
   todoNode,
   authenticateWithAPI,
 } from './smJS';
@@ -11,6 +11,7 @@ import smJS, {
 function MyComponent() {
   const {
     data: { users, todos },
+    querying
   } = useSubscription(
     {
       // regular: {
@@ -28,12 +29,18 @@ function MyComponent() {
             }),
           }),
         }),
+        useSubOpts: {
+          doNotSuspend: true
+        }
       }),
       // },
       // nonSuspended: {
       todos: queryDefinition({
         def: todoNode,
         map: undefined,
+        useSubOpts: {
+          doNotSuspend: true
+        }
       }),
       // },
     }
@@ -44,6 +51,7 @@ function MyComponent() {
     // }
   );
 
+  console.log('querying', querying)
   console.log('nonSuspended', users);
   console.log('regular', todos);
   return null;
@@ -67,7 +75,7 @@ function MyComponent() {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(
-    !!smJS.getToken({ tokenName: DEFAULT_TOKEN_NAME })
+    !!smJS.getToken({ tokenName: 'default' })
   );
   const [showData, setShowData] = React.useState(isAuthenticated);
 
@@ -94,7 +102,7 @@ function App() {
       });
 
       smJS.setToken({
-        tokenName: DEFAULT_TOKEN_NAME,
+        tokenName: 'default',
         token,
       });
 
