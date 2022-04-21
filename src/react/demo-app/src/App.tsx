@@ -29,6 +29,7 @@ function MyComponent() {
             }),
           }),
         }),
+        tokenName: 'altToken',
         useSubOpts: {
           doNotSuspend: true
         }
@@ -105,6 +106,17 @@ function App() {
         tokenName: 'default',
         token,
       });
+
+      const altToken = await authenticateWithAPI({
+        email: 'meida.m+2@meetings.io',
+        password: 'Password1!',
+      });
+
+      smJS.setToken({
+        tokenName: 'altToken',
+        token: altToken,
+      });
+
 
       setIsAuthenticated(true);
     }

@@ -90,7 +90,7 @@ export function generateQuerier({
           ([tokenName, queryDefinitions]) => {
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
               queryDefinitions,
-              queryId,
+              queryId: queryId + tokenName,
             });
 
             return smJSInstance.gqlClient.query({
@@ -265,7 +265,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         ([tokenName, queryDefinitions]) => {
           const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
-            queryId,
+            queryId: queryId + tokenName,
           });
 
           subscriptionCancellers.push(
