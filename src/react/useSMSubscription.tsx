@@ -79,6 +79,10 @@ export function useSubscription<
     return () => {
       qdStateManager?.scheduleCleanup();
     };
+    // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
+    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
+    // to memoize all of their query definitions, which seems overkill
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smContext, subscriptionId]);
 
   if (qdError) throw qdError;
