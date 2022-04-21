@@ -95,7 +95,3 @@ export declare function authenticate(opts: {
     username: string;
     password: string;
 }): Promise<any>;
-export declare function authenticateWithAPI(opts: {
-    email: string;
-    password: string;
-}): Promise<string>;
