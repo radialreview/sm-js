@@ -4307,7 +4307,7 @@ function useSubscription(queryDefinitions, opts) {
 
       (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.scheduleCleanup();
     };
-  }, [smContext, subscriptionId, qdStateManager]);
+  }, [smContext, subscriptionId]);
   if (qdError) throw qdError;
   return qdStateManager;
 }
