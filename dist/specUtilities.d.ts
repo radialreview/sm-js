@@ -169,7 +169,9 @@ declare type UserProperties = typeof userProperties;
 declare type UserRelationalData = {
     todos: IChildrenQueryBuilder<TodoNode>;
 };
-export declare type UserNode = ISMNode<'tt-user', UserProperties, {}, UserRelationalData, {}>;
+export declare type UserNode = ISMNode<'tt-user', UserProperties, {
+    displayName: string;
+}, UserRelationalData, {}>;
 export declare function generateUserNode(smJSInstance: ISMJS, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     id: {
@@ -585,6 +587,8 @@ export declare const mockQueryResultExpectations: {
     users: {
         id: string;
         type: string;
+        displayName: string;
+        lastUpdatedBy: undefined;
         address: {
             state: string;
             apt: {
@@ -598,9 +602,12 @@ export declare const mockQueryResultExpectations: {
             assignee: {
                 id: string;
                 type: string;
+                displayName: string;
+                lastUpdatedBy: undefined;
                 firstName: string;
                 version: number;
             };
+            lastUpdatedBy: undefined;
             version: number;
         }[];
         version: number;
