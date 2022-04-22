@@ -13,6 +13,7 @@ import {
   RelationalQueryRecordEntry,
   SMDataDefaultFn,
 } from './types';
+import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -90,7 +91,10 @@ describe('DOProxyGenerator', () => {
         version: '1',
         id: 'mockId',
       },
-      allPropertiesQueried: ['object', 'object__dot__nestedString'],
+      allPropertiesQueried: [
+        'object',
+        `object${OBJECT_PROPERTY_SEPARATOR}nestedString`,
+      ],
     });
 
     expect(() => doProxy.object.nestedString).not.toThrow();
@@ -115,12 +119,56 @@ describe('DOProxyGenerator', () => {
           return data.object.nestedNumber;
         },
       },
-      allPropertiesQueried: ['object', 'object_nestedString'],
+      allPropertiesQueried: [
+        'object',
+        `object${OBJECT_PROPERTY_SEPARATOR}nestedString`,
+      ],
     });
 
     expect(() => doProxy.computedValue).toThrow(
       SMNotUpToDateInComputedException
     );
+  });
+
+  it(`allows spreading data from results, and avoids enumerating properties which are not up to date`, () => {
+    const doProxy = generateDOProxy({
+      properties: {
+        name: smData.string,
+        object: smData.object({
+          nestedString: smData.string,
+          nestedNumber: smData.number,
+        }),
+      },
+      initialData: {
+        version: '1',
+        id: 'mockId',
+      },
+      computed: {
+        computedValue: data => {
+          return data.object.nestedString;
+        },
+        computedValue2: data => {
+          return data.object.nestedNumber; // not up to date, since it wasn't queried, so it's skipped in the snapshot below
+        },
+      },
+      allPropertiesQueried: [
+        'object',
+        `object${OBJECT_PROPERTY_SEPARATOR}nestedString`,
+      ],
+    });
+
+    expect({ ...doProxy }).toMatchInlineSnapshot(`
+      Object {
+        "computedValue": "",
+        "id": "mockId",
+        "lastUpdatedBy": undefined,
+        "object": Object {
+          "nestedString": "",
+        },
+        "type": "mockNodeType",
+        "version": 1,
+      }
+    `);
   });
 });
 
