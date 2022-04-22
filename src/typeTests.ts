@@ -6,6 +6,7 @@ import {
   string,
   number,
   children,
+  useSubscription,
 } from './';
 import { array, boolean, object, record, reference } from './smDataTypes';
 import {
@@ -703,6 +704,31 @@ const stateNode: StateNode = smJS.def({
     avatar: 'avatar.jpg',
   };
   invalidUserDataMissingComputedProperty;
+
+  const useSubscriptionsData = useSubscription({
+    usersNotSuspended: queryDefinition({
+      def: userNode,
+      map: undefined,
+      useSubOpts: {
+        doNotSuspend: true,
+      },
+    }),
+    users: queryDefinition({
+      def: userNode,
+      map: undefined,
+    }),
+  });
+
+  useSubscriptionsData.data.users[0].avatar;
+  // @ts-expect-error when not suspended, results may be null
+  useSubscriptionsData.data.usersNotSuspended[0].avatar;
+  // good with null check
+  useSubscriptionsData.data.usersNotSuspended
+    ? useSubscriptionsData.data.usersNotSuspended[0].avatar
+    : null;
+
+  // @ts-expect-error basic sanity check
+  useSubscriptionsData.data.users[0].bogus;
 })();
 
 (async function ResultingDevExperienceWriteTests() {

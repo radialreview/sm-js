@@ -10,6 +10,7 @@ import {
 import { useSubscription } from './';
 import { SMProvider, SMJS } from '..';
 import { deepClone } from '../dataUtilities';
+import { DEFAULT_TOKEN_NAME } from '../consts';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -42,17 +43,20 @@ test('it throws an error when a non registered token is used', done => {
   const { smJS } = setupTests();
   function MyComponent() {
     try {
-      useSubscription(createMockQueryDefinitions(smJS), {
-        tokenName: 'invalid',
-      });
+      useSubscription(
+        createMockQueryDefinitions(smJS, { tokenName: 'invalid' })
+      );
     } catch (e) {
       if (e instanceof Promise) {
         return null;
       }
 
-      expect(e).toMatchInlineSnapshot(`
-        [Error: No token registered with the name "invalid".
-        Please register this token prior to using it with sm.setToken({ tokenName, token })) ]
+      const [first, second] = (e as any).stack.trim().split('\n');
+      expect([first, second]).toMatchInlineSnapshot(`
+        Array [
+          "Error: No token registered with the name \\"invalid\\".",
+          "Please register this token prior to using it with sm.setToken({ tokenName, token })) ",
+        ]
       `);
       done();
     }
@@ -192,12 +196,16 @@ test('if the query record provided is updated, performs a new query and returns 
   smJS.gqlClient.query = jest.fn(() => {
     return new Promise(res => {
       if (requestIdx === 0) {
-        res(mockQueryDataReturn);
+        setTimeout(() => {
+          res(mockQueryDataReturn);
+        }, 100);
         requestIdx++;
       } else {
         const updatedQueryDataReturn = deepClone(mockQueryDataReturn);
         updatedQueryDataReturn.users[0].address__dot__state = 'Not FL';
-        res(updatedQueryDataReturn);
+        setTimeout(() => {
+          res(updatedQueryDataReturn);
+        }, 100);
       }
     });
   });
@@ -215,7 +223,7 @@ test('if the query record provided is updated, performs a new query and returns 
     React.useEffect(() => {
       setTimeout(() => {
         setUpdateQueryDefinition(true);
-      }, 50);
+      }, 200);
     }, []);
 
     if (querying) return <>querying</>;
@@ -291,13 +299,13 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
   await result.findByText('FL');
 
   function MyComponent() {
-    const { data } = useSubscription(createMockQueryDefinitions(smJS), {
-      doNotSuspend: true,
-    });
+    const { data } = useSubscription(
+      createMockQueryDefinitions(smJS, { doNotSuspend: true })
+    );
 
     return (
       <>
-        {data?.users.map(user => (
+        {data.users?.map(user => (
           <div key={user.id}>{user.address.state}</div>
         ))}
       </>
@@ -305,9 +313,43 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
   }
 });
 
+test('queries that do not suspend rendering go out in separate requests', async () => {
+  const LOADING_TEXT = 'loading';
+  const { smJS } = setupTests();
+
+  const mockQuery = jest.fn(async () => mockQueryDataReturn);
+  smJS.gqlClient.query = mockQuery;
+
+  render(
+    <React.Suspense fallback={LOADING_TEXT}>
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  function MyComponent() {
+    const { users: usersSuspended } = createMockQueryDefinitions(smJS, {
+      doNotSuspend: false,
+    });
+    const { users: usersNotSuspended } = createMockQueryDefinitions(smJS, {
+      doNotSuspend: true,
+    });
+
+    useSubscription({
+      usersNotSuspended,
+      usersSuspended,
+    });
+
+    return null;
+  }
+
+  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+});
+
 function setupTests() {
   const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: 'default', token: 'mock token' });
+  smJS.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
 
   return { smJS };
 }

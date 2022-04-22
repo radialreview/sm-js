@@ -7,6 +7,7 @@ import {
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { SMJS } from '.';
+import { DEFAULT_TOKEN_NAME } from './consts';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -20,11 +21,11 @@ afterAll(() => {
 test('sm.query uses the gql client, passing in the expected params', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();
   const token = 'mock token';
-  smJSInstance.setToken({ tokenName: 'default', token });
+  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
   const queryId = 'MockQueryId';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
-    queryId,
+    queryId: queryId + '_default', // the token being used
   }).queryGQL.loc?.source.body;
 
   const mockQuery = jest.fn(async opts => {
@@ -90,12 +91,14 @@ test('sm.query throws an error when the query fails and no "onError" handler is 
 });
 
 test('sm.query throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.query(queryDefinitions, {
-      tokenName: 'invalidTokenName',
-    });
+    await smJSInstance.query(
+      createMockQueryDefinitions(smJSInstance, {
+        tokenName: 'invalidTokenName',
+      })
+    );
   } catch (e) {
     expect(
       (e as any).stack.includes(
@@ -105,6 +108,42 @@ test('sm.query throws an error when the user specifies a token which has not bee
 
     done();
   }
+});
+
+test('sm.query can query data using multiple tokens, by making parallel requests', () => {
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
+
+  smJSInstance.setToken({ tokenName: 'mainToken', token: '123' });
+  smJSInstance.setToken({ tokenName: 'altToken', token: '321' });
+
+  const mainTokenQD = createMockQueryDefinitions(smJSInstance, {
+    tokenName: 'mainToken',
+  }).users;
+  const altTokenQD = createMockQueryDefinitions(smJSInstance, {
+    tokenName: 'altToken',
+  }).users;
+
+  smJSInstance.gqlClient.query = jest.fn(async () => ({
+    mainTokenQD: mockQueryDataReturn.users,
+    altTokenQD: mockQueryDataReturn.users,
+  }));
+
+  smJSInstance.query({
+    mainTokenQD,
+    altTokenQD,
+  });
+
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+    expect.objectContaining({
+      token: '123',
+    })
+  );
+  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+    expect.objectContaining({
+      token: '321',
+    })
+  );
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
@@ -427,13 +466,17 @@ test('sm.subscribe throws an error when a query error occurs and no onError hand
 });
 
 test('sm.subscribe throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+  const { smJSInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.subscribe(queryDefinitions, {
-      onData: () => {},
-      tokenName: 'invalidTokenName',
-    });
+    await smJSInstance.subscribe(
+      createMockQueryDefinitions(smJSInstance, {
+        tokenName: 'invalidTokenName',
+      }),
+      {
+        onData: () => {},
+      }
+    );
   } catch (e) {
     expect(
       (e as any).stack.includes(
@@ -446,8 +489,8 @@ test('sm.subscribe throws an error when the user specifies a token which has not
 
 function setupTest() {
   const smJSInstance = new SMJS(getMockConfig());
-  smJSInstance.setToken({ tokenName: 'default', token: 'mock token' });
+  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 
-  return { smJSInstance, queryDefinitions };
+  return { smJSInstance, queryDefinitions, createMockQueryDefinitions };
 }

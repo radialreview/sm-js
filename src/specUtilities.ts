@@ -167,7 +167,10 @@ export function generateDOInstance<
 
 export function createMockQueryDefinitions(
   smJSInstance: ISMJS,
-  opts: { useIds: true } | { useUnder: true } | { useNoUnder: true } = {
+  opts: ({ useIds?: true } | { useUnder?: true } | { useNoUnder?: true }) & {
+    tokenName?: string;
+    doNotSuspend?: boolean;
+  } = {
     useUnder: true,
   }
 ) {
@@ -206,6 +209,10 @@ export function createMockQueryDefinitions(
         }),
       }),
       target,
+      tokenName: opts.tokenName,
+      useSubOpts: {
+        doNotSuspend: opts.doNotSuspend,
+      },
     }),
   };
 }

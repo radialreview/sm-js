@@ -1,6 +1,6 @@
 import React from 'react';
 import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
-interface ISMContextSubscription {
+export interface ISMContextSubscription {
   results?: any;
   error?: any;
   querying?: boolean;
@@ -13,7 +13,7 @@ interface ISMContextSubscription {
   lastQueryTimestamp?: number;
 }
 
-interface ISMContext {
+export interface ISMContext {
   smJSInstance: ISMJS;
   ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
   updateSubscriptionInfo: (

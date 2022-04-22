@@ -4,6 +4,7 @@ export * from './smDataTypes';
 export * from './react';
 export * from './config';
 export * from './gqlClient';
+export * from './consts';
 export declare class SMJS implements ISMJS {
     gqlClient: ISMJS['gqlClient'];
     plugins: ISMJS['plugins'];

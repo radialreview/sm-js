@@ -14,6 +14,7 @@ var utilities = require('@apollo/client/utilities');
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
 var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
+var DEFAULT_TOKEN_NAME = 'default';
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
@@ -3143,22 +3144,90 @@ function getSanitizedQueryId(opts) {
 }
 
 var queryIdx = 0;
+
+function splitQueryDefinitionsByToken(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
+    var alias = _ref[0],
+        queryDefinition = _ref[1];
+    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] = split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] || {};
+    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME][alias] = queryDefinition;
+    return split;
+  }, {});
+}
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
  * Which ensures that the socket messages are applied to the correct base set of results
  */
 
-function generateQuerier(_ref) {
-  var smJSInstance = _ref.smJSInstance,
-      queryManager = _ref.queryManager;
-  return /*#__PURE__*/function () {
-    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
-      var startStack, queryId, _convertQueryDefiniti, queryGQL, queryRecord, tokenName, token, getError, error;
 
-      return runtime_1.wrap(function _callee$(_context) {
+function generateQuerier(_ref2) {
+  var smJSInstance = _ref2.smJSInstance,
+      queryManager = _ref2.queryManager;
+  return /*#__PURE__*/function () {
+    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
+      var startStack, queryId, getError, getToken, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+
+      return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context.prev = _context.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
+              _performQueries = function _performQueries3() {
+                _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+                  var allResults;
+                  return runtime_1.wrap(function _callee$(_context) {
+                    while (1) {
+                      switch (_context.prev = _context.next) {
+                        case 0:
+                          _context.next = 2;
+                          return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref3) {
+                            var tokenName = _ref3[0],
+                                queryDefinitions = _ref3[1];
+
+                            var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+                              queryDefinitions: queryDefinitions,
+                              queryId: queryId + '_' + tokenName
+                            }),
+                                queryGQL = _convertQueryDefiniti.queryGQL;
+
+                            return smJSInstance.gqlClient.query({
+                              gql: queryGQL,
+                              token: getToken(tokenName),
+                              batched: opts == null ? void 0 : opts.batched
+                            });
+                          }));
+
+                        case 2:
+                          allResults = _context.sent;
+                          return _context.abrupt("return", allResults.reduce(function (acc, resultsForToken) {
+                            return _extends({}, acc, resultsForToken);
+                          }, {}));
+
+                        case 4:
+                        case "end":
+                          return _context.stop();
+                      }
+                    }
+                  }, _callee);
+                }));
+                return _performQueries.apply(this, arguments);
+              };
+
+              performQueries = function _performQueries2() {
+                return _performQueries.apply(this, arguments);
+              };
+
+              getToken = function _getToken(tokenName) {
+                var token = smJSInstance.getToken({
+                  tokenName: tokenName
+                });
+
+                if (!token) {
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
+                }
+
+                return token;
+              };
+
               getError = function _getError(error, stack) {
                 // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
                 error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
@@ -3167,92 +3236,79 @@ function generateQuerier(_ref) {
 
               startStack = new Error().stack;
               queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
-              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
+              _context2.prev = 7;
+              _context2.next = 10;
+              return performQueries();
+
+            case 10:
+              results = _context2.sent;
+              qM = queryManager || new smJSInstance.SMQueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
-              }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
-              tokenName = (opts == null ? void 0 : opts.tokenName) || 'default';
-              token = smJSInstance.getToken({
-                tokenName: tokenName
+              }).queryRecord);
+              _context2.prev = 12;
+              qM.onQueryResult({
+                queryId: queryId,
+                queryResult: results
               });
+              _context2.next = 25;
+              break;
 
-              if (token) {
-                _context.next = 14;
-                break;
-              }
-
-              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) '));
+            case 16:
+              _context2.prev = 16;
+              _context2.t0 = _context2["catch"](12);
+              error = getError(new Error("Error applying query results"), _context2.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context.next = 13;
+                _context2.next = 24;
                 break;
               }
 
               opts.onError(error);
-              return _context.abrupt("return", {
+              return _context2.abrupt("return", {
                 data: {},
                 error: error
               });
 
-            case 13:
+            case 24:
               throw error;
 
-            case 14:
-              return _context.abrupt("return", smJSInstance.gqlClient.query({
-                gql: queryGQL,
-                token: token,
-                batched: opts == null ? void 0 : opts.batched
-              }).then(function (queryResult) {
-                var results;
+            case 25:
+              qmResults = qM.getResults();
+              (opts == null ? void 0 : opts.onData) && opts.onData({
+                results: qmResults
+              });
+              return _context2.abrupt("return", {
+                data: qmResults,
+                error: undefined
+              });
 
-                try {
-                  var qM = queryManager || new smJSInstance.SMQueryManager(queryRecord);
-                  qM.onQueryResult({
-                    queryId: queryId,
-                    queryResult: queryResult
-                  });
-                  results = qM.getResults();
-                } catch (e) {
-                  var _error = getError(new Error("Error applying query results"), e.stack);
+            case 30:
+              _context2.prev = 30;
+              _context2.t1 = _context2["catch"](7);
+              _error = getError(new Error("Error querying data"), _context2.t1.stack);
 
-                  if (opts != null && opts.onError) {
-                    opts.onError(_error);
-                    return {
-                      data: {},
-                      error: _error
-                    };
-                  } else {
-                    throw _error;
-                  }
-                }
+              if (!(opts != null && opts.onError)) {
+                _context2.next = 38;
+                break;
+              }
 
-                (opts == null ? void 0 : opts.onData) && opts.onData({
-                  results: results
-                });
-                return {
-                  data: results,
-                  error: null
-                };
-              })["catch"](function (e) {
-                var error = getError(new Error("Error querying data"), e.stack);
+              opts.onError(_error);
+              return _context2.abrupt("return", {
+                data: {},
+                error: _error
+              });
 
-                if (opts != null && opts.onError) {
-                  opts.onError(error);
-                  return {
-                    data: {},
-                    error: error
-                  };
-                } else {
-                  throw error;
-                }
-              }));
+            case 38:
+              throw _error;
 
-            case 15:
+            case 39:
             case "end":
-              return _context.stop();
+              return _context2.stop();
           }
         }
-      }, _callee);
+      }, _callee2, null, [[7, 30], [12, 16]]);
     }));
 
     function query(_x, _x2) {
@@ -3264,12 +3320,12 @@ function generateQuerier(_ref) {
 }
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
-    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, _convertQueryDefiniti2, queryGQL, queryRecord, subscriptionConfigs, getError, tokenName, token, error, queryManager, updateQueryManagerWithSubscriptionMessage, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, query, _error4, data;
+    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
+      var startStack, queryId, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, _error2, data;
 
-      return runtime_1.wrap(function _callee2$(_context2) {
+      return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
-          switch (_context2.prev = _context2.next) {
+          switch (_context3.prev = _context3.next) {
             case 0:
               unsub = function _unsub() {
                 subscriptionCancellers.forEach(function (cancel) {
@@ -3278,11 +3334,21 @@ function generateSubscriber(smJSInstance) {
               };
 
               initSubs = function _initSubs() {
-                try {
-                  subscriptionCancellers = subscriptionConfigs.map(function (subscriptionConfig) {
+                var queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
+                Object.entries(queryDefinitionsSplitByToken).forEach(function (_ref4) {
+                  var tokenName = _ref4[0],
+                      queryDefinitions = _ref4[1];
+
+                  var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
+                    queryDefinitions: queryDefinitions,
+                    queryId: queryId + '_' + tokenName
+                  }),
+                      subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
+
+                  subscriptionCancellers.push.apply(subscriptionCancellers, subscriptionConfigs.map(function (subscriptionConfig) {
                     return smJSInstance.gqlClient.subscribe({
                       gql: subscriptionConfig.gql,
-                      token: token,
+                      token: getToken(tokenName),
                       onMessage: function onMessage(message) {
                         if (mustAwaitQuery) {
                           messageQueue.push({
@@ -3315,16 +3381,20 @@ function generateSubscriber(smJSInstance) {
                         }
                       }
                     });
-                  });
-                } catch (e) {
-                  var _error3 = getError(new Error("Error initializating subscriptions"), e.stack);
+                  }));
+                });
+              };
 
-                  if (opts != null && opts.onError) {
-                    opts.onError(_error3);
-                  } else {
-                    throw _error3;
-                  }
+              getToken = function _getToken2(tokenName) {
+                var token = smJSInstance.getToken({
+                  tokenName: tokenName
+                });
+
+                if (!token) {
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
                 }
+
+                return token;
               };
 
               updateQueryManagerWithSubscriptionMessage = function _updateQueryManagerWi(data) {
@@ -3341,12 +3411,12 @@ function generateSubscriber(smJSInstance) {
                     subscriptionAlias: data.subscriptionConfig.alias
                   });
                 } catch (e) {
-                  var _error2 = getError(new Error("Error applying subscription message"), e.stack);
+                  var error = getError(new Error("Error applying subscription message"), e.stack);
 
                   if (opts.onError) {
-                    opts.onError(_error2);
+                    opts.onError(error);
                   } else {
-                    console.error(_error2);
+                    console.error(error);
                   }
                 }
               };
@@ -3363,39 +3433,11 @@ function generateSubscriber(smJSInstance) {
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
-              }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, subscriptionConfigs = _convertQueryDefiniti2.subscriptionConfigs;
+              }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord;
               opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
                 queryGQL: queryGQL,
                 queryId: queryId
               });
-              tokenName = (opts == null ? void 0 : opts.tokenName) || 'default';
-              token = smJSInstance.getToken({
-                tokenName: tokenName
-              });
-
-              if (token) {
-                _context2.next = 18;
-                break;
-              }
-
-              error = getError(new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) '));
-
-              if (!opts.onError) {
-                _context2.next = 17;
-                break;
-              }
-
-              opts.onError(error);
-              return _context2.abrupt("return", {
-                data: {},
-                unsub: unsub,
-                error: error
-              });
-
-            case 17:
-              throw error;
-
-            case 18:
               queryManager = new smJSInstance.SMQueryManager(queryRecord);
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from SM to the client. This would result in a missed update.
@@ -3406,56 +3448,79 @@ function generateSubscriber(smJSInstance) {
 
               mustAwaitQuery = !opts.skipInitialQuery;
               messageQueue = [];
+              _context3.prev = 13;
               initSubs();
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
+              _context3.next = 27;
+              break;
 
-              if (!opts.skipInitialQuery) {
-                _context2.next = 28;
+            case 18:
+              _context3.prev = 18;
+              _context3.t0 = _context3["catch"](13);
+              error = getError(new Error("Error initializating subscriptions"), _context3.t0.stack);
+
+              if (!(opts != null && opts.onError)) {
+                _context3.next = 26;
                 break;
               }
 
-              return _context2.abrupt("return", {
+              opts.onError(error);
+              return _context3.abrupt("return", {
+                data: {},
+                unsub: unsub,
+                error: error
+              });
+
+            case 26:
+              throw error;
+
+            case 27:
+              if (!opts.skipInitialQuery) {
+                _context3.next = 31;
+                break;
+              }
+
+              return _context3.abrupt("return", {
                 unsub: unsub
               });
 
-            case 28:
+            case 31:
               query = generateQuerier({
                 smJSInstance: smJSInstance,
                 queryManager: queryManager
               });
-              _context2.prev = 29;
-              _context2.next = 32;
+              _context3.prev = 32;
+              _context3.next = 35;
               return query(queryDefinitions, {
                 queryId: opts.queryId,
-                tokenName: opts.tokenName,
                 batched: opts.batched
               });
 
-            case 32:
-              _context2.next = 43;
+            case 35:
+              _context3.next = 46;
               break;
 
-            case 34:
-              _context2.prev = 34;
-              _context2.t0 = _context2["catch"](29);
-              _error4 = getError(new Error("Error querying initial data set"), _context2.t0.stack);
+            case 37:
+              _context3.prev = 37;
+              _context3.t1 = _context3["catch"](32);
+              _error2 = getError(new Error("Error querying initial data set"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 42;
+                _context3.next = 45;
                 break;
               }
 
-              opts.onError(_error4);
-              return _context2.abrupt("return", {
+              opts.onError(_error2);
+              return _context3.abrupt("return", {
                 data: {},
                 unsub: unsub,
-                error: _error4
+                error: _error2
               });
 
-            case 42:
-              throw _error4;
+            case 45:
+              throw _error2;
 
-            case 43:
+            case 46:
               if (mustAwaitQuery) {
                 mustAwaitQuery = false;
                 messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
@@ -3466,18 +3531,18 @@ function generateSubscriber(smJSInstance) {
               opts.onData({
                 results: data
               });
-              return _context2.abrupt("return", {
+              return _context3.abrupt("return", {
                 data: data,
                 unsub: unsub,
                 error: null
               });
 
-            case 47:
+            case 50:
             case "end":
-              return _context2.stop();
+              return _context3.stop();
           }
         }
-      }, _callee2, null, [[29, 34]]);
+      }, _callee3, null, [[13, 18], [32, 37]]);
     }));
 
     function subscribe(_x3, _x4) {
@@ -4171,8 +4236,6 @@ var SMProvider = function SMProvider(props) {
 };
 
 function useSubscription(queryDefinitions, opts) {
-  var _preExistingContextFo;
-
   var smContext = React.useContext(SMContext);
 
   if (!smContext) {
@@ -4189,154 +4252,319 @@ function useSubscription(queryDefinitions, opts) {
     throw Error('Error.captureStackTrace not supported');
   }
 
-  var subscriptionId = obj.stack.split('\n')[1];
-  var preExistingContextForThisSubscription = smContext.ongoingSubscriptionRecord[subscriptionId];
+  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
+  var preExistingState = getPreexistingState({
+    subscriptionId: subscriptionId,
+    smContext: smContext,
+    queryDefinitions: queryDefinitions
+  });
 
-  var _React$useState = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results),
+  var _React$useState = React.useState(preExistingState.results),
       results = _React$useState[0],
       setResults = _React$useState[1];
 
-  var _React$useState2 = React.useState(preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error),
+  var _React$useState2 = React.useState(preExistingState.error),
       error = _React$useState2[0],
       setError = _React$useState2[1];
 
-  var _React$useState3 = React.useState((preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying : true),
+  var _React$useState3 = React.useState(preExistingState.querying),
       querying = _React$useState3[0],
       setQuerying = _React$useState3[1];
 
-  var handlePromise = function handlePromise(p) {
-    if (opts != null && opts.doNotSuspend) {
-      noAwait(p);
-      return {
-        data: results,
+  var qdStateManager = null;
+  var qdError = null;
+
+  try {
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
+    // we catch that promise here and re-throw it further down, so that we can manage cleanup
+    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
+    qdStateManager = buildQueryDefinitionStateManager({
+      smContext: smContext,
+      subscriptionId: subscriptionId,
+      queryDefinitions: queryDefinitions,
+      data: {
+        results: results,
+        error: error,
         querying: querying
-      };
-    } else {
-      throw p;
-    }
-  };
+      },
+      handlers: {
+        onResults: setResults,
+        onError: setError,
+        setQuerying: setQuerying
+      }
+    });
+  } catch (e) {
+    qdError = e;
+    qdStateManager = null;
+  }
 
   React.useEffect(function () {
-    smContext.cancelCleanup(subscriptionId);
+    var _qdStateManager;
+
+    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.cancelCleanup();
     return function () {
-      smContext.scheduleCleanup(subscriptionId);
-    };
-  }, [smContext, subscriptionId]); // We can not directly call "setResults" from this useState hook above within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling setResults on the
+      var _qdStateManager2;
+
+      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.scheduleCleanup();
+    }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
+    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
+    // to memoize all of their query definitions, which seems overkill
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [smContext, subscriptionId]);
+  if (qdError) throw qdError;
+  return qdStateManager;
+}
+
+function getPreexistingState(opts) {
+  var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[opts.subscriptionId];
+  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+    acc[key] = null;
+    return acc;
+  }, {});
+  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
+  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
+  return {
+    results: results,
+    error: error,
+    querying: querying
+  };
+}
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+
+
+function splitQueryDefinitions(queryDefinitions) {
+  var _Object$entries$reduc;
+
+  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
+    var _queryDefinition$useS;
+
+    var alias = _ref[0],
+        queryDefinition = _ref[1];
+    var suspend = ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
+    split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
+    return split;
+  }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
+}
+
+var subscriptionIds = {
+  suspendEnabled: 'suspendEnabled',
+  suspendDisabled: 'suspendDisabled'
+};
+
+function buildQueryDefinitionStateManager(opts) {
+  // When a subscription is initialized, the state of the subscription is split
+  // suspended subscriptions and non suspended subscriptions are initialized separately,
+  // so that rendering can continue as soon as possible.
+  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
+  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
+  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
+  var parentSubscriptionId = opts.subscriptionId;
+  var preExistingContextForThisParentSubscription = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+
+  if (!preExistingContextForThisParentSubscription) {
+    opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId] = {};
+  }
+
+  function cancelCleanup() {
+    opts.smContext.cancelCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.smContext.cancelCleanup(subId);
+    });
+  }
+
+  function scheduleCleanup() {
+    opts.smContext.scheduleCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.smContext.scheduleCleanup(subId);
+    });
+  } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
   // state of the component rendered before the fallback occured.
   // To avoid that, we keep a reference to the most up to date results setter in the subscription context
   // and call that in "onData" instead.
 
-  smContext.updateSubscriptionInfo(subscriptionId, {
-    onResults: setResults,
-    onError: setError,
-    setQuerying: setQuerying
-  });
-  var queryDefinitionHasBeenUpdated = (preExistingContextForThisSubscription == null ? void 0 : (_preExistingContextFo = preExistingContextForThisSubscription.queryInfo) == null ? void 0 : _preExistingContextFo.queryGQL) != null && preExistingContextForThisSubscription.queryInfo.queryGQL !== convertQueryDefinitionToQueryInfo({
-    queryDefinitions: queryDefinitions,
-    queryId: preExistingContextForThisSubscription.queryInfo.queryId
-  }).queryGQL;
 
-  if (!preExistingContextForThisSubscription || queryDefinitionHasBeenUpdated) {
+  opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+    onResults: opts.handlers.onResults,
+    onError: opts.handlers.onError,
+    setQuerying: opts.handlers.setQuerying
+  });
+
+  var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
+      suspendDisabled = _splitQueryDefinition.suspendDisabled,
+      suspendEnabled = _splitQueryDefinition.suspendEnabled;
+
+  var allSubscriptionIds = Object.values(subscriptionIds).map(function (subscriptionId) {
+    return parentSubscriptionId + subscriptionId;
+  });
+
+  function getAllSubscriptionStates() {
+    return allSubscriptionIds.map(function (subscriptionId) {
+      return opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+    });
+  } // From the received queried definitions
+  // and a static parentSubscriptionId+subscriptionSuffix identifier
+  // initializes subscriptions and updates the useSubscription state on the hook
+  // Also maintains a copy of that state at the context level, such that the component rendering the hook
+  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
+  //
+  // returns a promise if there's an unresolved request and "suspend" is set to true
+
+
+  function handleNewQueryDefitions(subOpts) {
+    var _opts$smContext$ongoi;
+
+    var queryDefinitions = subOpts.queryDefinitions,
+        parentSubscriptionId = subOpts.parentSubscriptionId,
+        subscriptionSuffix = subOpts.subscriptionSuffix,
+        suspend = subOpts.suspend;
+    var subscriptionId = parentSubscriptionId + subscriptionSuffix;
+    var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+
+    if (!preExistingContextForThisSubscription) {
+      opts.smContext.ongoingSubscriptionRecord[subscriptionId] = {};
+    }
+
+    var newQueryInfo;
+
+    if (preExistingContextForThisSubscription != null && preExistingContextForThisSubscription.queryInfo) {
+      newQueryInfo = convertQueryDefinitionToQueryInfo({
+        queryDefinitions: subOpts.queryDefinitions,
+        queryId: preExistingContextForThisSubscription.queryInfo.queryId
+      });
+    }
+
+    var queryDefinitionHasBeenUpdated = newQueryInfo && (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo) && preExistingContextForThisSubscription.queryInfo.queryGQL !== newQueryInfo.queryGQL;
+
+    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
+      return preExistingContextForThisSubscription.suspendPromise;
+    }
+
     if (queryDefinitionHasBeenUpdated) {
       preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
     }
 
     var queryTimestamp = new Date().valueOf();
-    setQuerying(true);
-    smContext.updateSubscriptionInfo(subscriptionId, {
+    opts.smContext.updateSubscriptionInfo(subscriptionId, {
       querying: true,
       lastQueryTimestamp: queryTimestamp
     });
-    var suspendPromise = smContext.smJSInstance.subscribe(queryDefinitions, {
-      tokenName: opts == null ? void 0 : opts.tokenName,
-      onData: function onData(_ref) {
-        var newResults = _ref.results;
-        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
-        var thisQueryIsMostRecent = contextForThisSub.lastQueryTimestamp === queryTimestamp;
+    opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+      querying: true
+    });
+    var setQuerying = (_opts$smContext$ongoi = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi.setQuerying;
+    setQuerying && setQuerying(true);
+    var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
+      onData: function onData(_ref2) {
+        var newResults = _ref2.results;
+        var contextforThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+        var thisQueryIsMostRecent = contextforThisSub.lastQueryTimestamp === queryTimestamp;
 
         if (thisQueryIsMostRecent) {
-          contextForThisSub.onResults && contextForThisSub.onResults(newResults);
-          smContext.updateSubscriptionInfo(subscriptionId, {
-            results: newResults
+          var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, opts.data.results, newResults));
+          opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+            results: _extends({}, opts.data.results, newResults)
           });
         }
       },
       onError: function onError(error) {
-        var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
-        contextForThisSub.onError && contextForThisSub.onError(error);
-        smContext.updateSubscriptionInfo(subscriptionId, {
+        var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
+        opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
           error: error
         });
       },
       onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
-        smContext.updateSubscriptionInfo(subscriptionId, {
-          unsub: subscriptionCanceller
+        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+          unsub: function unsub() {
+            return subscriptionCanceller();
+          }
+        });
+        opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+          unsub: function unsub() {
+            getAllSubscriptionStates().forEach(function (subscriptionState) {
+              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
+            });
+          }
         });
       },
       onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
-        smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.smContext.updateSubscriptionInfo(subscriptionId, {
           queryInfo: queryInfo
         });
       }
     })["finally"](function () {
-      var contextForThisSub = smContext.ongoingSubscriptionRecord[subscriptionId];
+      var contextForThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
       var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
 
       if (thisQueryIsMostRecent) {
-        contextForThisSub.setQuerying && contextForThisSub.setQuerying(false);
-        smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.smContext.updateSubscriptionInfo(subscriptionId, {
           suspendPromise: undefined,
           querying: false
+        }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
+
+        var allQueriesHaveResolved = !getAllSubscriptionStates().some(function (state) {
+          return state && state.querying;
         });
+
+        if (allQueriesHaveResolved) {
+          var _opts$smContext$ongoi2;
+
+          opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+            querying: false
+          });
+
+          var _setQuerying = (_opts$smContext$ongoi2 = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi2.setQuerying;
+
+          _setQuerying && _setQuerying(false);
+        }
       }
     });
 
-    if (!preExistingContextForThisSubscription) {
-      smContext.updateSubscriptionInfo(subscriptionId, {
+    if (!preExistingContextForThisSubscription && suspend) {
+      opts.smContext.updateSubscriptionInfo(subscriptionId, {
         suspendPromise: suspendPromise
       });
-      return handlePromise(suspendPromise);
-    } else {
-      return {
-        data: results,
-        querying: querying
-      };
+      return suspendPromise;
     }
-  } else if (querying && preExistingContextForThisSubscription.suspendPromise) {
-    return handlePromise(preExistingContextForThisSubscription.suspendPromise);
-  } else if (error) {
-    throw error;
-  } else {
-    return {
-      data: results,
-      querying: querying
-    };
+
+    return undefined;
   }
-}
 
-function noAwait(thenable) {
-  var handle = function handle(p) {
-    if (!(p instanceof Promise)) {
-      throw new Error('noAwait: function arguments must return a promise');
-    }
+  if (opts.data.error) throw opts.data.error;
 
-    p.then(function () {
-      return null;
-    })["catch"](function (e) {
-      if (e instanceof Error) {
-        console.log(e);
-      }
+  if (Object.keys(suspendDisabled).length) {
+    handleNewQueryDefitions({
+      queryDefinitions: suspendDisabled,
+      parentSubscriptionId: parentSubscriptionId,
+      subscriptionSuffix: subscriptionIds.suspendDisabled,
+      suspend: false
     });
-  };
-
-  if (thenable instanceof Promise) {
-    handle(thenable);
-  } else if (typeof thenable === 'function') {
-    handle(thenable());
-  } else {
-    throw new Error('noAwait: argument must be a function or a promise');
   }
+
+  if (Object.keys(suspendEnabled).length) {
+    var suspendPromise = handleNewQueryDefitions({
+      queryDefinitions: suspendEnabled,
+      parentSubscriptionId: parentSubscriptionId,
+      subscriptionSuffix: subscriptionIds.suspendEnabled,
+      suspend: true
+    });
+    if (suspendPromise) throw suspendPromise;
+  }
+
+  return {
+    data: opts.data.results,
+    error: opts.data.error,
+    querying: opts.data.querying,
+    scheduleCleanup: scheduleCleanup,
+    cancelCleanup: cancelCleanup
+  };
 }
 
 require('isomorphic-fetch');
@@ -4822,7 +5050,7 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
       return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
     }
 
-    var tokenName = (opts == null ? void 0 : opts.tokenName) || 'default';
+    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
     var token = smJSInstance.getToken({
       tokenName: tokenName
     });
@@ -5178,8 +5406,11 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
+exports.DEFAULT_TOKEN_NAME = DEFAULT_TOKEN_NAME;
 exports.OBJECT_IDENTIFIER = OBJECT_IDENTIFIER;
 exports.OBJECT_PROPERTY_SEPARATOR = OBJECT_PROPERTY_SEPARATOR;
+exports.PROPERTIES_QUERIED_FOR_ALL_NODES = PROPERTIES_QUERIED_FOR_ALL_NODES;
+exports.RELATIONAL_UNION_QUERY_SEPARATOR = RELATIONAL_UNION_QUERY_SEPARATOR;
 exports.SMContext = SMContext;
 exports.SMData = SMData;
 exports.SMJS = SMJS;

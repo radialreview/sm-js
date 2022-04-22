@@ -1,6 +1,6 @@
 import React from 'react';
 import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
-interface ISMContextSubscription {
+export interface ISMContextSubscription {
     results?: any;
     error?: any;
     querying?: boolean;
@@ -15,7 +15,7 @@ interface ISMContextSubscription {
     };
     lastQueryTimestamp?: number;
 }
-interface ISMContext {
+export interface ISMContext {
     smJSInstance: ISMJS;
     ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
     updateSubscriptionInfo: (subscriptionId: string, subInfo: Partial<ISMContextSubscription>) => void;
@@ -28,4 +28,3 @@ export declare const SMProvider: (props: {
     smJS: ISMJS;
     subscriptionTTLMs?: number;
 }) => JSX.Element;
-export {};

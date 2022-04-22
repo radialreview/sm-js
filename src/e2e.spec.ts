@@ -9,6 +9,7 @@ import {
   getDefaultConfig,
   reference,
 } from '.';
+import { DEFAULT_TOKEN_NAME } from './consts';
 import { createMockQueryDefinitions } from './specUtilities';
 import {
   IByReferenceQueryBuilder,
@@ -104,7 +105,7 @@ async function setupTest() {
   const token = await getToken(env.credentials);
 
   smJSInstance.setToken({
-    tokenName: 'default',
+    tokenName: DEFAULT_TOKEN_NAME,
     token,
   });
 
