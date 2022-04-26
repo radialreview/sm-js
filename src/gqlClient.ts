@@ -19,6 +19,8 @@ interface IGetGQLClientOpts {
   wsUrl: string;
 }
 
+const ENABLE_LOGGING = false;
+
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   const wsLink = new WebSocketLink({
     uri: gqlClientOpts.wsUrl,
@@ -157,6 +159,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         },
       });
 
+      ENABLE_LOGGING &&
+        console.log('query data', JSON.stringify(data, null, 2));
+
       return data;
     },
     subscribe: opts => {
@@ -166,6 +171,11 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         })
         .subscribe({
           next: message => {
+            ENABLE_LOGGING &&
+              console.log(
+                'subscription message',
+                JSON.stringify(message, null, 2)
+              );
             if (!message.data)
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)
@@ -178,6 +188,11 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return () => subscription.unsubscribe();
     },
     mutate: async opts => {
+      ENABLE_LOGGING &&
+        console.log(
+          'mutations',
+          opts.mutations.map(mutation => mutation.loc?.source.body)
+        );
       return await Promise.all(
         opts.mutations.map(mutation =>
           baseClient.mutate({

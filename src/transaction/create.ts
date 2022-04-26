@@ -91,7 +91,7 @@ export function getMutationsFromTransactionCreateOperations(
             ${allCreateNodeOperations
               .map(convertCreateNodeOperationToCreateNodesMutationArguments)
               .join('\n')}
-          ] 
+          ]
         ) {
           id
         }
