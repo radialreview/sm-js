@@ -21,6 +21,9 @@ import {
   ByReferenceQueryBuilderOpts,
   UseSubscriptionQueryDefinitionOpts,
   UseSubscriptionQueryDefinition,
+  ValidReferenceIdArrayPropFromNode,
+  ByReferenceArrayQueryBuilderOpts,
+  IByReferenceArrayQueryBuilder,
 } from './types';
 
 export class SMData<
@@ -328,6 +331,35 @@ export const reference = <
       queryBuilderOpts,
     };
   }) as IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
+};
+
+export const referenceArray = <
+  TOriginNode extends ISMNode,
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Record<string, ISMNode>
+>(opts: {
+  def: NonNullable<TTargetNodeOrTargetNodeRecord>;
+  idProp: ValidReferenceIdArrayPropFromNode<TOriginNode>;
+}) => {
+  return (<
+    TQueryBuilderOpts extends ByReferenceArrayQueryBuilderOpts<
+      TTargetNodeOrTargetNodeRecord
+    >
+  >(
+    queryBuilderOpts: TQueryBuilderOpts
+  ) => {
+    return {
+      ...opts,
+      idProp: (opts.idProp as string).replaceAll(
+        '.',
+        OBJECT_PROPERTY_SEPARATOR
+      ) as ValidReferenceIdArrayPropFromNode<TOriginNode>,
+      _smRelational: SM_RELATIONAL_TYPES.byReferenceArray,
+      queryBuilderOpts,
+    };
+  }) as IByReferenceArrayQueryBuilder<
+    TOriginNode,
+    TTargetNodeOrTargetNodeRecord
+  >;
 };
 
 export const children = <TSMNode extends ISMNode>(opts: {
