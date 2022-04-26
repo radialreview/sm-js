@@ -486,6 +486,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
         Object.defineProperty(this, opts.propName, {
           get: () => computedGetter(),
+          configurable: true,
           enumerable: true,
         });
       }

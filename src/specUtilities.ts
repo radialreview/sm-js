@@ -43,7 +43,7 @@ type UserRelationalData = {
 export type UserNode = ISMNode<
   'tt-user',
   UserProperties,
-  {},
+  { displayName: string },
   UserRelationalData,
   {}
 >;
@@ -56,6 +56,11 @@ export function generateUserNode(
   const userNode = smJSInstance.def({
     type: 'tt-user',
     properties: userProperties,
+    computed: {
+      displayName: () => {
+        return 'User display name';
+      },
+    },
     relational: {
       todos: () => smData.children({ def: todoNode }),
     },
@@ -250,6 +255,8 @@ export const mockQueryDataReturn = {
 const expectedAssignee = {
   id: 'mock-user-id',
   type: 'tt-user',
+  displayName: 'User display name',
+  lastUpdatedBy: undefined,
   firstName: 'Joe',
   version: 1,
 };
@@ -257,12 +264,15 @@ const expectedTodo = {
   id: 'mock-todo-id',
   type: 'todo',
   assignee: expectedAssignee,
+  lastUpdatedBy: undefined,
   version: 1,
 };
 const expectedUsers = [
   {
     id: 'mock-user-id',
     type: 'tt-user',
+    displayName: 'User display name',
+    lastUpdatedBy: undefined,
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
     version: 1,

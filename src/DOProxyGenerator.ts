@@ -1,3 +1,4 @@
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
@@ -89,17 +90,35 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
         // This gives better json stringify results
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
-        // @TODO write tests for this enumeration
         if (
           opts.allPropertiesQueried.includes(key) ||
           (opts.relationalQueries &&
-            Object.keys(opts.relationalQueries).includes(key))
+            Object.keys(opts.relationalQueries).includes(key)) ||
+          PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)
         ) {
           return {
             ...Object.getOwnPropertyDescriptor(target, key),
             enumerable: true,
-            configurable: true,
           };
+        }
+
+        // enumerate computed properties which have all the data they need queried
+        // otherwise they throw SMNotUpToDateException and we don't enumerate
+        if (nodeSMComputed && Object.keys(nodeSMComputed).includes(key)) {
+          try {
+            computedAccessors[key]();
+            return {
+              ...Object.getOwnPropertyDescriptor(target, key),
+              enumerable: true,
+            };
+          } catch (e) {
+            if (!(e instanceof SMNotUpToDateException)) throw e;
+
+            return {
+              ...Object.getOwnPropertyDescriptor(target, key),
+              enumerable: false,
+            };
+          }
         }
 
         return {

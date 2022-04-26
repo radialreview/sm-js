@@ -159,76 +159,81 @@ test(
     // remove versions from results so that screenshots don't change with each test
     // since those versions are auto incremented by SM on each update
     expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
-    Array [
-      Object {
-        "address": Object {
-          "apt": Object {
-            "floor": 0,
-            "number": 0,
+      Array [
+        Object {
+          "address": Object {
+            "apt": Object {
+              "floor": 0,
+              "number": 0,
+            },
+            "state": "",
           },
-          "state": "",
+          "displayName": "User display name",
+          "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+          "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+          "todos": Array [
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "0b51e699-6119-49ed-834f-a9463290ea97",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+          ],
+          "type": "tt-user",
+          "version": null,
         },
-        "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-        "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-        "todos": Array [
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "0b51e699-6119-49ed-834f-a9463290ea97",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-        ],
-        "type": "tt-user",
-        "version": null,
-      },
-    ]
-  `);
+      ]
+    `);
     done();
   },
   TIMEOUT_MS
@@ -247,76 +252,81 @@ test(
     );
 
     expect(removeVersionsFromResults(results)).toMatchInlineSnapshot(`
-    Array [
-      Object {
-        "address": Object {
-          "apt": Object {
-            "floor": 0,
-            "number": 0,
+      Array [
+        Object {
+          "address": Object {
+            "apt": Object {
+              "floor": 0,
+              "number": 0,
+            },
+            "state": "",
           },
-          "state": "",
+          "displayName": "User display name",
+          "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+          "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+          "todos": Array [
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "0b51e699-6119-49ed-834f-a9463290ea97",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+            Object {
+              "assignee": Object {
+                "displayName": "User display name",
+                "firstName": "Meida",
+                "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+                "type": "tt-user",
+                "version": null,
+              },
+              "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
+              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
+              "type": "todo",
+              "version": null,
+            },
+          ],
+          "type": "tt-user",
+          "version": null,
         },
-        "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-        "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-        "todos": Array [
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "dcdce629-2b4d-4b0d-9a5a-317794e6fcdd",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "05293aaa-01a3-4f12-8752-60a59a18538e",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "0b51e699-6119-49ed-834f-a9463290ea97",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-          Object {
-            "assignee": Object {
-              "firstName": "Meida",
-              "id": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-              "type": "tt-user",
-              "version": null,
-            },
-            "id": "e17dd2f1-329a-41f9-8f4c-0daa03f7d06b",
-            "lastUpdatedBy": "64829368-d8df-44a5-9fcc-af4a20e7b575",
-            "type": "todo",
-            "version": null,
-          },
-        ],
-        "type": "tt-user",
-        "version": null,
-      },
-    ]
-  `);
+      ]
+    `);
     done();
   },
   TIMEOUT_MS
