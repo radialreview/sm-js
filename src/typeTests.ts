@@ -8,7 +8,14 @@ import {
   children,
   useSubscription,
 } from './';
-import { array, boolean, object, record, reference } from './smDataTypes';
+import {
+  array,
+  boolean,
+  object,
+  record,
+  reference,
+  referenceArray,
+} from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
@@ -24,6 +31,7 @@ import {
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
+  IByReferenceArrayQueryBuilder,
 } from './types';
 
 /**
@@ -36,6 +44,9 @@ const todoProperties = {
   dueDate: number,
   assigneeId: string,
   meetingId: string.optional,
+  attendeeIds: array(string),
+  // used to ensure that only arrays of strings are allowed as idProp for referenceArray
+  invalidIdsProperty: array(number),
 };
 const todoRelational = {
   assignee: () =>
@@ -65,9 +76,21 @@ const todoRelational = {
 
 const meetingProperties = {
   name: string,
+  attendeeIds: array(string),
+  invalidIdsProperty: array(number),
 };
 
-type MeetingNode = ISMNode<'meeting', typeof meetingProperties>;
+type MeetingRelational = {
+  attendees: IByReferenceArrayQueryBuilder<MeetingNode, UserNode>;
+  invalidAttendees: IByReferenceArrayQueryBuilder<MeetingNode, UserNode>;
+};
+
+type MeetingNode = ISMNode<
+  'meeting',
+  typeof meetingProperties,
+  {},
+  MeetingRelational
+>;
 
 type TodoNode = ISMNode<
   'todo',
@@ -93,10 +116,21 @@ const todoNode: TodoNode = smJS.def({
   relational: todoRelational,
 });
 
-const meetingNode = smJS.def({
+const meetingNode: MeetingNode = smJS.def({
   type: 'meeting',
-  properties: {
-    name: string,
+  properties: meetingProperties,
+  relational: {
+    attendees: () =>
+      referenceArray<MeetingNode, UserNode>({
+        def: userNode,
+        idProp: 'attendeeIds',
+      }),
+    invalidAttendees: () =>
+      referenceArray<MeetingNode, UserNode>({
+        def: userNode,
+        // @ts-expect-error array of numbers, and as such is not a valid idProp for a reference array
+        idProp: 'invalidIdsProperty',
+      }),
   },
 });
 
@@ -614,7 +648,7 @@ const stateNode: StateNode = smJS.def({
   withExplicitTypesOmitted.data.mock[0].foo as string;
 
   const withRelationalUnion = await smJS.query({
-    users: queryDefinition({
+    todos: queryDefinition({
       def: todoNode,
       map: todoData => ({
         assigneeNullable: todoData.assigneeUnionNullable({
@@ -646,7 +680,7 @@ const stateNode: StateNode = smJS.def({
     }),
   });
 
-  const assigneeNullable = withRelationalUnion.data.users[0].assigneeNullable;
+  const assigneeNullable = withRelationalUnion.data.todos[0].assigneeNullable;
   if (assigneeNullable && assigneeNullable.type === 'user') {
     assigneeNullable.id;
     // to ensure the depth param in ExtractQueriedDataFromByReferenceQuery does not mess with depths greater than 1
@@ -662,17 +696,35 @@ const stateNode: StateNode = smJS.def({
   }
 
   // @ts-expect-error no null check
-  withRelationalUnion.data.users[0].assigneeNullable.id;
+  withRelationalUnion.data.todos[0].assigneeNullable.id;
   // @ts-expect-error no type check/type guard
-  withRelationalUnion.data.users[0].assigneeNullable?.firstName;
+  withRelationalUnion.data.todos[0].assigneeNullable?.firstName;
   // common properties don't need type guards
-  withRelationalUnion.data.users[0].assigneeNullable?.id as string;
-  withRelationalUnion.data.users[0].assigneeNullable?.type as
+  withRelationalUnion.data.todos[0].assigneeNullable?.id as string;
+  withRelationalUnion.data.todos[0].assigneeNullable?.type as
     | 'meeting-guest'
     | 'user';
 
   // no need for a null check if the reference does not return a maybe type
-  withRelationalUnion.data.users[0].assigneeNonNullable.id;
+  withRelationalUnion.data.todos[0].assigneeNonNullable.id;
+
+  const withReferenceArray = await smJS.query({
+    meeting: queryDefinition({
+      def: meetingNode,
+      map: meetingData => ({
+        attendees: meetingData.attendees({
+          map: ({ firstName, lastName }) => ({ firstName, lastName }),
+        }),
+      }),
+      target: { id: 'mock-id' },
+    }),
+  });
+
+  // @ts-expect-error attendees is an array
+  withReferenceArray.data.meeting.attendees.firstName;
+  withReferenceArray.data.meeting.attendees[0].firstName;
+  // @ts-expect-error not a valid prop on each attendee
+  withReferenceArray.data.meeting.attendees[0].bogus;
 
   // Validates that "GetResultingDataFromQueryDefinition" works
   // For this type inference to work, it's important that the return of the map function is inferred by TS completely

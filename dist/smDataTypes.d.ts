@@ -1,4 +1,4 @@
-import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinitionTarget, SMDataDefaultFn, ValidReferenceIdPropFromNode, SM_DATA_TYPES, UseSubscriptionQueryDefinitionOpts, UseSubscriptionQueryDefinition } from './types';
+import { GetResultingDataTypeFromProperties, GetSMDataType, IByReferenceQueryBuilder, IChildrenQueryBuilder, ISMData, ISMNode, MapFnForNode, Maybe, QueryDefinitionTarget, SMDataDefaultFn, ValidReferenceIdPropFromNode, SM_DATA_TYPES, UseSubscriptionQueryDefinitionOpts, UseSubscriptionQueryDefinition, ValidReferenceIdArrayPropFromNode, IByReferenceArrayQueryBuilder } from './types';
 export declare class SMData<TParsedValue, TSMValue, TBoxedValue extends ISMData | SMDataDefaultFn | Record<string, ISMData | SMDataDefaultFn> | undefined> implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
     type: SM_DATA_TYPES;
     parser: (smValue: TSMValue) => TParsedValue;
@@ -53,6 +53,10 @@ export declare const reference: <TOriginNode extends ISMNode<any, {}, {}, {}, {}
     def: NonNullable<TTargetNodeOrTargetNodeRecord>;
     idProp: ValidReferenceIdPropFromNode<TOriginNode>;
 }) => IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
+export declare const referenceArray: <TOriginNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TTargetNodeOrTargetNodeRecord extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO> | Record<string, ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>>(opts: {
+    def: NonNullable<TTargetNodeOrTargetNodeRecord>;
+    idProp: ValidReferenceIdArrayPropFromNode<TOriginNode>;
+}) => IByReferenceArrayQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
 export declare const children: <TSMNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
     def: TSMNode;
     depth?: number | undefined;

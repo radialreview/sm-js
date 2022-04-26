@@ -19,6 +19,7 @@ import {
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
   ByReferenceQueryBuilderOpts,
+  IByReferenceArrayQuery,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -238,7 +239,10 @@ function getRelationalQueries(opts: {
         );
       }
 
-      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference) {
+      if (
+        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference ||
+        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReferenceArray
+      ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
           typeof relationalQuery.queryBuilderOpts.map === 'function'
@@ -323,6 +327,17 @@ function getRelationalQueries(opts: {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             idProp: string;
           }).idProp = (relationalQuery as IByReferenceQuery<
+            ISMNode,
+            any,
+            any
+          >).idProp;
+        } else if (relationalType === SM_RELATIONAL_TYPES.byReferenceArray) {
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            byReferenceArray: true;
+          }).byReferenceArray = true;
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            idProp: string;
+          }).idProp = (relationalQuery as IByReferenceArrayQuery<
             ISMNode,
             any,
             any
@@ -554,7 +569,10 @@ function getRelationalQueryString(opts: {
 
     let operation: string;
 
-    if ('byReference' in relationalQueryRecordEntry) {
+    if (
+      'byReference' in relationalQueryRecordEntry ||
+      'byReferenceArray' in relationalQueryRecordEntry
+    ) {
       operation = `GetReferences(propertyNames: "${relationalQueryRecordEntry.idProp}")`;
     } else if ('children' in relationalQueryRecordEntry) {
       const depthString =
