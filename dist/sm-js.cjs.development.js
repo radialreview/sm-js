@@ -341,6 +341,7 @@ var SM_RELATIONAL_TYPES;
 
 (function (SM_RELATIONAL_TYPES) {
   SM_RELATIONAL_TYPES["byReference"] = "bR";
+  SM_RELATIONAL_TYPES["byReferenceArray"] = "bRA";
   SM_RELATIONAL_TYPES["children"] = "bP";
 })(SM_RELATIONAL_TYPES || (SM_RELATIONAL_TYPES = {}));
 
@@ -546,6 +547,15 @@ var reference = function reference(opts) {
     return _extends({}, opts, {
       idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
       _smRelational: SM_RELATIONAL_TYPES.byReference,
+      queryBuilderOpts: queryBuilderOpts
+    });
+  };
+};
+var referenceArray = function referenceArray(opts) {
+  return function (queryBuilderOpts) {
+    return _extends({}, opts, {
+      idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
+      _smRelational: SM_RELATIONAL_TYPES.byReferenceArray,
       queryBuilderOpts: queryBuilderOpts
     });
   };
@@ -2754,6 +2764,9 @@ function getRelationalQueries(opts) {
         if (relationalType === SM_RELATIONAL_TYPES.byReference) {
           relationalQueryRecord.byReference = true;
           relationalQueryRecord.idProp = relationalQuery.idProp;
+        } else if (relationalType === SM_RELATIONAL_TYPES.byReferenceArray) {
+          relationalQueryRecord.byReferenceArray = true;
+          relationalQueryRecord.idProp = relationalQuery.idProp;
         } else if (relationalType === SM_RELATIONAL_TYPES.children) {
           relationalQueryRecord.children = true;
 
@@ -2793,7 +2806,7 @@ function getRelationalQueries(opts) {
         throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
       }
 
-      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference) {
+      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference || relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReferenceArray) {
         if ('map' in relationalQuery.queryBuilderOpts && typeof relationalQuery.queryBuilderOpts.map === 'function') {
           // non union
           var queryBuilderOpts = relationalQuery.queryBuilderOpts;
@@ -3007,7 +3020,7 @@ function getRelationalQueryString(opts) {
     var relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
     var operation;
 
-    if ('byReference' in relationalQueryRecordEntry) {
+    if ('byReference' in relationalQueryRecordEntry || 'byReferenceArray' in relationalQueryRecordEntry) {
       operation = "GetReferences(propertyNames: \"" + relationalQueryRecordEntry.idProp + "\")";
     } else if ('children' in relationalQueryRecordEntry) {
       var depthString = 'depth' in relationalQueryRecordEntry ? relationalQueryRecordEntry.depth !== undefined ? ",depth: " + relationalQueryRecordEntry.depth : '' : '';
@@ -4177,7 +4190,7 @@ function getMutationsFromTransactionCreateOperations(operations) {
   var name = getMutationNameFromOperations(operations, 'CreateNodes'); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ] \n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
+  return [core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
 }
 
 function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
@@ -4568,7 +4581,6 @@ function buildQueryDefinitionStateManager(opts) {
 }
 
 require('isomorphic-fetch');
-
 function getGQLCLient(gqlClientOpts) {
   var wsLink = new ws.WebSocketLink({
     uri: gqlClientOpts.wsUrl,
@@ -4687,7 +4699,7 @@ function getGQLCLient(gqlClientOpts) {
                 data = _yield$baseClient$que.data;
                 return _context.abrupt("return", data);
 
-              case 5:
+              case 6:
               case "end":
                 return _context.stop();
             }
@@ -4720,7 +4732,7 @@ function getGQLCLient(gqlClientOpts) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                _context2.next = 2;
+                _context2.next = 3;
                 return Promise.all(opts.mutations.map(function (mutation) {
                   return baseClient.mutate({
                     mutation: mutation,
@@ -4732,10 +4744,10 @@ function getGQLCLient(gqlClientOpts) {
                   });
                 }));
 
-              case 2:
+              case 3:
                 return _context2.abrupt("return", _context2.sent);
 
-              case 3:
+              case 4:
               case "end":
                 return _context2.stop();
             }
@@ -5425,6 +5437,7 @@ exports.object = object;
 exports.queryDefinition = queryDefinition;
 exports.record = record;
 exports.reference = reference;
+exports.referenceArray = referenceArray;
 exports.string = string;
 exports.useSubscription = useSubscription;
 //# sourceMappingURL=sm-js.cjs.development.js.map
