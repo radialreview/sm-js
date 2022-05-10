@@ -575,7 +575,9 @@ export interface IByReferenceArrayQuery<
 export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
   <TMapFn extends MapFnForNode<TSMNode>>(opts: {
     map: TMapFn;
-    pagination?: ISMQueryPagination;
+    target?: {
+      pagination?: ISMQueryPagination
+    }
   }): IChildrenQuery<TSMNode, TMapFn>;
 }
 
@@ -585,13 +587,17 @@ export interface IChildrenQuery<
 > {
   _smRelational: SM_RELATIONAL_TYPES.children;
   def: TSMNode;
-  filtersAndPagination?: ISMQueryPagination;
   map: TMapFn;
-  pagination?: ISMQueryPagination;
-  depth?: number;
+  target?: {
+    pagination?: ISMQueryPagination;
+    depth?: number;
+  }
 }
 
-export interface ISMQueryPagination {}
+export interface ISMQueryPagination {
+  pageNumber: number
+  pageSize: number
+}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
@@ -639,8 +645,7 @@ export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
 }>
 
 export type QueryDefinitionTarget =
-  | { underIds: Array<string>, depth?: number }
-  | { depth: number }
+  | { underIds?: Array<string>, depth?: number, pagination?:ISMQueryPagination }
   | { id: string }
   | { ids: Array<string> }
     
@@ -1017,13 +1022,13 @@ export type BaseQueryRecordEntry = {
 
 export type QueryRecordEntry = BaseQueryRecordEntry &
   (
-    | { underIds: Array<string>; depth?: number }
+    | { underIds: Array<string>; depth?: number; pagination?: ISMQueryPagination }
     | { ids: Array<string> }
     | { id: string }
   );
 
 export type RelationalQueryRecordEntry =
-  | (BaseQueryRecordEntry & { children: true; depth?: number }) // will use GetChildren to query this data
+  | (BaseQueryRecordEntry & { children: true; depth?: number, pagination?: ISMQueryPagination }) // will use GetChildren to query this data
   | (BaseQueryRecordEntry & { byReference: true; idProp: string }) // will use GetReference to query this data
   | (BaseQueryRecordEntry & { byReferenceArray: true; idProp: string }); // will use GetReference to query this data
 

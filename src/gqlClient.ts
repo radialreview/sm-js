@@ -19,7 +19,7 @@ interface IGetGQLClientOpts {
   wsUrl: string;
 }
 
-const ENABLE_LOGGING = false;
+const ENABLE_LOGGING = true;
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   const wsLink = new WebSocketLink({
@@ -151,7 +151,8 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: ISMGQLClient = {
     query: async opts => {
-      const { data } = await baseClient.query({
+      ENABLE_LOGGING && console.log('query gql', opts.gql.loc?.source.body);
+      const response = await baseClient.query({
         query: opts.gql,
         context: {
           batchedQuery: opts.batched != null ? opts.batched : true,
@@ -160,11 +161,16 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       });
 
       ENABLE_LOGGING &&
-        console.log('query data', JSON.stringify(data, null, 2));
+        console.log('query response', JSON.stringify(response, null, 2));
+      if (response.errors?.length) {
+        throw response;
+      }
 
-      return data;
+      return response.data;
     },
     subscribe: opts => {
+      console.log('subscription gql', opts.gql.loc?.source.body);
+
       const subscription = baseClient
         .subscribe({
           query: authenticateSubscriptionDocument(opts),
@@ -182,7 +188,10 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
               );
             else opts.onMessage(message.data);
           },
-          error: opts.onError,
+          error: e => {
+            ENABLE_LOGGING && console.log('error in subscription', e);
+            opts.onError(e);
+          },
         });
 
       return () => subscription.unsubscribe();

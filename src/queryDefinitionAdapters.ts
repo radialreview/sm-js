@@ -20,6 +20,7 @@ import {
   SM_RELATIONAL_TYPES,
   ByReferenceQueryBuilderOpts,
   IByReferenceArrayQuery,
+  ISMQueryPagination,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -79,7 +80,7 @@ function getMapFnReturn(opts: {
  */
 function getQueriedProperties(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
+  map: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
   smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
@@ -88,7 +89,7 @@ function getQueriedProperties(opts: {
   isRootLevel?: true;
 }): Array<string> {
   const mapFnReturn = getMapFnReturn({
-    mapFn: opts.mapFn,
+    mapFn: opts.map,
     properties: opts.smData,
     relational: opts.smRelational,
   });
@@ -134,7 +135,7 @@ function getQueriedProperties(opts: {
         acc.push(
           ...getQueriedProperties({
             queryId: opts.queryId,
-            mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
+            map: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
               : () => null) as MapFn<any, any, any>,
             smData: (data.boxedValue as unknown) as Record<string, ISMData>,
@@ -193,13 +194,13 @@ function getAllNodeProperties(opts: {
 
 function getRelationalQueries(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
+  map: (smData: Record<string, any>) => Record<string, any>;
   smData: Record<string, any>;
   smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
   smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
-    mapFn: opts.mapFn,
+    mapFn: opts.map,
     properties: opts.smData,
     relational: opts.smRelational,
   });
@@ -255,7 +256,7 @@ function getRelationalQueries(opts: {
             _smRelational: relationalQuery._smRelational,
             key,
             def: relationalQuery.def,
-            mapFn: queryBuilderOpts.map,
+            map: queryBuilderOpts.map,
           });
         } else {
           // union
@@ -267,7 +268,7 @@ function getRelationalQueries(opts: {
               _smRelational: relationalQuery._smRelational,
               key: `${key}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
               def: relationalQuery.def[unionType],
-              mapFn: queryBuilderOpts[unionType].map,
+              map: queryBuilderOpts[unionType].map,
             });
           });
         }
@@ -275,10 +276,8 @@ function getRelationalQueries(opts: {
         relationalQuery._smRelational === SM_RELATIONAL_TYPES.children
       ) {
         addRelationalQueryRecord({
-          _smRelational: relationalQuery._smRelational,
           key,
-          def: relationalQuery.def,
-          mapFn: relationalQuery.map,
+          ...relationalQuery,
         });
       } else {
         throw Error(
@@ -290,14 +289,15 @@ function getRelationalQueries(opts: {
       function addRelationalQueryRecord(queryRecord: {
         _smRelational: SM_RELATIONAL_TYPES;
         def: ISMNode;
-        mapFn: (data: any) => any;
+        map: (data: any) => any;
         key: string;
+        target?: { pagination?: ISMQueryPagination; depth?: number };
       }) {
         const relationalQueryRecord: BaseQueryRecordEntry = {
           def: queryRecord.def,
           properties: getQueriedProperties({
             queryId: opts.queryId,
-            mapFn: queryRecord.mapFn,
+            map: queryRecord.map,
             smData: queryRecord.def.smData,
             smComputed: queryRecord.def.smComputed,
             smRelational: queryRecord.def.smRelational,
@@ -308,7 +308,7 @@ function getRelationalQueries(opts: {
         const relationalQueriesWithinThisRelationalQuery = getRelationalQueries(
           {
             queryId: opts.queryId,
-            mapFn: queryRecord.mapFn,
+            map: queryRecord.map,
             smData: queryRecord.def.smData,
             smComputed: queryRecord.def.smComputed,
             smRelational: queryRecord.def.smRelational,
@@ -346,10 +346,10 @@ function getRelationalQueries(opts: {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             children: true;
           }).children = true;
-          if ('depth' in relationalQuery) {
+          if ('target' in relationalQuery) {
             (relationalQueryRecord as RelationalQueryRecordEntry & {
-              depth?: number;
-            }).depth = relationalQuery.depth;
+              target?: { pagination?: ISMQueryPagination; depth?: number };
+            }).target = relationalQuery.target;
           }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
@@ -391,7 +391,7 @@ export function getQueryRecordFromQueryDefinition(opts: {
       nodeDef = queryDefinition.def;
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
-          mapFn: queryDefinition.map,
+          map: queryDefinition.map,
           queryId: opts.queryId,
           smData: queryDefinition.def.smData,
           smComputed: queryDefinition.def.smComputed,
@@ -399,7 +399,7 @@ export function getQueryRecordFromQueryDefinition(opts: {
           isRootLevel: true,
         });
         relational = getRelationalQueries({
-          mapFn: queryDefinition.map,
+          map: queryDefinition.map,
           queryId: opts.queryId,
           smData: nodeDef.smData,
           smComputed: nodeDef.smComputed,
@@ -457,6 +457,11 @@ export function getQueryRecordFromQueryDefinition(opts: {
         (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
           queryDefinition.target.depth;
       }
+      if (queryDefinition.target.pagination) {
+        (queryRecordEntry as QueryRecordEntry & {
+          pagination?: ISMQueryPagination;
+        }).pagination = queryDefinition.target.pagination;
+      }
     }
 
     if ('filter' in queryDefinition) {
@@ -496,6 +501,7 @@ function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
   underIds?: Array<string>;
   depth?: number;
   filter?: ValidFilterForNode<TSMNode>;
+  pagination?: ISMQueryPagination;
 }) {
   const options: Array<string> = [`type: "${opts.def.type}"`];
 
@@ -503,12 +509,18 @@ function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
     options.push(`underIds: [${opts.underIds.map(id => `"${id}"`).join(',')}]`);
   }
 
-  if (opts.depth !== null && opts.depth !== undefined) {
+  if (opts.depth != null) {
     options.push(`depth: ${opts.depth}`);
   }
 
-  if (opts.filter !== null && opts.filter !== undefined) {
+  if (opts.filter != null) {
     options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
+  }
+
+  if (opts.pagination != null) {
+    options.push(
+      `pagination: { itemsPerPage: ${opts.pagination.pageSize}, pageNumber: ${opts.pagination.pageNumber} }`
+    );
   }
 
   return options.join(', ');
@@ -520,11 +532,18 @@ function getSubscriptionGetNodeOptions(opts: {
   def: ISMNode;
   under?: string;
   depth?: number;
+  pagination?: ISMQueryPagination;
 }) {
   const options: Array<string> = [`type: "${opts.def.type}"`];
 
   if (opts.under) {
     options.push(`underIds: ["${opts.under}"]`);
+  }
+
+  if (opts.pagination) {
+    options.push(
+      `pagination: { itemsPerPage: ${opts.pagination.pageSize}, pageNumber: ${opts.pagination.pageNumber} }`
+    );
   }
 
   // @TODO uncomment when subscriptions support depth params
@@ -565,7 +584,8 @@ function getRelationalQueryString(opts: {
   nestLevel: number;
 }) {
   return Object.keys(opts.relationalQueryRecord).reduce((acc, alias) => {
-    const relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
+    const relationalQueryRecordEntry: RelationalQueryRecordEntry =
+      opts.relationalQueryRecord[alias];
 
     let operation: string;
 
@@ -576,12 +596,14 @@ function getRelationalQueryString(opts: {
       operation = `GetReferences(propertyNames: "${relationalQueryRecordEntry.idProp}")`;
     } else if ('children' in relationalQueryRecordEntry) {
       const depthString =
-        'depth' in relationalQueryRecordEntry
-          ? relationalQueryRecordEntry.depth !== undefined
-            ? `,depth: ${relationalQueryRecordEntry.depth}`
-            : ''
+        relationalQueryRecordEntry.depth !== undefined
+          ? `,depth: ${relationalQueryRecordEntry.depth}`
           : '';
-      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString})`;
+      const paginationString =
+        relationalQueryRecordEntry.pagination !== undefined
+          ? `,pagination: { itemsPerPage: ${relationalQueryRecordEntry.pagination.pageSize}, pageNumber: ${relationalQueryRecordEntry.pagination.pageNumber} }`
+          : '';
+      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString}${paginationString})`;
     } else {
       throw Error(
         `relationalQueryRecordEntry is invalid\n${JSON.stringify(
@@ -614,13 +636,23 @@ function getRootLevelQueryString(
     operation = `GetNodesByIdNew(ids: ${getIdsString(opts.ids)})`;
   } else if ('id' in opts) {
     operation = `GetNodesByIdNew(ids: ${getIdsString([opts.id])})`;
+  } else if ('pagination' in opts) {
+    operation = `GetPagedNodes(${getGetNodeOptions(opts)})`;
   } else {
     operation = `GetNodesNew(${getGetNodeOptions(opts)})`;
   }
 
   return (
     `${opts.alias}: ${operation} {` +
-    `${getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 1 })}` +
+    ('pagination' in opts
+      ? `records {
+          ${getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 2 })}
+        }
+      `
+      : `${getQueryPropertiesString({
+          queryRecordEntry: opts,
+          nestLevel: 1,
+        })}`) +
     `\n${getSpaces(4)}}`
   );
 }
@@ -682,6 +714,10 @@ export function getQueryInfo(opts: {
           under: underId,
         })}, monitorChildEvents: true)`;
       });
+    } else if ('pagination' in queryRecordEntry) {
+      operations = [
+        `GetPagedNodes(${getSubscriptionGetNodeOptions(queryRecordEntry)})`,
+      ];
     } else {
       operations = [
         `GetNodesNew(${getSubscriptionGetNodeOptions(

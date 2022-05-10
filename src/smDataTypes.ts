@@ -368,13 +368,16 @@ export const children = <TSMNode extends ISMNode>(opts: {
 }) => {
   return ((queryBuilderOpts: {
     map: MapFnForNode<TSMNode>;
-    pagination: ISMQueryPagination;
+    target?: { pagination?: ISMQueryPagination };
   }) => {
     return {
-      ...opts,
+      def: opts.def,
       _smRelational: SM_RELATIONAL_TYPES.children,
       map: queryBuilderOpts.map,
-      depth: opts.depth,
+      target: {
+        pagination: queryBuilderOpts.target?.pagination,
+        depth: opts.depth,
+      },
     };
   }) as IChildrenQueryBuilder<TSMNode>;
 };

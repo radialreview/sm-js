@@ -8,6 +8,7 @@ import {
   QueryRecord,
   BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
+  QueryRecordEntry,
 } from './types';
 
 type SMQueryManagerState = Record<
@@ -136,7 +137,9 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
      */
     public notifyRepositories(opts: {
       data: Record<string, any>;
-      queryRecord: { [key: string]: BaseQueryRecordEntry };
+      queryRecord: {
+        [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
+      };
     }) {
       Object.keys(opts.queryRecord).forEach(queryAlias => {
         const dataForThisAlias = opts.data[queryAlias];
@@ -151,15 +154,26 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
           );
         }
 
-        const nodeRepository = opts.queryRecord[queryAlias].def.repository;
+        const queryRecordForThisAlias:
+          | QueryRecordEntry
+          | RelationalQueryRecordEntry = opts.queryRecord[queryAlias];
+
+        const nodeRepository = queryRecordForThisAlias.def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
           dataForThisAlias.forEach(data => nodeRepository.onDataReceived(data));
+        } else if (
+          'pagination' in queryRecordForThisAlias &&
+          queryRecordForThisAlias.pagination != null
+        ) {
+          dataForThisAlias.records.forEach((data: any) =>
+            nodeRepository.onDataReceived(data)
+          );
         } else {
           nodeRepository.onDataReceived(dataForThisAlias);
         }
 
-        const relationalQueries = opts.queryRecord[queryAlias].relational;
+        const relationalQueries = queryRecordForThisAlias.relational;
 
         if (relationalQueries) {
           Object.keys(relationalQueries).forEach(relationalAlias => {
@@ -201,8 +215,17 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     }): SMQueryManagerState {
       return Object.keys(this.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
+          const queryRecordEntry: QueryRecordEntry = this.queryRecord[
+            queryAlias
+          ];
+          const nodeData =
+            'pagination' in queryRecordEntry &&
+            queryRecordEntry.pagination != null
+              ? opts.queryResult[queryAlias].records
+              : opts.queryResult[queryAlias];
+
           const cacheEntry = this.buildCacheEntry({
-            nodeData: opts.queryResult[queryAlias],
+            nodeData,
             queryId: opts.queryId,
             queryAlias,
           });
@@ -224,15 +247,15 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     }): Maybe<SMQueryManagerStateEntry> {
       const { nodeData, queryAlias } = opts;
       const queryRecord = opts.queryRecord || this.queryRecord;
-      const { relational } = queryRecord[opts.queryAlias];
+      const queryRecordEntry = queryRecord[opts.queryAlias];
+      const { relational } = queryRecordEntry;
 
       // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
       // this means that the result node likely matches a different type in that union
       if (queryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
         const node = (opts.nodeData as Array<any>)[0];
-        if (node && node.type !== queryRecord[opts.queryAlias].def.type)
-          return null;
+        if (node && node.type !== queryRecordEntry.def.type) return null;
       }
 
       const buildRelationalStateForNode = (
@@ -269,8 +292,8 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         const nodeRepository = queryRecord[queryAlias].def.repository;
 
         const proxy = smJSInstance.DOProxyGenerator({
-          node: queryRecord[opts.queryAlias].def,
-          allPropertiesQueried: queryRecord[opts.queryAlias].properties,
+          node: queryRecordEntry.def,
+          allPropertiesQueried: queryRecordEntry.properties,
           relationalQueries: relational
             ? this.getApplicableRelationalQueries({
                 relationalQueries: relational,
@@ -291,7 +314,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       };
 
       if (Array.isArray(opts.nodeData)) {
-        if ('id' in queryRecord[opts.queryAlias]) {
+        if ('id' in queryRecordEntry) {
           if (opts.nodeData[0] == null) {
             throw new SMDataParsingException({
               receivedData: opts.nodeData,

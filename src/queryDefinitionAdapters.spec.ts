@@ -680,6 +680,229 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
+  it('supports pagination in root level queries', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: generateUserNode(smJSInstance),
+            map: ({ id }) => ({ id }),
+            target: {
+              pagination: { pageNumber: 1, pageSize: 20 },
+            },
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              users: GetNodesNew(type: \\"tt-user\\", pagination: { itemsPerPage: 20, pageNumber: 1 }) {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+          }"
+    `);
+  });
+
+  it('supports pagination in root level subscriptions', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: generateUserNode(smJSInstance),
+            map: ({ id }) => ({ id }),
+            target: {
+              pagination: { pageNumber: 1, pageSize: 20 },
+            },
+          }),
+        },
+      }).subscriptionConfigs[0].gqlString
+    ).toMatchInlineSnapshot(`
+      "subscription MyTestQuery_users {
+            users: GetNodesNew(type: \\"tt-user\\", pagination: { itemsPerPage: 20, pageNumber: 1 }, monitorChildEvents: true) {
+              node {
+                
+                    id,
+                    version,
+                    lastUpdatedBy,
+                    type
+              }
+              operation { action, path }
+            }
+          }"
+    `);
+  });
+
+  it('supports pagination in children queries', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: generateUserNode(smJSInstance),
+            map: ({ todos }) => ({
+              todos: todos({
+                map: todoData => todoData,
+                target: {
+                  pagination: {
+                    pageNumber: 1,
+                    pageSize: 20,
+                  },
+                },
+              }),
+            }),
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              users: GetNodesNew(type: \\"tt-user\\") {
+            id,
+            version,
+            lastUpdatedBy,
+            type,
+            todos: GetChildren(type: \\"todo\\",pagination: { itemsPerPage: 20, pageNumber: 1 }) {
+                id,
+                version,
+                lastUpdatedBy,
+                type,
+                task,
+                done,
+                assigneeId,
+                meetingId,
+                settings,
+                settings__dot__archiveAfterMeeting,
+                settings__dot__nestedSettings,
+                settings__dot__nestedSettings__dot__nestedNestedMaybe,
+                settings__dot__nestedRecord,
+                dataSetIds,
+                comments,
+                record
+            }
+          }
+          }"
+    `);
+  });
+
+  it('supports pagination in children queries', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: generateUserNode(smJSInstance),
+            map: ({ todos }) => ({
+              todos: todos({
+                map: todoData => todoData,
+                target: {
+                  pagination: {
+                    pageNumber: 1,
+                    pageSize: 20,
+                  },
+                },
+              }),
+            }),
+          }),
+        },
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+              users: GetNodesNew(type: \\"tt-user\\") {
+            id,
+            version,
+            lastUpdatedBy,
+            type,
+            todos: GetChildren(type: \\"todo\\",pagination: { itemsPerPage: 20, pageNumber: 1 }) {
+                id,
+                version,
+                lastUpdatedBy,
+                type,
+                task,
+                done,
+                assigneeId,
+                meetingId,
+                settings,
+                settings__dot__archiveAfterMeeting,
+                settings__dot__nestedSettings,
+                settings__dot__nestedSettings__dot__nestedNestedMaybe,
+                settings__dot__nestedRecord,
+                dataSetIds,
+                comments,
+                record
+            }
+          }
+          }"
+    `);
+  });
+
+  it('supports pagination in children subscriptions', () => {
+    const smJSInstance = new SMJS(getMockConfig());
+
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          users: queryDefinition({
+            def: generateUserNode(smJSInstance),
+            map: ({ todos }) => ({
+              todos: todos({
+                map: todoData => todoData,
+                target: {
+                  pagination: {
+                    pageNumber: 1,
+                    pageSize: 20,
+                  },
+                },
+              }),
+            }),
+          }),
+        },
+      }).subscriptionConfigs[0].gqlString
+    ).toMatchInlineSnapshot(`
+      "subscription MyTestQuery_users {
+            users: GetNodesNew(type: \\"tt-user\\", monitorChildEvents: true) {
+              node {
+                
+                    id,
+                    version,
+                    lastUpdatedBy,
+                    type,
+                    todos: GetChildren(type: \\"todo\\",pagination: { itemsPerPage: 20, pageNumber: 1 }) {
+                        id,
+                        version,
+                        lastUpdatedBy,
+                        type,
+                        task,
+                        done,
+                        assigneeId,
+                        meetingId,
+                        settings,
+                        settings__dot__archiveAfterMeeting,
+                        settings__dot__nestedSettings,
+                        settings__dot__nestedSettings__dot__nestedNestedMaybe,
+                        settings__dot__nestedRecord,
+                        dataSetIds,
+                        comments,
+                        record
+                    }
+              }
+              operation { action, path }
+            }
+          }"
+    `);
+  });
+
   it('returns a valid gql string', () => {
     const smJSInstance = new SMJS(getMockConfig());
     expect(() =>
