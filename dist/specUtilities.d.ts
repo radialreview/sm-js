@@ -548,10 +548,9 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
             }>;
         }>;
     }, {
-        underIds: string[];
+        underIds?: string[] | undefined;
         depth?: number | undefined;
-    } | {
-        depth: number;
+        pagination?: import("./types").ISMQueryPagination | undefined;
     } | {
         id: string;
     } | {

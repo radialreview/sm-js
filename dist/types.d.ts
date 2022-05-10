@@ -327,18 +327,23 @@ export interface IByReferenceArrayQuery<TOriginNode extends ISMNode, TTargetNode
 export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
     <TMapFn extends MapFnForNode<TSMNode>>(opts: {
         map: TMapFn;
-        pagination?: ISMQueryPagination;
+        target?: {
+            pagination?: ISMQueryPagination;
+        };
     }): IChildrenQuery<TSMNode, TMapFn>;
 }
 export interface IChildrenQuery<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode>> {
     _smRelational: SM_RELATIONAL_TYPES.children;
     def: TSMNode;
-    filtersAndPagination?: ISMQueryPagination;
     map: TMapFn;
-    pagination?: ISMQueryPagination;
-    depth?: number;
+    target?: {
+        pagination?: ISMQueryPagination;
+        depth?: number;
+    };
 }
 export interface ISMQueryPagination {
+    pageNumber: number;
+    pageSize: number;
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface ISMNodeRepository {
@@ -357,10 +362,9 @@ export declare type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
     [TKey in keyof ExtractNodeData<TSMNode> as ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType, any, infer TBoxedValue> ? IsArray<TSMDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? TKey : never : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TSMNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode> ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey] : never;
 }>;
 export declare type QueryDefinitionTarget = {
-    underIds: Array<string>;
+    underIds?: Array<string>;
     depth?: number;
-} | {
-    depth: number;
+    pagination?: ISMQueryPagination;
 } | {
     id: string;
 } | {
@@ -513,6 +517,7 @@ export declare type BaseQueryRecordEntry = {
 export declare type QueryRecordEntry = BaseQueryRecordEntry & ({
     underIds: Array<string>;
     depth?: number;
+    pagination?: ISMQueryPagination;
 } | {
     ids: Array<string>;
 } | {
@@ -521,6 +526,7 @@ export declare type QueryRecordEntry = BaseQueryRecordEntry & ({
 export declare type RelationalQueryRecordEntry = (BaseQueryRecordEntry & {
     children: true;
     depth?: number;
+    pagination?: ISMQueryPagination;
 }) | (BaseQueryRecordEntry & {
     byReference: true;
     idProp: string;

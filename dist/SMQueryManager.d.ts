@@ -1,4 +1,4 @@
-import { IDOProxy, Maybe, ISMJS, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry } from './types';
+import { IDOProxy, Maybe, ISMJS, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry } from './types';
 declare type SMQueryManagerState = Record<string, // the alias for this set of results
 SMQueryManagerStateEntry>;
 declare type SMQueryManagerStateEntry = {
@@ -44,7 +44,7 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
         notifyRepositories(opts: {
             data: Record<string, any>;
             queryRecord: {
-                [key: string]: BaseQueryRecordEntry;
+                [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
             };
         }): void;
         /**
