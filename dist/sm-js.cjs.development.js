@@ -4260,7 +4260,7 @@ var SMProvider = function SMProvider(props) {
 
   var onHookMount = React.useCallback(function (subscriptionId) {
     if (mountedHooksBySubId.current[subscriptionId]) {
-      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSuscription(queryDefinitions, { subscriptionId })"].join('\n'));
+      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
     }
 
     mountedHooksBySubId.current[subscriptionId] = true;
