@@ -14,42 +14,9 @@ import {
   NodeMutationFn,
   NodeDefArgs,
   ISMNode,
-  SMDataEnum,
-  MapFnForNode,
-  QueryDefinition,
-  UseSubscriptionQueryDefinition,
-  ValidFilterForNode,
-  GetAllAvailableNodeDataType,
-  DeepPartial,
-  QueryDefinitionTarget,
-  IChildrenQuery,
-  IChildrenQueryBuilder,
-  IByReferenceQuery,
-  IByReferenceQueryBuilder,
-  GetResultingDataTypeFromNodeDefinition,
-  GetResultingDataTypeFromProperties,
-  GetResultingDataFromQueryDefinition,
 } from './types';
 
-export {
-  ISMNode,
-  SMDataEnum,
-  MapFnForNode,
-  ValidFilterForNode,
-  QueryDefinition,
-  UseSubscriptionQueryDefinition,
-  ISMJS,
-  GetAllAvailableNodeDataType,
-  DeepPartial,
-  QueryDefinitionTarget,
-  IChildrenQuery,
-  IChildrenQueryBuilder,
-  IByReferenceQuery,
-  IByReferenceQueryBuilder,
-  GetResultingDataTypeFromNodeDefinition,
-  GetResultingDataTypeFromProperties,
-  GetResultingDataFromQueryDefinition,
-};
+export * from './types';
 export * from './smDataTypes';
 export * from './react';
 export * from './config';

@@ -320,8 +320,6 @@ function throwLocallyLogInProd(error) {
   }
 }
 
-var SM_DATA_TYPES;
-
 (function (SM_DATA_TYPES) {
   SM_DATA_TYPES["string"] = "s";
   SM_DATA_TYPES["maybeString"] = "mS";
@@ -335,15 +333,13 @@ var SM_DATA_TYPES;
   SM_DATA_TYPES["maybeRecord"] = "mR";
   SM_DATA_TYPES["array"] = "a";
   SM_DATA_TYPES["maybeArray"] = "mA";
-})(SM_DATA_TYPES || (SM_DATA_TYPES = {}));
-
-var SM_RELATIONAL_TYPES;
+})(exports.SM_DATA_TYPES || (exports.SM_DATA_TYPES = {}));
 
 (function (SM_RELATIONAL_TYPES) {
   SM_RELATIONAL_TYPES["byReference"] = "bR";
   SM_RELATIONAL_TYPES["byReferenceArray"] = "bRA";
   SM_RELATIONAL_TYPES["children"] = "bP";
-})(SM_RELATIONAL_TYPES || (SM_RELATIONAL_TYPES = {}));
+})(exports.SM_RELATIONAL_TYPES || (exports.SM_RELATIONAL_TYPES = {}));
 
 var SMData = function SMData(opts) {
   var _opts$defaultValue;
@@ -367,7 +363,7 @@ var SMData = function SMData(opts) {
 
 var string = function string(defaultValue) {
   return new SMData({
-    type: SM_DATA_TYPES.string,
+    type: exports.SM_DATA_TYPES.string,
     parser: function parser(value) {
       return value != null ? String(value) : value;
     },
@@ -377,7 +373,7 @@ var string = function string(defaultValue) {
 };
 string._default = /*#__PURE__*/string('');
 string.optional = /*#__PURE__*/new SMData({
-  type: SM_DATA_TYPES.maybeString,
+  type: exports.SM_DATA_TYPES.maybeString,
   parser: function parser(value) {
     return value != null ? String(value) : value;
   },
@@ -385,13 +381,13 @@ string.optional = /*#__PURE__*/new SMData({
 });
 var number = function number(defaultValue) {
   return new SMData({
-    type: SM_DATA_TYPES.number,
+    type: exports.SM_DATA_TYPES.number,
     parser: function parser(value) {
       var parsed = Number(value);
 
       if (isNaN(parsed)) {
         throwLocallyLogInProd(new SMDataTypeException({
-          dataType: SM_DATA_TYPES.number,
+          dataType: exports.SM_DATA_TYPES.number,
           value: value
         }));
         return number._default.defaultValue;
@@ -405,7 +401,7 @@ var number = function number(defaultValue) {
 };
 number._default = /*#__PURE__*/number(0);
 number.optional = /*#__PURE__*/new SMData({
-  type: SM_DATA_TYPES.maybeNumber,
+  type: exports.SM_DATA_TYPES.maybeNumber,
   parser: function parser(value) {
     if (value != null) {
       return Number(value);
@@ -419,12 +415,12 @@ number.optional = /*#__PURE__*/new SMData({
 var _boolean = function _boolean(defaultValue) {
   if (defaultValue === undefined) {
     return new SMDataTypeExplicitDefaultException({
-      dataType: SM_DATA_TYPES["boolean"]
+      dataType: exports.SM_DATA_TYPES["boolean"]
     });
   }
 
   return new SMData({
-    type: SM_DATA_TYPES["boolean"],
+    type: exports.SM_DATA_TYPES["boolean"],
     parser: function parser(value) {
       if (value === 'true' || value === true) {
         return true;
@@ -432,7 +428,7 @@ var _boolean = function _boolean(defaultValue) {
         return false;
       } else {
         throw new SMDataTypeException({
-          dataType: SM_DATA_TYPES["boolean"],
+          dataType: exports.SM_DATA_TYPES["boolean"],
           value: value
         });
       }
@@ -443,7 +439,7 @@ var _boolean = function _boolean(defaultValue) {
 }; // need this in order to trigger an error when a user doesn't provide a default
 _boolean._default = /*#__PURE__*/_boolean();
 _boolean.optional = /*#__PURE__*/new SMData({
-  type: SM_DATA_TYPES.maybeBoolean,
+  type: exports.SM_DATA_TYPES.maybeBoolean,
   parser: function parser(value) {
     if (value == null) return value;
 
@@ -457,7 +453,7 @@ _boolean.optional = /*#__PURE__*/new SMData({
 });
 var object = function object(boxedValue) {
   return new SMData({
-    type: SM_DATA_TYPES.object,
+    type: exports.SM_DATA_TYPES.object,
 
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -474,7 +470,7 @@ object._default = null;
 
 object.optional = function (boxedValue) {
   return new SMData({
-    type: SM_DATA_TYPES.maybeObject,
+    type: exports.SM_DATA_TYPES.maybeObject,
 
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -490,7 +486,7 @@ object.optional = function (boxedValue) {
 
 var record = function record(boxedValue) {
   return new SMData({
-    type: SM_DATA_TYPES.record,
+    type: exports.SM_DATA_TYPES.record,
     parser: function parser(val) {
       return val;
     },
@@ -504,7 +500,7 @@ record.optional = function (boxedValue) {
   var parsedBoxedValue = // will be a function if no explicit default set
   typeof boxedValue === 'function' ? boxedValue._default : boxedValue;
   return new SMData({
-    type: SM_DATA_TYPES.maybeRecord,
+    type: exports.SM_DATA_TYPES.maybeRecord,
     parser: function parser(val) {
       return val;
     },
@@ -521,7 +517,7 @@ var array = function array(boxedValue) {
 
   function smArray(defaultValue) {
     return new SMData({
-      type: SM_DATA_TYPES.array,
+      type: exports.SM_DATA_TYPES.array,
       parser: function parser(value) {
         return value;
       },
@@ -532,7 +528,7 @@ var array = function array(boxedValue) {
   }
 
   smArray.optional = new SMData({
-    type: SM_DATA_TYPES.maybeArray,
+    type: exports.SM_DATA_TYPES.maybeArray,
     parser: function parser(value) {
       return value;
     },
@@ -546,7 +542,7 @@ var reference = function reference(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
       idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
-      _smRelational: SM_RELATIONAL_TYPES.byReference,
+      _smRelational: exports.SM_RELATIONAL_TYPES.byReference,
       queryBuilderOpts: queryBuilderOpts
     });
   };
@@ -555,7 +551,7 @@ var referenceArray = function referenceArray(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
       idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
-      _smRelational: SM_RELATIONAL_TYPES.byReferenceArray,
+      _smRelational: exports.SM_RELATIONAL_TYPES.byReferenceArray,
       queryBuilderOpts: queryBuilderOpts
     });
   };
@@ -563,7 +559,7 @@ var referenceArray = function referenceArray(opts) {
 var children = function children(opts) {
   return function (queryBuilderOpts) {
     return _extends({}, opts, {
-      _smRelational: SM_RELATIONAL_TYPES.children,
+      _smRelational: exports.SM_RELATIONAL_TYPES.children,
       map: queryBuilderOpts.map,
       depth: opts.depth
     });
@@ -798,7 +794,7 @@ function createDOFactory(smJSInstance) {
                 return _this3.getParsedData({
                   smData: property.boxedValue,
                   persistedData: data,
-                  defaultData: property.type === SM_DATA_TYPES.array ? ((_opts$defaultData = opts.defaultData) == null ? void 0 : _opts$defaultData[0]) || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
+                  defaultData: property.type === exports.SM_DATA_TYPES.array ? ((_opts$defaultData = opts.defaultData) == null ? void 0 : _opts$defaultData[0]) || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
                   : null
                 });
               });
@@ -1023,15 +1019,15 @@ function createDOFactory(smJSInstance) {
       };
 
       _proto.isArrayType = function isArrayType(type) {
-        return type === SM_DATA_TYPES.array || type === SM_DATA_TYPES.maybeArray;
+        return type === exports.SM_DATA_TYPES.array || type === exports.SM_DATA_TYPES.maybeArray;
       };
 
       _proto.isObjectType = function isObjectType(type) {
-        return type === SM_DATA_TYPES.object || type === SM_DATA_TYPES.maybeObject;
+        return type === exports.SM_DATA_TYPES.object || type === exports.SM_DATA_TYPES.maybeObject;
       };
 
       _proto.isRecordType = function isRecordType(type) {
-        return type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord;
+        return type === exports.SM_DATA_TYPES.record || type === exports.SM_DATA_TYPES.maybeRecord;
       };
 
       return DO;
@@ -1154,7 +1150,7 @@ function createDOProxyGenerator(smJSInstance) {
 
           var smDataForThisProp = opts.node.smData[key];
 
-          if (smDataForThisProp.type === SM_DATA_TYPES.object || smDataForThisProp.type === SM_DATA_TYPES.maybeObject) {
+          if (smDataForThisProp.type === exports.SM_DATA_TYPES.object || smDataForThisProp.type === exports.SM_DATA_TYPES.maybeObject) {
             // do not return an object if this prop came back as null from SM
             if (opts["do"][key] == null) return opts["do"][key];
             return getNestedObjectWithNotUpToDateProtection({
@@ -1207,7 +1203,7 @@ function createDOProxyGenerator(smJSInstance) {
         // @TODO write tests for this enumeration
         enumerable: isUpToDate,
         get: function get() {
-          if (smDataForThisProp.type === SM_DATA_TYPES.object || smDataForThisProp.type === SM_DATA_TYPES.maybeObject) {
+          if (smDataForThisProp.type === exports.SM_DATA_TYPES.object || smDataForThisProp.type === exports.SM_DATA_TYPES.maybeObject) {
             if (opts.allCachedData[objectProp] == null) return opts.allCachedData[objectProp];
             return getNestedObjectWithNotUpToDateProtection({
               nodeType: opts.nodeType,
@@ -1525,8 +1521,8 @@ function RepositoryFactory(opts) {
         var isDataStoredOnTheNode = key.includes(OBJECT_PROPERTY_SEPARATOR) ? Object.keys(opts.def.properties).includes(key.split(OBJECT_PROPERTY_SEPARATOR)[0]) : Object.keys(opts.def.properties).includes(key);
         if (!isDataStoredOnTheNode) return parsed;
         var type = (_opts$def$properties$ = opts.def.properties[key]) == null ? void 0 : _opts$def$properties$.type;
-        var isObjectData = key.includes(OBJECT_PROPERTY_SEPARATOR) || type === SM_DATA_TYPES.object || type === SM_DATA_TYPES.maybeObject;
-        var isRecordData = type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord;
+        var isObjectData = key.includes(OBJECT_PROPERTY_SEPARATOR) || type === exports.SM_DATA_TYPES.object || type === exports.SM_DATA_TYPES.maybeObject;
+        var isRecordData = type === exports.SM_DATA_TYPES.record || type === exports.SM_DATA_TYPES.maybeRecord;
 
         var isArrayData = function () {
           if (isObjectData) {
@@ -1535,7 +1531,7 @@ function RepositoryFactory(opts) {
 
           var receivedDataValue = opts.def.properties[key];
           var smDataType = typeof receivedDataValue === 'function' ? receivedDataValue._default.type : receivedDataValue.type;
-          return smDataType === SM_DATA_TYPES.array || smDataType === SM_DATA_TYPES.maybeArray;
+          return smDataType === exports.SM_DATA_TYPES.array || smDataType === exports.SM_DATA_TYPES.maybeArray;
         }(); // point 2 above
 
 
@@ -2641,7 +2637,7 @@ function getMapFnReturn(opts) {
   Object.keys(opts.properties).forEach(function (key) {
     var data = opts.properties[key];
 
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
       mapFnOpts[key] = function (opts) {
         return opts.map;
       };
@@ -2691,7 +2687,7 @@ function getQueriedProperties(opts) {
 
     var data = opts.smData[key];
 
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
       // query for any data stored in old format (stringified json at the root of the node)
       acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
 
@@ -2720,7 +2716,7 @@ function getAllNodeProperties(opts) {
 
     var data = opts.nodeProperties[key];
 
-    if (data.type === SM_DATA_TYPES.object || data.type === SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
       // query for any data stored in old format (stringified json at the root of the node)
       acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
 
@@ -2776,13 +2772,13 @@ function getRelationalQueries(opts) {
 
         var relationalType = queryRecord._smRelational;
 
-        if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+        if (relationalType === exports.SM_RELATIONAL_TYPES.byReference) {
           relationalQueryRecord.byReference = true;
           relationalQueryRecord.idProp = relationalQuery.idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.byReferenceArray) {
+        } else if (relationalType === exports.SM_RELATIONAL_TYPES.byReferenceArray) {
           relationalQueryRecord.byReferenceArray = true;
           relationalQueryRecord.idProp = relationalQuery.idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.children) {
+        } else if (relationalType === exports.SM_RELATIONAL_TYPES.children) {
           relationalQueryRecord.children = true;
 
           if ('depth' in relationalQuery) {
@@ -2821,7 +2817,7 @@ function getRelationalQueries(opts) {
         throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
       }
 
-      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference || relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReferenceArray) {
+      if (relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.byReference || relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.byReferenceArray) {
         if ('map' in relationalQuery.queryBuilderOpts && typeof relationalQuery.queryBuilderOpts.map === 'function') {
           // non union
           var queryBuilderOpts = relationalQuery.queryBuilderOpts;
@@ -2843,7 +2839,7 @@ function getRelationalQueries(opts) {
             });
           });
         }
-      } else if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.children) {
+      } else if (relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.children) {
         addRelationalQueryRecord({
           _smRelational: relationalQuery._smRelational,
           key: key,
