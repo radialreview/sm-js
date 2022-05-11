@@ -4230,6 +4230,7 @@ var SMProvider = function SMProvider(props) {
 
   var ongoingSubscriptionRecord = React.useRef({});
   var cleanupTimeoutRecord = React.useRef({});
+  var mountedHooksBySubId = React.useRef({});
   var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
     ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
   }, []);
@@ -4251,6 +4252,21 @@ var SMProvider = function SMProvider(props) {
   }, [props.subscriptionTTLMs]);
   var cancelCleanup = React.useCallback(function (subscriptionId) {
     clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
+    delete cleanupTimeoutRecord.current[subscriptionId];
+  }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
+  // using a useSMSubscription hook are mounted at the same time
+  // since useSMSubscription uses the first line of the error stack to construct a unique sub id
+  // fixes https://tractiontools.atlassian.net/browse/MM-404
+
+  var onHookMount = React.useCallback(function (subscriptionId) {
+    if (mountedHooksBySubId.current[subscriptionId]) {
+      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSuscription(queryDefinitions, { subscriptionId })"].join('\n'));
+    }
+
+    mountedHooksBySubId.current[subscriptionId] = true;
+  }, []);
+  var onHookUnmount = React.useCallback(function (subscriptionId) {
+    delete mountedHooksBySubId.current[subscriptionId];
   }, []);
   return React.createElement(SMContext.Provider, {
     value: {
@@ -4258,7 +4274,9 @@ var SMProvider = function SMProvider(props) {
       ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
       updateSubscriptionInfo: updateSubscriptionInfo,
       scheduleCleanup: scheduleCleanup,
-      cancelCleanup: cancelCleanup
+      cancelCleanup: cancelCleanup,
+      onHookMount: onHookMount,
+      onHookUnmount: onHookUnmount
     }
   }, props.children);
 };
@@ -4329,11 +4347,11 @@ function useSubscription(queryDefinitions, opts) {
   React.useEffect(function () {
     var _qdStateManager;
 
-    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.cancelCleanup();
+    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.onHookMount();
     return function () {
       var _qdStateManager2;
 
-      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.scheduleCleanup();
+      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.onHookUnmount();
     }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
     // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
     // to memoize all of their query definitions, which seems overkill
@@ -4398,14 +4416,16 @@ function buildQueryDefinitionStateManager(opts) {
     opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId] = {};
   }
 
-  function cancelCleanup() {
+  function onHookMount() {
+    opts.smContext.onHookMount(parentSubscriptionId);
     opts.smContext.cancelCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(function (subId) {
       return opts.smContext.cancelCleanup(subId);
     });
   }
 
-  function scheduleCleanup() {
+  function onHookUnmount() {
+    opts.smContext.onHookUnmount(parentSubscriptionId);
     opts.smContext.scheduleCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(function (subId) {
       return opts.smContext.scheduleCleanup(subId);
@@ -4491,7 +4511,7 @@ function buildQueryDefinitionStateManager(opts) {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextforThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
-        var thisQueryIsMostRecent = contextforThisSub.lastQueryTimestamp === queryTimestamp;
+        var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
 
         if (thisQueryIsMostRecent) {
           var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
@@ -4590,8 +4610,8 @@ function buildQueryDefinitionStateManager(opts) {
     data: opts.data.results,
     error: opts.data.error,
     querying: opts.data.querying,
-    scheduleCleanup: scheduleCleanup,
-    cancelCleanup: cancelCleanup
+    onHookUnmount: onHookUnmount,
+    onHookMount: onHookMount
   };
 }
 
