@@ -103,7 +103,7 @@ export const SMProvider = (props: {
             `A useSubscription hook was already mounted using the following subscription id:`,
             subscriptionId,
             `To fix this error, please specify a unique subscriptionId in the second argument of useSubscription`,
-            `useSuscription(queryDefinitions, { subscriptionId })`,
+            `useSubscription(queryDefinitions, { subscriptionId })`,
           ].join('\n')
         );
       }
