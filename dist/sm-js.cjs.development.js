@@ -4725,14 +4725,19 @@ function getGQLCLient(gqlClientOpts) {
   var gqlClient = {
     query: function () {
       var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _opts$gql$loc2, _response$errors;
+        var _response$errors;
 
-        var response;
+        var _opts$gql$loc2, response;
+
         return runtime_1.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                 console.log('query gql', (_opts$gql$loc2 = opts.gql.loc) == null ? void 0 : _opts$gql$loc2.source.body);
+                {
+                  console.log('query gql', (_opts$gql$loc2 = opts.gql.loc) == null ? void 0 : _opts$gql$loc2.source.body);
+                  console.log('token', opts.token);
+                }
+
                 _context.next = 3;
                 return baseClient.query({
                   query: opts.gql,
