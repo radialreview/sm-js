@@ -2160,69 +2160,100 @@ test(
 test.only(
   'pagination works',
   async done => {
-    const { smJSInstance, mockTodoDef } = await getReferenceTestUtils();
+    const { smJSInstance } = await getReferenceTestUtils();
 
-    await smJSInstance
-      .transaction(ctx => {
-        // create 10 todos
-        new Array(10).fill(null).forEach(() => {
-          ctx.createNode<typeof mockTodoDef>({
-            data: {
-              type: mockTodoDef.type,
-            },
-          });
-        });
-      })
-      .execute();
-
-    let idsInLastIteration: Array<string>;
-    let iteration = 0;
-    const { unsub } = await smJSInstance.subscribe(
-      {
-        todos: queryDefinition({
-          def: mockTodoDef,
-          target: {
-            pagination: { pageSize: 2, pageNumber: 1 },
-          },
-          map: ({ id }) => ({ id }),
-        }),
+    const orgDef = smJSInstance.def({
+      type: 'todo',
+      properties: {
+        id: string,
       },
-      {
-        onData: ({ results }) => {
-          console.log(
-            'ids',
-            results.todos.map(todo => todo.id)
-          );
-          if (iteration === 0) {
-            expect(results.todos.length).toBe(2);
+    });
 
-            smJSInstance
-              .transaction(ctx => {
-                // create 1 more todo
+    console.time('no pagination');
+    const r = await smJSInstance.query({
+      todos: queryDefinition({
+        def: orgDef,
+        map: allData => allData,
+      }),
+    });
+    console.timeEnd('no pagination');
+    console.log('number of results', r.data.todos.length);
 
-                ctx.createNode<typeof mockTodoDef>({
-                  data: {
-                    type: mockTodoDef.type,
-                  },
-                });
-              })
-              .execute();
-          } else if (iteration === 1) {
-            expect(results.todos.length).toBe(2);
-            const newIds = results.todos.map(todo => todo.id);
-            expect(idsInLastIteration.indexOf(newIds[0])).toBe(-1);
-            expect(newIds[1]).toEqual(idsInLastIteration[0]);
-
-            unsub();
-            done();
-          }
-          iteration++;
-          idsInLastIteration = results.todos.map(todo => todo.id);
+    console.time('pagination');
+    await smJSInstance.query({
+      todos: queryDefinition({
+        def: orgDef,
+        map: allData => allData,
+        target: {
+          pagination: { pageNumber: 1, pageSize: 1 },
         },
-      }
-    );
+      }),
+    });
+    console.timeEnd('pagination');
+    setTimeout(() => {
+      done();
+    }, 1000);
+    // await smJSInstance
+    //   .transaction(ctx => {
+    //     // create 10 todos
+    //     new Array(10).fill(null).forEach(() => {
+    //       ctx.createNode<typeof mockTodoDef>({
+    //         data: {
+    //           type: mockTodoDef.type,
+    //         },
+    //       });
+    //     });
+    //   })
+    //   .execute();
+
+    // let idsInLastIteration: Array<string>;
+    // let iteration = 0;
+    // const { unsub } = await smJSInstance.subscribe(
+    //   {
+    //     todos: queryDefinition({
+    //       def: mockTodoDef,
+    //       target: {
+    //         pagination: { pageSize: 2, pageNumber: 1 },
+    //       },
+    //       map: ({ id }) => ({ id }),
+    //     }),
+    //   },
+    //   {
+    //     onData: ({ results }) => {
+    //       console.log(
+    //         'ids',
+    //         results.todos.map(todo => todo.id)
+    //       );
+    //       if (iteration === 0) {
+    //         expect(results.todos.length).toBe(2);
+
+    //         smJSInstance
+    //           .transaction(ctx => {
+    //             // create 1 more todo
+
+    //             ctx.createNode<typeof mockTodoDef>({
+    //               data: {
+    //                 type: mockTodoDef.type,
+    //               },
+    //             });
+    //           })
+    //           .execute();
+    //       } else if (iteration === 1) {
+    //         expect(results.todos.length).toBe(2);
+    //         const newIds = results.todos.map(todo => todo.id);
+    //         expect(idsInLastIteration.indexOf(newIds[0])).toBe(-1);
+    //         expect(newIds[1]).toEqual(idsInLastIteration[0]);
+
+    //         unsub();
+    //         done();
+    //       }
+    //       iteration++;
+    //       idsInLastIteration = results.todos.map(todo => todo.id);
+    //     },
+    //   }
+    // );
   },
-  TIMEOUT_MS
+  120 * 1000
 );
 async function getToken(opts: {
   authUrl: string;
@@ -2246,6 +2277,6 @@ async function getToken(opts: {
     })
     .catch(console.log);
 
-  if (!data.orgUserToken) throw Error('Failed to get token');
-  return data.orgUserToken as string;
+  if (!data.superAdminToken) throw Error('Failed to get token');
+  return data.superAdminToken as string;
 }

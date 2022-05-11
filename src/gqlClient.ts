@@ -151,7 +151,10 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: ISMGQLClient = {
     query: async opts => {
-      ENABLE_LOGGING && console.log('query gql', opts.gql.loc?.source.body);
+      if (ENABLE_LOGGING) {
+        console.log('query gql', opts.gql.loc?.source.body);
+        console.log('token', opts.token);
+      }
       const response = await baseClient.query({
         query: opts.gql,
         context: {
