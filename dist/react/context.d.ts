@@ -21,6 +21,8 @@ export interface ISMContext {
     updateSubscriptionInfo: (subscriptionId: string, subInfo: Partial<ISMContextSubscription>) => void;
     scheduleCleanup: (subscriptionId: string) => void;
     cancelCleanup: (subscriptionId: string) => void;
+    onHookMount: (subscriptionId: string) => void;
+    onHookUnmount: (subscriptionId: string) => void;
 }
 export declare const SMContext: React.Context<ISMContext>;
 export declare const SMProvider: (props: {

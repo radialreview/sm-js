@@ -22,6 +22,8 @@ export interface ISMContext {
   ) => void;
   scheduleCleanup: (subscriptionId: string) => void;
   cancelCleanup: (subscriptionId: string) => void;
+  onHookMount: (subscriptionId: string) => void;
+  onHookUnmount: (subscriptionId: string) => void;
 }
 
 export const SMContext = React.createContext<ISMContext>(
@@ -45,6 +47,7 @@ export const SMProvider = (props: {
     Record<string, ISMContextSubscription>
   >({});
   const cleanupTimeoutRecord = React.useRef<Record<string, NodeJS.Timeout>>({});
+  const mountedHooksBySubId = React.useRef<Record<string, boolean>>({});
 
   const updateSubscriptionInfo: ISMContext['updateSubscriptionInfo'] = React.useCallback(
     (subscriptionId, subInfo) => {
@@ -83,6 +86,35 @@ export const SMProvider = (props: {
   const cancelCleanup: ISMContext['cancelCleanup'] = React.useCallback(
     subscriptionId => {
       clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
+      delete cleanupTimeoutRecord.current[subscriptionId];
+    },
+    []
+  );
+
+  // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
+  // using a useSMSubscription hook are mounted at the same time
+  // since useSMSubscription uses the first line of the error stack to construct a unique sub id
+  // fixes https://tractiontools.atlassian.net/browse/MM-404
+  const onHookMount: ISMContext['onHookMount'] = React.useCallback(
+    subscriptionId => {
+      if (mountedHooksBySubId.current[subscriptionId]) {
+        throw Error(
+          [
+            `A useSubscription hook was already mounted using the following subscription id:`,
+            subscriptionId,
+            `To fix this error, please specify a unique subscriptionId in the second argument of useSubscription`,
+            `useSubscription(queryDefinitions, { subscriptionId })`,
+          ].join('\n')
+        );
+      }
+      mountedHooksBySubId.current[subscriptionId] = true;
+    },
+    []
+  );
+
+  const onHookUnmount: ISMContext['onHookUnmount'] = React.useCallback(
+    subscriptionId => {
+      delete mountedHooksBySubId.current[subscriptionId];
     },
     []
   );
@@ -95,6 +127,8 @@ export const SMProvider = (props: {
         updateSubscriptionInfo,
         scheduleCleanup,
         cancelCleanup,
+        onHookMount,
+        onHookUnmount,
       }}
     >
       {props.children}
