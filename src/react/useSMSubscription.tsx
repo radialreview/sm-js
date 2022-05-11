@@ -46,8 +46,8 @@ export function useSubscription<
   );
 
   let qdStateManager: Maybe<UseSubscriptionReturn<TQueryDefinitions> & {
-    cancelCleanup(): void;
-    scheduleCleanup(): void;
+    onHookMount(): void;
+    onHookUnmount(): void;
   }> = null;
   let qdError: Maybe<any> = null;
   try {
@@ -75,9 +75,9 @@ export function useSubscription<
   }
 
   React.useEffect(() => {
-    qdStateManager?.cancelCleanup();
+    qdStateManager?.onHookMount();
     return () => {
-      qdStateManager?.scheduleCleanup();
+      qdStateManager?.onHookUnmount();
     };
     // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
     // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
@@ -88,8 +88,8 @@ export function useSubscription<
   if (qdError) throw qdError;
 
   return qdStateManager as UseSubscriptionReturn<TQueryDefinitions> & {
-    cancelCleanup(): void;
-    scheduleCleanup(): void;
+    onHookMount(): void;
+    onHookUnmount(): void;
   };
 }
 
@@ -179,12 +179,12 @@ function buildQueryDefinitionStateManager<
     setQuerying(querying: boolean): void;
   };
 }): UseSubscriptionReturn<TQueryDefinitions> & {
-  cancelCleanup(): void;
-  scheduleCleanup(): void;
+  onHookMount(): void;
+  onHookUnmount(): void;
 } {
   type TReturn = UseSubscriptionReturn<TQueryDefinitions> & {
-    cancelCleanup(): void;
-    scheduleCleanup(): void;
+    onHookMount(): void;
+    onHookUnmount(): void;
   };
 
   // When a subscription is initialized, the state of the subscription is split
@@ -200,12 +200,14 @@ function buildQueryDefinitionStateManager<
     opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId] = {};
   }
 
-  function cancelCleanup() {
+  function onHookMount() {
+    opts.smContext.onHookMount(parentSubscriptionId);
     opts.smContext.cancelCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(subId => opts.smContext.cancelCleanup(subId));
   }
 
-  function scheduleCleanup() {
+  function onHookUnmount() {
+    opts.smContext.onHookUnmount(parentSubscriptionId);
     opts.smContext.scheduleCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(subId => opts.smContext.scheduleCleanup(subId));
   }
@@ -309,7 +311,7 @@ function buildQueryDefinitionStateManager<
           const contextforThisSub =
             opts.smContext.ongoingSubscriptionRecord[subscriptionId];
           const thisQueryIsMostRecent =
-            contextforThisSub.lastQueryTimestamp === queryTimestamp;
+            contextforThisSub?.lastQueryTimestamp === queryTimestamp;
           if (thisQueryIsMostRecent) {
             const contextForThisParentSub =
               opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
@@ -418,7 +420,7 @@ function buildQueryDefinitionStateManager<
     data: opts.data.results,
     error: opts.data.error,
     querying: opts.data.querying,
-    scheduleCleanup,
-    cancelCleanup,
+    onHookUnmount,
+    onHookMount,
   } as TReturn;
 }

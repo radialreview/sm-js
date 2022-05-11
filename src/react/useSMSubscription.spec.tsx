@@ -347,6 +347,65 @@ test('queries that do not suspend rendering go out in separate requests', async 
   expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
+test('rendering multiple instances of the same component using useSubscription throws an error if a unique subscriptionId is not provided', async done => {
+  const { smJS } = setupTests();
+
+  function MyComponent() {
+    const { users } = createMockQueryDefinitions(smJS, { doNotSuspend: true });
+
+    const { data } = useSubscription({
+      users,
+    });
+
+    return <pre>{JSON.stringify(data.users, null, 2)}</pre>;
+  }
+
+  try {
+    render(
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+        <MyComponent />
+      </SMProvider>
+    );
+  } catch (e) {
+    expect((e as any).message.split('\n')[0]).toMatchInlineSnapshot(
+      `"A useSubscription hook was already mounted using the following subscription id:"`
+    );
+    done();
+  }
+});
+
+test('rendering multiple instances of the same component using useSubscription works if a unique subscription id is provided', async () => {
+  const { smJS } = setupTests();
+
+  function MyComponent(props: { id: string }) {
+    const { users } = createMockQueryDefinitions(smJS, { doNotSuspend: true });
+
+    const { data } = useSubscription(
+      {
+        users,
+      },
+      { subscriptionId: props.id }
+    );
+
+    if (data.users == null) return null;
+
+    return <pre>{data.users[0].id}</pre>;
+  }
+
+  const renderResult = render(
+    <SMProvider smJS={smJS}>
+      <MyComponent id={'1'} />
+      <MyComponent id={'2'} />
+    </SMProvider>
+  );
+
+  const results = await renderResult.findAllByText(
+    mockQueryDataReturn.users[0].id
+  );
+  expect(results.length).toBe(2);
+});
+
 function setupTests() {
   const smJS = new SMJS(getMockConfig());
   smJS.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
