@@ -2511,16 +2511,24 @@ function prepareObjectForBE(obj, opts) {
         val = _ref2[1];
     var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
 
-    if (typeof val === 'object' && val != null) {
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
       if (!opts || !opts.omitObjectIdentifier) {
         acc[preparedKey] = OBJECT_IDENTIFIER;
       }
 
-      acc = _extends({}, acc, prepareObjectForBE(val, _extends({}, opts, {
-        parentKey: preparedKey
-      })));
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, convertPropertyToBE({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }));
+      }, {}));
     } else {
-      acc[preparedKey] = val;
+      acc = _extends({}, acc, convertPropertyToBE({
+        key: preparedKey,
+        value: val
+      }));
     }
 
     return acc;
@@ -2529,31 +2537,31 @@ function prepareObjectForBE(obj, opts) {
 
 function convertPropertyToBE(opts) {
   if (opts.value === null) {
-    var _ref3;
-
-    return _ref3 = {}, _ref3[opts.key] = null, _ref3;
-  } else if (Array.isArray(opts.value)) {
     var _ref4;
 
-    return _ref4 = {}, _ref4[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref4;
+    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
+  } else if (Array.isArray(opts.value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref5;
   } else if (typeof opts.value === 'object') {
     var _prepareObjectForBE;
 
     return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
   } else if (typeof opts.value === 'string') {
-    var _ref5;
+    var _ref6;
 
-    return _ref5 = {}, _ref5[opts.key] = escapeText(opts.value), _ref5;
+    return _ref6 = {}, _ref6[opts.key] = escapeText(opts.value), _ref6;
   } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-    var _ref7;
+    var _ref8;
 
     if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      var _ref6;
+      var _ref7;
 
-      return _ref6 = {}, _ref6[opts.key] = null, _ref6;
+      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
     }
 
-    return _ref7 = {}, _ref7[opts.key] = String(opts.value), _ref7;
+    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
   } else {
     throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
   }
@@ -2579,9 +2587,9 @@ function convertEdgeDirectionNames(edgeItem) {
 }
 
 function prepareForBE(obj) {
-  return Object.entries(obj).reduce(function (acc, _ref8) {
-    var key = _ref8[0],
-        value = _ref8[1];
+  return Object.entries(obj).reduce(function (acc, _ref9) {
+    var key = _ref9[0],
+        value = _ref9[1];
 
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
