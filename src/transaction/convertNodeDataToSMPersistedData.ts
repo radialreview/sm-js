@@ -81,17 +81,33 @@ export function prepareObjectForBE(
       ? `${opts.parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
       : key;
 
-    if (typeof val === 'object' && val != null) {
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
       if (!opts || !opts.omitObjectIdentifier) {
         acc[preparedKey] = OBJECT_IDENTIFIER;
       }
+
       acc = {
         ...acc,
-        ...prepareObjectForBE(val, { ...opts, parentKey: preparedKey }),
+        ...Object.entries(val).reduce((acc, [key, val]) => {
+          return {
+            ...acc,
+            ...convertPropertyToBE({
+              key: `${preparedKey}${OBJECT_PROPERTY_SEPARATOR}${key}`,
+              value: val,
+            }),
+          };
+        }, {}),
       };
     } else {
-      acc[preparedKey] = val;
+      acc = {
+        ...acc,
+        ...convertPropertyToBE({
+          key: preparedKey,
+          value: val,
+        }),
+      };
     }
+
     return acc;
   }, {} as Record<string, any>);
 }

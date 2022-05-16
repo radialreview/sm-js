@@ -67,3 +67,18 @@ test('convertNodeDataToSMPersistedData parses data in childNodes', () => {
     ]"
   `);
 });
+
+test('convertNodeDataToSMPersistedData handles arrays nested within objects', () => {
+  expect(
+    autoIndentGQL(
+      convertNodeDataToSMPersistedData({
+        object: {
+          array: [],
+        },
+      })
+    )
+  ).toMatchInlineSnapshot(`
+    "object: \\"__object__\\"
+    object__dot__array: \\"__JSON__[]\\""
+  `);
+});
