@@ -292,7 +292,8 @@ export function RepositoryFactory<
       root: Record<string, any>;
       val: any;
     }) {
-      const parsedVal = opts.val === NULL_TAG ? null : opts.val;
+      const parsedVal =
+        opts.val === NULL_TAG ? null : prepareValueForFE(opts.val);
 
       if (opts.nests.length === 0) {
         opts.root = parsedVal;
