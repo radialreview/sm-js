@@ -176,7 +176,7 @@ describe('smData.repository', () => {
     expect(DO.people).toEqual(['joe', 'bob']);
     expect(DO.peopleOptional).toEqual(['user1', 'user2']);
     expect(DO.object.nestedArray).toEqual(['joe', 'bob']);
-    // expect(DO.object.nestedOptionalArray).toEqual(['user1', 'user2']);
+    expect(DO.object.nestedOptionalArray).toEqual(['user1', 'user2']);
   });
 
   it('converts data received in old object format to a regular object', () => {
