@@ -1655,7 +1655,7 @@ function RepositoryFactory(opts) {
     };
 
     _proto.nest = function nest(opts) {
-      var parsedVal = opts.val === NULL_TAG ? null : opts.val;
+      var parsedVal = opts.val === NULL_TAG ? null : prepareValueForFE(opts.val);
 
       if (opts.nests.length === 0) {
         opts.root = parsedVal;
