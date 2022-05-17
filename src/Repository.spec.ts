@@ -154,6 +154,10 @@ describe('smData.repository', () => {
         id: smData.string,
         people: smData.array(smData.string),
         peopleOptional: smData.array(smData.string).optional,
+        object: smData.object({
+          nestedArray: smData.array(smData.string),
+          nestedOptionalArray: smData.array(smData.string).optional,
+        }),
       },
     });
 
@@ -162,12 +166,17 @@ describe('smData.repository', () => {
       type: 'mockNodeType',
       people: `__JSON__["joe", "bob"]`,
       peopleOptional: `__JSON__["user1", "user2"]`,
+      object: smData.OBJECT_IDENTIFIER,
+      [`object${smData.OBJECT_PROPERTY_SEPARATOR}nestedArray`]: '__JSON__["joe", "bob"]',
+      [`object${smData.OBJECT_PROPERTY_SEPARATOR}nestedOptionalArray`]: `__JSON__["user1", "user2"]`,
     } as { id: string });
 
     const DO = repository.byId('mock-id');
 
     expect(DO.people).toEqual(['joe', 'bob']);
     expect(DO.peopleOptional).toEqual(['user1', 'user2']);
+    expect(DO.object.nestedArray).toEqual(['joe', 'bob']);
+    expect(DO.object.nestedOptionalArray).toEqual(['user1', 'user2']);
   });
 
   it('converts data received in old object format to a regular object', () => {

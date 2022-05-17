@@ -1653,7 +1653,7 @@ function RepositoryFactory(opts) {
     };
 
     _proto.nest = function nest(opts) {
-      var parsedVal = opts.val === NULL_TAG ? null : opts.val;
+      var parsedVal = opts.val === NULL_TAG ? null : prepareValueForFE(opts.val);
 
       if (opts.nests.length === 0) {
         opts.root = parsedVal;
@@ -2517,16 +2517,16 @@ function prepareObjectForBE(obj, opts) {
       acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
         var key = _ref3[0],
             val = _ref3[1];
-        return _extends({}, acc, convertPropertyToBE({
+        return _extends({}, acc, convertPropertyToBE(_extends({
           key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
           value: val
-        }));
+        }, opts)));
       }, {}));
     } else {
-      acc = _extends({}, acc, convertPropertyToBE({
+      acc = _extends({}, acc, convertPropertyToBE(_extends({
         key: preparedKey,
         value: val
-      }));
+      }, opts)));
     }
 
     return acc;
@@ -2545,7 +2545,9 @@ function convertPropertyToBE(opts) {
   } else if (typeof opts.value === 'object') {
     var _prepareObjectForBE;
 
-    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE));
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
+      omitObjectIdentifier: opts.omitObjectIdentifier
+    });
   } else if (typeof opts.value === 'string') {
     var _ref6;
 
