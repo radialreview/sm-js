@@ -94,6 +94,7 @@ export function prepareObjectForBE(
             ...convertPropertyToBE({
               key: `${preparedKey}${OBJECT_PROPERTY_SEPARATOR}${key}`,
               value: val,
+              ...opts,
             }),
           };
         }, {}),
@@ -104,6 +105,7 @@ export function prepareObjectForBE(
         ...convertPropertyToBE({
           key: preparedKey,
           value: val,
+          ...opts,
         }),
       };
     }
@@ -115,6 +117,7 @@ export function prepareObjectForBE(
 function convertPropertyToBE(opts: {
   key: string;
   value: any;
+  omitObjectIdentifier?: boolean;
 }): Record<string, Maybe<string | boolean>> {
   if (opts.value === null) {
     return { [opts.key]: null };
@@ -123,7 +126,10 @@ function convertPropertyToBE(opts: {
       [opts.key]: `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}`,
     };
   } else if (typeof opts.value === 'object') {
-    return prepareObjectForBE({ [opts.key]: opts.value });
+    return prepareObjectForBE(
+      { [opts.key]: opts.value },
+      { omitObjectIdentifier: opts.omitObjectIdentifier }
+    );
   } else if (typeof opts.value === 'string') {
     return { [opts.key]: escapeText(opts.value) };
   } else if (
