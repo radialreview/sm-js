@@ -56,6 +56,7 @@ function convertEdgeDropOperationToMutationArguments(
             sourceId: "${opts.from}"
             targetId: "${opts.to}"
             edgeType: "${opts.type || 'access'}"
+            transactional: true
         )
     }`;
 }

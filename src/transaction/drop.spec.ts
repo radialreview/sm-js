@@ -22,12 +22,12 @@ test('getMutationsFromTransactionDropOperations returns multiple drop node mutat
     Array [
       "
     mutation DropTodo {
-     DropNode(nodeId: \\"mock-todo-id\\")
+     DropNode(nodeId: \\"mock-todo-id\\", transactional: true)
     }
     ",
       "
     mutation DropIssue {
-     DropNode(nodeId: \\"mock-issue-id\\")
+     DropNode(nodeId: \\"mock-issue-id\\", transactional: true)
     }
     ",
     ]

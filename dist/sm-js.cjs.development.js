@@ -4070,7 +4070,7 @@ function getMutationsFromEdgeCreateOperations(operations) {
 function convertEdgeCreationOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\"," + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'CreateEdge');
-  return core.gql(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
+  return core.gql(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
 var _templateObject$1;
@@ -4107,7 +4107,7 @@ function getMutationsFromEdgeDropOperations(operations) {
 
 function convertEdgeDropOperationToMutationArguments(opts) {
   var name = getMutationNameFromOperations([opts], 'DropEdge');
-  return core.gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
+  return core.gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
 }
 
 var _templateObject$2;
@@ -4144,7 +4144,7 @@ function getMutationsFromEdgeReplaceOperations(operations) {
 function convertEdgeReplaceOperationToMutationArguments(opts) {
   var name = getMutationNameFromOperations([opts], 'ReplaceEdge');
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
-  return core.gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
+  return core.gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
 }
 
 var _templateObject$3;
@@ -4181,7 +4181,7 @@ function getMutationsFromEdgeUpdateOperations(operations) {
 function convertEdgeUpdateOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'UpdateEdge');
-  return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n        )\n    }"])), name, opts.from, opts.to, edge);
+  return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
 var _templateObject$4;
@@ -4211,7 +4211,7 @@ function getMutationsFromTransactionCreateOperations(operations) {
   var name = getMutationNameFromOperations(operations, 'CreateNodes'); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
+  return [core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n          transactional: true\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
 }
 
 function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
@@ -4861,7 +4861,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
     var propertiesToNull = getPropertiesToNull(updateNodeOperation);
 
     if (propertiesToNull.length) {
-      acc.push(core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n  \n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+      acc.push(core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
         return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
       }).join(',')));
     }
@@ -4870,7 +4870,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
   }, []); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [core.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ] \n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+  return [core.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
 }
 
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
@@ -4896,7 +4896,7 @@ function getMutationsFromTransactionDropOperations(operations) {
   });
   return allDropNodeOperations.map(function (operation) {
     var name = getMutationNameFromOperations([operation], 'DropNode');
-    return core.gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\")\n      }    \n    "])), name, operation.id);
+    return core.gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
   });
 }
 

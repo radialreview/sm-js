@@ -63,6 +63,7 @@ describe('replaceEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);
@@ -83,6 +84,7 @@ describe('replaceEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);
@@ -103,6 +105,7 @@ describe('replaceEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);
