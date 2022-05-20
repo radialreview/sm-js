@@ -96,10 +96,11 @@ test('getMutationsFromTransactionCreateOperations returns a single mutation that
            underIds: [\\"some-other-mock-id\\"]
          }
        ]
-     ) {
-       id
+       transactional: true
+       ) {
+         id
+       }
      }
-    }
-    "
+     "
   `);
 });

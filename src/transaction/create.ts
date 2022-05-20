@@ -92,6 +92,7 @@ export function getMutationsFromTransactionCreateOperations(
               .map(convertCreateNodeOperationToCreateNodesMutationArguments)
               .join('\n')}
           ]
+          transactional: true
         ) {
           id
         }

@@ -41,7 +41,7 @@ export function getMutationsFromTransactionDropOperations(
 
     return gql`
       mutation ${name} {
-        DropNode(nodeId: "${operation.id}")
+        DropNode(nodeId: "${operation.id}", transactional: true)
       }    
     `;
   });

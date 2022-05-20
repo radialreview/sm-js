@@ -13,231 +13,245 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
         autoIndentGQL(document.loc?.source.body as string)
       )
     ).toMatchInlineSnapshot(`
-        Array [
-          "
-        mutation CreateNodes {
-         CreateNodes(
-           createOptions: [
-             {
-               node: {
-                 type: \\"todo\\"
-                 task: \\"Do the thing\\"
-               }
+      Array [
+        "
+      mutation CreateNodes {
+       CreateNodes(
+         createOptions: [
+           {
+             node: {
+               type: \\"todo\\"
+               task: \\"Do the thing\\"
              }
-             {
-               node: {
-                 type: \\"issue\\"
-                 task: \\"Thing wasn't done\\"
-               }
+           }
+           {
+             node: {
+               type: \\"issue\\"
+               task: \\"Thing wasn't done\\"
              }
-             {
-               node: {
-                 type: \\"measurable\\"
-                 title: \\"No of times thing was done\\"
-               }
+           }
+           {
+             node: {
+               type: \\"measurable\\"
+               title: \\"No of times thing was done\\"
              }
-           ]
+           }
+         ]
+         transactional: true
          ) {
            id
          }
-        }
-        ",
-          "
-        mutation UpdateNodes {
-         UpdateNodes(
-           nodes: [
-             {
-               id: \\"some-mock-id\\"
-               title: \\"new title for mock thing\\"
-             }
-             {
-               id: \\"some-other-mock-id\\"
-               title: \\"new title for other mock thing\\"
-             }
-             {
-               id: \\"some-other-other-mock-id\\"
-               title: \\"new title for other other mock thing\\"
-             }
-           ]
+       }
+       ",
+        "
+      mutation UpdateNodes {
+       UpdateNodes(
+         nodes: [
+           {
+             id: \\"some-mock-id\\"
+             title: \\"new title for mock thing\\"
+           }
+           {
+             id: \\"some-other-mock-id\\"
+             title: \\"new title for other mock thing\\"
+           }
+           {
+             id: \\"some-other-other-mock-id\\"
+             title: \\"new title for other other mock thing\\"
+           }
+         ]
+         transactional: true
          ) {
            id
          }
-        }
-        ",
-          "
-        mutation DropNode {
-         DropNode(nodeId: \\"thing-to-drop\\")
-        }
-        ",
-          "
-        mutation DropNode {
-         DropNode(nodeId: \\"other-thing-to-drop\\")
-        }
-        ",
-          "
-        mutation createEdgeMutation {
-         AttachEdge(
-           newSourceId: \\"123\\"
-           targetId: \\"456\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation namedEdgeCreation {
-         AttachEdge(
-           newSourceId: \\"456\\"
-           targetId: \\"789\\"
-           edge: {
-             type: \\"namedEdge\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation CreateEdge {
-         AttachEdge(
-           newSourceId: \\"444\\"
-           targetId: \\"555\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: true,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation dropEdgeFromTaskToUser {
-         DropEdge(
-           sourceId: \\"123\\"
-           targetId: \\"456\\"
-           edgeType: \\"access\\"
-         )
-        }",
-          "
-        mutation namedEdgeDrop {
-         DropEdge(
-           sourceId: \\"456\\"
-           targetId: \\"789\\"
-           edgeType: \\"namedEdge\\"
-         )
-        }",
-          "
-        mutation DropEdge {
-         DropEdge(
-           sourceId: \\"444\\"
-           targetId: \\"555\\"
-           edgeType: \\"access\\"
-         )
-        }",
-          "
-        mutation replace {
-         ReplaceEdge(
-           currentSourceId: \\"abc\\"
-           newSourceId: \\"123\\"
-           targetId: \\"456\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation namedEdgeReplacement {
-         ReplaceEdge(
-           currentSourceId: \\"123\\"
-           newSourceId: \\"456\\"
-           targetId: \\"789\\"
-           edge: {
-             type: \\"replacedEdge\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation ReplaceEdge {
-         ReplaceEdge(
-           currentSourceId: \\"222\\"
-           newSourceId: \\"444\\"
-           targetId: \\"555\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: true,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation updateEdgeFromTaskToUser {
-         UpdateEdge(
-           sourceId: \\"123\\"
-           targetId: \\"456\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation namedEdgeUpdate {
-         UpdateEdge(
-           sourceId: \\"456\\"
-           targetId: \\"789\\"
-           edge: {
-             type: \\"renamedEdge\\",
-             view: true,
-             edit: false,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-          "
-        mutation UpdateEdge {
-         UpdateEdge(
-           sourceId: \\"444\\"
-           targetId: \\"555\\"
-           edge: {
-             type: \\"access\\",
-             view: true,
-             edit: true,
-             manage: false,
-             terminate: false,
-             addChild: false
-           }
-         )
-        }",
-        ]
-        `);
+       }
+       ",
+        "
+      mutation DropNode {
+       DropNode(nodeId: \\"thing-to-drop\\", transactional: true)
+      }
+      ",
+        "
+      mutation DropNode {
+       DropNode(nodeId: \\"other-thing-to-drop\\", transactional: true)
+      }
+      ",
+        "
+      mutation createEdgeMutation {
+       AttachEdge(
+         newSourceId: \\"123\\"
+         targetId: \\"456\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation namedEdgeCreation {
+       AttachEdge(
+         newSourceId: \\"456\\"
+         targetId: \\"789\\"
+         edge: {
+           type: \\"namedEdge\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation CreateEdge {
+       AttachEdge(
+         newSourceId: \\"444\\"
+         targetId: \\"555\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: true,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation dropEdgeFromTaskToUser {
+       DropEdge(
+         sourceId: \\"123\\"
+         targetId: \\"456\\"
+         edgeType: \\"access\\"
+         transactional: true
+       )
+      }",
+        "
+      mutation namedEdgeDrop {
+       DropEdge(
+         sourceId: \\"456\\"
+         targetId: \\"789\\"
+         edgeType: \\"namedEdge\\"
+         transactional: true
+       )
+      }",
+        "
+      mutation DropEdge {
+       DropEdge(
+         sourceId: \\"444\\"
+         targetId: \\"555\\"
+         edgeType: \\"access\\"
+         transactional: true
+       )
+      }",
+        "
+      mutation replace {
+       ReplaceEdge(
+         currentSourceId: \\"abc\\"
+         newSourceId: \\"123\\"
+         targetId: \\"456\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation namedEdgeReplacement {
+       ReplaceEdge(
+         currentSourceId: \\"123\\"
+         newSourceId: \\"456\\"
+         targetId: \\"789\\"
+         edge: {
+           type: \\"replacedEdge\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation ReplaceEdge {
+       ReplaceEdge(
+         currentSourceId: \\"222\\"
+         newSourceId: \\"444\\"
+         targetId: \\"555\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: true,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation updateEdgeFromTaskToUser {
+       UpdateEdge(
+         sourceId: \\"123\\"
+         targetId: \\"456\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation namedEdgeUpdate {
+       UpdateEdge(
+         sourceId: \\"456\\"
+         targetId: \\"789\\"
+         edge: {
+           type: \\"renamedEdge\\",
+           view: true,
+           edit: false,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+        "
+      mutation UpdateEdge {
+       UpdateEdge(
+         sourceId: \\"444\\"
+         targetId: \\"555\\"
+         edge: {
+           type: \\"access\\",
+           view: true,
+           edit: true,
+           manage: false,
+           terminate: false,
+           addChild: false
+         }
+         transactional: true
+       )
+      }",
+      ]
+    `);
     done();
     return new Promise(res => res(null));
   };

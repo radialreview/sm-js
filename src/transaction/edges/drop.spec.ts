@@ -44,6 +44,7 @@ describe('dropEdge', () => {
          sourceId: \\"123\\"
          targetId: \\"456\\"
          edgeType: \\"access\\"
+         transactional: true
        )
       }"
     `);
@@ -56,6 +57,7 @@ describe('dropEdge', () => {
          sourceId: \\"456\\"
          targetId: \\"789\\"
          edgeType: \\"namedEdge\\"
+         transactional: true
        )
       }"
     `);
@@ -68,6 +70,7 @@ describe('dropEdge', () => {
          sourceId: \\"444\\"
          targetId: \\"555\\"
          edgeType: \\"access\\"
+         transactional: true
        )
       }"
     `);

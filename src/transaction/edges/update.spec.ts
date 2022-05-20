@@ -59,6 +59,7 @@ describe('updateEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);
@@ -78,6 +79,7 @@ describe('updateEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);
@@ -97,6 +99,7 @@ describe('updateEdge', () => {
            terminate: false,
            addChild: false
          }
+         transactional: true
        )
       }"
     `);

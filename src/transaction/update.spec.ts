@@ -58,11 +58,12 @@ test('getMutationsFromTransactionUpdateOperations returns a single mutation that
            title: \\"no of times thing was done\\"
          }
        ]
-     ) {
-       id
+       transactional: true
+       ) {
+         id
+       }
      }
-    }
-    "
+     "
   `);
 });
 
@@ -96,17 +97,18 @@ test('getMutationsFromTransactionUpdateOperations returns additional dropPropert
            otherObject__dot__nestedObject__dot__value: null
          }
        ]
-     ) {
-       id
+       transactional: true
+       ) {
+         id
+       }
      }
-    }
-    ",
+     ",
       "
     mutation {
      DropProperties(
        nodeIds: [\\"mock-id\\"]
        propertyNames: [\\"object__dot__*\\",\\"otherObject__dot__nestedObject__dot__value__dot__*\\"]
-       
+       transactional: true
      )
      {
        id

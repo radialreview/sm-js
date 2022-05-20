@@ -62,6 +62,7 @@ function convertEdgeReplaceOperationToMutationArguments(
             newSourceId: "${opts.from}"
             targetId: "${opts.to}"
             edge: ${edge}
+            transactional: true
         )
     }`;
 }
