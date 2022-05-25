@@ -641,7 +641,7 @@ export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
 export type QueryDefinitionTarget =
   | { underIds: Array<string>, depth?: number }
   | { depth: number }
-  | { id: string }
+  | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
 // The config needed by a query to get one or multiple nodes of a single type
@@ -1015,12 +1015,13 @@ export type BaseQueryRecordEntry = {
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 
-export type QueryRecordEntry = BaseQueryRecordEntry &
-  (
-    | { underIds: Array<string>; depth?: number }
-    | { ids: Array<string> }
-    | { id: string }
-  );
+export type QueryRecordEntry = BaseQueryRecordEntry & {
+  underIds?: Array<string>
+  depth?: number
+  ids?: Array<string> 
+  id?: string
+  allowNullResult?: boolean
+}
 
 export type RelationalQueryRecordEntry =
   | (BaseQueryRecordEntry & { children: true; depth?: number }) // will use GetChildren to query this data

@@ -20,6 +20,7 @@ import {
   SM_RELATIONAL_TYPES,
   ByReferenceQueryBuilderOpts,
   IByReferenceArrayQuery,
+  QueryDefinition,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -375,12 +376,14 @@ export function getQueryRecordFromQueryDefinition(opts: {
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition = opts.queryDefinitions[queryDefinitionsAlias];
+    const queryDefinition: QueryDefinition<any, any, any> | ISMNode =
+      opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;
     let nodeDef;
     let relational;
-    if (queryDefinition._isSMNodeDef) {
+    let allowNullResult;
+    if ('_isSMNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
       nodeDef = queryDefinition as ISMNode;
       queriedProps = getAllNodeProperties({
@@ -389,6 +392,7 @@ export function getQueryRecordFromQueryDefinition(opts: {
       });
     } else {
       nodeDef = queryDefinition.def;
+      allowNullResult = queryDefinition.target?.allowNullResult;
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
@@ -417,9 +421,10 @@ export function getQueryRecordFromQueryDefinition(opts: {
       def: nodeDef,
       properties: queriedProps,
       relational,
+      allowNullResult,
     };
 
-    if (queryDefinition.target) {
+    if ('target' in queryDefinition) {
       if ('ids' in queryDefinition.target) {
         if (
           (queryDefinition.target.ids as Array<string>).some(
@@ -610,9 +615,9 @@ function getRootLevelQueryString(
   } & QueryRecordEntry
 ) {
   let operation: string;
-  if ('ids' in opts) {
+  if ('ids' in opts && opts.ids != null) {
     operation = `GetNodesByIdNew(ids: ${getIdsString(opts.ids)})`;
-  } else if ('id' in opts) {
+  } else if ('id' in opts && opts.id != null) {
     operation = `GetNodesByIdNew(ids: ${getIdsString([opts.id])})`;
   } else {
     operation = `GetNodesNew(${getGetNodeOptions(opts)})`;
@@ -663,19 +668,19 @@ export function getQueryInfo(opts: {
     const queryRecordEntry = queryRecord[alias];
 
     let operations: Array<string>;
-    if ('ids' in queryRecordEntry) {
+    if (queryRecordEntry.ids != null) {
       operations = [
         `GetNodesById(ids: ${getIdsString(
           queryRecordEntry.ids
         )}, monitorChildEvents: true)`,
       ];
-    } else if ('id' in queryRecordEntry) {
+    } else if (queryRecordEntry.id != null) {
       operations = [
         `GetNodesById(ids: ${getIdsString([
           queryRecordEntry.id,
         ])}, monitorChildEvents: true)`,
       ];
-    } else if ('underIds' in queryRecordEntry) {
+    } else if (queryRecordEntry.underIds != null) {
       operations = queryRecordEntry.underIds.map(underId => {
         return `GetNodesNew(${getSubscriptionGetNodeOptions({
           ...queryRecordEntry,
