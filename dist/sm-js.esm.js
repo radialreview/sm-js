@@ -4225,6 +4225,18 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
 }
 
 var SMContext = /*#__PURE__*/React.createContext(undefined);
+var LoggingContext = /*#__PURE__*/React.createContext({
+  silenceDuplicateSubIdErrors: false
+}); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
+// where the same subscription id may be used momentarily before the fallback route unmounts
+
+var UNSAFE__NoDuplicateSubIdErrorProvider = function UNSAFE__NoDuplicateSubIdErrorProvider(props) {
+  return React.createElement(LoggingContext.Provider, {
+    value: {
+      silenceDuplicateSubIdErrors: true
+    }
+  }, props.children);
+};
 var SMProvider = function SMProvider(props) {
   var existingContext = React.useContext(SMContext);
 
@@ -4262,8 +4274,10 @@ var SMProvider = function SMProvider(props) {
   // since useSMSubscription uses the first line of the error stack to construct a unique sub id
   // fixes https://tractiontools.atlassian.net/browse/MM-404
 
-  var onHookMount = React.useCallback(function (subscriptionId) {
-    if (mountedHooksBySubId.current[subscriptionId]) {
+  var onHookMount = React.useCallback(function (subscriptionId, _ref) {
+    var silenceDuplicateSubIdErrors = _ref.silenceDuplicateSubIdErrors;
+
+    if (mountedHooksBySubId.current[subscriptionId] && !silenceDuplicateSubIdErrors) {
       throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
     }
 
@@ -4321,6 +4335,7 @@ function useSubscription(queryDefinitions, opts) {
       querying = _React$useState3[0],
       setQuerying = _React$useState3[1];
 
+  var loggingContext = React.useContext(LoggingContext);
   var qdStateManager = null;
   var qdError = null;
 
@@ -4341,7 +4356,8 @@ function useSubscription(queryDefinitions, opts) {
         onResults: setResults,
         onError: setError,
         setQuerying: setQuerying
-      }
+      },
+      silenceDuplicateSubIdErrors: loggingContext.silenceDuplicateSubIdErrors
     });
   } catch (e) {
     qdError = e;
@@ -4421,7 +4437,9 @@ function buildQueryDefinitionStateManager(opts) {
   }
 
   function onHookMount() {
-    opts.smContext.onHookMount(parentSubscriptionId);
+    opts.smContext.onHookMount(parentSubscriptionId, {
+      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
+    });
     opts.smContext.cancelCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(function (subId) {
       return opts.smContext.cancelCleanup(subId);
@@ -5457,5 +5475,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { DEFAULT_TOKEN_NAME, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
+export { DEFAULT_TOKEN_NAME, LoggingContext, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, UNSAFE__NoDuplicateSubIdErrorProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map
