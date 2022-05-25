@@ -1,2 +1,2 @@
 export * from './context';
-export * from './useSMSubscription';
+export * from './useSubscription';

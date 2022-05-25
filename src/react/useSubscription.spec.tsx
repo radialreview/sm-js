@@ -7,7 +7,7 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
 } from '../specUtilities';
-import { useSubscription } from './';
+import { UNSAFE__NoDuplicateSubIdErrorProvider, useSubscription } from '.';
 import { SMProvider, SMJS } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
@@ -373,6 +373,28 @@ test('rendering multiple instances of the same component using useSubscription t
     );
     done();
   }
+});
+
+test('it allows duplicating subscription ids when wrapped in a NoDuplicateSubIdErrorProvider', async () => {
+  const { smJS } = setupTests();
+
+  function MyComponent() {
+    useSubscription(createMockQueryDefinitions(smJS));
+    return <span>{'rendered'}</span>;
+  }
+
+  const result = render(
+    <SMProvider smJS={smJS} subscriptionTTLMs={2000}>
+      <React.Suspense fallback={'loading'}>
+        <MyComponent />
+        <UNSAFE__NoDuplicateSubIdErrorProvider>
+          <MyComponent />
+        </UNSAFE__NoDuplicateSubIdErrorProvider>
+      </React.Suspense>
+    </SMProvider>
+  );
+
+  await result.queryAllByText('rendered');
 });
 
 test('rendering multiple instances of the same component using useSubscription works if a unique subscription id is provided', async () => {
