@@ -4228,14 +4228,14 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
 
 var SMContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({
-  silenceDuplicateSubIdErrors: false
+  unsafe__silenceDuplicateSubIdErrors: false
 }); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
 // where the same subscription id may be used momentarily before the fallback route unmounts
 
-var UNSAFE__NoDuplicateSubIdErrorProvider = function UNSAFE__NoDuplicateSubIdErrorProvider(props) {
+var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
   return React.createElement(LoggingContext.Provider, {
     value: {
-      silenceDuplicateSubIdErrors: true
+      unsafe__silenceDuplicateSubIdErrors: true
     }
   }, props.children);
 };
@@ -4359,7 +4359,7 @@ function useSubscription(queryDefinitions, opts) {
         onError: setError,
         setQuerying: setQuerying
       },
-      silenceDuplicateSubIdErrors: loggingContext.silenceDuplicateSubIdErrors
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors
     });
   } catch (e) {
     qdError = e;
@@ -5487,7 +5487,7 @@ exports.SMContext = SMContext;
 exports.SMData = SMData;
 exports.SMJS = SMJS;
 exports.SMProvider = SMProvider;
-exports.UNSAFE__NoDuplicateSubIdErrorProvider = UNSAFE__NoDuplicateSubIdErrorProvider;
+exports.UnsafeNoDuplicateSubIdErrorProvider = UnsafeNoDuplicateSubIdErrorProvider;
 exports.array = array;
 exports.boolean = _boolean;
 exports.children = children;

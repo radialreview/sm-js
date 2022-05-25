@@ -28,9 +28,9 @@ export interface ISMContext {
 }
 export declare const SMContext: React.Context<ISMContext>;
 export declare const LoggingContext: React.Context<{
-    silenceDuplicateSubIdErrors: boolean;
+    unsafe__silenceDuplicateSubIdErrors: boolean;
 }>;
-export declare const UNSAFE__NoDuplicateSubIdErrorProvider: (props: {
+export declare const UnsafeNoDuplicateSubIdErrorProvider: (props: {
     children: React.ReactNode;
 }) => JSX.Element;
 export declare const SMProvider: (props: {

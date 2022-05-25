@@ -4226,14 +4226,14 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
 
 var SMContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({
-  silenceDuplicateSubIdErrors: false
+  unsafe__silenceDuplicateSubIdErrors: false
 }); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
 // where the same subscription id may be used momentarily before the fallback route unmounts
 
-var UNSAFE__NoDuplicateSubIdErrorProvider = function UNSAFE__NoDuplicateSubIdErrorProvider(props) {
+var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
   return React.createElement(LoggingContext.Provider, {
     value: {
-      silenceDuplicateSubIdErrors: true
+      unsafe__silenceDuplicateSubIdErrors: true
     }
   }, props.children);
 };
@@ -4357,7 +4357,7 @@ function useSubscription(queryDefinitions, opts) {
         onError: setError,
         setQuerying: setQuerying
       },
-      silenceDuplicateSubIdErrors: loggingContext.silenceDuplicateSubIdErrors
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors
     });
   } catch (e) {
     qdError = e;
@@ -5475,5 +5475,5 @@ var SMJS = /*#__PURE__*/function () {
   return SMJS;
 }();
 
-export { DEFAULT_TOKEN_NAME, LoggingContext, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, UNSAFE__NoDuplicateSubIdErrorProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
+export { DEFAULT_TOKEN_NAME, LoggingContext, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map
