@@ -22,13 +22,34 @@ export interface ISMContext {
   ) => void;
   scheduleCleanup: (subscriptionId: string) => void;
   cancelCleanup: (subscriptionId: string) => void;
-  onHookMount: (subscriptionId: string) => void;
+  onHookMount: (
+    subscriptionId: string,
+    opts: { silenceDuplicateSubIdErrors: boolean }
+  ) => void;
   onHookUnmount: (subscriptionId: string) => void;
 }
 
 export const SMContext = React.createContext<ISMContext>(
   (undefined as unknown) as ISMContext
 );
+
+export const LoggingContext = React.createContext<{
+  unsafe__silenceDuplicateSubIdErrors: boolean;
+}>({ unsafe__silenceDuplicateSubIdErrors: false });
+
+// Allows use cases such as rendering the previous route as a suspense fallback to the next route
+// where the same subscription id may be used momentarily before the fallback route unmounts
+export const UnsafeNoDuplicateSubIdErrorProvider = (props: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <LoggingContext.Provider
+      value={{ unsafe__silenceDuplicateSubIdErrors: true }}
+    >
+      {props.children}
+    </LoggingContext.Provider>
+  );
+};
 
 export const SMProvider = (props: {
   children: React.ReactNode;
@@ -96,8 +117,11 @@ export const SMProvider = (props: {
   // since useSMSubscription uses the first line of the error stack to construct a unique sub id
   // fixes https://tractiontools.atlassian.net/browse/MM-404
   const onHookMount: ISMContext['onHookMount'] = React.useCallback(
-    subscriptionId => {
-      if (mountedHooksBySubId.current[subscriptionId]) {
+    (subscriptionId, { silenceDuplicateSubIdErrors }) => {
+      if (
+        mountedHooksBySubId.current[subscriptionId] &&
+        !silenceDuplicateSubIdErrors
+      ) {
         throw Error(
           [
             `A useSubscription hook was already mounted using the following subscription id:`,

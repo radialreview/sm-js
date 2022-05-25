@@ -7,7 +7,12 @@ import {
   UseSubscriptionQueryDefinitions,
 } from '../types';
 
-import { ISMContext, ISMContextSubscription, SMContext } from './context';
+import {
+  ISMContext,
+  ISMContextSubscription,
+  LoggingContext,
+  SMContext,
+} from './context';
 
 export function useSubscription<
   TQueryDefinitions extends UseSubscriptionQueryDefinitions
@@ -44,6 +49,7 @@ export function useSubscription<
   const [querying, setQuerying] = React.useState<boolean>(
     preExistingState.querying
   );
+  const loggingContext = React.useContext(LoggingContext);
 
   let qdStateManager: Maybe<UseSubscriptionReturn<TQueryDefinitions> & {
     onHookMount(): void;
@@ -68,6 +74,8 @@ export function useSubscription<
         onError: setError,
         setQuerying,
       },
+      silenceDuplicateSubIdErrors:
+        loggingContext.unsafe__silenceDuplicateSubIdErrors,
     });
   } catch (e) {
     qdError = e;
@@ -178,6 +186,7 @@ function buildQueryDefinitionStateManager<
     onError(error: any): void;
     setQuerying(querying: boolean): void;
   };
+  silenceDuplicateSubIdErrors: boolean;
 }): UseSubscriptionReturn<TQueryDefinitions> & {
   onHookMount(): void;
   onHookUnmount(): void;
@@ -201,7 +210,9 @@ function buildQueryDefinitionStateManager<
   }
 
   function onHookMount() {
-    opts.smContext.onHookMount(parentSubscriptionId);
+    opts.smContext.onHookMount(parentSubscriptionId, {
+      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors,
+    });
     opts.smContext.cancelCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(subId => opts.smContext.cancelCleanup(subId));
   }

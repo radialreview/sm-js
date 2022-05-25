@@ -21,10 +21,18 @@ export interface ISMContext {
     updateSubscriptionInfo: (subscriptionId: string, subInfo: Partial<ISMContextSubscription>) => void;
     scheduleCleanup: (subscriptionId: string) => void;
     cancelCleanup: (subscriptionId: string) => void;
-    onHookMount: (subscriptionId: string) => void;
+    onHookMount: (subscriptionId: string, opts: {
+        silenceDuplicateSubIdErrors: boolean;
+    }) => void;
     onHookUnmount: (subscriptionId: string) => void;
 }
 export declare const SMContext: React.Context<ISMContext>;
+export declare const LoggingContext: React.Context<{
+    unsafe__silenceDuplicateSubIdErrors: boolean;
+}>;
+export declare const UnsafeNoDuplicateSubIdErrorProvider: (props: {
+    children: React.ReactNode;
+}) => JSX.Element;
 export declare const SMProvider: (props: {
     children: React.ReactNode;
     smJS: ISMJS;
