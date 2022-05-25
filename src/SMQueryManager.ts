@@ -17,7 +17,7 @@ type SMQueryManagerState = Record<
 
 type SMQueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
-  idsOrIdInCurrentResult: string | Array<string>;
+  idsOrIdInCurrentResult: string | Array<string> | null;
   proxyCache: SMQueryManagerProxyCache;
 };
 
@@ -120,9 +120,16 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
 
         const resultsAlias = this.removeUnionSuffix(queryAlias);
 
-        resultsAcc[resultsAlias] = Array.isArray(idsOrId)
-          ? idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy)
-          : stateForThisAlias.proxyCache[idsOrId].proxy;
+        if (Array.isArray(idsOrId)) {
+          resultsAcc[resultsAlias] = idsOrId.map(
+            id => stateForThisAlias.proxyCache[id].proxy
+          );
+        } else if (idsOrId) {
+          resultsAcc[resultsAlias] =
+            stateForThisAlias.proxyCache[idsOrId].proxy;
+        } else {
+          resultsAcc[resultsAlias] = null;
+        }
 
         return resultsAcc;
       }, {} as Record<string, any>);
@@ -293,10 +300,16 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       if (Array.isArray(opts.nodeData)) {
         if ('id' in queryRecord[opts.queryAlias]) {
           if (opts.nodeData[0] == null) {
-            throw new SMDataParsingException({
-              receivedData: opts.nodeData,
-              message: `Queried a node by id for the query with the id "${opts.queryId}" but received back an empty array`,
-            });
+            if (!queryRecord[opts.queryAlias].allowNullResult)
+              throw new SMDataParsingException({
+                receivedData: opts.nodeData,
+                message: `Queried a node by id for the query with the id "${opts.queryId}" but received back an empty array`,
+              });
+
+            return {
+              idsOrIdInCurrentResult: null,
+              proxyCache: {},
+            };
           }
 
           return {

@@ -2157,6 +2157,27 @@ test(
   TIMEOUT_MS
 );
 
+test(
+  'querying by id and receiving back null is allowed, if the query definition is configured to do so',
+  async () => {
+    const { smJSInstance, mockTodoDef } = await getReferenceTestUtils();
+
+    const response = await smJSInstance.query({
+      todo: queryDefinition({
+        def: mockTodoDef,
+        map: undefined,
+        target: {
+          id: 'some-bogus-id',
+          allowNullResult: true,
+        },
+      }),
+    });
+
+    expect(response.data.todo).toBe(null);
+  },
+  TIMEOUT_MS
+);
+
 async function getToken(opts: {
   authUrl: string;
   email: string;

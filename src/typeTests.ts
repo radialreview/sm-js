@@ -602,6 +602,25 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error
   byId.data.user.bogus as string;
 
+  const byIdWithNullResult = await smJS.query({
+    user: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+      }),
+      target: {
+        id: 'some-user-id',
+        allowNullResult: true,
+      },
+    }),
+  });
+
+  // @ts-expect-error no null check
+  byIdWithNullResult.data.user.id as string;
+  // @ts-expect-error
+  byIdWithNullResult.data.user?.bogus as string;
+  byIdWithNullResult.data.user?.id as string;
+
   const withMapFnFromObjectOmitted = await smJS.query({
     users: queryDefinition({
       def: userNode,

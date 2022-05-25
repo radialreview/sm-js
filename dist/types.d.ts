@@ -363,6 +363,7 @@ export declare type QueryDefinitionTarget = {
     depth: number;
 } | {
     id: string;
+    allowNullResult?: boolean;
 } | {
     ids: Array<string>;
 };
@@ -393,7 +394,11 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         id: string;
     };
-} ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
+} ? TQueryDefinition extends {
+    target?: {
+        allowNullResult: true;
+    };
+} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
     def: ISMNode;
 } ? TQueryDefinition extends {
     def: infer TSMNode;
@@ -510,14 +515,13 @@ export declare type BaseQueryRecordEntry = {
     properties: Array<string>;
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
-export declare type QueryRecordEntry = BaseQueryRecordEntry & ({
-    underIds: Array<string>;
+export declare type QueryRecordEntry = BaseQueryRecordEntry & {
+    underIds?: Array<string>;
     depth?: number;
-} | {
-    ids: Array<string>;
-} | {
-    id: string;
-});
+    ids?: Array<string>;
+    id?: string;
+    allowNullResult?: boolean;
+};
 export declare type RelationalQueryRecordEntry = (BaseQueryRecordEntry & {
     children: true;
     depth?: number;
