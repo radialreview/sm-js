@@ -394,7 +394,11 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         id: string;
     };
-} ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
+} ? TQueryDefinition extends {
+    target?: {
+        allowNullResult: true;
+    };
+} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
     def: ISMNode;
 } ? TQueryDefinition extends {
     def: infer TSMNode;
