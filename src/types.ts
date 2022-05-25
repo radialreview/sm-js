@@ -708,7 +708,9 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
     ? TSMNode extends ISMNode
       ? TMapFn extends MapFnForNode<TSMNode>
         ? TQueryDefinition extends { target?: { id: string } }
-          ? ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
+          ? TQueryDefinition extends { target?: { allowNullResult: true } }
+            ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+            :ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
           : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
         : never
       : never
