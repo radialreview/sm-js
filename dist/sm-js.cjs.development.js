@@ -2875,8 +2875,9 @@ function getQueryRecordFromQueryDefinition(opts) {
     var queriedProps;
     var nodeDef;
     var relational;
+    var allowNullResult;
 
-    if (queryDefinition._isSMNodeDef) {
+    if ('_isSMNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
       nodeDef = queryDefinition;
       queriedProps = getAllNodeProperties({
@@ -2884,7 +2885,10 @@ function getQueryRecordFromQueryDefinition(opts) {
         isRootLevel: true
       });
     } else {
+      var _queryDefinition$targ;
+
       nodeDef = queryDefinition.def;
+      allowNullResult = (_queryDefinition$targ = queryDefinition.target) == null ? void 0 : _queryDefinition$targ.allowNullResult;
 
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
@@ -2913,10 +2917,11 @@ function getQueryRecordFromQueryDefinition(opts) {
     var queryRecordEntry = {
       def: nodeDef,
       properties: queriedProps,
-      relational: relational
+      relational: relational,
+      allowNullResult: allowNullResult
     };
 
-    if (queryDefinition.target) {
+    if ('target' in queryDefinition) {
       if ('ids' in queryDefinition.target) {
         if (queryDefinition.target.ids.some(function (id) {
           return typeof id !== 'string';
@@ -3060,9 +3065,9 @@ function getRelationalQueryString(opts) {
 function getRootLevelQueryString(opts) {
   var operation;
 
-  if ('ids' in opts) {
+  if ('ids' in opts && opts.ids != null) {
     operation = "GetNodesByIdNew(ids: " + getIdsString(opts.ids) + ")";
-  } else if ('id' in opts) {
+  } else if ('id' in opts && opts.id != null) {
     operation = "GetNodesByIdNew(ids: " + getIdsString([opts.id]) + ")";
   } else {
     operation = "GetNodesNew(" + getGetNodeOptions(opts) + ")";
@@ -3090,11 +3095,11 @@ function getQueryInfo(opts) {
     var queryRecordEntry = queryRecord[alias];
     var operations;
 
-    if ('ids' in queryRecordEntry) {
+    if (queryRecordEntry.ids != null) {
       operations = ["GetNodesById(ids: " + getIdsString(queryRecordEntry.ids) + ", monitorChildEvents: true)"];
-    } else if ('id' in queryRecordEntry) {
+    } else if (queryRecordEntry.id != null) {
       operations = ["GetNodesById(ids: " + getIdsString([queryRecordEntry.id]) + ", monitorChildEvents: true)"];
-    } else if ('underIds' in queryRecordEntry) {
+    } else if (queryRecordEntry.underIds != null) {
       operations = queryRecordEntry.underIds.map(function (underId) {
         return "GetNodesNew(" + getSubscriptionGetNodeOptions(_extends({}, queryRecordEntry, {
           under: underId
@@ -3665,9 +3670,16 @@ function createSMQueryManager(smJSInstance) {
 
         var resultsAlias = _this.removeUnionSuffix(queryAlias);
 
-        resultsAcc[resultsAlias] = Array.isArray(idsOrId) ? idsOrId.map(function (id) {
-          return stateForThisAlias.proxyCache[id].proxy;
-        }) : stateForThisAlias.proxyCache[idsOrId].proxy;
+        if (Array.isArray(idsOrId)) {
+          resultsAcc[resultsAlias] = idsOrId.map(function (id) {
+            return stateForThisAlias.proxyCache[id].proxy;
+          });
+        } else if (idsOrId) {
+          resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
+        } else {
+          resultsAcc[resultsAlias] = null;
+        }
+
         return resultsAcc;
       }, {});
       return acc;
@@ -3804,10 +3816,14 @@ function createSMQueryManager(smJSInstance) {
       if (Array.isArray(opts.nodeData)) {
         if ('id' in queryRecord[opts.queryAlias]) {
           if (opts.nodeData[0] == null) {
-            throw new SMDataParsingException({
+            if (!queryRecord[opts.queryAlias].allowNullResult) throw new SMDataParsingException({
               receivedData: opts.nodeData,
               message: "Queried a node by id for the query with the id \"" + opts.queryId + "\" but received back an empty array"
             });
+            return {
+              idsOrIdInCurrentResult: null,
+              proxyCache: {}
+            };
           }
 
           return {

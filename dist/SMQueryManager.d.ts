@@ -2,7 +2,7 @@ import { IDOProxy, Maybe, ISMJS, QueryRecord, BaseQueryRecordEntry, RelationalQu
 declare type SMQueryManagerState = Record<string, // the alias for this set of results
 SMQueryManagerStateEntry>;
 declare type SMQueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | Array<string>;
+    idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: SMQueryManagerProxyCache;
 };
 declare type SMQueryManagerProxyCache = Record<string, // id of the node

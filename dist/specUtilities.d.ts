@@ -554,6 +554,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
         depth: number;
     } | {
         id: string;
+        allowNullResult?: boolean | undefined;
     } | {
         ids: string[];
     }, {

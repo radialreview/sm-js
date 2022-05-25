@@ -363,6 +363,7 @@ export declare type QueryDefinitionTarget = {
     depth: number;
 } | {
     id: string;
+    allowNullResult?: boolean;
 } | {
     ids: Array<string>;
 };
@@ -510,14 +511,13 @@ export declare type BaseQueryRecordEntry = {
     properties: Array<string>;
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
-export declare type QueryRecordEntry = BaseQueryRecordEntry & ({
-    underIds: Array<string>;
+export declare type QueryRecordEntry = BaseQueryRecordEntry & {
+    underIds?: Array<string>;
     depth?: number;
-} | {
-    ids: Array<string>;
-} | {
-    id: string;
-});
+    ids?: Array<string>;
+    id?: string;
+    allowNullResult?: boolean;
+};
 export declare type RelationalQueryRecordEntry = (BaseQueryRecordEntry & {
     children: true;
     depth?: number;
