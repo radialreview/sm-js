@@ -34,16 +34,18 @@ export const SMContext = React.createContext<ISMContext>(
 );
 
 export const LoggingContext = React.createContext<{
-  silenceDuplicateSubIdErrors: boolean;
-}>({ silenceDuplicateSubIdErrors: false });
+  unsafe__silenceDuplicateSubIdErrors: boolean;
+}>({ unsafe__silenceDuplicateSubIdErrors: false });
 
 // Allows use cases such as rendering the previous route as a suspense fallback to the next route
 // where the same subscription id may be used momentarily before the fallback route unmounts
-export const UNSAFE__NoDuplicateSubIdErrorProvider = (props: {
+export const UnsafeNoDuplicateSubIdErrorProvider = (props: {
   children: React.ReactNode;
 }) => {
   return (
-    <LoggingContext.Provider value={{ silenceDuplicateSubIdErrors: true }}>
+    <LoggingContext.Provider
+      value={{ unsafe__silenceDuplicateSubIdErrors: true }}
+    >
       {props.children}
     </LoggingContext.Provider>
   );

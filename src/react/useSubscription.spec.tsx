@@ -7,7 +7,7 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
 } from '../specUtilities';
-import { UNSAFE__NoDuplicateSubIdErrorProvider, useSubscription } from '.';
+import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
 import { SMProvider, SMJS } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
@@ -387,9 +387,9 @@ test('it allows duplicating subscription ids when wrapped in a NoDuplicateSubIdE
     <SMProvider smJS={smJS} subscriptionTTLMs={2000}>
       <React.Suspense fallback={'loading'}>
         <MyComponent />
-        <UNSAFE__NoDuplicateSubIdErrorProvider>
+        <UnsafeNoDuplicateSubIdErrorProvider>
           <MyComponent />
-        </UNSAFE__NoDuplicateSubIdErrorProvider>
+        </UnsafeNoDuplicateSubIdErrorProvider>
       </React.Suspense>
     </SMProvider>
   );

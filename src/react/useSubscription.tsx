@@ -74,7 +74,8 @@ export function useSubscription<
         onError: setError,
         setQuerying,
       },
-      silenceDuplicateSubIdErrors: loggingContext.silenceDuplicateSubIdErrors,
+      silenceDuplicateSubIdErrors:
+        loggingContext.unsafe__silenceDuplicateSubIdErrors,
     });
   } catch (e) {
     qdError = e;
