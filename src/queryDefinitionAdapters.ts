@@ -424,8 +424,11 @@ export function getQueryRecordFromQueryDefinition(opts: {
       allowNullResult,
     };
 
-    if ('target' in queryDefinition) {
-      if ('ids' in queryDefinition.target) {
+    if ('target' in queryDefinition && queryDefinition.target != null) {
+      if (
+        'ids' in queryDefinition.target &&
+        queryDefinition.target.ids != null
+      ) {
         if (
           (queryDefinition.target.ids as Array<string>).some(
             id => typeof id !== 'string'
@@ -445,7 +448,10 @@ export function getQueryRecordFromQueryDefinition(opts: {
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
       }
-      if ('underIds' in queryDefinition.target) {
+      if (
+        'underIds' in queryDefinition.target &&
+        queryDefinition.target.underIds != null
+      ) {
         if (
           (queryDefinition.target.underIds as Array<string>).some(
             id => typeof id !== 'string'
@@ -458,13 +464,13 @@ export function getQueryRecordFromQueryDefinition(opts: {
           underIds: Array<string>;
         }).underIds = queryDefinition.target.underIds;
       }
-      if (queryDefinition.target.depth) {
+      if (queryDefinition.target.depth != null) {
         (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
           queryDefinition.target.depth;
       }
     }
 
-    if ('filter' in queryDefinition) {
+    if ('filter' in queryDefinition && queryDefinition.filter != null) {
       (queryRecordEntry as QueryRecordEntry & { filter: any }).filter =
         queryDefinition.filter;
     }
