@@ -2919,8 +2919,8 @@ function getQueryRecordFromQueryDefinition(opts) {
       allowNullResult: allowNullResult
     };
 
-    if ('target' in queryDefinition) {
-      if ('ids' in queryDefinition.target) {
+    if ('target' in queryDefinition && queryDefinition.target != null) {
+      if ('ids' in queryDefinition.target && queryDefinition.target.ids != null) {
         if (queryDefinition.target.ids.some(function (id) {
           return typeof id !== 'string';
         })) {
@@ -2938,7 +2938,7 @@ function getQueryRecordFromQueryDefinition(opts) {
         queryRecordEntry.id = queryDefinition.target.id;
       }
 
-      if ('underIds' in queryDefinition.target) {
+      if ('underIds' in queryDefinition.target && queryDefinition.target.underIds != null) {
         if (queryDefinition.target.underIds.some(function (id) {
           return typeof id !== 'string';
         })) {
@@ -2948,12 +2948,12 @@ function getQueryRecordFromQueryDefinition(opts) {
         queryRecordEntry.underIds = queryDefinition.target.underIds;
       }
 
-      if (queryDefinition.target.depth) {
+      if (queryDefinition.target.depth != null) {
         queryRecordEntry.depth = queryDefinition.target.depth;
       }
     }
 
-    if ('filter' in queryDefinition) {
+    if ('filter' in queryDefinition && queryDefinition.filter != null) {
       queryRecordEntry.filter = queryDefinition.filter;
     }
 
