@@ -70,12 +70,18 @@ export interface ISMQueryManager {
   getResults: () => Record<string, any>;
 }
 
-export type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
+export type QueryReturn<
+  // @ts-ignore
+  TQueryDefinitions extends QueryDefinitions
+> = {
   data: QueryDataReturn<TQueryDefinitions>;
   error: any;
 };
 
-export type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
+export type QueryOpts<
+  // @ts-ignore
+  TQueryDefinitions extends QueryDefinitions
+> = {
   onData?: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // When onError is provided, we pass it any errors encountered instead of throwing them.
   // This is by design, for consistency with the interface of sm.subscribe
@@ -84,7 +90,10 @@ export type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
   batched?: boolean;
 };
 
-export type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+export type SubscriptionOpts<
+  // @ts-ignore
+  TQueryDefinitions extends QueryDefinitions
+> = {
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
   // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
@@ -671,12 +680,17 @@ export type QueryDefinition<
 //    map: ({ id } => ({ id })
 //  })
 //
-// adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
-// in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
-// strangely, if we simply tell TS to ignore the error it works perfectly
-// eslint-disable-next-line
-// @ts-ignore
-export type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
+export type QueryDefinitions<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget
+  // adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
+  // in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
+  // strangely, if we simply tell TS to ignore the error it works perfectly
+  // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
+  // eslint-disable-next-line
+  // @ts-ignore
+> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode>;
 
 export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 
@@ -686,14 +700,24 @@ export type UseSubscriptionQueryDefinition<
   TQueryDefinitionTarget extends QueryDefinitionTarget,
   TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts
 > = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {useSubOpts?: TUseSubscriptionQueryDefinitionOpts}
-// adding params to UseSubscriptionQueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
-// in UseSubscriptionQueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
-// strangely, if we simply tell TS to ignore the error it works perfectly
-// eslint-disable-next-line
-// @ts-ignore
-export type UseSubscriptionQueryDefinitions = Record<string,  UseSubscriptionQueryDefinition | ISMNode>
 
-export type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
+export type UseSubscriptionQueryDefinitions<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts
+  // adding strict params to UseSubscriptionQueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
+  // in UseSubscriptionQueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
+  // strangely, if we simply tell TS to ignore the error it works perfectly
+  // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
+  // eslint-disable-next-line
+  // @ts-ignore
+> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode>
+
+export type QueryDataReturn<
+  // @ts-ignore
+  TQueryDefinitions extends QueryDefinitions
+> = {
   [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
   
 };
@@ -735,6 +759,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   : never;
 
 export type UseSubscriptionReturn<
+  // @ts-ignore
   TQueryDefinitions extends UseSubscriptionQueryDefinitions
 > = {
   data: {

@@ -150,7 +150,6 @@ export const boolean = <TDefaultValue extends boolean>(
     : ISMData<boolean, string | boolean, undefined>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
-//@ts-ignore
 boolean._default = boolean();
 
 boolean.optional = new SMData<
