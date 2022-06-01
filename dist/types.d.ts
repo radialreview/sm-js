@@ -374,14 +374,14 @@ export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapF
     target?: TQueryDefinitionTarget;
     tokenName?: string;
 };
-export declare type QueryDefinitions = Record<string, QueryDefinition | ISMNode>;
+export declare type QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode>;
 export declare type UseSubscriptionQueryDefinitionOpts = {
     doNotSuspend?: boolean;
 };
 export declare type UseSubscriptionQueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts> = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {
     useSubOpts?: TUseSubscriptionQueryDefinitionOpts;
 };
-export declare type UseSubscriptionQueryDefinitions = Record<string, UseSubscriptionQueryDefinition | ISMNode>;
+export declare type UseSubscriptionQueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };

@@ -369,10 +369,16 @@ function getRelationalQueries(opts: {
   return relationalQueries;
 }
 
-export function getQueryRecordFromQueryDefinition(opts: {
-  queryId: string;
-  queryDefinitions: QueryDefinitions;
-}) {
+export function getQueryRecordFromQueryDefinition<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(opts: { queryId: string; queryDefinitions: TQueryDefinitions }) {
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
@@ -647,10 +653,16 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
-export function getQueryInfo(opts: {
-  queryDefinitions: QueryDefinitions;
-  queryId: string;
-}) {
+export function getQueryInfo<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
   const queryGQLString = `
     query ${getSanitizedQueryId({ queryId: opts.queryId })} {
@@ -765,10 +777,16 @@ export function getQueryInfo(opts: {
  * Can later also be used to build a diff to request only the necessary data
  * taking into account the previous query record to avoid requesting data already in memory
  */
-export function convertQueryDefinitionToQueryInfo(opts: {
-  queryDefinitions: QueryDefinitions;
-  queryId: string;
-}) {
+export function convertQueryDefinitionToQueryInfo<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
     opts
   );

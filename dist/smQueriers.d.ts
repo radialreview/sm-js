@@ -6,8 +6,8 @@ import { ISMJS, ISMQueryManager, QueryDefinitions, QueryOpts, QueryReturn, Query
 export declare function generateQuerier({ smJSInstance, queryManager, }: {
     smJSInstance: ISMJS;
     queryManager?: ISMQueryManager;
-}): <TQueryDefinitions extends QueryDefinitions>(queryDefinitions: TQueryDefinitions, opts?: QueryOpts<TQueryDefinitions> | undefined) => Promise<QueryReturn<TQueryDefinitions>>;
-export declare function generateSubscriber(smJSInstance: ISMJS): <TQueryDefinitions extends QueryDefinitions, TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>>(queryDefinitions: TQueryDefinitions, opts: TSubscriptionOpts) => Promise<TSubscriptionOpts extends {
+}): <TSMNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget>>(queryDefinitions: TQueryDefinitions, opts?: QueryOpts<TQueryDefinitions> | undefined) => Promise<QueryReturn<TQueryDefinitions>>;
+export declare function generateSubscriber(smJSInstance: ISMJS): <TSMNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget>, TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>>(queryDefinitions: TQueryDefinitions, opts: TSubscriptionOpts) => Promise<TSubscriptionOpts extends {
     skipInitialQuery: true;
 } ? SubscriptionMeta : {
     data: QueryDataReturn<TQueryDefinitions>;

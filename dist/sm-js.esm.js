@@ -3186,8 +3186,9 @@ function splitQueryDefinitionsByToken(queryDefinitions) {
   return Object.entries(queryDefinitions).reduce(function (split, _ref) {
     var alias = _ref[0],
         queryDefinition = _ref[1];
-    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] = split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] || {};
-    split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME][alias] = queryDefinition;
+    var tokenName = 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
+    split[tokenName] = split[tokenName] || {};
+    split[tokenName][alias] = queryDefinition;
     return split;
   }, {});
 }
@@ -4427,7 +4428,7 @@ function splitQueryDefinitions(queryDefinitions) {
 
     var alias = _ref[0],
         queryDefinition = _ref[1];
-    var suspend = ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
+    var suspend = 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
     split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
     return split;
   }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));

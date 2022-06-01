@@ -575,6 +575,7 @@ describe('getQueryInfo.queryGQLString', () => {
         queryDefinitions: {
           todos: {
             def: generateTodoNode(smJSInstance),
+            map: undefined,
           },
         },
       }).queryGQLString

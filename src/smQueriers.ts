@@ -13,28 +13,35 @@ import {
   SubscriptionOpts,
   SubscriptionMeta,
   SubscriptionCanceller,
-  QueryDefinition,
 } from './types';
 
 let queryIdx = 0;
 
 function splitQueryDefinitionsByToken<
-  TQueryDefinitions extends QueryDefinitions
->(queryDefinitions: TQueryDefinitions): Record<string, QueryDefinitions> {
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions): Record<string, TQueryDefinitions> {
   return Object.entries(queryDefinitions).reduce(
-    (
-      split,
-      [alias, queryDefinition]: [string, QueryDefinition<any, any, any>]
-    ) => {
-      split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] =
-        split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME] || {};
-      split[queryDefinition.tokenName || DEFAULT_TOKEN_NAME][
-        alias
-      ] = queryDefinition;
+    (split, [alias, queryDefinition]) => {
+      const tokenName =
+        'tokenName' in queryDefinition && queryDefinition.tokenName != null
+          ? queryDefinition.tokenName
+          : DEFAULT_TOKEN_NAME;
+
+      split[tokenName] = split[tokenName] || {};
+      split[tokenName][
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
 
       return split;
     },
-    {} as Record<string, QueryDefinitions>
+    {} as Record<string, TQueryDefinitions>
   );
 }
 
@@ -49,7 +56,16 @@ export function generateQuerier({
   smJSInstance: ISMJS;
   queryManager?: ISMQueryManager;
 }) {
-  return async function query<TQueryDefinitions extends QueryDefinitions>(
+  return async function query<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TQueryDefinitions extends QueryDefinitions<
+      TSMNode,
+      TMapFn,
+      TQueryDefinitionTarget
+    >
+  >(
     queryDefinitions: TQueryDefinitions,
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
@@ -162,7 +178,14 @@ export function generateQuerier({
 
 export function generateSubscriber(smJSInstance: ISMJS) {
   return async function subscribe<
-    TQueryDefinitions extends QueryDefinitions,
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TQueryDefinitions extends QueryDefinitions<
+      TSMNode,
+      TMapFn,
+      TQueryDefinitionTarget
+    >,
     TSubscriptionOpts extends SubscriptionOpts<TQueryDefinitions>
   >(
     queryDefinitions: TQueryDefinitions,

@@ -800,6 +800,17 @@ const stateNode: StateNode = smJS.def({
 
   // @ts-expect-error basic sanity check
   useSubscriptionsData.data.users[0].bogus;
+
+  // verify error when an invalid prop is passed
+  useSubscription({
+    // @ts-expect-error
+    badProp: 'test',
+  });
+
+  smJS.query({
+    // @ts-expect-error
+    badProp: 'test',
+  });
 })();
 
 (async function ResultingDevExperienceWriteTests() {

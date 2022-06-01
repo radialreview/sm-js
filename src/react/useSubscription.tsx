@@ -5,6 +5,7 @@ import {
   UseSubscriptionReturn,
   Maybe,
   UseSubscriptionQueryDefinitions,
+  UseSubscriptionQueryDefinitionOpts,
 } from '../types';
 
 import {
@@ -15,7 +16,16 @@ import {
 } from './context';
 
 export function useSubscription<
-  TQueryDefinitions extends UseSubscriptionQueryDefinitions
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts
+  >
 >(
   queryDefinitions: TQueryDefinitions,
   opts?: { subscriptionId: string }
@@ -102,7 +112,16 @@ export function useSubscription<
 }
 
 function getPreexistingState<
-  TQueryDefinitions extends UseSubscriptionQueryDefinitions
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts
+  >
 >(opts: {
   smContext: ISMContext;
   subscriptionId: string;
@@ -135,15 +154,27 @@ function getPreexistingState<
  * @param queryDefinitions
  * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
  */
-function splitQueryDefinitions(
-  queryDefinitions: UseSubscriptionQueryDefinitions
+function splitQueryDefinitions<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts
+  >
+>(
+  queryDefinitions: TQueryDefinitions
 ): {
-  suspendEnabled: UseSubscriptionQueryDefinitions;
-  suspendDisabled: UseSubscriptionQueryDefinitions;
+  suspendEnabled: TQueryDefinitions;
+  suspendDisabled: TQueryDefinitions;
 } {
   return Object.entries(queryDefinitions).reduce(
     (split, [alias, queryDefinition]) => {
       const suspend =
+        'useSubOpts' in queryDefinition &&
         queryDefinition.useSubOpts?.doNotSuspend != null
           ? !queryDefinition.useSubOpts.doNotSuspend
           : true;
@@ -152,15 +183,17 @@ function splitQueryDefinitions(
         suspend
           ? subscriptionIds.suspendEnabled
           : subscriptionIds.suspendDisabled
-      ][alias] = queryDefinition;
+      ][
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
       return split;
     },
     {
       [subscriptionIds.suspendEnabled]: {},
       [subscriptionIds.suspendDisabled]: {},
     } as {
-      suspendEnabled: UseSubscriptionQueryDefinitions;
-      suspendDisabled: UseSubscriptionQueryDefinitions;
+      suspendEnabled: TQueryDefinitions;
+      suspendDisabled: TQueryDefinitions;
     }
   );
 }
@@ -171,7 +204,16 @@ const subscriptionIds = {
 };
 
 function buildQueryDefinitionStateManager<
-  TQueryDefinitions extends UseSubscriptionQueryDefinitions
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+  TQueryDefinitions extends UseSubscriptionQueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts
+  >
 >(opts: {
   smContext: ISMContext;
   subscriptionId: string;
@@ -256,8 +298,19 @@ function buildQueryDefinitionStateManager<
   // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
   //
   // returns a promise if there's an unresolved request and "suspend" is set to true
-  function handleNewQueryDefitions(subOpts: {
-    queryDefinitions: UseSubscriptionQueryDefinitions;
+  function handleNewQueryDefitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+    TQueryDefinitions extends UseSubscriptionQueryDefinitions<
+      TSMNode,
+      TMapFn,
+      TQueryDefinitionTarget,
+      TUseSubscriptionQueryDefinitionOpts
+    >
+  >(subOpts: {
+    queryDefinitions: TQueryDefinitions;
     parentSubscriptionId: string;
     subscriptionSuffix: string;
     suspend: boolean;
