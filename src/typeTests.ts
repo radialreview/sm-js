@@ -821,6 +821,9 @@ const stateNode: StateNode = smJS.def({
 
   // @ts-expect-error no null check
   withNull.data.results[0].address;
+  withNull.data.results
+    ? (withNull.data.results[0].address.state as string)
+    : null;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
