@@ -690,7 +690,7 @@ export type QueryDefinitions<
   // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
   // eslint-disable-next-line
   // @ts-ignore
-> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode>;
+> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode | null>;
 
 export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 
@@ -712,17 +712,18 @@ export type UseSubscriptionQueryDefinitions<
   // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
   // eslint-disable-next-line
   // @ts-ignore
-> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode>
+> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode | null>
 
 export type QueryDataReturn<
   // @ts-ignore
   TQueryDefinitions extends QueryDefinitions
 > = {
-  [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
-  
+  [Key in keyof TQueryDefinitions]: IsMaybe<TQueryDefinitions[Key]> extends true
+    ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>>
+    : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
 };
 
-export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode> = TQueryDefinition extends {
+export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode | null> = TQueryDefinition extends {
   map: MapFn<any, any, any>;
 }
   ? /**
@@ -734,7 +735,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
         ? TQueryDefinition extends { target?: { id: string } }
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
-            :ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
+            : ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
           : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
         : never
       : never
@@ -745,8 +746,8 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
       ? TQueryDefinition extends { target?: { id: string } }
         ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
         : Array<
-            GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
-          >
+          GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
+        >
       : never
     : never
   : TQueryDefinition extends ISMNode
@@ -766,7 +767,9 @@ export type UseSubscriptionReturn<
     [key in keyof TQueryDefinitions]:
       TQueryDefinitions[key] extends { useSubOpts?:{ doNotSuspend: true } }
           ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>>
-          : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>
+          : IsMaybe<TQueryDefinitions[key]> extends true
+            ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>>
+            : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>
   },
   querying: boolean,
   error: any

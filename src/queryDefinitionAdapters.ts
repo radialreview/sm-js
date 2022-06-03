@@ -382,14 +382,16 @@ export function getQueryRecordFromQueryDefinition<
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | ISMNode =
+    const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null =
       opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;
     let nodeDef;
     let relational;
     let allowNullResult;
-    if ('_isSMNodeDef' in queryDefinition) {
+    if (!queryDefinition) {
+      return;
+    } else if ('_isSMNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
       nodeDef = queryDefinition as ISMNode;
       queriedProps = getAllNodeProperties({
