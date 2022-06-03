@@ -374,18 +374,18 @@ export declare type QueryDefinition<TSMNode extends ISMNode, TMapFn extends MapF
     target?: TQueryDefinitionTarget;
     tokenName?: string;
 };
-export declare type QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode>;
+export declare type QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode | null>;
 export declare type UseSubscriptionQueryDefinitionOpts = {
     doNotSuspend?: boolean;
 };
 export declare type UseSubscriptionQueryDefinition<TSMNode extends ISMNode, TMapFn extends MapFnForNode<TSMNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts> = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {
     useSubOpts?: TUseSubscriptionQueryDefinitionOpts;
 };
-export declare type UseSubscriptionQueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode>;
+export declare type UseSubscriptionQueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode | null>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
-    [Key in keyof TQueryDefinitions]: GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
+    [Key in keyof TQueryDefinitions]: IsMaybe<TQueryDefinitions[Key]> extends true ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };
-export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any, any, any> | ISMNode> = TQueryDefinition extends {
+export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any, any, any> | ISMNode | null> = TQueryDefinition extends {
     map: MapFn<any, any, any>;
 } ? TQueryDefinition extends {
     def: infer TSMNode;
@@ -413,7 +413,7 @@ export declare type UseSubscriptionReturn<TQueryDefinitions extends UseSubscript
             useSubOpts?: {
                 doNotSuspend: true;
             };
-        } ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>;
+        } ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>> : IsMaybe<TQueryDefinitions[key]> extends true ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[key]>;
     };
     querying: boolean;
     error: any;

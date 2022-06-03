@@ -2875,7 +2875,9 @@ function getQueryRecordFromQueryDefinition(opts) {
     var relational;
     var allowNullResult;
 
-    if ('_isSMNodeDef' in queryDefinition) {
+    if (!queryDefinition) {
+      return;
+    } else if ('_isSMNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
       nodeDef = queryDefinition;
       queriedProps = getAllNodeProperties({
@@ -3186,10 +3188,29 @@ function splitQueryDefinitionsByToken(queryDefinitions) {
   return Object.entries(queryDefinitions).reduce(function (split, _ref) {
     var alias = _ref[0],
         queryDefinition = _ref[1];
-    var tokenName = 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
+    var tokenName = queryDefinition && 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryDefinition;
     return split;
+  }, {});
+}
+
+function removeNullishQueryDefinitions(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref2) {
+    var alias = _ref2[0],
+        queryDefinition = _ref2[1];
+    if (!queryDefinition) return acc;
+    acc[alias] = queryDefinition;
+    return acc;
+  }, {});
+}
+
+function getNullishResults(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref3) {
+    var key = _ref3[0],
+        queryDefinition = _ref3[1];
+    if (queryDefinition == null) acc[key] = null;
+    return acc;
   }, {});
 }
 /**
@@ -3198,12 +3219,12 @@ function splitQueryDefinitionsByToken(queryDefinitions) {
  */
 
 
-function generateQuerier(_ref2) {
-  var smJSInstance = _ref2.smJSInstance,
-      queryManager = _ref2.queryManager;
+function generateQuerier(_ref4) {
+  var smJSInstance = _ref4.smJSInstance,
+      queryManager = _ref4.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+      var startStack, queryId, getError, getToken, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
 
       return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
@@ -3217,9 +3238,9 @@ function generateQuerier(_ref2) {
                       switch (_context.prev = _context.next) {
                         case 0:
                           _context.next = 2;
-                          return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref3) {
-                            var tokenName = _ref3[0],
-                                queryDefinitions = _ref3[1];
+                          return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref5) {
+                            var tokenName = _ref5[0],
+                                queryDefinitions = _ref5[1];
 
                             var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                               queryDefinitions: queryDefinitions,
@@ -3238,7 +3259,7 @@ function generateQuerier(_ref2) {
                           allResults = _context.sent;
                           return _context.abrupt("return", allResults.reduce(function (acc, resultsForToken) {
                             return _extends({}, acc, resultsForToken);
-                          }, {}));
+                          }, _extends({}, nullishResults)));
 
                         case 4:
                         case "end":
@@ -3274,32 +3295,49 @@ function generateQuerier(_ref2) {
 
               startStack = new Error().stack;
               queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
-              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
-              _context2.prev = 7;
-              _context2.next = 10;
+              nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
+              nullishResults = getNullishResults(queryDefinitions);
+              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
+              _context2.prev = 9;
+
+              if (Object.keys(nonNullishQueryDefinitions).length) {
+                _context2.next = 13;
+                break;
+              }
+
+              (opts == null ? void 0 : opts.onData) && opts.onData({
+                results: _extends({}, nullishResults)
+              });
+              return _context2.abrupt("return", {
+                data: _extends({}, nullishResults),
+                error: undefined
+              });
+
+            case 13:
+              _context2.next = 15;
               return performQueries();
 
-            case 10:
+            case 15:
               results = _context2.sent;
               qM = queryManager || new smJSInstance.SMQueryManager(convertQueryDefinitionToQueryInfo({
-                queryDefinitions: queryDefinitions,
+                queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
               }).queryRecord);
-              _context2.prev = 12;
+              _context2.prev = 17;
               qM.onQueryResult({
                 queryId: queryId,
                 queryResult: results
               });
-              _context2.next = 25;
+              _context2.next = 30;
               break;
 
-            case 16:
-              _context2.prev = 16;
-              _context2.t0 = _context2["catch"](12);
+            case 21:
+              _context2.prev = 21;
+              _context2.t0 = _context2["catch"](17);
               error = getError(new Error("Error applying query results"), _context2.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 24;
+                _context2.next = 29;
                 break;
               }
 
@@ -3309,26 +3347,26 @@ function generateQuerier(_ref2) {
                 error: error
               });
 
-            case 24:
+            case 29:
               throw error;
 
-            case 25:
+            case 30:
               qmResults = qM.getResults();
               (opts == null ? void 0 : opts.onData) && opts.onData({
-                results: qmResults
+                results: _extends({}, nullishResults, qmResults)
               });
               return _context2.abrupt("return", {
-                data: qmResults,
+                data: _extends({}, nullishResults, qmResults),
                 error: undefined
               });
 
-            case 30:
-              _context2.prev = 30;
-              _context2.t1 = _context2["catch"](7);
+            case 35:
+              _context2.prev = 35;
+              _context2.t1 = _context2["catch"](9);
               _error = getError(new Error("Error querying data"), _context2.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context2.next = 38;
+                _context2.next = 43;
                 break;
               }
 
@@ -3338,15 +3376,15 @@ function generateQuerier(_ref2) {
                 error: _error
               });
 
-            case 38:
+            case 43:
               throw _error;
 
-            case 39:
+            case 44:
             case "end":
               return _context2.stop();
           }
         }
-      }, _callee2, null, [[7, 30], [12, 16]]);
+      }, _callee2, null, [[9, 35], [17, 21]]);
     }));
 
     function query(_x, _x2) {
@@ -3360,7 +3398,7 @@ var subscriptionId = 0;
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, _error2, data;
+      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, _error2, qmResults;
 
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
@@ -3373,10 +3411,10 @@ function generateSubscriber(smJSInstance) {
               };
 
               initSubs = function _initSubs() {
-                var queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(queryDefinitions);
-                Object.entries(queryDefinitionsSplitByToken).forEach(function (_ref4) {
-                  var tokenName = _ref4[0],
-                      queryDefinitions = _ref4[1];
+                var queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
+                Object.entries(queryDefinitionsSplitByToken).forEach(function (_ref6) {
+                  var tokenName = _ref6[0],
+                      queryDefinitions = _ref6[1];
 
                   var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
@@ -3405,7 +3443,7 @@ function generateSubscriber(smJSInstance) {
                         // probably don't need a query manager in that case either.
 
                         opts.onData({
-                          results: queryManager.getResults()
+                          results: _extends({}, nullishResults, queryManager.getResults())
                         });
                       },
                       onError: function onError(e) {
@@ -3469,8 +3507,29 @@ function generateSubscriber(smJSInstance) {
               // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
               startStack = new Error().stack;
               queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + subscriptionId++;
+              nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
+              nullishResults = getNullishResults(queryDefinitions);
+
+              if (Object.keys(nonNullishQueryDefinitions).length) {
+                _context3.next = 12;
+                break;
+              }
+
+              // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
+              // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
+              setTimeout(function () {
+                opts.onData({
+                  results: _extends({}, nullishResults)
+                });
+              });
+              return _context3.abrupt("return", {
+                data: _extends({}, nullishResults),
+                unsub: function unsub() {}
+              });
+
+            case 12:
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
-                queryDefinitions: queryDefinitions,
+                queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
               }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord;
               opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
@@ -3487,19 +3546,19 @@ function generateSubscriber(smJSInstance) {
 
               mustAwaitQuery = !opts.skipInitialQuery;
               messageQueue = [];
-              _context3.prev = 13;
+              _context3.prev = 18;
               initSubs();
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
-              _context3.next = 27;
+              _context3.next = 32;
               break;
 
-            case 18:
-              _context3.prev = 18;
-              _context3.t0 = _context3["catch"](13);
+            case 23:
+              _context3.prev = 23;
+              _context3.t0 = _context3["catch"](18);
               error = getError(new Error("Error initializating subscriptions"), _context3.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 26;
+                _context3.next = 31;
                 break;
               }
 
@@ -3510,12 +3569,12 @@ function generateSubscriber(smJSInstance) {
                 error: error
               });
 
-            case 26:
+            case 31:
               throw error;
 
-            case 27:
+            case 32:
               if (!opts.skipInitialQuery) {
-                _context3.next = 31;
+                _context3.next = 36;
                 break;
               }
 
@@ -3523,29 +3582,29 @@ function generateSubscriber(smJSInstance) {
                 unsub: unsub
               });
 
-            case 31:
+            case 36:
               query = generateQuerier({
                 smJSInstance: smJSInstance,
                 queryManager: queryManager
               });
-              _context3.prev = 32;
-              _context3.next = 35;
+              _context3.prev = 37;
+              _context3.next = 40;
               return query(queryDefinitions, {
                 queryId: opts.queryId,
                 batched: opts.batched
               });
 
-            case 35:
-              _context3.next = 46;
+            case 40:
+              _context3.next = 51;
               break;
 
-            case 37:
-              _context3.prev = 37;
-              _context3.t1 = _context3["catch"](32);
+            case 42:
+              _context3.prev = 42;
+              _context3.t1 = _context3["catch"](37);
               _error2 = getError(new Error("Error querying initial data set"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 45;
+                _context3.next = 50;
                 break;
               }
 
@@ -3556,32 +3615,36 @@ function generateSubscriber(smJSInstance) {
                 error: _error2
               });
 
-            case 45:
+            case 50:
               throw _error2;
 
-            case 46:
+            case 51:
               if (mustAwaitQuery) {
                 mustAwaitQuery = false;
                 messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
                 messageQueue.length = 0;
               }
 
-              data = queryManager.getResults();
-              opts.onData({
-                results: data
+              qmResults = queryManager.getResults(); // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
+              // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
+
+              setTimeout(function () {
+                opts.onData({
+                  results: _extends({}, nullishResults, qmResults)
+                });
               });
               return _context3.abrupt("return", {
-                data: data,
+                data: _extends({}, nullishResults, qmResults),
                 unsub: unsub,
                 error: null
               });
 
-            case 50:
+            case 55:
             case "end":
               return _context3.stop();
           }
         }
-      }, _callee3, null, [[13, 18], [32, 37]]);
+      }, _callee3, null, [[18, 23], [37, 42]]);
     }));
 
     function subscribe(_x3, _x4) {
@@ -4429,7 +4492,7 @@ function splitQueryDefinitions(queryDefinitions) {
 
     var alias = _ref[0],
         queryDefinition = _ref[1];
-    var suspend = 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
+    var suspend = queryDefinition && 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
     split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
     return split;
   }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
