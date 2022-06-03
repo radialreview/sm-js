@@ -6,6 +6,7 @@ import {
   Maybe,
   UseSubscriptionQueryDefinitions,
   UseSubscriptionQueryDefinitionOpts,
+  SubscriptionMeta,
 } from '../types';
 
 import {
@@ -28,7 +29,7 @@ export function useSubscription<
   >
 >(
   queryDefinitions: TQueryDefinitions,
-  opts?: { subscriptionId: string }
+  opts?: { subscriptionId?: string }
 ): UseSubscriptionReturn<TQueryDefinitions> {
   const smContext = React.useContext(SMContext);
 
@@ -103,7 +104,7 @@ export function useSubscription<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smContext, subscriptionId]);
 
-  if (qdError) throw qdError;
+  if (error || qdError) throw error || qdError;
 
   return qdStateManager as UseSubscriptionReturn<TQueryDefinitions> & {
     onHookMount(): void;
@@ -314,7 +315,13 @@ function buildQueryDefinitionStateManager<
     parentSubscriptionId: string;
     subscriptionSuffix: string;
     suspend: boolean;
-  }): Promise<any> | undefined {
+  }):
+    | Promise<
+        {
+          data: QueryDataReturn<TQueryDefinitions>;
+        } & SubscriptionMeta
+      >
+    | undefined {
     const {
       queryDefinitions,
       parentSubscriptionId,
@@ -367,8 +374,9 @@ function buildQueryDefinitionStateManager<
     const setQuerying =
       opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]
         ?.setQuerying;
-
     setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
+
     const suspendPromise = opts.smContext.smJSInstance
       .subscribe(queryDefinitions, {
         onData: ({ results: newResults }) => {
@@ -381,13 +389,13 @@ function buildQueryDefinitionStateManager<
               opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
             contextForThisParentSub.onResults &&
               contextForThisParentSub.onResults({
-                ...opts.data.results,
+                ...contextForThisParentSub.results,
                 ...newResults,
               });
             opts.smContext.updateSubscriptionInfo(
               subOpts.parentSubscriptionId,
               {
-                results: { ...opts.data.results, ...newResults },
+                results: { ...contextForThisParentSub.results, ...newResults },
               }
             );
           }
@@ -443,6 +451,7 @@ function buildQueryDefinitionStateManager<
               opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]
                 ?.setQuerying;
             setQuerying && setQuerying(false);
+            opts.handlers.setQuerying(false);
           }
         }
       });
@@ -460,25 +469,35 @@ function buildQueryDefinitionStateManager<
 
   if (opts.data.error) throw opts.data.error;
 
+  let suspendPromise: Promise<any> | undefined = undefined;
+
   if (Object.keys(suspendDisabled).length) {
-    handleNewQueryDefitions({
-      queryDefinitions: suspendDisabled,
-      parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendDisabled,
-      suspend: false,
-    });
+    try {
+      handleNewQueryDefitions({
+        queryDefinitions: suspendDisabled,
+        parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendDisabled,
+        suspend: false,
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
 
   if (Object.keys(suspendEnabled).length) {
-    const suspendPromise = handleNewQueryDefitions({
-      queryDefinitions: suspendEnabled,
-      parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendEnabled,
-      suspend: true,
-    });
-
-    if (suspendPromise) throw suspendPromise;
+    try {
+      suspendPromise = handleNewQueryDefitions({
+        queryDefinitions: suspendEnabled,
+        parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendEnabled,
+        suspend: true,
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
+
+  if (suspendPromise) throw suspendPromise;
 
   return {
     data: opts.data.results,

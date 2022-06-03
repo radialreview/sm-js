@@ -3358,6 +3358,7 @@ function generateQuerier(_ref2) {
     return query;
   }();
 }
+var subscriptionId = 0;
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
@@ -3469,7 +3470,7 @@ function generateSubscriber(smJSInstance) {
 
               // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + subscriptionId++;
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
@@ -4396,7 +4397,7 @@ function useSubscription(queryDefinitions, opts) {
     // to memoize all of their query definitions, which seems overkill
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smContext, subscriptionId]);
-  if (qdError) throw qdError;
+  if (error || qdError) throw error || qdError;
   return qdStateManager;
 }
 
@@ -4548,6 +4549,7 @@ function buildQueryDefinitionStateManager(opts) {
     });
     var setQuerying = (_opts$smContext$ongoi = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi.setQuerying;
     setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
     var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
@@ -4556,9 +4558,9 @@ function buildQueryDefinitionStateManager(opts) {
 
         if (thisQueryIsMostRecent) {
           var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, opts.data.results, newResults));
+          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
           opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-            results: _extends({}, opts.data.results, newResults)
+            results: _extends({}, contextForThisParentSub.results, newResults)
           });
         }
       },
@@ -4612,6 +4614,7 @@ function buildQueryDefinitionStateManager(opts) {
           var _setQuerying = (_opts$smContext$ongoi2 = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi2.setQuerying;
 
           _setQuerying && _setQuerying(false);
+          opts.handlers.setQuerying(false);
         }
       }
     });
@@ -4627,26 +4630,35 @@ function buildQueryDefinitionStateManager(opts) {
   }
 
   if (opts.data.error) throw opts.data.error;
+  var suspendPromise = undefined;
 
   if (Object.keys(suspendDisabled).length) {
-    handleNewQueryDefitions({
-      queryDefinitions: suspendDisabled,
-      parentSubscriptionId: parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendDisabled,
-      suspend: false
-    });
+    try {
+      handleNewQueryDefitions({
+        queryDefinitions: suspendDisabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendDisabled,
+        suspend: false
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
 
   if (Object.keys(suspendEnabled).length) {
-    var suspendPromise = handleNewQueryDefitions({
-      queryDefinitions: suspendEnabled,
-      parentSubscriptionId: parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendEnabled,
-      suspend: true
-    });
-    if (suspendPromise) throw suspendPromise;
+    try {
+      suspendPromise = handleNewQueryDefitions({
+        queryDefinitions: suspendEnabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendEnabled,
+        suspend: true
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
 
+  if (suspendPromise) throw suspendPromise;
   return {
     data: opts.data.results,
     error: opts.data.error,

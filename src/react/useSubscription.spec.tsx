@@ -245,6 +245,73 @@ test('if the query record provided is updated, performs a new query and returns 
   expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
+test('"querying" is true until all queries in the query definition record resolve', async done => {
+  const { smJS } = setupTests();
+  let requestIdx = 0;
+  smJS.gqlClient.query = jest.fn(() => {
+    return new Promise(res => {
+      if (requestIdx === 0) {
+        setTimeout(() => {
+          res({
+            users: mockQueryDataReturn.users,
+            usersNotSuspended: mockQueryDataReturn.users,
+          });
+        }, 300);
+        requestIdx++;
+      } else {
+        setTimeout(() => {
+          res({
+            users: mockQueryDataReturn.users,
+            usersNotSuspended: mockQueryDataReturn.users,
+          });
+        }, 100);
+      }
+    });
+  });
+
+  function MyComponent() {
+    try {
+      const { data, querying } = useSubscription({
+        users: createMockQueryDefinitions(smJS, {
+          useUnder: true,
+        }).users,
+        usersNotSuspended: createMockQueryDefinitions(smJS, {
+          useUnder: true,
+          doNotSuspend: true,
+        }).users,
+      });
+
+      if (querying) return <>querying</>;
+      if (!data.users || !data.usersNotSuspended) {
+        done(new Error('Unexpected null result'));
+        return null;
+      }
+      const text = `${data.users[0].id}+${data.usersNotSuspended[0].id}`;
+      return <>{text}</>;
+    } catch (e) {
+      if (e instanceof Promise) {
+        throw e;
+      }
+      done(e);
+      return null;
+    }
+  }
+
+  const result = render(
+    <React.Suspense fallback="suspense-fallback">
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText(
+    `${mockQueryDataReturn.users[0].id}+${mockQueryDataReturn.users[0].id}`
+  );
+  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+  done();
+});
+
 test('if the query record provided is updated, unsubscribes from the previously established subscription', async done => {
   const { smJS } = setupTests();
   const mockUnsub = jest.fn();
