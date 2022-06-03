@@ -4396,7 +4396,7 @@ function useSubscription(queryDefinitions, opts) {
     // to memoize all of their query definitions, which seems overkill
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [smContext, subscriptionId]);
-  if (qdError) throw qdError;
+  if (error || qdError) throw error || qdError;
   return qdStateManager;
 }
 
@@ -4627,26 +4627,35 @@ function buildQueryDefinitionStateManager(opts) {
   }
 
   if (opts.data.error) throw opts.data.error;
+  var suspendPromise = undefined;
 
   if (Object.keys(suspendDisabled).length) {
-    handleNewQueryDefitions({
-      queryDefinitions: suspendDisabled,
-      parentSubscriptionId: parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendDisabled,
-      suspend: false
-    });
+    try {
+      handleNewQueryDefitions({
+        queryDefinitions: suspendDisabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendDisabled,
+        suspend: false
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
 
   if (Object.keys(suspendEnabled).length) {
-    var suspendPromise = handleNewQueryDefitions({
-      queryDefinitions: suspendEnabled,
-      parentSubscriptionId: parentSubscriptionId,
-      subscriptionSuffix: subscriptionIds.suspendEnabled,
-      suspend: true
-    });
-    if (suspendPromise) throw suspendPromise;
+    try {
+      suspendPromise = handleNewQueryDefitions({
+        queryDefinitions: suspendEnabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendEnabled,
+        suspend: true
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+    }
   }
 
+  if (suspendPromise) throw suspendPromise;
   return {
     data: opts.data.results,
     error: opts.data.error,
