@@ -30,7 +30,9 @@ function splitQueryDefinitionsByToken<
   return Object.entries(queryDefinitions).reduce(
     (split, [alias, queryDefinition]) => {
       const tokenName =
-        'tokenName' in queryDefinition && queryDefinition.tokenName != null
+        queryDefinition &&
+        'tokenName' in queryDefinition &&
+        queryDefinition.tokenName != null
           ? queryDefinition.tokenName
           : DEFAULT_TOKEN_NAME;
 
@@ -42,6 +44,51 @@ function splitQueryDefinitionsByToken<
       return split;
     },
     {} as Record<string, TQueryDefinitions>
+  );
+}
+
+function removeNullishQueryDefinitions<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [alias, queryDefinition]) => {
+      if (!queryDefinition) return acc;
+      acc[
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
+      return acc;
+    },
+    {} as TQueryDefinitions
+  );
+}
+
+function getNullishResults<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [key, queryDefinition]) => {
+      if (queryDefinition == null)
+        acc[key as keyof TQueryDefinitions] = null as QueryDataReturn<
+          TQueryDefinitions
+        >[keyof TQueryDefinitions];
+
+      return acc;
+    },
+    {} as QueryDataReturn<TQueryDefinitions>
   );
 }
 
@@ -96,8 +143,12 @@ export function generateQuerier({
       return token;
     }
 
-    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+    const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
       queryDefinitions
+    );
+    const nullishResults = getNullishResults(queryDefinitions);
+    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+      nonNullishQueryDefinitions
     );
 
     async function performQueries() {
@@ -105,7 +156,7 @@ export function generateQuerier({
         Object.entries(queryDefinitionsSplitByToken).map(
           ([tokenName, queryDefinitions]) => {
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
-              queryDefinitions,
+              queryDefinitions: queryDefinitions,
               queryId: queryId + '_' + tokenName,
             });
 
@@ -118,27 +169,41 @@ export function generateQuerier({
         )
       );
 
-      return allResults.reduce((acc, resultsForToken) => {
-        return {
-          ...acc,
-          ...resultsForToken,
-        };
-      }, {});
+      return allResults.reduce(
+        (acc, resultsForToken) => {
+          return {
+            ...acc,
+            ...resultsForToken,
+          };
+        },
+        { ...nullishResults }
+      );
     }
 
     try {
+      if (!Object.keys(nonNullishQueryDefinitions).length) {
+        opts?.onData && opts.onData({ results: { ...nullishResults } });
+
+        return {
+          data: { ...nullishResults },
+          error: undefined,
+        };
+      }
       const results = await performQueries();
 
       const qM =
         queryManager ||
         new smJSInstance.SMQueryManager(
           convertQueryDefinitionToQueryInfo({
-            queryDefinitions,
+            queryDefinitions: nonNullishQueryDefinitions,
             queryId,
           }).queryRecord
         );
       try {
-        qM.onQueryResult({ queryId, queryResult: results });
+        qM.onQueryResult({
+          queryId,
+          queryResult: results,
+        });
       } catch (e) {
         const error = getError(
           new Error(`Error applying query results`),
@@ -155,10 +220,13 @@ export function generateQuerier({
 
       const qmResults = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
 
-      opts?.onData && opts.onData({ results: qmResults });
+      opts?.onData &&
+        opts.onData({ results: { ...nullishResults, ...qmResults } });
 
       return {
-        data: qmResults as QueryDataReturn<TQueryDefinitions>,
+        data: { ...nullishResults, ...qmResults } as QueryDataReturn<
+          TQueryDefinitions
+        >,
         error: undefined,
       };
     } catch (e) {
@@ -205,8 +273,21 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
     const startStack = new Error().stack as string;
     const queryId = opts?.queryId || `smQuery${subscriptionId++}`;
+    const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
+      queryDefinitions
+    );
+    const nullishResults = getNullishResults(queryDefinitions);
+
+    if (!Object.keys(nonNullishQueryDefinitions).length) {
+      // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
+      // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
+      setTimeout(() => {
+        opts.onData({ results: { ...nullishResults } });
+      });
+      return { data: { ...nullishResults }, unsub: () => {} } as ReturnType;
+    }
     const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
-      queryDefinitions,
+      queryDefinitions: nonNullishQueryDefinitions,
       queryId,
     });
 
@@ -286,7 +367,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }> = [];
     function initSubs() {
       const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-        queryDefinitions
+        nonNullishQueryDefinitions
       );
 
       Object.entries(queryDefinitionsSplitByToken).forEach(
@@ -316,9 +397,10 @@ export function generateSubscriber(smJSInstance: ISMJS) {
                   // and we should simply expose a "delta" from the message
                   // probably don't need a query manager in that case either.
                   opts.onData({
-                    results: queryManager.getResults() as QueryDataReturn<
-                      TQueryDefinitions
-                    >,
+                    results: {
+                      ...nullishResults,
+                      ...queryManager.getResults(),
+                    } as QueryDataReturn<TQueryDefinitions>,
                   });
                 },
                 onError: e => {
@@ -393,13 +475,21 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         messageQueue.length = 0;
       }
 
-      const data = queryManager.getResults() as QueryDataReturn<
+      const qmResults = queryManager.getResults() as QueryDataReturn<
         TQueryDefinitions
       >;
 
-      opts.onData({ results: data as QueryDataReturn<TQueryDefinitions> });
+      // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
+      // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
+      setTimeout(() => {
+        opts.onData({ results: { ...nullishResults, ...qmResults } });
+      });
 
-      return { data, unsub, error: null } as ReturnType;
+      return {
+        data: { ...nullishResults, ...qmResults },
+        unsub,
+        error: null,
+      } as ReturnType;
     }
   };
 }

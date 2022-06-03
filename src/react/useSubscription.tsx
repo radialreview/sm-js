@@ -175,6 +175,7 @@ function splitQueryDefinitions<
   return Object.entries(queryDefinitions).reduce(
     (split, [alias, queryDefinition]) => {
       const suspend =
+        queryDefinition &&
         'useSubOpts' in queryDefinition &&
         queryDefinition.useSubOpts?.doNotSuspend != null
           ? !queryDefinition.useSubOpts.doNotSuspend

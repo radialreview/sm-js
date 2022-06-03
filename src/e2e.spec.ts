@@ -2178,6 +2178,72 @@ test(
   TIMEOUT_MS
 );
 
+test('querying with a null queryDefinition returns null and performs no actual queries', async () => {
+  const { smJSInstance } = await getReferenceTestUtils();
+  smJSInstance.gqlClient.query = jest.fn();
+  const { data } = await smJSInstance.query({
+    test: null,
+  });
+  expect(data.test).toBe(null);
+  expect(smJSInstance.gqlClient.query).not.toHaveBeenCalled();
+});
+
+test('subscribing with a null queryDefinition returns null and performs no actual queries or subscriptions', async done => {
+  const { smJSInstance } = await getReferenceTestUtils();
+  smJSInstance.gqlClient.query = jest.fn();
+  smJSInstance.gqlClient.subscribe = jest.fn();
+  const { unsub } = await smJSInstance.subscribe(
+    {
+      test: null,
+    },
+    {
+      onData: ({ results }) => {
+        expect(results.test).toBe(null);
+        expect(smJSInstance.gqlClient.query).not.toHaveBeenCalled();
+        expect(smJSInstance.gqlClient.subscribe).not.toHaveBeenCalled();
+        unsub();
+        done();
+      },
+    }
+  );
+});
+
+test(
+  'querying with a mix of null and non null queryDefinitions produces the expected results',
+  async () => {
+    const { smJSInstance } = await getReferenceTestUtils();
+    const { data } = await smJSInstance.query({
+      ...createMockQueryDefinitions(smJSInstance),
+      test: null,
+    });
+    expect(data.test).toBe(null);
+    expect(data.users).toBeInstanceOf(Array);
+  },
+  TIMEOUT_MS
+);
+
+test(
+  'subscribing with a mix of null and non null queryDefinitions produces the expected results',
+  async done => {
+    const { smJSInstance } = await getReferenceTestUtils();
+    const { unsub } = await smJSInstance.subscribe(
+      {
+        ...createMockQueryDefinitions(smJSInstance),
+        test: null,
+      },
+      {
+        onData: ({ results }) => {
+          expect(results.test).toBe(null);
+          expect(results.users).toBeInstanceOf(Array);
+          unsub();
+          done();
+        },
+      }
+    );
+  },
+  TIMEOUT_MS
+);
+
 async function getToken(opts: {
   authUrl: string;
   email: string;

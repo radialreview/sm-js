@@ -811,6 +811,16 @@ const stateNode: StateNode = smJS.def({
     // @ts-expect-error
     badProp: 'test',
   });
+
+  const queryThing = false;
+  const withNull = useSubscription({
+    results: queryThing
+      ? queryDefinition({ def: userNode, map: undefined })
+      : null,
+  });
+
+  // @ts-expect-error no null check
+  withNull.data.results[0].address;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
