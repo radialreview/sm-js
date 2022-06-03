@@ -374,8 +374,9 @@ function buildQueryDefinitionStateManager<
     const setQuerying =
       opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]
         ?.setQuerying;
-
     setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
+
     const suspendPromise = opts.smContext.smJSInstance
       .subscribe(queryDefinitions, {
         onData: ({ results: newResults }) => {
@@ -388,13 +389,13 @@ function buildQueryDefinitionStateManager<
               opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
             contextForThisParentSub.onResults &&
               contextForThisParentSub.onResults({
-                ...opts.data.results,
+                ...contextForThisParentSub.results,
                 ...newResults,
               });
             opts.smContext.updateSubscriptionInfo(
               subOpts.parentSubscriptionId,
               {
-                results: { ...opts.data.results, ...newResults },
+                results: { ...contextForThisParentSub.results, ...newResults },
               }
             );
           }
@@ -450,6 +451,7 @@ function buildQueryDefinitionStateManager<
               opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]
                 ?.setQuerying;
             setQuerying && setQuerying(false);
+            opts.handlers.setQuerying(false);
           }
         }
       });

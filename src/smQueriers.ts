@@ -176,6 +176,7 @@ export function generateQuerier({
   };
 }
 
+let subscriptionId = 0;
 export function generateSubscriber(smJSInstance: ISMJS) {
   return async function subscribe<
     TSMNode,
@@ -203,7 +204,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
 
     // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
     const startStack = new Error().stack as string;
-    const queryId = opts?.queryId || `smQuery${queryIdx++}`;
+    const queryId = opts?.queryId || `smQuery${subscriptionId++}`;
     const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
       queryDefinitions,
       queryId,
