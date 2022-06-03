@@ -3356,6 +3356,7 @@ function generateQuerier(_ref2) {
     return query;
   }();
 }
+var subscriptionId = 0;
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
@@ -3467,7 +3468,7 @@ function generateSubscriber(smJSInstance) {
 
               // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + subscriptionId++;
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: queryDefinitions,
                 queryId: queryId
@@ -4546,6 +4547,7 @@ function buildQueryDefinitionStateManager(opts) {
     });
     var setQuerying = (_opts$smContext$ongoi = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi.setQuerying;
     setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
     var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
@@ -4554,9 +4556,9 @@ function buildQueryDefinitionStateManager(opts) {
 
         if (thisQueryIsMostRecent) {
           var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, opts.data.results, newResults));
+          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
           opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-            results: _extends({}, opts.data.results, newResults)
+            results: _extends({}, contextForThisParentSub.results, newResults)
           });
         }
       },
@@ -4610,6 +4612,7 @@ function buildQueryDefinitionStateManager(opts) {
           var _setQuerying = (_opts$smContext$ongoi2 = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi2.setQuerying;
 
           _setQuerying && _setQuerying(false);
+          opts.handlers.setQuerying(false);
         }
       }
     });
