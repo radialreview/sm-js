@@ -279,11 +279,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     const nullishResults = getNullishResults(queryDefinitions);
 
     if (!Object.keys(nonNullishQueryDefinitions).length) {
-      // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
-      // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
-      setTimeout(() => {
-        opts.onData({ results: { ...nullishResults } });
-      });
+      opts.onData({ results: { ...nullishResults } });
       return { data: { ...nullishResults }, unsub: () => {} } as ReturnType;
     }
     const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
@@ -479,11 +475,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
         TQueryDefinitions
       >;
 
-      // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
-      // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
-      setTimeout(() => {
-        opts.onData({ results: { ...nullishResults, ...qmResults } });
-      });
+      opts.onData({ results: { ...nullishResults, ...qmResults } });
 
       return {
         data: { ...nullishResults, ...qmResults },
