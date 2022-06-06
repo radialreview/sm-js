@@ -39,7 +39,16 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       uri: gqlClientOpts.httpUrl,
       batchMax: 50,
       batchInterval: 50,
-      batchKey: operation => operation.getContext().batchKey,
+      batchKey: operation => {
+        const context = operation.getContext();
+        // This ensures that requests with different batch keys, headers and credentials
+        // are batched separately
+        return JSON.stringify({
+          batchKey: context.batchKey,
+          headers: context.headers,
+          credentials: context.credentials,
+        });
+      },
     }),
     nonBatchedLink
   );
