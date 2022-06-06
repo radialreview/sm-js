@@ -3248,11 +3248,16 @@ function generateQuerier(_ref4) {
                             }),
                                 queryGQL = _convertQueryDefiniti.queryGQL;
 
-                            return smJSInstance.gqlClient.query({
+                            var queryOpts = {
                               gql: queryGQL,
-                              token: getToken(tokenName),
-                              batched: opts == null ? void 0 : opts.batched
-                            });
+                              token: getToken(tokenName)
+                            };
+
+                            if (opts && 'batchKey' in opts) {
+                              queryOpts.batchKey = opts.batchKey;
+                            }
+
+                            return smJSInstance.gqlClient.query(queryOpts);
                           }));
 
                         case 2:
@@ -3398,7 +3403,7 @@ var subscriptionId = 0;
 function generateSubscriber(smJSInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, _error2, qmResults;
+      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, queryOpts, _error2, qmResults;
 
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
@@ -3584,23 +3589,29 @@ function generateSubscriber(smJSInstance) {
                 queryManager: queryManager
               });
               _context3.prev = 37;
-              _context3.next = 40;
-              return query(queryDefinitions, {
-                queryId: opts.queryId,
-                batched: opts.batched
-              });
+              queryOpts = {
+                queryId: opts.queryId
+              };
 
-            case 40:
-              _context3.next = 51;
-              break;
+              if (opts && 'batchKey' in opts) {
+                queryOpts.batchKey = opts.batchKey;
+              } // this query method will post its results to the queryManager declared above
+
+
+              _context3.next = 42;
+              return query(queryDefinitions, queryOpts);
 
             case 42:
-              _context3.prev = 42;
+              _context3.next = 53;
+              break;
+
+            case 44:
+              _context3.prev = 44;
               _context3.t1 = _context3["catch"](37);
               _error2 = getError(new Error("Error querying initial data set"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 50;
+                _context3.next = 52;
                 break;
               }
 
@@ -3611,10 +3622,10 @@ function generateSubscriber(smJSInstance) {
                 error: _error2
               });
 
-            case 50:
+            case 52:
               throw _error2;
 
-            case 51:
+            case 53:
               if (mustAwaitQuery) {
                 mustAwaitQuery = false;
                 messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
@@ -3631,12 +3642,12 @@ function generateSubscriber(smJSInstance) {
                 error: null
               });
 
-            case 55:
+            case 57:
             case "end":
               return _context3.stop();
           }
         }
-      }, _callee3, null, [[18, 23], [37, 42]]);
+      }, _callee3, null, [[18, 23], [37, 44]]);
     }));
 
     function subscribe(_x3, _x4) {
@@ -4604,6 +4615,7 @@ function buildQueryDefinitionStateManager(opts) {
     setQuerying && setQuerying(true);
     opts.handlers.setQuerying(true);
     var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
+      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextforThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
@@ -4733,11 +4745,14 @@ function getGQLCLient(gqlClientOpts) {
     uri: gqlClientOpts.httpUrl
   });
   var queryBatchLink = split(function (operation) {
-    return operation.getContext().batchedQuery !== false;
+    return operation.getContext().batchKey;
   }, new BatchHttpLink({
     uri: gqlClientOpts.httpUrl,
-    batchMax: 30,
-    batchInterval: 50
+    batchMax: 50,
+    batchInterval: 50,
+    batchKey: function batchKey(operation) {
+      return operation.getContext().batchKey;
+    }
   }), nonBatchedLink);
   var mutationBatchLink = split(function (operation) {
     return operation.getContext().batchedMutation;
@@ -4829,7 +4844,9 @@ function getGQLCLient(gqlClientOpts) {
                 return baseClient.query({
                   query: opts.gql,
                   context: _extends({
-                    batchedQuery: opts.batched != null ? opts.batched : true
+                    // allow turning off batching by specifying a null or undefined batchKey
+                    // but by default, batch all requests into the same request batch
+                    batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
                   }, getContextWithToken({
                     token: opts.token
                   }))
