@@ -34,11 +34,12 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   });
 
   const queryBatchLink = split(
-    operation => operation.getContext().batchedQuery !== false,
+    operation => operation.getContext().batchKey,
     new BatchHttpLink({
       uri: gqlClientOpts.httpUrl,
-      batchMax: 30,
+      batchMax: 50,
       batchInterval: 50,
+      batchKey: operation => operation.getContext().batchKey,
     }),
     nonBatchedLink
   );
@@ -154,7 +155,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       const { data } = await baseClient.query({
         query: opts.gql,
         context: {
-          batchedQuery: opts.batched != null ? opts.batched : true,
+          // allow turning off batching by specifying a null or undefined batchKey
+          // but by default, batch all requests into the same request batch
+          batchKey: 'batchKey' in opts ? opts.batchKey : 'default',
           ...getContextWithToken({ token: opts.token }),
         },
       });

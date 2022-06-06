@@ -380,6 +380,7 @@ function buildQueryDefinitionStateManager<
 
     const suspendPromise = opts.smContext.smJSInstance
       .subscribe(queryDefinitions, {
+        batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
         onData: ({ results: newResults }) => {
           const contextforThisSub =
             opts.smContext.ongoingSubscriptionRecord[subscriptionId];

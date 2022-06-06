@@ -13,6 +13,7 @@ import {
   SubscriptionOpts,
   SubscriptionMeta,
   SubscriptionCanceller,
+  ISMGQLClient,
 } from './types';
 
 let queryIdx = 0;
@@ -160,11 +161,15 @@ export function generateQuerier({
               queryId: queryId + '_' + tokenName,
             });
 
-            return smJSInstance.gqlClient.query({
+            const queryOpts: Parameters<ISMGQLClient['query']>[0] = {
               gql: queryGQL,
               token: getToken(tokenName),
-              batched: opts?.batched,
-            });
+            };
+            if (opts && 'batchKey' in opts) {
+              queryOpts.batchKey = opts.batchKey;
+            }
+
+            return smJSInstance.gqlClient.query(queryOpts);
           }
         )
       );
@@ -446,11 +451,14 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     } else {
       const query = generateQuerier({ smJSInstance, queryManager });
       try {
-        // this query method will post its results to the queryManager declared above
-        await query(queryDefinitions, {
+        const queryOpts: Parameters<typeof query>[1] = {
           queryId: opts.queryId,
-          batched: opts.batched,
-        });
+        };
+        if (opts && 'batchKey' in opts) {
+          queryOpts.batchKey = opts.batchKey;
+        }
+        // this query method will post its results to the queryManager declared above
+        await query(queryDefinitions, queryOpts);
       } catch (e) {
         const error = getError(
           new Error(`Error querying initial data set`),

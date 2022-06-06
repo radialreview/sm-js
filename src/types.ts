@@ -45,7 +45,7 @@ export interface ISMGQLClient {
   query(opts: {
     gql: DocumentNode;
     token: string;
-    batched?: boolean;
+    batchKey?: string;
   }): Promise<any>;
   subscribe(opts: {
     gql: DocumentNode;
@@ -87,7 +87,7 @@ export type QueryOpts<
   // This is by design, for consistency with the interface of sm.subscribe
   onError?: (...args: any) => void;
   queryId?: string;
-  batched?: boolean;
+  batchKey?: string;
 };
 
 export type SubscriptionOpts<
@@ -114,7 +114,7 @@ export type SubscriptionOpts<
   }) => void;
   skipInitialQuery?: boolean;
   queryId?: string;
-  batched?: boolean;
+  batchKey?: string;
 };
 
 export type SubscriptionCanceller = () => void;
