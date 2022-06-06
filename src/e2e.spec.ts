@@ -2192,7 +2192,7 @@ test('subscribing with a null queryDefinition returns null and performs no actua
   const { smJSInstance } = await getReferenceTestUtils();
   smJSInstance.gqlClient.query = jest.fn();
   smJSInstance.gqlClient.subscribe = jest.fn();
-  const { unsub } = await smJSInstance.subscribe(
+  const subscriptionResult = await smJSInstance.subscribe(
     {
       test: null,
     },
@@ -2201,8 +2201,8 @@ test('subscribing with a null queryDefinition returns null and performs no actua
         expect(results.test).toBe(null);
         expect(smJSInstance.gqlClient.query).not.toHaveBeenCalled();
         expect(smJSInstance.gqlClient.subscribe).not.toHaveBeenCalled();
-        unsub();
         done();
+        setTimeout(() => subscriptionResult.unsub());
       },
     }
   );
@@ -2226,7 +2226,7 @@ test(
   'subscribing with a mix of null and non null queryDefinitions produces the expected results',
   async done => {
     const { smJSInstance } = await getReferenceTestUtils();
-    const { unsub } = await smJSInstance.subscribe(
+    const subscriptionResult = await smJSInstance.subscribe(
       {
         ...createMockQueryDefinitions(smJSInstance),
         test: null,
@@ -2235,7 +2235,7 @@ test(
         onData: ({ results }) => {
           expect(results.test).toBe(null);
           expect(results.users).toBeInstanceOf(Array);
-          unsub();
+          setTimeout(() => subscriptionResult.unsub());
           done();
         },
       }
