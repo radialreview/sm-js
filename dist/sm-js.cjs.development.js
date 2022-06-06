@@ -3517,12 +3517,8 @@ function generateSubscriber(smJSInstance) {
                 break;
               }
 
-              // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
-              // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
-              setTimeout(function () {
-                opts.onData({
-                  results: _extends({}, nullishResults)
-                });
+              opts.onData({
+                results: _extends({}, nullishResults)
               });
               return _context3.abrupt("return", {
                 data: _extends({}, nullishResults),
@@ -3627,13 +3623,9 @@ function generateSubscriber(smJSInstance) {
                 messageQueue.length = 0;
               }
 
-              qmResults = queryManager.getResults(); // if we call onData before we return, and we're relying on the return value to call "unsub" from "onData", it blows up
-              // adding this 0 timeout prevents that, by postponing onData being executed until after this fn returns
-
-              setTimeout(function () {
-                opts.onData({
-                  results: _extends({}, nullishResults, qmResults)
-                });
+              qmResults = queryManager.getResults();
+              opts.onData({
+                results: _extends({}, nullishResults, qmResults)
               });
               return _context3.abrupt("return", {
                 data: _extends({}, nullishResults, qmResults),
