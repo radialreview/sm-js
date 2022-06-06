@@ -34,7 +34,7 @@ export interface ISMGQLClient {
     query(opts: {
         gql: DocumentNode;
         token: string;
-        batched?: boolean;
+        batchKey?: string;
     }): Promise<any>;
     subscribe(opts: {
         gql: DocumentNode;
@@ -73,7 +73,7 @@ export declare type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
     }) => void;
     onError?: (...args: any) => void;
     queryId?: string;
-    batched?: boolean;
+    batchKey?: string;
 };
 export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
     onData: (info: {
@@ -87,7 +87,7 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
     }) => void;
     skipInitialQuery?: boolean;
     queryId?: string;
-    batched?: boolean;
+    batchKey?: string;
 };
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
