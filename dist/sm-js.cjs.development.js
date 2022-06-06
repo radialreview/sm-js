@@ -4753,7 +4753,14 @@ function getGQLCLient(gqlClientOpts) {
     batchMax: 50,
     batchInterval: 50,
     batchKey: function batchKey(operation) {
-      return operation.getContext().batchKey;
+      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
+      // are batched separately
+
+      return JSON.stringify({
+        batchKey: context.batchKey,
+        headers: context.headers,
+        credentials: context.credentials
+      });
     }
   }), nonBatchedLink);
   var mutationBatchLink = core.split(function (operation) {
