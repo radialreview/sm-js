@@ -4588,14 +4588,15 @@ function buildQueryDefinitionStateManager(opts) {
 
     var newQueryInfo;
     var newQueryDefinitionsAreAllNull;
+    var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
 
-    if (preExistingContextForThisSubscription != null && preExistingContextForThisSubscription.queryInfo) {
+    if (preExistingQueryInfo) {
       var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
 
       if (Object.keys(nonNullishQueryDefinitions).length) {
         newQueryInfo = convertQueryDefinitionToQueryInfo({
           queryDefinitions: nonNullishQueryDefinitions,
-          queryId: preExistingContextForThisSubscription.queryInfo.queryId
+          queryId: preExistingQueryInfo.queryId
         });
       } else {
         newQueryDefinitionsAreAllNull = true;
@@ -4605,7 +4606,7 @@ function buildQueryDefinitionStateManager(opts) {
       }
     }
 
-    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo) && preExistingContextForThisSubscription.queryInfo.queryGQL !== newQueryInfo.queryGQL;
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL);
 
     if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
       return preExistingContextForThisSubscription.suspendPromise;
