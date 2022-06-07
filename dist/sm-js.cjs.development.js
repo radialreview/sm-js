@@ -3697,13 +3697,15 @@ function createSMQueryManager(smJSInstance) {
           subscriptionAlias = opts.subscriptionAlias;
       var queryRecordEntryForThisSubscription = this.queryRecord[subscriptionAlias];
 
-      if (operation.action === 'DeleteNode' && operation.path === node.id) {
+      if ((operation.action === 'DeleteNode' || operation.action === 'DeleteEdge') && operation.path === node.id) {
         var idsOrIdInCurrentResult = this.state[opts.subscriptionAlias].idsOrIdInCurrentResult;
 
         if (Array.isArray(idsOrIdInCurrentResult)) {
           this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(function (id) {
             return id !== node.id;
           });
+        } else {
+          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
         }
 
         return;
