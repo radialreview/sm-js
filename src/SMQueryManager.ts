@@ -69,30 +69,10 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       queryId: string;
       subscriptionAlias: string;
     }) {
-      const { node, operation, subscriptionAlias } = opts;
+      const { node, subscriptionAlias } = opts;
       const queryRecordEntryForThisSubscription = this.queryRecord[
         subscriptionAlias
       ];
-
-      if (
-        (operation.action === 'DeleteNode' ||
-          operation.action === 'DeleteEdge') &&
-        operation.path === node.id
-      ) {
-        const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
-          .idsOrIdInCurrentResult;
-        if (Array.isArray(idsOrIdInCurrentResult)) {
-          this.state[
-            opts.subscriptionAlias
-          ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
-            id => id !== node.id
-          );
-        } else {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
-        }
-
-        return;
-      }
 
       this.notifyRepositories({
         data: {
@@ -351,8 +331,32 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     public updateProxiesAndStateFromSubscriptionMessage(opts: {
       node: any;
       queryId: string;
+      operation: {
+        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
+        path: string;
+      };
       subscriptionAlias: string;
     }) {
+      if (
+        (opts.operation.action === 'DeleteNode' ||
+          opts.operation.action === 'DeleteEdge') &&
+        opts.operation.path === opts.node.id
+      ) {
+        const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
+          .idsOrIdInCurrentResult;
+        if (Array.isArray(idsOrIdInCurrentResult)) {
+          this.state[
+            opts.subscriptionAlias
+          ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
+            id => id !== node.id
+          );
+        } else {
+          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
+        }
+
+        return;
+      }
+
       const { node, queryId, subscriptionAlias } = opts;
       const queryRecordEntryForThisSubscription = this.queryRecord[
         subscriptionAlias
