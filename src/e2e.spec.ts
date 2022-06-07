@@ -10,6 +10,7 @@ import {
   reference,
 } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
+
 import { array, referenceArray } from './smDataTypes';
 import { createMockQueryDefinitions } from './specUtilities';
 import {
@@ -101,15 +102,30 @@ type ThingNode = ISMNode<
   {}
 >;
 
+const ALT_TOKEN_NAME = 'alt-token';
 async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
-  const tokenInfo = await getToken(env.credentials);
+  const { authUrl, email, password, altEmail, altPassword } = env.credentials;
 
+  const tokenInfo = await getToken({ authUrl, email, password });
   smJSInstance.setToken({
     tokenName: DEFAULT_TOKEN_NAME,
     token: tokenInfo.token,
   });
+
+  let altTokenInfo;
+  if (altEmail && altPassword) {
+    altTokenInfo = await getToken({
+      authUrl,
+      email: altEmail,
+      password: altPassword,
+    });
+    smJSInstance.setToken({
+      tokenName: ALT_TOKEN_NAME,
+      token: altTokenInfo.token,
+    });
+  }
 
   const mockThingDef: ThingNode = smJSInstance.def({
     type: 'mock-thing',
@@ -140,13 +156,15 @@ async function setupTest() {
     smJSInstance,
     token: tokenInfo.token,
     userId: tokenInfo.id,
+    altToken: altTokenInfo?.token,
+    altUserId: altTokenInfo?.id,
     mockThingDef,
     mockTodoDef,
     mockUserDef,
   };
 }
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 150000;
 
 test(
   'querying data from SM works',
@@ -2179,70 +2197,72 @@ test(
   TIMEOUT_MS
 );
 
-// I can't actually write a test for this until this test suite accepts 2 sets of credentials
-// so that I can create the node under user A, give view permissions to user B, then revoke those permissions
-// This existing test fails with the error: "Dropping this edge would render the target unreachable for View access."
-// because I can't delete the only incoming edge from user A to the thing I'm creating
-// test(
-//   'losing view access to a node being queried causes the subscription to return null',
-//   async done => {
-//     const { smJSInstance, mockThingDef, userId } = await setupTest();
+test(
+  'losing view access to a node being queried causes the subscription to return null',
+  async done => {
+    const { smJSInstance, userId, mockThingDef, altUserId } = await setupTest();
 
-//     const transactionResult = await smJSInstance
-//       .transaction(ctx => {
-//         ctx.createNode({
-//           data: {
-//             type: mockThingDef.type,
-//           },
-//         });
-//       })
-//       .execute();
+    if (!altUserId) done(new Error('No alt user id found'));
 
-//     const thingId = transactionResult[0].data.CreateNodes[0].id as string;
+    const transactionResult = await smJSInstance
+      .transaction(
+        ctx => {
+          ctx.createNode({
+            data: {
+              type: mockThingDef.type,
+            },
+            under: [altUserId as string, userId],
+          });
+        },
+        { tokenName: ALT_TOKEN_NAME }
+      )
+      .execute();
 
-//     await new Promise<void>(res =>
-//       setTimeout(() => {
-//         res();
-//       }, 1000)
-//     );
-//     let iterationIdx = 0;
-//     const subResult = await smJSInstance.subscribe(
-//       {
-//         thing: queryDefinition({
-//           def: mockThingDef,
-//           map: undefined,
-//           target: {
-//             id: thingId,
-//             allowNullResult: true,
-//           },
-//         }),
-//       },
-//       {
-//         onData: ({ results }) => {
-//           if (iterationIdx === 0) {
-//             expect(results.thing).not.toBe(null);
-//             smJSInstance
-//               .transaction(ctx => {
-//                 ctx.dropEdge({
-//                   edge: {
-//                     from: userId,
-//                     to: thingId,
-//                   },
-//                 });
-//               })
-//               .execute();
-//           } else if (iterationIdx === 1) {
-//             expect(results.thing).toBe(null);
-//             done();
-//             subResult.unsub();
-//           }
-//           iterationIdx++;
-//         },
-//       }
-//     );
-//   },
-//   TIMEOUT_MS
-// );
+    const thingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+    let iterationIdx = 0;
+    const subResult = await smJSInstance.subscribe(
+      {
+        thing: queryDefinition({
+          def: mockThingDef,
+          map: undefined,
+          target: {
+            id: thingId,
+            allowNullResult: true,
+          },
+        }),
+      },
+      {
+        onData: ({ results }) => {
+          if (iterationIdx === 0) {
+            expect(results.thing).not.toBe(null);
+            smJSInstance
+              .transaction(
+                ctx => {
+                  ctx.dropEdge({
+                    edge: {
+                      from: userId,
+                      to: thingId,
+                    },
+                  });
+                },
+                { tokenName: ALT_TOKEN_NAME }
+              )
+              .execute();
+          }
+
+          if (results.thing == null) {
+            done();
+            subResult.unsub();
+          }
+
+          iterationIdx++;
+        },
+      }
+    );
+  },
+  TIMEOUT_MS
+);
 
 test('querying with a null queryDefinition returns null and performs no actual queries', async () => {
   const { smJSInstance } = await getReferenceTestUtils();
@@ -2318,7 +2338,7 @@ async function getToken(opts: {
   const data = await fetch(opts.authUrl, {
     method: 'POST',
     headers: {
-      applicationId: '1',
+      applicationid: env.applicationId || '1',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -2333,5 +2353,8 @@ async function getToken(opts: {
     .catch(console.log);
 
   if (!data.orgUserToken) throw Error('Failed to get token');
-  return { token: data.orgUserToken, id: data.orgUserId };
+  return {
+    token: data.orgUserToken,
+    id: data.orgUserId,
+  };
 }
