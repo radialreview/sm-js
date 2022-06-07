@@ -22,7 +22,7 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
         onSubscriptionMessage(opts: {
             node: Record<string, any>;
             operation: {
-                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode';
+                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
                 path: string;
             };
             queryId: string;
@@ -64,6 +64,10 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
         updateProxiesAndStateFromSubscriptionMessage(opts: {
             node: any;
             queryId: string;
+            operation: {
+                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
+                path: string;
+            };
             subscriptionAlias: string;
         }): void;
         recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
