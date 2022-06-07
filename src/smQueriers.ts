@@ -48,7 +48,7 @@ function splitQueryDefinitionsByToken<
   );
 }
 
-function removeNullishQueryDefinitions<
+export function removeNullishQueryDefinitions<
   TSMNode,
   TMapFn,
   TQueryDefinitionTarget,

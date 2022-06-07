@@ -12,7 +12,7 @@ export interface ISMContextSubscription {
     queryInfo?: {
         queryGQL: DocumentNode;
         queryId: string;
-    };
+    } | null;
     lastQueryTimestamp?: number;
 }
 export interface ISMContext {

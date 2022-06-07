@@ -4587,15 +4587,25 @@ function buildQueryDefinitionStateManager(opts) {
     }
 
     var newQueryInfo;
+    var newQueryDefinitionsAreAllNull;
 
     if (preExistingContextForThisSubscription != null && preExistingContextForThisSubscription.queryInfo) {
-      newQueryInfo = convertQueryDefinitionToQueryInfo({
-        queryDefinitions: subOpts.queryDefinitions,
-        queryId: preExistingContextForThisSubscription.queryInfo.queryId
-      });
+      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
+
+      if (Object.keys(nonNullishQueryDefinitions).length) {
+        newQueryInfo = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: nonNullishQueryDefinitions,
+          queryId: preExistingContextForThisSubscription.queryInfo.queryId
+        });
+      } else {
+        newQueryDefinitionsAreAllNull = true;
+        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: null
+        });
+      }
     }
 
-    var queryDefinitionHasBeenUpdated = newQueryInfo && (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo) && preExistingContextForThisSubscription.queryInfo.queryGQL !== newQueryInfo.queryGQL;
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo) && preExistingContextForThisSubscription.queryInfo.queryGQL !== newQueryInfo.queryGQL;
 
     if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
       return preExistingContextForThisSubscription.suspendPromise;
@@ -4692,12 +4702,10 @@ function buildQueryDefinitionStateManager(opts) {
       });
       return suspendPromise;
     }
-
-    return undefined;
   }
 
   if (opts.data.error) throw opts.data.error;
-  var suspendPromise = undefined;
+  var suspendPromise;
 
   if (Object.keys(suspendDisabled).length) {
     try {
@@ -4709,6 +4717,7 @@ function buildQueryDefinitionStateManager(opts) {
       });
     } catch (e) {
       opts.handlers.onError(e);
+      throw e;
     }
   }
 
@@ -4722,6 +4731,7 @@ function buildQueryDefinitionStateManager(opts) {
       });
     } catch (e) {
       opts.handlers.onError(e);
+      throw e;
     }
   }
 

@@ -9,7 +9,7 @@ export interface ISMContextSubscription {
   onResults?: (newResults: any) => void;
   onError?: (newError: any) => void;
   setQuerying?: (querying: boolean) => void;
-  queryInfo?: { queryGQL: DocumentNode; queryId: string };
+  queryInfo?: { queryGQL: DocumentNode; queryId: string } | null;
   lastQueryTimestamp?: number;
 }
 
