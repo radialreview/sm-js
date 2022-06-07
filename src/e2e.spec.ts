@@ -104,11 +104,11 @@ type ThingNode = ISMNode<
 async function setupTest() {
   const smJSInstance = new SMJS(getDefaultConfig());
 
-  const token = await getToken(env.credentials);
+  const tokenInfo = await getToken(env.credentials);
 
   smJSInstance.setToken({
     tokenName: DEFAULT_TOKEN_NAME,
-    token,
+    token: tokenInfo.token,
   });
 
   const mockThingDef: ThingNode = smJSInstance.def({
@@ -138,7 +138,8 @@ async function setupTest() {
 
   return {
     smJSInstance,
-    token,
+    token: tokenInfo.token,
+    userId: tokenInfo.id,
     mockThingDef,
     mockTodoDef,
     mockUserDef,
@@ -2178,6 +2179,71 @@ test(
   TIMEOUT_MS
 );
 
+// I can't actually write a test for this until this test suite accepts 2 sets of credentials
+// so that I can create the node under user A, give view permissions to user B, then revoke those permissions
+// This existing test fails with the error: "Dropping this edge would render the target unreachable for View access."
+// because I can't delete the only incoming edge from user A to the thing I'm creating
+// test(
+//   'losing view access to a node being queried causes the subscription to return null',
+//   async done => {
+//     const { smJSInstance, mockThingDef, userId } = await setupTest();
+
+//     const transactionResult = await smJSInstance
+//       .transaction(ctx => {
+//         ctx.createNode({
+//           data: {
+//             type: mockThingDef.type,
+//           },
+//         });
+//       })
+//       .execute();
+
+//     const thingId = transactionResult[0].data.CreateNodes[0].id as string;
+
+//     await new Promise<void>(res =>
+//       setTimeout(() => {
+//         res();
+//       }, 1000)
+//     );
+//     let iterationIdx = 0;
+//     const subResult = await smJSInstance.subscribe(
+//       {
+//         thing: queryDefinition({
+//           def: mockThingDef,
+//           map: undefined,
+//           target: {
+//             id: thingId,
+//             allowNullResult: true,
+//           },
+//         }),
+//       },
+//       {
+//         onData: ({ results }) => {
+//           if (iterationIdx === 0) {
+//             expect(results.thing).not.toBe(null);
+//             smJSInstance
+//               .transaction(ctx => {
+//                 ctx.dropEdge({
+//                   edge: {
+//                     from: userId,
+//                     to: thingId,
+//                   },
+//                 });
+//               })
+//               .execute();
+//           } else if (iterationIdx === 1) {
+//             expect(results.thing).toBe(null);
+//             done();
+//             subResult.unsub();
+//           }
+//           iterationIdx++;
+//         },
+//       }
+//     );
+//   },
+//   TIMEOUT_MS
+// );
+
 test('querying with a null queryDefinition returns null and performs no actual queries', async () => {
   const { smJSInstance } = await getReferenceTestUtils();
   smJSInstance.gqlClient.query = jest.fn();
@@ -2248,7 +2314,7 @@ async function getToken(opts: {
   authUrl: string;
   email: string;
   password: string;
-}): Promise<string> {
+}): Promise<{ token: string; id: string }> {
   const data = await fetch(opts.authUrl, {
     method: 'POST',
     headers: {
@@ -2267,5 +2333,5 @@ async function getToken(opts: {
     .catch(console.log);
 
   if (!data.orgUserToken) throw Error('Failed to get token');
-  return data.orgUserToken as string;
+  return { token: data.orgUserToken, id: data.orgUserId };
 }

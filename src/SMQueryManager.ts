@@ -63,7 +63,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     public onSubscriptionMessage(opts: {
       node: Record<string, any>;
       operation: {
-        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode';
+        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
         path: string;
       };
       queryId: string;
@@ -74,7 +74,11 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         subscriptionAlias
       ];
 
-      if (operation.action === 'DeleteNode' && operation.path === node.id) {
+      if (
+        (operation.action === 'DeleteNode' ||
+          operation.action === 'DeleteEdge') &&
+        operation.path === node.id
+      ) {
         const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
           .idsOrIdInCurrentResult;
         if (Array.isArray(idsOrIdInCurrentResult)) {
@@ -83,6 +87,8 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
           ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
             id => id !== node.id
           );
+        } else {
+          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
         }
 
         return;
