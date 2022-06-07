@@ -1,5 +1,6 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { removeNullishQueryDefinitions } from '../smQueriers';
 import {
   QueryDataReturn,
   UseSubscriptionReturn,
@@ -316,13 +317,11 @@ function buildQueryDefinitionStateManager<
     parentSubscriptionId: string;
     subscriptionSuffix: string;
     suspend: boolean;
-  }):
-    | Promise<
-        {
-          data: QueryDataReturn<TQueryDefinitions>;
-        } & SubscriptionMeta
-      >
-    | undefined {
+  }): Promise<
+    {
+      data: QueryDataReturn<TQueryDefinitions>;
+    } & SubscriptionMeta
+  > | void {
     const {
       queryDefinitions,
       parentSubscriptionId,
@@ -339,18 +338,32 @@ function buildQueryDefinitionStateManager<
     }
 
     let newQueryInfo;
-    if (preExistingContextForThisSubscription?.queryInfo) {
-      newQueryInfo = convertQueryDefinitionToQueryInfo({
-        queryDefinitions: subOpts.queryDefinitions,
-        queryId: preExistingContextForThisSubscription.queryInfo.queryId,
-      });
+    let newQueryDefinitionsAreAllNull;
+    const preExistingQueryInfo =
+      preExistingContextForThisSubscription?.queryInfo;
+    if (preExistingQueryInfo) {
+      const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
+        subOpts.queryDefinitions
+      );
+
+      if (Object.keys(nonNullishQueryDefinitions).length) {
+        newQueryInfo = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: nonNullishQueryDefinitions,
+          queryId: preExistingQueryInfo.queryId,
+        });
+      } else {
+        newQueryDefinitionsAreAllNull = true;
+        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: null,
+        });
+      }
     }
 
     const queryDefinitionHasBeenUpdated =
-      newQueryInfo &&
-      preExistingContextForThisSubscription?.queryInfo &&
-      preExistingContextForThisSubscription.queryInfo.queryGQL !==
-        newQueryInfo.queryGQL;
+      newQueryDefinitionsAreAllNull ||
+      (newQueryInfo &&
+        (!preExistingQueryInfo ||
+          preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL));
 
     if (
       preExistingContextForThisSubscription &&
@@ -465,13 +478,11 @@ function buildQueryDefinitionStateManager<
 
       return suspendPromise;
     }
-
-    return undefined;
   }
 
   if (opts.data.error) throw opts.data.error;
 
-  let suspendPromise: Promise<any> | undefined = undefined;
+  let suspendPromise: Promise<any> | void;
 
   if (Object.keys(suspendDisabled).length) {
     try {
@@ -483,6 +494,7 @@ function buildQueryDefinitionStateManager<
       });
     } catch (e) {
       opts.handlers.onError(e);
+      throw e;
     }
   }
 
@@ -496,6 +508,7 @@ function buildQueryDefinitionStateManager<
       });
     } catch (e) {
       opts.handlers.onError(e);
+      throw e;
     }
   }
 

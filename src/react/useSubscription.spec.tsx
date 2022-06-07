@@ -245,6 +245,40 @@ test('if the query record provided is updated, performs a new query and returns 
   expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
+test('handles a query definition switching from non nullish to nullish', async () => {
+  const { smJS } = setupTests();
+
+  function MyComponent() {
+    const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
+      false
+    );
+    const { data } = useSubscription(
+      updateQueryDefinition
+        ? { users: null }
+        : createMockQueryDefinitions(smJS, { useUnder: true })
+    );
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setUpdateQueryDefinition(true);
+      }, 200);
+    }, []);
+
+    return <>{data.users ? data.users[0].address.state : 'No users'}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <SMProvider smJS={smJS}>
+        <MyComponent />
+      </SMProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('FL');
+  await result.findByText('No users');
+});
+
 test('"querying" is true until all queries in the query definition record resolve', async done => {
   const { smJS } = setupTests();
   let requestIdx = 0;
