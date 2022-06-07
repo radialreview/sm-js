@@ -64,6 +64,10 @@ export declare function createSMQueryManager(smJSInstance: ISMJS): {
         updateProxiesAndStateFromSubscriptionMessage(opts: {
             node: any;
             queryId: string;
+            operation: {
+                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
+                path: string;
+            };
             subscriptionAlias: string;
         }): void;
         recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {

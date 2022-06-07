@@ -3691,24 +3691,8 @@ function createSMQueryManager(smJSInstance) {
       var _data, _queryRecord;
 
       var node = opts.node,
-          operation = opts.operation,
           subscriptionAlias = opts.subscriptionAlias;
       var queryRecordEntryForThisSubscription = this.queryRecord[subscriptionAlias];
-
-      if ((operation.action === 'DeleteNode' || operation.action === 'DeleteEdge') && operation.path === node.id) {
-        var idsOrIdInCurrentResult = this.state[opts.subscriptionAlias].idsOrIdInCurrentResult;
-
-        if (Array.isArray(idsOrIdInCurrentResult)) {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(function (id) {
-            return id !== node.id;
-          });
-        } else {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
-        }
-
-        return;
-      }
-
       this.notifyRepositories({
         data: (_data = {}, _data[subscriptionAlias] = node, _data),
         queryRecord: (_queryRecord = {}, _queryRecord[subscriptionAlias] = queryRecordEntryForThisSubscription, _queryRecord)
@@ -3923,6 +3907,20 @@ function createSMQueryManager(smJSInstance) {
     };
 
     _proto.updateProxiesAndStateFromSubscriptionMessage = function updateProxiesAndStateFromSubscriptionMessage(opts) {
+      if ((opts.operation.action === 'DeleteNode' || opts.operation.action === 'DeleteEdge') && opts.operation.path === opts.node.id) {
+        var idsOrIdInCurrentResult = this.state[opts.subscriptionAlias].idsOrIdInCurrentResult;
+
+        if (Array.isArray(idsOrIdInCurrentResult)) {
+          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(function (id) {
+            return id !== node.id;
+          });
+        } else {
+          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
+        }
+
+        return;
+      }
+
       var node = opts.node,
           queryId = opts.queryId,
           subscriptionAlias = opts.subscriptionAlias;
