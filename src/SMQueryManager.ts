@@ -337,27 +337,27 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       };
       subscriptionAlias: string;
     }) {
+      const { node, queryId, subscriptionAlias, operation } = opts;
       if (
-        (opts.operation.action === 'DeleteNode' ||
-          opts.operation.action === 'DeleteEdge') &&
-        opts.operation.path === opts.node.id
+        (operation.action === 'DeleteNode' ||
+          operation.action === 'DeleteEdge') &&
+        operation.path === node.id
       ) {
-        const idsOrIdInCurrentResult = this.state[opts.subscriptionAlias]
+        const idsOrIdInCurrentResult = this.state[subscriptionAlias]
           .idsOrIdInCurrentResult;
         if (Array.isArray(idsOrIdInCurrentResult)) {
           this.state[
-            opts.subscriptionAlias
+            subscriptionAlias
           ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
             id => id !== node.id
           );
         } else {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
+          this.state[subscriptionAlias].idsOrIdInCurrentResult = null;
         }
 
         return;
       }
 
-      const { node, queryId, subscriptionAlias } = opts;
       const queryRecordEntryForThisSubscription = this.queryRecord[
         subscriptionAlias
       ];
