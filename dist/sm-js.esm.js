@@ -3907,23 +3907,25 @@ function createSMQueryManager(smJSInstance) {
     };
 
     _proto.updateProxiesAndStateFromSubscriptionMessage = function updateProxiesAndStateFromSubscriptionMessage(opts) {
-      if ((opts.operation.action === 'DeleteNode' || opts.operation.action === 'DeleteEdge') && opts.operation.path === opts.node.id) {
-        var idsOrIdInCurrentResult = this.state[opts.subscriptionAlias].idsOrIdInCurrentResult;
+      var node = opts.node,
+          queryId = opts.queryId,
+          subscriptionAlias = opts.subscriptionAlias,
+          operation = opts.operation;
+
+      if ((operation.action === 'DeleteNode' || operation.action === 'DeleteEdge') && operation.path === node.id) {
+        var idsOrIdInCurrentResult = this.state[subscriptionAlias].idsOrIdInCurrentResult;
 
         if (Array.isArray(idsOrIdInCurrentResult)) {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(function (id) {
+          this.state[subscriptionAlias].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(function (id) {
             return id !== node.id;
           });
         } else {
-          this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = null;
+          this.state[subscriptionAlias].idsOrIdInCurrentResult = null;
         }
 
         return;
       }
 
-      var node = opts.node,
-          queryId = opts.queryId,
-          subscriptionAlias = opts.subscriptionAlias;
       var queryRecordEntryForThisSubscription = this.queryRecord[subscriptionAlias];
       this.state[subscriptionAlias] = this.state[subscriptionAlias] || {};
       var stateForThisAlias = this.state[subscriptionAlias];
