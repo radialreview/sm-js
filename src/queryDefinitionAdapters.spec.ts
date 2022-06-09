@@ -199,12 +199,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
   it('handles reference queries which return a union of node types', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const userProperties = {
-      id: string,
       firstName: string,
       lastName: string,
     };
     const meetingGuestProperties = {
-      id: string,
       firstName: string,
     };
     type UserNode = ISMNode<'user', typeof userProperties>;
@@ -222,7 +220,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
     });
 
     const todoProperties = {
-      id: string,
       assigneeId: string,
     };
     type TodoNode = ISMNode<

@@ -13,7 +13,6 @@ describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        id: smData.string,
         dueDate: smData.number,
         settings: smData.object({
           show: smData.boolean(true),
@@ -39,7 +38,6 @@ describe('smData.DO', () => {
   test('that DO class will automatically coerce data it receives on an update based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        id: smData.string,
         dueDate: smData.number,
       },
       initialData: {

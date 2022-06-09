@@ -145,8 +145,8 @@ export function generateDOInstance<
     /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
   >
 >(opts: {
-  properties: TNodeData & SMNodeDefaultProps;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  properties: TNodeData;
+  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
   // @ts-ignore
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
