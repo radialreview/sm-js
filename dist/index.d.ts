@@ -1,4 +1,4 @@
-import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode } from './types';
+import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMNodeDefaultProps } from './types';
 export * from './types';
 export * from './smDataTypes';
 export * from './react';
@@ -17,7 +17,7 @@ export declare class SMJS implements ISMJS {
     DOProxyGenerator: ISMJS['DOProxyGenerator'];
     private optimisticUpdatesOrchestrator;
     constructor(config: SMConfig);
-    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
     getToken(opts: {
         tokenName: string;
     }): string;
@@ -26,4 +26,5 @@ export declare class SMJS implements ISMJS {
         token: string;
     }): void;
     clearTokens(): void;
+    private addDefaultNodeProperties;
 }
