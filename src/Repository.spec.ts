@@ -59,7 +59,6 @@ describe('smData.repository', () => {
   it('exposes a method to cache new data being received for a def', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
     });
@@ -75,7 +74,6 @@ describe('smData.repository', () => {
   it('exposes a method to get cached data by id', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
     });
@@ -96,7 +94,6 @@ describe('smData.repository', () => {
   it('returns the same DO instance when by id is called after an update is received', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
     });
@@ -126,7 +123,6 @@ describe('smData.repository', () => {
   it('converts data received with __dot__ nested format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         settings: smData.object({
           schedule: smData.object({
             startTime: smData.number,
@@ -151,7 +147,6 @@ describe('smData.repository', () => {
   it('converts data received with __JSON__ array format to a regular array', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         people: smData.array(smData.string),
         peopleOptional: smData.array(smData.string).optional,
         object: smData.object({
@@ -182,7 +177,6 @@ describe('smData.repository', () => {
   it('converts data received in old object format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         settings: smData.object({
           schedule: smData.object({
             startTime: smData.number,
@@ -231,7 +225,6 @@ describe('smData.repository', () => {
     const smJS = new SMJS(getMockConfig());
     const repository = generateRepositoryInstance<
       {
-        id: SMDataDefaultFn;
         task: SMDataDefaultFn;
       },
       {},
@@ -239,7 +232,6 @@ describe('smData.repository', () => {
       {}
     >({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
       relational: {
@@ -270,7 +262,6 @@ describe('smData.repository', () => {
   it('throws an error when byId is called with an id that has not been cached', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
     });
@@ -281,7 +272,6 @@ describe('smData.repository', () => {
   it('exposes a method to delete cached data by id', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        id: smData.string,
         task: smData.string,
       },
     });

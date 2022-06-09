@@ -15,10 +15,10 @@ import {
   NodeRelationalFns,
   SMConfig,
   QueryDefinitionTarget,
+  SMNodeDefaultProps,
 } from './types';
 
 const userProperties = {
-  id: smData.string,
   firstName: smData.string,
   lastName: smData.string('joe'),
   address: smData.object({
@@ -53,7 +53,7 @@ export function generateUserNode(
   smJSInstance: ISMJS,
   cachedTodoNode?: TodoNode
 ): UserNode {
-  const userNode = smJSInstance.def({
+  const userNode: UserNode = smJSInstance.def({
     type: 'tt-user',
     properties: userProperties,
     computed: {
@@ -65,6 +65,7 @@ export function generateUserNode(
       todos: () => smData.children({ def: todoNode }),
     },
   });
+
   const todoNode: TodoNode =
     cachedTodoNode || generateTodoNode(smJSInstance, userNode);
 
@@ -72,7 +73,6 @@ export function generateUserNode(
 }
 
 const todoProperties = {
-  id: smData.string,
   task: smData.string,
   done: smData.boolean(false),
   assigneeId: smData.string,
@@ -119,7 +119,8 @@ export function generateTodoNode(
           idProp: 'assigneeId',
         }),
     },
-  });
+  }) as TodoNode;
+
   const userNode: UserNode =
     cachedUserNode || generateUserNode(smJSInstance, todoNode);
 
@@ -144,7 +145,7 @@ export function generateDOInstance<
     /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
   >
 >(opts: {
-  properties: TNodeData;
+  properties: TNodeData & SMNodeDefaultProps;
   computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
   // @ts-ignore
   relational?: NodeRelationalFns<TNodeRelationalData>;

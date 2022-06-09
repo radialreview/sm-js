@@ -26,6 +26,13 @@ export class SMNotUpToDateInComputedException extends Error {
     );
   }
 }
+export class SMImpliedNodePropertyException extends Error {
+  constructor(opts: { propName: string }) {
+    super(
+      `SMImpliedPropertyException exception - The property "${opts.propName}" is implied and cannot be customized within a node definition.`
+    );
+  }
+}
 
 export class SMNotCachedException extends Error {
   constructor(opts: { nodeType: string; id: string }) {

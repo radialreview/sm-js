@@ -338,6 +338,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             'address__dot__apt',
             'address__dot__apt__dot__number',
             'address__dot__apt__dot__floor',
+            'dateCreated',
+            'dateLastModified',
+            'lastUpdatedClientTimestamp',
           ],
           byReference: true,
           idProp: 'assigneeId',
@@ -561,7 +564,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__nestedRecord,
             dataSetIds,
             comments,
-            record
+            record,
+            dateCreated,
+            dateLastModified,
+            lastUpdatedClientTimestamp
           }
           }"
     `);
@@ -597,7 +603,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__nestedRecord,
             dataSetIds,
             comments,
-            record
+            record,
+            dateCreated,
+            dateLastModified,
+            lastUpdatedClientTimestamp
           }
           }"
     `);
