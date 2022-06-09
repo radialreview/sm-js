@@ -29,8 +29,8 @@ export declare const number: {
     optional: SMData<Maybe<number>, Maybe<string>, undefined>;
 };
 export declare const boolean: {
-    <TDefaultValue extends boolean>(defaultValue?: TDefaultValue | undefined): ISMData<boolean, string | boolean, undefined>;
-    _default: ISMData<boolean, string | boolean, undefined>;
+    <TDefaultValue extends boolean | undefined>(defaultValue?: TDefaultValue | undefined): TDefaultValue extends undefined ? undefined : SMData<boolean, string | boolean, undefined>;
+    _default: SMData<boolean, string | boolean, undefined> | undefined;
     optional: SMData<Maybe<boolean>, Maybe<string | boolean>, undefined>;
 };
 declare type ObjectSMDataType = {
