@@ -78,13 +78,13 @@ export class SMJS implements ISMJS {
     TNodeRelationalData,
     TNodeMutations
   > {
-    const propNames = Object.keys(def.properties);
-    const prop = propNames.find(x =>
+    const propertyNames = Object.keys(def.properties);
+    const defaultProp = propertyNames.find(x =>
       Object.keys(DEFAULT_NODE_PROPERTIES).includes(x)
     );
-    if (prop) {
+    if (defaultProp) {
       throw new SMImpliedNodePropertyException({
-        propName: prop,
+        propName: defaultProp,
       });
     }
     const properties = this.addDefaultNodeProperties(def.properties);
