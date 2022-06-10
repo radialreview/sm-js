@@ -813,26 +813,63 @@ export type GetMapFnArgs<
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
 // which gives us typo prevention :)
+// type RequestedData<
+//   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+//   TNodeComputedData extends Record<string, any>,
+//   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+//   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+// > = Partial<{
+//       [Key in
+//         keyof TNodeData
+//         | keyof TNodeComputedData
+//        ]: Key extends keyof TNodeData
+//         ? TNodeData[Key] extends ISMData<Maybe<Array<any>>>
+//           ? TNodeData[Key]
+//           : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
+//           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
+//           : TNodeData[Key]
+//         : Key extends keyof TNodeComputedData   
+//         ? TNodeComputedData[Key] 
+//         : never;
+//   } | {}>
 type RequestedData<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
+  TKeys extends keyof TNodeData,
+  TNodeDataValues extends TNodeData[TKeys]
   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
-> = Partial<{
-      [Key in
-        keyof TNodeData
-        | keyof TNodeComputedData
-       ]: Key extends keyof TNodeData
-        ? TNodeData[Key] extends ISMData<Maybe<Array<any>>>
-          ? TNodeData[Key]
-          : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
-          ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
-          : TNodeData[Key]
-        : Key extends keyof TNodeComputedData   
-        ? TNodeComputedData[Key] 
-        : never;
-  } | {}>
+> = Record<string, TNodeDataValues>
 
+// type RequestedData<
+//   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+//   TNodeComputedData extends Record<string, any>,
+//   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+//   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+// > = Partial<{
+//       [Key in
+//         keyof TNodeData
+//         | keyof TNodeComputedData
+//        ]: Key extends keyof TNodeData
+//         ? TNodeData[Key] extends ISMData<Maybe<Array<any>>>
+//           ? TNodeData[Key]
+//           : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
+//           ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
+//           : TNodeData[Key]
+//         : Key extends keyof TNodeComputedData   
+//         ? TNodeComputedData[Key] 
+//         : never;
+//   } | {[key: string]: ISMData | SMDataDefaultFn}>
+
+
+// type RequestedData<
+//   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+//   TNodeComputedData extends Record<string, any>,
+//   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+//   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+// > = {
+//   id: ISMData | SMDataDefaultFn
+// }
 
 // A generic to extract the resulting data based on a map fn
 export type ExtractQueriedDataFromMapFn<

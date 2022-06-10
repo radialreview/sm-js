@@ -229,10 +229,10 @@ const stateNode: StateNode = smJS.def({
     // @ts-expect-error
     yeahThisDoesntExist,
   }) => ({
-    id,
-    // // TS-TYPE-TEST-1
-    // // @ts-expect-error
-    // bleh: '',
+    id: id,
+    // TS-TYPE-TEST-1
+    // @ts-expect-error
+    bleh: undefined,
   });
 
   // @ts-ignore
@@ -247,6 +247,13 @@ const stateNode: StateNode = smJS.def({
       map: todoData => ({
         id: todoData.id,
         task: todoData.task,
+        assigneeId: todoData.assigneeId,
+
+        // assigneeId: todoData.assigneeId,
+        // meetingId:todoData.meetingId ,
+        // attendeeIds: todoData.attendeeIds ,
+        // invalidIdsProperty: todoData.invalidIdsProperty ,
+        // dueDate: todoData.dueDate
       }),
     }),
     // // TS-TYPE-TEST-1

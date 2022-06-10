@@ -193,6 +193,7 @@ export function createMockQueryDefinitions(
       def: generateUserNode(smJSInstance),
       map: ({ id, todos, address }) => ({
         id,
+        test: '',
         address: address({
           map: ({ state, apt }) => ({
             state,
