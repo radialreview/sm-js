@@ -36,9 +36,12 @@ export type SMPlugin = {
   };
 };
 
+// NOLEY NOTES: would we add the flag here? 
+// generateMockData: boolean
 export type SMConfig = {
   gqlClient: ISMGQLClient;
   plugins?: Array<SMPlugin>;
+  generateMockData?: boolean
 };
 
 export interface ISMGQLClient {
@@ -128,6 +131,7 @@ export interface ISMJS {
   transaction: ReturnType<typeof createTransaction>
   gqlClient: ISMGQLClient;
   plugins: Array<SMPlugin> | undefined;
+  generateMockData: boolean | undefined
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
   SMQueryManager:ReturnType<typeof createSMQueryManager>

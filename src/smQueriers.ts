@@ -1,4 +1,5 @@
 import { DEFAULT_TOKEN_NAME } from './consts';
+import { generateMockData } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
@@ -156,6 +157,15 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           ([tokenName, queryDefinitions]) => {
+            //NOLEY NOTES: entry point will be here for generateMockData, most changes in generateMockDataFile based off queryAdapters.
+
+            // console.log('NOLEYsmJSInstance', smJSInstance.generateMockData);
+            generateMockData({ queryDefinitions });
+
+            // if (smJSInstance.generateMockData) {
+            //   return generateMockData({ queryDefinitions });
+            // }
+
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
               queryDefinitions: queryDefinitions,
               queryId: queryId + '_' + tokenName,
@@ -173,6 +183,11 @@ export function generateQuerier({
           }
         )
       );
+
+      //NOLEY NOTES ADDED THIS
+      allResults.forEach(result => {
+        console.log('NOLEY each result', result);
+      });
 
       return allResults.reduce(
         (acc, resultsForToken) => {
@@ -430,6 +445,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     try {
+      //NOLEY NOTES: will need to add a conditional flag based off config here...
       initSubs();
       opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
     } catch (e) {

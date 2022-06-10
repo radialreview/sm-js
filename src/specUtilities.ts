@@ -336,6 +336,8 @@ export function getMockConfig(): SMConfig {
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
+    //NOLEY NOTES: make this optional as prop or something
+    generateMockData: true,
   };
 }
 
