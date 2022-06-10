@@ -184,7 +184,7 @@ export function generateQuerier({
         )
       );
 
-      //NOLEY NOTES ADDED THIS
+      // NOLEY NOTES ADDED THIS
       allResults.forEach(result => {
         console.log('NOLEY each result', result);
       });

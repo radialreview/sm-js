@@ -4,7 +4,6 @@ import {
   mockQueryResultExpectations,
   // getMockSubscriptionMessage,
   getMockConfig,
-  getMockConfigForMockData,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { SMJS } from '.';
