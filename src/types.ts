@@ -775,19 +775,21 @@ export type UseSubscriptionReturn<
   error: any
 }
   
-export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
+export type MapFnForNode<TSMNode extends ISMNode, TReturned extends Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery<any>>> = MapFn<
   ExtractNodeData<TSMNode>,
   ExtractNodeComputedData<TSMNode>,
+  TReturned,
   ExtractNodeRelationalData<TSMNode>
 >;
 
 export type MapFn<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
   TNodeComputedData,
+  TReturned extends Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery<any>>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
   data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>
-) => RequestedData<TNodeData, TNodeComputedData>;
+) => RequestedData<TNodeData, TReturned>;
 
 export type GetMapFnArgs<
   TSMNode extends ISMNode,
@@ -832,14 +834,34 @@ export type GetMapFnArgs<
 //         ? TNodeComputedData[Key] 
 //         : never;
 //   } | {}>
+
+// type RequestedData<
+//   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+//   TNodeComputedData extends Record<string, any>,
+//   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+//   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+//   // @ts-ignore
+// > = Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery>
+
+// type RequestedData<
+//   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+//   TNodeComputedData extends Record<string, any>,
+//   TKeys extends keyof TNodeData,
+//   TNodeDataValues extends TNodeData[TKeys]
+//   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
+//   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
+// > = Record<string, TNodeDataValues>
+
 type RequestedData<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
-  TNodeComputedData extends Record<string, any>,
-  TKeys extends keyof TNodeData,
-  TNodeDataValues extends TNodeData[TKeys]
-  // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
-  // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
-> = Record<string, TNodeDataValues>
+    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TReturned extends Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery<any>>
+> = {
+    [TKey in keyof TReturned]: TReturned[TKey] extends ISMData<Maybe<Array<any>>>
+          ? TReturned[TKey]
+          : TReturned[TKey] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
+          ? MapFn<GetSMDataType<TReturned[TKey]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
+          : TReturned[TKey]
+}
 
 // type RequestedData<
 //   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
@@ -873,7 +895,8 @@ type RequestedData<
 
 // A generic to extract the resulting data based on a map fn
 export type ExtractQueriedDataFromMapFn<
-  TMapFn extends MapFnForNode<TSMNode>,
+  TReturned extends Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery<any>>,
+  TMapFn extends MapFnForNode<TSMNode, TReturned>,
   TSMNode extends ISMNode
 > = { type: TSMNode['type'] }
   & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode>
@@ -881,7 +904,7 @@ export type ExtractQueriedDataFromMapFn<
 
 // From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<
-  TMapFnReturn,
+  TMapFnReturn extends Record<string, ISMData | SMDataDefaultFn | NodeRelationalQuery<any>>,
   TSMNode extends ISMNode
 > = {
   [Key in keyof TMapFnReturn]:
@@ -898,20 +921,20 @@ type ExtractQueriedDataFromMapFnReturn<
     TMapFnReturn[Key] extends IChildrenQuery<any, any>
     ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>  
     :
-    TMapFnReturn[Key] extends MapFnForNode<TSMNode>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>  
+    TMapFnReturn[Key] extends MapFnForNode<TSMNode, TMapFnReturn>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn, TMapFnReturn[Key], TSMNode>  
     :
     // when we're querying data on the node we used as the "def"
     TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
     ? GetSMDataType<TMapFnReturn[Key]>
     :
     // when we passed through an object property without specifying a mapFn
-    TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,any>}) => MapFn<any, any, any>
+    TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,TMapFnReturn,any>}) => MapFn<any, any,TMapFnReturn, any>
     ? GetResultingDataTypeFromProperties<TBoxedValue>
     :
     // when we're querying data inside a nested object
-    TMapFnReturn[Key] extends MapFn<any, any, any>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
+    TMapFnReturn[Key] extends MapFn<any, any,TMapFnReturn, any>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn,TMapFnReturn[Key], TSMNode>
     :
     never;
 };
@@ -919,7 +942,7 @@ type ExtractQueriedDataFromMapFnReturn<
 type ExtractQueriedDataFromChildrenQuery<
   TChildrenQuery extends IChildrenQuery<any, any>
 > = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+  ? Array<ExtractQueriedDataFromMapFn<TMapFnReturn,TMapFn, TSMNode>>
   : never;
 
 // Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
