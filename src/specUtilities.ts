@@ -329,15 +329,14 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
   };
 }
 
-export function getMockConfig(): SMConfig {
+export function getMockConfig(opts?: { generateMockData: boolean }): SMConfig {
   return {
     gqlClient: {
       query: () => new Promise(res => res(mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
-    //NOLEY NOTES: make this optional as prop or something
-    generateMockData: true,
+    generateMockData: opts?.generateMockData,
   };
 }
 

@@ -489,19 +489,22 @@ test('sm.query uses the gql client, passing in the expected params', async done 
 
 //NOLEY NOTES: added this one
 test.only('sm.query with mock data generates the correct results', async () => {
-  const { smJSInstance, queryDefinitions } = setupTest();
-
-  console.log('NOLEY IN TESTS smJSInstance', smJSInstance);
+  const { smJSInstance, queryDefinitions } = setupTest({
+    generateMockData: true,
+  });
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
   expect(data).toEqual(mockQueryResultExpectations);
 });
 
-function setupTest() {
-  const smJSInstance = new SMJS(getMockConfig());
-  //NOLEY NOTES: I have questions about getting the config out of the smJSInstance while in the smQueries....
-  //is there like a useCongfig or something? Also should I add this to the types.d.ts file do I have the right TS version?
+function setupTest(opts?: { generateMockData: boolean }) {
+  const smJSInstance = new SMJS(
+    opts?.generateMockData
+      ? getMockConfig({ generateMockData: opts.generateMockData })
+      : getMockConfig()
+  );
+
   smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 
