@@ -1,3 +1,4 @@
+import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './smQueriers';
@@ -117,6 +118,9 @@ export type SubscriptionOpts<
   batchKey?: string;
 };
 
+
+export type SMNodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
+
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 export interface ISMJS {
@@ -149,7 +153,7 @@ export interface ISMJS {
       TNodeRelationalData,
       TNodeMutations
     >
-  ): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  ): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
 }
 
 export type NodeDefArgs<
@@ -161,7 +165,7 @@ export type NodeDefArgs<
 > = {
   type: TNodeType;
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 };
@@ -442,7 +446,7 @@ export interface IDOAccessors {
   persistedData: Record<string,any>
 }
 
-export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
+export type NodeDO = Record<string, any> & SMNodeDefaultProps & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
@@ -472,11 +476,11 @@ export interface ISMNode<
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
-  TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>,
+  TNodeComputedFns = NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>,
   TNodeDO = NodeDO
 > {
   _isSMNodeDef: true;
-  smData: TNodeData;
+  smData: TNodeData & SMNodeDefaultProps;
   smComputed?: TNodeComputedFns;
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
@@ -786,7 +790,7 @@ export type MapFn<
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
-  data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>
+  data: GetMapFnArgs<ISMNode<any, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData>>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<

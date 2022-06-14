@@ -1,5 +1,7 @@
+import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
+import { SMImpliedNodePropertyException } from './exceptions';
 import { OptimisticUpdatesOrchestrator } from './OptimisticUpdates';
 import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './smQueriers';
@@ -14,6 +16,7 @@ import {
   NodeMutationFn,
   NodeDefArgs,
   ISMNode,
+  SMNodeDefaultProps,
 } from './types';
 
 export * from './types';
@@ -70,12 +73,22 @@ export class SMJS implements ISMJS {
     >
   ): ISMNode<
     TNodeType,
-    TNodeData,
+    TNodeData & SMNodeDefaultProps,
     TNodeComputedData,
     TNodeRelationalData,
     TNodeMutations
   > {
-    const DOClass = this.DOFactory(def);
+    const propertyNames = Object.keys(def.properties);
+    const defaultProp = propertyNames.find(x =>
+      Object.keys(DEFAULT_NODE_PROPERTIES).includes(x)
+    );
+    if (defaultProp) {
+      throw new SMImpliedNodePropertyException({
+        propName: defaultProp,
+      });
+    }
+    const properties = this.addDefaultNodeProperties(def.properties);
+    const DOClass = this.DOFactory({ ...def, properties });
 
     return {
       _isSMNodeDef: true,
@@ -89,7 +102,7 @@ export class SMJS implements ISMJS {
           .onPersistedDataReceived,
       }),
       type: def.type,
-      smData: def.properties,
+      smData: properties,
       smComputed: def.computed,
       smRelational: def.relational,
       smMutations: def.mutations,
@@ -106,5 +119,14 @@ export class SMJS implements ISMJS {
 
   public clearTokens() {
     this.tokens = {};
+  }
+
+  private addDefaultNodeProperties<
+    T extends Record<string, ISMData | SMDataDefaultFn>
+  >(nodeProperties: T): T & SMNodeDefaultProps {
+    return {
+      ...nodeProperties,
+      ...DEFAULT_NODE_PROPERTIES,
+    };
   }
 }
