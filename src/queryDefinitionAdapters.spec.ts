@@ -199,12 +199,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
   it('handles reference queries which return a union of node types', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const userProperties = {
-      id: string,
       firstName: string,
       lastName: string,
     };
     const meetingGuestProperties = {
-      id: string,
       firstName: string,
     };
     type UserNode = ISMNode<'user', typeof userProperties>;
@@ -222,7 +220,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
     });
 
     const todoProperties = {
-      id: string,
       assigneeId: string,
     };
     type TodoNode = ISMNode<
@@ -338,6 +335,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             'address__dot__apt',
             'address__dot__apt__dot__number',
             'address__dot__apt__dot__floor',
+            'dateCreated',
+            'dateLastModified',
+            'lastUpdatedClientTimestamp',
           ],
           byReference: true,
           idProp: 'assigneeId',
@@ -561,7 +561,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__nestedRecord,
             dataSetIds,
             comments,
-            record
+            record,
+            dateCreated,
+            dateLastModified,
+            lastUpdatedClientTimestamp
           }
           }"
     `);
@@ -597,7 +600,10 @@ describe('getQueryInfo.queryGQLString', () => {
             settings__dot__nestedRecord,
             dataSetIds,
             comments,
-            record
+            record,
+            dateCreated,
+            dateLastModified,
+            lastUpdatedClientTimestamp
           }
           }"
     `);

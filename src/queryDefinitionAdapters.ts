@@ -21,6 +21,7 @@ import {
   ByReferenceQueryBuilderOpts,
   IByReferenceArrayQuery,
   QueryDefinition,
+  SMDataDefaultFn,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -154,7 +155,7 @@ function getQueriedProperties(opts: {
 }
 
 function getAllNodeProperties(opts: {
-  nodeProperties: Record<string, ISMData>;
+  nodeProperties: Record<string, ISMData | SMDataDefaultFn>;
   isRootLevel: boolean;
 }) {
   return Object.keys(opts.nodeProperties).reduce(
@@ -174,10 +175,8 @@ function getAllNodeProperties(opts: {
         // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
         acc.push(
           ...getAllNodeProperties({
-            nodeProperties: opts.nodeProperties[key].boxedValue as Record<
-              string,
-              ISMData
-            >,
+            nodeProperties: (opts.nodeProperties[key] as ISMData)
+              .boxedValue as Record<string, ISMData>,
             isRootLevel: false,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );

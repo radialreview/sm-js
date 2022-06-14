@@ -49,15 +49,197 @@ export declare const array: <TBoxedValue extends ISMData<any, any, any> | SMData
     optional: SMData<Maybe<GetSMDataType<TBoxedValue>[]>, Maybe<GetSMDataType<TBoxedValue>[]>, TBoxedValue>;
     _default: SMData<GetSMDataType<TBoxedValue>[], GetSMDataType<TBoxedValue>[], TBoxedValue>;
 };
-export declare const reference: <TOriginNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TTargetNodeOrTargetNodeRecord extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO> | Record<string, ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>> | null>(opts: {
+export declare const reference: <TOriginNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO>, TTargetNodeOrTargetNodeRecord extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO> | Record<string, ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO>> | null>(opts: {
     def: NonNullable<TTargetNodeOrTargetNodeRecord>;
     idProp: ValidReferenceIdPropFromNode<TOriginNode>;
 }) => IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
-export declare const referenceArray: <TOriginNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>, TTargetNodeOrTargetNodeRecord extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO> | Record<string, ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>>(opts: {
+export declare const referenceArray: <TOriginNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO>, TTargetNodeOrTargetNodeRecord extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO> | Record<string, ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO>>>(opts: {
     def: NonNullable<TTargetNodeOrTargetNodeRecord>;
     idProp: ValidReferenceIdArrayPropFromNode<TOriginNode>;
 }) => IByReferenceArrayQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
-export declare const children: <TSMNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{}, {}>, import("./types").NodeDO>>(opts: {
+export declare const children: <TSMNode extends ISMNode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+    id: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    dateCreated: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    dateLastModified: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+    lastUpdatedBy: {
+        <TStringType extends string = string>(defaultValue: TStringType): SMData<TStringType, TStringType, undefined>;
+        _default: SMData<"", "", undefined>;
+        optional: SMData<Maybe<string>, Maybe<string>, undefined>;
+    };
+    lastUpdatedClientTimestamp: {
+        (defaultValue: number): SMData<number, string, undefined>;
+        _default: SMData<number, string, undefined>;
+        optional: SMData<Maybe<number>, Maybe<string>, undefined>;
+    };
+}, {}>, import("./types").NodeDO>>(opts: {
     def: TSMNode;
     depth?: number | undefined;
 }) => IChildrenQueryBuilder<TSMNode>;

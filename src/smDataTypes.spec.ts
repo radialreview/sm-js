@@ -391,4 +391,23 @@ describe('Node default properties', () => {
 
     expect(DO.peopleById['123'].occupation).toEqual('plumber');
   });
+
+  it('defines default node properties', () => {
+    const properties = {
+      custom: smData.string,
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+
+    const DO = new DOClass({
+      id: 'joe',
+    });
+
+    expect(DO.dateLastModified);
+  });
 });
