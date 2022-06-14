@@ -392,7 +392,7 @@ describe('Node default properties', () => {
     expect(DO.peopleById['123'].occupation).toEqual('plumber');
   });
 
-  it.only('defines default node properties', () => {
+  it('defines default node properties', () => {
     const properties = {
       custom: smData.string,
     };
