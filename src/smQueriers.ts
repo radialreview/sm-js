@@ -184,11 +184,6 @@ export function generateQuerier({
         )
       );
 
-      // NOLEY NOTES ADDED THIS
-      allResults.forEach(result => {
-        console.log('NOLEY each result', result);
-      });
-
       return allResults.reduce(
         (acc, resultsForToken) => {
           return {

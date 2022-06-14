@@ -1,15 +1,13 @@
+import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
 import { SMData } from './smDataTypes';
+import { prepareForBE } from './transaction/convertNodeDataToSMPersistedData';
+
 import {
-  // IByReferenceArrayQuery,
-  // IByReferenceQuery,
-  // IChildrenQueryBuilder,
-  // ISMData,
-  ISMNode,
-  // Maybe,
-  QueryDefinition,
   QueryDefinitions,
+  QueryRecord,
+  QueryRecordEntry,
+  RelationalQueryRecordEntry,
   SMDataDefaultFn,
-  // SM_DATA_TYPES,
 } from './types';
 
 // const mockString = [
@@ -43,17 +41,14 @@ export function generateMockData<
   const { queryDefinitions } = opts;
   let mockedQueries: Record<string, Array<Record<string, any>>> = {};
 
-  Object.keys(queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null =
-      queryDefinitions[queryDefinitionsAlias];
+  const queryRecords = getQueryRecordFromQueryDefinition({
+    queryDefinitions: queryDefinitions,
+    queryId: 'generatingMockDataId',
+  });
 
-    const formattedQueryRecordWithValues = generateMockValuesForQueryDefinitions(
-      {
-        queryDefinition,
-      }
-    );
-
-    mockedQueries[queryDefinitionsAlias] = [formattedQueryRecordWithValues];
+  mockedQueries = generateMockValuesForQueryRecords({
+    queryRecords,
+    isRootLevel: true,
   });
 
   return mockedQueries;
@@ -63,50 +58,67 @@ export function generateMockData<
 // 3). if the qD has a map fn that's defined, generate mock data for the node properties being queried, but also,
 // discover if there's any relational queries in the map fn and return mock data for those as well
 
-function generateMockValuesForQueryDefinitions(opts: {
-  queryDefinition: QueryDefinition<any, any, any> | ISMNode | null;
+function generateMockValuesForQueryRecords(opts: {
+  queryRecords: QueryRecord;
+  isRootLevel?: boolean;
 }) {
-  const queryDefinition = opts.queryDefinition;
+  const { queryRecords } = opts;
+  let mockedQueries: Record<string, any> = {};
 
-  let queryRecord: any = {};
+  Object.keys(queryRecords).forEach(queryRecordsAlias => {
+    const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
+      queryRecords[queryRecordsAlias];
+    let relational: Record<string, any> = {};
 
-  console.log('NOLEY queryDefinition raw', queryDefinition);
+    const formattedQueryRecordWithValues = mapQueriedPropertiesToValues({
+      queryRecord,
+    });
 
-  if (!queryDefinition) {
-    throw new Error(`No query definition is defined`);
-  } else if ('_isSMNodeDef' in queryDefinition) {
-    return console.log('NOLEY I AM A _isSMNodeDef', queryDefinition);
-  } else {
-    console.log('NOLEY QUERYDEF.def', queryDefinition.def);
-    if (queryDefinition.map) {
-      //NOLEY NOTES: recursively call this function drilled into the mapped properties
-      // queriedProps = getQueriedProperties({
-      //   mapFn: queryDefinition.map,
-      //   queryId: opts.queryId,
-      //   smData: queryDefinition.def.smData,
-      //   smComputed: queryDefinition.def.smComputed,
-      //   smRelational: queryDefinition.def.smRelational,
-      //   isRootLevel: true,
-      // });
-      //   //NOLEY NOTES: recursively call this function drilled into the relational properties
-      //   relational = getRelationalQueries({
-      //     mapFn: queryDefinition.map,
-      //     queryId: opts.queryId,
-      //     smData: nodeDef.smData,
-      //     smComputed: nodeDef.smComputed,
-      //     smRelational: nodeDef.smRelational,
-      //   });
-      // } else {
-      //   queriedProps = generateValuesForQueryDefinitions({
-      //     nodeProperties: queryDefinition.def.smData,
-      //     //NOLEY NOTES: ask Meida what root level is
-      //     isRootLevel: true,
-      //   });
-      // }
+    if (queryRecord.relational) {
+      relational = generateMockValuesForQueryRecords({
+        queryRecords: queryRecord.relational,
+      });
     }
 
-    return queryRecord;
-  }
+    const generatedRecord = {
+      ...formattedQueryRecordWithValues,
+      ...relational,
+    };
+
+    mockedQueries[queryRecordsAlias] =
+      queryRecord.underIds ||
+      queryRecord.ids ||
+      'byReferenceArray' in queryRecord ||
+      'children' in queryRecord
+        ? [generatedRecord]
+        : generatedRecord;
+  });
+
+  return mockedQueries;
+}
+
+function mapQueriedPropertiesToValues(opts: {
+  queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  const queryRecord = opts.queryRecord;
+  let queryMockResponse;
+
+  const propertiesToMock = Object.keys(queryRecord.def.smData)
+    .filter(nodeProperty => {
+      //NOLEY NOTES: ...PROPERTIES_QUERIED_FOR_ALL_NODES
+      return queryRecord.properties.includes(nodeProperty);
+    })
+    .reduce((acc, item) => {
+      //NOLEY NOTES: fix anys
+      acc[item] = (queryRecord.def.smData as any)[item];
+      return acc;
+    }, {} as Record<string, any>);
+
+  queryMockResponse = generateValuesForNodeData(propertiesToMock);
+
+  const propertiesPreparedForBE = prepareForBE(queryMockResponse);
+
+  return propertiesPreparedForBE;
 }
 
 export function generateValuesForNodeData(

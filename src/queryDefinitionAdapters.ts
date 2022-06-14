@@ -667,7 +667,6 @@ export function getQueryInfo<
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
 
-  //NOLEY NOTES: use these to get keys for return object with the ___dot___
   const queryGQLString = `
     query ${getSanitizedQueryId({ queryId: opts.queryId })} {
         ${Object.keys(queryRecord)
