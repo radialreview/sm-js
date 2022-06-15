@@ -254,8 +254,8 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
     TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
       ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
         ? IsMaybe<TParsedValue> extends true
-          ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
-          : GetAllAvailableNodeDataType<TBoxedValue, {}>
+          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>
         : TParsedValue extends Array<infer TArrayItemType>
           ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
@@ -268,14 +268,22 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
+
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
+
 export type GetAllAvailableNodeDataType<
   TSMData extends Record<string, ISMData | SMDataDefaultFn>,
   TComputedData extends Record<string, any>
+> = GetResultingDataTypeFromProperties<TSMData & SMNodeDefaultProps> & TComputedData;
+
+type GetAllAvailableNodeDataTypeWithoutDefaultProps<
+  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
+  TComputedData extends Record<string, any>
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+
 
 /**
  * Takes in any object and returns a Partial of that object type
