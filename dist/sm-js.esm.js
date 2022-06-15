@@ -5578,14 +5578,14 @@ var SMJS = /*#__PURE__*/function () {
   var _proto = SMJS.prototype;
 
   _proto.def = function def(_def) {
-    var propNames = Object.keys(_def.properties);
-    var prop = propNames.find(function (x) {
+    var propertyNames = Object.keys(_def.properties);
+    var defaultProp = propertyNames.find(function (x) {
       return Object.keys(DEFAULT_NODE_PROPERTIES).includes(x);
     });
 
-    if (prop) {
+    if (defaultProp) {
       throw new SMImpliedNodePropertyException({
-        propName: prop
+        propName: defaultProp
       });
     }
 
