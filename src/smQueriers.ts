@@ -1,5 +1,5 @@
 import { DEFAULT_TOKEN_NAME } from './consts';
-import { generateMockDataFromQueryDefinitions } from './generateMockData';
+import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 
 import {
   convertQueryDefinitionToQueryInfo,
@@ -162,9 +162,12 @@ export function generateQuerier({
               console.log(
                 '---------------- NOLEY RETURNING MOCK DATA -------------------'
               );
-              const generatedMockData = generateMockDataFromQueryDefinitions({
-                queryDefinitions,
-              });
+              const generatedMockData = generateMockNodeDataFromQueryDefinitions(
+                {
+                  queryDefinitions,
+                  queryId,
+                }
+              );
 
               return generatedMockData;
             }
@@ -443,7 +446,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     try {
-      //NOLEY NOTES: will need to add a conditional flag based off config here...
+      //NOLEY NOTES: test this works
       if (!!smJSInstance.generateMockData) {
         initSubs();
       }

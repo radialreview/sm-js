@@ -1,3 +1,4 @@
+import { generateRandomNumber } from './dataUtilities';
 import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
 import { SMData } from './smDataTypes';
 import { prepareForBE } from './transaction/convertNodeDataToSMPersistedData';
@@ -10,12 +11,7 @@ import {
   SMDataDefaultFn,
 } from './types';
 
-//NOLEY NOTES MOVE THIS INTO A UTILS
-function generateRandomNumber(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-export function generateMockDataFromQueryDefinitions<
+export function generateMockNodeDataFromQueryDefinitions<
   TSMNode,
   TMapFn,
   TQueryDefinitionTarget,
@@ -24,19 +20,17 @@ export function generateMockDataFromQueryDefinitions<
     TMapFn,
     TQueryDefinitionTarget
   >
->(opts: { queryDefinitions: TQueryDefinitions }) {
-  const { queryDefinitions } = opts;
+>(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+  const { queryDefinitions, queryId } = opts;
 
   const queryRecords = getQueryRecordFromQueryDefinition({
     queryDefinitions: queryDefinitions,
-    queryId: 'generatingMockDataId', // NOLEY NOTES: ask about this id....
+    queryId: queryId,
   });
 
-  const mockedQueries = generateMockNodeDataFromQueryRecords({
+  return generateMockNodeDataFromQueryRecords({
     queryRecords,
   });
-
-  return mockedQueries;
 }
 // NOLEY NOTES:
 // 1). if the qD is just the node definition (todos: useTodoNode()), generate mock data using all of the nodes properties
@@ -48,19 +42,19 @@ function generateMockNodeDataFromQueryRecords(opts: {
   queryRecords: QueryRecord;
 }) {
   const { queryRecords } = opts;
-  const mockedQueryData: Record<string, any> = {};
+  const mockedNodeData: Record<string, any> = {};
 
   //NOLEY NOTES: might be a little icky here revisit
-  Object.keys(queryRecords).forEach(queryRecordsAlias => {
+  Object.keys(queryRecords).forEach(queryRecordAlias => {
     const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
-      queryRecords[queryRecordsAlias];
+      queryRecords[queryRecordAlias];
     const returnValueShouldBeAnArray =
       !!queryRecord.underIds ||
       !!queryRecord.ids ||
       'byReferenceArray' in queryRecord ||
       'children' in queryRecord;
 
-    let mockedQueryReturnValues;
+    let mockedNodeDataReturnValues;
     let relationalProperties: Record<string, any> = {};
 
     if (returnValueShouldBeAnArray) {
@@ -83,7 +77,7 @@ function generateMockNodeDataFromQueryRecords(opts: {
         });
       }
 
-      mockedQueryReturnValues = arrayOfValues;
+      mockedNodeDataReturnValues = arrayOfValues;
     } else {
       const formattedMockValues = generateMockValuesFromQueriedProperties({
         queryRecord,
@@ -95,16 +89,16 @@ function generateMockNodeDataFromQueryRecords(opts: {
         });
       }
 
-      mockedQueryReturnValues = {
+      mockedNodeDataReturnValues = {
         ...formattedMockValues,
         ...relationalProperties,
       };
     }
 
-    mockedQueryData[queryRecordsAlias] = mockedQueryReturnValues;
+    mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
   });
 
-  return mockedQueryData;
+  return mockedNodeData;
 }
 
 function generateMockValuesFromQueriedProperties(opts: {
@@ -120,8 +114,10 @@ function generateMockValuesFromQueriedProperties(opts: {
       return queryRecord.properties.includes(nodeProperty);
     })
     .reduce((acc, item) => {
-      //NOLEY NOTES: fix anys
-      acc[item] = (queryRecord.def.smData as any)[item];
+      acc[item] = (queryRecord.def.smData as Record<
+        string,
+        SMData<any, any, any> | SMDataDefaultFn
+      >)[item];
       return acc;
     }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
 
