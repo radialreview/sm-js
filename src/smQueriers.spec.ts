@@ -1,12 +1,19 @@
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
-  mockQueryResultExpectations,
+  // mockQueryResultExpectations,
   // getMockSubscriptionMessage,
   getMockConfig,
+  generateUserNode,
+  generateTodoNode,
+  generateTestNode,
+  mockedDataGenerationExpectedResultsWithAllSmDataTypes,
+  mockedDataGenerationExpectedResultsWithMultipleQds,
+  mockedDataGenerationExpectedResultsWithAllProperties,
+  mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { SMJS } from '.';
+import { queryDefinition, SMJS } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 
 // this file tests some console error functionality, this keeps the test output clean
@@ -487,15 +494,85 @@ test('sm.query uses the gql client, passing in the expected params', async done 
 //   }
 // });
 
-//NOLEY NOTES: added this one
-test.only('sm.query with mock data generates the correct results', async () => {
+//NOLEY NOTES: we need to decide how we will handle optional properties, should they be given a value?
+// also we shouldn't generated 0 as a number for truthy tests
+test('sm.query with mock data generates the correct results for qDs with mapped and relational properties', async () => {
   const { smJSInstance, queryDefinitions } = setupTest({
     generateMockData: true,
   });
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
-  expect(data).toEqual(mockQueryResultExpectations);
+  expect(data).toEqual(
+    mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined
+  );
+});
+
+test('sm.query with mock data generates all node properties when the qD is just the node definition (users: useUsersNode())', async () => {
+  const { smJSInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const userNode = generateUserNode(smJSInstance);
+  const queryDefinitions = {
+    users: userNode,
+  };
+
+  const { data } = await smJSInstance.query(queryDefinitions);
+
+  expect(data).toEqual(mockedDataGenerationExpectedResultsWithAllProperties);
+});
+
+test('sm.query with mock data generates all node properties when the qD has an undefined map', async () => {
+  const { smJSInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const queryDefinitions = {
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: undefined,
+    }),
+  };
+
+  const { data } = await smJSInstance.query(queryDefinitions);
+
+  expect(data).toEqual(mockedDataGenerationExpectedResultsWithAllProperties);
+});
+
+test('sm.query with mock data generates node properites for multiple queryDefinitions', async () => {
+  const { smJSInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const queryDefinitions = {
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: undefined,
+    }),
+    todo: generateTodoNode(smJSInstance),
+  };
+
+  const { data } = await smJSInstance.query(queryDefinitions);
+
+  expect(data).toEqual(mockedDataGenerationExpectedResultsWithMultipleQds);
+});
+
+test('sm.query with mock data generates node properites for all smData types with default values', async () => {
+  const { smJSInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const queryDefinitions = {
+    testProperties: queryDefinition({
+      def: generateTestNode(smJSInstance),
+      map: undefined,
+    }),
+  };
+
+  const { data } = await smJSInstance.query(queryDefinitions);
+
+  expect(data).toEqual(mockedDataGenerationExpectedResultsWithAllSmDataTypes);
 });
 
 function setupTest(opts?: { generateMockData: boolean }) {

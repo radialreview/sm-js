@@ -386,3 +386,170 @@ export function autoIndentGQL(gqlString: string): string {
     })
     .join('\n');
 }
+
+export function generateTestNode(smJSInstance: ISMJS): TestNode {
+  const testNode = smJSInstance.def({
+    type: 'testNode',
+    properties: testProperties,
+  }) as TestNode;
+
+  return testNode;
+}
+
+const testProperties = {
+  string: smData.string,
+  optionalString: smData.string.optional,
+  defaultString: smData.string('iAmADefaultString'),
+  number: smData.number,
+  optionalNumber: smData.number.optional,
+  defaultNumber: smData.number(22),
+  boolean: smData.boolean,
+  optionalBoolean: smData.boolean.optional,
+  defaultBoolean: smData.boolean(true),
+  object: smData.object({
+    stringInObject: smData.string,
+    optionalStringInObject: smData.string.optional,
+  }),
+  optionalObject: smData.object.optional({
+    defaultStringInOptionalObject: smData.string(
+      'iAmADefaultStringInAnOptionalObject'
+    ),
+    numberInOptionalObject: smData.number,
+  }),
+  array: smData.array(smData.number(7)),
+  optionalArray: smData.array(smData.boolean).optional,
+  record: smData.record(smData.string('iAmADefaultStringInARecord')),
+  optionalRecord: smData.record.optional(smData.array(smData.number)),
+};
+
+type TestProperties = typeof testProperties;
+
+type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
+
+export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = expect.objectContaining(
+  {
+    task: expect.any(String).toBeTruthy(),
+    id: expect.any(String).toBeTruthy(),
+    type: expect.any(String).toBeTruthy(),
+    done: expect.any(Boolean),
+    assigneeId: expect.any(String).toBeTruthy(),
+    meetingId: expect.any(String).toBeTruthy(),
+    settings: expect.objectContaining({
+      archiveAfterMeeting: expect.any(Boolean),
+      nestedSettings: expect.objectContaining({
+        nestedNestedMaybe: expect.any(String).toBeTruthy(),
+      }),
+      nestedRecord: expect
+        .any(Object)
+        .toMatchObject(typeof String, typeof Boolean), //NOLEY NOTES: no idea if that works...
+    }),
+    dataSetIds: expect.arrayContaining([expect.any(String).toBeTruthy]),
+    comments: expect.arrayContaining([expect.any(String).toBeTruthy]),
+    record: expect.any(Object).toMatchObject(typeof String, typeof String), //NOLEY NOTES: no idea if that works...
+    assignee: expect.objectContaining({
+      id: expect.any(String).toBeTruthy(),
+      type: expect.any(String).toBeTruthy(),
+      displayName: expect.any(String).toBeTruthy(),
+      lastUpdatedBy: expect.any(String).toBeTruthy(),
+      firstName: expect.stringMatching('joe'),
+      version: expect.any(Number).toBeTruthy(),
+    }),
+  }
+);
+
+export const mockDataGenerationExpectedResultsForUserNodeAllProperties = expect.objectContaining(
+  {
+    id: expect.any(String).toBeTruthy(),
+    firstName: expect.any(String).toBeTruthy(),
+    lastName: expect.stringMatching('joe'),
+    displayName: expect.any(String).toBeTruthy(),
+    lastUpdatedBy: expect.any(String).toBeTruthy(),
+    address: expect.objectContaining({
+      streetName: expect.any(String).toBeTruthy(),
+      zipCode: expect.any(String).toBeTruthy(),
+      state: expect.any(String).toBeTruthy(),
+      apt: expect.objectContaining({
+        number: expect.any(Number).toBeTruthy(),
+        floor: expect.any(Number).toBeTruthy(),
+      }),
+    }),
+    todos: expect.arrayContaining([
+      mockDataGenerationExpectedResultsForTodoNodeAllProperties,
+    ]),
+  }
+);
+
+export const mockedDataGenerationExpectedResultsWithAllProperties = expect.objectContaining(
+  {
+    users: expect.arrayContaining([
+      mockDataGenerationExpectedResultsForUserNodeAllProperties,
+    ]),
+  }
+);
+
+export const mockedDataGenerationExpectedResultsWithMultipleQds = expect.objectContaining(
+  {
+    users: expect.arrayContaining([
+      mockDataGenerationExpectedResultsForUserNodeAllProperties,
+    ]),
+    todo: mockDataGenerationExpectedResultsForTodoNodeAllProperties,
+  }
+);
+
+export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = expect.objectContaining(
+  {
+    string: expect.any(String).toBeTruthy(),
+    optionalString: expect.any(String).toBeTruthy(),
+    defaultString: expect.stringMatching('iAmADefaultString'),
+    number: expect.any(Number).toBeTruthy(),
+    optionalNumber: expect.any(Number).toBeTruthy(),
+    defaultNumber: expect.any(Number).toBe(22), // NOLEY NOTES: has to be a better matcher for this revisit
+    boolean: expect.any(Boolean),
+    optionalBoolean: expect.any(Boolean),
+    defaultBoolean: expect.any(Boolean).toBeTruthy(),
+    object: expect.objectContaining({
+      stringInObject: expect.any(String).toBeTruthy(),
+      optionalStringInObject: expect.any(String).toBeTruthy(),
+    }),
+    optionalObject: expect.objectContaining({
+      defaultStringInOptionalObject: expect.stringMatching(
+        'iAmADefaultStringInAnOptionalObject'
+      ),
+      numberInOptionalObject: expect.any(Number).toBeTruthy(),
+    }),
+    array: expect.arrayContaining([7]),
+    optionalArray: expect.arrayContaining([expect.any(Boolean)]),
+    record: expect
+      .any(Object)
+      .toMatchObject(
+        typeof String,
+        expect.stringMatching('iAmADefaultStringInARecord')
+      ),
+    optionalRecord: expect
+      .any(Object)
+      .toMatchObject(typeof String, typeof Number),
+  }
+);
+
+export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = expect.objectContaining(
+  {
+    id: expect.any(String).toBeTruthy(),
+    lastUpdatedBy: expect.any(String).toBeTruthy(),
+    address: expect.objectContaining({
+      state: expect.any(String).toBeTruthy(),
+      apt: expect.objectContaining({
+        number: expect.any(Number).toBeTruthy(),
+        floor: expect.any(Number).toBeTruthy(),
+      }),
+    }),
+    todos: expect.arrayContaining([
+      {
+        id: expect.any(String).toBeTruthy(),
+        assignee: expect.objectContaining({
+          id: expect.any(String).toBeTruthy(),
+          firstName: expect.stringMatching('joe'),
+        }),
+      },
+    ]),
+  }
+);

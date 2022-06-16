@@ -10,25 +10,12 @@ import {
   SMDataDefaultFn,
 } from './types';
 
-// const mockString = [
-//   'Billy',
-//   'Nancy',
-//   'Max',
-//   'Will',
-//   'Dustin',
-//   'Jim',
-//   'Eleven',
-//   'Steve',
-//   'Robin',
-//   'Lucas',
-// ];
-// const mockNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-// // NOLEY NOTES: or could do...
-// // function generateRandomNumber(min: number, max: number) {
-// //   return Math.floor(Math.random() * (max - min + 1) + min)
-// // }
+//NOLEY NOTES MOVE THIS INTO A UTILS
+function generateRandomNumber(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
 
-export function generateMockData<
+export function generateMockDataFromQueryDefinitions<
   TSMNode,
   TMapFn,
   TQueryDefinitionTarget,
@@ -39,86 +26,109 @@ export function generateMockData<
   >
 >(opts: { queryDefinitions: TQueryDefinitions }) {
   const { queryDefinitions } = opts;
-  let mockedQueries: Record<string, Array<Record<string, any>>> = {};
 
   const queryRecords = getQueryRecordFromQueryDefinition({
     queryDefinitions: queryDefinitions,
-    queryId: 'generatingMockDataId',
+    queryId: 'generatingMockDataId', // NOLEY NOTES: ask about this id....
   });
 
-  mockedQueries = generateMockValuesForQueryRecords({
+  const mockedQueries = generateMockNodeDataFromQueryRecords({
     queryRecords,
-    isRootLevel: true,
   });
 
   return mockedQueries;
 }
+// NOLEY NOTES:
 // 1). if the qD is just the node definition (todos: useTodoNode()), generate mock data using all of the nodes properties
 // 2). if the qD has a map fn but it's undefined, also generate mock data using all of the nodes properties
 // 3). if the qD has a map fn that's defined, generate mock data for the node properties being queried, but also,
 // discover if there's any relational queries in the map fn and return mock data for those as well
 
-function generateMockValuesForQueryRecords(opts: {
+function generateMockNodeDataFromQueryRecords(opts: {
   queryRecords: QueryRecord;
-  isRootLevel?: boolean;
 }) {
   const { queryRecords } = opts;
-  let mockedQueries: Record<string, any> = {};
+  const mockedQueryData: Record<string, any> = {};
 
+  //NOLEY NOTES: might be a little icky here revisit
   Object.keys(queryRecords).forEach(queryRecordsAlias => {
     const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
       queryRecords[queryRecordsAlias];
-    let relational: Record<string, any> = {};
+    const returnValueShouldBeAnArray =
+      !!queryRecord.underIds ||
+      !!queryRecord.ids ||
+      'byReferenceArray' in queryRecord ||
+      'children' in queryRecord;
 
-    const formattedQueryRecordWithValues = mapQueriedPropertiesToValues({
-      queryRecord,
-    });
+    let mockedQueryReturnValues;
+    let relationalProperties: Record<string, any> = {};
 
-    if (queryRecord.relational) {
-      relational = generateMockValuesForQueryRecords({
-        queryRecords: queryRecord.relational,
+    if (returnValueShouldBeAnArray) {
+      const numOfRecordsToGenerate = generateRandomNumber(2, 10);
+      const arrayOfValues = [];
+
+      for (let i = 0; i < numOfRecordsToGenerate; i++) {
+        const formattedMockValues = generateMockValuesFromQueriedProperties({
+          queryRecord,
+        });
+
+        if (queryRecord.relational) {
+          relationalProperties = generateMockNodeDataFromQueryRecords({
+            queryRecords: queryRecord.relational,
+          });
+        }
+        arrayOfValues.push({
+          ...formattedMockValues,
+          ...relationalProperties,
+        });
+      }
+
+      mockedQueryReturnValues = arrayOfValues;
+    } else {
+      const formattedMockValues = generateMockValuesFromQueriedProperties({
+        queryRecord,
       });
+
+      if (queryRecord.relational) {
+        relationalProperties = generateMockNodeDataFromQueryRecords({
+          queryRecords: queryRecord.relational,
+        });
+      }
+
+      mockedQueryReturnValues = {
+        ...formattedMockValues,
+        ...relationalProperties,
+      };
     }
 
-    const generatedRecord = {
-      ...formattedQueryRecordWithValues,
-      ...relational,
-    };
-
-    mockedQueries[queryRecordsAlias] =
-      queryRecord.underIds ||
-      queryRecord.ids ||
-      'byReferenceArray' in queryRecord ||
-      'children' in queryRecord
-        ? [generatedRecord]
-        : generatedRecord;
+    mockedQueryData[queryRecordsAlias] = mockedQueryReturnValues;
   });
 
-  return mockedQueries;
+  return mockedQueryData;
 }
 
-function mapQueriedPropertiesToValues(opts: {
+function generateMockValuesFromQueriedProperties(opts: {
   queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const queryRecord = opts.queryRecord;
-  let queryMockResponse;
 
+  //NOLEY NOTES: consider:
+  // 1). if the qD is just the node definition (todos: useTodoNode()), generate mock data using all of the nodes properties // believe this works
+  // 2). if the qD has a map fn but it's undefined, also generate mock data using all of the nodes properties // think this works...
   const propertiesToMock = Object.keys(queryRecord.def.smData)
     .filter(nodeProperty => {
-      //NOLEY NOTES: ...PROPERTIES_QUERIED_FOR_ALL_NODES
       return queryRecord.properties.includes(nodeProperty);
     })
     .reduce((acc, item) => {
       //NOLEY NOTES: fix anys
       acc[item] = (queryRecord.def.smData as any)[item];
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
 
-  queryMockResponse = generateValuesForNodeData(propertiesToMock);
+  const valuesForNodeData = generateValuesForNodeData(propertiesToMock);
+  const valuesForNodeDataPreparedForBE = prepareForBE(valuesForNodeData);
 
-  const propertiesPreparedForBE = prepareForBE(queryMockResponse);
-
-  return propertiesPreparedForBE;
+  return valuesForNodeDataPreparedForBE;
 }
 
 export function generateValuesForNodeData(

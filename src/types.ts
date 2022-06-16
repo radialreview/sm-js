@@ -37,8 +37,6 @@ export type SMPlugin = {
   };
 };
 
-// NOLEY NOTES: would we add the flag here? 
-// generateMockData: boolean
 export type SMConfig = {
   gqlClient: ISMGQLClient;
   plugins?: Array<SMPlugin>;
