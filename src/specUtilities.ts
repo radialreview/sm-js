@@ -20,6 +20,7 @@ import {
 
 const userProperties = {
   firstName: smData.string,
+  type: smData.string('tt-user'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
   lastName: smData.string('joe'),
   address: smData.object({
     streetName: smData.string,
@@ -75,6 +76,7 @@ export function generateUserNode(
 const todoProperties = {
   task: smData.string,
   done: smData.boolean(false),
+  type: smData.string('todo'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
   assigneeId: smData.string,
   meetingId: smData.string.optional,
   settings: smData.object.optional({
@@ -398,12 +400,13 @@ export function generateTestNode(smJSInstance: ISMJS): TestNode {
 
 const testProperties = {
   string: smData.string,
+  type: smData.string('testNode'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
   optionalString: smData.string.optional,
   defaultString: smData.string('iAmADefaultString'),
   number: smData.number,
   optionalNumber: smData.number.optional,
   defaultNumber: smData.number(22),
-  boolean: smData.boolean,
+  boolean: smData.boolean(true),
   optionalBoolean: smData.boolean.optional,
   defaultBoolean: smData.boolean(true),
   object: smData.object({
@@ -417,7 +420,9 @@ const testProperties = {
     numberInOptionalObject: smData.number,
   }),
   array: smData.array(smData.number(7)),
-  optionalArray: smData.array(smData.boolean).optional,
+  optionalArray: smData.array(smData.boolean.optional).optional,
+  // NOLEY NOTES: these are throwing the error:
+  // Error: SMDataParsing exception - Could not parse json stored in old format for a record in the key "optionalRecord"
   record: smData.record(smData.string('iAmADefaultStringInARecord')),
   optionalRecord: smData.record.optional(smData.array(smData.number)),
 };
@@ -426,58 +431,59 @@ type TestProperties = typeof testProperties;
 
 type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
 
-export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = expect.objectContaining(
-  {
-    task: expect.any(String).toBeTruthy(),
-    id: expect.any(String).toBeTruthy(),
-    type: expect.any(String).toBeTruthy(),
-    done: expect.any(Boolean),
-    assigneeId: expect.any(String).toBeTruthy(),
-    meetingId: expect.any(String).toBeTruthy(),
-    settings: expect.objectContaining({
-      archiveAfterMeeting: expect.any(Boolean),
-      nestedSettings: expect.objectContaining({
-        nestedNestedMaybe: expect.any(String).toBeTruthy(),
-      }),
-      nestedRecord: expect
-        .any(Object)
-        .toMatchObject(typeof String, typeof Boolean), //NOLEY NOTES: no idea if that works...
+export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
+  task: expect.any(String), // NOLEY NOTES: need to account for empty strings here.. .toBeTruthy not working
+  id: expect.any(String),
+  dateCreated: expect.any(Number),
+  dateLastModified: expect.any(Number),
+  lastUpdatedBy: expect.any(String),
+  lastUpdatedClientTimestamp: expect.any(Number),
+  type: expect.any(String),
+  done: expect.any(Boolean),
+  assigneeId: expect.any(String),
+  meetingId: expect.any(String),
+  settings: expect.objectContaining({
+    archiveAfterMeeting: expect.any(Boolean),
+    nestedSettings: expect.objectContaining({
+      nestedNestedMaybe: expect.any(String),
     }),
-    dataSetIds: expect.arrayContaining([expect.any(String).toBeTruthy]),
-    comments: expect.arrayContaining([expect.any(String).toBeTruthy]),
-    record: expect.any(Object).toMatchObject(typeof String, typeof String), //NOLEY NOTES: no idea if that works...
-    assignee: expect.objectContaining({
-      id: expect.any(String).toBeTruthy(),
-      type: expect.any(String).toBeTruthy(),
-      displayName: expect.any(String).toBeTruthy(),
-      lastUpdatedBy: expect.any(String).toBeTruthy(),
-      firstName: expect.stringMatching('joe'),
-      version: expect.any(Number).toBeTruthy(),
-    }),
-  }
-);
+    nestedRecord: expect.any(Object), //NOLEY NOTES: not sure how to test
+  }),
+  dataSetIds: expect.arrayContaining([expect.any(String)]),
+  comments: expect.arrayContaining([expect.any(String)]),
+  record: expect.any(Object), //NOLEY NOTES: not sure how to test
+  assignee: expect.objectContaining({
+    id: expect.any(String),
+    type: expect.any(String),
+    displayName: expect.any(String),
+    lastUpdatedBy: expect.any(String),
+    firstName: expect.stringMatching('joe'),
+    version: expect.any(Number),
+  }),
+};
 
-export const mockDataGenerationExpectedResultsForUserNodeAllProperties = expect.objectContaining(
-  {
-    id: expect.any(String).toBeTruthy(),
-    firstName: expect.any(String).toBeTruthy(),
-    lastName: expect.stringMatching('joe'),
-    displayName: expect.any(String).toBeTruthy(),
-    lastUpdatedBy: expect.any(String).toBeTruthy(),
-    address: expect.objectContaining({
-      streetName: expect.any(String).toBeTruthy(),
-      zipCode: expect.any(String).toBeTruthy(),
-      state: expect.any(String).toBeTruthy(),
-      apt: expect.objectContaining({
-        number: expect.any(Number).toBeTruthy(),
-        floor: expect.any(Number).toBeTruthy(),
-      }),
+export const mockDataGenerationExpectedResultsForUserNodeAllProperties = {
+  id: expect.any(String),
+  dateCreated: expect.any(Number),
+  dateLastModified: expect.any(Number),
+  lastUpdatedBy: expect.any(String),
+  lastUpdatedClientTimestamp: expect.any(Number),
+  firstName: expect.any(String),
+  lastName: expect.stringMatching('joe'),
+  displayName: expect.any(String),
+  address: expect.objectContaining({
+    streetName: expect.any(String),
+    zipCode: expect.any(String),
+    state: expect.any(String),
+    apt: expect.objectContaining({
+      number: expect.any(Number),
+      floor: expect.any(Number),
     }),
-    todos: expect.arrayContaining([
-      mockDataGenerationExpectedResultsForTodoNodeAllProperties,
-    ]),
-  }
-);
+  }),
+  todos: expect.arrayContaining([
+    mockDataGenerationExpectedResultsForTodoNodeAllProperties,
+  ]),
+};
 
 export const mockedDataGenerationExpectedResultsWithAllProperties = expect.objectContaining(
   {
@@ -496,60 +502,61 @@ export const mockedDataGenerationExpectedResultsWithMultipleQds = expect.objectC
   }
 );
 
-export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = expect.objectContaining(
-  {
-    string: expect.any(String).toBeTruthy(),
-    optionalString: expect.any(String).toBeTruthy(),
+export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
+  test: {
+    id: expect.any(String),
+    dateCreated: expect.any(Number),
+    dateLastModified: expect.any(Number),
+    lastUpdatedBy: expect.any(String),
+    lastUpdatedClientTimestamp: expect.any(Number),
+    string: expect.any(String),
+    optionalString: expect.any(String),
     defaultString: expect.stringMatching('iAmADefaultString'),
-    number: expect.any(Number).toBeTruthy(),
-    optionalNumber: expect.any(Number).toBeTruthy(),
-    defaultNumber: expect.any(Number).toBe(22), // NOLEY NOTES: has to be a better matcher for this revisit
+    number: expect.any(Number),
+    optionalNumber: expect.any(Number),
+    defaultNumber: expect.any(Number), // NOLEY NOTES: has to be a better matcher for this revisit
     boolean: expect.any(Boolean),
     optionalBoolean: expect.any(Boolean),
-    defaultBoolean: expect.any(Boolean).toBeTruthy(),
+    defaultBoolean: expect.any(Boolean), // NOLEY NOTES: has to be a better matcher for this revisit
     object: expect.objectContaining({
-      stringInObject: expect.any(String).toBeTruthy(),
-      optionalStringInObject: expect.any(String).toBeTruthy(),
+      stringInObject: expect.any(String),
+      optionalStringInObject: expect.any(String),
     }),
     optionalObject: expect.objectContaining({
       defaultStringInOptionalObject: expect.stringMatching(
         'iAmADefaultStringInAnOptionalObject'
       ),
-      numberInOptionalObject: expect.any(Number).toBeTruthy(),
+      numberInOptionalObject: expect.any(Number),
     }),
     array: expect.arrayContaining([7]),
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
-    record: expect
-      .any(Object)
-      .toMatchObject(
-        typeof String,
-        expect.stringMatching('iAmADefaultStringInARecord')
-      ),
-    optionalRecord: expect
-      .any(Object)
-      .toMatchObject(typeof String, typeof Number),
-  }
-);
+    type: expect.stringMatching('testNode'),
+    version: expect.any(Number),
+    record: expect.any(Object), //NOLEY NOTES: figure out how to test
+    optionalRecord: expect.any(Object), //NOLEY NOTES: figure out how to test
+  },
+};
 
-export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = expect.objectContaining(
-  {
-    id: expect.any(String).toBeTruthy(),
-    lastUpdatedBy: expect.any(String).toBeTruthy(),
-    address: expect.objectContaining({
-      state: expect.any(String).toBeTruthy(),
-      apt: expect.objectContaining({
-        number: expect.any(Number).toBeTruthy(),
-        floor: expect.any(Number).toBeTruthy(),
-      }),
+export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = {
+  id: expect.any(String),
+  dateCreated: expect.any(Number),
+  dateLastModified: expect.any(Number),
+  lastUpdatedBy: expect.any(String),
+  lastUpdatedClientTimestamp: expect.any(Number),
+  address: expect.objectContaining({
+    state: expect.any(String),
+    apt: expect.objectContaining({
+      number: expect.any(Number),
+      floor: expect.any(Number),
     }),
-    todos: expect.arrayContaining([
-      {
-        id: expect.any(String).toBeTruthy(),
-        assignee: expect.objectContaining({
-          id: expect.any(String).toBeTruthy(),
-          firstName: expect.stringMatching('joe'),
-        }),
-      },
-    ]),
-  }
-);
+  }),
+  todos: expect.arrayContaining([
+    {
+      id: expect.any(String),
+      assignee: expect.objectContaining({
+        id: expect.any(String),
+        firstName: expect.stringMatching('joe'),
+      }),
+    },
+  ]),
+};

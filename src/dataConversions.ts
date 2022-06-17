@@ -8,6 +8,8 @@ export function parseJSONFromBE(jsonString: string) {
 
   // convert string array into js array
   if (jsonString.startsWith(`${JSON_TAG}[`)) {
+    // NOLEY NOTES: Why is this erroring?
+    // console.log('NOLEY JSONSTRING', newString);
     return JSON.parse(jsonString.replace('__JSON__', ''));
   }
 

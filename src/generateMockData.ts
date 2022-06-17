@@ -1,14 +1,20 @@
-import { generateRandomNumber } from './dataUtilities';
+import {
+  generateRandomBoolean,
+  generateRandomNumber,
+  generateRandomString,
+} from './generateMockDataUtilities';
 import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
 import { SMData } from './smDataTypes';
 import { prepareForBE } from './transaction/convertNodeDataToSMPersistedData';
 
 import {
+  ISMData,
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
   RelationalQueryRecordEntry,
   SMDataDefaultFn,
+  SM_DATA_TYPES,
 } from './types';
 
 export function generateMockNodeDataFromQueryDefinitions<
@@ -121,71 +127,87 @@ function generateMockValuesFromQueriedProperties(opts: {
       return acc;
     }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
 
-  const valuesForNodeData = generateValuesForNodeData(propertiesToMock);
+  const valuesForNodeData = getMockValuesForISMDataRecord(propertiesToMock);
   const valuesForNodeDataPreparedForBE = prepareForBE(valuesForNodeData);
 
   return valuesForNodeDataPreparedForBE;
 }
 
-export function generateValuesForNodeData(
-  data: Record<string, SMData<any, any, any> | SMDataDefaultFn>
+export function getMockValuesForISMDataRecord(
+  record: Record<string, SMData<any, any, any> | SMDataDefaultFn>
 ) {
-  console.log('NOLEY DATA', data);
+  const returnValue = Object.entries(record).reduce((acc, [key, value]) => {
+    if (typeof value === 'function') {
+      acc[key] = getMockValueForISMData((value as any)._default as ISMData);
+    } else {
+      acc[key] = getMockValueForISMData(value);
+    }
+    return acc;
+  }, {} as Record<string, any>);
 
-  //NOLEY NOTES: expectedReturnType would be an object with values subsituted in, so passing in
-  // {
-  //   id: [Function: string] { _default: [SMData], optional: [SMData] },
-  //   firstName: [Function: string] { _default: [SMData], optional: [SMData] },
-  //   lastName: SMData {
-  //     type: 's',
-  //     parser: [Function: parser],
-  //     boxedValue: undefined,
-  //     defaultValue: 'joe',
-  //     isOptional: false
-  //   },
-  //   address: SMData {
-  //     type: 'o',
-  //     parser: [Function: parser],
-  //     boxedValue: [Object],
-  //     defaultValue: null,
-  //     isOptional: false
-  //   }
-  // }
-  // this ^^^ should return something like:
-  const result = {
-    id: '1234',
-    firstName: 'Earl',
-    lastName: 'Johnson',
-    address: { state: 'OR', apt: { floor: '1', number: '123' } },
-  };
-
-  return result;
+  return returnValue;
 }
 
-// if (value.type === SM_DATA_TYPES.string) {
-//   console.log('STRING');
-//   if (value.defaultValue.length) {
-//   }
-// }
-// if (value.type === SM_DATA_TYPES.maybeString) {
-// }
-// if (value.type === SM_DATA_TYPES.number) {
-// }
-// if (value.type === SM_DATA_TYPES.maybeNumber) {
-// }
-// if (value.type === SM_DATA_TYPES.boolean) {
-// }
-// if (value.type === SM_DATA_TYPES.maybeBoolean) {
-// }
-// if (value.type === SM_DATA_TYPES.object) {
-// }
-// if (value.type === SM_DATA_TYPES.maybeObject) {
-// }
-// if (value.type === SM_DATA_TYPES.record) {
-// }
-// if (value.type === SM_DATA_TYPES.maybeRecord) {
-// }
-// if (value.type === SM_DATA_TYPES.array) {
-// }
-// if (value.type === SM_DATA_TYPES.maybeArray) {
-// }
+function getMockValueForISMData(smData: ISMData) {
+  switch (smData.type) {
+    case SM_DATA_TYPES.string: {
+      return smData.defaultValue ? smData.defaultValue : generateRandomString();
+    }
+    case SM_DATA_TYPES.maybeString: {
+      return generateRandomString();
+    }
+    case SM_DATA_TYPES.number: {
+      return smData.defaultValue
+        ? smData.defaultValue
+        : generateRandomNumber(1, 100);
+    }
+    case SM_DATA_TYPES.maybeNumber: {
+      return generateRandomNumber(1, 100);
+    }
+    case SM_DATA_TYPES.boolean: {
+      return smData.defaultValue
+        ? smData.defaultValue
+        : generateRandomBoolean();
+    }
+    case SM_DATA_TYPES.maybeBoolean: {
+      return generateRandomBoolean();
+    }
+    case SM_DATA_TYPES.object: {
+      return getMockValuesForISMDataRecord(smData.boxedValue);
+    }
+    case SM_DATA_TYPES.maybeObject: {
+      return getMockValuesForISMDataRecord(smData.boxedValue);
+    }
+    case SM_DATA_TYPES.array: {
+      const arrayContents: any = [];
+      for (let i = 0; i < generateRandomNumber(1, 10); i++) {
+        arrayContents.push(getMockValueForISMData(smData.boxedValue));
+      }
+      console.log('NOLEY ARRAY CONTENTS', arrayContents);
+      return arrayContents;
+    }
+    case SM_DATA_TYPES.maybeArray: {
+      const arrayContents: any = [];
+      for (let i = 0; i < generateRandomNumber(1, 10); i++) {
+        arrayContents.push(getMockValueForISMData(smData.boxedValue));
+      }
+      return arrayContents;
+    }
+    case SM_DATA_TYPES.record: {
+      const record: Record<string, any> = {};
+      record[generateRandomString()] = getMockValueForISMData(
+        smData.boxedValue
+      );
+      return record;
+    }
+    case SM_DATA_TYPES.maybeRecord: {
+      const record: Record<string, any> = {};
+      record[generateRandomString()] = getMockValueForISMData(
+        smData.boxedValue
+      );
+      return record;
+    }
+    default:
+      return 'NOLEY - should we throw an unreachableCaseError here?';
+  }
+}
