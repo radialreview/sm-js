@@ -249,25 +249,34 @@ export type GetParsedValueTypeFromDefaultFn<
    *   flag: boolean, // boolean and string native types from TS
    *   name: string
    * }
+   * 
+   * setting TFilter to true
+   * 
+   * will return 
+   * 
+   * {
+   *   flag: Record<FilterCondition, boolean>
+   *   name: Record<FilterCondition, string>
+   * }
    */
-export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
+export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>, TFilter = false> =  {
   [key in keyof TProperties]:
     TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
       ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
         ? IsMaybe<TParsedValue> extends true
-          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>>
-          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>
+          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}, TFilter>>
+          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}, TFilter>
         : TParsedValue extends Array<infer TArrayItemType>
           ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
             : Array<TArrayItemType>
-          : TParsedValue
+          : TFilter extends true ? Record<FilterCondition, TParsedValue> : TParsedValue
       : TProperties[key] extends SMDataDefaultFn
-        ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        ?  TFilter extends true ? Record<FilterCondition, GetParsedValueTypeFromDefaultFn<TProperties[key]>> : GetParsedValueTypeFromDefaultFn<TProperties[key]>
         : never;
 }
 
-export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode, TFilter = false> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties, TFilter> : never
 
 
 /**
@@ -282,8 +291,9 @@ export type GetAllAvailableNodeDataType<
 
 type GetAllAvailableNodeDataTypeWithoutDefaultProps<
   TSMData extends Record<string, ISMData | SMDataDefaultFn>,
-  TComputedData extends Record<string, any>
-> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+  TComputedData extends Record<string, any>,
+  TFilter = false
+> = GetResultingDataTypeFromProperties<TSMData, TFilter> & TComputedData;
 
 
 /**
@@ -602,6 +612,7 @@ export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
   <TMapFn extends MapFnForNode<TSMNode>>(opts: {
     map: TMapFn;
     pagination?: ISMQueryPagination;
+    filter?: ValidFilterForNode<TSMNode>
   }): IChildrenQuery<TSMNode, TMapFn>;
 }
 
@@ -611,13 +622,15 @@ export interface IChildrenQuery<
 > {
   _smRelational: SM_RELATIONAL_TYPES.children;
   def: TSMNode;
-  filtersAndPagination?: ISMQueryPagination;
   map: TMapFn;
   pagination?: ISMQueryPagination;
   depth?: number;
 }
 
-export interface ISMQueryPagination {}
+export interface ISMQueryPagination {
+  itemsPerPage?: number
+  page?: number
+}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
@@ -637,6 +650,8 @@ export interface ISMNodeRepository {
   onDataReceived(data: { id: string } & Record<string, any>): void;
   onNodeDeleted(id: string): void;
 }
+
+type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'in' | 'notIn' | 'contains'
 
 /**
  * Returns the valid filter for a node
@@ -659,8 +674,8 @@ export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
             ? never
             : TKey
           : TKey  
-  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode>
-    ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode, true>
+    ? GetResultingDataTypeFromNodeDefinition<TSMNode, true>[TKey]
     : never
 }>
 
@@ -678,6 +693,7 @@ export type QueryDefinition<
 > = { 
   def: TSMNode;
   map: TMapFn;
+  pagination?: ISMQueryPagination
   filter?: ValidFilterForNode<TSMNode>
   target?: TQueryDefinitionTarget
   tokenName?: string
@@ -740,6 +756,11 @@ export type QueryDataReturn<
     : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
 };
 
+
+type IPaginatedArray<T> = Array<T> & {pagination: {
+  next: () => void, previous: () => void, page: (page: number) => void, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean, currentPage: number
+}}
+
 export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode | null> = TQueryDefinition extends {
   map: MapFn<any, any, any>;
 }
@@ -753,7 +774,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
-          : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+          : IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
         : never
       : never
     : never
@@ -899,7 +920,7 @@ type ExtractQueriedDataFromMapFnReturn<
 type ExtractQueriedDataFromChildrenQuery<
   TChildrenQuery extends IChildrenQuery<any, any>
 > = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+  ? IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
   : never;
 
 // Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
