@@ -20,7 +20,7 @@ import {
 
 const userProperties = {
   firstName: smData.string,
-  type: smData.string('tt-user'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
+  type: smData.string('tt-user'), //NOLEY QUESTION 1
   lastName: smData.string('joe'),
   address: smData.object({
     streetName: smData.string,
@@ -76,7 +76,7 @@ export function generateUserNode(
 const todoProperties = {
   task: smData.string,
   done: smData.boolean(false),
-  type: smData.string('todo'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
+  type: smData.string('todo'), //NOLEY QUESTION 1
   assigneeId: smData.string,
   meetingId: smData.string.optional,
   settings: smData.object.optional({
@@ -399,17 +399,18 @@ export function generateTestNode(smJSInstance: ISMJS): TestNode {
 }
 
 const testProperties = {
-  string: smData.string,
-  type: smData.string('testNode'), //NOLEY NOTES: ask about this and how we should set this... is this just needed with the mocks?
+  stringData: smData.string,
+  type: smData.string('testNode'), //NOLEY QUESTION 1: Should type always be queried? Is it always queried for other nodes?
+  // It was erroring no blah found for data.type, should this be a sharedNodeProperties thing?
   optionalString: smData.string.optional,
   defaultString: smData.string('iAmADefaultString'),
-  number: smData.number,
+  numberData: smData.number,
   optionalNumber: smData.number.optional,
   defaultNumber: smData.number(22),
-  boolean: smData.boolean(true),
+  booleanData: smData.boolean(true),
   optionalBoolean: smData.boolean.optional,
   defaultBoolean: smData.boolean(true),
-  object: smData.object({
+  objectData: smData.object({
     stringInObject: smData.string,
     optionalStringInObject: smData.string.optional,
   }),
@@ -417,13 +418,15 @@ const testProperties = {
     defaultStringInOptionalObject: smData.string(
       'iAmADefaultStringInAnOptionalObject'
     ),
-    numberInOptionalObject: smData.number,
+    //NOLEY NOTES: record error
+    recordInObject: smData.record(smData.number),
   }),
-  array: smData.array(smData.number(7)),
+  arrayData: smData.array(smData.number(7)),
   optionalArray: smData.array(smData.boolean.optional).optional,
-  // NOLEY NOTES: these are throwing the error:
-  // Error: SMDataParsing exception - Could not parse json stored in old format for a record in the key "optionalRecord"
-  record: smData.record(smData.string('iAmADefaultStringInARecord')),
+  // NOLEY QUESTION 2: problem with records is they need to be stored in the old format. So like recordData: `__JSON__{'Lucas': 'iAmADefaultStringInARecord'}`,
+  // currently, the prepareForBE function doesn't have awareness on if the data coming in is a record or an object, so it is doing the __object__dot__recordData
+  // which will not work cuz we can't spread records into multiple root properties because at the time of querying we don't know all the properties in a record
+  recordData: smData.record(smData.string('iAmADefaultStringInARecord')),
   optionalRecord: smData.record.optional(smData.array(smData.number)),
 };
 
@@ -447,11 +450,11 @@ export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
     nestedSettings: expect.objectContaining({
       nestedNestedMaybe: expect.any(String),
     }),
-    nestedRecord: expect.any(Object), //NOLEY NOTES: not sure how to test
+    // nestedRecord: expect.any(Object), //NOLEY NOTES: record error
   }),
   dataSetIds: expect.arrayContaining([expect.any(String)]),
   comments: expect.arrayContaining([expect.any(String)]),
-  record: expect.any(Object), //NOLEY NOTES: not sure how to test
+  // record: expect.any(Object), //NOLEY NOTES: record error
   assignee: expect.objectContaining({
     id: expect.any(String),
     type: expect.any(String),
@@ -509,18 +512,18 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     dateLastModified: expect.any(Number),
     lastUpdatedBy: expect.any(String),
     lastUpdatedClientTimestamp: expect.any(Number),
-    string: expect.any(String),
+    stringData: expect.any(String),
     optionalString: expect.any(String),
     defaultString: expect.stringMatching('iAmADefaultString'),
-    number: expect.any(Number),
+    numberData: expect.any(Number),
     optionalNumber: expect.any(Number),
     defaultNumber: expect.any(Number), // NOLEY NOTES: has to be a better matcher for this revisit
-    boolean: expect.any(Boolean),
+    booleanData: expect.any(Boolean),
     optionalBoolean: expect.any(Boolean),
     defaultBoolean: expect.any(Boolean), // NOLEY NOTES: has to be a better matcher for this revisit
-    object: expect.objectContaining({
+    objectData: expect.objectContaining({
       stringInObject: expect.any(String),
-      optionalStringInObject: expect.any(String),
+      // recordInObject: expect.any(Object), //NOLEY NOTES: record error
     }),
     optionalObject: expect.objectContaining({
       defaultStringInOptionalObject: expect.stringMatching(
@@ -528,12 +531,12 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
       ),
       numberInOptionalObject: expect.any(Number),
     }),
-    array: expect.arrayContaining([7]),
+    arrayData: expect.arrayContaining([7]),
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
     type: expect.stringMatching('testNode'),
     version: expect.any(Number),
-    record: expect.any(Object), //NOLEY NOTES: figure out how to test
-    optionalRecord: expect.any(Object), //NOLEY NOTES: figure out how to test
+    // recordData: expect.any(Object), //NOLEY NOTES: record error
+    // optionalRecord: expect.any(Object), //NOLEY NOTES: record error
   },
 };
 

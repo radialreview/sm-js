@@ -54,7 +54,10 @@ export function createDOFactory(smJSInstance: ISMJS) {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
       public id: string;
+      public dateCreated: number;
+      public dateLastModified: number;
       public lastUpdatedBy: string;
+      public lastUpdatedClientTimestamp: number;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
       public type = node.type;
@@ -63,12 +66,20 @@ export function createDOFactory(smJSInstance: ISMJS) {
         initialData: DeepPartial<TNodeData> & {
           version: number;
           id: string;
+          dateCreated: number;
+          dateLastModified: number;
+          lastUpdatedClientTimestamp: number;
           lastUpdatedBy: string;
         }
       ) {
         this._defaults = this.getDefaultData(node.properties);
+        //NOLEY NOTES: my test runs by adding these properties but the doInstance still errors. Ask.
         this.id = initialData.id;
+        this.dateCreated = initialData.dateCreated;
+        this.dateLastModified = initialData.dateLastModified;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
+        this.lastUpdatedClientTimestamp =
+          initialData.lastUpdatedClientTimestamp;
         if (initialData.version != null) {
           this.version = Number(initialData.version);
         }

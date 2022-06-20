@@ -112,9 +112,6 @@ function generateMockValuesFromQueriedProperties(opts: {
 }) {
   const queryRecord = opts.queryRecord;
 
-  //NOLEY NOTES: consider:
-  // 1). if the qD is just the node definition (todos: useTodoNode()), generate mock data using all of the nodes properties // believe this works
-  // 2). if the qD has a map fn but it's undefined, also generate mock data using all of the nodes properties // think this works...
   const propertiesToMock = Object.keys(queryRecord.def.smData)
     .filter(nodeProperty => {
       return queryRecord.properties.includes(nodeProperty);
@@ -183,7 +180,6 @@ function getMockValueForISMData(smData: ISMData) {
       for (let i = 0; i < generateRandomNumber(1, 10); i++) {
         arrayContents.push(getMockValueForISMData(smData.boxedValue));
       }
-      console.log('NOLEY ARRAY CONTENTS', arrayContents);
       return arrayContents;
     }
     case SM_DATA_TYPES.maybeArray: {
@@ -195,19 +191,28 @@ function getMockValueForISMData(smData: ISMData) {
     }
     case SM_DATA_TYPES.record: {
       const record: Record<string, any> = {};
-      record[generateRandomString()] = getMockValueForISMData(
-        smData.boxedValue
-      );
+      record[generateRandomString()] =
+        typeof smData.boxedValue === 'function'
+          ? getMockValueForISMData(
+              (smData.boxedValue as any)._default as ISMData
+            )
+          : getMockValueForISMData(smData.boxedValue);
+      //NOLEY NOTES: record error `${JSON_TAG}${JSON.stringify(record)}
       return record;
     }
     case SM_DATA_TYPES.maybeRecord: {
       const record: Record<string, any> = {};
-      record[generateRandomString()] = getMockValueForISMData(
-        smData.boxedValue
-      );
+      record[generateRandomString()] =
+        typeof smData.boxedValue === 'function'
+          ? getMockValueForISMData(
+              (smData.boxedValue as any)._default as ISMData
+            )
+          : getMockValueForISMData(smData.boxedValue);
+      //NOLEY NOTES: record error `${JSON_TAG}${JSON.stringify(record)}
       return record;
     }
     default:
-      return 'NOLEY - should we throw an unreachableCaseError here?';
+      console.log('_______ NOLEY SM DATA UNREACHABLEEEEE ________', smData);
+      return 'NOLEY QUESTION 4 - should we throw an unreachableCaseError here?';
   }
 }
