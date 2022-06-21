@@ -221,9 +221,6 @@ export function createMockQueryDefinitions(
               map: ({ id, firstName }) => ({ id, firstName }),
             }),
           }),
-          pagination: {
-            itemsPerPage: 1,
-          },
         }),
       }),
       target,
@@ -234,6 +231,51 @@ export function createMockQueryDefinitions(
     }),
   };
 }
+
+export const mockUserData = {
+  id: 'mock-user-id',
+  type: 'tt-user',
+  version: '1',
+  address: '__object__',
+  address__dot__state: 'FL',
+  address__dot__apt: '__object__',
+  address__dot__apt__dot__floor: '1',
+  address__dot__apt__dot__number: '1',
+  firstName: 'Paul',
+  score: 12,
+  archived: false,
+  todos: [
+    {
+      version: '1',
+      id: 'mock-todo-id',
+      type: 'todo',
+      task: 'My Todo',
+      numberProp: 10,
+      users: [
+        {
+          id: 'mock-user-id',
+          type: 'tt-user',
+          version: '1',
+          firstName: 'Paul',
+        },
+        {
+          id: 'mock-user-id-2',
+          type: 'tt-user',
+          version: '1',
+          firstName: 'John',
+        },
+      ],
+      assignee: [
+        {
+          id: 'mock-user-id',
+          type: 'tt-user',
+          version: '1',
+          firstName: 'Paul',
+        },
+      ],
+    },
+  ],
+};
 
 export const mockQueryDataReturn = {
   users: [
@@ -246,78 +288,17 @@ export const mockQueryDataReturn = {
       address__dot__apt: '__object__',
       address__dot__apt__dot__floor: '1',
       address__dot__apt__dot__number: '1',
-      firstName: 'Paul',
-      score: 12,
-      archived: false,
       todos: [
         {
           version: '1',
           id: 'mock-todo-id',
           type: 'todo',
-          task: 'My Todo',
-          numberProp: 10,
-          users: [
-            {
-              id: 'mock-user-id',
-              type: 'tt-user',
-              version: '1',
-              firstName: 'Paul',
-            },
-            {
-              id: 'mock-user-id-2',
-              type: 'tt-user',
-              version: '1',
-              firstName: 'John',
-            },
-          ],
           assignee: [
             {
               id: 'mock-user-id',
               type: 'tt-user',
               version: '1',
-              firstName: 'Paul',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'mock-user-id-2',
-      type: 'tt-user',
-      version: '1',
-      address: '__object__',
-      address__dot__state: 'NY',
-      address__dot__apt: '__object__',
-      address__dot__apt__dot__floor: '1',
-      address__dot__apt__dot__number: '1',
-      firstName: 'John',
-      score: 10,
-      archived: false,
-      todos: [
-        {
-          version: '1',
-          id: 'mock-todo-id-1',
-          type: 'todo',
-          numberProp: 10,
-          assignee: [
-            {
-              id: 'mock-user-id-2',
-              type: 'tt-user',
-              version: '1',
-              firstName: 'John',
-            },
-          ],
-        },
-        {
-          version: '1',
-          id: 'mock-todo-id-2',
-          type: 'todo',
-          assignee: [
-            {
-              id: 'mock-user-id-2',
-              type: 'tt-user',
-              version: '1',
-              firstName: 'John',
+              firstName: 'Joe',
             },
           ],
         },

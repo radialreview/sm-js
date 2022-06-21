@@ -5,6 +5,7 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
   generateUserNode,
+  mockUserData,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { queryDefinition, SMJS } from '.';
@@ -170,14 +171,13 @@ test('sm.query can query data using multiple tokens, by making parallel requests
 // 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'startsWith'
 
 function createFilterQueryDataReturn(
-  users: Array<Partial<typeof mockQueryDataReturn.users[0]>>
+  mockUsers: Array<Partial<typeof mockUserData>>
 ) {
-  const mockUser = mockQueryDataReturn.users[0];
   return {
-    users: users.map((user, index) => ({
+    users: mockUsers.map((mockUser, index) => ({
+      ...mockUserData,
       ...mockUser,
-      ...user,
-      id: mockUser.id + index,
+      id: mockUserData.id + index,
     })),
   };
 }
