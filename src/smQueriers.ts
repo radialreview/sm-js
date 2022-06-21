@@ -19,6 +19,8 @@ import {
   QueryRecord,
 } from './types';
 import { update, isArray } from 'lodash';
+import { getFlattenedNodeFilterObject } from './dataUtilities';
+import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 
 let queryIdx = 0;
 
@@ -183,12 +185,16 @@ export function generateQuerier({
             }
 
             const result = await smJSInstance.gqlClient.query(queryOpts);
-
             function applyFilters(record: QueryRecord, obj: any) {
               // Apply filters
               Object.keys(record).forEach(alias => {
                 const queryRecordEntry = record[alias];
-                const filter = queryRecordEntry.filter;
+                if (!queryRecordEntry.filter) {
+                  return;
+                }
+                const filter = getFlattenedNodeFilterObject(
+                  queryRecordEntry.filter
+                );
                 if (filter && obj[alias]) {
                   Object.keys(filter).forEach(filterPropertyPath => {
                     update(obj, alias, originalValue => {
@@ -198,7 +204,22 @@ export function generateQuerier({
                       return originalValue.filter(item => {
                         const propertyFilter: Record<FilterCondition, any> =
                           filter[filterPropertyPath];
-                        const value = item[filterPropertyPath];
+                        const value =
+                          item[
+                            filterPropertyPath.replaceAll(
+                              '.',
+                              OBJECT_PROPERTY_SEPARATOR
+                            )
+                          ];
+
+                        if (queryRecordEntry.relational != null) {
+                          // console.log(
+                          //   'asdasdas',
+                          //   queryRecordEntry.relational,
+                          //   item
+                          // );
+                          applyFilters(queryRecordEntry.relational, item);
+                        }
 
                         return (Object.keys(propertyFilter) as Array<
                           FilterCondition
@@ -213,6 +234,17 @@ export function generateQuerier({
                                       propertyFilter[filterCondition]
                                     ).toLowerCase()
                                   ) !== -1
+                              );
+                            }
+                            case 'doesNotContain': {
+                              return (
+                                String(value)
+                                  .toLowerCase()
+                                  .indexOf(
+                                    String(
+                                      propertyFilter[filterCondition]
+                                    ).toLowerCase()
+                                  ) === -1
                               );
                             }
                             case 'equal':
@@ -249,7 +281,6 @@ export function generateQuerier({
             }
 
             applyFilters(queryRecord, result);
-            console.log(result);
 
             return result;
           }

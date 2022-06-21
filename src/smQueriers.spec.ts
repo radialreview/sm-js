@@ -4,9 +4,10 @@ import {
   mockQueryResultExpectations,
   getMockSubscriptionMessage,
   getMockConfig,
+  generateUserNode,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { SMJS } from '.';
+import { queryDefinition, SMJS } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 
 // this file tests some console error functionality, this keeps the test output clean
@@ -168,67 +169,390 @@ test('sm.query can query data using multiple tokens, by making parallel requests
 
 // 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'startsWith'
 
-test.only(`sm.query.filter can filter number prop using 'greaterThanOrEqual' condition`, async () => {
-  // const mockUser = mockQueryResultExpectations.users[0];
-  // const mockTodo = mockQueryResultExpectations.users[0].todos[0];
-  // const todo1: typeof mockTodo = { ...mockTodo, id: 'mock-todo1' };
-  // const todo2: typeof mockTodo = { ...mockTodo, id: 'mock-todo2' };
-  // const todos = [todo1, todo2];
-  // const user1: typeof mockUser = {
-  //   ...mockUser,
-  //   id: 'mock-user1',
-  //   score: 10,
-  //   todos,
-  // };
-  // const user2: typeof mockUser = {
-  //   ...mockUser,
-  //   id: 'mock-user2',
-  //   score: 11,
-  //   todos,
-  // };
-  const { smJSInstance, queryDefinitions } = setupTest();
+function createFilterQueryDataReturn(
+  users: Array<Partial<typeof mockQueryDataReturn.users[0]>>
+) {
+  const mockUser = mockQueryDataReturn.users[0];
+  return {
+    users: users.map((user, index) => ({
+      ...mockUser,
+      ...user,
+      id: mockUser.id + index,
+    })),
+  };
+}
 
-  const { data } = await smJSInstance.query(queryDefinitions);
-  // const { data } = await smJSInstance.query({
-  //   users: queryDefinition({
-  //     def: generateUserNode(smJSInstance),
-  //     map: ({ id, score, todos }) => ({
-  //       id,
-  //       score,
-  //       todos: todos({
-  //         map: ({ id, task, assignee }) => ({
-  //           id,
-  //           task,
-  //           assignee: assignee({ map: ({ id }) => ({ id }) }),
-  //         }),
-  //       }),
-  //     }),
-  //     filter: {
-  //       score: { greaterThanOrEqual: 10 },
-  //     },
-  //     target: {
-  //       underIds: ['mock-id'],
-  //     },
-  //   }),
-  // });
+test(`sm.query.filter can filter number prop using 'greaterThanOrEqual' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
 
-  expect(data.users.length).toBe(1);
-  // expect(data.users[0].score).toBe(11);
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { greaterThanOrEqual: 20 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
 });
 
-test.skip(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'number' prop using 'equal' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'number' prop using 'notEqual' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'number' prop using 'greaterThan' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'number' prop using 'lessThan' condition`, async () => {});
+test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
 
-test.skip(`sm.query.filter can filter 'boolean' prop using 'equal' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'boolean' prop using 'notEqual' condition`, async () => {});
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { lessThanOrEqual: 20 },
+      },
+    }),
+  });
 
-test.skip(`sm.query.filter can filter 'string' prop using 'equal' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'string' prop using 'contains' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'string' prop using 'notEqual' condition`, async () => {});
-test.skip(`sm.query.filter can filter 'string' prop using 'startsWith' condition`, async () => {});
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'number' prop using 'equal' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 10,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { equal: 10 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'number' prop using 'notEqual' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { notEqual: 10 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'number' prop using 'greaterThan' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { greaterThan: 10 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'number' prop using 'lessThan' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { lessThan: 20 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter 'boolean' prop using 'equal' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        archived: true,
+      },
+      {
+        archived: true,
+      },
+      {
+        archived: false,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        archived: { equal: true },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'boolean' prop using 'notEqual' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        archived: true,
+      },
+      {
+        archived: true,
+      },
+      {
+        archived: false,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        archived: { equal: false },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter 'string' prop using 'equal' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        firstName: 'John',
+      },
+      {
+        firstName: 'Doe',
+      },
+      {
+        firstName: 'Mary',
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        firstName: { equal: 'John' },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter 'string' prop using 'contains' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        firstName: 'John Patrick',
+      },
+      {
+        firstName: 'Patrick John',
+      },
+      {
+        firstName: 'Mary',
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        firstName: { contains: 'John' },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'string' prop using 'doesNotContain' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        firstName: 'John Patrick',
+      },
+      {
+        firstName: 'Patrick John',
+      },
+      {
+        firstName: 'Mary',
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        firstName: { doesNotContain: 'John' },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter 'string' prop using 'notEqual' condition`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        firstName: 'John',
+      },
+      {
+        firstName: 'John',
+      },
+      {
+        firstName: 'Mary',
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        firstName: { notEqual: 'John' },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(1);
+});
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();

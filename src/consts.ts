@@ -23,12 +23,17 @@ export const DEFAULT_NODE_PROPERTIES = {
   lastUpdatedClientTimestamp: number,
 };
 
-export const FILTER_CONDITIONS: Array<FilterCondition> = [
-  'contains',
-  'equal',
-  'greaterThan',
-  'greaterThanOrEqual',
-  'lessThan',
-  'lessThanOrEqual',
-  'notEqual',
-];
+const FILTER_CONDITIONS_MAP: Record<FilterCondition, FilterCondition> = {
+  contains: 'contains',
+  equal: 'equal',
+  greaterThan: 'greaterThan',
+  greaterThanOrEqual: 'greaterThanOrEqual',
+  lessThan: 'lessThan',
+  lessThanOrEqual: 'lessThanOrEqual',
+  notEqual: 'notEqual',
+  doesNotContain: 'doesNotContain',
+};
+
+export const FILTER_CONDITIONS: Array<FilterCondition> = Object.values(
+  FILTER_CONDITIONS_MAP
+);

@@ -652,7 +652,7 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains'
+export type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'doesNotContain'
 
 /**
  * Returns the valid filter for a node
@@ -1081,7 +1081,7 @@ type ExtractNodeRelationalData<
 export type BaseQueryRecordEntry = {
   def: ISMNode;
   properties: Array<string>;
-  filter?: Record<string, Record<FilterCondition, any>>
+  filter?: ValidFilterForNode<ISMNode>
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 

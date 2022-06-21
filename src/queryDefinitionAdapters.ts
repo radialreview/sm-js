@@ -29,7 +29,7 @@ import {
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
-
+import { set as lodashSet } from 'lodash';
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
@@ -353,9 +353,8 @@ function getRelationalQueries(opts: {
             }).depth = relationalQuery.depth;
           }
           if ('filter' in relationalQuery && relationalQuery.filter != null) {
-            (relationalQueryRecord as RelationalQueryRecordEntry).filter = getFlattenedNodeFilterObject(
-              relationalQuery.filter
-            );
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter =
+              relationalQuery.filter;
           }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
@@ -484,9 +483,7 @@ export function getQueryRecordFromQueryDefinition<
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
-      (queryRecordEntry as QueryRecordEntry).filter = getFlattenedNodeFilterObject(
-        queryDefinition.filter
-      );
+      (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
@@ -501,10 +498,23 @@ function getIdsString(ids: Array<string>) {
 export function getKeyValueFilterString<TSMNode extends ISMNode>(
   filter: ValidFilterForNode<TSMNode>
 ) {
-  const convertedToDotFormat = prepareObjectForBE(filter, {
+  /**
+   * @TODO MM-486: Currently SM only supports _eq condition when filtering.
+   * we need to filter out the other conditions for now.
+   */
+  const flattenedFilters = getFlattenedNodeFilterObject(filter);
+  const filtersWithEqualCondition = Object.keys(flattenedFilters)
+    .filter(x => {
+      return flattenedFilters[x].equal != null;
+    })
+    .reduce((acc, current) => {
+      lodashSet(acc, current, flattenedFilters[current].equal);
+      return acc;
+    }, {} as ValidFilterForNode<TSMNode>);
+
+  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
     omitObjectIdentifier: true,
   });
-  console.log({ convertedToDotFormat });
   return `{${Object.entries(convertedToDotFormat).reduce(
     (acc, [key, value], idx, entries) => {
       acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;

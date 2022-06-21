@@ -22,6 +22,7 @@ const userProperties = {
   firstName: smData.string,
   lastName: smData.string('joe'),
   score: smData.number,
+  archived: smData.boolean(false),
   address: smData.object({
     streetName: smData.string,
     zipCode: smData.string,
@@ -88,12 +89,14 @@ const todoProperties = {
   dataSetIds: smData.array(smData.string),
   comments: smData.array(smData.string.optional).optional,
   record: smData.record(smData.string),
+  numberProp: smData.number,
 };
 
 export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
   assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
+  users: IChildrenQueryBuilder<UserNode>;
 };
 
 export type TodoMutations = {};
@@ -118,6 +121,11 @@ export function generateTodoNode(
         smData.reference<TodoNode, UserNode>({
           def: userNode,
           idProp: 'assigneeId',
+        }),
+      users: () =>
+        smData.children<UserNode>({
+          def: userNode,
+          depth: 1,
         }),
     },
   }) as TodoNode;
@@ -216,24 +224,9 @@ export function createMockQueryDefinitions(
           pagination: {
             itemsPerPage: 1,
           },
-          filter: {
-            settings: {
-              nestedSettings: {
-                nestedNestedMaybe: {
-                  contains: 'sad',
-                },
-              },
-            },
-            task: { equal: 'tet' },
-          },
         }),
       }),
       target,
-      filter: {
-        address: {
-          state: { equal: 'FL' },
-        },
-      },
       tokenName: opts.tokenName,
       useSubOpts: {
         doNotSuspend: opts.doNotSuspend,
@@ -254,11 +247,29 @@ export const mockQueryDataReturn = {
       address__dot__apt__dot__floor: '1',
       address__dot__apt__dot__number: '1',
       firstName: 'Paul',
+      score: 12,
+      archived: false,
       todos: [
         {
           version: '1',
           id: 'mock-todo-id',
           type: 'todo',
+          task: 'My Todo',
+          numberProp: 10,
+          users: [
+            {
+              id: 'mock-user-id',
+              type: 'tt-user',
+              version: '1',
+              firstName: 'Paul',
+            },
+            {
+              id: 'mock-user-id-2',
+              type: 'tt-user',
+              version: '1',
+              firstName: 'John',
+            },
+          ],
           assignee: [
             {
               id: 'mock-user-id',
@@ -275,16 +286,19 @@ export const mockQueryDataReturn = {
       type: 'tt-user',
       version: '1',
       address: '__object__',
-      address__dot__state: 'FL',
+      address__dot__state: 'NY',
       address__dot__apt: '__object__',
       address__dot__apt__dot__floor: '1',
       address__dot__apt__dot__number: '1',
       firstName: 'John',
+      score: 10,
+      archived: false,
       todos: [
         {
           version: '1',
           id: 'mock-todo-id-1',
           type: 'todo',
+          numberProp: 10,
           assignee: [
             {
               id: 'mock-user-id-2',
@@ -336,7 +350,6 @@ const expectedUsers = [
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
     version: 1,
-    score: 10,
   },
 ];
 
