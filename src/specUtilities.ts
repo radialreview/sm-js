@@ -230,7 +230,9 @@ export function createMockQueryDefinitions(
       }),
       target,
       filter: {
-        firstName: { equal: 'test' },
+        address: {
+          state: { equal: 'FL' },
+        },
       },
       tokenName: opts.tokenName,
       useSubOpts: {

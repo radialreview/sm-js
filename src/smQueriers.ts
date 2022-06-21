@@ -14,7 +14,10 @@ import {
   SubscriptionMeta,
   SubscriptionCanceller,
   ISMGQLClient,
+  FilterCondition,
+  QueryRecord,
 } from './types';
+import { update, isArray } from 'lodash';
 
 let queryIdx = 0;
 
@@ -156,10 +159,12 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           async ([tokenName, queryDefinitions]) => {
-            const { queryGQL } = convertQueryDefinitionToQueryInfo({
-              queryDefinitions: queryDefinitions,
-              queryId: queryId + '_' + tokenName,
-            });
+            const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
+              {
+                queryDefinitions: queryDefinitions,
+                queryId: queryId + '_' + tokenName,
+              }
+            );
 
             const queryOpts: Parameters<ISMGQLClient['query']>[0] = {
               gql: queryGQL,
@@ -170,13 +175,73 @@ export function generateQuerier({
             }
 
             const result = await smJSInstance.gqlClient.query(queryOpts);
-            // console.log(JSON.stringify(result));
-            // function getFilter(): ValidFilterForNode<TSMNode> {
 
-            // }
-            // const filters = Object.keys(queryDefinitions).forEach(queryDefinitionsAlias => {
-            //   const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null = queryDefinitions[queryDefinitionsAlias];
-            // })
+            function applyFilters(record: QueryRecord, obj: any) {
+              // Apply filters
+              Object.keys(record).forEach(alias => {
+                const queryRecordEntry = record[alias];
+                const filter = queryRecordEntry.filter;
+                if (filter && obj[alias]) {
+                  Object.keys(filter).forEach(filterPropertyPath => {
+                    update(obj, alias, originalValue => {
+                      if (!isArray(originalValue)) {
+                        return originalValue;
+                      }
+                      return originalValue.filter(item => {
+                        const propertyFilter: Record<FilterCondition, any> =
+                          filter[filterPropertyPath];
+                        const value = item[filterPropertyPath];
+
+                        return (Object.keys(propertyFilter) as Array<
+                          FilterCondition
+                        >).every(filterCondition => {
+                          switch (filterCondition) {
+                            case 'contains': {
+                              return (
+                                String(value)
+                                  .toLowerCase()
+                                  .indexOf(
+                                    String(
+                                      propertyFilter[filterCondition]
+                                    ).toLowerCase()
+                                  ) !== -1
+                              );
+                            }
+                            case 'equal':
+                              return (
+                                String(value).toLowerCase() ===
+                                String(
+                                  propertyFilter[filterCondition]
+                                ).toLowerCase()
+                              );
+                            case 'notEqual':
+                              return (
+                                String(value).toLowerCase() !==
+                                String(
+                                  propertyFilter[filterCondition]
+                                ).toLowerCase()
+                              );
+                            case 'greaterThan':
+                              return value > propertyFilter[filterCondition];
+                            case 'greaterThanOrEqual':
+                              return value >= propertyFilter[filterCondition];
+                            case 'lessThan':
+                              return value < propertyFilter[filterCondition];
+                            case 'lessThanOrEqual':
+                              return value <= propertyFilter[filterCondition];
+                            default:
+                              return false;
+                          }
+                        });
+                      });
+                    });
+                  });
+                }
+              });
+            }
+
+            applyFilters(queryRecord, result);
+            console.log(result);
 
             return result;
           }

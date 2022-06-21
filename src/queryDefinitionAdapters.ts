@@ -422,12 +422,6 @@ export function getQueryRecordFromQueryDefinition<
           smComputed: nodeDef.smComputed,
           smRelational: nodeDef.smRelational,
         });
-        // filters = getQueryFilters({
-        //   mapFn: queryDefinition.map,
-        //   queryId: opts.queryId,
-        //   smData: nodeDef.smData,
-        //   smRelational: nodeDef.smRelational,
-        // });
       } else {
         queriedProps = getAllNodeProperties({
           nodeProperties: nodeDef.smData,
@@ -510,6 +504,7 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   const convertedToDotFormat = prepareObjectForBE(filter, {
     omitObjectIdentifier: true,
   });
+  console.log({ convertedToDotFormat });
   return `{${Object.entries(convertedToDotFormat).reduce(
     (acc, [key, value], idx, entries) => {
       acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
@@ -804,12 +799,6 @@ export function convertQueryDefinitionToQueryInfo<
   const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
     opts
   );
-  console.log({
-    todos:
-      queryRecord['users'].relational &&
-      queryRecord['users'].relational['todos'],
-  });
-  console.log({ users: queryRecord['users'] });
   return {
     queryGQL: gql(queryGQLString),
     subscriptionConfigs: subscriptionConfigs.map(subscriptionConfig => ({
