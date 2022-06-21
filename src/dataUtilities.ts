@@ -1,4 +1,6 @@
 import { isArray, isObject } from 'lodash';
+import { FILTER_CONDITIONS } from './consts';
+import { FilterCondition, ISMNode, ValidFilterForNode } from './types';
 
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
@@ -163,4 +165,34 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
     }
   }
   return valuesByKeyPath;
+}
+
+export function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(
+  filter: ValidFilterForNode<TSMNode>
+) {
+  const result: Record<string, Record<FilterCondition, any>> = {};
+
+  for (const i in filter) {
+    if (!filter[i]) continue;
+
+    const value = filter[i] as any;
+    const valueIsNotAFilterCondition = FILTER_CONDITIONS.every(
+      condition => !value.hasOwnProperty(condition)
+    );
+    if (
+      typeof filter[i] == 'object' &&
+      filter[i] !== null &&
+      valueIsNotAFilterCondition
+    ) {
+      const flatObject = getFlattenedNodeFilterObject(value);
+      for (const x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      result[i] = value;
+    }
+  }
+  return result;
 }

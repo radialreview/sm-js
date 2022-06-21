@@ -251,6 +251,7 @@ export const mockQueryDataReturn = {
       address__dot__apt: '__object__',
       address__dot__apt__dot__floor: '1',
       address__dot__apt__dot__number: '1',
+      firstName: 'Paul',
       todos: [
         {
           version: '1',
@@ -261,7 +262,46 @@ export const mockQueryDataReturn = {
               id: 'mock-user-id',
               type: 'tt-user',
               version: '1',
-              firstName: 'Joe',
+              firstName: 'Paul',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'mock-user-id-2',
+      type: 'tt-user',
+      version: '1',
+      address: '__object__',
+      address__dot__state: 'FL',
+      address__dot__apt: '__object__',
+      address__dot__apt__dot__floor: '1',
+      address__dot__apt__dot__number: '1',
+      firstName: 'John',
+      todos: [
+        {
+          version: '1',
+          id: 'mock-todo-id-1',
+          type: 'todo',
+          assignee: [
+            {
+              id: 'mock-user-id-2',
+              type: 'tt-user',
+              version: '1',
+              firstName: 'John',
+            },
+          ],
+        },
+        {
+          version: '1',
+          id: 'mock-todo-id-2',
+          type: 'todo',
+          assignee: [
+            {
+              id: 'mock-user-id-2',
+              type: 'tt-user',
+              version: '1',
+              firstName: 'John',
             },
           ],
         },

@@ -1,4 +1,5 @@
 import { string, number } from './smDataTypes';
+import { FilterCondition } from './types';
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',
@@ -18,3 +19,13 @@ export const DEFAULT_NODE_PROPERTIES = {
   lastUpdatedBy: string,
   lastUpdatedClientTimestamp: number,
 };
+
+export const FILTER_CONDITIONS: Array<FilterCondition> = [
+  'contains',
+  'equal',
+  'greaterThan',
+  'greaterThanOrEqual',
+  'lessThan',
+  'lessThanOrEqual',
+  'notEqual',
+];
