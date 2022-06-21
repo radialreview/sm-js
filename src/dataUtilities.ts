@@ -1,5 +1,5 @@
 import { isArray, isObject } from 'lodash';
-import { FILTER_CONDITIONS } from './consts';
+import { FILTER_OPERATORS } from './consts';
 import { FilterCondition, ISMNode, ValidFilterForNode } from './types';
 
 /**
@@ -203,7 +203,7 @@ export function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(
     if (!filterObject[i]) continue;
 
     const value = filterObject[i] as any;
-    const valueIsNotAFilterCondition = FILTER_CONDITIONS.every(
+    const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
       condition => !value.hasOwnProperty(condition)
     );
     if (

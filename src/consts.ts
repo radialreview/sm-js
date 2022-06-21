@@ -20,7 +20,7 @@ export const DEFAULT_NODE_PROPERTIES = {
   lastUpdatedClientTimestamp: number,
 };
 
-const FILTER_CONDITIONS_MAP: Record<FilterCondition, FilterCondition> = {
+const FILTER_OPERATORS_MAP: Record<FilterCondition, FilterCondition> = {
   contains: 'contains',
   equal: 'equal',
   greaterThan: 'greaterThan',
@@ -31,6 +31,6 @@ const FILTER_CONDITIONS_MAP: Record<FilterCondition, FilterCondition> = {
   doesNotContain: 'doesNotContain',
 };
 
-export const FILTER_CONDITIONS: Array<FilterCondition> = Object.values(
-  FILTER_CONDITIONS_MAP
+export const FILTER_OPERATORS: Array<FilterCondition> = Object.values(
+  FILTER_OPERATORS_MAP
 );

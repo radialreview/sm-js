@@ -20,6 +20,7 @@ import {
 import { update, isArray } from 'lodash';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
 import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
+import { SMFilterOperatorNotImplementedException } from './exceptions';
 
 let queryIdx = 0;
 
@@ -178,7 +179,6 @@ export function generateQuerier({
 
             const result = await smJSInstance.gqlClient.query(queryOpts);
             function applyFilters(record: QueryRecord, obj: any) {
-              // Apply filters
               Object.keys(record).forEach(alias => {
                 const queryRecordEntry = record[alias];
                 if (!queryRecordEntry.filter) {
@@ -205,25 +205,20 @@ export function generateQuerier({
                           ];
 
                         if (queryRecordEntry.relational != null) {
-                          // console.log(
-                          //   'asdasdas',
-                          //   queryRecordEntry.relational,
-                          //   item
-                          // );
                           applyFilters(queryRecordEntry.relational, item);
                         }
 
                         return (Object.keys(propertyFilter) as Array<
                           FilterCondition
-                        >).every(filterCondition => {
-                          switch (filterCondition) {
+                        >).every(filterOperator => {
+                          switch (filterOperator) {
                             case 'contains': {
                               return (
                                 String(value)
                                   .toLowerCase()
                                   .indexOf(
                                     String(
-                                      propertyFilter[filterCondition]
+                                      propertyFilter[filterOperator]
                                     ).toLowerCase()
                                   ) !== -1
                               );
@@ -234,7 +229,7 @@ export function generateQuerier({
                                   .toLowerCase()
                                   .indexOf(
                                     String(
-                                      propertyFilter[filterCondition]
+                                      propertyFilter[filterOperator]
                                     ).toLowerCase()
                                   ) === -1
                               );
@@ -243,26 +238,28 @@ export function generateQuerier({
                               return (
                                 String(value).toLowerCase() ===
                                 String(
-                                  propertyFilter[filterCondition]
+                                  propertyFilter[filterOperator]
                                 ).toLowerCase()
                               );
                             case 'notEqual':
                               return (
                                 String(value).toLowerCase() !==
                                 String(
-                                  propertyFilter[filterCondition]
+                                  propertyFilter[filterOperator]
                                 ).toLowerCase()
                               );
                             case 'greaterThan':
-                              return value > propertyFilter[filterCondition];
+                              return value > propertyFilter[filterOperator];
                             case 'greaterThanOrEqual':
-                              return value >= propertyFilter[filterCondition];
+                              return value >= propertyFilter[filterOperator];
                             case 'lessThan':
-                              return value < propertyFilter[filterCondition];
+                              return value < propertyFilter[filterOperator];
                             case 'lessThanOrEqual':
-                              return value <= propertyFilter[filterCondition];
+                              return value <= propertyFilter[filterOperator];
                             default:
-                              return false;
+                              throw new SMFilterOperatorNotImplementedException(
+                                { operator: filterOperator }
+                              );
                           }
                         });
                       });

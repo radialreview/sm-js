@@ -2,6 +2,9 @@
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
 // this is done automatically by smData fetchers, smQuery and smSubscribe
+
+import { FilterCondition as FilterOperator } from './types';
+
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
 export class SMNotUpToDateException extends Error {
   public propName: string;
@@ -101,6 +104,14 @@ export class SMUnexpectedQueryResultException extends Error {
       `SMUnexpectedQueryResult exception - unexpected query result received`
     );
     this.exception = exception;
+  }
+}
+
+export class SMFilterOperatorNotImplementedException extends Error {
+  constructor(exeption: { operator: FilterOperator }) {
+    super(
+      `SMFilterOperatorNotImplementedException - '${exeption.operator}' operator not implemented.`
+    );
   }
 }
 
