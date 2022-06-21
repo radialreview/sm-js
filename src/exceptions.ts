@@ -111,3 +111,14 @@ export function throwLocallyLogInProd(error: Error) {
     console.error(error);
   }
 }
+
+// http://ideasintosoftware.com/exhaustive-switch-in-typescript/
+export class UnreachableCaseError extends Error {
+  constructor(val: never) {
+    super(
+      `Unreachable case: ${
+        typeof val === 'object' ? JSON.stringify(val, null, 2) : val
+      }`
+    );
+  }
+}

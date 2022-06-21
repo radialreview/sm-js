@@ -26,11 +26,13 @@ const JSON_TAG = '__JSON__';
 export function revisedConvertNodeDataToSMPersistedData(
   nodeData: Record<string, any>,
   ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>, //NOLEY NOTES: consider moving this into opts, shouldn't be optional though
+  generatingMockData: boolean,
   opts?: { skipBooleanStringWrapping?: boolean }
 ): string {
   const parsedData = revisedPrepareForBE({
     obj: nodeData,
     ISMDataRecord,
+    generatingMockData,
   });
 
   const stringified = Object.entries(parsedData).reduce(
@@ -89,6 +91,7 @@ function escapeText(text: string): string {
 export function revisedPrepareObjectForBE(
   obj: Record<string, any>,
   ISMDataRecordForKey: SMData<any, any, any>,
+  generatingMockData: boolean,
   opts?: {
     parentKey?: string;
     omitObjectIdentifier?: boolean;
@@ -113,6 +116,7 @@ export function revisedPrepareObjectForBE(
               key: `${preparedKey}${OBJECT_PROPERTY_SEPARATOR}${key}`,
               value: val,
               ISMDataRecordForKey,
+              generatingMockData,
               ...opts,
             }),
           };
@@ -125,6 +129,7 @@ export function revisedPrepareObjectForBE(
           key: preparedKey,
           value: val,
           ISMDataRecordForKey,
+          generatingMockData,
           ...opts,
         }),
       };
@@ -134,10 +139,12 @@ export function revisedPrepareObjectForBE(
   }, {} as Record<string, any>);
 }
 
+//NOLEY NOTES:
 function revisedConvertPropertyToBE(opts: {
   key: string;
   value: any;
   ISMDataRecordForKey: SMData<any, any, any>;
+  generatingMockData: boolean;
   omitObjectIdentifier?: boolean;
 }): Record<string, Maybe<string | boolean>> {
   if (opts.value === null) {
@@ -146,10 +153,14 @@ function revisedConvertPropertyToBE(opts: {
     console.log(
       'NOLEY opts.value in converprops',
       opts.value,
-      `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}`
+      `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}` //NOLEY NOTES: add config flag for mock data
     );
     return {
-      [opts.key]: `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}`,
+      [opts.key]: `${JSON_TAG}${
+        opts.generatingMockData
+          ? JSON.stringify(opts.value)
+          : escapeText(JSON.stringify(opts.value))
+      }`,
     };
   } else if (typeof opts.value === 'object') {
     if (
@@ -158,12 +169,17 @@ function revisedConvertPropertyToBE(opts: {
     ) {
       console.log('NOLEY THIS IS A RECORD SUP SUP SUP', opts.value);
       return {
-        [opts.key]: `${JSON_TAG}${JSON.stringify(opts.value)}`, //NOLEY NOTES: escape text errors for records consider
+        [opts.key]: `${JSON_TAG}${
+          opts.generatingMockData
+            ? JSON.stringify(opts.value)
+            : escapeText(JSON.stringify(opts.value))
+        }`,
       };
     } else {
       return revisedPrepareObjectForBE(
         { [opts.key]: opts.value },
         opts.ISMDataRecordForKey,
+        opts.generatingMockData,
         { omitObjectIdentifier: opts.omitObjectIdentifier }
       );
     }
@@ -205,9 +221,10 @@ function revisedConvertEdgeDirectionNames(edgeItem: AdditionalEdgeProperties) {
 
 export function revisedPrepareForBE(opts: {
   obj: Record<string, any>;
-  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>; //NOLEY NOTES: optional for now...
+  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>;
+  generatingMockData: boolean;
 }) {
-  const { ISMDataRecord, obj } = opts;
+  const { ISMDataRecord, obj, generatingMockData } = opts;
 
   return Object.entries(obj).reduce((acc, [key, value]) => {
     const ISMDataRecordForKey =
@@ -232,7 +249,11 @@ export function revisedPrepareForBE(opts: {
       return {
         ...acc,
         childNodes: value.map(item =>
-          revisedConvertNodeDataToSMPersistedData(item, ISMDataRecord)
+          revisedConvertNodeDataToSMPersistedData(
+            item,
+            ISMDataRecord,
+            generatingMockData
+          )
         ),
       };
     }
@@ -247,6 +268,7 @@ export function revisedPrepareForBE(opts: {
           revisedConvertNodeDataToSMPersistedData(
             revisedConvertEdgeDirectionNames(item),
             ISMDataRecord,
+            generatingMockData,
             {
               skipBooleanStringWrapping: true,
             }
@@ -257,7 +279,12 @@ export function revisedPrepareForBE(opts: {
 
     return {
       ...acc,
-      ...revisedConvertPropertyToBE({ key, value, ISMDataRecordForKey }),
+      ...revisedConvertPropertyToBE({
+        key,
+        value,
+        ISMDataRecordForKey,
+        generatingMockData,
+      }),
     };
   }, {} as Record<string, any>);
 }

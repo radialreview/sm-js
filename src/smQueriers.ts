@@ -446,7 +446,6 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     try {
-      //NOLEY QUESTION 5: test this works / is this the only instance pretty sure but ask
       if (!!smJSInstance.generateMockData) {
         initSubs();
       }

@@ -1,3 +1,4 @@
+import { UnreachableCaseError } from './exceptions';
 import {
   generateRandomBoolean,
   generateRandomNumber,
@@ -133,6 +134,7 @@ function generateMockValuesFromQueriedProperties(opts: {
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: valuesForNodeData,
     ISMDataRecord: propertiesToMock,
+    generatingMockData: true,
   });
 
   console.log(
@@ -223,7 +225,6 @@ function getMockValueForISMData(smData: ISMData) {
       return record;
     }
     default:
-      console.log('_______ NOLEY SM DATA UNREACHABLEEEEE ________', smData);
-      return 'NOLEY QUESTION 4 - should we throw an unreachableCaseError here?';
+      throw new UnreachableCaseError(smData.type as never);
   }
 }

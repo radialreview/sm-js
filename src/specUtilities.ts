@@ -418,14 +418,11 @@ const testProperties = {
     defaultStringInOptionalObject: smData.string(
       'iAmADefaultStringInAnOptionalObject'
     ),
-    //NOLEY NOTES: record error
+
     recordInOptionalObject: smData.record(smData.number),
   }),
   arrayData: smData.array(smData.string),
   optionalArray: smData.array(smData.boolean.optional).optional,
-  // NOLEY QUESTION 2: problem with records is they need to be stored in the old format. So like recordData: `__JSON__{'Lucas': 'iAmADefaultStringInARecord'}`,
-  // currently, the prepareForBE function doesn't have awareness on if the data coming in is a record or an object, so it is doing the __object__dot__recordData
-  // which will not work cuz we can't spread records into multiple root properties because at the time of querying we don't know all the properties in a record
   recordData: smData.record(smData.string('iAmADefaultStringInARecord')),
   optionalRecord: smData.record.optional(smData.array(smData.number)),
 };
@@ -531,7 +528,7 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
       ),
       recordInOptionalObject: expect.any(Object),
     }),
-    arrayData: expect.arrayContaining([expect.any(Number)]),
+    arrayData: expect.arrayContaining([expect.any(String)]),
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
     type: expect.stringMatching('testNode'),
     version: expect.any(Number),
