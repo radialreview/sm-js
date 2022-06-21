@@ -559,7 +559,7 @@ test('sm.query uses the gql client, passing in the expected params', async done 
 //   expect(data).toEqual(mockedDataGenerationExpectedResultsWithMultipleQds);
 // });
 
-//NOLEY NOTES THIS IS PASSING
+// NOLEY NOTES THIS IS PASSING
 test('sm.query with mock data generates node properites for all smData types with default values', async () => {
   const { smJSInstance } = setupTest({
     generateMockData: true,

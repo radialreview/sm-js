@@ -411,17 +411,17 @@ const testProperties = {
   optionalBoolean: smData.boolean.optional,
   defaultBoolean: smData.boolean(true),
   objectData: smData.object({
-    stringInObject: smData.string,
-    optionalStringInObject: smData.string.optional,
+    recordInObject: smData.record(smData.string),
+    stringInObject: smData.string.optional,
   }),
   optionalObject: smData.object.optional({
     defaultStringInOptionalObject: smData.string(
       'iAmADefaultStringInAnOptionalObject'
     ),
     //NOLEY NOTES: record error
-    recordInObject: smData.record(smData.number),
+    recordInOptionalObject: smData.record(smData.number),
   }),
-  arrayData: smData.array(smData.number(7)),
+  arrayData: smData.array(smData.string),
   optionalArray: smData.array(smData.boolean.optional).optional,
   // NOLEY QUESTION 2: problem with records is they need to be stored in the old format. So like recordData: `__JSON__{'Lucas': 'iAmADefaultStringInARecord'}`,
   // currently, the prepareForBE function doesn't have awareness on if the data coming in is a record or an object, so it is doing the __object__dot__recordData
@@ -450,11 +450,11 @@ export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
     nestedSettings: expect.objectContaining({
       nestedNestedMaybe: expect.any(String),
     }),
-    // nestedRecord: expect.any(Object), //NOLEY NOTES: record error
+    nestedRecord: expect.any(Object), //NOLEY NOTES: record error
   }),
   dataSetIds: expect.arrayContaining([expect.any(String)]),
   comments: expect.arrayContaining([expect.any(String)]),
-  // record: expect.any(Object), //NOLEY NOTES: record error
+  record: expect.any(Object), //NOLEY NOTES: record error
   assignee: expect.objectContaining({
     id: expect.any(String),
     type: expect.any(String),
@@ -523,20 +523,20 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     defaultBoolean: expect.any(Boolean), // NOLEY NOTES: has to be a better matcher for this revisit
     objectData: expect.objectContaining({
       stringInObject: expect.any(String),
-      // recordInObject: expect.any(Object), //NOLEY NOTES: record error
+      recordInObject: expect.any(Object), //NOLEY NOTES: record error
     }),
     optionalObject: expect.objectContaining({
       defaultStringInOptionalObject: expect.stringMatching(
         'iAmADefaultStringInAnOptionalObject'
       ),
-      numberInOptionalObject: expect.any(Number),
+      recordInOptionalObject: expect.any(Object),
     }),
-    arrayData: expect.arrayContaining([7]),
+    arrayData: expect.arrayContaining([expect.any(Number)]),
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
     type: expect.stringMatching('testNode'),
     version: expect.any(Number),
-    // recordData: expect.any(Object), //NOLEY NOTES: record error
-    // optionalRecord: expect.any(Object), //NOLEY NOTES: record error
+    recordData: expect.any(Object), //NOLEY NOTES: record error
+    optionalRecord: expect.any(Object), //NOLEY NOTES: record error
   },
 };
 

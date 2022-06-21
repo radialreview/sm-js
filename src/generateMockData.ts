@@ -5,7 +5,7 @@ import {
 } from './generateMockDataUtilities';
 import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
 import { SMData } from './smDataTypes';
-import { prepareForBE } from './transaction/convertNodeDataToSMPersistedData';
+import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
   ISMData,
@@ -68,9 +68,11 @@ function generateMockNodeDataFromQueryRecords(opts: {
       const arrayOfValues = [];
 
       for (let i = 0; i < numOfRecordsToGenerate; i++) {
-        const formattedMockValues = generateMockValuesFromQueriedProperties({
-          queryRecord,
-        });
+        const formattedMockNodeValues = generateMockValuesFromQueriedProperties(
+          {
+            queryRecord,
+          }
+        );
 
         if (queryRecord.relational) {
           relationalProperties = generateMockNodeDataFromQueryRecords({
@@ -78,14 +80,14 @@ function generateMockNodeDataFromQueryRecords(opts: {
           });
         }
         arrayOfValues.push({
-          ...formattedMockValues,
+          ...formattedMockNodeValues,
           ...relationalProperties,
         });
       }
 
       mockedNodeDataReturnValues = arrayOfValues;
     } else {
-      const formattedMockValues = generateMockValuesFromQueriedProperties({
+      const formattedMockNodeValues = generateMockValuesFromQueriedProperties({
         queryRecord,
       });
 
@@ -96,7 +98,7 @@ function generateMockNodeDataFromQueryRecords(opts: {
       }
 
       mockedNodeDataReturnValues = {
-        ...formattedMockValues,
+        ...formattedMockNodeValues,
         ...relationalProperties,
       };
     }
@@ -125,7 +127,18 @@ function generateMockValuesFromQueriedProperties(opts: {
     }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
 
   const valuesForNodeData = getMockValuesForISMDataRecord(propertiesToMock);
-  const valuesForNodeDataPreparedForBE = prepareForBE(valuesForNodeData);
+
+  console.log('NOLEY valuesForNodeData', valuesForNodeData);
+
+  const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
+    obj: valuesForNodeData,
+    ISMDataRecord: propertiesToMock,
+  });
+
+  console.log(
+    'NOLEYvaluesForNodeDataPreparedForBE ',
+    valuesForNodeDataPreparedForBE
+  );
 
   return valuesForNodeDataPreparedForBE;
 }
@@ -197,7 +210,6 @@ function getMockValueForISMData(smData: ISMData) {
               (smData.boxedValue as any)._default as ISMData
             )
           : getMockValueForISMData(smData.boxedValue);
-      //NOLEY NOTES: record error `${JSON_TAG}${JSON.stringify(record)}
       return record;
     }
     case SM_DATA_TYPES.maybeRecord: {
@@ -208,7 +220,6 @@ function getMockValueForISMData(smData: ISMData) {
               (smData.boxedValue as any)._default as ISMData
             )
           : getMockValueForISMData(smData.boxedValue);
-      //NOLEY NOTES: record error `${JSON_TAG}${JSON.stringify(record)}
       return record;
     }
     default:
