@@ -148,28 +148,6 @@ test('sm.query can query data using multiple tokens, by making parallel requests
   );
 });
 
-/**
- * number
- * - greaterThanOrEqual
- * - lessThanOrEqual
- * - equal
- * - greaterThan
- * - lessThan
- * - notEqual
- *
- * boolean
- * - equal
- * - notEqual
- *
- * string
- * - equal
- * - contains
- * - notEqual
- * - startsWith
- */
-
-// 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'startsWith'
-
 function createFilterQueryDataReturn(
   mockUsers: Array<Partial<typeof mockUserData>>
 ) {
@@ -182,7 +160,7 @@ function createFilterQueryDataReturn(
   };
 }
 
-test(`sm.query.filter can filter number prop using 'greaterThanOrEqual' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'greaterThanOrEqual' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -213,7 +191,7 @@ test(`sm.query.filter can filter number prop using 'greaterThanOrEqual' conditio
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -244,7 +222,7 @@ test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' condition
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'equal' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'equal' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -275,7 +253,7 @@ test(`sm.query.filter can filter 'number' prop using 'equal' condition`, async (
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'notEqual' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'notEqual' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -306,7 +284,7 @@ test(`sm.query.filter can filter 'number' prop using 'notEqual' condition`, asyn
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'greaterThan' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'greaterThan' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -337,7 +315,7 @@ test(`sm.query.filter can filter 'number' prop using 'greaterThan' condition`, a
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'lessThan' condition`, async () => {
+test(`sm.query.filter can filter 'number' prop using 'lessThan' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -368,7 +346,7 @@ test(`sm.query.filter can filter 'number' prop using 'lessThan' condition`, asyn
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'boolean' prop using 'equal' condition`, async () => {
+test(`sm.query.filter can filter 'boolean' prop using 'equal' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -399,7 +377,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'equal' condition`, async 
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'boolean' prop using 'notEqual' condition`, async () => {
+test(`sm.query.filter can filter 'boolean' prop using 'notEqual' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -430,7 +408,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'notEqual' condition`, asy
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'equal' condition`, async () => {
+test(`sm.query.filter can filter 'string' prop using 'equal' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -461,7 +439,7 @@ test(`sm.query.filter can filter 'string' prop using 'equal' condition`, async (
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'contains' condition`, async () => {
+test(`sm.query.filter can filter 'string' prop using 'contains' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -492,7 +470,7 @@ test(`sm.query.filter can filter 'string' prop using 'contains' condition`, asyn
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'doesNotContain' condition`, async () => {
+test(`sm.query.filter can filter 'string' prop using 'doesNotContain' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -523,7 +501,7 @@ test(`sm.query.filter can filter 'string' prop using 'doesNotContain' condition`
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'notEqual' condition`, async () => {
+test(`sm.query.filter can filter 'string' prop using 'notEqual' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
