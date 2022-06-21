@@ -160,7 +160,7 @@ function createFilterQueryDataReturn(
   };
 }
 
-test(`sm.query.filter can filter 'number' prop using 'greaterThanOrEqual' operator`, async () => {
+test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -183,7 +183,7 @@ test(`sm.query.filter can filter 'number' prop using 'greaterThanOrEqual' operat
         score,
       }),
       filter: {
-        score: { greaterThanOrEqual: 20 },
+        score: { _gte: 20 },
       },
     }),
   });
@@ -191,7 +191,7 @@ test(`sm.query.filter can filter 'number' prop using 'greaterThanOrEqual' operat
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' operator`, async () => {
+test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -214,7 +214,7 @@ test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' operator`
         score,
       }),
       filter: {
-        score: { lessThanOrEqual: 20 },
+        score: { _lte: 20 },
       },
     }),
   });
@@ -222,7 +222,7 @@ test(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' operator`
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'equal' operator`, async () => {
+test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -245,7 +245,7 @@ test(`sm.query.filter can filter 'number' prop using 'equal' operator`, async ()
         score,
       }),
       filter: {
-        score: { equal: 10 },
+        score: { _eq: 10 },
       },
     }),
   });
@@ -253,38 +253,7 @@ test(`sm.query.filter can filter 'number' prop using 'equal' operator`, async ()
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'notEqual' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
-
-  const { data } = await smJSInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
-        id,
-        score,
-      }),
-      filter: {
-        score: { notEqual: 10 },
-      },
-    }),
-  });
-
-  expect(data.users.length).toBe(2);
-});
-
-test(`sm.query.filter can filter 'number' prop using 'greaterThan' operator`, async () => {
+test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -307,7 +276,7 @@ test(`sm.query.filter can filter 'number' prop using 'greaterThan' operator`, as
         score,
       }),
       filter: {
-        score: { greaterThan: 10 },
+        score: { _neq: 10 },
       },
     }),
   });
@@ -315,7 +284,7 @@ test(`sm.query.filter can filter 'number' prop using 'greaterThan' operator`, as
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'number' prop using 'lessThan' operator`, async () => {
+test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -338,7 +307,38 @@ test(`sm.query.filter can filter 'number' prop using 'lessThan' operator`, async
         score,
       }),
       filter: {
-        score: { lessThan: 20 },
+        score: { _gt: 10 },
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () => {
+  const { smJSInstance } = setupTest(
+    createFilterQueryDataReturn([
+      {
+        score: 10,
+      },
+      {
+        score: 20,
+      },
+      {
+        score: 30,
+      },
+    ])
+  );
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        score: { _lt: 20 },
       },
     }),
   });
@@ -346,7 +346,7 @@ test(`sm.query.filter can filter 'number' prop using 'lessThan' operator`, async
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'boolean' prop using 'equal' operator`, async () => {
+test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -369,7 +369,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'equal' operator`, async (
         score,
       }),
       filter: {
-        archived: { equal: true },
+        archived: { _eq: true },
       },
     }),
   });
@@ -377,7 +377,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'equal' operator`, async (
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'boolean' prop using 'notEqual' operator`, async () => {
+test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -400,7 +400,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'notEqual' operator`, asyn
         score,
       }),
       filter: {
-        archived: { equal: false },
+        archived: { _eq: false },
       },
     }),
   });
@@ -408,7 +408,7 @@ test(`sm.query.filter can filter 'boolean' prop using 'notEqual' operator`, asyn
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'equal' operator`, async () => {
+test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -431,7 +431,7 @@ test(`sm.query.filter can filter 'string' prop using 'equal' operator`, async ()
         score,
       }),
       filter: {
-        firstName: { equal: 'John' },
+        firstName: { _eq: 'John' },
       },
     }),
   });
@@ -439,7 +439,7 @@ test(`sm.query.filter can filter 'string' prop using 'equal' operator`, async ()
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'contains' operator`, async () => {
+test(`sm.query.filter can filter 'string' prop using '_contains' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -462,7 +462,7 @@ test(`sm.query.filter can filter 'string' prop using 'contains' operator`, async
         score,
       }),
       filter: {
-        firstName: { contains: 'John' },
+        firstName: { _contains: 'John' },
       },
     }),
   });
@@ -470,7 +470,7 @@ test(`sm.query.filter can filter 'string' prop using 'contains' operator`, async
   expect(data.users.length).toBe(2);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'doesNotContain' operator`, async () => {
+test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -493,7 +493,7 @@ test(`sm.query.filter can filter 'string' prop using 'doesNotContain' operator`,
         score,
       }),
       filter: {
-        firstName: { doesNotContain: 'John' },
+        firstName: { _ncontains: 'John' },
       },
     }),
   });
@@ -501,7 +501,7 @@ test(`sm.query.filter can filter 'string' prop using 'doesNotContain' operator`,
   expect(data.users.length).toBe(1);
 });
 
-test(`sm.query.filter can filter 'string' prop using 'notEqual' operator`, async () => {
+test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () => {
   const { smJSInstance } = setupTest(
     createFilterQueryDataReturn([
       {
@@ -524,7 +524,7 @@ test(`sm.query.filter can filter 'string' prop using 'notEqual' operator`, async
         score,
       }),
       filter: {
-        firstName: { notEqual: 'John' },
+        firstName: { _neq: 'John' },
       },
     }),
   });

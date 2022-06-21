@@ -505,10 +505,10 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   const flattenedFilters = getFlattenedNodeFilterObject(filter);
   const filtersWithEqualCondition = Object.keys(flattenedFilters)
     .filter(x => {
-      return flattenedFilters[x].equal != null;
+      return flattenedFilters[x]._eq != null;
     })
     .reduce((acc, current) => {
-      lodashSet(acc, current, flattenedFilters[current].equal);
+      lodashSet(acc, current, flattenedFilters[current]._eq);
       return acc;
     }, {} as ValidFilterForNode<TSMNode>);
 
