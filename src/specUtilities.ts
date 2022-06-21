@@ -232,6 +232,36 @@ export function createMockQueryDefinitions(
   };
 }
 
+export const mockTodoData = {
+  version: '1',
+  id: 'mock-todo-id',
+  type: 'todo',
+  task: 'My Todo',
+  numberProp: 10,
+  users: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+    {
+      id: 'mock-user-id-2',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'John',
+    },
+  ],
+  assignee: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+  ],
+};
+
 export const mockUserData = {
   id: 'mock-user-id',
   type: 'tt-user',
@@ -244,37 +274,7 @@ export const mockUserData = {
   firstName: 'Paul',
   score: 12,
   archived: false,
-  todos: [
-    {
-      version: '1',
-      id: 'mock-todo-id',
-      type: 'todo',
-      task: 'My Todo',
-      numberProp: 10,
-      users: [
-        {
-          id: 'mock-user-id',
-          type: 'tt-user',
-          version: '1',
-          firstName: 'Paul',
-        },
-        {
-          id: 'mock-user-id-2',
-          type: 'tt-user',
-          version: '1',
-          firstName: 'John',
-        },
-      ],
-      assignee: [
-        {
-          id: 'mock-user-id',
-          type: 'tt-user',
-          version: '1',
-          firstName: 'Paul',
-        },
-      ],
-    },
-  ],
+  todos: [mockTodoData],
 };
 
 export const mockQueryDataReturn = {
