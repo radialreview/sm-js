@@ -186,92 +186,100 @@ export function generateQuerier({
             }
 
             const result = await smJSInstance.gqlClient.query(queryOpts);
+
             function applyFilters(record: QueryRecord, obj: any) {
               Object.keys(record).forEach(alias => {
                 const queryRecordEntry = record[alias];
-                if (!queryRecordEntry.filter) {
-                  return;
-                }
-                const filter = getFlattenedNodeFilterObject(
-                  queryRecordEntry.filter
-                );
-                if (filter && obj[alias]) {
-                  Object.keys(filter).forEach(filterPropertyPath => {
-                    update(obj, alias, originalValue => {
-                      if (!isArray(originalValue)) {
-                        return originalValue;
-                      }
-                      return originalValue.filter(item => {
-                        const propertyFilter: Record<FilterCondition, any> =
-                          filter[filterPropertyPath];
-                        const value =
-                          item[
-                            filterPropertyPath.replaceAll(
-                              '.',
-                              OBJECT_PROPERTY_SEPARATOR
-                            )
-                          ];
-
-                        if (queryRecordEntry.relational != null) {
-                          applyFilters(queryRecordEntry.relational, item);
+                if (queryRecordEntry.filter) {
+                  const filter = getFlattenedNodeFilterObject(
+                    queryRecordEntry.filter
+                  );
+                  if (filter && obj[alias]) {
+                    Object.keys(filter).forEach(filterPropertyPath => {
+                      update(obj, alias, originalValue => {
+                        if (!isArray(originalValue)) {
+                          return originalValue;
                         }
+                        return originalValue.filter(item => {
+                          const propertyFilter: Record<FilterCondition, any> =
+                            filter[filterPropertyPath];
+                          const value =
+                            item[
+                              filterPropertyPath.replaceAll(
+                                '.',
+                                OBJECT_PROPERTY_SEPARATOR
+                              )
+                            ];
 
-                        return (Object.keys(propertyFilter) as Array<
-                          FilterCondition
-                        >).every(filterOperator => {
-                          switch (filterOperator) {
-                            case '_contains': {
-                              return (
-                                String(value)
-                                  .toLowerCase()
-                                  .indexOf(
-                                    String(
-                                      propertyFilter[filterOperator]
-                                    ).toLowerCase()
-                                  ) !== -1
-                              );
+                          return (Object.keys(propertyFilter) as Array<
+                            FilterCondition
+                          >).every(filterOperator => {
+                            switch (filterOperator) {
+                              case '_contains': {
+                                return (
+                                  String(value)
+                                    .toLowerCase()
+                                    .indexOf(
+                                      String(
+                                        propertyFilter[filterOperator]
+                                      ).toLowerCase()
+                                    ) !== -1
+                                );
+                              }
+                              case '_ncontains': {
+                                return (
+                                  String(value)
+                                    .toLowerCase()
+                                    .indexOf(
+                                      String(
+                                        propertyFilter[filterOperator]
+                                      ).toLowerCase()
+                                    ) === -1
+                                );
+                              }
+                              case '_eq':
+                                return (
+                                  String(value).toLowerCase() ===
+                                  String(
+                                    propertyFilter[filterOperator]
+                                  ).toLowerCase()
+                                );
+                              case '_neq':
+                                return (
+                                  String(value).toLowerCase() !==
+                                  String(
+                                    propertyFilter[filterOperator]
+                                  ).toLowerCase()
+                                );
+                              case '_gt':
+                                return value > propertyFilter[filterOperator];
+                              case '_gte':
+                                return value >= propertyFilter[filterOperator];
+                              case '_lt':
+                                return value < propertyFilter[filterOperator];
+                              case '_lte':
+                                return value <= propertyFilter[filterOperator];
+                              default:
+                                throw new SMFilterOperatorNotImplementedException(
+                                  { operator: filterOperator }
+                                );
                             }
-                            case '_ncontains': {
-                              return (
-                                String(value)
-                                  .toLowerCase()
-                                  .indexOf(
-                                    String(
-                                      propertyFilter[filterOperator]
-                                    ).toLowerCase()
-                                  ) === -1
-                              );
-                            }
-                            case '_eq':
-                              return (
-                                String(value).toLowerCase() ===
-                                String(
-                                  propertyFilter[filterOperator]
-                                ).toLowerCase()
-                              );
-                            case '_neq':
-                              return (
-                                String(value).toLowerCase() !==
-                                String(
-                                  propertyFilter[filterOperator]
-                                ).toLowerCase()
-                              );
-                            case '_gt':
-                              return value > propertyFilter[filterOperator];
-                            case '_gte':
-                              return value >= propertyFilter[filterOperator];
-                            case '_lt':
-                              return value < propertyFilter[filterOperator];
-                            case '_lte':
-                              return value <= propertyFilter[filterOperator];
-                            default:
-                              throw new SMFilterOperatorNotImplementedException(
-                                { operator: filterOperator }
-                              );
-                          }
+                          });
                         });
                       });
                     });
+                  }
+                }
+
+                const relational = queryRecordEntry.relational;
+
+                if (relational != null) {
+                  Object.keys(relational).forEach(() => {
+                    if (obj[alias]) {
+                      obj[alias].forEach((obj2: any) => {
+                        applyFilters(relational, obj2);
+                      });
+                    }
                   });
                 }
               });

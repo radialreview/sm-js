@@ -6,6 +6,7 @@ import {
   getMockConfig,
   generateUserNode,
   mockUserData,
+  mockTodoData,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { queryDefinition, SMJS } from '.';
@@ -148,32 +149,45 @@ test('sm.query can query data using multiple tokens, by making parallel requests
   );
 });
 
-function createFilterQueryDataReturn(
-  mockUsers: Array<Partial<typeof mockUserData>>
-) {
-  return {
-    users: mockUsers.map((mockUser, index) => ({
-      ...mockUserData,
-      ...mockUser,
-      id: mockUserData.id + index,
-    })),
-  };
+// function createFilterQueryDataReturn(
+//   mockUsers: Array<Partial<typeof mockUserData>>
+// ) {
+//   return {
+//     users: mockUsers.map((mockUser, index) => ({
+//       ...mockUserData,
+//       ...mockUser,
+//       id: mockUserData.id + index,
+//     })),
+//   };
+// }
+function createMockDataItems<T>(opts: {
+  sampleMockData: T & { id: string };
+  items: Array<Partial<T>>;
+}) {
+  return opts.items.map((mockItem, index) => ({
+    ...opts.sampleMockData,
+    ...mockItem,
+    id: opts.sampleMockData.id + index,
+  }));
 }
 
 test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -192,19 +206,22 @@ test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -223,19 +240,22 @@ test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 10,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 10,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -254,19 +274,22 @@ test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -285,19 +308,22 @@ test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -316,19 +342,22 @@ test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        score: 10,
-      },
-      {
-        score: 20,
-      },
-      {
-        score: 30,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -347,19 +376,22 @@ test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        archived: true,
-      },
-      {
-        archived: true,
-      },
-      {
-        archived: false,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          archived: true,
+        },
+        {
+          archived: true,
+        },
+        {
+          archived: false,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -378,19 +410,22 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        archived: true,
-      },
-      {
-        archived: true,
-      },
-      {
-        archived: false,
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          archived: true,
+        },
+        {
+          archived: true,
+        },
+        {
+          archived: false,
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -409,19 +444,22 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
 });
 
 test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        firstName: 'John',
-      },
-      {
-        firstName: 'Doe',
-      },
-      {
-        firstName: 'Mary',
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John',
+        },
+        {
+          firstName: 'Doe',
+        },
+        {
+          firstName: 'Mary',
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -440,19 +478,22 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'string' prop using '_contains' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        firstName: 'John Patrick',
-      },
-      {
-        firstName: 'Patrick John',
-      },
-      {
-        firstName: 'Mary',
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John Patrick',
+        },
+        {
+          firstName: 'Patrick John',
+        },
+        {
+          firstName: 'Mary',
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -471,19 +512,22 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
 });
 
 test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        firstName: 'John Patrick',
-      },
-      {
-        firstName: 'Patrick John',
-      },
-      {
-        firstName: 'Mary',
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John Patrick',
+        },
+        {
+          firstName: 'Patrick John',
+        },
+        {
+          firstName: 'Mary',
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -502,19 +546,22 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
 });
 
 test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest(
-    createFilterQueryDataReturn([
-      {
-        firstName: 'John',
-      },
-      {
-        firstName: 'John',
-      },
-      {
-        firstName: 'Mary',
-      },
-    ])
-  );
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John',
+        },
+        {
+          firstName: 'John',
+        },
+        {
+          firstName: 'Mary',
+        },
+      ],
+    }),
+  });
 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
@@ -530,6 +577,118 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
   });
 
   expect(data.users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter relational data`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'My Todo 1',
+              },
+              {
+                task: 'My Todo 2',
+              },
+              {
+                task: 'Todo 8',
+              },
+            ],
+          }),
+        },
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'My Todo 3',
+              },
+              {
+                task: 'Todo 4',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score, todos }) => ({
+        id,
+        score,
+        todos: todos({
+          map: ({ task }) => ({ task }),
+          filter: {
+            task: { _contains: 'my todo' },
+          },
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users[0].todos.length).toBe(2);
+  expect(data.users[1].todos.length).toBe(1);
+});
+
+test(`sm.query.filter can filter multilevel relational data`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'My Todo 1',
+                users: createMockDataItems({
+                  sampleMockData: mockUserData,
+                  items: [
+                    {
+                      firstName: 'John',
+                    },
+                    {
+                      firstName: 'Mark',
+                    },
+                  ],
+                }),
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score, todos }) => ({
+        id,
+        score,
+        todos: todos({
+          map: ({ id, users }) => ({
+            id,
+            users: users({
+              map: ({ firstName }) => ({ firstName }),
+              filter: {
+                firstName: { _contains: 'john' },
+              },
+            }),
+          }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users[0].todos[0].users.length).toBe(1);
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
