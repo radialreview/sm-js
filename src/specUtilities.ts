@@ -21,6 +21,7 @@ import {
 const userProperties = {
   firstName: smData.string,
   lastName: smData.string('joe'),
+  score: smData.number,
   address: smData.object({
     streetName: smData.string,
     zipCode: smData.string,
@@ -212,9 +213,25 @@ export function createMockQueryDefinitions(
               map: ({ id, firstName }) => ({ id, firstName }),
             }),
           }),
+          pagination: {
+            itemsPerPage: 1,
+          },
+          filter: {
+            settings: {
+              nestedSettings: {
+                nestedNestedMaybe: {
+                  contains: 'sad',
+                },
+              },
+            },
+            task: { equal: 'tet' },
+          },
         }),
       }),
       target,
+      filter: {
+        firstName: { equal: 'test' },
+      },
       tokenName: opts.tokenName,
       useSubOpts: {
         doNotSuspend: opts.doNotSuspend,
@@ -277,6 +294,7 @@ const expectedUsers = [
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
     version: 1,
+    score: 10,
   },
 ];
 
@@ -330,10 +348,14 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
   };
 }
 
-export function getMockConfig(opts?: { generateMockData: boolean }): SMConfig {
+export function getMockConfig(opts?: {
+  generateMockData: boolean;
+  mockData?: any;
+}): SMConfig {
   return {
     gqlClient: {
-      query: () => new Promise(res => res(mockQueryDataReturn)),
+      query: () =>
+        new Promise(res => res(opts.mockData ?? mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
