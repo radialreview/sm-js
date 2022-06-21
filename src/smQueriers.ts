@@ -159,9 +159,6 @@ export function generateQuerier({
         Object.entries(queryDefinitionsSplitByToken).map(
           ([tokenName, queryDefinitions]) => {
             if (smJSInstance.generateMockData) {
-              console.log(
-                '---------------- NOLEY RETURNING MOCK DATA -------------------'
-              );
               const generatedMockData = generateMockNodeDataFromQueryDefinitions(
                 {
                   queryDefinitions,

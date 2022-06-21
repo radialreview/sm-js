@@ -400,8 +400,7 @@ export function generateTestNode(smJSInstance: ISMJS): TestNode {
 
 const testProperties = {
   stringData: smData.string,
-  type: smData.string('testNode'), //NOLEY QUESTION 1: Should type always be queried? Is it always queried for other nodes?
-  // It was erroring no blah found for data.type, should this be a sharedNodeProperties thing?
+  type: smData.string('testNode'), //NOLEY QUESTION 1:
   optionalString: smData.string.optional,
   defaultString: smData.string('iAmADefaultString'),
   numberData: smData.number,
@@ -520,7 +519,7 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     defaultBoolean: expect.any(Boolean), // NOLEY NOTES: has to be a better matcher for this revisit
     objectData: expect.objectContaining({
       stringInObject: expect.any(String),
-      recordInObject: expect.any(Object), //NOLEY NOTES: record error
+      recordInObject: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
     }),
     optionalObject: expect.objectContaining({
       defaultStringInOptionalObject: expect.stringMatching(
@@ -532,8 +531,8 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
     type: expect.stringMatching('testNode'),
     version: expect.any(Number),
-    recordData: expect.any(Object), //NOLEY NOTES: record error
-    optionalRecord: expect.any(Object), //NOLEY NOTES: record error
+    recordData: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
+    optionalRecord: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
   },
 };
 

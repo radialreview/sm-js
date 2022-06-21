@@ -39,11 +39,6 @@ export function generateMockNodeDataFromQueryDefinitions<
     queryRecords,
   });
 }
-// NOLEY NOTES:
-// 1). if the qD is just the node definition (todos: useTodoNode()), generate mock data using all of the nodes properties
-// 2). if the qD has a map fn but it's undefined, also generate mock data using all of the nodes properties
-// 3). if the qD has a map fn that's defined, generate mock data for the node properties being queried, but also,
-// discover if there's any relational queries in the map fn and return mock data for those as well
 
 function generateMockNodeDataFromQueryRecords(opts: {
   queryRecords: QueryRecord;
@@ -51,7 +46,6 @@ function generateMockNodeDataFromQueryRecords(opts: {
   const { queryRecords } = opts;
   const mockedNodeData: Record<string, any> = {};
 
-  //NOLEY NOTES: might be a little icky here revisit
   Object.keys(queryRecords).forEach(queryRecordAlias => {
     const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
       queryRecords[queryRecordAlias];
@@ -129,18 +123,11 @@ function generateMockValuesFromQueriedProperties(opts: {
 
   const valuesForNodeData = getMockValuesForISMDataRecord(propertiesToMock);
 
-  console.log('NOLEY valuesForNodeData', valuesForNodeData);
-
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: valuesForNodeData,
     ISMDataRecord: propertiesToMock,
     generatingMockData: true,
   });
-
-  console.log(
-    'NOLEYvaluesForNodeDataPreparedForBE ',
-    valuesForNodeDataPreparedForBE
-  );
 
   return valuesForNodeDataPreparedForBE;
 }
@@ -225,6 +212,7 @@ function getMockValueForISMData(smData: ISMData) {
       return record;
     }
     default:
+      // NOLEY QUESTION 7
       throw new UnreachableCaseError(smData.type as never);
   }
 }

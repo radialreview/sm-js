@@ -14,6 +14,7 @@ import { AdditionalEdgeProperties } from './edges/types';
 // so it is doing the __object__dot__recordData which will not work cuz we can't spread records into multiple root properties because at
 // the time of querying we don't know all the properties in a record.
 
+//NOLEY QUESTION 6: should this be the real version of this file or leave seperate for now?
 //NOLEY NOTES: removed all exports from this file to prevent confusion revisit
 const JSON_TAG = '__JSON__';
 
@@ -25,7 +26,7 @@ const JSON_TAG = '__JSON__';
  */
 export function revisedConvertNodeDataToSMPersistedData(
   nodeData: Record<string, any>,
-  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>, //NOLEY NOTES: consider moving this into opts, shouldn't be optional though
+  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>,
   generatingMockData: boolean,
   opts?: { skipBooleanStringWrapping?: boolean }
 ): string {
@@ -88,7 +89,8 @@ function escapeText(text: string): string {
  * }
  * ```
  */
-export function revisedPrepareObjectForBE(
+export function revisedPrepareObjectForBE( //NOLEY QUESTION 8: I dislike the passing of these props, opts is optional but I don't want those to be optional...
+  // can I have opts in opts?
   obj: Record<string, any>,
   ISMDataRecordForKey: SMData<any, any, any>,
   generatingMockData: boolean,
@@ -139,7 +141,6 @@ export function revisedPrepareObjectForBE(
   }, {} as Record<string, any>);
 }
 
-//NOLEY NOTES:
 function revisedConvertPropertyToBE(opts: {
   key: string;
   value: any;
@@ -150,11 +151,6 @@ function revisedConvertPropertyToBE(opts: {
   if (opts.value === null) {
     return { [opts.key]: null };
   } else if (Array.isArray(opts.value)) {
-    console.log(
-      'NOLEY opts.value in converprops',
-      opts.value,
-      `${JSON_TAG}${escapeText(JSON.stringify(opts.value))}` //NOLEY NOTES: add config flag for mock data
-    );
     return {
       [opts.key]: `${JSON_TAG}${
         opts.generatingMockData
@@ -167,7 +163,6 @@ function revisedConvertPropertyToBE(opts: {
       opts.ISMDataRecordForKey.type === SM_DATA_TYPES.record ||
       opts.ISMDataRecordForKey.type === SM_DATA_TYPES.maybeRecord
     ) {
-      console.log('NOLEY THIS IS A RECORD SUP SUP SUP', opts.value);
       return {
         [opts.key]: `${JSON_TAG}${
           opts.generatingMockData
@@ -231,15 +226,6 @@ export function revisedPrepareForBE(opts: {
       typeof ISMDataRecord[key] === 'function'
         ? (ISMDataRecord[key] as any)._default
         : ISMDataRecord[key];
-    // console.log(
-    //   'NOLEY NODEDATA at key {',
-    //   key,
-    //   ':',
-    //   value,
-    //   '}',
-    //   ' ISMDataRecord:',
-    //   ISMDataRecordForKey
-    // );
 
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
