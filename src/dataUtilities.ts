@@ -167,21 +167,48 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
   return valuesByKeyPath;
 }
 
+/**
+ * Returns flattened keys of the filter object
+ *
+ * ```
+ * getFlattenedNodeFilterObject({
+ *  settings: {
+ *    time: {_lte: Date.now()},
+ *    nested: {
+ *      prop: {_contains: "text"}
+ *    }
+ *  },
+ *  firstName: {_eq: 'John'}
+ * })
+ * ```
+ *
+ * Returns
+ *
+ * ```
+ * {
+ *  "settings.time": {_lte: Date.now()},
+ *  "settings.nested.prop": {_contains: "text"},
+ *  "firstName": {_eq: 'John'}
+ * }
+ * ```
+ * @param filterObject : ;
+ * @returns
+ */
 export function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(
-  filter: ValidFilterForNode<TSMNode>
+  filterObject: ValidFilterForNode<TSMNode>
 ) {
   const result: Record<string, Record<FilterCondition, any>> = {};
 
-  for (const i in filter) {
-    if (!filter[i]) continue;
+  for (const i in filterObject) {
+    if (!filterObject[i]) continue;
 
-    const value = filter[i] as any;
+    const value = filterObject[i] as any;
     const valueIsNotAFilterCondition = FILTER_CONDITIONS.every(
       condition => !value.hasOwnProperty(condition)
     );
     if (
-      typeof filter[i] == 'object' &&
-      filter[i] !== null &&
+      typeof filterObject[i] == 'object' &&
+      filterObject[i] !== null &&
       valueIsNotAFilterCondition
     ) {
       const flatObject = getFlattenedNodeFilterObject(value);
