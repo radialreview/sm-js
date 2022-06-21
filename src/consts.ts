@@ -24,14 +24,14 @@ export const DEFAULT_NODE_PROPERTIES = {
 };
 
 const FILTER_OPERATORS_MAP: Record<FilterCondition, FilterCondition> = {
-  contains: 'contains',
-  equal: 'equal',
-  greaterThan: 'greaterThan',
-  greaterThanOrEqual: 'greaterThanOrEqual',
-  lessThan: 'lessThan',
-  lessThanOrEqual: 'lessThanOrEqual',
-  notEqual: 'notEqual',
-  doesNotContain: 'doesNotContain',
+  _gte: '_gte',
+  _lte: '_lte',
+  _eq: '_eq',
+  _gt: '_gt',
+  _lt: '_lt',
+  _neq: '_neq',
+  _contains: '_contains',
+  _ncontains: '_ncontains',
 };
 
 export const FILTER_OPERATORS: Array<FilterCondition> = Object.values(

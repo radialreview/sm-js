@@ -652,7 +652,7 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'doesNotContain'
+export type FilterCondition = '_gte' | '_lte' | '_eq' | '_gt' | '_lt' | '_neq' | '_contains' | '_ncontains'
 
 /**
  * Returns the valid filter for a node

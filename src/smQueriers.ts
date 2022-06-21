@@ -220,7 +220,7 @@ export function generateQuerier({
                           FilterCondition
                         >).every(filterOperator => {
                           switch (filterOperator) {
-                            case 'contains': {
+                            case '_contains': {
                               return (
                                 String(value)
                                   .toLowerCase()
@@ -231,7 +231,7 @@ export function generateQuerier({
                                   ) !== -1
                               );
                             }
-                            case 'doesNotContain': {
+                            case '_ncontains': {
                               return (
                                 String(value)
                                   .toLowerCase()
@@ -242,27 +242,27 @@ export function generateQuerier({
                                   ) === -1
                               );
                             }
-                            case 'equal':
+                            case '_eq':
                               return (
                                 String(value).toLowerCase() ===
                                 String(
                                   propertyFilter[filterOperator]
                                 ).toLowerCase()
                               );
-                            case 'notEqual':
+                            case '_neq':
                               return (
                                 String(value).toLowerCase() !==
                                 String(
                                   propertyFilter[filterOperator]
                                 ).toLowerCase()
                               );
-                            case 'greaterThan':
+                            case '_gt':
                               return value > propertyFilter[filterOperator];
-                            case 'greaterThanOrEqual':
+                            case '_gte':
                               return value >= propertyFilter[filterOperator];
-                            case 'lessThan':
+                            case '_lt':
                               return value < propertyFilter[filterOperator];
-                            case 'lessThanOrEqual':
+                            case '_lte':
                               return value <= propertyFilter[filterOperator];
                             default:
                               throw new SMFilterOperatorNotImplementedException(
