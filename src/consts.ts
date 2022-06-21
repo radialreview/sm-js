@@ -1,4 +1,5 @@
 import { string, number } from './smDataTypes';
+import { FilterCondition } from './types';
 
 // These are the properties that are essential for sm-js to function and are queried automatically with each query.
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
@@ -21,3 +22,13 @@ export const DEFAULT_NODE_PROPERTIES = {
   lastUpdatedBy: string,
   lastUpdatedClientTimestamp: number,
 };
+
+export const FILTER_CONDITIONS: Array<FilterCondition> = [
+  'contains',
+  'equal',
+  'greaterThan',
+  'greaterThanOrEqual',
+  'lessThan',
+  'lessThanOrEqual',
+  'notEqual',
+];

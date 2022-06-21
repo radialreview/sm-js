@@ -652,7 +652,7 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'in' | 'notIn' | 'contains'
+export type FilterCondition = 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains'
 
 /**
  * Returns the valid filter for a node
@@ -1081,7 +1081,7 @@ type ExtractNodeRelationalData<
 export type BaseQueryRecordEntry = {
   def: ISMNode;
   properties: Array<string>;
-  filters?: Record<string, FilterQueryRecordEntry>
+  filter?: Record<string, Record<FilterCondition, any>>
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 
@@ -1093,12 +1093,12 @@ export type QueryRecordEntry = BaseQueryRecordEntry & {
   allowNullResult?: boolean
 }
 
-export type FilterQueryRecordEntry = Omit<BaseQueryRecordEntry, 'properties'> & {
-  conditions: Record<string, Record<FilterCondition, any>>
-}
+// export type FilterQueryRecordEntry = Omit<BaseQueryRecordEntry, 'properties'> & {
+//   conditions: Record<string, Record<FilterCondition, any>>
+// }
 
 export type RelationalQueryRecordEntry =
-  | (BaseQueryRecordEntry & { children: true; depth?: number, conditions?: Record<string, Record<FilterCondition, any>> }) // will use GetChildren to query this data
+  | (BaseQueryRecordEntry & { children: true; depth?: number }) // will use GetChildren to query this data
   | (BaseQueryRecordEntry & { byReference: true; idProp: string }) // will use GetReference to query this data
   | (BaseQueryRecordEntry & { byReferenceArray: true; idProp: string }); // will use GetReference to query this data
 

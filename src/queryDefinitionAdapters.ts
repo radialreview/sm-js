@@ -22,15 +22,13 @@ import {
   IByReferenceArrayQuery,
   QueryDefinition,
   SMDataDefaultFn,
-  IChildrenQuery,
-  FilterQueryRecordEntry,
-  FilterCondition,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
+import { getFlattenedNodeFilterObject } from './dataUtilities';
 
 /**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
@@ -354,10 +352,10 @@ function getRelationalQueries(opts: {
               depth?: number;
             }).depth = relationalQuery.depth;
           }
-          if ('filter' in relationalQuery) {
-            (relationalQueryRecord as RelationalQueryRecordEntry & {
-              conditions?: Record<string, Record<FilterCondition, any>>;
-            }).conditions = relationalQuery.filter;
+          if ('filter' in relationalQuery && relationalQuery.filter != null) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter = getFlattenedNodeFilterObject(
+              relationalQuery.filter
+            );
           }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
@@ -374,97 +372,6 @@ function getRelationalQueries(opts: {
 
   if (Object.keys(relationalQueries).length === 0) return undefined;
   return relationalQueries;
-}
-
-function flattenFilter(filter: ValidFilterForNode<any>) {
-  const toReturn: Record<string, Record<FilterCondition, any>> = {};
-  const conditions = ['contains', 'equal'];
-
-  for (const i in filter) {
-    if (!filter[i]) continue;
-
-    const value = filter[i] as any;
-
-    if (
-      typeof filter[i] == 'object' &&
-      filter[i] !== null &&
-      conditions.every(condition => !value.hasOwnProperty(condition))
-    ) {
-      const flatObject = flattenFilter(value);
-      for (const x in flatObject) {
-        if (!flatObject.hasOwnProperty(x)) continue;
-
-        toReturn[i + '.' + x] = flatObject[x];
-      }
-    } else {
-      toReturn[i] = value;
-    }
-  }
-  return toReturn;
-}
-
-function getQueryFilters(opts: {
-  queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
-  smData: Record<string, any>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
-}): Record<string, FilterQueryRecordEntry> | undefined {
-  const mapFnReturn = getMapFnReturn({
-    mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational,
-  });
-  const filters = Object.keys(mapFnReturn).reduce((acc, key) => {
-    const isData = !!opts.smData[key];
-
-    if (isData) {
-      return acc;
-    } else {
-      const relationalQuery = mapFnReturn[key] as IChildrenQuery<ISMNode, any>;
-
-      if (relationalQuery._smRelational === SM_RELATIONAL_TYPES.children) {
-        if ('filter' in relationalQuery && relationalQuery.filter != null) {
-          addFilterQueryRecord({
-            _smRelational: relationalQuery._smRelational,
-            key,
-            filter: relationalQuery.filter,
-            def: relationalQuery.def,
-            mapFn: relationalQuery.map,
-          });
-        }
-      }
-
-      function addFilterQueryRecord(queryRecord: {
-        _smRelational: SM_RELATIONAL_TYPES;
-        def: ISMNode;
-        filter: ValidFilterForNode<any>;
-        mapFn: (data: any) => any;
-        key: string;
-      }) {
-        const filterQueryRecord: FilterQueryRecordEntry = {
-          def: queryRecord.def,
-          conditions: flattenFilter(queryRecord.filter),
-        };
-
-        const filtersWithinFilters = getQueryFilters({
-          queryId: opts.queryId,
-          mapFn: queryRecord.mapFn,
-          smData: queryRecord.def.smData,
-          smRelational: queryRecord.def.smRelational,
-        });
-
-        if (filtersWithinFilters) {
-          filterQueryRecord.filters = filtersWithinFilters;
-        }
-
-        acc[queryRecord.key] = filterQueryRecord;
-      }
-
-      return acc;
-    }
-  }, {} as Record<string, FilterQueryRecordEntry>);
-  if (Object.keys(filters).length === 0) return undefined;
-  return filters;
 }
 
 export function getQueryRecordFromQueryDefinition<
@@ -486,7 +393,6 @@ export function getQueryRecordFromQueryDefinition<
     let queriedProps;
     let nodeDef;
     let relational;
-    let filters;
     let allowNullResult;
     if (!queryDefinition) {
       return;
@@ -516,12 +422,12 @@ export function getQueryRecordFromQueryDefinition<
           smComputed: nodeDef.smComputed,
           smRelational: nodeDef.smRelational,
         });
-        filters = getQueryFilters({
-          mapFn: queryDefinition.map,
-          queryId: opts.queryId,
-          smData: nodeDef.smData,
-          smRelational: nodeDef.smRelational,
-        });
+        // filters = getQueryFilters({
+        //   mapFn: queryDefinition.map,
+        //   queryId: opts.queryId,
+        //   smData: nodeDef.smData,
+        //   smRelational: nodeDef.smRelational,
+        // });
       } else {
         queriedProps = getAllNodeProperties({
           nodeProperties: nodeDef.smData,
@@ -535,7 +441,6 @@ export function getQueryRecordFromQueryDefinition<
       properties: queriedProps,
       relational,
       allowNullResult,
-      filters,
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -585,7 +490,7 @@ export function getQueryRecordFromQueryDefinition<
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
-      ((queryRecordEntry as unknown) as FilterQueryRecordEntry).conditions = flattenFilter(
+      (queryRecordEntry as QueryRecordEntry).filter = getFlattenedNodeFilterObject(
         queryDefinition.filter
       );
     }
@@ -899,7 +804,12 @@ export function convertQueryDefinitionToQueryInfo<
   const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
     opts
   );
-  console.log(queryRecord);
+  console.log({
+    todos:
+      queryRecord['users'].relational &&
+      queryRecord['users'].relational['todos'],
+  });
+  console.log({ users: queryRecord['users'] });
   return {
     queryGQL: gql(queryGQLString),
     subscriptionConfigs: subscriptionConfigs.map(subscriptionConfig => ({
