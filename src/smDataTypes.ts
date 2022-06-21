@@ -24,6 +24,7 @@ import {
   ValidReferenceIdArrayPropFromNode,
   ByReferenceArrayQueryBuilderOpts,
   IByReferenceArrayQueryBuilder,
+  ValidFilterForNode,
 } from './types';
 
 export class SMData<
@@ -368,11 +369,14 @@ export const children = <TSMNode extends ISMNode>(opts: {
   return ((queryBuilderOpts: {
     map: MapFnForNode<TSMNode>;
     pagination: ISMQueryPagination;
+    filter?: ValidFilterForNode<TSMNode>;
   }) => {
     return {
       ...opts,
       _smRelational: SM_RELATIONAL_TYPES.children,
       map: queryBuilderOpts.map,
+      pagination: queryBuilderOpts.pagination,
+      filter: queryBuilderOpts.filter,
       depth: opts.depth,
     };
   }) as IChildrenQueryBuilder<TSMNode>;

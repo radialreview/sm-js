@@ -146,6 +146,90 @@ test('sm.query can query data using multiple tokens, by making parallel requests
   );
 });
 
+/**
+ * number
+ * - greaterThanOrEqual
+ * - lessThanOrEqual
+ * - equal
+ * - greaterThan
+ * - lessThan
+ * - notEqual
+ *
+ * boolean
+ * - equal
+ * - notEqual
+ *
+ * string
+ * - equal
+ * - contains
+ * - notEqual
+ * - startsWith
+ */
+
+// 'greaterThanOrEqual' | 'lessThanOrEqual' | 'equal' | 'greaterThan' | 'lessThan' | 'notEqual' | 'contains' | 'startsWith'
+
+test.only(`sm.query.filter can filter number prop using 'greaterThanOrEqual' condition`, async () => {
+  // const mockUser = mockQueryResultExpectations.users[0];
+  // const mockTodo = mockQueryResultExpectations.users[0].todos[0];
+  // const todo1: typeof mockTodo = { ...mockTodo, id: 'mock-todo1' };
+  // const todo2: typeof mockTodo = { ...mockTodo, id: 'mock-todo2' };
+  // const todos = [todo1, todo2];
+  // const user1: typeof mockUser = {
+  //   ...mockUser,
+  //   id: 'mock-user1',
+  //   score: 10,
+  //   todos,
+  // };
+  // const user2: typeof mockUser = {
+  //   ...mockUser,
+  //   id: 'mock-user2',
+  //   score: 11,
+  //   todos,
+  // };
+  const { smJSInstance, queryDefinitions } = setupTest();
+
+  const { data } = await smJSInstance.query(queryDefinitions);
+  // const { data } = await smJSInstance.query({
+  //   users: queryDefinition({
+  //     def: generateUserNode(smJSInstance),
+  //     map: ({ id, score, todos }) => ({
+  //       id,
+  //       score,
+  //       todos: todos({
+  //         map: ({ id, task, assignee }) => ({
+  //           id,
+  //           task,
+  //           assignee: assignee({ map: ({ id }) => ({ id }) }),
+  //         }),
+  //       }),
+  //     }),
+  //     filter: {
+  //       score: { greaterThanOrEqual: 10 },
+  //     },
+  //     target: {
+  //       underIds: ['mock-id'],
+  //     },
+  //   }),
+  // });
+
+  expect(data.users.length).toBe(1);
+  // expect(data.users[0].score).toBe(11);
+});
+
+test.skip(`sm.query.filter can filter 'number' prop using 'lessThanOrEqual' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'number' prop using 'equal' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'number' prop using 'notEqual' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'number' prop using 'greaterThan' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'number' prop using 'lessThan' condition`, async () => {});
+
+test.skip(`sm.query.filter can filter 'boolean' prop using 'equal' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'boolean' prop using 'notEqual' condition`, async () => {});
+
+test.skip(`sm.query.filter can filter 'string' prop using 'equal' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'string' prop using 'contains' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'string' prop using 'notEqual' condition`, async () => {});
+test.skip(`sm.query.filter can filter 'string' prop using 'startsWith' condition`, async () => {});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();
 
@@ -487,8 +571,8 @@ test('sm.subscribe throws an error when the user specifies a token which has not
   }
 });
 
-function setupTest() {
-  const smJSInstance = new SMJS(getMockConfig());
+function setupTest(mockData?: any) {
+  const smJSInstance = new SMJS(getMockConfig(mockData));
   smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 

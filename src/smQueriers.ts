@@ -155,7 +155,7 @@ export function generateQuerier({
     async function performQueries() {
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
-          ([tokenName, queryDefinitions]) => {
+          async ([tokenName, queryDefinitions]) => {
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
               queryDefinitions: queryDefinitions,
               queryId: queryId + '_' + tokenName,
@@ -169,7 +169,16 @@ export function generateQuerier({
               queryOpts.batchKey = opts.batchKey;
             }
 
-            return smJSInstance.gqlClient.query(queryOpts);
+            const result = await smJSInstance.gqlClient.query(queryOpts);
+            // console.log(JSON.stringify(result));
+            // function getFilter(): ValidFilterForNode<TSMNode> {
+
+            // }
+            // const filters = Object.keys(queryDefinitions).forEach(queryDefinitionsAlias => {
+            //   const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null = queryDefinitions[queryDefinitionsAlias];
+            // })
+
+            return result;
           }
         )
       );
