@@ -150,17 +150,6 @@ test('sm.query can query data using multiple tokens, by making parallel requests
   );
 });
 
-// function createFilterQueryDataReturn(
-//   mockUsers: Array<Partial<typeof mockUserData>>
-// ) {
-//   return {
-//     users: mockUsers.map((mockUser, index) => ({
-//       ...mockUserData,
-//       ...mockUser,
-//       id: mockUserData.id + index,
-//     })),
-//   };
-// }
 function createMockDataItems<T>(opts: {
   sampleMockData: T & { id: string };
   items: Array<Partial<T>>;
@@ -796,6 +785,46 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
   });
 
   expect(data.users[0].todos[0].users.length).toBe(1);
+});
+
+test(`sm.query.filter can filter nested object property`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          address__dot__state: 'FL',
+        },
+        {
+          address__dot__state: 'NY',
+        },
+        {
+          address__dot__state: 'FL',
+        },
+      ],
+    }),
+  });
+
+  expect(
+    (
+      await smJSInstance.query({
+        users: queryDefinition({
+          def: generateUserNode(smJSInstance),
+          map: ({ id, address }) => ({
+            id,
+            address: address({
+              map: ({ state }) => ({ state }),
+            }),
+          }),
+          filter: {
+            address: {
+              state: { _eq: 'FL' },
+            },
+          },
+        }),
+      })
+    ).data.users.length
+  ).toBe(2);
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
