@@ -53,6 +53,7 @@ function generateMockNodeDataFromQueryRecords(opts: {
       !!queryRecord.underIds ||
       !!queryRecord.ids ||
       'byReferenceArray' in queryRecord ||
+      'byReference' in queryRecord ||
       'children' in queryRecord;
 
     let mockedNodeDataReturnValues;
@@ -108,10 +109,15 @@ function generateMockValuesFromQueriedProperties(opts: {
   queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const queryRecord = opts.queryRecord;
-
   const propertiesToMock = Object.keys(queryRecord.def.smData)
     .filter(nodeProperty => {
-      return queryRecord.properties.includes(nodeProperty);
+      return [
+        'dateCreated',
+        'dateLastModified',
+        'lastUpdatedBy',
+        'lastUpdatedClientTimestamp', //NOLEY NOTES put this in a const or something
+        ...queryRecord.properties,
+      ].includes(nodeProperty);
     })
     .reduce((acc, item) => {
       acc[item] = (queryRecord.def.smData as Record<
@@ -121,7 +127,11 @@ function generateMockValuesFromQueriedProperties(opts: {
       return acc;
     }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
 
-  const valuesForNodeData = getMockValuesForISMDataRecord(propertiesToMock);
+  const valuesForNodeData = {
+    type: opts.queryRecord.def.type,
+    version: '1',
+    ...getMockValuesForISMDataRecord(propertiesToMock),
+  };
 
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: valuesForNodeData,

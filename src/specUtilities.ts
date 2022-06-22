@@ -20,7 +20,6 @@ import {
 
 const userProperties = {
   firstName: smData.string,
-  type: smData.string('tt-user'), //NOLEY QUESTION 1
   lastName: smData.string('joe'),
   address: smData.object({
     streetName: smData.string,
@@ -76,7 +75,6 @@ export function generateUserNode(
 const todoProperties = {
   task: smData.string,
   done: smData.boolean(false),
-  type: smData.string('todo'), //NOLEY QUESTION 1
   assigneeId: smData.string,
   meetingId: smData.string.optional,
   settings: smData.object.optional({
@@ -400,7 +398,6 @@ export function generateTestNode(smJSInstance: ISMJS): TestNode {
 
 const testProperties = {
   stringData: smData.string,
-  type: smData.string('testNode'), //NOLEY QUESTION 1:
   optionalString: smData.string.optional,
   defaultString: smData.string('iAmADefaultString'),
   numberData: smData.number,
@@ -451,14 +448,6 @@ export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
   dataSetIds: expect.arrayContaining([expect.any(String)]),
   comments: expect.arrayContaining([expect.any(String)]),
   record: expect.any(Object), //NOLEY NOTES: record error
-  assignee: expect.objectContaining({
-    id: expect.any(String),
-    type: expect.any(String),
-    displayName: expect.any(String),
-    lastUpdatedBy: expect.any(String),
-    firstName: expect.stringMatching('joe'),
-    version: expect.any(Number),
-  }),
 };
 
 export const mockDataGenerationExpectedResultsForUserNodeAllProperties = {
@@ -479,27 +468,22 @@ export const mockDataGenerationExpectedResultsForUserNodeAllProperties = {
       floor: expect.any(Number),
     }),
   }),
-  todos: expect.arrayContaining([
-    mockDataGenerationExpectedResultsForTodoNodeAllProperties,
-  ]),
 };
 
-export const mockedDataGenerationExpectedResultsWithAllProperties = expect.objectContaining(
-  {
-    users: expect.arrayContaining([
-      mockDataGenerationExpectedResultsForUserNodeAllProperties,
-    ]),
-  }
-);
+export const mockedDataGenerationExpectedResultsWithAllProperties = {
+  user: expect.objectContaining(
+    mockDataGenerationExpectedResultsForUserNodeAllProperties
+  ),
+};
 
-export const mockedDataGenerationExpectedResultsWithMultipleQds = expect.objectContaining(
-  {
-    users: expect.arrayContaining([
-      mockDataGenerationExpectedResultsForUserNodeAllProperties,
-    ]),
-    todo: mockDataGenerationExpectedResultsForTodoNodeAllProperties,
-  }
-);
+export const mockedDataGenerationExpectedResultsWithMultipleQds = {
+  user: expect.objectContaining(
+    mockDataGenerationExpectedResultsForUserNodeAllProperties
+  ),
+  todo: expect.objectContaining(
+    mockDataGenerationExpectedResultsForTodoNodeAllProperties
+  ),
+};
 
 export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
   test: {
@@ -537,25 +521,29 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
 };
 
 export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = {
-  id: expect.any(String),
-  dateCreated: expect.any(Number),
-  dateLastModified: expect.any(Number),
-  lastUpdatedBy: expect.any(String),
-  lastUpdatedClientTimestamp: expect.any(Number),
-  address: expect.objectContaining({
-    state: expect.any(String),
-    apt: expect.objectContaining({
-      number: expect.any(Number),
-      floor: expect.any(Number),
-    }),
-  }),
-  todos: expect.arrayContaining([
-    {
+  users: expect.arrayContaining([
+    expect.objectContaining({
       id: expect.any(String),
-      assignee: expect.objectContaining({
-        id: expect.any(String),
-        firstName: expect.stringMatching('joe'),
+      dateCreated: expect.any(Number),
+      dateLastModified: expect.any(Number),
+      lastUpdatedBy: expect.any(String),
+      lastUpdatedClientTimestamp: expect.any(Number),
+      address: expect.objectContaining({
+        state: expect.any(String),
+        apt: expect.objectContaining({
+          number: expect.any(Number),
+          floor: expect.any(Number),
+        }),
       }),
-    },
+      todos: expect.arrayContaining([
+        {
+          id: expect.any(String),
+          assignee: expect.objectContaining({
+            id: expect.any(String),
+            firstName: expect.stringMatching('joe'),
+          }),
+        },
+      ]),
+    }),
   ]),
 };
