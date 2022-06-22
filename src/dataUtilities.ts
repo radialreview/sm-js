@@ -205,11 +205,9 @@ export function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(
   const result: Record<string, FilterValue<any>> = {};
 
   for (const i in filterObject) {
-    if (!filterObject[i]) continue;
-
     const value = filterObject[i] as any;
     const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
-      condition => !value.hasOwnProperty(condition)
+      condition => isObject(value) && !value.hasOwnProperty(condition)
     );
     if (
       typeof filterObject[i] == 'object' &&
