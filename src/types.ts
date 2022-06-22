@@ -265,11 +265,13 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
           ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
             : Array<TArrayItemType>
-          : TFilter extends true ? Record<FilterCondition, TParsedValue> : TParsedValue
+          : TFilter extends true ? FilterValue<TParsedValue> : TParsedValue
       : TProperties[key] extends SMDataDefaultFn
-        ?  TFilter extends true ? Record<FilterCondition, GetParsedValueTypeFromDefaultFn<TProperties[key]>> : GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        ?  TFilter extends true ? FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>> : GetParsedValueTypeFromDefaultFn<TProperties[key]>
         : never;
 }
+
+export type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode, TFilter = false> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties, TFilter> : never
 
@@ -647,7 +649,7 @@ export interface ISMNodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type FilterCondition = '_gte' | '_lte' | '_eq' | '_gt' | '_lt' | '_neq' | '_contains' | '_ncontains'
+export type FilterOperator = '_gte' | '_lte' | '_eq' | '_gt' | '_lt' | '_neq' | '_contains' | '_ncontains'
 
 /**
  * Returns the valid filter for a node

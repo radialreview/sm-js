@@ -14,8 +14,9 @@ import {
   SubscriptionMeta,
   SubscriptionCanceller,
   ISMGQLClient,
-  FilterCondition,
+  FilterOperator,
   QueryRecord,
+  FilterValue,
 } from './types';
 import { update, isArray } from 'lodash';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
@@ -193,7 +194,7 @@ export function generateQuerier({
                           return originalValue;
                         }
                         return originalValue.filter(item => {
-                          const propertyFilter: Record<FilterCondition, any> =
+                          const propertyFilter: FilterValue<any> =
                             filter[filterPropertyPath];
                           const value =
                             item[
@@ -204,7 +205,7 @@ export function generateQuerier({
                             ];
 
                           return (Object.keys(propertyFilter) as Array<
-                            FilterCondition
+                            FilterOperator
                           >).every(filterOperator => {
                             switch (filterOperator) {
                               case '_contains': {
