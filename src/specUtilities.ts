@@ -17,12 +17,14 @@ import {
   QueryDefinitionTarget,
   SMNodeDefaultProps,
 } from './types';
+import { NULL_TAG } from './dataConversions';
 
 const userProperties = {
   firstName: smData.string,
   lastName: smData.string('joe'),
   score: smData.number,
   archived: smData.boolean(false),
+  optionalProp: smData.string.optional,
   address: smData.object({
     streetName: smData.string,
     zipCode: smData.string,
@@ -272,6 +274,7 @@ export const mockUserData = {
   address__dot__apt__dot__floor: '1',
   address__dot__apt__dot__number: '1',
   firstName: 'Paul',
+  optionalProp: NULL_TAG,
   score: 12,
   archived: false,
   todos: [mockTodoData],

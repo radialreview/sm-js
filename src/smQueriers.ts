@@ -23,6 +23,7 @@ import { update, isArray } from 'lodash';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
 import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
 import { SMFilterOperatorNotImplementedException } from './exceptions';
+import { NULL_TAG } from './dataConversions';
 
 let queryIdx = 0;
 
@@ -204,13 +205,14 @@ export function generateQuerier({
                         return originalValue.filter(item => {
                           const propertyFilter: FilterValue<any> =
                             filter[filterPropertyPath];
+                          const itemPropertyPath = filterPropertyPath.replaceAll(
+                            '.',
+                            OBJECT_PROPERTY_SEPARATOR
+                          );
                           const value =
-                            item[
-                              filterPropertyPath.replaceAll(
-                                '.',
-                                OBJECT_PROPERTY_SEPARATOR
-                              )
-                            ];
+                            item[itemPropertyPath] === NULL_TAG
+                              ? null
+                              : item[itemPropertyPath];
 
                           return (Object.keys(propertyFilter) as Array<
                             FilterOperator
@@ -238,13 +240,14 @@ export function generateQuerier({
                                     ) === -1
                                 );
                               }
-                              case '_eq':
+                              case '_eq': {
                                 return (
                                   String(value).toLowerCase() ===
                                   String(
                                     propertyFilter[filterOperator]
                                   ).toLowerCase()
                                 );
+                              }
                               case '_neq':
                                 return (
                                   String(value).toLowerCase() !==

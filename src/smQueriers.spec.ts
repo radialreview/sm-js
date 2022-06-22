@@ -11,6 +11,7 @@ import {
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { queryDefinition, SMJS } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
+import { NULL_TAG } from './dataConversions';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -407,6 +408,78 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
   });
 
   expect(data.users.length).toBe(2);
+});
+
+test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          optionalProp: NULL_TAG,
+        },
+        {
+          optionalProp: NULL_TAG,
+        },
+        {
+          optionalProp: 'withvalue',
+        },
+      ],
+    }),
+  });
+
+  expect(
+    (
+      await smJSInstance.query({
+        users: queryDefinition({
+          def: generateUserNode(smJSInstance),
+          map: ({ id, score }) => ({
+            id,
+            score,
+          }),
+          filter: {
+            optionalProp: { _eq: null },
+          },
+        }),
+      })
+    ).data.users.length
+  ).toBe(2);
+});
+
+test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          optionalProp: NULL_TAG,
+        },
+        {
+          optionalProp: NULL_TAG,
+        },
+        {
+          optionalProp: 'withvalue',
+        },
+      ],
+    }),
+  });
+
+  expect(
+    (
+      await smJSInstance.query({
+        users: queryDefinition({
+          def: generateUserNode(smJSInstance),
+          map: ({ id, score }) => ({
+            id,
+            score,
+          }),
+          filter: {
+            optionalProp: { _neq: null },
+          },
+        }),
+      })
+    ).data.users.length
+  ).toBe(1);
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async () => {
