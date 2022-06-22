@@ -579,6 +579,40 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
   expect(data.users.length).toBe(1);
 });
 
+test(`sm.query.filter supports old filter object format with '_eq' as default operator`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John',
+        },
+        {
+          firstName: 'Test',
+        },
+        {
+          firstName: 'Test',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+      filter: {
+        firstName: 'Test',
+      },
+    }),
+  });
+
+  expect(data.users.length).toBe(2);
+});
+
 test(`sm.query.filter can filter relational data`, async () => {
   const { smJSInstance } = setupTest({
     users: createMockDataItems({

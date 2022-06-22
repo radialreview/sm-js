@@ -1,5 +1,5 @@
 import { string, number } from './smDataTypes';
-import { FilterCondition } from './types';
+import { FilterOperator } from './types';
 
 // These are the properties that are essential for sm-js to function and are queried automatically with each query.
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
@@ -23,7 +23,7 @@ export const DEFAULT_NODE_PROPERTIES = {
   lastUpdatedClientTimestamp: number,
 };
 
-const FILTER_OPERATORS_MAP: Record<FilterCondition, FilterCondition> = {
+const FILTER_OPERATORS_MAP: Record<FilterOperator, FilterOperator> = {
   _gte: '_gte',
   _lte: '_lte',
   _eq: '_eq',
@@ -34,6 +34,6 @@ const FILTER_OPERATORS_MAP: Record<FilterCondition, FilterCondition> = {
   _ncontains: '_ncontains',
 };
 
-export const FILTER_OPERATORS: Array<FilterCondition> = Object.values(
+export const FILTER_OPERATORS: Array<FilterOperator> = Object.values(
   FILTER_OPERATORS_MAP
 );

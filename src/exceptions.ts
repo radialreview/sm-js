@@ -3,7 +3,7 @@
 // or DO.setUpToDateData({ nested: { [propName]: true } })
 // this is done automatically by smData fetchers, smQuery and smSubscribe
 
-import { FilterCondition as FilterOperator } from './types';
+import { FilterOperator } from './types';
 
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
 export class SMNotUpToDateException extends Error {
