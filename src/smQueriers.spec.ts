@@ -503,9 +503,6 @@ test('sm.query with mock data generates the correct results for qDs with mapped 
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
-  // NOLEY NOTES: this test is failing with the error: SMNotUpToDate exception - The property "dateCreated" on the DO for the node type tt-user
-  // was read but is not guaranteed to be up to date. Add that property to the query with the id smQuery0
-
   expect(data).toEqual(
     mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined
   );

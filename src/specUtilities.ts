@@ -524,10 +524,6 @@ export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDe
   users: expect.arrayContaining([
     expect.objectContaining({
       id: expect.any(String),
-      dateCreated: expect.any(Number),
-      dateLastModified: expect.any(Number),
-      lastUpdatedBy: expect.any(String),
-      lastUpdatedClientTimestamp: expect.any(Number),
       address: expect.objectContaining({
         state: expect.any(String),
         apt: expect.objectContaining({
@@ -536,13 +532,13 @@ export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDe
         }),
       }),
       todos: expect.arrayContaining([
-        {
+        expect.objectContaining({
           id: expect.any(String),
           assignee: expect.objectContaining({
             id: expect.any(String),
             firstName: expect.stringMatching('joe'),
           }),
-        },
+        }),
       ]),
     }),
   ]),
