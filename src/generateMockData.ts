@@ -18,139 +18,6 @@ import {
   SM_DATA_TYPES,
 } from './types';
 
-export function generateMockNodeDataFromQueryDefinitions<
-  TSMNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
-  const { queryDefinitions, queryId } = opts;
-
-  const queryRecords = getQueryRecordFromQueryDefinition({
-    queryDefinitions: queryDefinitions,
-    queryId: queryId,
-  });
-
-  return generateMockNodeDataFromQueryRecords({
-    queryRecords,
-  });
-}
-
-function generateMockNodeDataFromQueryRecords(opts: {
-  queryRecords: QueryRecord;
-}) {
-  const { queryRecords } = opts;
-  const mockedNodeData: Record<string, any> = {};
-
-  Object.keys(queryRecords).forEach(queryRecordAlias => {
-    const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
-      queryRecords[queryRecordAlias];
-    const returnValueShouldBeAnArray =
-      !!queryRecord.underIds ||
-      !!queryRecord.ids ||
-      'byReferenceArray' in queryRecord ||
-      'byReference' in queryRecord ||
-      'children' in queryRecord;
-
-    let mockedNodeDataReturnValues;
-    let relationalProperties: Record<string, any> = {};
-
-    if (returnValueShouldBeAnArray) {
-      const numOfRecordsToGenerate = generateRandomNumber(2, 10);
-      const arrayOfValues = [];
-
-      for (let i = 0; i < numOfRecordsToGenerate; i++) {
-        const formattedMockNodeValues = generateMockValuesFromQueriedProperties(
-          {
-            queryRecord,
-          }
-        );
-
-        if (queryRecord.relational) {
-          relationalProperties = generateMockNodeDataFromQueryRecords({
-            queryRecords: queryRecord.relational,
-          });
-        }
-        arrayOfValues.push({
-          ...formattedMockNodeValues,
-          ...relationalProperties,
-        });
-      }
-
-      mockedNodeDataReturnValues = arrayOfValues;
-    } else {
-      const formattedMockNodeValues = generateMockValuesFromQueriedProperties({
-        queryRecord,
-      });
-
-      if (queryRecord.relational) {
-        relationalProperties = generateMockNodeDataFromQueryRecords({
-          queryRecords: queryRecord.relational,
-        });
-      }
-
-      mockedNodeDataReturnValues = {
-        ...formattedMockNodeValues,
-        ...relationalProperties,
-      };
-    }
-
-    mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
-  });
-
-  return mockedNodeData;
-}
-
-function generateMockValuesFromQueriedProperties(opts: {
-  queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
-}) {
-  const queryRecord = opts.queryRecord;
-  const propertiesToMock = Object.keys(queryRecord.def.smData)
-    .filter(nodeProperty => {
-      return queryRecord.properties.includes(nodeProperty);
-    })
-    .reduce((acc, item) => {
-      acc[item] = (queryRecord.def.smData as Record<
-        string,
-        SMData<any, any, any> | SMDataDefaultFn
-      >)[item];
-      return acc;
-    }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
-
-  const valuesForNodeData = {
-    type: opts.queryRecord.def.type,
-    version: '1',
-    ...getMockValuesForISMDataRecord(propertiesToMock),
-  };
-
-  const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
-    obj: valuesForNodeData,
-    ISMDataRecord: propertiesToMock,
-    generatingMockData: true,
-  });
-
-  return valuesForNodeDataPreparedForBE;
-}
-
-export function getMockValuesForISMDataRecord(
-  record: Record<string, SMData<any, any, any> | SMDataDefaultFn>
-) {
-  const returnValue = Object.entries(record).reduce((acc, [key, value]) => {
-    if (typeof value === 'function') {
-      acc[key] = getMockValueForISMData((value as any)._default as ISMData);
-    } else {
-      acc[key] = getMockValueForISMData(value);
-    }
-    return acc;
-  }, {} as Record<string, any>);
-
-  return returnValue;
-}
-
 function getMockValueForISMData(smData: ISMData) {
   switch (smData.type) {
     case SM_DATA_TYPES.string: {
@@ -218,4 +85,141 @@ function getMockValueForISMData(smData: ISMData) {
     default:
       throw new UnreachableCaseError(smData.type as never);
   }
+}
+
+export function getMockValuesForISMDataRecord(
+  record: Record<string, SMData<any, any, any> | SMDataDefaultFn>
+) {
+  const mockedValues = Object.entries(record).reduce((acc, [key, value]) => {
+    if (typeof value === 'function') {
+      acc[key] = getMockValueForISMData((value as any)._default as ISMData);
+    } else {
+      acc[key] = getMockValueForISMData(value);
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
+  return mockedValues;
+}
+
+function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
+  queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  const queryRecord = opts.queryRecord;
+  const nodePropertiesToMock = Object.keys(queryRecord.def.smData)
+    .filter(nodeProperty => {
+      return queryRecord.properties.includes(nodeProperty);
+    })
+    .reduce((acc, item) => {
+      acc[item] = (queryRecord.def.smData as Record<
+        string,
+        SMData<any, any, any> | SMDataDefaultFn
+      >)[item];
+      return acc;
+    }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
+
+  const mockedValues = {
+    type: opts.queryRecord.def.type,
+    version: '1',
+    ...getMockValuesForISMDataRecord(nodePropertiesToMock),
+  };
+
+  const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
+    obj: mockedValues,
+    ISMDataRecord: nodePropertiesToMock,
+    generatingMockData: true,
+  });
+
+  return valuesForNodeDataPreparedForBE;
+}
+
+function generateMockNodeDataForAllQueryRecords(opts: {
+  queryRecords: QueryRecord;
+}) {
+  const { queryRecords } = opts;
+  const mockedNodeData: Record<string, any> = {};
+
+  Object.keys(queryRecords).forEach(queryRecordAlias => {
+    const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
+      queryRecords[queryRecordAlias];
+    const returnValueShouldBeAnArray =
+      !!queryRecord.underIds ||
+      !!queryRecord.ids ||
+      'byReferenceArray' in queryRecord ||
+      'byReference' in queryRecord ||
+      'children' in queryRecord;
+
+    let mockedNodeDataReturnValues;
+    let relationalMockNodeProperties: Record<string, any> = {};
+
+    if (returnValueShouldBeAnArray) {
+      const numOfResultsToGenerate = generateRandomNumber(2, 10);
+      const arrayOfMockNodeValues = [];
+
+      for (let i = 0; i < numOfResultsToGenerate; i++) {
+        const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
+          {
+            queryRecord,
+          }
+        );
+
+        if (queryRecord.relational) {
+          relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords(
+            {
+              queryRecords: queryRecord.relational,
+            }
+          );
+        }
+        arrayOfMockNodeValues.push({
+          ...mockNodeDataForQueryRecord,
+          ...relationalMockNodeProperties,
+        });
+      }
+
+      mockedNodeDataReturnValues = arrayOfMockNodeValues;
+    } else {
+      const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
+        {
+          queryRecord,
+        }
+      );
+
+      if (queryRecord.relational) {
+        relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
+          queryRecords: queryRecord.relational,
+        });
+      }
+
+      mockedNodeDataReturnValues = {
+        ...mockNodeDataForQueryRecord,
+        ...relationalMockNodeProperties,
+      };
+    }
+
+    mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
+  });
+
+  return mockedNodeData;
+}
+
+export function generateMockNodeDataFromQueryDefinitions<
+  TSMNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TSMNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+  const { queryDefinitions, queryId } = opts;
+
+  const queryRecords = getQueryRecordFromQueryDefinition({
+    queryDefinitions: queryDefinitions,
+    queryId: queryId,
+  });
+
+  return generateMockNodeDataForAllQueryRecords({
+    queryRecords,
+  });
 }
