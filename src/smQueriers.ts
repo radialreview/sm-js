@@ -443,7 +443,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     try {
-      if (!!smJSInstance.generateMockData) {
+      if (!!smJSInstance.generateMockData === false) {
         initSubs();
       }
 

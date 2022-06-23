@@ -111,13 +111,7 @@ function generateMockValuesFromQueriedProperties(opts: {
   const queryRecord = opts.queryRecord;
   const propertiesToMock = Object.keys(queryRecord.def.smData)
     .filter(nodeProperty => {
-      return [
-        'dateCreated',
-        'dateLastModified',
-        'lastUpdatedBy',
-        'lastUpdatedClientTimestamp', //NOLEY NOTES put this in a const or something
-        ...queryRecord.properties,
-      ].includes(nodeProperty);
+      return queryRecord.properties.includes(nodeProperty);
     })
     .reduce((acc, item) => {
       acc[item] = (queryRecord.def.smData as Record<
@@ -222,7 +216,6 @@ function getMockValueForISMData(smData: ISMData) {
       return record;
     }
     default:
-      // NOLEY QUESTION 7
       throw new UnreachableCaseError(smData.type as never);
   }
 }

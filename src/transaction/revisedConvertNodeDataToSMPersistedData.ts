@@ -6,16 +6,6 @@ import {
 import { Maybe, SMDataDefaultFn, SM_DATA_TYPES } from '../types';
 import { AdditionalEdgeProperties } from './edges/types';
 
-// NOLEY NOTES: this should be the revised version of prepareForBE that accurately handles record data.
-// Goal is to have a better prepareForBE which takes in the node's data so that later on we can fix the transaction issue.
-// This should fix the problem with record data:
-// problem with records is they need to be stored in the old format. So like recordData: `__JSON__{'Lucas': 'iAmADefaultStringInARecord'}`,
-// currently, the prepareForBE function doesn't have awareness on if the data coming in is a record or an object,
-// so it is doing the __object__dot__recordData which will not work cuz we can't spread records into multiple root properties because at
-// the time of querying we don't know all the properties in a record.
-
-//NOLEY QUESTION 6: should this be the real version of this file or leave seperate for now?
-//NOLEY NOTES: removed all exports from this file to prevent confusion revisit
 const JSON_TAG = '__JSON__';
 
 /**
@@ -24,12 +14,18 @@ const JSON_TAG = '__JSON__';
  * @param nodeData an object with arbitrary data
  * @returns stringified params ready for mutation
  */
-export function revisedConvertNodeDataToSMPersistedData(
-  nodeData: Record<string, any>,
-  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>,
-  generatingMockData: boolean,
-  opts?: { skipBooleanStringWrapping?: boolean }
-): string {
+export function revisedConvertNodeDataToSMPersistedData(opts: {
+  nodeData: Record<string, any>;
+  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>;
+  generatingMockData: boolean;
+  skipBooleanStringWrapping?: boolean;
+}): string {
+  const {
+    nodeData,
+    ISMDataRecord,
+    generatingMockData,
+    skipBooleanStringWrapping,
+  } = opts;
   const parsedData = revisedPrepareForBE({
     obj: nodeData,
     ISMDataRecord,
@@ -46,8 +42,7 @@ export function revisedConvertNodeDataToSMPersistedData(
       }
 
       const shouldBeRawBoolean =
-        (value === 'true' || value === 'false') &&
-        !!opts?.skipBooleanStringWrapping;
+        (value === 'true' || value === 'false') && !!skipBooleanStringWrapping;
 
       return (
         acc +
@@ -89,23 +84,21 @@ function escapeText(text: string): string {
  * }
  * ```
  */
-export function revisedPrepareObjectForBE( //NOLEY QUESTION 8: I dislike the passing of these props, opts is optional but I don't want those to be optional...
-  // can I have opts in opts?
-  obj: Record<string, any>,
-  ISMDataRecordForKey: SMData<any, any, any>,
-  generatingMockData: boolean,
-  opts?: {
-    parentKey?: string;
-    omitObjectIdentifier?: boolean;
-  }
-) {
+export function revisedPrepareObjectForBE(opts: {
+  obj: Record<string, any>;
+  ISMDataRecordForKey: SMData<any, any, any>;
+  generatingMockData: boolean;
+  parentKey?: string;
+  omitObjectIdentifier?: boolean;
+}) {
+  const { obj, parentKey, omitObjectIdentifier } = opts;
   return Object.entries(obj).reduce((acc, [key, val]) => {
-    const preparedKey = opts?.parentKey
-      ? `${opts.parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+    const preparedKey = parentKey
+      ? `${parentKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
       : key;
 
     if (typeof val === 'object' && val != null && !Array.isArray(val)) {
-      if (!opts || !opts.omitObjectIdentifier) {
+      if (!omitObjectIdentifier) {
         acc[preparedKey] = OBJECT_IDENTIFIER;
       }
 
@@ -117,8 +110,6 @@ export function revisedPrepareObjectForBE( //NOLEY QUESTION 8: I dislike the pas
             ...revisedConvertPropertyToBE({
               key: `${preparedKey}${OBJECT_PROPERTY_SEPARATOR}${key}`,
               value: val,
-              ISMDataRecordForKey,
-              generatingMockData,
               ...opts,
             }),
           };
@@ -130,8 +121,6 @@ export function revisedPrepareObjectForBE( //NOLEY QUESTION 8: I dislike the pas
         ...revisedConvertPropertyToBE({
           key: preparedKey,
           value: val,
-          ISMDataRecordForKey,
-          generatingMockData,
           ...opts,
         }),
       };
@@ -148,49 +137,53 @@ function revisedConvertPropertyToBE(opts: {
   generatingMockData: boolean;
   omitObjectIdentifier?: boolean;
 }): Record<string, Maybe<string | boolean>> {
-  if (opts.value === null) {
-    return { [opts.key]: null };
-  } else if (Array.isArray(opts.value)) {
+  const {
+    key,
+    value,
+    ISMDataRecordForKey,
+    generatingMockData,
+    omitObjectIdentifier,
+  } = opts;
+  if (value === null) {
+    return { [key]: null };
+  } else if (Array.isArray(value)) {
     return {
-      [opts.key]: `${JSON_TAG}${
-        opts.generatingMockData
-          ? JSON.stringify(opts.value)
-          : escapeText(JSON.stringify(opts.value))
+      [key]: `${JSON_TAG}${
+        generatingMockData
+          ? JSON.stringify(value)
+          : escapeText(JSON.stringify(value))
       }`,
     };
-  } else if (typeof opts.value === 'object') {
+  } else if (typeof value === 'object') {
     if (
-      opts.ISMDataRecordForKey.type === SM_DATA_TYPES.record ||
-      opts.ISMDataRecordForKey.type === SM_DATA_TYPES.maybeRecord
+      ISMDataRecordForKey.type === SM_DATA_TYPES.record ||
+      ISMDataRecordForKey.type === SM_DATA_TYPES.maybeRecord
     ) {
       return {
-        [opts.key]: `${JSON_TAG}${
-          opts.generatingMockData
-            ? JSON.stringify(opts.value)
-            : escapeText(JSON.stringify(opts.value))
+        [key]: `${JSON_TAG}${
+          generatingMockData
+            ? JSON.stringify(value)
+            : escapeText(JSON.stringify(value))
         }`,
       };
     } else {
-      return revisedPrepareObjectForBE(
-        { [opts.key]: opts.value },
-        opts.ISMDataRecordForKey,
-        opts.generatingMockData,
-        { omitObjectIdentifier: opts.omitObjectIdentifier }
-      );
+      return revisedPrepareObjectForBE({
+        obj: { [key]: value },
+        ISMDataRecordForKey,
+        generatingMockData,
+        omitObjectIdentifier,
+      });
     }
-  } else if (typeof opts.value === 'string') {
-    return { [opts.key]: escapeText(opts.value) };
-  } else if (
-    typeof opts.value === 'boolean' ||
-    typeof opts.value === 'number'
-  ) {
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      return { [opts.key]: null };
+  } else if (typeof value === 'string') {
+    return { [key]: escapeText(value) };
+  } else if (typeof value === 'boolean' || typeof value === 'number') {
+    if (typeof value === 'number' && isNaN(value)) {
+      return { [key]: null };
     }
-    return { [opts.key]: String(opts.value) };
+    return { [key]: String(value) };
   } else {
     throw Error(
-      `I don't yet know how to handle feData of type "${typeof opts.value}"`
+      `I don't yet know how to handle feData of type "${typeof value}"`
     );
   }
 }
@@ -235,11 +228,11 @@ export function revisedPrepareForBE(opts: {
       return {
         ...acc,
         childNodes: value.map(item =>
-          revisedConvertNodeDataToSMPersistedData(
-            item,
+          revisedConvertNodeDataToSMPersistedData({
+            nodeData: item,
             ISMDataRecord,
-            generatingMockData
-          )
+            generatingMockData,
+          })
         ),
       };
     }
@@ -251,14 +244,12 @@ export function revisedPrepareForBE(opts: {
       return {
         ...acc,
         additionalEdges: value.map(item =>
-          revisedConvertNodeDataToSMPersistedData(
-            revisedConvertEdgeDirectionNames(item),
+          revisedConvertNodeDataToSMPersistedData({
+            nodeData: revisedConvertEdgeDirectionNames(item),
             ISMDataRecord,
             generatingMockData,
-            {
-              skipBooleanStringWrapping: true,
-            }
-          )
+            skipBooleanStringWrapping: true,
+          })
         ),
       };
     }

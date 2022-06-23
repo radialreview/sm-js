@@ -17,6 +17,7 @@ const mockStrings = [
   'Demogorgon',
   'Dart',
   'Hawkins',
+  'Indiana',
 ];
 
 export function generateRandomString() {

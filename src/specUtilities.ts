@@ -476,6 +476,14 @@ export const mockedDataGenerationExpectedResultsWithAllProperties = {
   ),
 };
 
+export const mockedDataGenerationExpectedResultsWithTargetUnderIds = {
+  users: expect.arrayContaining([
+    expect.objectContaining(
+      mockDataGenerationExpectedResultsForUserNodeAllProperties
+    ),
+  ]),
+};
+
 export const mockedDataGenerationExpectedResultsWithMultipleQds = {
   user: expect.objectContaining(
     mockDataGenerationExpectedResultsForUserNodeAllProperties
@@ -520,24 +528,43 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
   },
 };
 
+export const mockedDataGenerationExpectedResultsWithTargetIds = {
+  tests: expect.arrayContaining([
+    expect.objectContaining(
+      mockedDataGenerationExpectedResultsWithAllSmDataTypes.test
+    ),
+  ]),
+};
+
 export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = {
   users: expect.arrayContaining([
     expect.objectContaining({
-      id: expect.any(String),
       address: expect.objectContaining({
-        state: expect.any(String),
         apt: expect.objectContaining({
           number: expect.any(Number),
           floor: expect.any(Number),
         }),
+        state: expect.any(String),
       }),
+      displayName: expect.stringMatching('User display name'),
+      id: expect.any(String),
+      lastUpdatedBy: expect.any(String),
+      type: expect.stringMatching('tt-user'),
+      version: expect.any(Number),
       todos: expect.arrayContaining([
         expect.objectContaining({
-          id: expect.any(String),
           assignee: expect.objectContaining({
+            displayName: expect.stringMatching('User display name'),
+            firstName: expect.any(String),
             id: expect.any(String),
-            firstName: expect.stringMatching('joe'),
+            lastUpdatedBy: expect.any(String),
+            type: expect.stringMatching('tt-user'),
+            version: expect.any(Number),
           }),
+          id: expect.any(String),
+          lastUpdatedBy: expect.any(String),
+          type: expect.stringMatching('todo'),
+          version: expect.any(Number),
         }),
       ]),
     }),
