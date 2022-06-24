@@ -166,7 +166,7 @@ function convertEdgeDirectionNames(edgeItem: AdditionalEdgeProperties) {
   throw new Error('convertEdgeDirectionNames - received invalid data');
 }
 
-export function prepareForBE(obj: Record<string, any>) {
+function prepareForBE(obj: Record<string, any>) {
   return Object.entries(obj).reduce((acc, [key, value]) => {
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {

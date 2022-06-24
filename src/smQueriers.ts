@@ -1,6 +1,5 @@
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
-
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,

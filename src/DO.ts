@@ -69,7 +69,6 @@ export function createDOFactory(smJSInstance: ISMJS) {
         this._defaults = this.getDefaultData(node.properties);
         this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
-
         if (initialData.version != null) {
           this.version = Number(initialData.version);
         }

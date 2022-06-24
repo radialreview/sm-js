@@ -665,7 +665,6 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-
   const queryGQLString = `
     query ${getSanitizedQueryId({ queryId: opts.queryId })} {
         ${Object.keys(queryRecord)
