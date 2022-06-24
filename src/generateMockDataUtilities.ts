@@ -1,4 +1,4 @@
-const mockStrings = [
+export const mockStrings = [
   'Billy',
   'Nancy',
   'Max',

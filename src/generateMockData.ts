@@ -142,12 +142,7 @@ function generateMockNodeDataForAllQueryRecords(opts: {
   Object.keys(queryRecords).forEach(queryRecordAlias => {
     const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
       queryRecords[queryRecordAlias];
-    const returnValueShouldBeAnArray =
-      !!queryRecord.underIds ||
-      !!queryRecord.ids ||
-      'byReferenceArray' in queryRecord ||
-      'byReference' in queryRecord ||
-      'children' in queryRecord;
+    const returnValueShouldBeAnArray = !!queryRecord.id === false;
 
     let mockedNodeDataReturnValues;
     let relationalMockNodeProperties: Record<string, any> = {};

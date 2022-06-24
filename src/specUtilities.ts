@@ -428,7 +428,7 @@ type TestProperties = typeof testProperties;
 type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
 
 export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
-  task: expect.any(String), // NOLEY NOTES: need to account for empty strings here.. .toBeTruthy not working
+  task: expect.any(String),
   id: expect.any(String),
   dateCreated: expect.any(Number),
   dateLastModified: expect.any(Number),
@@ -443,14 +443,14 @@ export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
     nestedSettings: expect.objectContaining({
       nestedNestedMaybe: expect.any(String),
     }),
-    nestedRecord: expect.any(Object), //NOLEY NOTES: record error
+    nestedRecord: expect.any(Object),
   }),
   dataSetIds: expect.arrayContaining([expect.any(String)]),
   comments: expect.arrayContaining([expect.any(String)]),
-  record: expect.any(Object), //NOLEY NOTES: record error
+  record: expect.any(Object),
 };
 
-export const mockDataGenerationExpectedResultsForUserNodeAllProperties = {
+export const mockedDataGenerationExpectedResultsForUserNodeAllProperties = {
   id: expect.any(String),
   dateCreated: expect.any(Number),
   dateLastModified: expect.any(Number),
@@ -470,30 +470,7 @@ export const mockDataGenerationExpectedResultsForUserNodeAllProperties = {
   }),
 };
 
-export const mockedDataGenerationExpectedResultsWithAllProperties = {
-  user: expect.objectContaining(
-    mockDataGenerationExpectedResultsForUserNodeAllProperties
-  ),
-};
-
-export const mockedDataGenerationExpectedResultsWithTargetUnderIds = {
-  users: expect.arrayContaining([
-    expect.objectContaining(
-      mockDataGenerationExpectedResultsForUserNodeAllProperties
-    ),
-  ]),
-};
-
-export const mockedDataGenerationExpectedResultsWithMultipleQds = {
-  user: expect.objectContaining(
-    mockDataGenerationExpectedResultsForUserNodeAllProperties
-  ),
-  todo: expect.objectContaining(
-    mockDataGenerationExpectedResultsForTodoNodeAllProperties
-  ),
-};
-
-export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
+export const mockedDataGenerationExpectedResultsForTestNodeAllProperties = {
   test: {
     id: expect.any(String),
     dateCreated: expect.any(Number),
@@ -505,13 +482,13 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     defaultString: expect.stringMatching('iAmADefaultString'),
     numberData: expect.any(Number),
     optionalNumber: expect.any(Number),
-    defaultNumber: expect.any(Number), // NOLEY NOTES: has to be a better matcher for this revisit
+    defaultNumber: expect.any(Number),
     booleanData: expect.any(Boolean),
     optionalBoolean: expect.any(Boolean),
-    defaultBoolean: expect.any(Boolean), // NOLEY NOTES: has to be a better matcher for this revisit
+    defaultBoolean: expect.any(Boolean),
     objectData: expect.objectContaining({
       stringInObject: expect.any(String),
-      recordInObject: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
+      recordInObject: expect.any(Object),
     }),
     optionalObject: expect.objectContaining({
       defaultStringInOptionalObject: expect.stringMatching(
@@ -523,17 +500,9 @@ export const mockedDataGenerationExpectedResultsWithAllSmDataTypes = {
     optionalArray: expect.arrayContaining([expect.any(Boolean)]),
     type: expect.stringMatching('testNode'),
     version: expect.any(Number),
-    recordData: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
-    optionalRecord: expect.any(Object), // NOLEY NOTES: has to be a better matcher for this revisit
+    recordData: expect.any(Object),
+    optionalRecord: expect.any(Object),
   },
-};
-
-export const mockedDataGenerationExpectedResultsWithTargetIds = {
-  tests: expect.arrayContaining([
-    expect.objectContaining(
-      mockedDataGenerationExpectedResultsWithAllSmDataTypes.test
-    ),
-  ]),
 };
 
 export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = {
