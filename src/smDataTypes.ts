@@ -12,7 +12,6 @@ import {
   IOneToManyQueryBuilderOpts,
   ISMData,
   ISMNode,
-  ISMQueryPagination,
   MapFnForNode,
   Maybe,
   QueryDefinitionTarget,
