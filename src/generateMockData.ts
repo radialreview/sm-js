@@ -51,14 +51,26 @@ function getMockValueForISMData(smData: ISMData) {
     case SM_DATA_TYPES.array: {
       const arrayContents: any = [];
       for (let i = 0; i < generateRandomNumber(1, 10); i++) {
-        arrayContents.push(getMockValueForISMData(smData.boxedValue));
+        arrayContents.push(
+          typeof smData.boxedValue === 'function'
+            ? getMockValueForISMData(
+                (smData.boxedValue as any)._default as ISMData
+              )
+            : getMockValueForISMData(smData.boxedValue)
+        );
       }
       return arrayContents;
     }
     case SM_DATA_TYPES.maybeArray: {
       const arrayContents: any = [];
       for (let i = 0; i < generateRandomNumber(1, 10); i++) {
-        arrayContents.push(getMockValueForISMData(smData.boxedValue));
+        arrayContents.push(
+          typeof smData.boxedValue === 'function'
+            ? getMockValueForISMData(
+                (smData.boxedValue as any)._default as ISMData
+              )
+            : getMockValueForISMData(smData.boxedValue)
+        );
       }
       return arrayContents;
     }
