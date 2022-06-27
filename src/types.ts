@@ -11,7 +11,10 @@ export type Maybe<T> = T | null;
 
 export type IsMaybe<Type> = null extends Type ? true : false
 
-export type SMDataDefaultFn = (_default: any) => ISMData;
+export type SMDataDefaultFn = {
+  _default: ISMData
+  (_default: any): ISMData;
+} 
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
