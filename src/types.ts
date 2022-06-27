@@ -334,7 +334,7 @@ export interface IDOAccessors {
   persistedData: Record<string,any>
 }
 
-export type NodeDO = Record<string, any> & SMNodeDefaultProps & IDOMethods & IDOAccessors;
+export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
@@ -382,13 +382,13 @@ export interface ISMNode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TTargetNode extends ISMNode> =
-  | IOneToOneQueryBuilder<TTargetNode>
-  | IOneToManyQueryBuilder<TTargetNode>
+export type NodeRelationalQueryBuilder<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+  | IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>
+  | IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>
 
-export type NodeRelationalQuery<TTargetNode extends ISMNode> =
-  | IOneToOneQuery<TTargetNode, any>
-  | IOneToManyQuery<TTargetNode, any>
+export type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+  | IOneToOneQuery<TTargetNodeOrTargetNodeRecord, any>
+  | IOneToManyQuery<TTargetNodeOrTargetNodeRecord, any>
 
 export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
   TTargetNodeOrTargetNodeRecord extends ISMNode
@@ -513,8 +513,6 @@ export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
 }>
 
 export type QueryDefinitionTarget =
-  | { underIds: Array<string>, depth?: number }
-  | { depth: number }
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
@@ -900,17 +898,15 @@ export type BaseQueryRecordEntry = {
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
-  underIds?: Array<string>
-  depth?: number
   ids?: Array<string> 
   id?: string
   allowNullResult?: boolean
 }
 
-export type RelationalQueryRecordEntry =
-  | (BaseQueryRecordEntry & { children: true; depth?: number }) // will use GetChildren to query this data
-  | (BaseQueryRecordEntry & { byReference: true; idProp: string }) // will use GetReference to query this data
-  | (BaseQueryRecordEntry & { byReferenceArray: true; idProp: string }); // will use GetReference to query this data
+export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
+  | (BaseQueryRecordEntry & { oneToOne: true })
+  | (BaseQueryRecordEntry & { oneToMany: true })
+)
 
 export type QueryRecord = Record<string, QueryRecordEntry>;
 

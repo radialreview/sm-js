@@ -10,18 +10,15 @@ import {
   ISMNode,
   NodeComputedFns,
   RelationalQueryRecordEntry,
-  BaseQueryRecordEntry,
-  IByReferenceQuery,
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
   ValidFilterForNode,
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
-  ByReferenceQueryBuilderOpts,
-  IByReferenceArrayQuery,
   QueryDefinition,
   SMDataDefaultFn,
+  IOneToOneQueryBuilderOpts,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -40,8 +37,12 @@ function getRelationalQueryBuildersFromRelationalFns(
 ) {
   if (!relationaFns) return {};
 
-  return Object.keys(relationaFns).reduce((acc, key) => {
-    acc[key] = relationaFns[key]();
+  return Object.keys(relationaFns).reduce((acc, relationshipName) => {
+    const relationalQueryBuilder = relationaFns[relationshipName]();
+    acc[relationshipName] = (opts: Record<string, any>) => ({
+      ...relationalQueryBuilder(opts),
+      _relationshipName: relationshipName,
+    });
 
     return acc;
   }, {} as NodeRelationalQueryBuilderRecord);
@@ -204,14 +205,16 @@ function getRelationalQueries(opts: {
     relational: opts.smRelational,
   });
 
-  const relationalQueries = Object.keys(mapFnReturn).reduce((acc, key) => {
-    const isData = !!opts.smData[key];
-    const isComputed = opts.smComputed ? !!opts.smComputed[key] : false;
+  const relationalQueries = Object.keys(mapFnReturn).reduce((acc, alias) => {
+    const isData = !!opts.smData[alias];
+    const isComputed = opts.smComputed ? !!opts.smComputed[alias] : false;
 
     if (isData || isComputed) {
       return acc;
     } else {
-      const relationalQuery = mapFnReturn[key] as NodeRelationalQuery<ISMNode>;
+      const relationalQuery = mapFnReturn[alias] as NodeRelationalQuery<
+        ISMNode | Record<string, ISMNode>
+      >;
 
       /**
        * happens when a map function for a relational query returns all the data for that node
@@ -235,51 +238,44 @@ function getRelationalQueries(opts: {
 
       if (relationalQuery._smRelational == null) {
         throw Error(
-          `getRelationalQueries - the key "${key}" is not a data property, not a computed property and does not contain a relational query.`
+          `getRelationalQueries - the key "${alias}" is not a data property, not a computed property and does not contain a relational query.`
         );
       }
 
       if (
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference ||
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReferenceArray
+        relationalQuery._smRelational === SM_RELATIONAL_TYPES.oneToOne ||
+        relationalQuery._smRelational === SM_RELATIONAL_TYPES.oneToMany
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
           typeof relationalQuery.queryBuilderOpts.map === 'function'
         ) {
           // non union
-          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
             ISMNode
           >;
           addRelationalQueryRecord({
             _smRelational: relationalQuery._smRelational,
-            key,
-            def: relationalQuery.def,
+            _relationshipName: relationalQuery._relationshipName,
+            alias,
+            def: relationalQuery.def as ISMNode,
             mapFn: queryBuilderOpts.map,
           });
         } else {
           // union
-          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
             Record<string, ISMNode>
           >;
           Object.keys(queryBuilderOpts).forEach(unionType => {
             addRelationalQueryRecord({
               _smRelational: relationalQuery._smRelational,
-              key: `${key}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
-              def: relationalQuery.def[unionType],
+              _relationshipName: relationalQuery._relationshipName,
+              alias: `${alias}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
+              def: (relationalQuery.def as Record<string, ISMNode>)[unionType],
               mapFn: queryBuilderOpts[unionType].map,
             });
           });
         }
-      } else if (
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.children
-      ) {
-        addRelationalQueryRecord({
-          _smRelational: relationalQuery._smRelational,
-          key,
-          def: relationalQuery.def,
-          mapFn: relationalQuery.map,
-        });
       } else {
         throw Error(
           // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
@@ -289,12 +285,14 @@ function getRelationalQueries(opts: {
 
       function addRelationalQueryRecord(queryRecord: {
         _smRelational: SM_RELATIONAL_TYPES;
+        _relationshipName: string;
         def: ISMNode;
         mapFn: (data: any) => any;
-        key: string;
+        alias: string;
       }) {
-        const relationalQueryRecord: BaseQueryRecordEntry = {
+        const relationalQueryRecord: Partial<RelationalQueryRecordEntry> = {
           def: queryRecord.def,
+          _relationshipName: queryRecord._relationshipName,
           properties: getQueriedProperties({
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
@@ -320,43 +318,20 @@ function getRelationalQueries(opts: {
         }
 
         const relationalType = queryRecord._smRelational;
-        if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+        if (relationalType === SM_RELATIONAL_TYPES.oneToOne) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
-            byReference: true;
-          }).byReference = true;
+            oneToOne: true;
+          }).oneToOne = true;
+        } else if (relationalType === SM_RELATIONAL_TYPES.oneToMany) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
-            idProp: string;
-          }).idProp = (relationalQuery as IByReferenceQuery<
-            ISMNode,
-            any,
-            any
-          >).idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.byReferenceArray) {
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            byReferenceArray: true;
-          }).byReferenceArray = true;
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            idProp: string;
-          }).idProp = (relationalQuery as IByReferenceArrayQuery<
-            ISMNode,
-            any,
-            any
-          >).idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.children) {
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            children: true;
-          }).children = true;
-          if ('depth' in relationalQuery) {
-            (relationalQueryRecord as RelationalQueryRecordEntry & {
-              depth?: number;
-            }).depth = relationalQuery.depth;
-          }
+            oneToMany: true;
+          }).oneToMany = true;
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
 
         acc[
-          queryRecord.key
+          queryRecord.alias
         ] = relationalQueryRecord as RelationalQueryRecordEntry;
       }
 
@@ -455,26 +430,6 @@ export function getQueryRecordFromQueryDefinition<
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
       }
-      if (
-        'underIds' in queryDefinition.target &&
-        queryDefinition.target.underIds != null
-      ) {
-        if (
-          (queryDefinition.target.underIds as Array<string>).some(
-            id => typeof id !== 'string'
-          )
-        ) {
-          throw Error('Invalid id in target.underIds');
-        }
-
-        (queryRecordEntry as QueryRecordEntry & {
-          underIds: Array<string>;
-        }).underIds = queryDefinition.target.underIds;
-      }
-      if (queryDefinition.target.depth != null) {
-        (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
-          queryDefinition.target.depth;
-      }
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
@@ -511,44 +466,13 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
 
 function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
   def: TSMNode;
-  underIds?: Array<string>;
-  depth?: number;
   filter?: ValidFilterForNode<TSMNode>;
 }) {
-  const options: Array<string> = [`type: "${opts.def.type}"`];
-
-  if (opts.underIds) {
-    options.push(`underIds: [${opts.underIds.map(id => `"${id}"`).join(',')}]`);
-  }
-
-  if (opts.depth !== null && opts.depth !== undefined) {
-    options.push(`depth: ${opts.depth}`);
-  }
+  const options: Array<string> = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
     options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
   }
-
-  return options.join(', ');
-}
-
-// subscriptions use a slightly different set of arguments for now
-// https://tractiontools.atlassian.net/secure/RapidBoard.jspa?rapidView=53&projectKey=SMT&modal=detail&selectedIssue=SMT-636
-function getSubscriptionGetNodeOptions(opts: {
-  def: ISMNode;
-  under?: string;
-  depth?: number;
-}) {
-  const options: Array<string> = [`type: "${opts.def.type}"`];
-
-  if (opts.under) {
-    options.push(`underIds: ["${opts.under}"]`);
-  }
-
-  // @TODO uncomment when subscriptions support depth params
-  // if (opts.depth != null) {
-  //   options.push(`depth: ${opts.depth}`)
-  // }
 
   return options.join(', ');
 }
@@ -585,22 +509,7 @@ function getRelationalQueryString(opts: {
   return Object.keys(opts.relationalQueryRecord).reduce((acc, alias) => {
     const relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
 
-    let operation: string;
-
-    if (
-      'byReference' in relationalQueryRecordEntry ||
-      'byReferenceArray' in relationalQueryRecordEntry
-    ) {
-      operation = `GetReferences(propertyNames: "${relationalQueryRecordEntry.idProp}")`;
-    } else if ('children' in relationalQueryRecordEntry) {
-      const depthString =
-        'depth' in relationalQueryRecordEntry
-          ? relationalQueryRecordEntry.depth !== undefined
-            ? `,depth: ${relationalQueryRecordEntry.depth}`
-            : ''
-          : '';
-      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString})`;
-    } else {
+    if (!relationalQueryRecordEntry._relationshipName) {
       throw Error(
         `relationalQueryRecordEntry is invalid\n${JSON.stringify(
           relationalQueryRecordEntry,
@@ -609,6 +518,8 @@ function getRelationalQueryString(opts: {
         )}`
       );
     }
+
+    const operation = `${relationalQueryRecordEntry._relationshipName}`;
 
     return (
       acc +
@@ -622,19 +533,27 @@ function getRelationalQueryString(opts: {
   }, '');
 }
 
+function getOperationFromQueryRecordEntry(queryRecordEntry: QueryRecordEntry) {
+  const nodeType = queryRecordEntry.def.type;
+  let operation: string;
+  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
+    operation = `${nodeType}s(ids: ${getIdsString(queryRecordEntry.ids)})`;
+  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
+    operation = `${nodeType}(id: "${queryRecordEntry.id}")`;
+  } else {
+    const options = getGetNodeOptions(queryRecordEntry);
+    operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
+  }
+
+  return operation;
+}
+
 function getRootLevelQueryString(
   opts: {
     alias: string;
   } & QueryRecordEntry
 ) {
-  let operation: string;
-  if ('ids' in opts && opts.ids != null) {
-    operation = `GetNodesByIdNew(ids: ${getIdsString(opts.ids)})`;
-  } else if ('id' in opts && opts.id != null) {
-    operation = `GetNodesByIdNew(ids: ${getIdsString([opts.id])})`;
-  } else {
-    operation = `GetNodesNew(${getGetNodeOptions(opts)})`;
-  }
+  const operation = getOperationFromQueryRecordEntry(opts);
 
   return (
     `${opts.alias}: ${operation} {` +
@@ -686,36 +605,10 @@ export function getQueryInfo<
     });
     const queryRecordEntry = queryRecord[alias];
 
-    let operations: Array<string>;
-    if (queryRecordEntry.ids != null) {
-      operations = [
-        `GetNodesById(ids: ${getIdsString(
-          queryRecordEntry.ids
-        )}, monitorChildEvents: true)`,
-      ];
-    } else if (queryRecordEntry.id != null) {
-      operations = [
-        `GetNodesById(ids: ${getIdsString([
-          queryRecordEntry.id,
-        ])}, monitorChildEvents: true)`,
-      ];
-    } else if (queryRecordEntry.underIds != null) {
-      operations = queryRecordEntry.underIds.map(underId => {
-        return `GetNodesNew(${getSubscriptionGetNodeOptions({
-          ...queryRecordEntry,
-          under: underId,
-        })}, monitorChildEvents: true)`;
-      });
-    } else {
-      operations = [
-        `GetNodesNew(${getSubscriptionGetNodeOptions(
-          queryRecordEntry
-        )}, monitorChildEvents: true)`,
-      ];
-    }
+    const operation = getOperationFromQueryRecordEntry(queryRecordEntry);
 
-    const gqlStrings = operations.map(operation => {
-      return `
+    const gqlStrings = [
+      `
     subscription ${subscriptionName} {
       ${alias}: ${operation} {
         node {
@@ -724,8 +617,8 @@ export function getQueryInfo<
         operation { action, path }
       }
     }
-        `.trim();
-    });
+        `.trim(),
+    ];
 
     function extractNodeFromSubscriptionMessage(
       subscriptionMessage: Record<string, any>

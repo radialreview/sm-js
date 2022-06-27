@@ -3,10 +3,10 @@ import { queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, SMJS } from '.';
 import {
-  IChildrenQueryBuilder,
+  IOneToOneQueryBuilder,
+  IOneToManyQueryBuilder,
   ISMNode,
   ISMJS,
-  IByReferenceQueryBuilder,
   ISMData,
   SMDataDefaultFn,
   NodeRelationalQueryBuilderRecord,
@@ -35,13 +35,13 @@ const userProperties = {
 type UserProperties = typeof userProperties;
 
 type UserRelationalData = {
-  todos: IChildrenQueryBuilder<TodoNode>;
+  todos: IOneToManyQueryBuilder<TodoNode>;
 };
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
 export type UserNode = ISMNode<
-  'tt-user',
+  'user',
   UserProperties,
   { displayName: string },
   UserRelationalData,
@@ -54,7 +54,7 @@ export function generateUserNode(
   cachedTodoNode?: TodoNode
 ): UserNode {
   const userNode: UserNode = smJSInstance.def({
-    type: 'tt-user',
+    type: 'user',
     properties: userProperties,
     computed: {
       displayName: () => {
@@ -62,7 +62,7 @@ export function generateUserNode(
       },
     },
     relational: {
-      todos: () => smData.children({ def: todoNode }),
+      todos: () => smData.oneToMany(todoNode),
     },
   });
 
@@ -92,7 +92,7 @@ const todoProperties = {
 export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
-  assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
+  assignee: IOneToOneQueryBuilder<UserNode>;
 };
 
 export type TodoMutations = {};
@@ -113,11 +113,7 @@ export function generateTodoNode(
     type: 'todo',
     properties: todoProperties,
     relational: {
-      assignee: () =>
-        smData.reference<TodoNode, UserNode>({
-          def: userNode,
-          idProp: 'assigneeId',
-        }),
+      assignee: () => smData.oneToOne<UserNode>(userNode),
     },
   }) as TodoNode;
 
@@ -173,20 +169,14 @@ export function generateDOInstance<
 
 export function createMockQueryDefinitions(
   smJSInstance: ISMJS,
-  opts: ({ useIds?: true } | { useUnder?: true } | { useNoUnder?: true }) & {
+  opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
-  } = {
-    useUnder: true,
-  }
+  } = {}
 ) {
   let target = {} as QueryDefinitionTarget;
   if ('useIds' in opts) {
     target = { ids: ['mock-id'] };
-  } else if ('useUnder' in opts) {
-    target = { underIds: ['mock-id'] };
-  } else if ('useNoUnder' in opts) {
-    // do nothing, leave target empty
   }
 
   return {
@@ -227,7 +217,7 @@ export const mockQueryDataReturn = {
   users: [
     {
       id: 'mock-user-id',
-      type: 'tt-user',
+      type: 'user',
       version: '1',
       address: '__object__',
       address__dot__state: 'FL',
@@ -242,7 +232,7 @@ export const mockQueryDataReturn = {
           assignee: [
             {
               id: 'mock-user-id',
-              type: 'tt-user',
+              type: 'user',
               version: '1',
               firstName: 'Joe',
             },
@@ -255,7 +245,7 @@ export const mockQueryDataReturn = {
 
 const expectedAssignee = {
   id: 'mock-user-id',
-  type: 'tt-user',
+  type: 'user',
   displayName: 'User display name',
   lastUpdatedBy: undefined,
   firstName: 'Joe',
@@ -271,7 +261,7 @@ const expectedTodo = {
 const expectedUsers = [
   {
     id: 'mock-user-id',
-    type: 'tt-user',
+    type: 'user',
     displayName: 'User display name',
     lastUpdatedBy: undefined,
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
@@ -300,7 +290,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
       node: {
         // same prop values
         id: 'mock-user-id',
-        type: 'tt-user',
+        type: 'user',
         address__dot__state: 'AK',
         version: '2',
         todos: [
@@ -311,7 +301,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
             assignee: [
               {
                 id: 'mock-user-id',
-                type: 'tt-user',
+                type: 'user',
                 version: '1',
                 firstName: 'Joe',
               },

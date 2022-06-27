@@ -9,17 +9,11 @@ import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
 } from './queryDefinitionAdapters';
-import {
-  object,
-  OBJECT_PROPERTY_SEPARATOR,
-  queryDefinition,
-  reference,
-  string,
-} from './smDataTypes';
+import { object, queryDefinition, oneToOne, string } from './smDataTypes';
 import { gql } from '@apollo/client/core';
 import { SMJS } from '.';
 import {
-  IByReferenceQueryBuilder,
+  IOneToOneQueryBuilder,
   ISMNode,
   MapFnForNode,
   QueryRecordEntry,
@@ -41,7 +35,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
         todos: queryDefinition({
           def: todoNode,
           map: ({ id, task }) => ({ id, task }),
-          target: { underIds: ['mock-id'] },
         }),
         users: queryDefinition({
           def: userNode,
@@ -49,7 +42,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
             firstName,
             lastName,
           }),
-          target: { underIds: ['other-mock-id'] },
         }),
       },
     });
@@ -57,15 +49,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(record.todos).toEqual(
       expect.objectContaining({
         def: expect.objectContaining({ type: 'todo' }),
-        underIds: ['mock-id'],
         properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'task'],
       })
     );
 
     expect(record.users).toEqual(
       expect.objectContaining({
-        def: expect.objectContaining({ type: 'tt-user' }),
-        underIds: ['other-mock-id'],
+        def: expect.objectContaining({ type: 'user' }),
         properties: [
           ...PROPERTIES_QUERIED_FOR_ALL_NODES,
           'firstName',
@@ -79,15 +69,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
-      queryDefinitions: createMockQueryDefinitions(smJSInstance, {
-        useUnder: true,
-      }),
+      queryDefinitions: createMockQueryDefinitions(smJSInstance),
     }).users as QueryRecordEntry & { underIds: Array<string> };
 
-    expect(queryRecord.def).toEqual(
-      expect.objectContaining({ type: 'tt-user' })
-    );
-    expect(queryRecord.underIds).toEqual(['mock-id']);
+    expect(queryRecord.def).toEqual(expect.objectContaining({ type: 'user' }));
     expect(queryRecord.properties).toEqual([
       ...PROPERTIES_QUERIED_FOR_ALL_NODES,
       // include the root property name
@@ -107,16 +92,14 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
-          useUnder: true,
-        }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance),
       }).users.relational
     ).toEqual(
       expect.objectContaining({
         todos: expect.objectContaining({
           def: expect.objectContaining({ type: 'todo' }),
           properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES],
-          children: true,
+          oneToMany: true,
         }),
       })
     );
@@ -127,48 +110,33 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
-          useUnder: true,
-        }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance),
       }).users.relational?.todos.relational
     ).toEqual(
       expect.objectContaining({
         assignee: expect.objectContaining({
-          def: expect.objectContaining({ type: 'tt-user' }),
+          def: expect.objectContaining({ type: 'user' }),
           properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
-          byReference: true,
-          idProp: 'assigneeId',
+          oneToOne: true,
         }),
       })
     );
   });
 
-  it('handles reference queries that use dot notation', () => {
+  it('handles oneToOne queries', () => {
     const smJSInstance = new SMJS(getMockConfig());
-    const userProperties = {
-      settings: object({
-        mainTodoId: string,
-      }),
-    };
+    const userProperties = {};
     type UserNode = ISMNode<
       'user',
       typeof userProperties,
       {},
-      { todo: IByReferenceQueryBuilder<UserNode, TodoNode> }
+      { todo: IOneToOneQueryBuilder<TodoNode> }
     >;
     const userNode: UserNode = smJSInstance.def({
       type: 'user',
-      properties: {
-        settings: object({
-          mainTodoId: string,
-        }),
-      },
+      properties: {},
       relational: {
-        todo: () =>
-          reference({
-            def: generateTodoNode(smJSInstance),
-            idProp: 'settings.mainTodoId',
-          }),
+        todo: () => oneToOne(generateTodoNode(smJSInstance)),
       },
     });
 
@@ -190,13 +158,13 @@ describe('getQueryRecordFromQueryDefinition', () => {
       expect.objectContaining({
         todo: expect.objectContaining({
           def: expect.objectContaining({ type: 'todo' }),
-          idProp: `settings${OBJECT_PROPERTY_SEPARATOR}mainTodoId`,
+          _relationshipName: 'todo',
         }),
       })
     );
   });
 
-  it('handles reference queries which return a union of node types', () => {
+  it('handles oneToOne queries which return a union of node types', () => {
     const smJSInstance = new SMJS(getMockConfig());
     const userProperties = {
       firstName: string,
@@ -227,10 +195,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
       typeof todoProperties,
       {},
       {
-        assignee: IByReferenceQueryBuilder<
-          TodoNode,
-          { user: UserNode; meetingGuest: MeetingGuestNode }
-        >;
+        assignee: IOneToOneQueryBuilder<{
+          user: UserNode;
+          meetingGuest: MeetingGuestNode;
+        }>;
       }
     >;
     const todoNode: TodoNode = smJSInstance.def({
@@ -238,9 +206,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
       properties: todoProperties,
       relational: {
         assignee: () =>
-          reference({
-            idProp: 'assigneeId',
-            def: { user: userNode, meetingGuest: meetingGuestNode },
+          oneToOne({
+            user: userNode,
+            meetingGuest: meetingGuestNode,
           }),
       },
     });
@@ -323,7 +291,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(relationalResults).toEqual(
       expect.objectContaining({
         assignee: expect.objectContaining({
-          def: expect.objectContaining({ type: 'tt-user' }),
+          def: expect.objectContaining({ type: 'user' }),
           properties: [
             ...PROPERTIES_QUERIED_FOR_ALL_NODES,
             'firstName',
@@ -339,8 +307,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
             'dateLastModified',
             'lastUpdatedClientTimestamp',
           ],
-          byReference: true,
-          idProp: 'assigneeId',
+          oneToOne: true,
         }),
       })
     );
@@ -394,13 +361,11 @@ describe('getQueryInfo.queryGQLString', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
-          useUnder: true,
-        }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
+              users: users {
             id,
             version,
             lastUpdatedBy,
@@ -410,12 +375,12 @@ describe('getQueryInfo.queryGQLString', () => {
             address__dot__apt,
             address__dot__apt__dot__floor,
             address__dot__apt__dot__number,
-            todos: GetChildren(type: \\"todo\\") {
+            todos: todos {
                 id,
                 version,
                 lastUpdatedBy,
                 type,
-                assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                assignee: assignee {
                     id,
                     version,
                     lastUpdatedBy,
@@ -434,16 +399,13 @@ describe('getQueryInfo.queryGQLString', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
-            .users,
-          otherAlias: createMockQueryDefinitions(smJSInstance, {
-            useUnder: true,
-          }).users,
+          users: createMockQueryDefinitions(smJSInstance).users,
+          otherAlias: createMockQueryDefinitions(smJSInstance).users,
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
+              users: users {
             id,
             version,
             lastUpdatedBy,
@@ -453,12 +415,12 @@ describe('getQueryInfo.queryGQLString', () => {
             address__dot__apt,
             address__dot__apt__dot__floor,
             address__dot__apt__dot__number,
-            todos: GetChildren(type: \\"todo\\") {
+            todos: todos {
                 id,
                 version,
                 lastUpdatedBy,
                 type,
-                assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                assignee: assignee {
                     id,
                     version,
                     lastUpdatedBy,
@@ -467,7 +429,7 @@ describe('getQueryInfo.queryGQLString', () => {
                 }
             }
           }
-          otherAlias: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"]) {
+          otherAlias: users {
             id,
             version,
             lastUpdatedBy,
@@ -477,12 +439,12 @@ describe('getQueryInfo.queryGQLString', () => {
             address__dot__apt,
             address__dot__apt__dot__floor,
             address__dot__apt__dot__number,
-            todos: GetChildren(type: \\"todo\\") {
+            todos: todos {
                 id,
                 version,
                 lastUpdatedBy,
                 type,
-                assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                assignee: assignee {
                     id,
                     version,
                     lastUpdatedBy,
@@ -506,7 +468,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              users: GetNodesByIdNew(ids: [\\"mock-id\\"]) {
+              users: users(ids: [\\"mock-id\\"]) {
             id,
             version,
             lastUpdatedBy,
@@ -516,12 +478,12 @@ describe('getQueryInfo.queryGQLString', () => {
             address__dot__apt,
             address__dot__apt__dot__floor,
             address__dot__apt__dot__number,
-            todos: GetChildren(type: \\"todo\\") {
+            todos: todos {
                 id,
                 version,
                 lastUpdatedBy,
                 type,
-                assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                assignee: assignee {
                     id,
                     version,
                     lastUpdatedBy,
@@ -545,7 +507,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\") {
+              todos: todos {
             id,
             version,
             lastUpdatedBy,
@@ -584,7 +546,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\") {
+              todos: todos {
             id,
             version,
             lastUpdatedBy,
@@ -624,32 +586,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", filter: {task: \\"get it done\\", done: \\"false\\", meetingId: null}) {
-            id,
-            version,
-            lastUpdatedBy,
-            type
-          }
-          }"
-    `);
-  });
-
-  it('supports combinations of target params', () => {
-    const smJSInstance = new SMJS(getMockConfig());
-    expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(smJSInstance),
-            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
-            target: { underIds: ['userA'], depth: 1 },
-          }),
-        },
-      }).queryGQLString
-    ).toMatchInlineSnapshot(`
-      "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", underIds: [\\"userA\\"], depth: 1) {
+              todos: todos(filter: {task: \\"get it done\\", done: \\"false\\", meetingId: null}) {
             id,
             version,
             lastUpdatedBy,
@@ -677,7 +614,7 @@ describe('getQueryInfo.queryGQLString', () => {
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-              todos: GetNodesNew(type: \\"todo\\", filter: {settings__dot__nestedSettings__dot__nestedNestedMaybe: \\"mock value\\"}) {
+              todos: todos(filter: {settings__dot__nestedSettings__dot__nestedNestedMaybe: \\"mock value\\"}) {
             id,
             version,
             lastUpdatedBy,
@@ -694,11 +631,8 @@ describe('getQueryInfo.queryGQLString', () => {
         getQueryInfo({
           queryId: 'MyTestQuery',
           queryDefinitions: {
-            users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
-              .users,
-            otherAlias: createMockQueryDefinitions(smJSInstance, {
-              useUnder: true,
-            }).users,
+            users: createMockQueryDefinitions(smJSInstance).users,
+            otherAlias: createMockQueryDefinitions(smJSInstance).users,
           },
         }).queryGQLString
       )
@@ -712,14 +646,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
-          useUnder: true,
-        }),
+        queryDefinitions: createMockQueryDefinitions(smJSInstance),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
-            users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"], monitorChildEvents: true) {
+            users: users {
               node {
                 
                     id,
@@ -731,12 +663,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     address__dot__apt,
                     address__dot__apt__dot__floor,
                     address__dot__apt__dot__number,
-                    todos: GetChildren(type: \\"todo\\") {
+                    todos: todos {
                         id,
                         version,
                         lastUpdatedBy,
                         type,
-                        assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                        assignee: assignee {
                             id,
                             version,
                             lastUpdatedBy,
@@ -758,17 +690,14 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
-            .users,
-          otherAlias: createMockQueryDefinitions(smJSInstance, {
-            useUnder: true,
-          }).users,
+          users: createMockQueryDefinitions(smJSInstance).users,
+          otherAlias: createMockQueryDefinitions(smJSInstance).users,
         },
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
-            users: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"], monitorChildEvents: true) {
+            users: users {
               node {
                 
                     id,
@@ -780,12 +709,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     address__dot__apt,
                     address__dot__apt__dot__floor,
                     address__dot__apt__dot__number,
-                    todos: GetChildren(type: \\"todo\\") {
+                    todos: todos {
                         id,
                         version,
                         lastUpdatedBy,
                         type,
-                        assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                        assignee: assignee {
                             id,
                             version,
                             lastUpdatedBy,
@@ -798,7 +727,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
             }
           }",
         "subscription MyTestQuery_otherAlias {
-            otherAlias: GetNodesNew(type: \\"tt-user\\", underIds: [\\"mock-id\\"], monitorChildEvents: true) {
+            otherAlias: users {
               node {
                 
                     id,
@@ -810,12 +739,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     address__dot__apt,
                     address__dot__apt__dot__floor,
                     address__dot__apt__dot__number,
-                    todos: GetChildren(type: \\"todo\\") {
+                    todos: todos {
                         id,
                         version,
                         lastUpdatedBy,
                         type,
-                        assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                        assignee: assignee {
                             id,
                             version,
                             lastUpdatedBy,
@@ -843,7 +772,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
     ).toMatchInlineSnapshot(`
       Array [
         "subscription MyTestQuery_users {
-            users: GetNodesById(ids: [\\"mock-id\\"], monitorChildEvents: true) {
+            users: users(ids: [\\"mock-id\\"]) {
               node {
                 
                     id,
@@ -855,12 +784,12 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
                     address__dot__apt,
                     address__dot__apt__dot__floor,
                     address__dot__apt__dot__number,
-                    todos: GetChildren(type: \\"todo\\") {
+                    todos: todos {
                         id,
                         version,
                         lastUpdatedBy,
                         type,
-                        assignee: GetReferences(propertyNames: \\"assigneeId\\") {
+                        assignee: assignee {
                             id,
                             version,
                             lastUpdatedBy,
@@ -882,11 +811,8 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance, { useUnder: true })
-            .users,
-          otherAlias: createMockQueryDefinitions(smJSInstance, {
-            useUnder: true,
-          }).users,
+          users: createMockQueryDefinitions(smJSInstance).users,
+          otherAlias: createMockQueryDefinitions(smJSInstance).users,
         },
       }).subscriptionConfigs.map(config => gql(config.gqlString))
     ).not.toThrow();

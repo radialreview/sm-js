@@ -414,11 +414,11 @@ export function createDOFactory(smJSInstance: ISMJS) {
       private initializeNodeRelationalGetters() {
         const relationalData = node.relational;
         if (relationalData) {
-          Object.keys(relationalData).forEach(relationalProp => {
+          Object.keys(relationalData).forEach(relationshipName => {
             this.setRelationalProp({
-              propName: relationalProp,
+              relationshipName,
               relationalQueryGetter: relationalData[
-                relationalProp
+                relationshipName
               ] as () => NodeRelationalQueryBuilder<any>,
             });
           });
@@ -492,12 +492,12 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       private setRelationalProp(opts: {
-        propName: string;
+        relationshipName: string;
         relationalQueryGetter: () => NodeRelationalQueryBuilder<
           ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>
         >;
       }) {
-        Object.defineProperty(this, opts.propName, {
+        Object.defineProperty(this, opts.relationshipName, {
           configurable: true,
           get: () => {
             return opts.relationalQueryGetter();

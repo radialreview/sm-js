@@ -16,7 +16,7 @@ export const todoNode = smJS.def({
 });
 
 export const userNode = smJS.def({
-  type: 'tt-user',
+  type: 'user',
   properties: {
     id: string,
     firstName: string,
