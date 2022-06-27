@@ -6,8 +6,10 @@ import {
 import {
   GetResultingDataTypeFromProperties,
   GetSMDataType,
-  IByReferenceQueryBuilder,
-  IChildrenQueryBuilder,
+  IOneToOneQueryBuilder,
+  IOneToOneQueryBuilderOpts,
+  IOneToManyQueryBuilder,
+  IOneToManyQueryBuilderOpts,
   ISMData,
   ISMNode,
   ISMQueryPagination,
@@ -15,15 +17,10 @@ import {
   Maybe,
   QueryDefinitionTarget,
   SMDataDefaultFn,
-  ValidReferenceIdPropFromNode,
   SM_DATA_TYPES,
   SM_RELATIONAL_TYPES,
-  ByReferenceQueryBuilderOpts,
   UseSubscriptionQueryDefinitionOpts,
   UseSubscriptionQueryDefinition,
-  ValidReferenceIdArrayPropFromNode,
-  ByReferenceArrayQueryBuilderOpts,
-  IByReferenceArrayQueryBuilder,
 } from './types';
 
 export class SMData<
@@ -302,80 +299,54 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   return smArray;
 };
 
-export const reference = <
-  TOriginNode extends ISMNode,
+export const oneToOne = <
   TTargetNodeOrTargetNodeRecord extends
     | ISMNode
     | Maybe<ISMNode>
     | Record<string, ISMNode>
     | Maybe<Record<string, ISMNode>>
->(opts: {
-  def: NonNullable<TTargetNodeOrTargetNodeRecord>;
-  idProp: ValidReferenceIdPropFromNode<TOriginNode>;
-}) => {
+>(
+  def: NonNullable<TTargetNodeOrTargetNodeRecord>
+) => {
   return (<
-    TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<
+    TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord
-    >
+    > & { _relationshipName: string }
   >(
     queryBuilderOpts: TQueryBuilderOpts
   ) => {
     return {
-      ...opts,
-      idProp: (opts.idProp as string).replaceAll(
-        '.',
-        OBJECT_PROPERTY_SEPARATOR
-      ) as ValidReferenceIdPropFromNode<TOriginNode>,
-      _smRelational: SM_RELATIONAL_TYPES.byReference,
+      def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _smRelational: SM_RELATIONAL_TYPES.oneToOne,
       queryBuilderOpts,
     };
-  }) as IByReferenceQueryBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord>;
+  }) as IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 };
 
-export const referenceArray = <
-  TOriginNode extends ISMNode,
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Record<string, ISMNode>
->(opts: {
-  def: NonNullable<TTargetNodeOrTargetNodeRecord>;
-  idProp: ValidReferenceIdArrayPropFromNode<TOriginNode>;
-}) => {
+export const oneToMany = <
+  TTargetNodeOrTargetNodeRecord extends
+    | ISMNode
+    | Maybe<ISMNode>
+    | Record<string, ISMNode>
+    | Maybe<Record<string, ISMNode>>
+>(
+  def: NonNullable<TTargetNodeOrTargetNodeRecord>
+) => {
   return (<
-    TQueryBuilderOpts extends ByReferenceArrayQueryBuilderOpts<
+    TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord
-    >
+    > & { _relationshipName: string }
   >(
     queryBuilderOpts: TQueryBuilderOpts
   ) => {
     return {
-      ...opts,
-      idProp: (opts.idProp as string).replaceAll(
-        '.',
-        OBJECT_PROPERTY_SEPARATOR
-      ) as ValidReferenceIdArrayPropFromNode<TOriginNode>,
-      _smRelational: SM_RELATIONAL_TYPES.byReferenceArray,
+      def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _smRelational: SM_RELATIONAL_TYPES.oneToMany,
       queryBuilderOpts,
     };
-  }) as IByReferenceArrayQueryBuilder<
-    TOriginNode,
-    TTargetNodeOrTargetNodeRecord
-  >;
-};
-
-export const children = <TSMNode extends ISMNode>(opts: {
-  def: TSMNode;
-  depth?: number;
-}) => {
-  return ((queryBuilderOpts: {
-    map: MapFnForNode<TSMNode>;
-    pagination: ISMQueryPagination;
-  }) => {
-    return {
-      ...opts,
-      _smRelational: SM_RELATIONAL_TYPES.children,
-      map: queryBuilderOpts.map,
-      depth: opts.depth,
-    };
-  }) as IChildrenQueryBuilder<TSMNode>;
+  }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 };
 
 export const OBJECT_PROPERTY_SEPARATOR = '__dot__';

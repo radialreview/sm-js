@@ -264,7 +264,6 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
-
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
@@ -298,125 +297,6 @@ export type DeepPartial<ObjectType extends Record<string, any>> = Partial<
 >;
 
 type IsArray<Thing extends any, Y = true, N = false> = Thing extends Array<any> ? Y : N
-
-type IsObject<TObject extends Record<string,any>, Y = true, N = false> =
-  IsArray<TObject> extends true
-    ? false
-    : TObject extends Record<string, any>
-      ? Y
-      : N
-
-/**
- * Note: this is used solely for obtaining the keys in an object converted to the dot notation
- * it was not possible to have the correct value types be mapped over, which is why all values are "never"
- */
-type GetIdReferencePropsInDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
-  // object properties
-  {
-    [TKey in keyof TObject
-      // skip values that aren't objects, those get handled below so this is easier to read
-      as IsObject<TObject[TKey]> extends true
-        // TS forces us to do this check, otherwise it thinks key may be a symbol
-        ? TKey extends string
-          // don't want to prefix the property at all if a prefix was not provided (we're at the top level and haven't called this type recursively)
-          ? TPrefix extends ''
-            ? keyof GetIdReferencePropsInDotNotation<TObject[TKey], TKey>
-            // otherwise TPrefix every property with the prefix
-            : keyof GetIdReferencePropsInDotNotation<TObject[TKey], `${TPrefix}.${TKey}`>
-          : never
-        : never
-    ]: never
-  }
-  &
-  // primitive properties
-  {
-    [TKey in keyof TObject
-    // objects get their keys mapped above
-      as IsObject<TObject[TKey]> extends true
-        ? never
-        // arrays are not searchable
-        : IsArray<TObject[TKey]> extends true
-          ? never
-          : TPrefix extends ''
-            ? TKey
-            : TKey extends string
-              ? `${TPrefix}.${TKey}`
-              : never
-    ]: never
-  }
-
-/**
- * Note: this is used solely for obtaining the keys in an object converted to the dot notation
- * it was not possible to have the correct value types be mapped over, which is why all values are "never"
- */
- type GetIdReferenceArrayPropsInDotNotation<TObject extends Record<string, any>, TPrefix extends string = ''> = 
- // object properties
- {
-   [TKey in keyof TObject
-     // skip values that aren't objects, those get handled below so this is easier to read
-     as IsObject<TObject[TKey]> extends true
-       // TS forces us to do this check, otherwise it thinks key may be a symbol
-       ? TKey extends string
-         // don't want to prefix the property at all if a prefix was not provided (we're at the top level and haven't called this type recursively)
-         ? TPrefix extends ''
-           ? keyof GetIdReferenceArrayPropsInDotNotation<TObject[TKey], TKey>
-           // otherwise TPrefix every property with the prefix
-           : keyof GetIdReferenceArrayPropsInDotNotation<TObject[TKey], `${TPrefix}.${TKey}`>
-         : never
-       : never
-   ]: never
- }
- &
- // primitive properties
- {
-   [TKey in keyof TObject
-   // objects get their keys mapped above
-     as IsObject<TObject[TKey]> extends true
-       ? never
-       // arrays are the only searchable props for reference arrays
-       : IsArray<TObject[TKey]> extends true
-         ? TObject[TKey] extends Array<string>
-           ? TPrefix extends ''
-             ? TKey
-             : TKey extends string
-               ? `${TPrefix}.${TKey}`
-               : never
-            : never
-         : never
-   ]: never
- }
-
-
-type ValidReferenceIdProp<TObject extends Record<string,any>> = keyof GetIdReferencePropsInDotNotation<TObject>
-
-type ValidReferenceIdArrayProp<TObject extends Record<string,any>> = keyof GetIdReferenceArrayPropsInDotNotation<TObject>
-
-/**
- * Returns a union of all valid idReference props from a node's data type
- * excluding properties which are arrays
- * and converting nested properties to dot notation
- * 
- * For example, if a node's data is
- * {
- *  string: string
- *  object: {
- *    nestedString: string
- *    nestedObject: {
- *      nestedNestedBoolean: boolean
- *    }
- *  }
- *  arr: []
- * }
- * 
- * The resulting valid id references would be 'string' | 'object.nestedString' | 'object.nestedObject.nestedNestedBoolean'
- */
-export type ValidReferenceIdPropFromNode<TSMNode extends ISMNode> = ValidReferenceIdProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
-
-/**
- * Returs a union of all valid id reference ARRAY props from a node's data type
- * meaning, only properties which are arrays of strings
- */
-export type ValidReferenceIdArrayPropFromNode<TSMNode extends ISMNode> = ValidReferenceIdArrayProp<GetResultingDataTypeFromNodeDefinition<TSMNode>>
 
 /**
  * A record that lives on each instance of a DOProxy to determine
@@ -502,18 +382,15 @@ export interface ISMNode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TOriginNode extends ISMNode> =
-  | IByReferenceQueryBuilder<TOriginNode, ISMNode>
-  | IByReferenceArrayQueryBuilder<TOriginNode, ISMNode>
-  | IChildrenQueryBuilder<TOriginNode>;
+export type NodeRelationalQueryBuilder<TTargetNode extends ISMNode> =
+  | IOneToOneQueryBuilder<TTargetNode>
+  | IOneToManyQueryBuilder<TTargetNode>
 
-export type NodeRelationalQuery<TOriginNode extends ISMNode> =
-  | IChildrenQuery<TOriginNode, any>
-  | IByReferenceQuery<TOriginNode, any, any>
-  | IByReferenceArrayQuery<TOriginNode, any, any>
+export type NodeRelationalQuery<TTargetNode extends ISMNode> =
+  | IOneToOneQuery<TTargetNode, any>
+  | IOneToManyQuery<TTargetNode, any>
 
-
-export type ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
   TTargetNodeOrTargetNodeRecord extends ISMNode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
@@ -523,32 +400,49 @@ export type ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends IS
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
-export interface IByReferenceQueryBuilder<
-  TOriginNode extends ISMNode,
+export interface IOneToOneQueryBuilder<
   TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>
 > {
-  <TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
+  <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
     queryBuilderOpts: TQueryBuilderOpts
-  ): IByReferenceQuery<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
+  ): IOneToOneQuery<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
+}
+export interface IOneToOneQuery<
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
+  TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
+> {
+  _smRelational: SM_RELATIONAL_TYPES.oneToOne;
+  _relationshipName: string;
+  queryBuilderOpts: TQueryBuilderOpts
+  def: TTargetNodeOrTargetNodeRecord
 }
 
-export type ByReferenceArrayQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Record<string, ISMNode>> =
+export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
   TTargetNodeOrTargetNodeRecord extends ISMNode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+      // @TODO add filtering and pagination here
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
     ? {
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
-export interface IByReferenceArrayQueryBuilder<
-  TOriginNode extends ISMNode,
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Record<string, ISMNode>
+export interface IOneToManyQueryBuilder<
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>
 > {
-  <TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
+  <TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
     queryBuilderOpts: TQueryBuilderOpts
-  ): IByReferenceArrayQuery<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
+  ): IOneToManyQuery<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
+}
+export interface IOneToManyQuery<
+  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
+  TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
+> {
+  _smRelational: SM_RELATIONAL_TYPES.oneToMany;
+  _relationshipName: string;
+  queryBuilderOpts: TQueryBuilderOpts
+  def: TTargetNodeOrTargetNodeRecord
 }
 
 export enum SM_DATA_TYPES {
@@ -567,49 +461,8 @@ export enum SM_DATA_TYPES {
 }
 
 export enum SM_RELATIONAL_TYPES {
-  byReference = 'bR',
-  byReferenceArray = 'bRA',
-  children = 'bP'
-}
-export interface IByReferenceQuery<
-  TOriginNode extends ISMNode,
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
-  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
-> {
-  _smRelational: SM_RELATIONAL_TYPES.byReference;
-  idProp: ValidReferenceIdPropFromNode<TOriginNode>;
-  queryBuilderOpts: TQueryBuilderOpts
-  def: TTargetNodeOrTargetNodeRecord
-}
-
-export interface IByReferenceArrayQuery<
-  TOriginNode extends ISMNode,
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Record<string, ISMNode>,
-  TQueryBuilderOpts extends ByReferenceArrayQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
-> {
-  _smRelational: SM_RELATIONAL_TYPES.byReferenceArray;
-  idProp: ValidReferenceIdArrayPropFromNode<TOriginNode>;
-  queryBuilderOpts: TQueryBuilderOpts
-  def: TTargetNodeOrTargetNodeRecord
-}
-
-export interface IChildrenQueryBuilder<TSMNode extends ISMNode> {
-  <TMapFn extends MapFnForNode<TSMNode>>(opts: {
-    map: TMapFn;
-    pagination?: ISMQueryPagination;
-  }): IChildrenQuery<TSMNode, TMapFn>;
-}
-
-export interface IChildrenQuery<
-  TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode>
-> {
-  _smRelational: SM_RELATIONAL_TYPES.children;
-  def: TSMNode;
-  filtersAndPagination?: ISMQueryPagination;
-  map: TMapFn;
-  pagination?: ISMQueryPagination;
-  depth?: number;
+  oneToOne = 'oTO',
+  oneToMany = 'otM',
 }
 
 export interface ISMQueryPagination {}
@@ -864,14 +717,11 @@ type ExtractQueriedDataFromMapFnReturn<
     TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any>
     ? never
     :
-    TMapFnReturn[Key] extends IByReferenceQuery<any,any,any>
-    ? ExtractQueriedDataFromByReferenceQuery<TMapFnReturn[Key]>
+    TMapFnReturn[Key] extends IOneToOneQuery<any,any>
+    ? ExtractQueriedDataFromByOneToOneQuery<TMapFnReturn[Key]>
     :
-    TMapFnReturn[Key] extends IByReferenceArrayQuery<any,any,any>
-    ? ExtractQueriedDataFromByReferenceArrayQuery<TMapFnReturn[Key]>
-    :
-    TMapFnReturn[Key] extends IChildrenQuery<any, any>
-    ? ExtractQueriedDataFromChildrenQuery<TMapFnReturn[Key]>  
+    TMapFnReturn[Key] extends IOneToManyQuery<any,any>
+    ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]>
     :
     TMapFnReturn[Key] extends MapFnForNode<TSMNode>
     ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>  
@@ -891,14 +741,8 @@ type ExtractQueriedDataFromMapFnReturn<
     never;
 };
 
-type ExtractQueriedDataFromChildrenQuery<
-  TChildrenQuery extends IChildrenQuery<any, any>
-> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
-  : never;
-
-// Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
-// even though ExtractQueriedDataFromByReferenceQuery does not call ExtractResultsUnionFromReferenceBuilder unless it's dealing with a record of node definitions (union representation)
+// Without this,ExtractQueriedDataFromByOneToOneQuery and ExtractResultsUnionFromOneToOneQueryBuilder somehow cause a loop
+// even though ExtractQueriedDataFromByOneToOneQuery does not call ExtractResultsUnionFromOneToOneQueryBuilder unless it's dealing with a record of node definitions (union representation)
 // borrowed this solution from this article
 // https://www.angularfix.com/2022/01/why-am-i-getting-instantiation-is.html
 // relavant github discussions:
@@ -907,12 +751,12 @@ type ExtractQueriedDataFromChildrenQuery<
 // https://github.com/microsoft/TypeScript/pull/45025
 type Prev = [never, 0, 1];
 
-type ExtractQueriedDataFromByReferenceQuery<
-  TByReferenceQuery extends IByReferenceQuery<any, any, any>,
+type ExtractQueriedDataFromByOneToOneQuery<
+  TOneToOneQuery extends IOneToOneQuery<any, any>,
   D extends Prev[number] = 1
 > = 
   [D] extends [never] ? never :
-  TByReferenceQuery extends IByReferenceQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
+  TOneToOneQuery extends IOneToOneQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
       ? TTargetNodeOrTargetNodeRecord extends ISMNode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
@@ -920,7 +764,7 @@ type ExtractQueriedDataFromByReferenceQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Maybe<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
+            ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
       : TTargetNodeOrTargetNodeRecord extends ISMNode
@@ -929,17 +773,17 @@ type ExtractQueriedDataFromByReferenceQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>
+            ? ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>
             : never
           : never
     : never
 
-type ExtractQueriedDataFromByReferenceArrayQuery<
-  TByReferenceArrayQuery extends IByReferenceArrayQuery<any, any, any>,
+type ExtractQueriedDataFromOneToManyQuery<
+  TOneToManyQuery extends IOneToManyQuery<any, any>,
   D extends Prev[number] = 1
 > = 
   [D] extends [never] ? never :
-  TByReferenceArrayQuery extends IByReferenceArrayQuery<infer TOriginNode, infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
+  TOneToManyQuery extends IOneToManyQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
       ? TTargetNodeOrTargetNodeRecord extends ISMNode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
@@ -947,7 +791,7 @@ type ExtractQueriedDataFromByReferenceArrayQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Maybe<Array<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
+            ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
             : never
           : never
       : TTargetNodeOrTargetNodeRecord extends ISMNode
@@ -956,26 +800,24 @@ type ExtractQueriedDataFromByReferenceArrayQuery<
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Array<ExtractResultsUnionFromReferenceBuilder<TOriginNode, TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
+            ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
     : never
 
-type ExtractResultsUnionFromReferenceBuilder<
-  TOriginNode extends ISMNode,
+type ExtractResultsUnionFromOneToOneQueryBuilder<
   TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>,
-  TQueryBuilderOpts extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>,
+  TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>,
   D extends Prev[number]
 > = ExtractObjectValues<{
   [key in keyof TQueryBuilderOpts]:
       key extends keyof TTargetNodeOrTargetNodeRecord 
-        ? TQueryBuilderOpts[key] extends ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
+        ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
           ?
-            ExtractQueriedDataFromByReferenceQuery<
-              IByReferenceQuery<
-                TOriginNode,
+            ExtractQueriedDataFromByOneToOneQuery<
+              IOneToOneQuery<
                 TTargetNodeOrTargetNodeRecord[key],
-                // says this doesn't satisfy the constraint of ByReferenceQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
+                // says this doesn't satisfy the constraint of IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
                 // but it does, and it works anyway
                 // @ts-ignore
                 { map: TQueryBuilderOpts[key]['map'] }

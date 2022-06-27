@@ -1,28 +1,21 @@
 /* eslint @typescript-eslint/no-unused-vars: 0, @typescript-eslint/no-unused-expressions: 0 */
+import { getDefaultConfig, queryDefinition, SMJS, useSubscription } from './';
 import {
-  getDefaultConfig,
-  queryDefinition,
-  SMJS,
   string,
   number,
-  children,
-  useSubscription,
-} from './';
-import {
   array,
   boolean,
   object,
   record,
-  reference,
-  referenceArray,
+  oneToMany,
+  oneToOne,
 } from './smDataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
-  ValidReferenceIdPropFromNode,
-  IByReferenceQueryBuilder,
-  IChildrenQueryBuilder,
+  IOneToOneQueryBuilder,
+  IOneToManyQueryBuilder,
   ISMNode,
   MapFnForNode,
   Maybe,
@@ -31,7 +24,6 @@ import {
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
-  IByReferenceArrayQueryBuilder,
 } from './types';
 
 /**
@@ -49,28 +41,17 @@ const todoProperties = {
   invalidIdsProperty: array(number),
 };
 const todoRelational = {
-  assignee: () =>
-    reference<TodoNode, UserNode>({
-      def: userNode,
-      idProp: 'assigneeId',
-    }),
-  meeting: () =>
-    reference<TodoNode, Maybe<MeetingNode>>({
-      def: meetingNode,
-      idProp: 'meetingId',
-    }),
+  assignee: () => oneToOne(userNode),
+  meeting: () => oneToOne(meetingNode),
   assigneeUnionNullable: () =>
-    reference<
-      TodoNode,
-      Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
-    >({
-      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
-      idProp: 'meetingId',
+    oneToOne<Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>>({
+      meetingGuest: meetingGuestNode,
+      orgUser: userNode,
     }),
   assigneeUnionNonNullable: () =>
-    reference<TodoNode, { meetingGuest: MeetingGuestNode; orgUser: UserNode }>({
-      def: { meetingGuest: meetingGuestNode, orgUser: userNode },
-      idProp: 'meetingId',
+    oneToOne<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>({
+      meetingGuest: meetingGuestNode,
+      orgUser: userNode,
     }),
 };
 
@@ -81,8 +62,7 @@ const meetingProperties = {
 };
 
 type MeetingRelational = {
-  attendees: IByReferenceArrayQueryBuilder<MeetingNode, UserNode>;
-  invalidAttendees: IByReferenceArrayQueryBuilder<MeetingNode, UserNode>;
+  attendees: IOneToManyQueryBuilder<UserNode>;
 };
 
 type MeetingNode = ISMNode<
@@ -97,16 +77,15 @@ type TodoNode = ISMNode<
   typeof todoProperties,
   {},
   {
-    assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
-    meeting: IByReferenceQueryBuilder<TodoNode, Maybe<MeetingNode>>;
-    assigneeUnionNullable: IByReferenceQueryBuilder<
-      TodoNode,
+    assignee: IOneToOneQueryBuilder<UserNode>;
+    meeting: IOneToOneQueryBuilder<Maybe<MeetingNode>>;
+    assigneeUnionNullable: IOneToOneQueryBuilder<
       Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
     >;
-    assigneeUnionNonNullable: IByReferenceQueryBuilder<
-      TodoNode,
-      { meetingGuest: MeetingGuestNode; orgUser: UserNode }
-    >;
+    assigneeUnionNonNullable: IOneToOneQueryBuilder<{
+      meetingGuest: MeetingGuestNode;
+      orgUser: UserNode;
+    }>;
   }
 >;
 
@@ -120,17 +99,7 @@ const meetingNode: MeetingNode = smJS.def({
   type: 'meeting',
   properties: meetingProperties,
   relational: {
-    attendees: () =>
-      referenceArray<MeetingNode, UserNode>({
-        def: userNode,
-        idProp: 'attendeeIds',
-      }),
-    invalidAttendees: () =>
-      referenceArray<MeetingNode, UserNode>({
-        def: userNode,
-        // @ts-expect-error array of numbers, and as such is not a valid idProp for a reference array
-        idProp: 'invalidIdsProperty',
-      }),
+    attendees: () => oneToMany(userNode),
   },
 });
 
@@ -165,18 +134,8 @@ const userProperties = {
   arrayOfString: array(string),
 };
 const userRelational = {
-  todos: () => children({ def: todoNode }) as IChildrenQueryBuilder<TodoNode>,
-  state: () =>
-    reference({
-      def: stateNode,
-      idProp: 'address.state',
-    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
-  invalid: () =>
-    reference({
-      def: stateNode,
-      // @ts-expect-error not a valid id prop in user node
-      idProp: 'address.statesz',
-    }) as IByReferenceQueryBuilder<UserNode, StateNode>,
+  todos: () => oneToMany(todoNode),
+  state: () => oneToOne(stateNode),
 };
 
 type UserNode = ISMNode<
@@ -184,9 +143,8 @@ type UserNode = ISMNode<
   typeof userProperties,
   { fullName: string; avatar: string },
   {
-    todos: IChildrenQueryBuilder<TodoNode>;
-    state: IByReferenceQueryBuilder<UserNode, StateNode>;
-    invalid: IByReferenceQueryBuilder<UserNode, StateNode>;
+    todos: IOneToManyQueryBuilder<TodoNode>;
+    state: IOneToOneQueryBuilder<StateNode>;
   }
 >;
 
@@ -341,19 +299,6 @@ const stateNode: StateNode = smJS.def({
     },
   };
   invalidNestedProp;
-
-  // @ts-expect-error array props are not valid id reference props
-  const idProp1: ValidReferenceIdPropFromNode<UserNode> = 'arrayOfString';
-  // @ts-expect-error objects are not valid id reference props
-  const idProp2: ValidReferenceIdPropFromNode<UserNode> = 'address';
-
-  const idProp3: ValidReferenceIdPropFromNode<UserNode> = 'address.state';
-  idProp3;
-  const idProp4: ValidReferenceIdPropFromNode<UserNode> =
-    'address.nestedInAddress.nestedNestedInAddress';
-  idProp4;
-  const idProp5: ValidReferenceIdPropFromNode<UserNode> = 'firstName';
-  idProp5;
 
   const filter1: ValidFilterForNode<UserNode> = {
     firstName: 'some first name',
