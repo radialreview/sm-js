@@ -173,10 +173,6 @@ test('sm.query with mock data generates node properites for all smData types wit
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
-  // these are testing the node property defaults
-  expect(data.test.defaultNumber).toEqual(22);
-  expect(data.test.defaultBoolean).toEqual(true);
-
   // this is testing that the record keys are one of the generated mock strings
   expect(mockStrings).toEqual(
     expect.arrayContaining(
@@ -270,10 +266,6 @@ test('sm.query with mock data generates multiple results when ids are passed to 
   expect(data.tests.length).toBeGreaterThan(1);
 
   data.tests.forEach(testItem => {
-    // these are testing the node property defaults
-    expect(testItem.defaultNumber).toEqual(22);
-    expect(testItem.defaultBoolean).toEqual(true);
-
     // this is testing that the record keys are one of the generated mock strings
     expect(mockStrings).toEqual(
       expect.arrayContaining(

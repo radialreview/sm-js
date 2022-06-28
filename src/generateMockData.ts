@@ -21,23 +21,20 @@ import {
 function getMockValueForISMData(smData: ISMData) {
   switch (smData.type) {
     case SM_DATA_TYPES.string: {
+      // We return the default value if it exists to account for cases where the string must be an enum.
       return smData.defaultValue ? smData.defaultValue : generateRandomString();
     }
     case SM_DATA_TYPES.maybeString: {
       return generateRandomString();
     }
     case SM_DATA_TYPES.number: {
-      return smData.defaultValue
-        ? smData.defaultValue
-        : generateRandomNumber(1, 100);
+      return generateRandomNumber(1, 100);
     }
     case SM_DATA_TYPES.maybeNumber: {
       return generateRandomNumber(1, 100);
     }
     case SM_DATA_TYPES.boolean: {
-      return smData.defaultValue
-        ? smData.defaultValue
-        : generateRandomBoolean();
+      return generateRandomBoolean();
     }
     case SM_DATA_TYPES.maybeBoolean: {
       return generateRandomBoolean();
@@ -102,7 +99,7 @@ function getMockValueForISMData(smData: ISMData) {
 export function getMockValuesForISMDataRecord(
   record: Record<string, SMData<any, any, any> | SMDataDefaultFn>
 ) {
-  const mockedValues = Object.entries(record).reduce((acc, [key, value]) => {
+  return Object.entries(record).reduce((acc, [key, value]) => {
     if (typeof value === 'function') {
       acc[key] = getMockValueForISMData((value as any)._default as ISMData);
     } else {
@@ -110,8 +107,6 @@ export function getMockValuesForISMDataRecord(
     }
     return acc;
   }, {} as Record<string, any>);
-
-  return mockedValues;
 }
 
 function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {

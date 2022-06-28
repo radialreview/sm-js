@@ -158,14 +158,10 @@ export function generateQuerier({
         Object.entries(queryDefinitionsSplitByToken).map(
           ([tokenName, queryDefinitions]) => {
             if (smJSInstance.generateMockData) {
-              const generatedMockData = generateMockNodeDataFromQueryDefinitions(
-                {
-                  queryDefinitions,
-                  queryId,
-                }
-              );
-
-              return generatedMockData;
+              return generateMockNodeDataFromQueryDefinitions({
+                queryDefinitions,
+                queryId,
+              });
             }
 
             const { queryGQL } = convertQueryDefinitionToQueryInfo({

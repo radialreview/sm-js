@@ -25,8 +25,7 @@ export function generateRandomString() {
 }
 
 export function generateRandomBoolean() {
-  const bools = [true, false];
-  return bools[Math.floor(Math.random() * bools.length)];
+  return Math.random() < 0.5;
 }
 
 export function generateRandomNumber(min: number, max: number) {
