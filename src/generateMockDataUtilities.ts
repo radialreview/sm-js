@@ -1,33 +1,16 @@
-export const mockStrings = [
-  'Billy',
-  'Nancy',
-  'Max',
-  'Will',
-  'Dustin',
-  'Jim',
-  'Eleven',
-  'Mike',
-  'Steve',
-  'Robin',
-  'Jonathan',
-  'Barbara',
-  'Erica',
-  'Lucas',
-  'Vecna',
-  'Demogorgon',
-  'Dart',
-  'Hawkins',
-  'Indiana',
-];
+var Chance = require('chance');
 
 export function generateRandomString() {
-  return mockStrings[Math.floor(Math.random() * mockStrings.length)];
+  const chance = new Chance();
+  return chance.word();
 }
 
 export function generateRandomBoolean() {
-  return Math.random() < 0.5;
+  const chance = new Chance();
+  return chance.bool();
 }
 
 export function generateRandomNumber(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
+  const chance = new Chance();
+  return chance.integer({ min, max });
 }

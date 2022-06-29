@@ -11,7 +11,6 @@ import {
 } from './specUtilities';
 import { queryDefinition, SMJS } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
-import { mockStrings } from './generateMockDataUtilities';
 
 test('setupTest correctly returns smJSInstance.generateMockData as true', async () => {
   const { smJSInstance } = setupTest({
@@ -173,16 +172,14 @@ test('sm.query with mock data generates node properites for all smData types wit
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
-  // this is testing that the record keys are one of the generated mock strings
-  expect(mockStrings).toEqual(
-    expect.arrayContaining(
-      Object.keys({
-        ...data.test.objectData.recordInObject,
-        ...data.test.recordData,
-        ...data.test.optionalRecord,
-      })
-    )
-  );
+  // this is testing that the record keys are truthy
+  Object.keys({
+    ...data.test.objectData.recordInObject,
+    ...data.test.recordData,
+    ...data.test.optionalRecord,
+  }).forEach(key => {
+    expect(key).toBeTruthy();
+  });
 
   // this is testing that the default string is added to a record as the value
   expect(Object.values(data.test.recordData)[0]).toEqual(
@@ -266,16 +263,15 @@ test('sm.query with mock data generates multiple results when ids are passed to 
   expect(data.tests.length).toBeGreaterThan(1);
 
   data.tests.forEach(testItem => {
-    // this is testing that the record keys are one of the generated mock strings
-    expect(mockStrings).toEqual(
-      expect.arrayContaining(
-        Object.keys({
-          ...testItem.objectData.recordInObject,
-          ...testItem.recordData,
-          ...testItem.optionalRecord,
-        })
-      )
-    );
+    // this is testing that the record keys are truthy
+
+    Object.keys({
+      ...testItem.objectData.recordInObject,
+      ...testItem.recordData,
+      ...testItem.optionalRecord,
+    }).forEach(item => {
+      expect(item).toBeTruthy();
+    });
 
     // this is testing that the default string is added to a record as the value
     expect(Object.values(testItem.recordData)[0]).toEqual(

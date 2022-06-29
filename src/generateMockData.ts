@@ -18,7 +18,14 @@ import {
   SM_DATA_TYPES,
 } from './types';
 
-function getMockValueForISMData(smData: ISMData) {
+type MockValuesISMDataReturnType =
+  | Record<string, any>
+  | number
+  | string
+  | boolean
+  | Array<any>;
+
+function getMockValueForISMData(smData: ISMData): MockValuesISMDataReturnType {
   switch (smData.type) {
     case SM_DATA_TYPES.string: {
       // We return the default value if it exists to account for cases where the string must be an enum.
@@ -46,50 +53,42 @@ function getMockValueForISMData(smData: ISMData) {
       return getMockValuesForISMDataRecord(smData.boxedValue);
     }
     case SM_DATA_TYPES.array: {
-      const arrayContents: any = [];
-      for (let i = 0; i < generateRandomNumber(1, 10); i++) {
-        arrayContents.push(
-          typeof smData.boxedValue === 'function'
-            ? getMockValueForISMData(
-                (smData.boxedValue as any)._default as ISMData
-              )
-            : getMockValueForISMData(smData.boxedValue)
-        );
-      }
-      return arrayContents;
+      return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
+        return typeof smData.boxedValue === 'function'
+          ? getMockValueForISMData(
+              (smData.boxedValue as any)._default as ISMData
+            )
+          : getMockValueForISMData(smData.boxedValue);
+      });
     }
     case SM_DATA_TYPES.maybeArray: {
-      const arrayContents: any = [];
-      for (let i = 0; i < generateRandomNumber(1, 10); i++) {
-        arrayContents.push(
+      return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
+        return typeof smData.boxedValue === 'function'
+          ? getMockValueForISMData(
+              (smData.boxedValue as any)._default as ISMData
+            )
+          : getMockValueForISMData(smData.boxedValue);
+      });
+    }
+    case SM_DATA_TYPES.record: {
+      return {
+        [generateRandomString()]:
           typeof smData.boxedValue === 'function'
             ? getMockValueForISMData(
                 (smData.boxedValue as any)._default as ISMData
               )
-            : getMockValueForISMData(smData.boxedValue)
-        );
-      }
-      return arrayContents;
-    }
-    case SM_DATA_TYPES.record: {
-      const record: Record<string, any> = {};
-      record[generateRandomString()] =
-        typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(
-              (smData.boxedValue as any)._default as ISMData
-            )
-          : getMockValueForISMData(smData.boxedValue);
-      return record;
+            : getMockValueForISMData(smData.boxedValue),
+      };
     }
     case SM_DATA_TYPES.maybeRecord: {
-      const record: Record<string, any> = {};
-      record[generateRandomString()] =
-        typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(
-              (smData.boxedValue as any)._default as ISMData
-            )
-          : getMockValueForISMData(smData.boxedValue);
-      return record;
+      return {
+        [generateRandomString()]:
+          typeof smData.boxedValue === 'function'
+            ? getMockValueForISMData(
+                (smData.boxedValue as any)._default as ISMData
+              )
+            : getMockValueForISMData(smData.boxedValue),
+      };
     }
     default:
       throw new UnreachableCaseError(smData.type as never);
