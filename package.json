@@ -70,6 +70,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.4.17",
+    "chance": "^1.1.8",
     "graphql": "^16.1.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",

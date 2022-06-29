@@ -30,6 +30,7 @@ export class SMJS implements ISMJS {
   public gqlClient: ISMJS['gqlClient'];
   public plugins: ISMJS['plugins'];
   public query: ISMJS['query'];
+  public generateMockData: ISMJS['generateMockData'];
   public subscribe: ISMJS['subscribe'];
   public SMQueryManager: ISMJS['SMQueryManager'];
   public transaction: ISMJS['transaction'];
@@ -43,6 +44,7 @@ export class SMJS implements ISMJS {
   constructor(config: SMConfig) {
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
+    this.generateMockData = config.generateMockData;
     this.query = generateQuerier({ smJSInstance: this });
     this.subscribe = generateSubscriber(this);
     this.DOProxyGenerator = createDOProxyGenerator(this);
