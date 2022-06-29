@@ -43,6 +43,7 @@ export type SMPlugin = {
 export type SMConfig = {
   gqlClient: ISMGQLClient;
   plugins?: Array<SMPlugin>;
+  generateMockData?: boolean
 };
 
 export interface ISMGQLClient {
@@ -135,6 +136,7 @@ export interface ISMJS {
   transaction: ReturnType<typeof createTransaction>
   gqlClient: ISMGQLClient;
   plugins: Array<SMPlugin> | undefined;
+  generateMockData: boolean | undefined
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
   SMQueryManager:ReturnType<typeof createSMQueryManager>
@@ -457,7 +459,7 @@ export interface IDOAccessors {
   persistedData: Record<string,any>
 }
 
-export type NodeDO = Record<string, any> & SMNodeDefaultProps & IDOMethods & IDOAccessors;
+export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,

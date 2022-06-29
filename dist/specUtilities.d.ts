@@ -743,6 +743,150 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
         subscriptionAlias: string;
     };
 };
-export declare function getMockConfig(): SMConfig;
+export declare function getMockConfig(opts?: {
+    generateMockData: boolean;
+}): SMConfig;
 export declare function autoIndentGQL(gqlString: string): string;
+export declare function generateTestNode(smJSInstance: ISMJS): TestNode;
+declare const testProperties: {
+    stringData: {
+        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+        _default: smData.SMData<"", "", undefined>;
+        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalString: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    defaultString: smData.SMData<"iAmADefaultString", "iAmADefaultString", undefined>;
+    numberData: {
+        (defaultValue: number): smData.SMData<number, string, undefined>;
+        _default: smData.SMData<number, string, undefined>;
+        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalNumber: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    defaultNumber: smData.SMData<number, string, undefined>;
+    booleanData: ISMData<boolean, string | boolean, undefined>;
+    optionalBoolean: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
+    defaultBoolean: ISMData<boolean, string | boolean, undefined>;
+    objectData: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, {
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>;
+    optionalObject: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, {
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>;
+    arrayData: {
+        (defaultValue: string[]): smData.SMData<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        optional: smData.SMData<import("./types").Maybe<string[]>, import("./types").Maybe<string[]>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        _default: smData.SMData<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+    };
+    optionalArray: smData.SMData<import("./types").Maybe<import("./types").Maybe<boolean>[]>, import("./types").Maybe<import("./types").Maybe<boolean>[]>, smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>>;
+    recordData: smData.SMData<Record<string, "iAmADefaultStringInARecord">, Record<string, "iAmADefaultStringInARecord">, smData.SMData<"iAmADefaultStringInARecord", "iAmADefaultStringInARecord", undefined>>;
+    optionalRecord: smData.SMData<import("./types").Maybe<Record<string, any>>, import("./types").Maybe<Record<string, any>>, ISMData<any, any, any>>;
+};
+declare type TestProperties = typeof testProperties;
+declare type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
+export declare const mockDataGenerationExpectedResultsForTodoNodeAllProperties: {
+    task: any;
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    type: any;
+    done: any;
+    assigneeId: any;
+    meetingId: any;
+    settings: any;
+    dataSetIds: any;
+    comments: any;
+    record: any;
+};
+export declare const mockedDataGenerationExpectedResultsForUserNodeAllProperties: {
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    firstName: any;
+    lastName: any;
+    displayName: any;
+    address: any;
+};
+export declare const mockedDataGenerationExpectedResultsForTestNodeAllProperties: {
+    test: {
+        id: any;
+        dateCreated: any;
+        dateLastModified: any;
+        lastUpdatedBy: any;
+        lastUpdatedClientTimestamp: any;
+        stringData: any;
+        optionalString: any;
+        defaultString: any;
+        numberData: any;
+        optionalNumber: any;
+        defaultNumber: any;
+        booleanData: any;
+        optionalBoolean: any;
+        defaultBoolean: any;
+        objectData: any;
+        optionalObject: any;
+        arrayData: any;
+        optionalArray: any;
+        type: any;
+        version: any;
+        recordData: any;
+        optionalRecord: any;
+    };
+};
+export declare const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined: {
+    users: any;
+};
 export {};

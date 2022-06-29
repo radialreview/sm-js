@@ -63,3 +63,6 @@ export declare class SMUnexpectedQueryResultException extends Error {
     });
 }
 export declare function throwLocallyLogInProd(error: Error): void;
+export declare class UnreachableCaseError extends Error {
+    constructor(val: never);
+}
