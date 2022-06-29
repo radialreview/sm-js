@@ -9,6 +9,7 @@ export declare class SMJS implements ISMJS {
     gqlClient: ISMJS['gqlClient'];
     plugins: ISMJS['plugins'];
     query: ISMJS['query'];
+    generateMockData: ISMJS['generateMockData'];
     subscribe: ISMJS['subscribe'];
     SMQueryManager: ISMJS['SMQueryManager'];
     transaction: ISMJS['transaction'];
