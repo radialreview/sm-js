@@ -1,3 +1,4 @@
+import { ArrayWithPagination } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -625,7 +626,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TNode>
-          : Array<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
+          : ArrayWithPagination<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
         : never
       : never
     : never
