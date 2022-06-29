@@ -1,3 +1,4 @@
+import { ArrayWithPagination } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -755,9 +756,6 @@ export type QueryDataReturn<
 };
 
 
-type IPaginatedArray<T> = Array<T> & {pagination: {
-  next: () => void, previous: () => void, page: (page: number) => void, totalPages: number, hasNextPage: boolean, hasPreviousPage: boolean, currentPage: number
-}}
 
 export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode | null> = TQueryDefinition extends {
   map: MapFn<any, any, any>;
@@ -772,7 +770,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
-          : IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+          : ArrayWithPagination<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
         : never
       : never
     : never
@@ -918,7 +916,7 @@ type ExtractQueriedDataFromMapFnReturn<
 type ExtractQueriedDataFromChildrenQuery<
   TChildrenQuery extends IChildrenQuery<any, any>
 > = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+  ? ArrayWithPagination<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
   : never;
 
 // Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop
