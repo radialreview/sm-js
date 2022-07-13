@@ -88,28 +88,6 @@ describe('Node default properties', () => {
     expect(DO.isProduction).toEqual(false);
   });
 
-  it('should throw an error if no explicit default is set', () => {
-    const properties = {
-      isLoggingEnabled: smData.boolean(true),
-      isBillingEnabled: smData.boolean,
-    };
-
-    const def = {
-      type: 'mockNodeType',
-      properties,
-    };
-
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
-
-    try {
-      new DOClass({
-        isLoggingEnabled: true,
-      });
-    } catch (e) {
-      expect(e instanceof SMDataTypeExplicitDefaultException).toEqual(true);
-    }
-  });
-
   it('should throw an error if a number is passed an invalid default', () => {
     const properties = {
       firstNumber: smData.number(42),

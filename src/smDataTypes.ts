@@ -120,13 +120,17 @@ number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
   isOptional: true,
 });
 
-export const boolean = <TDefaultValue extends boolean>(
+export const boolean = <TDefaultValue extends boolean | undefined>(
   defaultValue?: TDefaultValue
-) => {
+): TDefaultValue extends undefined
+  ? undefined
+  : SMData<boolean, string | boolean, undefined> => {
   if (defaultValue === undefined) {
     return (new SMDataTypeExplicitDefaultException({
       dataType: SM_DATA_TYPES.boolean,
-    }) as unknown) as ISMData<boolean, string | boolean, undefined>;
+    }) as unknown) as TDefaultValue extends undefined
+      ? undefined
+      : SMData<boolean, string | boolean, undefined>;
   }
 
   return new SMData<boolean, string | boolean, undefined>({
@@ -146,8 +150,8 @@ export const boolean = <TDefaultValue extends boolean>(
     defaultValue,
     isOptional: false,
   }) as TDefaultValue extends undefined
-    ? Error
-    : ISMData<boolean, string | boolean, undefined>;
+    ? undefined
+    : SMData<boolean, string | boolean, undefined>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
 boolean._default = boolean();
