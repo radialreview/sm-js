@@ -1,8 +1,8 @@
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
-import { generateQuerier, generateSubscriber } from './smQueriers';
-import { createSMQueryManager } from './SMQueryManager';
+import { generateQuerier, generateSubscriber } from './queriers';
+import { createQueryManager } from './QueryManager';
 import { createTransaction } from './transaction/transaction';
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
@@ -11,11 +11,11 @@ export type Maybe<T> = T | null;
 
 export type IsMaybe<Type> = null extends Type ? true : false
 
-export type SMDataDefaultFn = (_default: any) => ISMData;
+export type DataDefaultFn = (_default: any) => IData;
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
-export type SMPlugin = {
+export type Plugin = {
   DO?: {
     onConstruct?: (opts: { DOInstance: NodeDO; parsedDataKey: string }) => void;
     computedDecorator?: <
@@ -37,12 +37,12 @@ export type SMPlugin = {
   };
 };
 
-export type SMConfig = {
-  gqlClient: ISMGQLClient;
-  plugins?: Array<SMPlugin>;
+export type Config = {
+  gqlClient: IGQLClient;
+  plugins?: Array<Plugin>;
 };
 
-export interface ISMGQLClient {
+export interface IGQLClient {
   query(opts: {
     gql: DocumentNode;
     token: string;
@@ -57,7 +57,7 @@ export interface ISMGQLClient {
   mutate(opts: { mutations: Array<DocumentNode>; token: string }): Promise<any>;
 }
 
-export interface ISMQueryManager {
+export interface IQueryManager {
   onQueryResult(opts: { queryResult: any; queryId: string }): void;
   onSubscriptionMessage(opts: {
     node: Record<string, any>;
@@ -85,7 +85,7 @@ export type QueryOpts<
 > = {
   onData?: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // When onError is provided, we pass it any errors encountered instead of throwing them.
-  // This is by design, for consistency with the interface of sm.subscribe
+  // This is by design, for consistency with the interface of subscribe
   onError?: (...args: any) => void;
   queryId?: string;
   batchKey?: string;
@@ -99,7 +99,7 @@ export type SubscriptionOpts<
   // To catch an error in a subscription, you must provide an onError handler,
   // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
   //
-  // This means you can use the try/catch syntax try { await sm.subscription } catch (e) {}
+  // This means you can use the try/catch syntax try { await subscription } catch (e) {}
   // to catch errors querying or initializing subscriptions.
   //
   // However, when onError is given, errors will no longer be thrown
@@ -119,26 +119,26 @@ export type SubscriptionOpts<
 };
 
 
-export type SMNodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
+export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
-export interface ISMJS {
+export interface IMMGQL {
   getToken(opts: { tokenName: string }): string;
   setToken(opts: { tokenName: string; token: string }): void;
   clearTokens(): void
   query: ReturnType<typeof generateQuerier>
   subscribe: ReturnType<typeof generateSubscriber>
   transaction: ReturnType<typeof createTransaction>
-  gqlClient: ISMGQLClient;
-  plugins: Array<SMPlugin> | undefined;
+  gqlClient: IGQLClient;
+  plugins: Array<Plugin> | undefined;
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
-  SMQueryManager:ReturnType<typeof createSMQueryManager>
+  QueryManager:ReturnType<typeof createQueryManager>
 
   def<
     TNodeType extends string,
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
     TNodeMutations extends Record<
@@ -153,79 +153,79 @@ export interface ISMJS {
       TNodeRelationalData,
       TNodeMutations
     >
-  ): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  ): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
 }
 
 export type NodeDefArgs<
   TNodeType extends string,
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
   type: TNodeType;
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
+  computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 };
 
 /**
- * The interface implemented by each smData type (like smData.string, smData.boolean)
+ * The interface implemented by each data type (like data.string, data.boolean)
  */
-export interface ISMData<
+export interface IData<
   TParsedValue = any,
-  TSMValue = any,
+  TValue = any,
   /**
    * only defined for object and array types
    *
-   * for arrays is the smData type of each item in that array
-   * for objects is a record of strings to smData (matching the structure the smData.object received as an argument)
+   * for arrays is the data type of each item in that array
+   * for objects is a record of strings to data (matching the structure the data.object received as an argument)
    */
   TBoxedValue extends
-    | ISMData
-    | SMDataDefaultFn
-    | Record<string, ISMData | SMDataDefaultFn>
+    | IData
+    | DataDefaultFn
+    | Record<string, IData | DataDefaultFn>
     | undefined = any
 > {
   type: string;
-  parser(smValue: TSMValue): TParsedValue;
+  parser(value: TValue): TParsedValue;
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
 }
 
-export type SMDataEnum<Enum extends string | number | null> = ISMData<
+export type DataEnum<Enum extends string | number | null> = IData<
   Enum,
   Enum,
   undefined
 >;
 
 /**
- * Utility to extract the parsed value of an SMData type
+ * Utility to extract the parsed value of an Data type
  */
-export type GetSMDataType<TSMData extends ISMData | SMDataDefaultFn> = TSMData extends ISMData<
+export type GetDataType<TData extends IData | DataDefaultFn> = TData extends IData<
   infer TParsedValue
 >
   ? TParsedValue
-  : TSMData extends SMDataDefaultFn
-    ? TSMData extends (_: any) => ISMData<infer TParsedValue>
+  : TData extends DataDefaultFn
+    ? TData extends (_: any) => IData<infer TParsedValue>
       ? TParsedValue
       : never
   : never
 
-type GetSMBoxedValue<
-  TSMData extends ISMData<any, any, Record<string, ISMData>> | SMDataDefaultFn
+type GetBoxedValue<
+  TData extends IData<any, any, Record<string, IData>> | DataDefaultFn
 > = 
-  TSMData extends ISMData<any, any, infer TBoxedValue> 
+  TData extends IData<any, any, infer TBoxedValue> 
     ? TBoxedValue 
-    : TSMData extends (_: any) => ISMData<any,any, infer TBoxedValue>
+    : TData extends (_: any) => IData<any,any, infer TBoxedValue>
     ? TBoxedValue
 : never;
 
 export type GetParsedValueTypeFromDefaultFn<
-  TDefaultFn extends (_default: any) => ISMData
-> = TDefaultFn extends (_default: any) => ISMData<infer TParsedValue, any, any>
+  TDefaultFn extends (_default: any) => IData
+> = TDefaultFn extends (_default: any) => IData<infer TParsedValue, any, any>
   ? TParsedValue
   : never;
 
@@ -234,7 +234,7 @@ export type GetParsedValueTypeFromDefaultFn<
    * for example
    * 
    * {
-   *   flag: boolean(false), // boolean and string types from sm-js
+   *   flag: boolean(false), // boolean and string types from mm-gql
    *   name: string
    * }
    * 
@@ -245,10 +245,10 @@ export type GetParsedValueTypeFromDefaultFn<
    *   name: string
    * }
    */
-export type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> =  {
+export type GetResultingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> =  {
   [key in keyof TProperties]:
-    TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
-      ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+    TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, IData | DataDefaultFn>
         ? IsMaybe<TParsedValue> extends true
           ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>>
           : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>
@@ -257,12 +257,12 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
             ? Maybe<Array<TArrayItemType>>
             : Array<TArrayItemType>
           : TParsedValue
-      : TProperties[key] extends SMDataDefaultFn
+      : TProperties[key] extends DataDefaultFn
         ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
         : never;
 }
 
-export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -270,14 +270,14 @@ export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TS
  */
 
 export type GetAllAvailableNodeDataType<
-  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
+  TData extends Record<string, IData | DataDefaultFn>,
   TComputedData extends Record<string, any>
-> = GetResultingDataTypeFromProperties<TSMData & SMNodeDefaultProps> & TComputedData;
+> = GetResultingDataTypeFromProperties<TData & NodeDefaultProps> & TComputedData;
 
 type GetAllAvailableNodeDataTypeWithoutDefaultProps<
-  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
+  TData extends Record<string, IData | DataDefaultFn>,
   TComputedData extends Record<string, any>
-> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+> = GetResultingDataTypeFromProperties<TData> & TComputedData;
 
 
 /**
@@ -304,13 +304,13 @@ type IsArray<Thing extends any, Y = true, N = false> = Thing extends Array<any> 
  * Any property that is read while not being up to date throws a run-time error to ensure the devs never use outdated data mistakenly
  */
 export type UpToDateData<
-  TNodeData extends Record<string, ISMData>
+  TNodeData extends Record<string, IData>
 > = DeepPartial<
   {
-    [Key in keyof TNodeData]: TNodeData[Key] extends ISMData<Maybe<Array<any>>>
+    [Key in keyof TNodeData]: TNodeData[Key] extends IData<Maybe<Array<any>>>
       ? boolean
-      : TNodeData[Key] extends ISMData<any, any, infer TBoxedValue>
-      ? TBoxedValue extends Record<string, ISMData>
+      : TNodeData[Key] extends IData<any, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, IData>
         ? UpToDateData<TBoxedValue>
         : boolean
       : boolean;
@@ -318,11 +318,11 @@ export type UpToDateData<
 >;
 
 /**
- * These methods are called automatically when using this lib's public methods like "useSMData"
+ * These methods are called automatically when using this lib's public methods like "useData"
  */
 export interface IDOMethods {
   /**
-   * Called when we get data from SM for this particular DO instance, found by its id
+   * Called when we get data from the backend for this particular DO instance, found by its id
    */
   onDataReceived(data: Record<string, any>, opts?: {__unsafeIgnoreVersion?: boolean}): void;
 }
@@ -337,7 +337,7 @@ export interface IDOAccessors {
 export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>
 > = {
   [key in keyof TNodeComputedData]: (
@@ -355,25 +355,25 @@ export type NodeMutationFn<
   // TNodeData,
   // TAdditionalOpts extends Record<string, any>
 > = (
-  // opts: SMNodeMutationOpts<TNodeData> & TAdditionalOpts
+  // opts: NodeMutationOpts<TNodeData> & TAdditionalOpts
   ) => Promise<any>;
 
-export interface ISMNode<
+export interface INode<
   TNodeType extends string = any,
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {},
+  TNodeData extends Record<string, IData | DataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
-  TNodeComputedFns = NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>,
+  TNodeComputedFns = NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>,
   TNodeDO = NodeDO
 > {
-  _isSMNodeDef: true;
-  smData: TNodeData & SMNodeDefaultProps;
-  smComputed?: TNodeComputedFns;
-  smRelational?: NodeRelationalFns<TNodeRelationalData>;
-  smMutations?: TNodeMutations;
+  _isNodeDef: true;
+  data: TNodeData & NodeDefaultProps;
+  computed?: TNodeComputedFns;
+  relational?: NodeRelationalFns<TNodeRelationalData>;
+  mutations?: TNodeMutations;
   type: TNodeType;
-  repository: ISMNodeRepository;
+  repository: INodeRepository;
   do: new (data?: Record<string, any>) => TNodeDO;
 }
 
@@ -382,70 +382,70 @@ export interface ISMNode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+export type NodeRelationalQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
   | IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>
   | IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>
 
-export type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
+export type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
   | IOneToOneQuery<TTargetNodeOrTargetNodeRecord, any>
   | IOneToManyQuery<TTargetNodeOrTargetNodeRecord, any>
 
-export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
-  TTargetNodeOrTargetNodeRecord extends ISMNode
+export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
+  TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
   }
-  : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+  : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
 export interface IOneToOneQueryBuilder<
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>
 > {
   <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
     queryBuilderOpts: TQueryBuilderOpts
   ): IOneToOneQuery<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
 }
 export interface IOneToOneQuery<
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
   TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
 > {
-  _smRelational: SM_RELATIONAL_TYPES.oneToOne;
+  _relational: RELATIONAL_TYPES.oneToOne;
   _relationshipName: string;
   queryBuilderOpts: TQueryBuilderOpts
   def: TTargetNodeOrTargetNodeRecord
 }
 
-export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>> =
-  TTargetNodeOrTargetNodeRecord extends ISMNode
+export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
+  TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
       // @TODO add filtering and pagination here
   }
-  : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+  : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
 export interface IOneToManyQueryBuilder<
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>
 > {
   <TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
     queryBuilderOpts: TQueryBuilderOpts
   ): IOneToManyQuery<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts>;
 }
 export interface IOneToManyQuery<
-  TTargetNodeOrTargetNodeRecord extends ISMNode | Maybe<ISMNode> | Record<string, ISMNode> | Maybe<Record<string,ISMNode>>,
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
   TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>
 > {
-  _smRelational: SM_RELATIONAL_TYPES.oneToMany;
+  _relational: RELATIONAL_TYPES.oneToMany;
   _relationshipName: string;
   queryBuilderOpts: TQueryBuilderOpts
   def: TTargetNodeOrTargetNodeRecord
 }
 
-export enum SM_DATA_TYPES {
+export enum DATA_TYPES {
   string = 's',
   maybeString = 'mS',
   number = 'n',
@@ -460,12 +460,12 @@ export enum SM_DATA_TYPES {
   maybeArray = 'mA',
 }
 
-export enum SM_RELATIONAL_TYPES {
+export enum RELATIONAL_TYPES {
   oneToOne = 'oTO',
   oneToMany = 'otM',
 }
 
-export interface ISMQueryPagination {}
+export interface IQueryPagination {}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
@@ -480,7 +480,7 @@ export type NodeRelationalQueryBuilderRecord = Record<
   NodeRelationalQueryBuilder
 >;
 
-export interface ISMNodeRepository {
+export interface INodeRepository {
   byId(id: string): NodeDO;
   onDataReceived(data: { id: string } & Record<string, any>): void;
   onNodeDeleted(id: string): void;
@@ -491,24 +491,24 @@ export interface ISMNodeRepository {
  * excluding properties which are arrays and records
  * and including properties which are nested in objects
  */
-export type ValidFilterForNode<TSMNode extends ISMNode> = DeepPartial<{
+export type ValidFilterForNode<TNode extends INode> = DeepPartial<{
   [
-    TKey in keyof ExtractNodeData<TSMNode> as
-      ExtractNodeData<TSMNode>[TKey] extends ISMData<infer TSMDataParsedValueType, any, infer TBoxedValue>
-        ? IsArray<TSMDataParsedValueType> extends true
+    TKey in keyof ExtractNodeData<TNode> as
+      ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue>
+        ? IsArray<TDataParsedValueType> extends true
           ? never
           : TBoxedValue extends undefined 
             ? TKey
-            : TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
+            : TBoxedValue extends Record<string, IData | DataDefaultFn>
               ? TKey
               : never
-        : ExtractNodeData<TSMNode>[TKey] extends SMDataDefaultFn
-          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TSMNode>[TKey]>> extends true
+        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
             ? never
             : TKey
           : TKey  
-  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TSMNode>
-    ? GetResultingDataTypeFromNodeDefinition<TSMNode>[TKey]
+  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TNode>
+    ? GetResultingDataTypeFromNodeDefinition<TNode>[TKey]
     : never
 }>
 
@@ -518,13 +518,13 @@ export type QueryDefinitionTarget =
     
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
-  TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined,
+  TNode extends INode,
+  TMapFn extends MapFnForNode<TNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget
 > = { 
-  def: TSMNode;
+  def: TNode;
   map: TMapFn;
-  filter?: ValidFilterForNode<TSMNode>
+  filter?: ValidFilterForNode<TNode>
   target?: TQueryDefinitionTarget
   tokenName?: string
 };
@@ -532,19 +532,19 @@ export type QueryDefinition<
 // A query takes a record where you can specify aliases for each node type you're querying (including 2 aliases for different sets of the same node type)
 //
 // example:
-//  usersTodos: sm.queryDefinition({
+//  usersTodos: queryDefinition({
 //    def: todo,
 //    under: [authenticatedUser.id],
 //    map: ({ id }) => ({ id })
 //  }),
-//  meetingTodos: sm.queryDefinition({
+//  meetingTodos: queryDefinition({
 //    def: todo,
 //    under: [meeting.id],
 //    map: ({ id } => ({ id })
 //  })
 //
 export type QueryDefinitions<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget
   // adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
@@ -553,19 +553,19 @@ export type QueryDefinitions<
   // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
   // eslint-disable-next-line
   // @ts-ignore
-> = Record<string, QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> | ISMNode | null>;
+> = Record<string, QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> | INode | null>;
 
 export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 
 export type UseSubscriptionQueryDefinition<
-  TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined,
+  TNode extends INode,
+  TMapFn extends MapFnForNode<TNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget,
   TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts
-> = QueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget> & {useSubOpts?: TUseSubscriptionQueryDefinitionOpts}
+> = QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> & {useSubOpts?: TUseSubscriptionQueryDefinitionOpts}
 
 export type UseSubscriptionQueryDefinitions<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TUseSubscriptionQueryDefinitionOpts
@@ -575,7 +575,7 @@ export type UseSubscriptionQueryDefinitions<
   // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
   // eslint-disable-next-line
   // @ts-ignore
-> = Record<string, UseSubscriptionQueryDefinition<TSMNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | ISMNode | null>
+> = Record<string, UseSubscriptionQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | INode | null>
 
 export type QueryDataReturn<
   // @ts-ignore
@@ -586,34 +586,34 @@ export type QueryDataReturn<
     : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
 };
 
-export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | ISMNode | null> = TQueryDefinition extends {
+export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | INode | null> = TQueryDefinition extends {
   map: MapFn<any, any, any>;
 }
   ? /**
      * full query definition provided, with a map fn
      */
-    TQueryDefinition extends { def: infer TSMNode; map: infer TMapFn }
-    ? TSMNode extends ISMNode
-      ? TMapFn extends MapFnForNode<TSMNode>
+    TQueryDefinition extends { def: infer TNode; map: infer TMapFn }
+    ? TNode extends INode
+      ? TMapFn extends MapFnForNode<TNode>
         ? TQueryDefinition extends { target?: { id: string } }
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
-            ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
-            : ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
-          : Array<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+            ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
+            : ExtractQueriedDataFromMapFn<TMapFn, TNode>
+          : Array<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
         : never
       : never
     : never
-  : TQueryDefinition extends { def: ISMNode } // full query definition provided, but map function omitted // return the entirety of the node's data
-  ? TQueryDefinition extends { def: infer TSMNode }
-    ? TSMNode extends ISMNode
+  : TQueryDefinition extends { def: INode } // full query definition provided, but map function omitted // return the entirety of the node's data
+  ? TQueryDefinition extends { def: infer TNode }
+    ? TNode extends INode
       ? TQueryDefinition extends { target?: { id: string } }
-        ? GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>>
+        ? GetAllAvailableNodeDataType<ExtractNodeData<TNode>, ExtractNodeComputedData<TNode>>
         : Array<
-          GetAllAvailableNodeDataType<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>> 
+          GetAllAvailableNodeDataType<ExtractNodeData<TNode>, ExtractNodeComputedData<TNode>> 
         >
       : never
     : never
-  : TQueryDefinition extends ISMNode
+  : TQueryDefinition extends INode
   ? /**
      * shorthand syntax used, only a node definition was provided
      */
@@ -638,34 +638,34 @@ export type UseSubscriptionReturn<
   error: any
 }
   
-export type MapFnForNode<TSMNode extends ISMNode> = MapFn<
-  ExtractNodeData<TSMNode>,
-  ExtractNodeComputedData<TSMNode>,
-  ExtractNodeRelationalData<TSMNode>
+export type MapFnForNode<TNode extends INode> = MapFn<
+  ExtractNodeData<TNode>,
+  ExtractNodeComputedData<TNode>,
+  ExtractNodeRelationalData<TNode>
 >;
 
 export type MapFn<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
-  data: GetMapFnArgs<ISMNode<any, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData>>
+  data: GetMapFnArgs<INode<any, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData>>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<
-  TSMNode extends ISMNode,
-> = TSMNode extends ISMNode<any, infer TNodeData, any, infer TNodeRelationalData>
+  TNode extends INode,
+> = TNode extends INode<any, infer TNodeData, any, infer TNodeRelationalData>
   ? {
     [key in keyof TNodeData]: 
-      TNodeData[key] extends ISMData<Maybe<Array<any>>>
+      TNodeData[key] extends IData<Maybe<Array<any>>>
         ? TNodeData[key]
-        : TNodeData[key] extends ISMData<
+        : TNodeData[key] extends IData<
             any,
             any,
-            Record<string, ISMData | SMDataDefaultFn>
+            Record<string, IData | DataDefaultFn>
           >
         // allows querying a partial of an object within a node
-        ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
+        ? <TMapFn extends MapFn<GetBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
             map: TMapFn;
           }) => TMapFn
         : TNodeData[key];
@@ -677,7 +677,7 @@ export type GetMapFnArgs<
 // validates that the engineer is querying data that exists on the nodes
 // which gives us typo prevention :)
 type RequestedData<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
@@ -686,10 +686,10 @@ type RequestedData<
         keyof TNodeData
         | keyof TNodeComputedData
        ]: Key extends keyof TNodeData
-        ? TNodeData[Key] extends ISMData<Maybe<Array<any>>>
+        ? TNodeData[Key] extends IData<Maybe<Array<any>>>
           ? TNodeData[Key]
-          : TNodeData[Key] extends ISMData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
-          ? MapFn<GetSMDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
+          : TNodeData[Key] extends IData<Maybe<Record<string, any>>> // Allows querying partials of nested objects
+          ? MapFn<GetDataType<TNodeData[Key]>, {}, {}> // {} because there should be no computed data or relational data for objects nested in nodes
           : TNodeData[Key]
         : Key extends keyof TNodeComputedData   
         ? TNodeComputedData[Key] 
@@ -699,16 +699,16 @@ type RequestedData<
 
 // A generic to extract the resulting data based on a map fn
 export type ExtractQueriedDataFromMapFn<
-  TMapFn extends MapFnForNode<TSMNode>,
-  TSMNode extends ISMNode
-> = { type: TSMNode['type'] }
-  & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TSMNode>
-  & ExtractNodeComputedData<TSMNode>;
+  TMapFn extends MapFnForNode<TNode>,
+  TNode extends INode
+> = { type: TNode['type'] }
+  & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>
+  & ExtractNodeComputedData<TNode>;
 
 // From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<
   TMapFnReturn,
-  TSMNode extends ISMNode
+  TNode extends INode
 > = {
   [Key in keyof TMapFnReturn]:
     // when we passed through a relational property without specifying a mapFn
@@ -721,12 +721,12 @@ type ExtractQueriedDataFromMapFnReturn<
     TMapFnReturn[Key] extends IOneToManyQuery<any,any>
     ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]>
     :
-    TMapFnReturn[Key] extends MapFnForNode<TSMNode>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>  
+    TMapFnReturn[Key] extends MapFnForNode<TNode>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode>  
     :
     // when we're querying data on the node we used as the "def"
-    TMapFnReturn[Key] extends ISMData | SMDataDefaultFn
-    ? GetSMDataType<TMapFnReturn[Key]>
+    TMapFnReturn[Key] extends IData | DataDefaultFn
+    ? GetDataType<TMapFnReturn[Key]>
     :
     // when we passed through an object property without specifying a mapFn
     TMapFnReturn[Key] extends (opts: {map: MapFn<infer TBoxedValue,any,any>}) => MapFn<any, any, any>
@@ -734,7 +734,7 @@ type ExtractQueriedDataFromMapFnReturn<
     :
     // when we're querying data inside a nested object
     TMapFnReturn[Key] extends MapFn<any, any, any>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode>
     :
     never;
 };
@@ -756,20 +756,20 @@ type ExtractQueriedDataFromByOneToOneQuery<
   [D] extends [never] ? never :
   TOneToOneQuery extends IOneToOneQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
-      ? TTargetNodeOrTargetNodeRecord extends ISMNode
+      ? TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
           ? Maybe<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>
           : never
-        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+        : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
             ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
-      : TTargetNodeOrTargetNodeRecord extends ISMNode
+      : TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<TTargetNodeOrTargetNodeRecord> }
           ? ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>
           : never
-        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+        : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
             ? ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>
             : never
@@ -783,20 +783,20 @@ type ExtractQueriedDataFromOneToManyQuery<
   [D] extends [never] ? never :
   TOneToManyQuery extends IOneToManyQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts>
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
-      ? TTargetNodeOrTargetNodeRecord extends ISMNode
+      ? TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
           ? Maybe<Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>>
           : never
-        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+        : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
             ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
             : never
           : never
-      : TTargetNodeOrTargetNodeRecord extends ISMNode
+      : TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<TTargetNodeOrTargetNodeRecord> }
           ? Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>>
           : never
-        : TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>
+        : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
             ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
@@ -804,7 +804,7 @@ type ExtractQueriedDataFromOneToManyQuery<
     : never
 
 type ExtractResultsUnionFromOneToOneQueryBuilder<
-  TTargetNodeOrTargetNodeRecord extends Record<string, ISMNode>,
+  TTargetNodeOrTargetNodeRecord extends Record<string, INode>,
   TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>,
   D extends Prev[number]
 > = ExtractObjectValues<{
@@ -828,14 +828,14 @@ type ExtractResultsUnionFromOneToOneQueryBuilder<
 
 type ExtractObjectValues<TObject extends Record<string,any>> = TObject extends Record<string, infer TValueType> ? TValueType : never
 
-export type ExtractNodeData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
+export type ExtractNodeData<TNode extends INode> = TNode extends INode<
   any,
   infer TNodeData
 >
   ? TNodeData
   : never;
 
-type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
+type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<
   any,
   any,
   infer TNodeComputedData
@@ -844,12 +844,12 @@ type ExtractNodeComputedData<TSMNode extends ISMNode> = TSMNode extends ISMNode<
   : never;
 
 type ExtractNodeRelationalData<
-  TSMNode extends ISMNode
-> = TSMNode extends ISMNode<any, any, any, infer TNodeRelationalData>
+  TNode extends INode
+> = TNode extends INode<any, any, any, infer TNodeRelationalData>
   ? TNodeRelationalData
   : never;
 
-// type ExtractNodeMutations<TSMNode extends ISMNode> = TSMNode extends ISMNode<
+// type ExtractNodeMutations<TNode extends INode> = TNode extends INode<
 //   any,
 //   any,
 //   any,
@@ -865,7 +865,7 @@ type ExtractNodeRelationalData<
  * {
  *   // alias
  *   usersTodos: {
- *     // the SMNode we're querying
+ *     // the Node we're querying
  *     def: todo,
  *     // id used as under
  *     under: ['some-id-I-want-to-get-children-for'],
@@ -877,22 +877,22 @@ type ExtractNodeRelationalData<
  *     relational: {
  *       // alias for the relational query result
  *       assignee: {
- *         // the SM node for the relational data we're querying
+ *         // the node for the relational data we're querying
  *         def: user,
  *         properties: ['firstName', 'lastName'],
  *
- *         // if the todo node defines the assignee as being a "child" of a todo (meaning there would have to be a V edge from todo to user).
+ *         // if the todo node defines the assignee as being a "oneToMany" relationship
  *         // This would also return an array of users, instead of a single user in that case.
- *         children: true,
- *         // OR if the todo node defines the assignee as being stored with a foreign key (in todo.assigneeId)
- *         byReference: true, idProp: 'assigneeId',
+ *         oneToMany: true,
+ *         // OR if the todo node defines the assignee as being a "oneToOne" relationship
+ *         oneToOne: true
  *       }
  *     }
  *   })
  * }
  */
 export type BaseQueryRecordEntry = {
-  def: ISMNode;
+  def: INode;
   properties: Array<string>;
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
@@ -910,19 +910,19 @@ export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
 
 export type QueryRecord = Record<string, QueryRecordEntry>;
 
-// export type SMNodeRequestUpdate<TNodeData> = (opts: {
+// export type NodeRequestUpdate<TNodeData> = (opts: {
 //   payload: DeepPartial<TNodeData>;
 //   // updateNode: (opts: IUpdateNodeOpts<TNodeData>) => void;
 // }) => Promise<void>;
 
-// type SMNodeMutationOpts<TNodeData> = {
+// type NodeMutationOpts<TNodeData> = {
 //   // nodeData: TNodeData;
 //   // createNode(): void;
 //   // createEdge(opts: ICreateEdgeOpts): void;
 //   // deleteNode(opts: IDeleteNodeOpts): void;
 //   // deleteEdge(opts: IDeleteEdgeOpts): void;
 //   // updateNode(opts: IUpdateNodeOpts<TNodeData>): void;
-//   // requestUpdate: SMNodeRequestUpdate<TNodeData>;
+//   // requestUpdate: NodeRequestUpdate<TNodeData>;
 // };
 
 export interface IDOProxy {

@@ -1,4 +1,4 @@
-import { boolean, object, SMJS, string } from '.';
+import { boolean, object, MMGQL, string } from '.';
 import { OptimisticUpdatesOrchestrator } from './OptimisticUpdates';
 import { getMockConfig } from './specUtilities';
 
@@ -103,8 +103,8 @@ test('if multiple update requests are queued at the same time, it should stay on
 
 function setupTests() {
   const optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
-  const smJS = new SMJS(getMockConfig());
-  const nodeDef = smJS.def({
+  const mmGQL = new MMGQL(getMockConfig());
+  const nodeDef = mmGQL.def({
     type: 'mock-node',
     properties: {
       name: string,
@@ -141,7 +141,7 @@ function setupTests() {
 
   return {
     optimisticUpdatesOrchestrator,
-    smJS,
+    mmGQL,
     DO,
     initialNodeData,
     mockDataUpdate,

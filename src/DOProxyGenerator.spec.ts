@@ -1,20 +1,20 @@
 import { generateDOInstance } from './specUtilities';
-import * as smData from './smDataTypes';
+import * as data from './dataTypes';
 import {
-  SMNotUpToDateException,
-  SMNotUpToDateInComputedException,
-  SMImpliedNodePropertyException,
+  NotUpToDateException,
+  NotUpToDateInComputedException,
+  ImpliedNodePropertyException,
 } from './exceptions';
 import {
   DeepPartial,
   GetAllAvailableNodeDataType,
-  ISMData,
+  IData,
   Maybe,
   NodeComputedFns,
   RelationalQueryRecordEntry,
-  SMDataDefaultFn,
+  DataDefaultFn,
 } from './types';
-import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -71,15 +71,15 @@ describe('DOProxyGenerator', () => {
       allPropertiesQueried: [],
     });
 
-    expect(() => doProxy.id).toThrow(SMNotUpToDateException);
+    expect(() => doProxy.id).toThrow(NotUpToDateException);
   });
 
   it(`throws a helpful exception when a property within a nested object that isn't guaranteed to be up to date is read`, () => {
     const doProxy = generateDOProxy({
       properties: {
-        object: smData.object({
-          nestedString: smData.string,
-          nestedNumber: smData.number,
+        object: data.object({
+          nestedString: data.string,
+          nestedNumber: data.number,
         }),
       },
       initialData: {
@@ -93,16 +93,16 @@ describe('DOProxyGenerator', () => {
     });
 
     expect(() => doProxy.object.nestedString).not.toThrow();
-    expect(() => doProxy.object.nestedNumber).toThrow(SMNotUpToDateException);
+    expect(() => doProxy.object.nestedNumber).toThrow(NotUpToDateException);
   });
 
   it(`throws a helpful exception when a property is attempted to be read from within a computed property but isn't guaranteed to be up to date`, () => {
     const doProxy = generateDOProxy({
       properties: {
-        name: smData.string,
-        object: smData.object({
-          nestedString: smData.string,
-          nestedNumber: smData.number,
+        name: data.string,
+        object: data.object({
+          nestedString: data.string,
+          nestedNumber: data.number,
         }),
       },
       initialData: {
@@ -120,36 +120,34 @@ describe('DOProxyGenerator', () => {
       ],
     });
 
-    expect(() => doProxy.computedValue).toThrow(
-      SMNotUpToDateInComputedException
-    );
+    expect(() => doProxy.computedValue).toThrow(NotUpToDateInComputedException);
   });
 
   it(`throws a helpful exception when a default property is redefined`, () => {
     expect(() =>
       generateDOProxy({
         properties: {
-          id: smData.string,
-          dateCreated: smData.number,
-          dateLastModified: smData.number,
-          lastUpdatedBy: smData.string,
-          lastUpdatedClientTimestamp: smData.number,
+          id: data.string,
+          dateCreated: data.number,
+          dateLastModified: data.number,
+          lastUpdatedBy: data.string,
+          lastUpdatedClientTimestamp: data.number,
         },
         initialData: {
           version: '1',
           id: 'mockId',
         },
       })
-    ).toThrow(SMImpliedNodePropertyException);
+    ).toThrow(ImpliedNodePropertyException);
   });
 
   it(`allows spreading data from results, and avoids enumerating properties which are not up to date`, () => {
     const doProxy = generateDOProxy({
       properties: {
-        name: smData.string,
-        object: smData.object({
-          nestedString: smData.string,
-          nestedNumber: smData.number,
+        name: data.string,
+        object: data.object({
+          nestedString: data.string,
+          nestedNumber: data.number,
         }),
       },
       initialData: {
@@ -188,7 +186,7 @@ describe('DOProxyGenerator', () => {
 });
 
 function generateDOProxy<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>
+  TNodeData extends Record<string, IData | DataDefaultFn>
 >(opts: {
   properties: TNodeData;
   initialData: DeepPartial<GetAllAvailableNodeDataType<TNodeData, {}>> & {
@@ -200,16 +198,16 @@ function generateDOProxy<
   relationalResults?: Record<string, any>;
   relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }) {
-  const { doInstance, smJSInstance } = generateDOInstance({
+  const { doInstance, mmGQLInstance } = generateDOInstance({
     properties: opts.properties,
     initialData: opts.initialData,
     computed: opts.computed,
   });
 
-  return smJSInstance.DOProxyGenerator({
+  return mmGQLInstance.DOProxyGenerator({
     do: doInstance,
     queryId: 'mockQueryId',
-    node: smJSInstance.def({
+    node: mmGQLInstance.def({
       type: 'mockNodeType',
       properties: opts.properties,
       computed: opts.computed,

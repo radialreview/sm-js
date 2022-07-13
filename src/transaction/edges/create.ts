@@ -12,7 +12,7 @@ export function createEdge(edge: CreateEdgeOpts): CreateEdgeOperation {
   return {
     type: 'createEdge',
     ...edge,
-    smOperationName: 'AttachEdge',
+    operationName: 'AttachEdge',
   };
 }
 
@@ -21,7 +21,7 @@ export function createEdges(
 ): CreateEdgesOperation {
   return {
     type: 'createEdges',
-    smOperationName: 'AttachEdge',
+    operationName: 'AttachEdge',
     edges,
   };
 }

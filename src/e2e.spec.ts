@@ -2,7 +2,7 @@
 // NOW THAT THIS LIB IS MOVING TO A MORE VANILLA GQL FLAVOR THESE NO LONGER APPLY
 
 // import {
-//   SMJS,
+//   MMGQL,
 //   number,
 //   queryDefinition,
 //   string,
@@ -14,14 +14,14 @@
 // } from '.';
 // import { DEFAULT_TOKEN_NAME } from './consts';
 
-// import { array, referenceArray } from './smDataTypes';
+// import { array, referenceArray } from './dataTypes';
 // import { createMockQueryDefinitions } from './specUtilities';
 // import {
 //   IByReferenceArrayQueryBuilder,
 //   IByReferenceQueryBuilder,
 //   IChildrenQueryBuilder,
-//   ISMJS,
-//   ISMNode,
+//   IMMGQL,
+//   INode,
 // } from './types';
 
 // const env = require('../env.json');
@@ -84,7 +84,7 @@
 
 // type TodoMutations = {};
 
-// type TodoNode = ISMNode<
+// type TodoNode = INode<
 //   'mock-todo',
 //   TodoProperties,
 //   {},
@@ -97,7 +97,7 @@
 //   todos: IChildrenQueryBuilder<TodoNode>;
 // };
 
-// type ThingNode = ISMNode<
+// type ThingNode = INode<
 //   'mock-thing',
 //   ThingProperties,
 //   {},
@@ -107,12 +107,12 @@
 
 // const ALT_TOKEN_NAME = 'alt-token';
 // async function setupTest() {
-//   const smJSInstance = new SMJS(getDefaultConfig());
+//   const mmGQLInstance = new MMGQL(getDefaultConfig());
 
 //   const { authUrl, email, password, altEmail, altPassword } = env.credentials;
 
 //   const tokenInfo = await getToken({ authUrl, email, password });
-//   smJSInstance.setToken({
+//   mmGQLInstance.setToken({
 //     tokenName: DEFAULT_TOKEN_NAME,
 //     token: tokenInfo.token,
 //   });
@@ -124,13 +124,13 @@
 //       email: altEmail,
 //       password: altPassword,
 //     });
-//     smJSInstance.setToken({
+//     mmGQLInstance.setToken({
 //       tokenName: ALT_TOKEN_NAME,
 //       token: altTokenInfo.token,
 //     });
 //   }
 
-//   const mockThingDef: ThingNode = smJSInstance.def({
+//   const mockThingDef: ThingNode = mmGQLInstance.def({
 //     type: 'mock-thing',
 //     properties: mockThingProperties,
 //     relational: {
@@ -138,7 +138,7 @@
 //     },
 //   });
 
-//   const mockTodoDef: TodoNode = smJSInstance.def({
+//   const mockTodoDef: TodoNode = mmGQLInstance.def({
 //     type: 'mock-todo',
 //     properties: mockTodoProperties,
 //     relational: {
@@ -150,13 +150,13 @@
 //     },
 //   });
 
-//   const mockUserDef = smJSInstance.def({
+//   const mockUserDef = mmGQLInstance.def({
 //     type: 'mock-user',
 //     properties: mockUserProperties,
 //   });
 
 //   return {
-//     smJSInstance,
+//     mmGQLInstance,
 //     token: tokenInfo.token,
 //     userId: tokenInfo.id,
 //     altToken: altTokenInfo?.token,
@@ -172,10 +172,10 @@
 // test(
 //   'querying data from SM works',
 //   async done => {
-//     const { smJSInstance } = await setupTest();
+//     const { mmGQLInstance } = await setupTest();
 
-//     const results = await smJSInstance.query(
-//       createMockQueryDefinitions(smJSInstance, { useNoUnder: true })
+//     const results = await mmGQLInstance.query(
+//       createMockQueryDefinitions(mmGQLInstance, { useNoUnder: true })
 //     );
 
 //     // remove versions from results so that screenshots don't change with each test
@@ -264,10 +264,10 @@
 // test(
 //   'subscribing to data from sm works',
 //   async done => {
-//     const { smJSInstance } = await setupTest();
+//     const { mmGQLInstance } = await setupTest();
 
-//     const results = await smJSInstance.subscribe(
-//       createMockQueryDefinitions(smJSInstance, { useNoUnder: true }),
+//     const results = await mmGQLInstance.subscribe(
+//       createMockQueryDefinitions(mmGQLInstance, { useNoUnder: true }),
 //       {
 //         onData: () => {},
 //       }
@@ -357,10 +357,10 @@
 // test(
 //   'creating a single node in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode({
 //           data: {
@@ -384,7 +384,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -402,10 +402,10 @@
 // test(
 //   'creating multiple nodes in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -433,7 +433,7 @@
 
 //     const {
 //       data: { things },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       things: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -456,10 +456,10 @@
 // test(
 //   'creating multiple nodes in multiple operations in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -489,7 +489,7 @@
 
 //     const {
 //       data: { things },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       things: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -512,10 +512,10 @@
 // test(
 //   'updating a single node in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode({
 //           data: {
@@ -529,7 +529,7 @@
 
 //     const id = transactionResult[0].data.CreateNodes[0].id as string;
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNode({
 //           data: {
@@ -542,7 +542,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -559,10 +559,10 @@
 // test(
 //   'updating several nodes in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -588,7 +588,7 @@
 //     const [{ id: id1 }, { id: id2 }] = transactionResult[0].data
 //       .CreateNodes as Array<{ id: string }>;
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNodes({
 //           nodes: [
@@ -606,7 +606,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -626,9 +626,9 @@
 // test(
 //   'dropping a node in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode({
 //           data: { type: 'mock-thing' },
@@ -638,14 +638,14 @@
 
 //     const id = transactionResult[0].data.CreateNodes[0].id as string;
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.dropNode({ id });
 //       })
 //       .execute();
 
 //     try {
-//       await smJSInstance.query(
+//       await mmGQLInstance.query(
 //         {
 //           thing: queryDefinition({
 //             def: mockThingDef,
@@ -663,7 +663,7 @@
 //     } catch (e) {
 //       expect(
 //         (e as any).stack.includes(
-//           `Error: SMDataParsing exception - Queried a node by id for the query with the id "mock-query" but received back an empty array`
+//           `Error: DataParsing exception - Queried a node by id for the query with the id "mock-query" but received back an empty array`
 //         )
 //       ).toBe(true);
 //       done();
@@ -672,10 +672,10 @@
 //   TIMEOUT_MS
 // );
 
-// const createMockThingAndTodo = async (smJSInstance: ISMJS) => {
+// const createMockThingAndTodo = async (mmGQLInstance: IMMGQL) => {
 //   const timestamp = new Date().valueOf();
 
-//   const nodesTransaction = await smJSInstance
+//   const nodesTransaction = await mmGQLInstance
 //     .transaction(ctx => {
 //       ctx.createNodes({
 //         nodes: [
@@ -705,10 +705,10 @@
 //   return [thingId, todoId];
 // };
 
-// const createMockThingAndMultipleTodos = async (smJSInstance: ISMJS) => {
+// const createMockThingAndMultipleTodos = async (mmGQLInstance: IMMGQL) => {
 //   const timestamp = new Date().valueOf();
 
-//   const nodesTransaction = await smJSInstance
+//   const nodesTransaction = await mmGQLInstance
 //     .transaction(ctx => {
 //       ctx.createNodes({
 //         nodes: [
@@ -748,10 +748,10 @@
 // test(
 //   'creating a single edge in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
-//     const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
+//     const [thingId, todoId] = await createMockThingAndTodo(mmGQLInstance);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdge({
 //           edge: {
@@ -769,7 +769,7 @@
 
 //     const {
 //       data: { todo },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -786,12 +786,12 @@
 // test(
 //   'creating multiple edges in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 //     const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
-//       smJSInstance
+//       mmGQLInstance
 //     );
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdges([
 //           {
@@ -822,7 +822,7 @@
 
 //     const {
 //       data: { todo },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -840,10 +840,10 @@
 // test(
 //   'updating a single edge in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
-//     const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
+//     const [thingId, todoId] = await createMockThingAndTodo(mmGQLInstance);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdge({
 //           edge: {
@@ -860,7 +860,7 @@
 
 //     const {
 //       data: { todo },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -870,7 +870,7 @@
 
 //     expect(todo[0].id).toBe(todoId);
 
-//     const updateResult = await smJSInstance
+//     const updateResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateEdge({
 //           edge: {
@@ -895,12 +895,12 @@
 // test(
 //   'updating multiple edges in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 //     const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
-//       smJSInstance
+//       mmGQLInstance
 //     );
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdges([
 //           {
@@ -931,7 +931,7 @@
 
 //     const {
 //       data: { todo },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -941,7 +941,7 @@
 
 //     expect(todo[0].id).toBe(todoId);
 
-//     const updateResult = await smJSInstance
+//     const updateResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateEdges([
 //           {
@@ -977,10 +977,10 @@
 // test(
 //   'dropping a single edge in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
-//     const [thingId, todoId] = await createMockThingAndTodo(smJSInstance);
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
+//     const [thingId, todoId] = await createMockThingAndTodo(mmGQLInstance);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdge({
 //           edge: {
@@ -997,7 +997,7 @@
 //       .execute();
 
 //     const queryTodoUnderThing = (thingId: string) => {
-//       return smJSInstance.query({
+//       return mmGQLInstance.query({
 //         todo: queryDefinition({
 //           def: mockTodoDef,
 //           map: undefined,
@@ -1012,7 +1012,7 @@
 
 //     expect(todo[0].id).toBe(todoId);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.dropEdge({
 //           edge: {
@@ -1036,12 +1036,12 @@
 // test(
 //   'dropping a multiple edges in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 //     const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
-//       smJSInstance
+//       mmGQLInstance
 //     );
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdges([
 //           {
@@ -1071,7 +1071,7 @@
 //       .execute();
 
 //     const queryTodosUnderThing = (thingId: string) => {
-//       return smJSInstance.query({
+//       return mmGQLInstance.query({
 //         todo: queryDefinition({
 //           def: mockTodoDef,
 //           map: undefined,
@@ -1087,7 +1087,7 @@
 //     expect(todo[0].id).toBe(todoId);
 //     expect(todo[1].id).toBe(todo2Id);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.dropEdges([
 //           {
@@ -1114,12 +1114,12 @@
 // test(
 //   'replacing a single edge in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 //     const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
-//       smJSInstance
+//       mmGQLInstance
 //     );
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdges([
 //           {
@@ -1138,7 +1138,7 @@
 //       .execute();
 
 //     const queryTodoUnderThing = (thingId: string) => {
-//       return smJSInstance.query({
+//       return mmGQLInstance.query({
 //         todo: queryDefinition({
 //           def: mockTodoDef,
 //           map: undefined,
@@ -1153,7 +1153,7 @@
 
 //     expect(todo[0].id).toBe(todoId);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.replaceEdge({
 //           edge: {
@@ -1185,12 +1185,12 @@
 // test(
 //   'replacing multiple edges in sm works',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 //     const [thingId, todoId, todo2Id] = await createMockThingAndMultipleTodos(
-//       smJSInstance
+//       mmGQLInstance
 //     );
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createEdges([
 //           {
@@ -1220,7 +1220,7 @@
 //       .execute();
 
 //     const queryTodoUnderThing = (thingId: string) => {
-//       return smJSInstance.query({
+//       return mmGQLInstance.query({
 //         todo: queryDefinition({
 //           def: mockTodoDef,
 //           map: undefined,
@@ -1236,7 +1236,7 @@
 //     expect(todo[0].id).toBe(todoId);
 //     expect(todo[1].id).toBe(todo2Id);
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.replaceEdges([
 //           {
@@ -1284,10 +1284,10 @@
 // test(
 //   'dropping a property in sm works',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -1315,7 +1315,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -1325,7 +1325,7 @@
 
 //     expect(thing.object?.property).toBe('value');
 
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNode({
 //           data: {
@@ -1341,7 +1341,7 @@
 
 //     const {
 //       data: { thingAfterDrop },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thingAfterDrop: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -1360,10 +1360,10 @@
 // test(
 //   'dropping an object will drop all the properties',
 //   async done => {
-//     const { smJSInstance, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockThingDef } = await setupTest();
 //     const timestamp = new Date().valueOf();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -1391,7 +1391,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -1401,7 +1401,7 @@
 
 //     expect(thing.object?.property).toBe('value');
 //     expect(thing.object?.nestedObject?.nestedProperty).toBe('nestedValue');
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNode({
 //           data: {
@@ -1414,7 +1414,7 @@
 
 //     const {
 //       data: { thingAfterDrop },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thingAfterDrop: queryDefinition({
 //         def: mockThingDef,
 //         map: undefined,
@@ -1432,12 +1432,12 @@
 // test(
 //   'grouped transactions work as expected',
 //   async () => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 
 //     const onSuccessMock = jest.fn();
 
 //     const createTodo = ({ title, done }: { title: string; done: boolean }) => {
-//       return smJSInstance.transaction(ctx => {
+//       return mmGQLInstance.transaction(ctx => {
 //         ctx.createNode({
 //           data: {
 //             type: 'mock-todo',
@@ -1450,7 +1450,7 @@
 //     };
 
 //     const createTodos = (todos: Array<{ title: string; done: boolean }>) => {
-//       return smJSInstance.transaction(todos.map(createTodo));
+//       return mmGQLInstance.transaction(todos.map(createTodo));
 //     };
 
 //     const transactionResult = await createTodos([
@@ -1468,7 +1468,7 @@
 
 //     const {
 //       data: { todos },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todos: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -1486,9 +1486,9 @@
 // test(
 //   'optimistic updates work',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef } = await setupTest();
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNodes({
 //           nodes: [
@@ -1507,7 +1507,7 @@
 
 //     const {
 //       data: { todo },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -1517,7 +1517,7 @@
 
 //     expect(todo.title).toBe('Do the deed');
 
-//     smJSInstance
+//     mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNode({
 //           data: {
@@ -1544,13 +1544,13 @@
 //   '#ref_ foreign keys work',
 //   async () => {
 //     const {
-//       smJSInstance,
+//       mmGQLInstance,
 //       mockTodoDef,
 //       mockThingDef,
 //       mockUserDef,
 //     } = await setupTest();
 
-//     const tx = await smJSInstance
+//     const tx = await mmGQLInstance
 //       .transaction(ctx => {
 //         const thingId = 'thing';
 //         ctx.createNodes({
@@ -1602,7 +1602,7 @@
 
 //     const {
 //       data: { thingsUnderUser },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thingsUnderUser: queryDefinition({
 //         def: mockThingDef,
 //         target: { underIds: [createdUserId] },
@@ -1612,7 +1612,7 @@
 
 //     const {
 //       data: { thing },
-//     } = await smJSInstance.query({
+//     } = await mmGQLInstance.query({
 //       thing: queryDefinition({
 //         def: mockThingDef,
 //         map: ({ id, todos, number, string }) => ({
@@ -1645,9 +1645,9 @@
 // test(
 //   'querying an id for the wrong node type throws an error',
 //   async done => {
-//     const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
+//     const { mmGQLInstance, mockTodoDef, mockThingDef } = await setupTest();
 //     try {
-//       const tx = await smJSInstance
+//       const tx = await mmGQLInstance
 //         .transaction(ctx => {
 //           ctx.createNodes({
 //             nodes: [
@@ -1673,7 +1673,7 @@
 //         id: string;
 //       }>;
 
-//       await smJSInstance.query({
+//       await mmGQLInstance.query({
 //         thing: queryDefinition({
 //           def: mockThingDef,
 //           map: undefined,
@@ -1692,7 +1692,7 @@
 //   TIMEOUT_MS
 // );
 
-// type MockNodeType = ISMNode<
+// type MockNodeType = INode<
 //   'mock-node',
 //   { todoOrThingId: typeof string },
 //   {},
@@ -1704,9 +1704,9 @@
 //   }
 // >;
 // async function getReferenceTestUtils() {
-//   const { smJSInstance, mockTodoDef, mockThingDef } = await setupTest();
+//   const { mmGQLInstance, mockTodoDef, mockThingDef } = await setupTest();
 
-//   const mockNodeDef: MockNodeType = smJSInstance.def({
+//   const mockNodeDef: MockNodeType = mmGQLInstance.def({
 //     type: 'mock-node',
 //     properties: {
 //       todoOrThingId: string,
@@ -1722,7 +1722,7 @@
 
 //   const todoTitle = 'get it done';
 //   async function createTodo() {
-//     const txResult = await smJSInstance
+//     const txResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode({
 //           data: {
@@ -1740,7 +1740,7 @@
 //   }
 
 //   async function createMockNode(todoOrThingId: string) {
-//     const txResult = await smJSInstance
+//     const txResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode<MockNodeType>({
 //           data: {
@@ -1761,7 +1761,7 @@
 //   const mockThingString = 'some mock string';
 
 //   async function createThing() {
-//     const txResult3 = await smJSInstance
+//     const txResult3 = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode<ThingNode>({
 //           data: {
@@ -1783,7 +1783,7 @@
 //     mockNodeId: string;
 //     todoOrThingId: string;
 //   }) {
-//     await smJSInstance
+//     await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.updateNode<MockNodeType>({
 //           data: {
@@ -1821,7 +1821,7 @@
 //     mockNodeDef,
 //     createMockNode,
 //     getQD,
-//     smJSInstance,
+//     mmGQLInstance,
 //     mockTodoDef,
 //     mockThingDef,
 //     createThing,
@@ -1838,7 +1838,7 @@
 //       todoTitle,
 //       createMockNode,
 //       getQD,
-//       smJSInstance,
+//       mmGQLInstance,
 //       mockTodoDef,
 //       mockThingDef,
 //       createThing,
@@ -1848,7 +1848,7 @@
 
 //     const todoId = await createTodo();
 //     const mockNodeId = await createMockNode(todoId);
-//     const result = await smJSInstance.query({
+//     const result = await mmGQLInstance.query({
 //       mockNode: getQD(mockNodeId),
 //     });
 
@@ -1859,7 +1859,7 @@
 
 //     const thingId = await createThing();
 //     await updateMockNode({ mockNodeId, todoOrThingId: thingId });
-//     const result2 = await smJSInstance.query({
+//     const result2 = await mmGQLInstance.query({
 //       mockNode: getQD(mockNodeId),
 //     });
 
@@ -1873,7 +1873,7 @@
 //       todoOrThingId: (null as unknown) as string,
 //     });
 
-//     const result3 = await smJSInstance.query({
+//     const result3 = await mmGQLInstance.query({
 //       mockNode: getQD(mockNodeId),
 //     });
 
@@ -1889,7 +1889,7 @@
 //       createTodo,
 //       createMockNode,
 //       getQD,
-//       smJSInstance,
+//       mmGQLInstance,
 //       mockTodoDef,
 //       mockThingDef,
 //       createThing,
@@ -1900,7 +1900,7 @@
 //     const mockNodeId = await createMockNode(todoId);
 
 //     let subDataIdx = 0;
-//     const sub = await smJSInstance.subscribe(
+//     const sub = await mmGQLInstance.subscribe(
 //       {
 //         mockNode: getQD(mockNodeId),
 //       },
@@ -1939,9 +1939,9 @@
 // test(
 //   'reference arrays work',
 //   async done => {
-//     const { smJSInstance } = await setupTest();
+//     const { mmGQLInstance } = await setupTest();
 
-//     const childNode = smJSInstance.def({
+//     const childNode = mmGQLInstance.def({
 //       type: 'mock-child',
 //       properties: {
 //         id: string,
@@ -1954,7 +1954,7 @@
 //       // for testing the result of referenceArray when used against a null field
 //       childrenLeftEmpty: array(string),
 //     };
-//     type ParentNode = ISMNode<
+//     type ParentNode = INode<
 //       'mock-parent',
 //       typeof parentNodeProperties,
 //       {},
@@ -1969,7 +1969,7 @@
 //         >;
 //       }
 //     >;
-//     const parentNode: ParentNode = smJSInstance.def({
+//     const parentNode: ParentNode = mmGQLInstance.def({
 //       type: 'mock-parent',
 //       properties: parentNodeProperties,
 //       relational: {
@@ -1986,7 +1986,7 @@
 //       },
 //     });
 
-//     const txResult = await smJSInstance
+//     const txResult = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode({
 //           data: {
@@ -2007,7 +2007,7 @@
 //     const parentId = txResult[0].data.CreateNodes[0].id;
 
 //     let resultsIteration = 0;
-//     const subResult = await smJSInstance.subscribe(
+//     const subResult = await mmGQLInstance.subscribe(
 //       {
 //         parent: queryDefinition({
 //           def: parentNode,
@@ -2041,7 +2041,7 @@
 //             expect(results.parent.childrenInReference.length).toBe(2);
 //             // we left this property null, and here verify that we get back no results
 //             expect(results.parent.childrenLeftEmptyInReference.length).toBe(0);
-//             smJSInstance
+//             mmGQLInstance
 //               .transaction(ctx => {
 //                 ctx.updateNode({
 //                   data: {
@@ -2054,7 +2054,7 @@
 //           } else if (resultsIteration === 1) {
 //             expect(results.parent.childrenInReference.length).toBe(1);
 
-//             const txResult = await smJSInstance
+//             const txResult = await mmGQLInstance
 //               .transaction(ctx => {
 //                 ctx.createNode({
 //                   data: {
@@ -2066,7 +2066,7 @@
 //               .execute();
 //             const newChildId = txResult[0].data.CreateNodes[0].id;
 
-//             smJSInstance
+//             mmGQLInstance
 //               .transaction(ctx => {
 //                 ctx.updateNode({
 //                   data: {
@@ -2097,9 +2097,9 @@
 // test(
 //   'child data works and updates in real time',
 //   async done => {
-//     const { smJSInstance, mockTodoDef } = await getReferenceTestUtils();
+//     const { mmGQLInstance, mockTodoDef } = await getReferenceTestUtils();
 
-//     const mockTodoGroupNode = smJSInstance.def({
+//     const mockTodoGroupNode = mmGQLInstance.def({
 //       type: 'mock-todo-group',
 //       properties: {},
 //       relational: {
@@ -2107,7 +2107,7 @@
 //       },
 //     });
 
-//     const response = await smJSInstance
+//     const response = await mmGQLInstance
 //       .transaction(ctx => {
 //         ctx.createNode<typeof mockTodoGroupNode>({
 //           data: {
@@ -2120,7 +2120,7 @@
 //     const mockTodoGroupNodeId = response[0].data.CreateNodes[0].id;
 
 //     let iteration = 0;
-//     const { unsub } = await smJSInstance.subscribe(
+//     const { unsub } = await mmGQLInstance.subscribe(
 //       {
 //         todoGroup: queryDefinition({
 //           def: mockTodoGroupNode,
@@ -2140,7 +2140,7 @@
 //             expect(results.todoGroup.todos.length).toBe(0);
 //             // create todo under the group
 
-//             smJSInstance
+//             mmGQLInstance
 //               .transaction(ctx => {
 //                 ctx.createNode({
 //                   data: {
@@ -2154,7 +2154,7 @@
 //             expect(results.todoGroup.todos.length).toBe(1);
 //             expect(typeof results.todoGroup.todos[0].id).toBe('string');
 
-//             smJSInstance
+//             mmGQLInstance
 //               .transaction(ctx => {
 //                 ctx.createNode({
 //                   data: {
@@ -2182,9 +2182,9 @@
 // test(
 //   'querying by id and receiving back null is allowed, if the query definition is configured to do so',
 //   async () => {
-//     const { smJSInstance, mockTodoDef } = await getReferenceTestUtils();
+//     const { mmGQLInstance, mockTodoDef } = await getReferenceTestUtils();
 
-//     const response = await smJSInstance.query({
+//     const response = await mmGQLInstance.query({
 //       todo: queryDefinition({
 //         def: mockTodoDef,
 //         map: undefined,
@@ -2203,11 +2203,11 @@
 // test(
 //   'losing view access to a node being queried causes the subscription to return null',
 //   async done => {
-//     const { smJSInstance, userId, mockThingDef, altUserId } = await setupTest();
+//     const { mmGQLInstance, userId, mockThingDef, altUserId } = await setupTest();
 
 //     if (!altUserId) done(new Error('No alt user id found'));
 
-//     const transactionResult = await smJSInstance
+//     const transactionResult = await mmGQLInstance
 //       .transaction(
 //         ctx => {
 //           ctx.createNode({
@@ -2224,7 +2224,7 @@
 //     const thingId = transactionResult[0].data.CreateNodes[0].id as string;
 
 //     let iterationIdx = 0;
-//     const subResult = await smJSInstance.subscribe(
+//     const subResult = await mmGQLInstance.subscribe(
 //       {
 //         thing: queryDefinition({
 //           def: mockThingDef,
@@ -2239,7 +2239,7 @@
 //         onData: ({ results }) => {
 //           if (iterationIdx === 0) {
 //             expect(results.thing).not.toBe(null);
-//             smJSInstance
+//             mmGQLInstance
 //               .transaction(
 //                 ctx => {
 //                   ctx.dropEdge({
@@ -2268,28 +2268,28 @@
 // );
 
 // test('querying with a null queryDefinition returns null and performs no actual queries', async () => {
-//   const { smJSInstance } = await getReferenceTestUtils();
-//   smJSInstance.gqlClient.query = jest.fn();
-//   const { data } = await smJSInstance.query({
+//   const { mmGQLInstance } = await getReferenceTestUtils();
+//   mmGQLInstance.gqlClient.query = jest.fn();
+//   const { data } = await mmGQLInstance.query({
 //     test: null,
 //   });
 //   expect(data.test).toBe(null);
-//   expect(smJSInstance.gqlClient.query).not.toHaveBeenCalled();
+//   expect(mmGQLInstance.gqlClient.query).not.toHaveBeenCalled();
 // });
 
 // test('subscribing with a null queryDefinition returns null and performs no actual queries or subscriptions', async done => {
-//   const { smJSInstance } = await getReferenceTestUtils();
-//   smJSInstance.gqlClient.query = jest.fn();
-//   smJSInstance.gqlClient.subscribe = jest.fn();
-//   const subscriptionResult = await smJSInstance.subscribe(
+//   const { mmGQLInstance } = await getReferenceTestUtils();
+//   mmGQLInstance.gqlClient.query = jest.fn();
+//   mmGQLInstance.gqlClient.subscribe = jest.fn();
+//   const subscriptionResult = await mmGQLInstance.subscribe(
 //     {
 //       test: null,
 //     },
 //     {
 //       onData: ({ results }) => {
 //         expect(results.test).toBe(null);
-//         expect(smJSInstance.gqlClient.query).not.toHaveBeenCalled();
-//         expect(smJSInstance.gqlClient.subscribe).not.toHaveBeenCalled();
+//         expect(mmGQLInstance.gqlClient.query).not.toHaveBeenCalled();
+//         expect(mmGQLInstance.gqlClient.subscribe).not.toHaveBeenCalled();
 //         done();
 //         setTimeout(() => subscriptionResult.unsub());
 //       },
@@ -2300,9 +2300,9 @@
 // test(
 //   'querying with a mix of null and non null queryDefinitions produces the expected results',
 //   async () => {
-//     const { smJSInstance } = await getReferenceTestUtils();
-//     const { data } = await smJSInstance.query({
-//       ...createMockQueryDefinitions(smJSInstance),
+//     const { mmGQLInstance } = await getReferenceTestUtils();
+//     const { data } = await mmGQLInstance.query({
+//       ...createMockQueryDefinitions(mmGQLInstance),
 //       test: null,
 //     });
 //     expect(data.test).toBe(null);
@@ -2314,10 +2314,10 @@
 // test(
 //   'subscribing with a mix of null and non null queryDefinitions produces the expected results',
 //   async done => {
-//     const { smJSInstance } = await getReferenceTestUtils();
-//     const subscriptionResult = await smJSInstance.subscribe(
+//     const { mmGQLInstance } = await getReferenceTestUtils();
+//     const subscriptionResult = await mmGQLInstance.subscribe(
 //       {
-//         ...createMockQueryDefinitions(smJSInstance),
+//         ...createMockQueryDefinitions(mmGQLInstance),
 //         test: null,
 //       },
 //       {

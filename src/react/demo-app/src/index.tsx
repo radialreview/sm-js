@@ -1,17 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { SMProvider } from 'sm-js';
+import { MMGQLProvider } from 'mm-gql';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-import smJS from './smJS';
+import mmGQL from './mmGQL';
 
 ReactDOM.render(
   <React.StrictMode>
     <React.Suspense fallback={'loading'}>
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <App />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   </React.StrictMode>,
   document.getElementById('root')

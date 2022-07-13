@@ -43,7 +43,7 @@ import {
   DropNodeOperation,
   getMutationsFromTransactionDropOperations,
 } from './drop';
-import { ISMJS } from '../types';
+import { IMMGQL } from '../types';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 
 export interface ITransactionContext {
@@ -102,7 +102,7 @@ type OperationType =
   | ReplaceEdgesOperation;
 
 export function createTransaction(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   globalOperationHandlers: {
     onUpdateRequested(update: {
       id: string;
@@ -140,8 +140,8 @@ export function createTransaction(
 
     /**
      * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
-     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
-     * SM responds with each operation in the order they were sent up.
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
+     * The backend responds with each operation in the order they were sent up.
      */
     let createOperationsCount = 0;
     let updateOperationsCount = 0;
@@ -368,23 +368,23 @@ export function createTransaction(
     }
 
     const tokenName = opts?.tokenName || DEFAULT_TOKEN_NAME;
-    const token = smJSInstance.getToken({ tokenName });
+    const token = mmGQLInstance.getToken({ tokenName });
 
     /**
-     * Group operations by their SM operation name, sorted by position if applicable
+     * Group operations by their operation name, sorted by position if applicable
      */
-    function groupBySMOperationName(operations: TOperationsByType) {
+    function groupByOperationName(operations: TOperationsByType) {
       const result = Object.entries(operations).reduce(
         (acc, [_, operations]) => {
           operations.forEach(
             (operation: TIndexedOperationType | OperationType) => {
-              if (acc.hasOwnProperty(operation.smOperationName)) {
-                acc[operation.smOperationName] = [
-                  ...acc[operation.smOperationName],
+              if (acc.hasOwnProperty(operation.operationName)) {
+                acc[operation.operationName] = [
+                  ...acc[operation.operationName],
                   operation,
                 ];
               } else {
-                acc[operation.smOperationName] = [operation];
+                acc[operation.operationName] = [operation];
               }
             }
           );
@@ -393,8 +393,8 @@ export function createTransaction(
         {} as Record<string, Array<any>>
       );
 
-      Object.entries(result).forEach(([smOperationName, operations]) => {
-        result[smOperationName] = sortBy(
+      Object.entries(result).forEach(([operationName, operations]) => {
+        result[operationName] = sortBy(
           operations,
           operation => operation.position
         );
@@ -414,17 +414,15 @@ export function createTransaction(
     }) {
       const { operationsByType } = opts;
 
-      const operationsBySMOperationName = groupBySMOperationName(
-        operationsByType
-      );
+      const operationsByOperationName = groupByOperationName(operationsByType);
 
-      Object.entries(operationsBySMOperationName).forEach(
-        ([smOperationName, operations]) => {
+      Object.entries(operationsByOperationName).forEach(
+        ([operationName, operations]) => {
           operations.forEach(operation => {
             // we only need to gather the data for node create/update operations
             if (
-              smOperationName === 'CreateNodes' ||
-              smOperationName === 'UpdateNodes'
+              operationName === 'CreateNodes' ||
+              operationName === 'UpdateNodes'
             ) {
               // for createNodes, execute callback on each individual node rather than top-level operation
               if (operation.hasOwnProperty('nodes')) {
@@ -448,12 +446,10 @@ export function createTransaction(
     }) {
       const { executionResult, operationsByType } = opts;
 
-      const operationsBySMOperationName = groupBySMOperationName(
-        operationsByType
-      );
+      const operationsByOperationName = groupByOperationName(operationsByType);
 
       /**
-       * Loop through the operations, map the operation to each result sent back from SM,
+       * Loop through the operations, map the operation to each result sent back from the backend,
        * then pass the result into the callback if it exists
        */
       const executeCallbacksWithData = (executionResult: TExecutionResult) => {
@@ -473,16 +469,16 @@ export function createTransaction(
             } else {
               const resultData = result.data;
 
-              Object.entries(operationsBySMOperationName).forEach(
-                ([smOperationName, operations]) => {
-                  if (resultData.hasOwnProperty(smOperationName)) {
+              Object.entries(operationsByOperationName).forEach(
+                ([operationName, operations]) => {
+                  if (resultData.hasOwnProperty(operationName)) {
                     operations.forEach(operation => {
                       // we only need to gather the data for node create/update operations
                       if (
-                        smOperationName === 'CreateNodes' ||
-                        smOperationName === 'UpdateNodes'
+                        operationName === 'CreateNodes' ||
+                        operationName === 'UpdateNodes'
                       ) {
-                        const groupedResult = resultData[smOperationName];
+                        const groupedResult = resultData[operationName];
                         // for createNodes, execute callback on each individual node rather than top-level operation
                         if (operation.hasOwnProperty('nodes')) {
                           operation.nodes.forEach((node: any) => {
@@ -514,11 +510,11 @@ export function createTransaction(
        * For all other operations, just invoke the callback with no args.
        * Transactions will guarantee that all operations have succeeded, so this is safe to do
        */
-      Object.entries(operationsBySMOperationName).forEach(
-        ([smOperationName, operations]) => {
+      Object.entries(operationsByOperationName).forEach(
+        ([operationName, operations]) => {
           if (
-            smOperationName !== 'CreateNodes' &&
-            smOperationName !== 'UpdateNodes'
+            operationName !== 'CreateNodes' &&
+            operationName !== 'UpdateNodes'
           ) {
             operations.forEach(operation => {
               if (operation.hasOwnProperty('onSuccess')) {
@@ -547,7 +543,7 @@ export function createTransaction(
         }
         const mutations = getAllMutations(operationsByType);
 
-        const executionResult: TExecutionResult = await smJSInstance.gqlClient.mutate(
+        const executionResult: TExecutionResult = await mmGQLInstance.gqlClient.mutate(
           {
             mutations,
             token,
@@ -601,7 +597,7 @@ export function createTransaction(
           }
 
           const allMutations = transactions.map(({ operations }) => {
-            return smJSInstance.gqlClient.mutate({
+            return mmGQLInstance.gqlClient.mutate({
               mutations: getAllMutations(operations),
               token,
             });

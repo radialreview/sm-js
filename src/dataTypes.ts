@@ -1,45 +1,45 @@
 import {
-  SMDataTypeException,
-  SMDataTypeExplicitDefaultException,
+  DataTypeException,
+  DataTypeExplicitDefaultException,
   throwLocallyLogInProd,
 } from './exceptions';
 import {
   GetResultingDataTypeFromProperties,
-  GetSMDataType,
+  GetDataType,
   IOneToOneQueryBuilder,
   IOneToOneQueryBuilderOpts,
   IOneToManyQueryBuilder,
   IOneToManyQueryBuilderOpts,
-  ISMData,
-  ISMNode,
+  IData,
+  INode,
   MapFnForNode,
   Maybe,
   QueryDefinitionTarget,
-  SMDataDefaultFn,
-  SM_DATA_TYPES,
-  SM_RELATIONAL_TYPES,
+  DataDefaultFn,
+  DATA_TYPES,
+  RELATIONAL_TYPES,
   UseSubscriptionQueryDefinitionOpts,
   UseSubscriptionQueryDefinition,
 } from './types';
 
-export class SMData<
+export class Data<
   TParsedValue,
-  TSMValue,
+  TValue,
   TBoxedValue extends
-    | ISMData
-    | SMDataDefaultFn
-    | Record<string, ISMData | SMDataDefaultFn>
+    | IData
+    | DataDefaultFn
+    | Record<string, IData | DataDefaultFn>
     | undefined
-> implements ISMData<TParsedValue, TSMValue, TBoxedValue> {
-  type: SM_DATA_TYPES;
-  parser: (smValue: TSMValue) => TParsedValue;
+> implements IData<TParsedValue, TValue, TBoxedValue> {
+  type: DATA_TYPES;
+  parser: (value: TValue) => TParsedValue;
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
 
   constructor(opts: {
-    type: SM_DATA_TYPES;
-    parser: (smValue: TSMValue) => TParsedValue;
+    type: DATA_TYPES;
+    parser: (value: TValue) => TParsedValue;
     boxedValue?: TBoxedValue;
     defaultValue?: TParsedValue;
     isOptional: boolean;
@@ -53,16 +53,16 @@ export class SMData<
 }
 
 /**
- * smData serve 2 purposes:
- * 1) they convert strings from SM into their real types (objects, strings, numbers, booleans)
- * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
+ * data serve 2 purposes:
+ * 1) they convert strings from the backend into their real types (objects, strings, numbers, booleans)
+ * 2) they serve as a way for TS to infer the data type of the node based on the data types used,
  */
 
 export const string = <TStringType extends string = string>(
   defaultValue: TStringType
 ) =>
-  new SMData<TStringType, TStringType, undefined>({
-    type: SM_DATA_TYPES.string,
+  new Data<TStringType, TStringType, undefined>({
+    type: DATA_TYPES.string,
     parser: value =>
       value != null
         ? ((String(value) as unknown) as TStringType)
@@ -73,24 +73,22 @@ export const string = <TStringType extends string = string>(
 
 string._default = string('');
 
-string.optional = new SMData<Maybe<string>, Maybe<string>, undefined>({
-  type: SM_DATA_TYPES.maybeString,
+string.optional = new Data<Maybe<string>, Maybe<string>, undefined>({
+  type: DATA_TYPES.maybeString,
   parser: value => (value != null ? String(value) : value),
   isOptional: true,
 });
 
-export const number = (
-  defaultValue: number
-): SMData<number, string, undefined> =>
-  new SMData<number, string, undefined>({
-    type: SM_DATA_TYPES.number,
+export const number = (defaultValue: number): Data<number, string, undefined> =>
+  new Data<number, string, undefined>({
+    type: DATA_TYPES.number,
     parser: value => {
       const parsed = Number(value);
 
       if (isNaN(parsed)) {
         throwLocallyLogInProd(
-          new SMDataTypeException({
-            dataType: SM_DATA_TYPES.number,
+          new DataTypeException({
+            dataType: DATA_TYPES.number,
             value,
           })
         );
@@ -101,12 +99,12 @@ export const number = (
     },
     defaultValue,
     isOptional: false,
-  }) as SMData<number, string, undefined>;
+  }) as Data<number, string, undefined>;
 
 number._default = number(0);
 
-number.optional = new SMData<Maybe<number>, Maybe<string>, undefined>({
-  type: SM_DATA_TYPES.maybeNumber,
+number.optional = new Data<Maybe<number>, Maybe<string>, undefined>({
+  type: DATA_TYPES.maybeNumber,
   parser: value => {
     if (value != null) {
       return Number(value);
@@ -120,21 +118,21 @@ export const boolean = <TDefaultValue extends boolean>(
   defaultValue?: TDefaultValue
 ) => {
   if (defaultValue === undefined) {
-    return (new SMDataTypeExplicitDefaultException({
-      dataType: SM_DATA_TYPES.boolean,
-    }) as unknown) as ISMData<boolean, string | boolean, undefined>;
+    return (new DataTypeExplicitDefaultException({
+      dataType: DATA_TYPES.boolean,
+    }) as unknown) as IData<boolean, string | boolean, undefined>;
   }
 
-  return new SMData<boolean, string | boolean, undefined>({
-    type: SM_DATA_TYPES.boolean,
+  return new Data<boolean, string | boolean, undefined>({
+    type: DATA_TYPES.boolean,
     parser: value => {
       if (value === 'true' || value === true) {
         return true;
       } else if (value === 'false' || value === false) {
         return false;
       } else {
-        throw new SMDataTypeException({
-          dataType: SM_DATA_TYPES.boolean,
+        throw new DataTypeException({
+          dataType: DATA_TYPES.boolean,
           value: value,
         });
       }
@@ -143,50 +141,48 @@ export const boolean = <TDefaultValue extends boolean>(
     isOptional: false,
   }) as TDefaultValue extends undefined
     ? Error
-    : ISMData<boolean, string | boolean, undefined>;
+    : IData<boolean, string | boolean, undefined>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
 boolean._default = boolean();
 
-boolean.optional = new SMData<
-  Maybe<boolean>,
-  Maybe<string | boolean>,
-  undefined
->({
-  type: SM_DATA_TYPES.maybeBoolean,
-  parser: value => {
-    if (value == null) return value;
+boolean.optional = new Data<Maybe<boolean>, Maybe<string | boolean>, undefined>(
+  {
+    type: DATA_TYPES.maybeBoolean,
+    parser: value => {
+      if (value == null) return value;
 
-    if (value === 'true' || value === true) {
-      return true;
-    } else {
-      return false;
-    }
-  },
-  isOptional: true,
-});
+      if (value === 'true' || value === true) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+    isOptional: true,
+  }
+);
 
-type ObjectSMDataType = {
-  <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+type ObjectDataType = {
+  <TBoxedValue extends Record<string, IData | DataDefaultFn>>(
     boxedValue: TBoxedValue
-  ): SMData<
+  ): Data<
     GetResultingDataTypeFromProperties<TBoxedValue>,
     GetResultingDataTypeFromProperties<TBoxedValue>,
     TBoxedValue
   >;
   _default: any;
-  optional: <TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>>(
+  optional: <TBoxedValue extends Record<string, IData | DataDefaultFn>>(
     boxedValue: TBoxedValue
-  ) => SMData<
+  ) => Data<
     Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>,
     Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>,
     TBoxedValue
   >;
 };
 
-export const object: ObjectSMDataType = boxedValue =>
-  new SMData({
-    type: SM_DATA_TYPES.object,
+export const object: ObjectDataType = boxedValue =>
+  new Data({
+    type: DATA_TYPES.object,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
      * That's done by the DO class's "objectDataSetter" method
@@ -199,8 +195,8 @@ export const object: ObjectSMDataType = boxedValue =>
 object._default = null;
 
 object.optional = boxedValue =>
-  new SMData({
-    type: SM_DATA_TYPES.maybeObject,
+  new Data({
+    type: DATA_TYPES.maybeObject,
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
      * That's done by the DO class's "objectDataSetter" method
@@ -212,7 +208,7 @@ object.optional = boxedValue =>
 
 export const record = <
   TKey extends string,
-  TBoxedValue extends ISMData | SMDataDefaultFn
+  TBoxedValue extends IData | DataDefaultFn
 >(
   boxedValue: TBoxedValue
 ) => {
@@ -222,12 +218,12 @@ export const record = <
       ? ((boxedValue as any)._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
-  return new SMData<
-    Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
-    Record<TKey, GetSMDataType<typeof parsedBoxedValue>>,
+  return new Data<
+    Record<TKey, GetDataType<typeof parsedBoxedValue>>,
+    Record<TKey, GetDataType<typeof parsedBoxedValue>>,
     TBoxedValue
   >({
-    type: SM_DATA_TYPES.record,
+    type: DATA_TYPES.record,
     parser: val => val,
     boxedValue: boxedValue as typeof parsedBoxedValue,
     isOptional: false,
@@ -235,21 +231,21 @@ export const record = <
   });
 };
 
-record.optional = <TBoxedValue extends ISMData | SMDataDefaultFn>(
+record.optional = <TBoxedValue extends IData | DataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
-  const parsedBoxedValue: ISMData =
+  const parsedBoxedValue: IData =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
-      : (boxedValue as ISMData);
+      ? ((boxedValue as any)._default as IData)
+      : (boxedValue as IData);
 
-  return new SMData<
-    Maybe<Record<string, GetSMDataType<typeof parsedBoxedValue>>>,
-    Maybe<Record<string, GetSMDataType<typeof parsedBoxedValue>>>,
+  return new Data<
+    Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>,
+    Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>,
     typeof parsedBoxedValue
   >({
-    type: SM_DATA_TYPES.maybeRecord,
+    type: DATA_TYPES.maybeRecord,
     parser: val => val,
     boxedValue: parsedBoxedValue,
     isOptional: true,
@@ -259,7 +255,7 @@ record.optional = <TBoxedValue extends ISMData | SMDataDefaultFn>(
 
 record._default = null as any;
 
-export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
+export const array = <TBoxedValue extends IData | DataDefaultFn>(
   boxedValue: TBoxedValue
 ) => {
   const parsedBoxedValue: TBoxedValue =
@@ -268,13 +264,13 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
       ? ((boxedValue as any)._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
-  function smArray(defaultValue: Array<GetSMDataType<TBoxedValue>>) {
-    return new SMData<
-      Array<GetSMDataType<TBoxedValue>>,
-      Array<GetSMDataType<TBoxedValue>>,
+  function array(defaultValue: Array<GetDataType<TBoxedValue>>) {
+    return new Data<
+      Array<GetDataType<TBoxedValue>>,
+      Array<GetDataType<TBoxedValue>>,
       TBoxedValue
     >({
-      type: SM_DATA_TYPES.array,
+      type: DATA_TYPES.array,
       parser: value => value,
       boxedValue: parsedBoxedValue,
       defaultValue,
@@ -282,28 +278,28 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
     });
   }
 
-  smArray.optional = new SMData<
-    Maybe<Array<GetSMDataType<TBoxedValue>>>,
-    Maybe<Array<GetSMDataType<TBoxedValue>>>,
+  array.optional = new Data<
+    Maybe<Array<GetDataType<TBoxedValue>>>,
+    Maybe<Array<GetDataType<TBoxedValue>>>,
     TBoxedValue
   >({
-    type: SM_DATA_TYPES.maybeArray,
+    type: DATA_TYPES.maybeArray,
     parser: value => value,
     boxedValue: parsedBoxedValue,
     isOptional: true,
   });
 
-  smArray._default = smArray([]);
+  array._default = array([]);
 
-  return smArray;
+  return array;
 };
 
 export const oneToOne = <
   TTargetNodeOrTargetNodeRecord extends
-    | ISMNode
-    | Maybe<ISMNode>
-    | Record<string, ISMNode>
-    | Maybe<Record<string, ISMNode>>
+    | INode
+    | Maybe<INode>
+    | Record<string, INode>
+    | Maybe<Record<string, INode>>
 >(
   def: NonNullable<TTargetNodeOrTargetNodeRecord>
 ) => {
@@ -317,7 +313,7 @@ export const oneToOne = <
     return {
       def,
       _relationshipName: queryBuilderOpts._relationshipName,
-      _smRelational: SM_RELATIONAL_TYPES.oneToOne,
+      _relational: RELATIONAL_TYPES.oneToOne,
       queryBuilderOpts,
     };
   }) as IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>;
@@ -325,10 +321,10 @@ export const oneToOne = <
 
 export const oneToMany = <
   TTargetNodeOrTargetNodeRecord extends
-    | ISMNode
-    | Maybe<ISMNode>
-    | Record<string, ISMNode>
-    | Maybe<Record<string, ISMNode>>
+    | INode
+    | Maybe<INode>
+    | Record<string, INode>
+    | Maybe<Record<string, INode>>
 >(
   def: NonNullable<TTargetNodeOrTargetNodeRecord>
 ) => {
@@ -342,7 +338,7 @@ export const oneToMany = <
     return {
       def,
       _relationshipName: queryBuilderOpts._relationshipName,
-      _smRelational: SM_RELATIONAL_TYPES.oneToMany,
+      _relational: RELATIONAL_TYPES.oneToMany,
       queryBuilderOpts,
     };
   }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
@@ -356,13 +352,13 @@ export const OBJECT_IDENTIFIER = '__object__';
 // It makes it possible to accept multiple node types within a record of query definitions, without losing type safety
 // See this for a simplified example https://www.typescriptlang.org/play?#code/GYVwdgxgLglg9mABBBwYHMA8ARAhlXAFQE8AHAUwD4AKFMNdALkQHkBbGKTASQGUYw6ADbkAwqgw58RMlQA0iAOQB9ZTADOJCr1zByAVXXlCACzET0AMXDR4YAIT3FlAJTM+A4efqS8BLVSIAN4AUIiIAE7kUCARSEEAdEl0DHIqapqyOnqGxmbiPlY2sAiOisxQESDkiAC+IfUhAlDkEcC4EDXchHAAJnB+uMFhiDC9zOqVniME6gDWE1OCDSEhdJOIUH0D0u49-YOIALzBo+NKAIwATADMigqzC0r9m2aIveTkvYp1q1CyiAAitUIsRLGApP5ZJRjohqL1dohBgEXMcYQAFXARWC4ISQmQUSirZqtdqdRAeQQiAoMfEBGGhcLhdIaALZAxGUzeBjWSAlBxOCpVchyEbhBEEZjI2SipmIACOIOIzGBrTBEOlhJWTTALTaHS6AFkQEJYDSMMNwgBtObkZWISYRTwAXXc-Cp3MkuDAxCJjXWUEQbGIADk+uRBu5jaaYOb0LDGYgQEYIpptupmInxYitgdpLKmYq1cxqEEzg9cPM6qijjDS+XNpW5tWRrUC7ihPs4BnkBZS2L3jntoMC+Ei6CS2WxhWq7Ua3Wp70Z82562XCsgA
 export function queryDefinition<
-  TSMNode extends ISMNode,
-  TMapFn extends MapFnForNode<TSMNode> | undefined,
+  TNode extends INode,
+  TMapFn extends MapFnForNode<TNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget,
   TUseSubscriptionOpts extends UseSubscriptionQueryDefinitionOpts
 >(
   queryDefinition: UseSubscriptionQueryDefinition<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget,
     TUseSubscriptionOpts

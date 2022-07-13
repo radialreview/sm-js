@@ -1,6 +1,6 @@
 import React from 'react';
-import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
-export interface ISMContextSubscription {
+import { SubscriptionCanceller, IMMGQL, DocumentNode } from '../types';
+export interface IContextSubscription {
   results?: any;
   error?: any;
   querying?: boolean;
@@ -13,12 +13,12 @@ export interface ISMContextSubscription {
   lastQueryTimestamp?: number;
 }
 
-export interface ISMContext {
-  smJSInstance: ISMJS;
-  ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
+export interface IContext {
+  mmGQLInstance: IMMGQL;
+  ongoingSubscriptionRecord: Record<string, IContextSubscription>;
   updateSubscriptionInfo: (
     subscriptionId: string,
-    subInfo: Partial<ISMContextSubscription>
+    subInfo: Partial<IContextSubscription>
   ) => void;
   scheduleCleanup: (subscriptionId: string) => void;
   cancelCleanup: (subscriptionId: string) => void;
@@ -29,8 +29,8 @@ export interface ISMContext {
   onHookUnmount: (subscriptionId: string) => void;
 }
 
-export const SMContext = React.createContext<ISMContext>(
-  (undefined as unknown) as ISMContext
+export const MMGQLContext = React.createContext<IContext>(
+  (undefined as unknown) as IContext
 );
 
 export const LoggingContext = React.createContext<{
@@ -51,26 +51,26 @@ export const UnsafeNoDuplicateSubIdErrorProvider = (props: {
   );
 };
 
-export const SMProvider = (props: {
+export const MMGQLProvider = (props: {
   children: React.ReactNode;
-  smJS: ISMJS;
+  mmGQL: IMMGQL;
   subscriptionTTLMs?: number;
 }) => {
-  const existingContext = React.useContext(SMContext);
+  const existingContext = React.useContext(MMGQLContext);
 
   if (existingContext) {
     throw Error(
-      'Another instance of an SMProvider was already detected higher up the render tree.\nHaving multiple instances of SMProviders is not supported and may lead to unexpected results.'
+      'Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.'
     );
   }
 
   const ongoingSubscriptionRecord = React.useRef<
-    Record<string, ISMContextSubscription>
+    Record<string, IContextSubscription>
   >({});
   const cleanupTimeoutRecord = React.useRef<Record<string, NodeJS.Timeout>>({});
   const mountedHooksBySubId = React.useRef<Record<string, boolean>>({});
 
-  const updateSubscriptionInfo: ISMContext['updateSubscriptionInfo'] = React.useCallback(
+  const updateSubscriptionInfo: IContext['updateSubscriptionInfo'] = React.useCallback(
     (subscriptionId, subInfo) => {
       ongoingSubscriptionRecord.current[subscriptionId] = {
         ...ongoingSubscriptionRecord.current[subscriptionId],
@@ -80,7 +80,7 @@ export const SMProvider = (props: {
     []
   );
 
-  const scheduleCleanup: ISMContext['scheduleCleanup'] = React.useCallback(
+  const scheduleCleanup: IContext['scheduleCleanup'] = React.useCallback(
     subscriptionId => {
       function cleanup() {
         const existingContextSubscription =
@@ -104,7 +104,7 @@ export const SMProvider = (props: {
     [props.subscriptionTTLMs]
   );
 
-  const cancelCleanup: ISMContext['cancelCleanup'] = React.useCallback(
+  const cancelCleanup: IContext['cancelCleanup'] = React.useCallback(
     subscriptionId => {
       clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
       delete cleanupTimeoutRecord.current[subscriptionId];
@@ -113,10 +113,10 @@ export const SMProvider = (props: {
   );
 
   // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
-  // using a useSMSubscription hook are mounted at the same time
-  // since useSMSubscription uses the first line of the error stack to construct a unique sub id
+  // using a useSubscription hook are mounted at the same time
+  // since useSubscription uses the first line of the error stack to construct a unique sub id
   // fixes https://tractiontools.atlassian.net/browse/MM-404
-  const onHookMount: ISMContext['onHookMount'] = React.useCallback(
+  const onHookMount: IContext['onHookMount'] = React.useCallback(
     (subscriptionId, { silenceDuplicateSubIdErrors }) => {
       if (
         mountedHooksBySubId.current[subscriptionId] &&
@@ -136,7 +136,7 @@ export const SMProvider = (props: {
     []
   );
 
-  const onHookUnmount: ISMContext['onHookUnmount'] = React.useCallback(
+  const onHookUnmount: IContext['onHookUnmount'] = React.useCallback(
     subscriptionId => {
       delete mountedHooksBySubId.current[subscriptionId];
     },
@@ -144,9 +144,9 @@ export const SMProvider = (props: {
   );
 
   return (
-    <SMContext.Provider
+    <MMGQLContext.Provider
       value={{
-        smJSInstance: props.smJS,
+        mmGQLInstance: props.mmGQL,
         ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
         updateSubscriptionInfo,
         scheduleCleanup,
@@ -156,6 +156,6 @@ export const SMProvider = (props: {
       }}
     >
       {props.children}
-    </SMContext.Provider>
+    </MMGQLContext.Provider>
   );
 };

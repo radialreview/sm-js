@@ -1,24 +1,24 @@
-import { SMJS } from '.';
+import { MMGQL } from '.';
 import { NULL_TAG } from './dataConversions';
-import * as smData from './smDataTypes';
+import * as data from './dataTypes';
 import {
   TodoNode,
   generateTodoNode,
   generateDOInstance,
   getMockConfig,
 } from './specUtilities';
-import { IOneToManyQueryBuilder, ISMData, SM_RELATIONAL_TYPES } from './types';
+import { IOneToManyQueryBuilder, IData, RELATIONAL_TYPES } from './types';
 
-describe('smData.DO', () => {
+describe('data.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        dueDate: smData.number,
-        settings: smData.object({
-          show: smData.boolean(true),
-          color: smData.string,
+        dueDate: data.number,
+        settings: data.object({
+          show: data.boolean(true),
+          color: data.string,
         }),
-        items: smData.array(smData.number),
+        items: data.array(data.number),
       },
       initialData: {
         id: '123',
@@ -38,7 +38,7 @@ describe('smData.DO', () => {
   test('that DO class will automatically coerce data it receives on an update based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        dueDate: smData.number,
+        dueDate: data.number,
       },
       initialData: {
         id: '321',
@@ -54,10 +54,10 @@ describe('smData.DO', () => {
   test('data in nested object is coerced correctly', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        settings: smData.object({
-          schedule: smData.object({
-            startTime: smData.number,
-            endTime: smData.number,
+        settings: data.object({
+          schedule: data.object({
+            startTime: data.number,
+            endTime: data.number,
           }),
         }),
       },
@@ -77,10 +77,10 @@ describe('smData.DO', () => {
 
   test('basic computed props return the expected value', () => {
     const properties = {
-      task: smData.string,
+      task: data.string,
       // including this meeting prop and not marking it as up to date to check that we only need the absolute minimum set of data
       // available and up to date to calculate computed properties
-      meetingId: smData.string,
+      meetingId: data.string,
     };
 
     const { doInstance } = generateDOInstance<
@@ -112,7 +112,7 @@ describe('smData.DO', () => {
 
   test('computed properties can use other computed properties', () => {
     const properties = {
-      task: smData.string,
+      task: data.string,
     };
 
     const { doInstance } = generateDOInstance<
@@ -142,7 +142,7 @@ describe('smData.DO', () => {
   });
 
   test('relational properties are available on the DO', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     const { doInstance } = generateDOInstance<
       'mock-type',
       {},
@@ -156,32 +156,32 @@ describe('smData.DO', () => {
         version: '1',
       },
       relational: {
-        todos: () => smData.oneToMany(generateTodoNode(smJSInstance)),
+        todos: () => data.oneToMany(generateTodoNode(mmGQLInstance)),
       },
     });
 
     expect(doInstance.todos).toBeInstanceOf(Function);
-    const queryFn = ({ id }: { id: ISMData<string> }) => ({ id });
+    const queryFn = ({ id }: { id: IData<string> }) => ({ id });
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
         map: queryFn,
-        _smRelational: SM_RELATIONAL_TYPES.oneToMany,
+        _relational: RELATIONAL_TYPES.oneToMany,
       })
     );
   });
 
   test('maybe types are parsed correctly', () => {
     const properties = {
-      maybeStr: smData.string.optional,
-      maybeBool: smData.boolean.optional,
-      maybeNum: smData.number.optional,
-      maybeObj: smData.object.optional({
-        nested: smData.boolean.optional,
-        doubleNested: smData.object.optional({
-          doubleNestedNested: smData.boolean.optional,
+      maybeStr: data.string.optional,
+      maybeBool: data.boolean.optional,
+      maybeNum: data.number.optional,
+      maybeObj: data.object.optional({
+        nested: data.boolean.optional,
+        doubleNested: data.object.optional({
+          doubleNestedNested: data.boolean.optional,
         }),
       }),
-      maybeArr: smData.array(smData.number.optional).optional,
+      maybeArr: data.array(data.number.optional).optional,
     };
 
     const { doInstance } = generateDOInstance<
@@ -225,11 +225,11 @@ describe('smData.DO', () => {
   // tests fix for https://tractiontools.atlassian.net/browse/MIO-326
   test('an update for a record will delete properties not included in the new record', () => {
     const properties = {
-      rootLevelRecord: smData.record(smData.string),
-      object: smData.object({
-        nestedRecord: smData.record(smData.string),
-        nestedObject: smData.object({
-          doubleNestedRecord: smData.record(smData.string),
+      rootLevelRecord: data.record(data.string),
+      object: data.object({
+        nestedRecord: data.record(data.string),
+        nestedObject: data.object({
+          doubleNestedRecord: data.record(data.string),
         }),
       }),
     };
@@ -294,11 +294,11 @@ describe('smData.DO', () => {
   test('does not delete properties within objects that are not included within an update', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        object: smData.object({
-          nested: smData.object({
-            nestedNumber: smData.number,
+        object: data.object({
+          nested: data.object({
+            nestedNumber: data.number,
           }),
-          someNumber: smData.number,
+          someNumber: data.number,
         }),
       },
       initialData: {
@@ -318,10 +318,10 @@ describe('smData.DO', () => {
 
   test('records with objects are parsed correctly', () => {
     const properties = {
-      rootLevelRecord: smData.record(
-        smData.object({
-          testString: smData.string,
-          testOptionalNumber: smData.number.optional,
+      rootLevelRecord: data.record(
+        data.object({
+          testString: data.string,
+          testOptionalNumber: data.number.optional,
         })
       ),
     };
@@ -356,7 +356,7 @@ describe('smData.DO', () => {
 
   test('root level properties that receive NULL_TAG are coerced properly', () => {
     const properties = {
-      meetingIds: smData.array(smData.string).optional,
+      meetingIds: data.array(data.string).optional,
     };
     const { doInstance } = generateDOInstance<
       'mock-type',

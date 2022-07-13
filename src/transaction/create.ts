@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client/core';
-import { ISMNode } from '..';
+import { INode } from '..';
 
 import {
   DocumentNode,
@@ -12,7 +12,7 @@ import { RequiredNodeDataForCreate, OptionalNodeDataForCreate } from './types';
 
 export type CreateNodesOperation = {
   type: 'createNodes';
-  smOperationName: 'CreateNodes';
+  operationName: 'CreateNodes';
   nodes: Array<{
     data: RequiredNodeDataForCreate &
       Partial<OptionalNodeDataForCreate> &
@@ -25,25 +25,25 @@ export type CreateNodesOperation = {
 };
 
 export function createNodes(
-  operation: Omit<CreateNodesOperation, 'type' | 'smOperationName'>
+  operation: Omit<CreateNodesOperation, 'type' | 'operationName'>
 ): CreateNodesOperation {
   return {
     type: 'createNodes',
-    smOperationName: 'CreateNodes',
+    operationName: 'CreateNodes',
     ...operation,
   };
 }
 
 export type CreateNodeOperation<
-  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
+  TNode extends INode = INode<any, Record<string, any>>
 > = {
   type: 'createNode';
-  smOperationName: 'CreateNodes';
+  operationName: 'CreateNodes';
   data: RequiredNodeDataForCreate &
     Partial<OptionalNodeDataForCreate> &
     // when creating a node, all we need is a deep partial of all the node's data
     // since, at query time, sm-js will fill any properties which were not provided on create
-    DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
+    DeepPartial<GetResultingDataTypeFromNodeDefinition<TNode>>;
   under?: string | Array<string>;
   name?: string;
   position?: number;
@@ -51,13 +51,13 @@ export type CreateNodeOperation<
 };
 
 export function createNode<
-  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
+  TNode extends INode = INode<any, Record<string, any>>
 >(
-  operation: Omit<CreateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
-): CreateNodeOperation<TSMNode> {
+  operation: Omit<CreateNodeOperation<TNode>, 'type' | 'operationName'>
+): CreateNodeOperation<TNode> {
   return {
     type: 'createNode',
-    smOperationName: 'CreateNodes',
+    operationName: 'CreateNodes',
     ...operation,
   };
 }
@@ -105,10 +105,10 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation: {
   data: RequiredNodeDataForCreate;
   under?: string | Array<string>;
 }): string {
-  const dataToPersistInSM = convertNodeDataToSMPersistedData(operation.data);
+  const dataToPersist = convertNodeDataToSMPersistedData(operation.data);
   let mutationArgs: Array<string> = [
     `node: {
-        ${dataToPersistInSM}
+        ${dataToPersist}
       }`,
   ];
 

@@ -1,50 +1,50 @@
 import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
-import { SMDataParsingException } from './exceptions';
+import { DataParsingException } from './exceptions';
 import {
   IDOProxy,
   Maybe,
-  ISMJS,
-  ISMQueryManager,
+  IMMGQL,
+  IQueryManager,
   QueryRecord,
   BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
 } from './types';
 
-type SMQueryManagerState = Record<
+type QueryManagerState = Record<
   string, // the alias for this set of results
-  SMQueryManagerStateEntry
+  QueryManagerStateEntry
 >;
 
-type SMQueryManagerStateEntry = {
+type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
   idsOrIdInCurrentResult: string | Array<string> | null;
-  proxyCache: SMQueryManagerProxyCache;
+  proxyCache: QueryManagerProxyCache;
 };
 
-type SMQueryManagerProxyCache = Record<
+type QueryManagerProxyCache = Record<
   string, // id of the node
-  SMQueryManagerProxyCacheEntry
+  QueryManagerProxyCacheEntry
 >;
 
-type SMQueryManagerProxyCacheEntry = {
+type QueryManagerProxyCacheEntry = {
   proxy: IDOProxy;
-  relationalState: Maybe<SMQueryManagerState>;
+  relationalState: Maybe<QueryManagerState>;
 }; // the proxy for that DO and relational state from the query results/latest subscription message
 
-export function createSMQueryManager(smJSInstance: ISMJS) {
+export function createQueryManager(mmGQLInstance: IMMGQL) {
   /**
-   * SMQueryManager is in charge of
+   * QueryManager is in charge of
    *
-   *    1) receiving data from an SM query and notifying the appropriate DO repositories
+   *    1) receiving data from a query and notifying the appropriate DO repositories
    *    2) building proxies for those DOs
    *    3) keeping a cache of those generated proxies so that we can update proxies on subscription messages, rather than generating new ones
-   *    4) handling incoming SM subscription messages and
+   *    4) handling incoming subscription messages and
    *       4.1) notifying DO repositories with the data in those sub messages
    *       4.2) build proxies for new DOs received + update relational data (recursively) for proxies that had been previously built
-   *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
+   *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
-  return class SMQueryManager implements ISMQueryManager {
-    public state: SMQueryManagerState = {};
+  return class QueryManager implements IQueryManager {
+    public state: QueryManagerState = {};
     public queryRecord: QueryRecord;
 
     constructor(queryRecord: QueryRecord) {
@@ -97,9 +97,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
      * Is used to build the overall results for the query, and also to build the relational results used by each proxy
      * which is why "state" is a param here
      */
-    public getResultsFromState(
-      state: SMQueryManagerState
-    ): Record<string, any> {
+    public getResultsFromState(state: QueryManagerState): Record<string, any> {
       const acc = Object.keys(state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
@@ -191,7 +189,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
     public getNewStateFromQueryResult(opts: {
       queryResult: Record<string, any>;
       queryId: string;
-    }): SMQueryManagerState {
+    }): QueryManagerState {
       return Object.keys(this.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
           const cacheEntry = this.buildCacheEntry({
@@ -205,7 +203,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
 
           return resultingStateAcc;
         },
-        {} as SMQueryManagerState
+        {} as QueryManagerState
       );
     }
 
@@ -214,7 +212,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
       queryId: string;
       queryAlias: string;
       queryRecord?: QueryRecord;
-    }): Maybe<SMQueryManagerStateEntry> {
+    }): Maybe<QueryManagerStateEntry> {
       const { nodeData, queryAlias } = opts;
       const queryRecord = opts.queryRecord || this.queryRecord;
       const { relational } = queryRecord[opts.queryAlias];
@@ -230,7 +228,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
 
       const buildRelationalStateForNode = (
         node: Record<string, any>
-      ): Maybe<SMQueryManagerState> => {
+      ): Maybe<QueryManagerState> => {
         if (!relational) return null;
 
         return Object.keys(relational).reduce(
@@ -251,17 +249,17 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
               [this.removeUnionSuffix(relationalAlias)]: cacheEntry,
             };
           },
-          {} as SMQueryManagerState
+          {} as QueryManagerState
         );
       };
 
       const buildProxyCacheEntryForNode = (
         node: Record<string, any>
-      ): SMQueryManagerProxyCacheEntry => {
+      ): QueryManagerProxyCacheEntry => {
         const relationalState = buildRelationalStateForNode(node);
         const nodeRepository = queryRecord[queryAlias].def.repository;
 
-        const proxy = smJSInstance.DOProxyGenerator({
+        const proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
           relationalQueries: relational
@@ -287,7 +285,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         if ('id' in queryRecord[opts.queryAlias]) {
           if (opts.nodeData[0] == null) {
             if (!queryRecord[opts.queryAlias].allowNullResult)
-              throw new SMDataParsingException({
+              throw new DataParsingException({
                 receivedData: opts.nodeData,
                 message: `Queried a node by id for the query with the id "${opts.queryId}" but received back an empty array`,
               });
@@ -304,7 +302,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
               proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
 
               return proxyCacheAcc;
-            }, {} as SMQueryManagerProxyCache),
+            }, {} as QueryManagerProxyCache),
           };
         } else {
           return {
@@ -313,7 +311,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
               proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
 
               return proxyCacheAcc;
-            }, {} as SMQueryManagerProxyCache),
+            }, {} as QueryManagerProxyCache),
           };
         }
       } else {
@@ -429,8 +427,8 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
         Record<string, Array<Record<string, any> | Record<string, any>>>
       >;
       relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
-      currentState: SMQueryManagerProxyCacheEntry;
-    }): SMQueryManagerProxyCacheEntry {
+      currentState: QueryManagerProxyCacheEntry;
+    }): QueryManagerProxyCacheEntry {
       const {
         queryId,
         proxy,
@@ -541,7 +539,7 @@ export function createSMQueryManager(smJSInstance: ISMJS) {
 
               return relationalStateAcc;
             },
-            {} as SMQueryManagerState
+            {} as QueryManagerState
           );
 
       newRelationalState

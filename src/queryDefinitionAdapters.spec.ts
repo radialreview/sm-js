@@ -9,12 +9,12 @@ import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
 } from './queryDefinitionAdapters';
-import { object, queryDefinition, oneToOne, string } from './smDataTypes';
+import { object, queryDefinition, oneToOne, string } from './dataTypes';
 import { gql } from '@apollo/client/core';
-import { SMJS } from '.';
+import { MMGQL } from '.';
 import {
   IOneToOneQueryBuilder,
-  ISMNode,
+  INode,
   MapFnForNode,
   QueryRecordEntry,
 } from './types';
@@ -25,9 +25,9 @@ import {
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {
-    const smJSInstance = new SMJS(getMockConfig());
-    const todoNode = generateTodoNode(smJSInstance);
-    const userNode = generateUserNode(smJSInstance, todoNode);
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    const todoNode = generateTodoNode(mmGQLInstance);
+    const userNode = generateUserNode(mmGQLInstance, todoNode);
 
     const record = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
@@ -66,10 +66,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles querying partial objects within a node', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     const queryRecord = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
-      queryDefinitions: createMockQueryDefinitions(smJSInstance),
+      queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     }).users as QueryRecordEntry & { underIds: Array<string> };
 
     expect(queryRecord.def).toEqual(expect.objectContaining({ type: 'user' }));
@@ -88,11 +88,11 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles relational queries', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance),
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
       }).users.relational
     ).toEqual(
       expect.objectContaining({
@@ -106,11 +106,11 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles nested relational queries', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance),
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
       }).users.relational?.todos.relational
     ).toEqual(
       expect.objectContaining({
@@ -124,19 +124,19 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles oneToOne queries', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     const userProperties = {};
-    type UserNode = ISMNode<
+    type UserNode = INode<
       'user',
       typeof userProperties,
       {},
       { todo: IOneToOneQueryBuilder<TodoNode> }
     >;
-    const userNode: UserNode = smJSInstance.def({
+    const userNode: UserNode = mmGQLInstance.def({
       type: 'user',
       properties: {},
       relational: {
-        todo: () => oneToOne(generateTodoNode(smJSInstance)),
+        todo: () => oneToOne(generateTodoNode(mmGQLInstance)),
       },
     });
 
@@ -165,7 +165,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles oneToOne queries which return a union of node types', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     const userProperties = {
       firstName: string,
       lastName: string,
@@ -173,16 +173,16 @@ describe('getQueryRecordFromQueryDefinition', () => {
     const meetingGuestProperties = {
       firstName: string,
     };
-    type UserNode = ISMNode<'user', typeof userProperties>;
-    type MeetingGuestNode = ISMNode<
+    type UserNode = INode<'user', typeof userProperties>;
+    type MeetingGuestNode = INode<
       'meeting-guest',
       typeof meetingGuestProperties
     >;
-    const userNode: UserNode = smJSInstance.def({
+    const userNode: UserNode = mmGQLInstance.def({
       type: 'user',
       properties: userProperties,
     });
-    const meetingGuestNode: MeetingGuestNode = smJSInstance.def({
+    const meetingGuestNode: MeetingGuestNode = mmGQLInstance.def({
       type: 'meeting-guest',
       properties: meetingGuestProperties,
     });
@@ -190,7 +190,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     const todoProperties = {
       assigneeId: string,
     };
-    type TodoNode = ISMNode<
+    type TodoNode = INode<
       'todo',
       typeof todoProperties,
       {},
@@ -201,7 +201,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
         }>;
       }
     >;
-    const todoNode: TodoNode = smJSInstance.def({
+    const todoNode: TodoNode = mmGQLInstance.def({
       type: 'todo',
       properties: todoProperties,
       relational: {
@@ -247,14 +247,14 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles omitting map fn for objects, and will query all data in that object', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
 
     expect(
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
         queryDefinitions: {
           todos: queryDefinition({
-            def: generateTodoNode(smJSInstance),
+            def: generateTodoNode(mmGQLInstance),
             map: ({ settings }) => ({
               settings,
             }),
@@ -272,12 +272,12 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 
   it('handles querying all data for a relational query result, by using a map function that passes through all data for that node', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     const relationalResults = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
       queryDefinitions: {
         todos: queryDefinition({
-          def: generateTodoNode(smJSInstance),
+          def: generateTodoNode(mmGQLInstance),
           map: ({ id, assignee }) => ({
             id,
             assignee: assignee({
@@ -326,7 +326,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryId: 'queryId2',
       queryDefinitions: {
         mockNodes: queryDefinition({
-          def: smJSInstance.def({
+          def: mmGQLInstance.def({
             type: 'mock-node-type',
             properties: {
               obj: object({
@@ -356,12 +356,12 @@ describe('getQueryRecordFromQueryDefinition', () => {
 });
 
 describe('getQueryInfo.queryGQLString', () => {
-  it('creates a valid SM query from a fetcher config', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+  it('creates a valid query from a fetcher config', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance),
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -394,13 +394,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles multiple aliases', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance).users,
-          otherAlias: createMockQueryDefinitions(smJSInstance).users,
+          users: createMockQueryDefinitions(mmGQLInstance).users,
+          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -458,11 +458,11 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles fetching specific ids', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
           useIds: true,
         }),
       }).queryGQLString
@@ -497,12 +497,12 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles shorthand query definitions', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          todos: generateTodoNode(smJSInstance),
+          todos: generateTodoNode(mmGQLInstance),
         },
       }).queryGQLString
     ).toMatchInlineSnapshot(`
@@ -533,13 +533,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('handles map fn omission', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
           todos: {
-            def: generateTodoNode(smJSInstance),
+            def: generateTodoNode(mmGQLInstance),
             map: undefined,
           },
         },
@@ -572,13 +572,13 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('supports filters', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
           todos: queryDefinition({
-            def: generateTodoNode(smJSInstance),
+            def: generateTodoNode(mmGQLInstance),
             map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
             filter: { task: 'get it done', done: false, meetingId: null },
           }),
@@ -597,14 +597,14 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('supports filters for nested properties', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
 
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
           todos: queryDefinition({
-            def: generateTodoNode(smJSInstance),
+            def: generateTodoNode(mmGQLInstance),
             map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
             filter: {
               settings: { nestedSettings: { nestedNestedMaybe: 'mock value' } },
@@ -625,14 +625,14 @@ describe('getQueryInfo.queryGQLString', () => {
   });
 
   it('returns a valid gql string', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(() =>
       gql(
         getQueryInfo({
           queryId: 'MyTestQuery',
           queryDefinitions: {
-            users: createMockQueryDefinitions(smJSInstance).users,
-            otherAlias: createMockQueryDefinitions(smJSInstance).users,
+            users: createMockQueryDefinitions(mmGQLInstance).users,
+            otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
           },
         }).queryGQLString
       )
@@ -641,12 +641,12 @@ describe('getQueryInfo.queryGQLString', () => {
 });
 
 describe('getQueryInfo.subscriptionGQLStrings', () => {
-  it('creates a valid SM subscription from a fetcher config', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+  it('creates a valid subscription from a fetcher config', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance),
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -685,13 +685,13 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('handles multiple aliases', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance).users,
-          otherAlias: createMockQueryDefinitions(smJSInstance).users,
+          users: createMockQueryDefinitions(mmGQLInstance).users,
+          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
@@ -761,11 +761,11 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('handles fetching specific ids', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(smJSInstance, {
+        queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
           useIds: true,
         }),
       }).subscriptionConfigs.map(config => config.gqlString)
@@ -806,13 +806,13 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
   });
 
   it('returns a valid gql string', () => {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
     expect(() =>
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: {
-          users: createMockQueryDefinitions(smJSInstance).users,
-          otherAlias: createMockQueryDefinitions(smJSInstance).users,
+          users: createMockQueryDefinitions(mmGQLInstance).users,
+          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
       }).subscriptionConfigs.map(config => gql(config.gqlString))
     ).not.toThrow();

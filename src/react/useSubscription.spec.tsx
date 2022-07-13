@@ -8,7 +8,7 @@ import {
   getMockConfig,
 } from '../specUtilities';
 import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
-import { SMProvider, SMJS } from '..';
+import { MMGQLProvider, MMGQL } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 
@@ -21,10 +21,10 @@ afterAll(() => {
   console.error = nativeConsoleError;
 });
 
-test('it throws an error when used outside the context of an SMProvider', done => {
-  const { smJS } = setupTests();
+test('it throws an error when used outside the context of an MMGQLProvider', done => {
+  const { mmGQL } = setupTests();
   function MyComponent() {
-    useSubscription(createMockQueryDefinitions(smJS));
+    useSubscription(createMockQueryDefinitions(mmGQL));
 
     return null;
   }
@@ -33,18 +33,18 @@ test('it throws an error when used outside the context of an SMProvider', done =
     render(<MyComponent />);
   } catch (e) {
     expect(e).toMatchInlineSnapshot(
-      `[Error: You must wrap your app with an SMProvider before using useSubscription.]`
+      `[Error: You must wrap your app with an MMGQLProvider before using useSubscription.]`
     );
     done();
   }
 });
 
 test('it throws an error when a non registered token is used', done => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
   function MyComponent() {
     try {
       useSubscription(
-        createMockQueryDefinitions(smJS, { tokenName: 'invalid' })
+        createMockQueryDefinitions(mmGQL, { tokenName: 'invalid' })
       );
     } catch (e) {
       if (e instanceof Promise) {
@@ -55,7 +55,7 @@ test('it throws an error when a non registered token is used', done => {
       expect([first, second]).toMatchInlineSnapshot(`
         Array [
           "Error: No token registered with the name \\"invalid\\".",
-          "Please register this token prior to using it with sm.setToken({ tokenName, token })) ",
+          "Please register this token prior to using it with setToken({ tokenName, token })) ",
         ]
       `);
       done();
@@ -66,9 +66,9 @@ test('it throws an error when a non registered token is used', done => {
 
   render(
     <React.Suspense fallback={'loading'}>
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 });
@@ -78,18 +78,18 @@ test('it throws a promise that resolves when the query for the data requested re
   const mockPromise = new Promise(res => {
     resolvePromise = res;
   });
-  const { smJS } = setupTests();
-  smJS.gqlClient.query = () => mockPromise;
+  const { mmGQL } = setupTests();
+  mmGQL.gqlClient.query = () => mockPromise;
 
   render(
-    <SMProvider smJS={smJS}>
+    <MMGQLProvider mmGQL={mmGQL}>
       <MyComponent />
-    </SMProvider>
+    </MMGQLProvider>
   );
 
   function MyComponent() {
     try {
-      useSubscription(createMockQueryDefinitions(smJS));
+      useSubscription(createMockQueryDefinitions(mmGQL));
     } catch (suspendPromise) {
       testPromise(suspendPromise as Promise<any>);
     }
@@ -113,8 +113,8 @@ test('it throws a promise that resolves when the query for the data requested re
 });
 
 test('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
-  const { smJS } = setupTests();
-  const mockSubscriptionMessage = getMockSubscriptionMessage(smJS);
+  const { mmGQL } = setupTests();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQL);
 
   let triggerMessage: (() => void) | undefined;
   const mockSubscribe = jest.fn(opts => {
@@ -132,10 +132,10 @@ test('it re-renders the component when a subscription message causes a change in
     };
     return () => {};
   });
-  smJS.gqlClient.subscribe = mockSubscribe;
+  mmGQL.gqlClient.subscribe = mockSubscribe;
 
   function MyComponent() {
-    const { data } = useSubscription(createMockQueryDefinitions(smJS));
+    const { data } = useSubscription(createMockQueryDefinitions(mmGQL));
 
     return (
       <>
@@ -148,9 +148,9 @@ test('it re-renders the component when a subscription message causes a change in
 
   const renderResult = render(
     <React.Suspense fallback="loading">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
@@ -161,24 +161,24 @@ test('it re-renders the component when a subscription message causes a change in
 });
 
 test('it cancels the subscription after the component that establishes the subscription unmounts', done => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
   const mockUnsub = jest.fn(() => {});
   const mockSubscribe = jest.fn(() => {
     return mockUnsub;
   });
-  smJS.gqlClient.subscribe = mockSubscribe;
+  mmGQL.gqlClient.subscribe = mockSubscribe;
 
   function MyComponent() {
-    useSubscription(createMockQueryDefinitions(smJS));
+    useSubscription(createMockQueryDefinitions(mmGQL));
 
     return null;
   }
 
   const result = render(
     <React.Suspense fallback="loading">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
@@ -191,9 +191,9 @@ test('it cancels the subscription after the component that establishes the subsc
 });
 
 test('if the query record provided is updated, performs a new query and returns the new set of results when that query resolves', async () => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
   let requestIdx = 0;
-  smJS.gqlClient.query = jest.fn(() => {
+  mmGQL.gqlClient.query = jest.fn(() => {
     return new Promise(res => {
       if (requestIdx === 0) {
         setTimeout(() => {
@@ -216,8 +216,8 @@ test('if the query record provided is updated, performs a new query and returns 
     );
     const { data, querying } = useSubscription(
       updateQueryDefinition
-        ? createMockQueryDefinitions(smJS)
-        : createMockQueryDefinitions(smJS, { useIds: true })
+        ? createMockQueryDefinitions(mmGQL)
+        : createMockQueryDefinitions(mmGQL, { useIds: true })
     );
 
     React.useEffect(() => {
@@ -232,9 +232,9 @@ test('if the query record provided is updated, performs a new query and returns 
 
   const result = render(
     <React.Suspense fallback="loading">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
@@ -242,18 +242,20 @@ test('if the query record provided is updated, performs a new query and returns 
   // query definitions are updated by the timeout within the use effect above, which triggers a new query
   await result.findByText('querying');
   await result.findByText('Not FL');
-  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(mmGQL.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
 test('handles a query definition switching from non nullish to nullish', async () => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   function MyComponent() {
     const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
       false
     );
     const { data } = useSubscription(
-      updateQueryDefinition ? { users: null } : createMockQueryDefinitions(smJS)
+      updateQueryDefinition
+        ? { users: null }
+        : createMockQueryDefinitions(mmGQL)
     );
 
     React.useEffect(() => {
@@ -267,9 +269,9 @@ test('handles a query definition switching from non nullish to nullish', async (
 
   const result = render(
     <React.Suspense fallback="loading">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
@@ -278,9 +280,9 @@ test('handles a query definition switching from non nullish to nullish', async (
 });
 
 test('"querying" is true until all queries in the query definition record resolve', async done => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
   let requestIdx = 0;
-  smJS.gqlClient.query = jest.fn(() => {
+  mmGQL.gqlClient.query = jest.fn(() => {
     return new Promise(res => {
       if (requestIdx === 0) {
         setTimeout(() => {
@@ -303,8 +305,8 @@ test('"querying" is true until all queries in the query definition record resolv
 
   function MyComponent() {
     const { data, querying, error } = useSubscription({
-      users: createMockQueryDefinitions(smJS).users,
-      usersNotSuspended: createMockQueryDefinitions(smJS, {
+      users: createMockQueryDefinitions(mmGQL).users,
+      usersNotSuspended: createMockQueryDefinitions(mmGQL, {
         doNotSuspend: true,
       }).users,
     });
@@ -324,23 +326,23 @@ test('"querying" is true until all queries in the query definition record resolv
 
   const result = render(
     <React.Suspense fallback="suspense-fallback">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
   await result.findByText(
     `${mockQueryDataReturn.users[0].id}+${mockQueryDataReturn.users[0].id}`
   );
-  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(mmGQL.gqlClient.query).toHaveBeenCalledTimes(2);
   done();
 });
 
 test('if the query record provided is updated, unsubscribes from the previously established subscription', async done => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
   const mockUnsub = jest.fn();
-  smJS.gqlClient.subscribe = () => mockUnsub;
+  mmGQL.gqlClient.subscribe = () => mockUnsub;
 
   function MyComponent() {
     const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
@@ -348,8 +350,8 @@ test('if the query record provided is updated, unsubscribes from the previously 
     );
     useSubscription(
       updateQueryDefinition
-        ? createMockQueryDefinitions(smJS)
-        : createMockQueryDefinitions(smJS, { useIds: true })
+        ? createMockQueryDefinitions(mmGQL)
+        : createMockQueryDefinitions(mmGQL, { useIds: true })
     );
 
     React.useEffect(() => {
@@ -367,22 +369,22 @@ test('if the query record provided is updated, unsubscribes from the previously 
 
   render(
     <React.Suspense fallback="loading">
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 });
 
 test('suspense barrier is not triggered when doNotSuspend is true', async () => {
   const LOADING_TEXT = 'loading';
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   const result = render(
     <React.Suspense fallback={LOADING_TEXT}>
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
@@ -392,7 +394,7 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
 
   function MyComponent() {
     const { data } = useSubscription(
-      createMockQueryDefinitions(smJS, { doNotSuspend: true })
+      createMockQueryDefinitions(mmGQL, { doNotSuspend: true })
     );
 
     return (
@@ -407,24 +409,24 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
 
 test('queries that do not suspend rendering go out in separate requests', async () => {
   const LOADING_TEXT = 'loading';
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
-  smJS.gqlClient.query = mockQuery;
+  mmGQL.gqlClient.query = mockQuery;
 
   render(
     <React.Suspense fallback={LOADING_TEXT}>
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     </React.Suspense>
   );
 
   function MyComponent() {
-    const { users: usersSuspended } = createMockQueryDefinitions(smJS, {
+    const { users: usersSuspended } = createMockQueryDefinitions(mmGQL, {
       doNotSuspend: false,
     });
-    const { users: usersNotSuspended } = createMockQueryDefinitions(smJS, {
+    const { users: usersNotSuspended } = createMockQueryDefinitions(mmGQL, {
       doNotSuspend: true,
     });
 
@@ -436,14 +438,14 @@ test('queries that do not suspend rendering go out in separate requests', async 
     return null;
   }
 
-  expect(smJS.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(mmGQL.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
 test('rendering multiple instances of the same component using useSubscription throws an error if a unique subscriptionId is not provided', async done => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   function MyComponent() {
-    const { users } = createMockQueryDefinitions(smJS, { doNotSuspend: true });
+    const { users } = createMockQueryDefinitions(mmGQL, { doNotSuspend: true });
 
     const { data } = useSubscription({
       users,
@@ -454,10 +456,10 @@ test('rendering multiple instances of the same component using useSubscription t
 
   try {
     render(
-      <SMProvider smJS={smJS}>
+      <MMGQLProvider mmGQL={mmGQL}>
         <MyComponent />
         <MyComponent />
-      </SMProvider>
+      </MMGQLProvider>
     );
   } catch (e) {
     expect((e as any).message.split('\n')[0]).toMatchInlineSnapshot(
@@ -468,32 +470,32 @@ test('rendering multiple instances of the same component using useSubscription t
 });
 
 test('it allows duplicating subscription ids when wrapped in a NoDuplicateSubIdErrorProvider', async () => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   function MyComponent() {
-    useSubscription(createMockQueryDefinitions(smJS));
+    useSubscription(createMockQueryDefinitions(mmGQL));
     return <span>{'rendered'}</span>;
   }
 
   const result = render(
-    <SMProvider smJS={smJS} subscriptionTTLMs={2000}>
+    <MMGQLProvider mmGQL={mmGQL} subscriptionTTLMs={2000}>
       <React.Suspense fallback={'loading'}>
         <MyComponent />
         <UnsafeNoDuplicateSubIdErrorProvider>
           <MyComponent />
         </UnsafeNoDuplicateSubIdErrorProvider>
       </React.Suspense>
-    </SMProvider>
+    </MMGQLProvider>
   );
 
   await result.queryAllByText('rendered');
 });
 
 test('rendering multiple instances of the same component using useSubscription works if a unique subscription id is provided', async () => {
-  const { smJS } = setupTests();
+  const { mmGQL } = setupTests();
 
   function MyComponent(props: { id: string }) {
-    const { users } = createMockQueryDefinitions(smJS, { doNotSuspend: true });
+    const { users } = createMockQueryDefinitions(mmGQL, { doNotSuspend: true });
 
     const { data } = useSubscription(
       {
@@ -508,10 +510,10 @@ test('rendering multiple instances of the same component using useSubscription w
   }
 
   const renderResult = render(
-    <SMProvider smJS={smJS}>
+    <MMGQLProvider mmGQL={mmGQL}>
       <MyComponent id={'1'} />
       <MyComponent id={'2'} />
-    </SMProvider>
+    </MMGQLProvider>
   );
 
   const results = await renderResult.findAllByText(
@@ -521,10 +523,10 @@ test('rendering multiple instances of the same component using useSubscription w
 });
 
 function setupTests() {
-  const smJS = new SMJS(getMockConfig());
-  smJS.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
+  const mmGQL = new MMGQL(getMockConfig());
+  mmGQL.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
 
-  return { smJS };
+  return { mmGQL };
 }
 
 function promiseState(p: Promise<any>) {

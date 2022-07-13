@@ -1,33 +1,33 @@
-import * as smData from './smDataTypes';
-import { queryDefinition } from './smDataTypes';
+import * as data from './dataTypes';
+import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { getDefaultConfig, SMJS } from '.';
+import { getDefaultConfig, MMGQL } from '.';
 import {
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
-  ISMNode,
-  ISMJS,
-  ISMData,
-  SMDataDefaultFn,
+  INode,
+  IMMGQL,
+  IData,
+  DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
   NodeMutationFn,
   NodeComputedFns,
   NodeRelationalFns,
-  SMConfig,
+  Config,
   QueryDefinitionTarget,
-  SMNodeDefaultProps,
+  NodeDefaultProps,
 } from './types';
 
 const userProperties = {
-  firstName: smData.string,
-  lastName: smData.string('joe'),
-  address: smData.object({
-    streetName: smData.string,
-    zipCode: smData.string,
-    state: smData.string,
-    apt: smData.object({
-      number: smData.number,
-      floor: smData.number,
+  firstName: data.string,
+  lastName: data.string('joe'),
+  address: data.object({
+    streetName: data.string,
+    zipCode: data.string,
+    state: data.string,
+    apt: data.object({
+      number: data.number,
+      floor: data.number,
     }),
   }),
 };
@@ -40,7 +40,7 @@ type UserRelationalData = {
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = ISMNode<
+export type UserNode = INode<
   'user',
   UserProperties,
   { displayName: string },
@@ -50,10 +50,10 @@ export type UserNode = ISMNode<
 
 // factory functions so that tests don't share DO repositories
 export function generateUserNode(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   cachedTodoNode?: TodoNode
 ): UserNode {
-  const userNode: UserNode = smJSInstance.def({
+  const userNode: UserNode = mmGQLInstance.def({
     type: 'user',
     properties: userProperties,
     computed: {
@@ -62,31 +62,31 @@ export function generateUserNode(
       },
     },
     relational: {
-      todos: () => smData.oneToMany(todoNode),
+      todos: () => data.oneToMany(todoNode),
     },
   });
 
   const todoNode: TodoNode =
-    cachedTodoNode || generateTodoNode(smJSInstance, userNode);
+    cachedTodoNode || generateTodoNode(mmGQLInstance, userNode);
 
   return userNode;
 }
 
 const todoProperties = {
-  task: smData.string,
-  done: smData.boolean(false),
-  assigneeId: smData.string,
-  meetingId: smData.string.optional,
-  settings: smData.object.optional({
-    archiveAfterMeeting: smData.boolean.optional,
-    nestedSettings: smData.object.optional({
-      nestedNestedMaybe: smData.string.optional,
+  task: data.string,
+  done: data.boolean(false),
+  assigneeId: data.string,
+  meetingId: data.string.optional,
+  settings: data.object.optional({
+    archiveAfterMeeting: data.boolean.optional,
+    nestedSettings: data.object.optional({
+      nestedNestedMaybe: data.string.optional,
     }),
-    nestedRecord: smData.record(smData.boolean(false)),
+    nestedRecord: data.record(data.boolean(false)),
   }),
-  dataSetIds: smData.array(smData.string),
-  comments: smData.array(smData.string.optional).optional,
-  record: smData.record(smData.string),
+  dataSetIds: data.array(data.string),
+  comments: data.array(data.string.optional).optional,
+  record: data.record(data.string),
 };
 
 export type TodoProperties = typeof todoProperties;
@@ -97,7 +97,7 @@ export type TodoRelationalData = {
 
 export type TodoMutations = {};
 
-export type TodoNode = ISMNode<
+export type TodoNode = INode<
   'todo',
   TodoProperties,
   {},
@@ -106,26 +106,26 @@ export type TodoNode = ISMNode<
 >;
 
 export function generateTodoNode(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   cachedUserNode?: UserNode
 ): TodoNode {
-  const todoNode = smJSInstance.def({
+  const todoNode = mmGQLInstance.def({
     type: 'todo',
     properties: todoProperties,
     relational: {
-      assignee: () => smData.oneToOne<UserNode>(userNode),
+      assignee: () => data.oneToOne<UserNode>(userNode),
     },
   }) as TodoNode;
 
   const userNode: UserNode =
-    cachedUserNode || generateUserNode(smJSInstance, todoNode);
+    cachedUserNode || generateUserNode(mmGQLInstance, todoNode);
 
   return todoNode;
 }
 
 export function generateDOInstance<
   TNodeType extends string,
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   // the tsignore here is necessary
   // because the generic that NodeRelationalQueryBuilderRecord needs is
@@ -142,7 +142,7 @@ export function generateDOInstance<
   >
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
+  computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
   // @ts-ignore
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
@@ -151,8 +151,8 @@ export function generateDOInstance<
     version: string;
   } & Record<string, any>;
 }) {
-  const smJS = new SMJS(getDefaultConfig());
-  const DOclass = smJS.def<
+  const mmGQL = new MMGQL(getDefaultConfig());
+  const DOclass = mmGQL.def<
     TNodeType,
     TNodeData,
     TNodeComputedData,
@@ -164,11 +164,11 @@ export function generateDOInstance<
     computed: opts.computed,
     relational: opts.relational,
   }).do;
-  return { doInstance: new DOclass(opts.initialData), smJSInstance: smJS };
+  return { doInstance: new DOclass(opts.initialData), mmGQLInstance: mmGQL };
 }
 
 export function createMockQueryDefinitions(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
@@ -181,7 +181,7 @@ export function createMockQueryDefinitions(
 
   return {
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, todos, address }) => ({
         id,
         address: address({
@@ -272,19 +272,19 @@ const expectedUsers = [
 
 export const mockQueryResultExpectations = { users: expectedUsers };
 
-export function getMockQueryRecord(smJSInstance: ISMJS) {
+export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
   const { queryRecord } = convertQueryDefinitionToQueryInfo({
-    queryDefinitions: createMockQueryDefinitions(smJSInstance),
+    queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
   });
 
   return queryRecord;
 }
 
-export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
+export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
-  const queryRecord = getMockQueryRecord(smJSInstance);
+  const queryRecord = getMockQueryRecord(mmGQLInstance);
   return {
     users: {
       node: {
@@ -320,7 +320,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
   };
 }
 
-export function getMockConfig(): SMConfig {
+export function getMockConfig(): Config {
   return {
     gqlClient: {
       query: () => new Promise(res => res(mockQueryDataReturn)),

@@ -1,5 +1,5 @@
 /* eslint @typescript-eslint/no-unused-vars: 0, @typescript-eslint/no-unused-expressions: 0 */
-import { getDefaultConfig, queryDefinition, SMJS, useSubscription } from './';
+import { getDefaultConfig, queryDefinition, MMGQL, useSubscription } from './';
 import {
   string,
   number,
@@ -9,17 +9,17 @@ import {
   record,
   oneToMany,
   oneToOne,
-} from './smDataTypes';
+} from './dataTypes';
 import {
   ExtractQueriedDataFromMapFn,
   GetResultingDataTypeFromNodeDefinition,
   GetResultingDataTypeFromProperties,
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
-  ISMNode,
+  INode,
   MapFnForNode,
   Maybe,
-  SMDataEnum,
+  DataEnum,
   ValidFilterForNode,
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
@@ -29,7 +29,7 @@ import {
 /**
  * This file should only contain TS tests
  */
-const smJS = new SMJS(getDefaultConfig());
+const mmGQL = new MMGQL(getDefaultConfig());
 const todoProperties = {
   id: string,
   task: string,
@@ -65,14 +65,14 @@ type MeetingRelational = {
   attendees: IOneToManyQueryBuilder<UserNode>;
 };
 
-type MeetingNode = ISMNode<
+type MeetingNode = INode<
   'meeting',
   typeof meetingProperties,
   {},
   MeetingRelational
 >;
 
-type TodoNode = ISMNode<
+type TodoNode = INode<
   'todo',
   typeof todoProperties,
   {},
@@ -89,13 +89,13 @@ type TodoNode = ISMNode<
   }
 >;
 
-const todoNode: TodoNode = smJS.def({
+const todoNode: TodoNode = mmGQL.def({
   type: 'todo',
   properties: todoProperties,
   relational: todoRelational,
 });
 
-const meetingNode: MeetingNode = smJS.def({
+const meetingNode: MeetingNode = mmGQL.def({
   type: 'meeting',
   properties: meetingProperties,
   relational: {
@@ -108,9 +108,9 @@ const objectUnion = {
   number: number,
   string: string,
 } as
-  | { type: SMDataEnum<'number'>; number: typeof number }
+  | { type: DataEnum<'number'>; number: typeof number }
   | {
-      type: SMDataEnum<'string'>;
+      type: DataEnum<'string'>;
       string: typeof string;
     };
 
@@ -128,7 +128,7 @@ const userProperties = {
     }),
   }),
   fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
-  optionalBarBazEnum: string.optional as SMDataEnum<Maybe<'BAR' | 'BAZ'>>,
+  optionalBarBazEnum: string.optional as DataEnum<Maybe<'BAR' | 'BAZ'>>,
   recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
   objectUnion: object(objectUnion),
   arrayOfString: array(string),
@@ -138,7 +138,7 @@ const userRelational = {
   state: () => oneToOne(stateNode),
 };
 
-type UserNode = ISMNode<
+type UserNode = INode<
   'user',
   typeof userProperties,
   { fullName: string; avatar: string },
@@ -148,7 +148,7 @@ type UserNode = ISMNode<
   }
 >;
 
-const userNode: UserNode = smJS.def({
+const userNode: UserNode = mmGQL.def({
   type: 'user',
   properties: userProperties,
   relational: userRelational,
@@ -166,8 +166,8 @@ const meetingGuestProperties = {
   id: string,
   firstName: string,
 };
-type MeetingGuestNode = ISMNode<'meeting-guest', typeof meetingGuestProperties>;
-const meetingGuestNode: MeetingGuestNode = smJS.def({
+type MeetingGuestNode = INode<'meeting-guest', typeof meetingGuestProperties>;
+const meetingGuestNode: MeetingGuestNode = mmGQL.def({
   type: 'meeting-guest' as 'meeting-guest',
   properties: meetingGuestProperties,
 });
@@ -175,8 +175,8 @@ const meetingGuestNode: MeetingGuestNode = smJS.def({
 const stateNodeProperties = {
   name: string,
 };
-type StateNode = ISMNode<'state', typeof stateNodeProperties>;
-const stateNode: StateNode = smJS.def({
+type StateNode = INode<'state', typeof stateNodeProperties>;
+const stateNode: StateNode = mmGQL.def({
   type: 'state',
   properties: stateNodeProperties,
 });
@@ -351,7 +351,7 @@ const stateNode: StateNode = smJS.def({
 (async function ResultingDevExperienceQueryTests() {
   // shorthand syntax tests
   // no map fn or target defined
-  const shorthandQueryResults = await smJS.query({
+  const shorthandQueryResults = await mmGQL.query({
     users: userNode,
   });
   shorthandQueryResults.data.users[0].id as string;
@@ -403,7 +403,7 @@ const stateNode: StateNode = smJS.def({
 
   // def and map defined in this query
   // but no specific ids or "under" provided
-  const targetOmmissionResults = await smJS.query({
+  const targetOmmissionResults = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -427,7 +427,7 @@ const stateNode: StateNode = smJS.def({
 
   // def and map and a filter defined in this query
   // but no specific ids or "under" provided
-  await smJS.query({
+  await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({ id: userData.id }),
@@ -440,7 +440,7 @@ const stateNode: StateNode = smJS.def({
   });
 
   // can't use the result of the query above, since it's invalid and breaks type checking
-  const validTargetWithFilters = await smJS.query({
+  const validTargetWithFilters = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({ id: userData.id }),
@@ -456,7 +456,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error not queried
   validTargetWithFilters.data.users[0].notqueried as number;
 
-  const withRelationalResults = await smJS.query({
+  const withRelationalResults = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -495,7 +495,7 @@ const stateNode: StateNode = smJS.def({
 
   withRelationalResults.data.users[0].todos[0].meeting?.name as string;
 
-  const withOnlyRelationalResults = await smJS.query({
+  const withOnlyRelationalResults = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -516,7 +516,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error not queried
   withOnlyRelationalResults.data.users[0].todos[0].bogus as string;
 
-  const withPartialObject = await smJS.query({
+  const withPartialObject = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -531,7 +531,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error
   withPartialObject.data.users[0].address.bogus as string;
 
-  const byId = await smJS.query({
+  const byId = await mmGQL.query({
     user: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -547,7 +547,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error
   byId.data.user.bogus as string;
 
-  const byIdWithNullResult = await smJS.query({
+  const byIdWithNullResult = await mmGQL.query({
     user: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -566,7 +566,7 @@ const stateNode: StateNode = smJS.def({
   byIdWithNullResult.data.user?.bogus as string;
   byIdWithNullResult.data.user?.id as string;
 
-  const withMapFnFromObjectOmitted = await smJS.query({
+  const withMapFnFromObjectOmitted = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -577,7 +577,7 @@ const stateNode: StateNode = smJS.def({
 
   withMapFnFromObjectOmitted.data.users[0].address.state as string;
 
-  const withRelationalMapFnReturningAllData = await smJS.query({
+  const withRelationalMapFnReturningAllData = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
@@ -592,7 +592,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
   withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
 
-  const mockNode = smJS.def({
+  const mockNode = mmGQL.def({
     type: 'test',
     properties: {
       t: string,
@@ -600,7 +600,7 @@ const stateNode: StateNode = smJS.def({
   });
 
   // This mock node is all inferred, without the use of explicit types
-  const withExplicitTypesOmitted = await smJS.query({
+  const withExplicitTypesOmitted = await mmGQL.query({
     mock: queryDefinition({
       def: mockNode,
       map: ({ t }) => ({ t }),
@@ -611,7 +611,7 @@ const stateNode: StateNode = smJS.def({
   // @ts-expect-error
   withExplicitTypesOmitted.data.mock[0].foo as string;
 
-  const withRelationalUnion = await smJS.query({
+  const withRelationalUnion = await mmGQL.query({
     todos: queryDefinition({
       def: todoNode,
       map: todoData => ({
@@ -672,7 +672,7 @@ const stateNode: StateNode = smJS.def({
   // no need for a null check if the reference does not return a maybe type
   withRelationalUnion.data.todos[0].assigneeNonNullable.id;
 
-  const withReferenceArray = await smJS.query({
+  const withReferenceArray = await mmGQL.query({
     meeting: queryDefinition({
       def: meetingNode,
       map: meetingData => ({
@@ -752,7 +752,7 @@ const stateNode: StateNode = smJS.def({
     badProp: 'test',
   });
 
-  smJS.query({
+  mmGQL.query({
     // @ts-expect-error
     badProp: 'test',
   });
@@ -778,9 +778,9 @@ const stateNode: StateNode = smJS.def({
       flagEnabled: boolean(false),
     }),
   };
-  type NodeType = ISMNode<'some-type', typeof nodeProperties>;
+  type NodeType = INode<'some-type', typeof nodeProperties>;
 
-  smJS.transaction(ctx => {
+  mmGQL.transaction(ctx => {
     ctx.createNode<NodeType>({
       data: {
         type: 'some-type',

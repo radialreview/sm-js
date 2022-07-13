@@ -1,23 +1,23 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
-import { SMUnexpectedSubscriptionMessageException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { UnexpectedSubscriptionMessageException } from './exceptions';
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
   MapFn,
-  ISMData,
+  IData,
   NodeRelationalQuery,
-  ISMNode,
+  INode,
   NodeComputedFns,
   RelationalQueryRecordEntry,
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
   ValidFilterForNode,
-  SM_DATA_TYPES,
-  SM_RELATIONAL_TYPES,
+  DATA_TYPES,
+  RELATIONAL_TYPES,
   QueryDefinition,
-  SMDataDefaultFn,
+  DataDefaultFn,
   IOneToOneQueryBuilderOpts,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
@@ -33,7 +33,7 @@ import {
  */
 
 /**
- * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
+ * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
  * This fn executs those fns at query time, and returns a record of relational query builders
@@ -56,7 +56,7 @@ function getRelationalQueryBuildersFromRelationalFns(
 
 function getMapFnReturn(opts: {
   mapFn: MapFn<any, any, any>;
-  properties: Record<string, ISMData>;
+  properties: Record<string, IData>;
   relational?: NodeRelationalFns<any>;
 }) {
   const mapFnOpts: Record<string, any> = {
@@ -65,11 +65,11 @@ function getMapFnReturn(opts: {
   };
 
   Object.keys(opts.properties).forEach(key => {
-    const data = opts.properties[key] as ISMData;
+    const data = opts.properties[key] as IData;
 
     if (
-      data.type === SM_DATA_TYPES.object ||
-      data.type === SM_DATA_TYPES.maybeObject
+      data.type === DATA_TYPES.object ||
+      data.type === DATA_TYPES.maybeObject
     ) {
       mapFnOpts[key] = (opts: { map: MapFn<any, any, any> }) => opts.map;
     }
@@ -77,24 +77,24 @@ function getMapFnReturn(opts: {
 
   return opts.mapFn(mapFnOpts) as Record<
     string,
-    ISMData | MapFn<any, any, any> | NodeRelationalQuery<ISMNode>
+    IData | MapFn<any, any, any> | NodeRelationalQuery<INode>
   >;
 }
 
 function getQueriedProperties(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
-  smData: Record<string, any>;
-  smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  mapFn: (data: Record<string, any>) => Record<string, any>;
+  data: Record<string, any>;
+  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
   isRootLevel?: true;
 }): Array<string> {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational,
+    properties: opts.data,
+    relational: opts.relational,
   });
 
   /**
@@ -115,9 +115,9 @@ function getQueriedProperties(opts: {
    *
    * in this case, we just assume they want to query the entire object
    */
-  return Object.keys(mapFnReturn || opts.smData).reduce(
+  return Object.keys(mapFnReturn || opts.data).reduce(
     (acc, key) => {
-      const isData = !!opts.smData[key];
+      const isData = !!opts.data[key];
 
       if (!isData) return acc;
 
@@ -126,10 +126,10 @@ function getQueriedProperties(opts: {
         return acc;
       }
 
-      const data = opts.smData[key] as ISMData;
+      const data = opts.data[key] as IData;
       if (
-        data.type === SM_DATA_TYPES.object ||
-        data.type === SM_DATA_TYPES.maybeObject
+        data.type === DATA_TYPES.object ||
+        data.type === DATA_TYPES.maybeObject
       ) {
         // query for any data stored in old format (stringified json at the root of the node)
         acc.push(key);
@@ -141,7 +141,7 @@ function getQueriedProperties(opts: {
             mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
               : () => null) as MapFn<any, any, any>,
-            smData: (data.boxedValue as unknown) as Record<string, ISMData>,
+            data: (data.boxedValue as unknown) as Record<string, IData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
 
@@ -157,7 +157,7 @@ function getQueriedProperties(opts: {
 }
 
 function getAllNodeProperties(opts: {
-  nodeProperties: Record<string, ISMData | SMDataDefaultFn>;
+  nodeProperties: Record<string, IData | DataDefaultFn>;
   isRootLevel: boolean;
 }) {
   return Object.keys(opts.nodeProperties).reduce(
@@ -167,18 +167,18 @@ function getAllNodeProperties(opts: {
         return acc;
       }
 
-      const data = opts.nodeProperties[key] as ISMData;
+      const data = opts.nodeProperties[key] as IData;
       if (
-        data.type === SM_DATA_TYPES.object ||
-        data.type === SM_DATA_TYPES.maybeObject
+        data.type === DATA_TYPES.object ||
+        data.type === DATA_TYPES.maybeObject
       ) {
         // query for any data stored in old format (stringified json at the root of the node)
         acc.push(key);
         // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
         acc.push(
           ...getAllNodeProperties({
-            nodeProperties: (opts.nodeProperties[key] as ISMData)
-              .boxedValue as Record<string, ISMData>,
+            nodeProperties: (opts.nodeProperties[key] as IData)
+              .boxedValue as Record<string, IData>,
             isRootLevel: false,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -195,26 +195,26 @@ function getAllNodeProperties(opts: {
 
 function getRelationalQueries(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
-  smData: Record<string, any>;
-  smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  mapFn: (data: Record<string, any>) => Record<string, any>;
+  data: Record<string, any>;
+  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational,
+    properties: opts.data,
+    relational: opts.relational,
   });
 
   const relationalQueries = Object.keys(mapFnReturn).reduce((acc, alias) => {
-    const isData = !!opts.smData[alias];
-    const isComputed = opts.smComputed ? !!opts.smComputed[alias] : false;
+    const isData = !!opts.data[alias];
+    const isComputed = opts.computed ? !!opts.computed[alias] : false;
 
     if (isData || isComputed) {
       return acc;
     } else {
       const relationalQuery = mapFnReturn[alias] as NodeRelationalQuery<
-        ISMNode | Record<string, ISMNode>
+        INode | Record<string, INode>
       >;
 
       /**
@@ -237,15 +237,15 @@ function getRelationalQueries(opts: {
         return acc;
       }
 
-      if (relationalQuery._smRelational == null) {
+      if (relationalQuery._relational == null) {
         throw Error(
           `getRelationalQueries - the key "${alias}" is not a data property, not a computed property and does not contain a relational query.`
         );
       }
 
       if (
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.oneToOne ||
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.oneToMany
+        relationalQuery._relational === RELATIONAL_TYPES.oneToOne ||
+        relationalQuery._relational === RELATIONAL_TYPES.oneToMany
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
@@ -253,26 +253,26 @@ function getRelationalQueries(opts: {
         ) {
           // non union
           const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
-            ISMNode
+            INode
           >;
           addRelationalQueryRecord({
-            _smRelational: relationalQuery._smRelational,
+            _relational: relationalQuery._relational,
             _relationshipName: relationalQuery._relationshipName,
             alias,
-            def: relationalQuery.def as ISMNode,
+            def: relationalQuery.def as INode,
             mapFn: queryBuilderOpts.map,
           });
         } else {
           // union
           const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
-            Record<string, ISMNode>
+            Record<string, INode>
           >;
           Object.keys(queryBuilderOpts).forEach(unionType => {
             addRelationalQueryRecord({
-              _smRelational: relationalQuery._smRelational,
+              _relational: relationalQuery._relational,
               _relationshipName: relationalQuery._relationshipName,
               alias: `${alias}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
-              def: (relationalQuery.def as Record<string, ISMNode>)[unionType],
+              def: (relationalQuery.def as Record<string, INode>)[unionType],
               mapFn: queryBuilderOpts[unionType].map,
             });
           });
@@ -280,14 +280,14 @@ function getRelationalQueries(opts: {
       } else {
         throw Error(
           // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
-          `The relational query type ${relationalQuery._smRelational} is not valid`
+          `The relational query type ${relationalQuery._relational} is not valid`
         );
       }
 
       function addRelationalQueryRecord(queryRecord: {
-        _smRelational: SM_RELATIONAL_TYPES;
+        _relational: RELATIONAL_TYPES;
         _relationshipName: string;
-        def: ISMNode;
+        def: INode;
         mapFn: (data: any) => any;
         alias: string;
       }) {
@@ -297,9 +297,9 @@ function getRelationalQueries(opts: {
           properties: getQueriedProperties({
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
-            smData: queryRecord.def.smData,
-            smComputed: queryRecord.def.smComputed,
-            smRelational: queryRecord.def.smRelational,
+            data: queryRecord.def.data,
+            computed: queryRecord.def.computed,
+            relational: queryRecord.def.relational,
             isRootLevel: true,
           }),
         };
@@ -308,9 +308,9 @@ function getRelationalQueries(opts: {
           {
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
-            smData: queryRecord.def.smData,
-            smComputed: queryRecord.def.smComputed,
-            smRelational: queryRecord.def.smRelational,
+            data: queryRecord.def.data,
+            computed: queryRecord.def.computed,
+            relational: queryRecord.def.relational,
           }
         );
 
@@ -318,12 +318,12 @@ function getRelationalQueries(opts: {
           relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
         }
 
-        const relationalType = queryRecord._smRelational;
-        if (relationalType === SM_RELATIONAL_TYPES.oneToOne) {
+        const relationalType = queryRecord._relational;
+        if (relationalType === RELATIONAL_TYPES.oneToOne) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             oneToOne: true;
           }).oneToOne = true;
-        } else if (relationalType === SM_RELATIONAL_TYPES.oneToMany) {
+        } else if (relationalType === RELATIONAL_TYPES.oneToMany) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             oneToMany: true;
           }).oneToMany = true;
@@ -345,11 +345,11 @@ function getRelationalQueries(opts: {
 }
 
 export function getQueryRecordFromQueryDefinition<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -357,7 +357,7 @@ export function getQueryRecordFromQueryDefinition<
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null =
+    const queryDefinition: QueryDefinition<any, any, any> | INode | null =
       opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;
@@ -366,11 +366,11 @@ export function getQueryRecordFromQueryDefinition<
     let allowNullResult;
     if (!queryDefinition) {
       return;
-    } else if ('_isSMNodeDef' in queryDefinition) {
+    } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
-      nodeDef = queryDefinition as ISMNode;
+      nodeDef = queryDefinition as INode;
       queriedProps = getAllNodeProperties({
-        nodeProperties: nodeDef.smData,
+        nodeProperties: nodeDef.data,
         isRootLevel: true,
       });
     } else {
@@ -380,21 +380,21 @@ export function getQueryRecordFromQueryDefinition<
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: queryDefinition.def.smData,
-          smComputed: queryDefinition.def.smComputed,
-          smRelational: queryDefinition.def.smRelational,
+          data: queryDefinition.def.data,
+          computed: queryDefinition.def.computed,
+          relational: queryDefinition.def.relational,
           isRootLevel: true,
         });
         relational = getRelationalQueries({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: nodeDef.smData,
-          smComputed: nodeDef.smComputed,
-          smRelational: nodeDef.smRelational,
+          data: nodeDef.data,
+          computed: nodeDef.computed,
+          relational: nodeDef.relational,
         });
       } else {
         queriedProps = getAllNodeProperties({
-          nodeProperties: nodeDef.smData,
+          nodeProperties: nodeDef.data,
           isRootLevel: true,
         });
       }
@@ -447,8 +447,8 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<TSMNode extends ISMNode>(
-  filter: ValidFilterForNode<TSMNode>
+export function getKeyValueFilterString<TNode extends INode>(
+  filter: ValidFilterForNode<TNode>
 ) {
   const convertedToDotFormat = prepareObjectForBE(filter, {
     omitObjectIdentifier: true,
@@ -465,9 +465,9 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   )}}`;
 }
 
-function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
-  def: TSMNode;
-  filter?: ValidFilterForNode<TSMNode>;
+function getGetNodeOptions<TNode extends INode>(opts: {
+  def: TNode;
+  filter?: ValidFilterForNode<TNode>;
 }) {
   const options: Array<string> = [];
 
@@ -575,11 +575,11 @@ export type SubscriptionConfig = {
 };
 
 export function getQueryInfo<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -625,7 +625,7 @@ export function getQueryInfo<
       subscriptionMessage: Record<string, any>
     ) {
       if (!subscriptionMessage[alias].node) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage,
           description: 'No "node" found in message',
         });
@@ -638,7 +638,7 @@ export function getQueryInfo<
       subscriptionMessage: Record<string, any>
     ) {
       if (!subscriptionMessage[alias].operation) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage,
           description: 'No "operation" found in message',
         });
@@ -673,11 +673,11 @@ export function getQueryInfo<
  * taking into account the previous query record to avoid requesting data already in memory
  */
 export function convertQueryDefinitionToQueryInfo<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >

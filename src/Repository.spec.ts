@@ -1,14 +1,14 @@
-import * as smData from './smDataTypes';
-import { SMNotCachedException } from './exceptions';
+import * as data from './dataTypes';
+import { NotCachedException } from './exceptions';
 import { UserNode, generateUserNode, getMockConfig } from './specUtilities';
 import { RepositoryFactory } from './Repository';
-import { getDefaultConfig, SMJS } from '.';
+import { getDefaultConfig, MMGQL } from '.';
 import {
   NodeRelationalQueryBuilderRecord,
   NodeMutationFn,
   NodeComputedFns,
   NodeRelationalFns,
-  SMDataDefaultFn,
+  DataDefaultFn,
   IOneToOneQueryBuilder,
 } from './types';
 import { NULL_TAG } from './dataConversions';
@@ -36,7 +36,7 @@ function generateRepositoryInstance<
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 }) {
-  const smJS = new SMJS(getDefaultConfig());
+  const mmGQL = new MMGQL(getDefaultConfig());
   const def = {
     type: 'mockNodeType',
     properties: opts.properties,
@@ -44,7 +44,7 @@ function generateRepositoryInstance<
     relational: opts.relational,
   };
 
-  const DOClass = smJS.def(def).do;
+  const DOClass = mmGQL.def(def).do;
 
   return RepositoryFactory({
     DOClass,
@@ -55,11 +55,11 @@ function generateRepositoryInstance<
   });
 }
 
-describe('smData.repository', () => {
+describe('data.repository', () => {
   it('exposes a method to cache new data being received for a def', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
     });
 
@@ -74,7 +74,7 @@ describe('smData.repository', () => {
   it('exposes a method to get cached data by id', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
     });
 
@@ -94,7 +94,7 @@ describe('smData.repository', () => {
   it('returns the same DO instance when by id is called after an update is received', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
     });
 
@@ -123,9 +123,9 @@ describe('smData.repository', () => {
   it('converts data received with __dot__ nested format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        settings: smData.object({
-          schedule: smData.object({
-            startTime: smData.number,
+        settings: data.object({
+          schedule: data.object({
+            startTime: data.number,
           }),
         }),
       },
@@ -135,8 +135,8 @@ describe('smData.repository', () => {
       id: 'mock-id',
       type: 'mockNodeType',
       version: '1',
-      settings: smData.OBJECT_IDENTIFIER,
-      settings__dot__schedule: smData.OBJECT_IDENTIFIER,
+      settings: data.OBJECT_IDENTIFIER,
+      settings__dot__schedule: data.OBJECT_IDENTIFIER,
       settings__dot__schedule__dot__startTime: '321',
     } as { id: string });
 
@@ -147,11 +147,11 @@ describe('smData.repository', () => {
   it('converts data received with __JSON__ array format to a regular array', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        people: smData.array(smData.string),
-        peopleOptional: smData.array(smData.string).optional,
-        object: smData.object({
-          nestedArray: smData.array(smData.string),
-          nestedOptionalArray: smData.array(smData.string).optional,
+        people: data.array(data.string),
+        peopleOptional: data.array(data.string).optional,
+        object: data.object({
+          nestedArray: data.array(data.string),
+          nestedOptionalArray: data.array(data.string).optional,
         }),
       },
     });
@@ -161,9 +161,9 @@ describe('smData.repository', () => {
       type: 'mockNodeType',
       people: `__JSON__["joe", "bob"]`,
       peopleOptional: `__JSON__["user1", "user2"]`,
-      object: smData.OBJECT_IDENTIFIER,
-      [`object${smData.OBJECT_PROPERTY_SEPARATOR}nestedArray`]: '__JSON__["joe", "bob"]',
-      [`object${smData.OBJECT_PROPERTY_SEPARATOR}nestedOptionalArray`]: `__JSON__["user1", "user2"]`,
+      object: data.OBJECT_IDENTIFIER,
+      [`object${data.OBJECT_PROPERTY_SEPARATOR}nestedArray`]: '__JSON__["joe", "bob"]',
+      [`object${data.OBJECT_PROPERTY_SEPARATOR}nestedOptionalArray`]: `__JSON__["user1", "user2"]`,
     } as { id: string });
 
     const DO = repository.byId('mock-id');
@@ -177,21 +177,21 @@ describe('smData.repository', () => {
   it('converts data received in old object format to a regular object', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        settings: smData.object({
-          schedule: smData.object({
-            startTime: smData.number,
+        settings: data.object({
+          schedule: data.object({
+            startTime: data.number,
           }),
         }),
-        recordProp: smData.record(
-          smData.object({
-            stringProp: smData.string,
-            optionalNumberProp: smData.number.optional,
+        recordProp: data.record(
+          data.object({
+            stringProp: data.string,
+            optionalNumberProp: data.number.optional,
           })
         ),
-        optionalRecordProp: smData.record.optional(
-          smData.object({
-            stringProp: smData.string,
-            optionalNumberProp: smData.number.optional,
+        optionalRecordProp: data.record.optional(
+          data.object({
+            stringProp: data.string,
+            optionalNumberProp: data.number.optional,
           })
         ),
       },
@@ -222,20 +222,20 @@ describe('smData.repository', () => {
   // When we get back data from a query, we want to call DO.onDataReceived without having to manually parse the data
   // to remove the relational results. This ensures the DO is responsible for that.
   test('data received that is not part of node data or is relational is ignored', () => {
-    const smJS = new SMJS(getMockConfig());
+    const mmGQL = new MMGQL(getMockConfig());
     const repository = generateRepositoryInstance<
       {
-        task: SMDataDefaultFn;
+        task: DataDefaultFn;
       },
       {},
       { assignee: IOneToOneQueryBuilder<UserNode> },
       {}
     >({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
       relational: {
-        assignee: () => smData.oneToOne(generateUserNode(smJS)),
+        assignee: () => data.oneToOne(generateUserNode(mmGQL)),
       },
     });
 
@@ -262,17 +262,17 @@ describe('smData.repository', () => {
   it('throws an error when byId is called with an id that has not been cached', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
     });
 
-    expect(() => repository.byId('123')).toThrow(SMNotCachedException);
+    expect(() => repository.byId('123')).toThrow(NotCachedException);
   });
 
   it('exposes a method to delete cached data by id', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        task: smData.string,
+        task: data.string,
       },
     });
 
@@ -288,23 +288,23 @@ describe('smData.repository', () => {
 
     repository.onNodeDeleted('123');
 
-    expect(() => repository.byId('123')).toThrow(SMNotCachedException);
+    expect(() => repository.byId('123')).toThrow(NotCachedException);
   });
 
   it('handles null nested objects', () => {
     const repository = generateRepositoryInstance({
       properties: {
-        object: smData.object({
-          nested: smData.object({
-            foo: smData.string,
+        object: data.object({
+          nested: data.object({
+            foo: data.string,
           }),
         }),
-        optionalObject: smData.object.optional({
-          string: smData.string,
-          oldStyleString: smData.string.optional,
-          requiredString2: smData.string,
-          nestedOptional: smData.object.optional({
-            foo: smData.string,
+        optionalObject: data.object.optional({
+          string: data.string,
+          oldStyleString: data.string.optional,
+          requiredString2: data.string,
+          nestedOptional: data.object.optional({
+            foo: data.string,
           }),
         }),
       },
@@ -315,7 +315,7 @@ describe('smData.repository', () => {
       type: 'mockNodeType',
       version: '1',
       object: null,
-      optionalObject: smData.OBJECT_IDENTIFIER,
+      optionalObject: data.OBJECT_IDENTIFIER,
       optionalObject__dot__string: 'hello',
       optionalObject__dot__oldStyleString: NULL_TAG,
       optionalObject__dot__requiredString2: NULL_TAG,
