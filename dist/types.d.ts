@@ -1,3 +1,4 @@
+import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './smQueriers';
@@ -6,7 +7,10 @@ import { createTransaction } from './transaction/transaction';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
-export declare type SMDataDefaultFn = (_default: any) => ISMData;
+export declare type SMDataDefaultFn = {
+    _default: ISMData;
+    (_default: any): ISMData;
+};
 export declare type DocumentNode = import('@apollo/client/core').DocumentNode;
 export declare type SMPlugin = {
     DO?: {
@@ -29,6 +33,7 @@ export declare type SMPlugin = {
 export declare type SMConfig = {
     gqlClient: ISMGQLClient;
     plugins?: Array<SMPlugin>;
+    generateMockData?: boolean;
 };
 export interface ISMGQLClient {
     query(opts: {
@@ -89,6 +94,7 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
     queryId?: string;
     batchKey?: string;
 };
+export declare type SMNodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
@@ -108,15 +114,16 @@ export interface ISMJS {
     transaction: ReturnType<typeof createTransaction>;
     gqlClient: ISMGQLClient;
     plugins: Array<SMPlugin> | undefined;
+    generateMockData: boolean | undefined;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     SMQueryManager: ReturnType<typeof createSMQueryManager>;
-    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
 }
 export declare type NodeDefArgs<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn>> = {
     type: TNodeType;
     properties: TNodeData;
-    computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+    computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
     mutations?: TNodeMutations;
 };
@@ -161,14 +168,15 @@ export declare type GetParsedValueTypeFromDefaultFn<TDefaultFn extends (_default
  * }
  */
 export declare type GetResultingDataTypeFromProperties<TProperties extends Record<string, ISMData | SMDataDefaultFn>> = {
-    [key in keyof TProperties]: TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>> : GetAllAvailableNodeDataType<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TProperties[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TProperties[key]> : never;
+    [key in keyof TProperties]: TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>> : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TProperties[key] extends SMDataDefaultFn ? GetParsedValueTypeFromDefaultFn<TProperties[key]> : never;
 };
 export declare type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
-export declare type GetAllAvailableNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+export declare type GetAllAvailableNodeDataType<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData & SMNodeDefaultProps> & TComputedData;
+declare type GetAllAvailableNodeDataTypeWithoutDefaultProps<TSMData extends Record<string, ISMData | SMDataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 /**
  * Takes in any object and returns a Partial of that object type
  * for nested objects, those will also be turned into partials
@@ -256,9 +264,9 @@ export declare type NodeRelationalFns<TNodeRelationalData extends NodeRelational
     [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
 export declare type NodeMutationFn = () => Promise<any>;
-export interface ISMNode<TNodeType extends string = any, TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}, TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>, TNodeDO = NodeDO> {
+export interface ISMNode<TNodeType extends string = any, TNodeData extends Record<string, ISMData | SMDataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}, TNodeComputedFns = NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>, TNodeDO = NodeDO> {
     _isSMNodeDef: true;
-    smData: TNodeData;
+    smData: TNodeData & SMNodeDefaultProps;
     smComputed?: TNodeComputedFns;
     smRelational?: NodeRelationalFns<TNodeRelationalData>;
     smMutations?: TNodeMutations;
@@ -419,7 +427,7 @@ export declare type UseSubscriptionReturn<TQueryDefinitions extends UseSubscript
     error: any;
 };
 export declare type MapFnForNode<TSMNode extends ISMNode> = MapFn<ExtractNodeData<TSMNode>, ExtractNodeComputedData<TSMNode>, ExtractNodeRelationalData<TSMNode>>;
-export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>) => RequestedData<TNodeData, TNodeComputedData>;
+export declare type MapFn<TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = (data: GetMapFnArgs<ISMNode<any, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData>>) => RequestedData<TNodeData, TNodeComputedData>;
 export declare type GetMapFnArgs<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TNodeData, any, infer TNodeRelationalData> ? {
     [key in keyof TNodeData]: TNodeData[key] extends ISMData<Maybe<Array<any>>> ? TNodeData[key] : TNodeData[key] extends ISMData<any, any, Record<string, ISMData | SMDataDefaultFn>> ? <TMapFn extends MapFn<GetSMBoxedValue<TNodeData[key]>, {}, {}>>(opts: {
         map: TMapFn;

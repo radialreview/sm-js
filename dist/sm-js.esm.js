@@ -6,10 +6,6 @@ import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
 
-var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
-var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
-var DEFAULT_TOKEN_NAME = 'default';
-
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
     var info = gen[key](arg);
@@ -179,53 +175,6 @@ function _taggedTemplateLiteralLoose(strings, raw) {
   return strings;
 }
 
-var JSON_TAG = '__JSON__';
-var NULL_TAG = '__NULL__';
-function parseJSONFromBE(jsonString) {
-  if (!jsonString.startsWith(JSON_TAG)) {
-    throw Error("parseJSONFromBE - invalid json received:\n" + jsonString);
-  } // convert string array into js array
-
-
-  if (jsonString.startsWith(JSON_TAG + "[")) {
-    return JSON.parse(jsonString.replace('__JSON__', ''));
-  } // Allow new line text (\n to \\n)
-  // replacing prevents JSON.parse to complaining
-
-
-  return JSON.parse(jsonString.replace(JSON_TAG, '').replace(/\n/g, '\\n'));
-}
-function prepareValueForFE(value) {
-  if (value === NULL_TAG) {
-    return null;
-  } else if (value === 'true' || value === 'false') {
-    return value === 'true';
-  } else if (typeof value === 'string' && value.startsWith(JSON_TAG)) {
-    return parseJSONFromBE(value);
-  } else if (Array.isArray(value)) {
-    return value.map(function (entry) {
-      if (typeof entry === 'object') {
-        return prepareValueForFE(entry);
-      } else {
-        return entry;
-      }
-    });
-  } else if (value != null && typeof value === 'object') {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return prepareForFE(value);
-  } else {
-    return value;
-  }
-}
-function prepareForFE(beData) {
-  return Object.keys(beData).reduce(function (prepared, key) {
-    var _extends2;
-
-    var value = beData[key];
-    return _extends({}, prepared, (_extends2 = {}, _extends2[key] = prepareValueForFE(value), _extends2));
-  }, {});
-}
-
 // thrown when any property on the DO is accessed but is not marked as upToDate
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
@@ -254,49 +203,58 @@ var SMNotUpToDateInComputedException = /*#__PURE__*/function (_Error2) {
 
   return SMNotUpToDateInComputedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMNotCachedException = /*#__PURE__*/function (_Error3) {
-  _inheritsLoose(SMNotCachedException, _Error3);
+var SMImpliedNodePropertyException = /*#__PURE__*/function (_Error3) {
+  _inheritsLoose(SMImpliedNodePropertyException, _Error3);
+
+  function SMImpliedNodePropertyException(opts) {
+    return _Error3.call(this, "SMImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
+  }
+
+  return SMImpliedNodePropertyException;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
+var SMNotCachedException = /*#__PURE__*/function (_Error4) {
+  _inheritsLoose(SMNotCachedException, _Error4);
 
   function SMNotCachedException(opts) {
-    return _Error3.call(this, "SMNotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
+    return _Error4.call(this, "SMNotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
   }
 
   return SMNotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeException = /*#__PURE__*/function (_Error4) {
-  _inheritsLoose(SMDataTypeException, _Error4);
+var SMDataTypeException = /*#__PURE__*/function (_Error5) {
+  _inheritsLoose(SMDataTypeException, _Error5);
 
   function SMDataTypeException(opts) {
-    return _Error4.call(this, "SMDataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+    return _Error5.call(this, "SMDataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
   return SMDataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeExplicitDefaultException = /*#__PURE__*/function (_Error5) {
-  _inheritsLoose(SMDataTypeExplicitDefaultException, _Error5);
+var SMDataTypeExplicitDefaultException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(SMDataTypeExplicitDefaultException, _Error6);
 
   function SMDataTypeExplicitDefaultException(opts) {
-    return _Error5.call(this, "SMDataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+    return _Error6.call(this, "SMDataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
   return SMDataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataParsingException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(SMDataParsingException, _Error6);
+var SMDataParsingException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(SMDataParsingException, _Error7);
 
   function SMDataParsingException(opts) {
-    return _Error6.call(this, "SMDataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+    return _Error7.call(this, "SMDataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
   return SMDataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(SMUnexpectedSubscriptionMessageException, _Error7);
+var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(SMUnexpectedSubscriptionMessageException, _Error8);
 
   function SMUnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error7.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error8.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
@@ -312,7 +270,17 @@ function throwLocallyLogInProd(error) {
   } else {
     console.error(error);
   }
-}
+} // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
+
+var UnreachableCaseError = /*#__PURE__*/function (_Error10) {
+  _inheritsLoose(UnreachableCaseError, _Error10);
+
+  function UnreachableCaseError(val) {
+    return _Error10.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+  }
+
+  return UnreachableCaseError;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
 
 var SM_DATA_TYPES;
 
@@ -570,6 +538,66 @@ var OBJECT_IDENTIFIER = '__object__'; // HACK ALERT! Exists only to make TS work
 
 function queryDefinition(queryDefinition) {
   return queryDefinition;
+}
+
+var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
+var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
+var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with smJS.def now has these properties auto added to their data.
+// They are not queried automatically and must be explicitly defined on the node definition, unless they also appear on PROPERTIES_QUERIED_FOR_ALL_NODES.
+
+var DEFAULT_NODE_PROPERTIES = {
+  id: string,
+  dateCreated: number,
+  dateLastModified: number,
+  lastUpdatedBy: string,
+  lastUpdatedClientTimestamp: number
+};
+
+var JSON_TAG = '__JSON__';
+var NULL_TAG = '__NULL__';
+function parseJSONFromBE(jsonString) {
+  if (!jsonString.startsWith(JSON_TAG)) {
+    throw Error("parseJSONFromBE - invalid json received:\n" + jsonString);
+  } // convert string array into js array
+
+
+  if (jsonString.startsWith(JSON_TAG + "[")) {
+    return JSON.parse(jsonString.replace('__JSON__', ''));
+  } // Allow new line text (\n to \\n)
+  // replacing prevents JSON.parse to complaining
+
+
+  return JSON.parse(jsonString.replace(JSON_TAG, '').replace(/\n/g, '\\n'));
+}
+function prepareValueForFE(value) {
+  if (value === NULL_TAG) {
+    return null;
+  } else if (value === 'true' || value === 'false') {
+    return value === 'true';
+  } else if (typeof value === 'string' && value.startsWith(JSON_TAG)) {
+    return parseJSONFromBE(value);
+  } else if (Array.isArray(value)) {
+    return value.map(function (entry) {
+      if (typeof entry === 'object') {
+        return prepareValueForFE(entry);
+      } else {
+        return entry;
+      }
+    });
+  } else if (value != null && typeof value === 'object') {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return prepareForFE(value);
+  } else {
+    return value;
+  }
+}
+function prepareForFE(beData) {
+  return Object.keys(beData).reduce(function (prepared, key) {
+    var _extends2;
+
+    var value = beData[key];
+    return _extends({}, prepared, (_extends2 = {}, _extends2[key] = prepareValueForFE(value), _extends2));
+  }, {});
 }
 
 function createDOFactory(smJSInstance) {
@@ -2445,6 +2473,24 @@ try {
 }
 });
 
+var Chance = /*#__PURE__*/require('chance');
+
+function generateRandomString() {
+  var chance = new Chance();
+  return chance.word();
+}
+function generateRandomBoolean() {
+  var chance = new Chance();
+  return chance.bool();
+}
+function generateRandomNumber(min, max) {
+  var chance = new Chance();
+  return chance.integer({
+    min: min,
+    max: max
+  });
+}
+
 var _excluded = ["to"],
     _excluded2 = ["from"];
 var JSON_TAG$1 = '__JSON__';
@@ -3182,6 +3228,400 @@ function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
 }
 
+var _excluded$1 = ["to"],
+    _excluded2$1 = ["from"];
+var JSON_TAG$2 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @param ISMDataRecord a record of SMData types to identify objects vs records
+ * @param generatingMockData a boolean to determine if escape text should be utilized
+ * @returns stringified params ready for mutation
+ */
+
+function revisedConvertNodeDataToSMPersistedData(opts) {
+  var nodeData = opts.nodeData,
+      ISMDataRecord = opts.ISMDataRecord,
+      generatingMockData = opts.generatingMockData,
+      skipBooleanStringWrapping = opts.skipBooleanStringWrapping;
+  var parsedData = revisedPrepareForBE({
+    obj: nodeData,
+    ISMDataRecord: ISMDataRecord,
+    generatingMockData: generatingMockData
+  });
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!skipBooleanStringWrapping;
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText$1(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param ISMDataRecordForKey a record of SMData type for specific key to identify objects vs records
+ * @param generatingMockData a boolean to determine if escape text should be utilized
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function revisedPrepareObjectForBE(opts) {
+  var obj = opts.obj,
+      parentKey = opts.parentKey,
+      omitObjectIdentifier = opts.omitObjectIdentifier;
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
+      if (!omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, revisedConvertPropertyToBE(_extends({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }, opts)));
+      }, {}));
+    } else {
+      acc = _extends({}, acc, revisedConvertPropertyToBE(_extends({
+        key: preparedKey,
+        value: val
+      }, opts)));
+    }
+
+    return acc;
+  }, {});
+}
+
+function revisedConvertPropertyToBE(opts) {
+  var key = opts.key,
+      value = opts.value,
+      ISMDataRecordForKey = opts.ISMDataRecordForKey,
+      generatingMockData = opts.generatingMockData,
+      omitObjectIdentifier = opts.omitObjectIdentifier;
+
+  if (value === null) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[key] = null, _ref4;
+  } else if (Array.isArray(value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref5;
+  } else if (typeof value === 'object') {
+    if (ISMDataRecordForKey.type === SM_DATA_TYPES.record || ISMDataRecordForKey.type === SM_DATA_TYPES.maybeRecord) {
+      var _ref6;
+
+      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref6;
+    } else {
+      var _obj;
+
+      return revisedPrepareObjectForBE({
+        obj: (_obj = {}, _obj[key] = value, _obj),
+        ISMDataRecordForKey: ISMDataRecordForKey,
+        generatingMockData: generatingMockData,
+        omitObjectIdentifier: omitObjectIdentifier
+      });
+    }
+  } else if (typeof value === 'string') {
+    var _ref7;
+
+    return _ref7 = {}, _ref7[key] = escapeText$1(value), _ref7;
+  } else if (typeof value === 'boolean' || typeof value === 'number') {
+    var _ref9;
+
+    if (typeof value === 'number' && isNaN(value)) {
+      var _ref8;
+
+      return _ref8 = {}, _ref8[key] = null, _ref8;
+    }
+
+    return _ref9 = {}, _ref9[key] = String(value), _ref9;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof value + "\"");
+  }
+}
+
+function revisedConvertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$1);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function revisedPrepareForBE(opts) {
+  var ISMDataRecord = opts.ISMDataRecord,
+      obj = opts.obj,
+      generatingMockData = opts.generatingMockData;
+  return Object.entries(obj).reduce(function (acc, _ref10) {
+    var key = _ref10[0],
+        value = _ref10[1];
+    var ISMDataRecordForKey = typeof ISMDataRecord[key] === 'function' ? ISMDataRecord[key]._default : ISMDataRecord[key];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return revisedConvertNodeDataToSMPersistedData({
+            nodeData: item,
+            ISMDataRecord: ISMDataRecord,
+            generatingMockData: generatingMockData
+          });
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return revisedConvertNodeDataToSMPersistedData({
+            nodeData: revisedConvertEdgeDirectionNames(item),
+            ISMDataRecord: ISMDataRecord,
+            generatingMockData: generatingMockData,
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, revisedConvertPropertyToBE({
+      key: key,
+      value: value,
+      ISMDataRecordForKey: ISMDataRecordForKey,
+      generatingMockData: generatingMockData
+    }));
+  }, {});
+}
+
+function getMockValueForISMData(smData) {
+  switch (smData.type) {
+    case SM_DATA_TYPES.string:
+      {
+        // We return the default value if it exists to account for cases where the string must be an enum.
+        return smData.defaultValue ? smData.defaultValue : generateRandomString();
+      }
+
+    case SM_DATA_TYPES.maybeString:
+      {
+        return generateRandomString();
+      }
+
+    case SM_DATA_TYPES.number:
+      {
+        return generateRandomNumber(1, 100);
+      }
+
+    case SM_DATA_TYPES.maybeNumber:
+      {
+        return generateRandomNumber(1, 100);
+      }
+
+    case SM_DATA_TYPES["boolean"]:
+      {
+        return generateRandomBoolean();
+      }
+
+    case SM_DATA_TYPES.maybeBoolean:
+      {
+        return generateRandomBoolean();
+      }
+
+    case SM_DATA_TYPES.object:
+      {
+        return getMockValuesForISMDataRecord(smData.boxedValue);
+      }
+
+    case SM_DATA_TYPES.maybeObject:
+      {
+        return getMockValuesForISMDataRecord(smData.boxedValue);
+      }
+
+    case SM_DATA_TYPES.array:
+      {
+        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+          return typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue);
+        });
+      }
+
+    case SM_DATA_TYPES.maybeArray:
+      {
+        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+          return typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue);
+        });
+      }
+
+    case SM_DATA_TYPES.record:
+      {
+        var _ref;
+
+        return _ref = {}, _ref[generateRandomString()] = typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue), _ref;
+      }
+
+    case SM_DATA_TYPES.maybeRecord:
+      {
+        var _ref2;
+
+        return _ref2 = {}, _ref2[generateRandomString()] = typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue), _ref2;
+      }
+
+    default:
+      throw new UnreachableCaseError(smData.type);
+  }
+}
+
+function getMockValuesForISMDataRecord(record) {
+  return Object.entries(record).reduce(function (acc, _ref3) {
+    var key = _ref3[0],
+        value = _ref3[1];
+
+    if (typeof value === 'function') {
+      acc[key] = getMockValueForISMData(value._default);
+    } else {
+      acc[key] = getMockValueForISMData(value);
+    }
+
+    return acc;
+  }, {});
+}
+
+function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
+  var queryRecord = opts.queryRecord;
+  var nodePropertiesToMock = Object.keys(queryRecord.def.smData).filter(function (nodeProperty) {
+    return queryRecord.properties.includes(nodeProperty);
+  }).reduce(function (acc, item) {
+    acc[item] = queryRecord.def.smData[item];
+    return acc;
+  }, {});
+
+  var mockedValues = _extends({
+    type: opts.queryRecord.def.type,
+    version: '1'
+  }, getMockValuesForISMDataRecord(nodePropertiesToMock));
+
+  var valuesForNodeDataPreparedForBE = revisedPrepareForBE({
+    obj: mockedValues,
+    ISMDataRecord: nodePropertiesToMock,
+    generatingMockData: true
+  });
+  return valuesForNodeDataPreparedForBE;
+}
+
+function generateMockNodeDataForAllQueryRecords(opts) {
+  var queryRecords = opts.queryRecords;
+  var mockedNodeData = {};
+  Object.keys(queryRecords).forEach(function (queryRecordAlias) {
+    var queryRecord = queryRecords[queryRecordAlias];
+    var returnValueShouldBeAnArray = !!queryRecord.id === false;
+    var mockedNodeDataReturnValues;
+    var relationalMockNodeProperties = {};
+
+    if (returnValueShouldBeAnArray) {
+      var numOfResultsToGenerate = generateRandomNumber(2, 10);
+      var arrayOfMockNodeValues = [];
+
+      for (var i = 0; i < numOfResultsToGenerate; i++) {
+        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+          queryRecord: queryRecord
+        });
+
+        if (queryRecord.relational) {
+          relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
+            queryRecords: queryRecord.relational
+          });
+        }
+
+        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
+      }
+
+      mockedNodeDataReturnValues = arrayOfMockNodeValues;
+    } else {
+      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+        queryRecord: queryRecord
+      });
+
+      if (queryRecord.relational) {
+        relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
+          queryRecords: queryRecord.relational
+        });
+      }
+
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecord, relationalMockNodeProperties);
+    }
+
+    mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
+  });
+  return mockedNodeData;
+}
+
+function generateMockNodeDataFromQueryDefinitions(opts) {
+  var queryDefinitions = opts.queryDefinitions,
+      queryId = opts.queryId;
+  var queryRecords = getQueryRecordFromQueryDefinition({
+    queryDefinitions: queryDefinitions,
+    queryId: queryId
+  });
+  return generateMockNodeDataForAllQueryRecords({
+    queryRecords: queryRecords
+  });
+}
+
 var queryIdx = 0;
 
 function splitQueryDefinitionsByToken(queryDefinitions) {
@@ -3241,6 +3681,13 @@ function generateQuerier(_ref4) {
                           return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref5) {
                             var tokenName = _ref5[0],
                                 queryDefinitions = _ref5[1];
+
+                            if (smJSInstance.generateMockData) {
+                              return generateMockNodeDataFromQueryDefinitions({
+                                queryDefinitions: queryDefinitions,
+                                queryId: queryId
+                              });
+                            }
 
                             var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                               queryDefinitions: queryDefinitions,
@@ -3548,7 +3995,11 @@ function generateSubscriber(smJSInstance) {
               mustAwaitQuery = !opts.skipInitialQuery;
               messageQueue = [];
               _context3.prev = 18;
-              initSubs();
+
+              if (!!smJSInstance.generateMockData === false) {
+                initSubs();
+              }
+
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
               _context3.next = 32;
               break;
@@ -4310,586 +4761,6 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
   return "{\n    " + mutationArgs.join('\n') + "\n  }";
 }
 
-var _templateObject$5, _templateObject2;
-function updateNodes(operation) {
-  return _extends({
-    type: 'updateNodes',
-    smOperationName: 'UpdateNodes'
-  }, operation);
-}
-function updateNode(operation) {
-  return _extends({
-    type: 'updateNode',
-    smOperationName: 'UpdateNodes'
-  }, operation);
-}
-
-function getPropertiesToNull(object) {
-  return Object.entries(object).reduce(function (acc, _ref) {
-    var key = _ref[0],
-        value = _ref[1];
-    if (value == null) acc.push(key);else if (!Array.isArray(value) && typeof value === 'object') {
-      acc.push.apply(acc, getPropertiesToNull(value).map(function (property) {
-        return "" + key + OBJECT_PROPERTY_SEPARATOR + property;
-      }));
-    }
-    return acc;
-  }, []);
-}
-
-function getMutationsFromTransactionUpdateOperations(operations) {
-  if (!operations.length) return [];
-  var allUpdateNodeOperations = operations.flatMap(function (operation) {
-    if (operation.type === 'updateNode') {
-      return operation.data;
-    } else if (operation.type === 'updateNodes') {
-      return operation.nodes.map(function (_ref2) {
-        var data = _ref2.data;
-        return data;
-      });
-    } else {
-      throw Error("Operation not recognized: \"" + operation + "\"");
-    }
-  });
-  var name = getMutationNameFromOperations(operations, 'UpdateNodes');
-  var dropPropertiesMutations = allUpdateNodeOperations.reduce(function (acc, updateNodeOperation) {
-    var propertiesToNull = getPropertiesToNull(updateNodeOperation);
-
-    if (propertiesToNull.length) {
-      acc.push(gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
-        return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
-      }).join(',')));
-    }
-
-    return acc;
-  }, []); // For now, returns a single mutation
-  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
-
-  return [gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
-}
-
-function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
-  var dataToPersistInSM = convertNodeDataToSMPersistedData(operation);
-  return "{\n      " + dataToPersistInSM + "\n    }";
-}
-
-var _templateObject$6;
-function dropNode(operation) {
-  return _extends({
-    type: 'dropNode',
-    smOperationName: 'DropNode'
-  }, operation);
-}
-function getMutationsFromTransactionDropOperations(operations) {
-  if (!operations.length) return [];
-  var allDropNodeOperations = operations.map(function (operation) {
-    if (operation.type === 'dropNode') {
-      return operation;
-    } else {
-      throw Error("Operation not recognized: \"" + operation + "\"");
-    }
-  });
-  return allDropNodeOperations.map(function (operation) {
-    var name = getMutationNameFromOperations([operation], 'DropNode');
-    return gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
-  });
-}
-
-function createTransaction(smJSInstance, globalOperationHandlers) {
-  /**
-   * A transaction allows developers to build groups of mutations that execute with transactional integrity
-   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
-   *
-   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
-   */
-  return function transaction(callback, opts) {
-    var operationsByType = {
-      createNode: [],
-      createNodes: [],
-      updateNode: [],
-      updateNodes: [],
-      dropNode: [],
-      createEdge: [],
-      createEdges: [],
-      dropEdge: [],
-      dropEdges: [],
-      replaceEdge: [],
-      replaceEdges: [],
-      updateEdge: [],
-      updateEdges: []
-    };
-    /**
-     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
-     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
-     * SM responds with each operation in the order they were sent up.
-     */
-
-    var createOperationsCount = 0;
-    var updateOperationsCount = 0;
-
-    function pushOperation(operation) {
-      if (!operationsByType[operation.type]) {
-        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
-      }
-      /**
-       * createNodes/updateNodes creates multiple nodes in a single operation,
-       * therefore we need to track the position of these nodes instead of just the position of the operation itself
-       */
-
-
-      if (operation.type === 'createNodes') {
-        createOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: createOperationsCount,
-          nodes: operation.nodes.map(function (node, idx) {
-            return _extends({}, node, {
-              position: idx === 0 ? createOperationsCount : createOperationsCount += 1
-            });
-          })
-        }));
-      } else if (operation.type === 'createNode') {
-        createOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: createOperationsCount
-        }));
-      } else if (operation.type === 'updateNodes') {
-        updateOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: updateOperationsCount,
-          nodes: operation.nodes.map(function (node, idx) {
-            return _extends({}, node, {
-              position: idx === 0 ? updateOperationsCount : updateOperationsCount += 1
-            });
-          })
-        }));
-      } else if (operation.type === 'updateNode') {
-        updateOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: updateOperationsCount
-        }));
-      } else {
-        operationsByType[operation.type].push(operation);
-      }
-    }
-
-    var context = {
-      createNode: function createNode$1(opts) {
-        var operation = createNode(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createNodes: function createNodes$1(opts) {
-        var operation = createNodes(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateNode: function updateNode$1(opts) {
-        var operation = updateNode(opts);
-
-        var _globalOperationHandl = globalOperationHandlers.onUpdateRequested({
-          id: opts.data.id,
-          payload: opts.data
-        }),
-            onUpdateSuccessful = _globalOperationHandl.onUpdateSuccessful,
-            onUpdateFailed = _globalOperationHandl.onUpdateFailed;
-
-        pushOperation(_extends({}, operation, {
-          onSuccess: function onSuccess(data) {
-            operation.onSuccess && operation.onSuccess(data);
-            onUpdateSuccessful();
-          },
-          onFail: function onFail() {
-            operation.onFail && operation.onFail();
-            onUpdateFailed();
-          }
-        }));
-        return operation;
-      },
-      updateNodes: function updateNodes$1(opts) {
-        var operation = updateNodes(opts);
-
-        var globalHandlers = opts.nodes.map(function (node) {
-          return globalOperationHandlers.onUpdateRequested({
-            id: node.data.id,
-            payload: node.data
-          });
-        });
-        pushOperation(_extends({}, operation, {
-          nodes: operation.nodes.map(function (node, nodeIdx) {
-            return _extends({}, node, {
-              onSuccess: function onSuccess(data) {
-                node.onSuccess && node.onSuccess(data);
-                globalHandlers[nodeIdx].onUpdateSuccessful();
-              },
-              onFail: function onFail() {
-                node.onFail && node.onFail();
-                globalHandlers[nodeIdx].onUpdateFailed();
-              }
-            });
-          })
-        }));
-        return operation;
-      },
-      dropNode: function dropNode$1(opts) {
-        var operation = dropNode(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createEdge: function createEdge$1(opts) {
-        var operation = createEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createEdges: function createEdges$1(opts) {
-        var operation = createEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      dropEdge: function dropEdge$1(opts) {
-        var operation = dropEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      dropEdges: function dropEdges$1(opts) {
-        var operation = dropEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateEdge: function updateEdge$1(opts) {
-        var operation = updateEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateEdges: function updateEdges$1(opts) {
-        var operation = updateEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      replaceEdge: function replaceEdge$1(opts) {
-        var operation = replaceEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      replaceEdges: function replaceEdges$1(opts) {
-        var operation = replaceEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      }
-    };
-
-    function sortMutationsByTransactionPosition(operations) {
-      return sortBy(operations, function (operation) {
-        return operation.position;
-      });
-    }
-
-    function getAllMutations(operations) {
-      return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
-    }
-
-    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
-    var token = smJSInstance.getToken({
-      tokenName: tokenName
-    });
-    /**
-     * Group operations by their SM operation name, sorted by position if applicable
-     */
-
-    function groupBySMOperationName(operations) {
-      var result = Object.entries(operations).reduce(function (acc, _ref) {
-        var operations = _ref[1];
-        operations.forEach(function (operation) {
-          if (acc.hasOwnProperty(operation.smOperationName)) {
-            acc[operation.smOperationName] = [].concat(acc[operation.smOperationName], [operation]);
-          } else {
-            acc[operation.smOperationName] = [operation];
-          }
-        });
-        return acc;
-      }, {});
-      Object.entries(result).forEach(function (_ref2) {
-        var smOperationName = _ref2[0],
-            operations = _ref2[1];
-        result[smOperationName] = sortBy(operations, function (operation) {
-          return operation.position;
-        });
-      });
-      return result;
-    }
-
-    if (Array.isArray(callback)) {
-      return transactionGroup(callback);
-    }
-
-    var result = callback(context);
-
-    function handleErrorCallbacks(opts) {
-      var operationsByType = opts.operationsByType;
-      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
-      Object.entries(operationsBySMOperationName).forEach(function (_ref3) {
-        var smOperationName = _ref3[0],
-            operations = _ref3[1];
-        operations.forEach(function (operation) {
-          // we only need to gather the data for node create/update operations
-          if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
-            // for createNodes, execute callback on each individual node rather than top-level operation
-            if (operation.hasOwnProperty('nodes')) {
-              operation.nodes.forEach(function (node) {
-                if (node.hasOwnProperty('onFail')) {
-                  node.onFail();
-                }
-              });
-            } else if (operation.hasOwnProperty('onFail')) {
-              operation.onFail();
-            }
-          }
-        });
-      });
-    }
-
-    function handleSuccessCallbacks(opts) {
-      var executionResult = opts.executionResult,
-          operationsByType = opts.operationsByType;
-      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
-      /**
-       * Loop through the operations, map the operation to each result sent back from SM,
-       * then pass the result into the callback if it exists
-       */
-
-      var executeCallbacksWithData = function executeCallbacksWithData(executionResult) {
-        executionResult.forEach(function (result) {
-          // if executionResult is 2d array
-          if (Array.isArray(result)) {
-            executeCallbacksWithData(result);
-          } else {
-            var resultData = result.data;
-            Object.entries(operationsBySMOperationName).forEach(function (_ref4) {
-              var smOperationName = _ref4[0],
-                  operations = _ref4[1];
-
-              if (resultData.hasOwnProperty(smOperationName)) {
-                operations.forEach(function (operation) {
-                  // we only need to gather the data for node create/update operations
-                  if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
-                    var groupedResult = resultData[smOperationName]; // for createNodes, execute callback on each individual node rather than top-level operation
-
-                    if (operation.hasOwnProperty('nodes')) {
-                      operation.nodes.forEach(function (node) {
-                        if (node.hasOwnProperty('onSuccess')) {
-                          var operationResult = groupedResult[node.position - 1];
-                          node.onSuccess(operationResult);
-                        }
-                      });
-                    } else if (operation.hasOwnProperty('onSuccess')) {
-                      var operationResult = groupedResult[operation.position - 1];
-                      operation.onSuccess(operationResult);
-                    }
-                  }
-                });
-              }
-            });
-          }
-        });
-      };
-
-      executeCallbacksWithData(executionResult);
-      /**
-       * For all other operations, just invoke the callback with no args.
-       * Transactions will guarantee that all operations have succeeded, so this is safe to do
-       */
-
-      Object.entries(operationsBySMOperationName).forEach(function (_ref5) {
-        var smOperationName = _ref5[0],
-            operations = _ref5[1];
-
-        if (smOperationName !== 'CreateNodes' && smOperationName !== 'UpdateNodes') {
-          operations.forEach(function (operation) {
-            if (operation.hasOwnProperty('onSuccess')) {
-              operation.onSuccess();
-            } else if (operation.hasOwnProperty('edges')) {
-              operation.edges.forEach(function (edgeOperation) {
-                if (edgeOperation.hasOwnProperty('onSuccess')) {
-                  edgeOperation.onSuccess();
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-
-    function execute() {
-      return _execute.apply(this, arguments);
-    }
-
-    function _execute() {
-      _execute = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-        var mutations, executionResult;
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.prev = 0;
-
-                if (!(typeof callback === 'function')) {
-                  _context2.next = 5;
-                  break;
-                }
-
-                if (!(result instanceof Promise)) {
-                  _context2.next = 5;
-                  break;
-                }
-
-                _context2.next = 5;
-                return result;
-
-              case 5:
-                mutations = getAllMutations(operationsByType);
-                _context2.next = 8;
-                return smJSInstance.gqlClient.mutate({
-                  mutations: mutations,
-                  token: token
-                });
-
-              case 8:
-                executionResult = _context2.sent;
-
-                if (executionResult) {
-                  handleSuccessCallbacks({
-                    executionResult: executionResult,
-                    operationsByType: operationsByType
-                  });
-                }
-
-                return _context2.abrupt("return", executionResult);
-
-              case 13:
-                _context2.prev = 13;
-                _context2.t0 = _context2["catch"](0);
-                handleErrorCallbacks({
-                  operationsByType: operationsByType
-                });
-                throw _context2.t0;
-
-              case 17:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2, null, [[0, 13]]);
-      }));
-      return _execute.apply(this, arguments);
-    }
-
-    return {
-      operations: operationsByType,
-      execute: execute,
-      callbackResult: result,
-      token: token
-    };
-
-    function transactionGroup(transactions) {
-      var asyncCallbacks = transactions.filter(function (tx) {
-        return tx.callbackResult instanceof Promise;
-      }).map(function (_ref6) {
-        var callbackResult = _ref6.callbackResult;
-        return callbackResult;
-      });
-
-      function execute() {
-        return _execute2.apply(this, arguments);
-      }
-
-      function _execute2() {
-        _execute2 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-          var allTokensMatch, allMutations, executionResults;
-          return runtime_1.wrap(function _callee$(_context) {
-            while (1) {
-              switch (_context.prev = _context.next) {
-                case 0:
-                  _context.prev = 0;
-                  allTokensMatch = transactions.every(function (_ref7) {
-                    var token = _ref7.token;
-                    return token === transactions[0].token;
-                  });
-
-                  if (allTokensMatch) {
-                    _context.next = 4;
-                    break;
-                  }
-
-                  throw new Error('transactionGroup - All grouped transactions must use the same authentication token.');
-
-                case 4:
-                  if (!asyncCallbacks.length) {
-                    _context.next = 7;
-                    break;
-                  }
-
-                  _context.next = 7;
-                  return Promise.all(asyncCallbacks);
-
-                case 7:
-                  allMutations = transactions.map(function (_ref8) {
-                    var operations = _ref8.operations;
-                    return smJSInstance.gqlClient.mutate({
-                      mutations: getAllMutations(operations),
-                      token: token
-                    });
-                  });
-                  _context.next = 10;
-                  return Promise.all(allMutations);
-
-                case 10:
-                  executionResults = _context.sent;
-
-                  if (executionResults) {
-                    executionResults.forEach(function (result, idx) {
-                      handleSuccessCallbacks({
-                        executionResult: result,
-                        operationsByType: transactions[idx].operations
-                      });
-                    });
-                  }
-
-                  return _context.abrupt("return", executionResults.flat());
-
-                case 15:
-                  _context.prev = 15;
-                  _context.t0 = _context["catch"](0);
-                  throw _context.t0;
-
-                case 18:
-                case "end":
-                  return _context.stop();
-              }
-            }
-          }, _callee, null, [[0, 15]]);
-        }));
-        return _execute2.apply(this, arguments);
-      }
-
-      return {
-        operations: operationsByType,
-        execute: execute,
-        token: token
-      };
-    }
-  };
-}
-
 var SMContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({
   unsafe__silenceDuplicateSubIdErrors: false
@@ -5532,11 +5403,592 @@ function getDefaultConfig() {
   };
 }
 
+var _templateObject$5, _templateObject2;
+function updateNodes(operation) {
+  return _extends({
+    type: 'updateNodes',
+    smOperationName: 'UpdateNodes'
+  }, operation);
+}
+function updateNode(operation) {
+  return _extends({
+    type: 'updateNode',
+    smOperationName: 'UpdateNodes'
+  }, operation);
+}
+
+function getPropertiesToNull(object) {
+  return Object.entries(object).reduce(function (acc, _ref) {
+    var key = _ref[0],
+        value = _ref[1];
+    if (value == null) acc.push(key);else if (!Array.isArray(value) && typeof value === 'object') {
+      acc.push.apply(acc, getPropertiesToNull(value).map(function (property) {
+        return "" + key + OBJECT_PROPERTY_SEPARATOR + property;
+      }));
+    }
+    return acc;
+  }, []);
+}
+
+function getMutationsFromTransactionUpdateOperations(operations) {
+  if (!operations.length) return [];
+  var allUpdateNodeOperations = operations.flatMap(function (operation) {
+    if (operation.type === 'updateNode') {
+      return operation.data;
+    } else if (operation.type === 'updateNodes') {
+      return operation.nodes.map(function (_ref2) {
+        var data = _ref2.data;
+        return data;
+      });
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  var name = getMutationNameFromOperations(operations, 'UpdateNodes');
+  var dropPropertiesMutations = allUpdateNodeOperations.reduce(function (acc, updateNodeOperation) {
+    var propertiesToNull = getPropertiesToNull(updateNodeOperation);
+
+    if (propertiesToNull.length) {
+      acc.push(gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+        return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
+      }).join(',')));
+    }
+
+    return acc;
+  }, []); // For now, returns a single mutation
+  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
+
+  return [gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+}
+
+function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
+  var dataToPersistInSM = convertNodeDataToSMPersistedData(operation);
+  return "{\n      " + dataToPersistInSM + "\n    }";
+}
+
+var _templateObject$6;
+function dropNode(operation) {
+  return _extends({
+    type: 'dropNode',
+    smOperationName: 'DropNode'
+  }, operation);
+}
+function getMutationsFromTransactionDropOperations(operations) {
+  if (!operations.length) return [];
+  var allDropNodeOperations = operations.map(function (operation) {
+    if (operation.type === 'dropNode') {
+      return operation;
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  return allDropNodeOperations.map(function (operation) {
+    var name = getMutationNameFromOperations([operation], 'DropNode');
+    return gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
+  });
+}
+
+function createTransaction(smJSInstance, globalOperationHandlers) {
+  /**
+   * A transaction allows developers to build groups of mutations that execute with transactional integrity
+   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
+   *
+   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
+   */
+  return function transaction(callback, opts) {
+    var operationsByType = {
+      createNode: [],
+      createNodes: [],
+      updateNode: [],
+      updateNodes: [],
+      dropNode: [],
+      createEdge: [],
+      createEdges: [],
+      dropEdge: [],
+      dropEdges: [],
+      replaceEdge: [],
+      replaceEdges: [],
+      updateEdge: [],
+      updateEdges: []
+    };
+    /**
+     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
+     * SM responds with each operation in the order they were sent up.
+     */
+
+    var createOperationsCount = 0;
+    var updateOperationsCount = 0;
+
+    function pushOperation(operation) {
+      if (!operationsByType[operation.type]) {
+        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
+      }
+      /**
+       * createNodes/updateNodes creates multiple nodes in a single operation,
+       * therefore we need to track the position of these nodes instead of just the position of the operation itself
+       */
+
+
+      if (operation.type === 'createNodes') {
+        createOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: createOperationsCount,
+          nodes: operation.nodes.map(function (node, idx) {
+            return _extends({}, node, {
+              position: idx === 0 ? createOperationsCount : createOperationsCount += 1
+            });
+          })
+        }));
+      } else if (operation.type === 'createNode') {
+        createOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: createOperationsCount
+        }));
+      } else if (operation.type === 'updateNodes') {
+        updateOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: updateOperationsCount,
+          nodes: operation.nodes.map(function (node, idx) {
+            return _extends({}, node, {
+              position: idx === 0 ? updateOperationsCount : updateOperationsCount += 1
+            });
+          })
+        }));
+      } else if (operation.type === 'updateNode') {
+        updateOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: updateOperationsCount
+        }));
+      } else {
+        operationsByType[operation.type].push(operation);
+      }
+    }
+
+    var context = {
+      createNode: function createNode$1(opts) {
+        var operation = createNode(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createNodes: function createNodes$1(opts) {
+        var operation = createNodes(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateNode: function updateNode$1(opts) {
+        var operation = updateNode(opts);
+
+        var _globalOperationHandl = globalOperationHandlers.onUpdateRequested({
+          id: opts.data.id,
+          payload: opts.data
+        }),
+            onUpdateSuccessful = _globalOperationHandl.onUpdateSuccessful,
+            onUpdateFailed = _globalOperationHandl.onUpdateFailed;
+
+        pushOperation(_extends({}, operation, {
+          onSuccess: function onSuccess(data) {
+            operation.onSuccess && operation.onSuccess(data);
+            onUpdateSuccessful();
+          },
+          onFail: function onFail() {
+            operation.onFail && operation.onFail();
+            onUpdateFailed();
+          }
+        }));
+        return operation;
+      },
+      updateNodes: function updateNodes$1(opts) {
+        var operation = updateNodes(opts);
+
+        var globalHandlers = opts.nodes.map(function (node) {
+          return globalOperationHandlers.onUpdateRequested({
+            id: node.data.id,
+            payload: node.data
+          });
+        });
+        pushOperation(_extends({}, operation, {
+          nodes: operation.nodes.map(function (node, nodeIdx) {
+            return _extends({}, node, {
+              onSuccess: function onSuccess(data) {
+                node.onSuccess && node.onSuccess(data);
+                globalHandlers[nodeIdx].onUpdateSuccessful();
+              },
+              onFail: function onFail() {
+                node.onFail && node.onFail();
+                globalHandlers[nodeIdx].onUpdateFailed();
+              }
+            });
+          })
+        }));
+        return operation;
+      },
+      dropNode: function dropNode$1(opts) {
+        var operation = dropNode(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createEdge: function createEdge$1(opts) {
+        var operation = createEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createEdges: function createEdges$1(opts) {
+        var operation = createEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdge: function dropEdge$1(opts) {
+        var operation = dropEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdges: function dropEdges$1(opts) {
+        var operation = dropEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdge: function updateEdge$1(opts) {
+        var operation = updateEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdges: function updateEdges$1(opts) {
+        var operation = updateEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdge: function replaceEdge$1(opts) {
+        var operation = replaceEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdges: function replaceEdges$1(opts) {
+        var operation = replaceEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      }
+    };
+
+    function sortMutationsByTransactionPosition(operations) {
+      return sortBy(operations, function (operation) {
+        return operation.position;
+      });
+    }
+
+    function getAllMutations(operations) {
+      return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
+    }
+
+    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
+    var token = smJSInstance.getToken({
+      tokenName: tokenName
+    });
+    /**
+     * Group operations by their SM operation name, sorted by position if applicable
+     */
+
+    function groupBySMOperationName(operations) {
+      var result = Object.entries(operations).reduce(function (acc, _ref) {
+        var operations = _ref[1];
+        operations.forEach(function (operation) {
+          if (acc.hasOwnProperty(operation.smOperationName)) {
+            acc[operation.smOperationName] = [].concat(acc[operation.smOperationName], [operation]);
+          } else {
+            acc[operation.smOperationName] = [operation];
+          }
+        });
+        return acc;
+      }, {});
+      Object.entries(result).forEach(function (_ref2) {
+        var smOperationName = _ref2[0],
+            operations = _ref2[1];
+        result[smOperationName] = sortBy(operations, function (operation) {
+          return operation.position;
+        });
+      });
+      return result;
+    }
+
+    if (Array.isArray(callback)) {
+      return transactionGroup(callback);
+    }
+
+    var result = callback(context);
+
+    function handleErrorCallbacks(opts) {
+      var operationsByType = opts.operationsByType;
+      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
+      Object.entries(operationsBySMOperationName).forEach(function (_ref3) {
+        var smOperationName = _ref3[0],
+            operations = _ref3[1];
+        operations.forEach(function (operation) {
+          // we only need to gather the data for node create/update operations
+          if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
+            // for createNodes, execute callback on each individual node rather than top-level operation
+            if (operation.hasOwnProperty('nodes')) {
+              operation.nodes.forEach(function (node) {
+                if (node.hasOwnProperty('onFail')) {
+                  node.onFail();
+                }
+              });
+            } else if (operation.hasOwnProperty('onFail')) {
+              operation.onFail();
+            }
+          }
+        });
+      });
+    }
+
+    function handleSuccessCallbacks(opts) {
+      var executionResult = opts.executionResult,
+          operationsByType = opts.operationsByType;
+      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
+      /**
+       * Loop through the operations, map the operation to each result sent back from SM,
+       * then pass the result into the callback if it exists
+       */
+
+      var executeCallbacksWithData = function executeCallbacksWithData(executionResult) {
+        executionResult.forEach(function (result) {
+          // if executionResult is 2d array
+          if (Array.isArray(result)) {
+            executeCallbacksWithData(result);
+          } else {
+            var resultData = result.data;
+            Object.entries(operationsBySMOperationName).forEach(function (_ref4) {
+              var smOperationName = _ref4[0],
+                  operations = _ref4[1];
+
+              if (resultData.hasOwnProperty(smOperationName)) {
+                operations.forEach(function (operation) {
+                  // we only need to gather the data for node create/update operations
+                  if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
+                    var groupedResult = resultData[smOperationName]; // for createNodes, execute callback on each individual node rather than top-level operation
+
+                    if (operation.hasOwnProperty('nodes')) {
+                      operation.nodes.forEach(function (node) {
+                        if (node.hasOwnProperty('onSuccess')) {
+                          var operationResult = groupedResult[node.position - 1];
+                          node.onSuccess(operationResult);
+                        }
+                      });
+                    } else if (operation.hasOwnProperty('onSuccess')) {
+                      var operationResult = groupedResult[operation.position - 1];
+                      operation.onSuccess(operationResult);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      };
+
+      executeCallbacksWithData(executionResult);
+      /**
+       * For all other operations, just invoke the callback with no args.
+       * Transactions will guarantee that all operations have succeeded, so this is safe to do
+       */
+
+      Object.entries(operationsBySMOperationName).forEach(function (_ref5) {
+        var smOperationName = _ref5[0],
+            operations = _ref5[1];
+
+        if (smOperationName !== 'CreateNodes' && smOperationName !== 'UpdateNodes') {
+          operations.forEach(function (operation) {
+            if (operation.hasOwnProperty('onSuccess')) {
+              operation.onSuccess();
+            } else if (operation.hasOwnProperty('edges')) {
+              operation.edges.forEach(function (edgeOperation) {
+                if (edgeOperation.hasOwnProperty('onSuccess')) {
+                  edgeOperation.onSuccess();
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    function execute() {
+      return _execute.apply(this, arguments);
+    }
+
+    function _execute() {
+      _execute = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+        var mutations, executionResult;
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.prev = 0;
+
+                if (!(typeof callback === 'function')) {
+                  _context2.next = 5;
+                  break;
+                }
+
+                if (!(result instanceof Promise)) {
+                  _context2.next = 5;
+                  break;
+                }
+
+                _context2.next = 5;
+                return result;
+
+              case 5:
+                mutations = getAllMutations(operationsByType);
+                _context2.next = 8;
+                return smJSInstance.gqlClient.mutate({
+                  mutations: mutations,
+                  token: token
+                });
+
+              case 8:
+                executionResult = _context2.sent;
+
+                if (executionResult) {
+                  handleSuccessCallbacks({
+                    executionResult: executionResult,
+                    operationsByType: operationsByType
+                  });
+                }
+
+                return _context2.abrupt("return", executionResult);
+
+              case 13:
+                _context2.prev = 13;
+                _context2.t0 = _context2["catch"](0);
+                handleErrorCallbacks({
+                  operationsByType: operationsByType
+                });
+                throw _context2.t0;
+
+              case 17:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, null, [[0, 13]]);
+      }));
+      return _execute.apply(this, arguments);
+    }
+
+    return {
+      operations: operationsByType,
+      execute: execute,
+      callbackResult: result,
+      token: token
+    };
+
+    function transactionGroup(transactions) {
+      var asyncCallbacks = transactions.filter(function (tx) {
+        return tx.callbackResult instanceof Promise;
+      }).map(function (_ref6) {
+        var callbackResult = _ref6.callbackResult;
+        return callbackResult;
+      });
+
+      function execute() {
+        return _execute2.apply(this, arguments);
+      }
+
+      function _execute2() {
+        _execute2 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+          var allTokensMatch, allMutations, executionResults;
+          return runtime_1.wrap(function _callee$(_context) {
+            while (1) {
+              switch (_context.prev = _context.next) {
+                case 0:
+                  _context.prev = 0;
+                  allTokensMatch = transactions.every(function (_ref7) {
+                    var token = _ref7.token;
+                    return token === transactions[0].token;
+                  });
+
+                  if (allTokensMatch) {
+                    _context.next = 4;
+                    break;
+                  }
+
+                  throw new Error('transactionGroup - All grouped transactions must use the same authentication token.');
+
+                case 4:
+                  if (!asyncCallbacks.length) {
+                    _context.next = 7;
+                    break;
+                  }
+
+                  _context.next = 7;
+                  return Promise.all(asyncCallbacks);
+
+                case 7:
+                  allMutations = transactions.map(function (_ref8) {
+                    var operations = _ref8.operations;
+                    return smJSInstance.gqlClient.mutate({
+                      mutations: getAllMutations(operations),
+                      token: token
+                    });
+                  });
+                  _context.next = 10;
+                  return Promise.all(allMutations);
+
+                case 10:
+                  executionResults = _context.sent;
+
+                  if (executionResults) {
+                    executionResults.forEach(function (result, idx) {
+                      handleSuccessCallbacks({
+                        executionResult: result,
+                        operationsByType: transactions[idx].operations
+                      });
+                    });
+                  }
+
+                  return _context.abrupt("return", executionResults.flat());
+
+                case 15:
+                  _context.prev = 15;
+                  _context.t0 = _context["catch"](0);
+                  throw _context.t0;
+
+                case 18:
+                case "end":
+                  return _context.stop();
+              }
+            }
+          }, _callee, null, [[0, 15]]);
+        }));
+        return _execute2.apply(this, arguments);
+      }
+
+      return {
+        operations: operationsByType,
+        execute: execute,
+        token: token
+      };
+    }
+  };
+}
+
 var SMJS = /*#__PURE__*/function () {
   function SMJS(config) {
     this.gqlClient = void 0;
     this.plugins = void 0;
     this.query = void 0;
+    this.generateMockData = void 0;
     this.subscribe = void 0;
     this.SMQueryManager = void 0;
     this.transaction = void 0;
@@ -5546,6 +5998,7 @@ var SMJS = /*#__PURE__*/function () {
     this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
     this.plugins = config.plugins;
+    this.generateMockData = config.generateMockData;
     this.query = generateQuerier({
       smJSInstance: this
     });
@@ -5562,7 +6015,21 @@ var SMJS = /*#__PURE__*/function () {
   var _proto = SMJS.prototype;
 
   _proto.def = function def(_def) {
-    var DOClass = this.DOFactory(_def);
+    var propertyNames = Object.keys(_def.properties);
+    var defaultProp = propertyNames.find(function (x) {
+      return Object.keys(DEFAULT_NODE_PROPERTIES).includes(x);
+    });
+
+    if (defaultProp) {
+      throw new SMImpliedNodePropertyException({
+        propName: defaultProp
+      });
+    }
+
+    var properties = this.addDefaultNodeProperties(_def.properties);
+    var DOClass = this.DOFactory(_extends({}, _def, {
+      properties: properties
+    }));
     return {
       _isSMNodeDef: true,
       "do": DOClass,
@@ -5574,7 +6041,7 @@ var SMJS = /*#__PURE__*/function () {
         onDataReceived: this.optimisticUpdatesOrchestrator.onPersistedDataReceived
       }),
       type: _def.type,
-      smData: _def.properties,
+      smData: properties,
       smComputed: _def.computed,
       smRelational: _def.relational,
       smMutations: _def.mutations
@@ -5593,8 +6060,12 @@ var SMJS = /*#__PURE__*/function () {
     this.tokens = {};
   };
 
+  _proto.addDefaultNodeProperties = function addDefaultNodeProperties(nodeProperties) {
+    return _extends({}, nodeProperties, DEFAULT_NODE_PROPERTIES);
+  };
+
   return SMJS;
 }();
 
-export { DEFAULT_TOKEN_NAME, LoggingContext, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
+export { DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, LoggingContext, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_UNION_QUERY_SEPARATOR, SMContext, SMData, SMJS, SMProvider, SM_DATA_TYPES, SM_RELATIONAL_TYPES, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, children, getDefaultConfig, getGQLCLient, number, object, queryDefinition, record, reference, referenceArray, string, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

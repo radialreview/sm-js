@@ -13,7 +13,6 @@ describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        id: smData.string,
         dueDate: smData.number,
         settings: smData.object({
           show: smData.boolean(true),
@@ -39,7 +38,6 @@ describe('smData.DO', () => {
   test('that DO class will automatically coerce data it receives on an update based on the expected data structure', () => {
     const { doInstance } = generateDOInstance({
       properties: {
-        id: smData.string,
         dueDate: smData.number,
       },
       initialData: {
@@ -79,7 +77,6 @@ describe('smData.DO', () => {
 
   test('basic computed props return the expected value', () => {
     const properties = {
-      id: smData.string,
       task: smData.string,
       // including this meeting prop and not marking it as up to date to check that we only need the absolute minimum set of data
       // available and up to date to calculate computed properties

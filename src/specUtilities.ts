@@ -15,10 +15,10 @@ import {
   NodeRelationalFns,
   SMConfig,
   QueryDefinitionTarget,
+  SMNodeDefaultProps,
 } from './types';
 
 const userProperties = {
-  id: smData.string,
   firstName: smData.string,
   lastName: smData.string('joe'),
   address: smData.object({
@@ -53,7 +53,7 @@ export function generateUserNode(
   smJSInstance: ISMJS,
   cachedTodoNode?: TodoNode
 ): UserNode {
-  const userNode = smJSInstance.def({
+  const userNode: UserNode = smJSInstance.def({
     type: 'tt-user',
     properties: userProperties,
     computed: {
@@ -65,6 +65,7 @@ export function generateUserNode(
       todos: () => smData.children({ def: todoNode }),
     },
   });
+
   const todoNode: TodoNode =
     cachedTodoNode || generateTodoNode(smJSInstance, userNode);
 
@@ -72,7 +73,6 @@ export function generateUserNode(
 }
 
 const todoProperties = {
-  id: smData.string,
   task: smData.string,
   done: smData.boolean(false),
   assigneeId: smData.string,
@@ -119,7 +119,8 @@ export function generateTodoNode(
           idProp: 'assigneeId',
         }),
     },
-  });
+  }) as TodoNode;
+
   const userNode: UserNode =
     cachedUserNode || generateUserNode(smJSInstance, todoNode);
 
@@ -145,7 +146,7 @@ export function generateDOInstance<
   >
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
   // @ts-ignore
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
@@ -329,13 +330,14 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
   };
 }
 
-export function getMockConfig(): SMConfig {
+export function getMockConfig(opts?: { generateMockData: boolean }): SMConfig {
   return {
     gqlClient: {
       query: () => new Promise(res => res(mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
+    generateMockData: opts?.generateMockData,
   };
 }
 
@@ -384,3 +386,156 @@ export function autoIndentGQL(gqlString: string): string {
     })
     .join('\n');
 }
+
+export function generateTestNode(smJSInstance: ISMJS): TestNode {
+  const testNode = smJSInstance.def({
+    type: 'testNode',
+    properties: testProperties,
+  }) as TestNode;
+
+  return testNode;
+}
+
+const testProperties = {
+  stringData: smData.string,
+  optionalString: smData.string.optional,
+  defaultString: smData.string('iAmADefaultString'),
+  numberData: smData.number,
+  optionalNumber: smData.number.optional,
+  defaultNumber: smData.number(22),
+  booleanData: smData.boolean(true),
+  optionalBoolean: smData.boolean.optional,
+  defaultBoolean: smData.boolean(true),
+  objectData: smData.object({
+    recordInObject: smData.record(smData.string),
+    stringInObject: smData.string.optional,
+  }),
+  optionalObject: smData.object.optional({
+    defaultStringInOptionalObject: smData.string(
+      'iAmADefaultStringInAnOptionalObject'
+    ),
+
+    recordInOptionalObject: smData.record(smData.number),
+  }),
+  arrayData: smData.array(smData.string),
+  optionalArray: smData.array(smData.boolean.optional).optional,
+  recordData: smData.record(smData.string('iAmADefaultStringInARecord')),
+  optionalRecord: smData.record.optional(smData.array(smData.number)),
+};
+
+type TestProperties = typeof testProperties;
+
+type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
+
+export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
+  task: expect.any(String),
+  id: expect.any(String),
+  dateCreated: expect.any(Number),
+  dateLastModified: expect.any(Number),
+  lastUpdatedBy: expect.any(String),
+  lastUpdatedClientTimestamp: expect.any(Number),
+  type: expect.any(String),
+  done: expect.any(Boolean),
+  assigneeId: expect.any(String),
+  meetingId: expect.any(String),
+  settings: expect.objectContaining({
+    archiveAfterMeeting: expect.any(Boolean),
+    nestedSettings: expect.objectContaining({
+      nestedNestedMaybe: expect.any(String),
+    }),
+    nestedRecord: expect.any(Object),
+  }),
+  dataSetIds: expect.arrayContaining([expect.any(String)]),
+  comments: expect.arrayContaining([expect.any(String)]),
+  record: expect.any(Object),
+};
+
+export const mockedDataGenerationExpectedResultsForUserNodeAllProperties = {
+  id: expect.any(String),
+  dateCreated: expect.any(Number),
+  dateLastModified: expect.any(Number),
+  lastUpdatedBy: expect.any(String),
+  lastUpdatedClientTimestamp: expect.any(Number),
+  firstName: expect.any(String),
+  lastName: expect.stringMatching('joe'),
+  displayName: expect.any(String),
+  address: expect.objectContaining({
+    streetName: expect.any(String),
+    zipCode: expect.any(String),
+    state: expect.any(String),
+    apt: expect.objectContaining({
+      number: expect.any(Number),
+      floor: expect.any(Number),
+    }),
+  }),
+};
+
+export const mockedDataGenerationExpectedResultsForTestNodeAllProperties = {
+  test: {
+    id: expect.any(String),
+    dateCreated: expect.any(Number),
+    dateLastModified: expect.any(Number),
+    lastUpdatedBy: expect.any(String),
+    lastUpdatedClientTimestamp: expect.any(Number),
+    stringData: expect.any(String),
+    optionalString: expect.any(String),
+    defaultString: expect.stringMatching('iAmADefaultString'),
+    numberData: expect.any(Number),
+    optionalNumber: expect.any(Number),
+    defaultNumber: expect.any(Number),
+    booleanData: expect.any(Boolean),
+    optionalBoolean: expect.any(Boolean),
+    defaultBoolean: expect.any(Boolean),
+    objectData: expect.objectContaining({
+      stringInObject: expect.any(String),
+      recordInObject: expect.any(Object),
+    }),
+    optionalObject: expect.objectContaining({
+      defaultStringInOptionalObject: expect.stringMatching(
+        'iAmADefaultStringInAnOptionalObject'
+      ),
+      recordInOptionalObject: expect.any(Object),
+    }),
+    arrayData: expect.arrayContaining([expect.any(String)]),
+    optionalArray: expect.arrayContaining([expect.any(Boolean)]),
+    type: expect.stringMatching('testNode'),
+    version: expect.any(Number),
+    recordData: expect.any(Object),
+    optionalRecord: expect.any(Object),
+  },
+};
+
+export const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined = {
+  users: expect.arrayContaining([
+    expect.objectContaining({
+      address: expect.objectContaining({
+        apt: expect.objectContaining({
+          number: expect.any(Number),
+          floor: expect.any(Number),
+        }),
+        state: expect.any(String),
+      }),
+      displayName: expect.stringMatching('User display name'),
+      id: expect.any(String),
+      lastUpdatedBy: expect.any(String),
+      type: expect.stringMatching('tt-user'),
+      version: expect.any(Number),
+      todos: expect.arrayContaining([
+        expect.objectContaining({
+          assignee: expect.objectContaining({
+            displayName: expect.stringMatching('User display name'),
+            firstName: expect.any(String),
+            id: expect.any(String),
+            lastUpdatedBy: expect.any(String),
+            type: expect.stringMatching('tt-user'),
+            version: expect.any(Number),
+          }),
+          id: expect.any(String),
+          lastUpdatedBy: expect.any(String),
+          type: expect.stringMatching('todo'),
+          version: expect.any(Number),
+        }),
+      ]),
+    }),
+  ]),
+};

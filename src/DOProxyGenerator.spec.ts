@@ -3,6 +3,7 @@ import * as smData from './smDataTypes';
 import {
   SMNotUpToDateException,
   SMNotUpToDateInComputedException,
+  SMImpliedNodePropertyException,
 } from './exceptions';
 import {
   DeepPartial,
@@ -19,9 +20,7 @@ describe('DOProxyGenerator', () => {
   // basic sanity check
   it('returns a proxied version of a DO', () => {
     const doProxy = generateDOProxy({
-      properties: {
-        id: smData.string,
-      },
+      properties: {},
       initialData: {
         version: '1',
         id: 'mockId',
@@ -35,7 +34,7 @@ describe('DOProxyGenerator', () => {
   it('adds getters for relational results', () => {
     const todos = new Array(5).fill(0).map((_, idx) =>
       generateDOProxy({
-        properties: { id: smData.string },
+        properties: {},
         initialData: {
           version: '1',
           id: `mockId${idx}`,
@@ -44,9 +43,7 @@ describe('DOProxyGenerator', () => {
     );
 
     const doProxy = generateDOProxy({
-      properties: {
-        id: smData.string,
-      },
+      properties: {},
       initialData: {
         version: '1',
         id: 'mockId',
@@ -66,9 +63,7 @@ describe('DOProxyGenerator', () => {
 
   it(`throws a helpful exception when a property that isn't guaranteed to be up to date is read`, () => {
     const doProxy = generateDOProxy({
-      properties: {
-        id: smData.string,
-      },
+      properties: {},
       initialData: {
         version: '1',
         id: 'mockId',
@@ -130,6 +125,24 @@ describe('DOProxyGenerator', () => {
     );
   });
 
+  it(`throws a helpful exception when a default property is redefined`, () => {
+    expect(() =>
+      generateDOProxy({
+        properties: {
+          id: smData.string,
+          dateCreated: smData.number,
+          dateLastModified: smData.number,
+          lastUpdatedBy: smData.string,
+          lastUpdatedClientTimestamp: smData.number,
+        },
+        initialData: {
+          version: '1',
+          id: 'mockId',
+        },
+      })
+    ).toThrow(SMImpliedNodePropertyException);
+  });
+
   it(`allows spreading data from results, and avoids enumerating properties which are not up to date`, () => {
     const doProxy = generateDOProxy({
       properties: {
@@ -154,6 +167,8 @@ describe('DOProxyGenerator', () => {
       allPropertiesQueried: [
         'object',
         `object${OBJECT_PROPERTY_SEPARATOR}nestedString`,
+        'id',
+        'lastUpdatedBy',
       ],
     });
 

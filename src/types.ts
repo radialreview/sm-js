@@ -1,3 +1,4 @@
+import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './smQueriers';
@@ -10,7 +11,10 @@ export type Maybe<T> = T | null;
 
 export type IsMaybe<Type> = null extends Type ? true : false
 
-export type SMDataDefaultFn = (_default: any) => ISMData;
+export type SMDataDefaultFn = {
+  _default: ISMData
+  (_default: any): ISMData;
+} 
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
@@ -39,6 +43,7 @@ export type SMPlugin = {
 export type SMConfig = {
   gqlClient: ISMGQLClient;
   plugins?: Array<SMPlugin>;
+  generateMockData?: boolean
 };
 
 export interface ISMGQLClient {
@@ -117,6 +122,9 @@ export type SubscriptionOpts<
   batchKey?: string;
 };
 
+
+export type SMNodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
+
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 export interface ISMJS {
@@ -128,6 +136,7 @@ export interface ISMJS {
   transaction: ReturnType<typeof createTransaction>
   gqlClient: ISMGQLClient;
   plugins: Array<SMPlugin> | undefined;
+  generateMockData: boolean | undefined
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
   SMQueryManager:ReturnType<typeof createSMQueryManager>
@@ -149,7 +158,7 @@ export interface ISMJS {
       TNodeRelationalData,
       TNodeMutations
     >
-  ): ISMNode<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  ): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
 }
 
 export type NodeDefArgs<
@@ -161,7 +170,7 @@ export type NodeDefArgs<
 > = {
   type: TNodeType;
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   mutations?: TNodeMutations;
 };
@@ -246,8 +255,8 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
     TProperties[key] extends ISMData<infer TParsedValue, any, infer TBoxedValue>
       ? TBoxedValue extends Record<string, ISMData | SMDataDefaultFn>
         ? IsMaybe<TParsedValue> extends true
-          ? Maybe<GetAllAvailableNodeDataType<TBoxedValue, {}>>
-          : GetAllAvailableNodeDataType<TBoxedValue, {}>
+          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>
         : TParsedValue extends Array<infer TArrayItemType>
           ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
@@ -260,14 +269,22 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends ISMNode> = TSMNode extends ISMNode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 
+
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
+
 export type GetAllAvailableNodeDataType<
   TSMData extends Record<string, ISMData | SMDataDefaultFn>,
   TComputedData extends Record<string, any>
+> = GetResultingDataTypeFromProperties<TSMData & SMNodeDefaultProps> & TComputedData;
+
+type GetAllAvailableNodeDataTypeWithoutDefaultProps<
+  TSMData extends Record<string, ISMData | SMDataDefaultFn>,
+  TComputedData extends Record<string, any>
 > = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+
 
 /**
  * Takes in any object and returns a Partial of that object type
@@ -472,11 +489,11 @@ export interface ISMNode<
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
   TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
-  TNodeComputedFns = NodeComputedFns<TNodeData, TNodeComputedData>,
+  TNodeComputedFns = NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>,
   TNodeDO = NodeDO
 > {
   _isSMNodeDef: true;
-  smData: TNodeData;
+  smData: TNodeData & SMNodeDefaultProps;
   smComputed?: TNodeComputedFns;
   smRelational?: NodeRelationalFns<TNodeRelationalData>;
   smMutations?: TNodeMutations;
@@ -786,7 +803,7 @@ export type MapFn<
   TNodeComputedData,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
 > = (
-  data: GetMapFnArgs<ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>>
+  data: GetMapFnArgs<ISMNode<any, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData>>
 ) => RequestedData<TNodeData, TNodeComputedData>;
 
 export type GetMapFnArgs<

@@ -1,12 +1,7 @@
 import * as smData from './smDataTypes';
 import { SMJS } from '.';
-import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig } from './types';
+import { IChildrenQueryBuilder, ISMNode, ISMJS, IByReferenceQueryBuilder, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, SMConfig, SMNodeDefaultProps } from './types';
 declare const userProperties: {
-    id: {
-        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-        _default: smData.SMData<"", "", undefined>;
-        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-    };
     firstName: {
         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
         _default: smData.SMData<"", "", undefined>;
@@ -174,11 +169,6 @@ export declare type UserNode = ISMNode<'tt-user', UserProperties, {
 }, UserRelationalData, {}>;
 export declare function generateUserNode(smJSInstance: ISMJS, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
-    id: {
-        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-        _default: smData.SMData<"", "", undefined>;
-        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-    };
     task: {
         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
         _default: smData.SMData<"", "", undefined>;
@@ -255,7 +245,7 @@ export declare type TodoNode = ISMNode<'todo', TodoProperties, {}, TodoRelationa
 export declare function generateTodoNode(smJSInstance: ISMJS, cachedUserNode?: UserNode): TodoNode;
 export declare function generateDOInstance<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(opts: {
     properties: TNodeData;
-    computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+    computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
     mutations?: TNodeMutations;
     initialData: {
@@ -277,11 +267,6 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
     doNotSuspend?: boolean;
 }): {
     users: import("./types").UseSubscriptionQueryDefinition<UserNode, ({ id, todos, address }: {
-        id: {
-            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-            _default: smData.SMData<"", "", undefined>;
-            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
         firstName: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
             _default: smData.SMData<"", "", undefined>;
@@ -341,6 +326,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
         }, {}, {}>>(opts: {
             map: TMapFn;
         }) => TMapFn;
+        id: {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        };
+        dateCreated: {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        };
+        dateLastModified: {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        };
+        lastUpdatedBy: {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        };
+        lastUpdatedClientTimestamp: {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        };
     } & UserRelationalData) => {
         id: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -377,6 +387,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
             }, {}, {}>>(opts: {
                 map: TMapFn_1;
             }) => TMapFn_1;
+            id: {
+                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                _default: smData.SMData<"", "", undefined>;
+                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+            };
+            dateCreated: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
+            dateLastModified: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
+            lastUpdatedBy: {
+                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                _default: smData.SMData<"", "", undefined>;
+                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+            };
+            lastUpdatedClientTimestamp: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
         }) => {
             state: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -390,6 +425,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                     optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                 };
                 floor: {
+                    (defaultValue: number): smData.SMData<number, string, undefined>;
+                    _default: smData.SMData<number, string, undefined>;
+                    optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                };
+                id: {
+                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                    _default: smData.SMData<"", "", undefined>;
+                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                };
+                dateCreated: {
+                    (defaultValue: number): smData.SMData<number, string, undefined>;
+                    _default: smData.SMData<number, string, undefined>;
+                    optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                };
+                dateLastModified: {
+                    (defaultValue: number): smData.SMData<number, string, undefined>;
+                    _default: smData.SMData<number, string, undefined>;
+                    optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                };
+                lastUpdatedBy: {
+                    <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                    _default: smData.SMData<"", "", undefined>;
+                    optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                };
+                lastUpdatedClientTimestamp: {
                     (defaultValue: number): smData.SMData<number, string, undefined>;
                     _default: smData.SMData<number, string, undefined>;
                     optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
@@ -408,11 +468,6 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
             };
         };
         todos: import("./types").IChildrenQuery<TodoNode, ({ id, assignee }: {
-            id: {
-                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                _default: smData.SMData<"", "", undefined>;
-                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
             task: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                 _default: smData.SMData<"", "", undefined>;
@@ -461,6 +516,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                 _default: smData.SMData<"", "", undefined>;
                 optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
             }>;
+            id: {
+                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                _default: smData.SMData<"", "", undefined>;
+                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+            };
+            dateCreated: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
+            dateLastModified: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
+            lastUpdatedBy: {
+                <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                _default: smData.SMData<"", "", undefined>;
+                optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+            };
+            lastUpdatedClientTimestamp: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
         } & TodoRelationalData) => {
             id: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -469,11 +549,6 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
             };
             assignee: import("./types").IByReferenceQuery<TodoNode, UserNode, {
                 map: ({ id, firstName }: {
-                    id: {
-                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
-                        _default: smData.SMData<"", "", undefined>;
-                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    };
                     firstName: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                         _default: smData.SMData<"", "", undefined>;
@@ -533,6 +608,31 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                     }, {}, {}>>(opts: {
                         map: TMapFn;
                     }) => TMapFn;
+                    id: {
+                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                        _default: smData.SMData<"", "", undefined>;
+                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                    };
+                    dateCreated: {
+                        (defaultValue: number): smData.SMData<number, string, undefined>;
+                        _default: smData.SMData<number, string, undefined>;
+                        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                    };
+                    dateLastModified: {
+                        (defaultValue: number): smData.SMData<number, string, undefined>;
+                        _default: smData.SMData<number, string, undefined>;
+                        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                    };
+                    lastUpdatedBy: {
+                        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+                        _default: smData.SMData<"", "", undefined>;
+                        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+                    };
+                    lastUpdatedClientTimestamp: {
+                        (defaultValue: number): smData.SMData<number, string, undefined>;
+                        _default: smData.SMData<number, string, undefined>;
+                        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                    };
                 } & UserRelationalData) => {
                     id: {
                         <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -643,6 +743,150 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
         subscriptionAlias: string;
     };
 };
-export declare function getMockConfig(): SMConfig;
+export declare function getMockConfig(opts?: {
+    generateMockData: boolean;
+}): SMConfig;
 export declare function autoIndentGQL(gqlString: string): string;
+export declare function generateTestNode(smJSInstance: ISMJS): TestNode;
+declare const testProperties: {
+    stringData: {
+        <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+        _default: smData.SMData<"", "", undefined>;
+        optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalString: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    defaultString: smData.SMData<"iAmADefaultString", "iAmADefaultString", undefined>;
+    numberData: {
+        (defaultValue: number): smData.SMData<number, string, undefined>;
+        _default: smData.SMData<number, string, undefined>;
+        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalNumber: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    defaultNumber: smData.SMData<number, string, undefined>;
+    booleanData: smData.SMData<boolean, string | boolean, undefined>;
+    optionalBoolean: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
+    defaultBoolean: smData.SMData<boolean, string | boolean, undefined>;
+    objectData: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, {
+        recordInObject: smData.SMData<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>;
+    optionalObject: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, {
+        defaultStringInOptionalObject: smData.SMData<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: smData.SMData<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>;
+    arrayData: {
+        (defaultValue: string[]): smData.SMData<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        optional: smData.SMData<import("./types").Maybe<string[]>, import("./types").Maybe<string[]>, {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        _default: smData.SMData<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
+            _default: smData.SMData<"", "", undefined>;
+            optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+    };
+    optionalArray: smData.SMData<import("./types").Maybe<import("./types").Maybe<boolean>[]>, import("./types").Maybe<import("./types").Maybe<boolean>[]>, smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>>;
+    recordData: smData.SMData<Record<string, "iAmADefaultStringInARecord">, Record<string, "iAmADefaultStringInARecord">, smData.SMData<"iAmADefaultStringInARecord", "iAmADefaultStringInARecord", undefined>>;
+    optionalRecord: smData.SMData<import("./types").Maybe<Record<string, any>>, import("./types").Maybe<Record<string, any>>, ISMData<any, any, any>>;
+};
+declare type TestProperties = typeof testProperties;
+declare type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
+export declare const mockDataGenerationExpectedResultsForTodoNodeAllProperties: {
+    task: any;
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    type: any;
+    done: any;
+    assigneeId: any;
+    meetingId: any;
+    settings: any;
+    dataSetIds: any;
+    comments: any;
+    record: any;
+};
+export declare const mockedDataGenerationExpectedResultsForUserNodeAllProperties: {
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    firstName: any;
+    lastName: any;
+    displayName: any;
+    address: any;
+};
+export declare const mockedDataGenerationExpectedResultsForTestNodeAllProperties: {
+    test: {
+        id: any;
+        dateCreated: any;
+        dateLastModified: any;
+        lastUpdatedBy: any;
+        lastUpdatedClientTimestamp: any;
+        stringData: any;
+        optionalString: any;
+        defaultString: any;
+        numberData: any;
+        optionalNumber: any;
+        defaultNumber: any;
+        booleanData: any;
+        optionalBoolean: any;
+        defaultBoolean: any;
+        objectData: any;
+        optionalObject: any;
+        arrayData: any;
+        optionalArray: any;
+        type: any;
+        version: any;
+        recordData: any;
+        optionalRecord: any;
+    };
+};
+export declare const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined: {
+    users: any;
+};
 export {};

@@ -26,6 +26,13 @@ export class SMNotUpToDateInComputedException extends Error {
     );
   }
 }
+export class SMImpliedNodePropertyException extends Error {
+  constructor(opts: { propName: string }) {
+    super(
+      `SMImpliedPropertyException exception - The property "${opts.propName}" is implied and cannot be customized within a node definition.`
+    );
+  }
+}
 
 export class SMNotCachedException extends Error {
   constructor(opts: { nodeType: string; id: string }) {
@@ -102,5 +109,16 @@ export function throwLocallyLogInProd(error: Error) {
     throw error;
   } else {
     console.error(error);
+  }
+}
+
+// http://ideasintosoftware.com/exhaustive-switch-in-typescript/
+export class UnreachableCaseError extends Error {
+  constructor(val: never) {
+    super(
+      `Unreachable case: ${
+        typeof val === 'object' ? JSON.stringify(val, null, 2) : val
+      }`
+    );
   }
 }

@@ -227,7 +227,7 @@ export const record = <
   const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as TBoxedValue)
+      ? (boxedValue._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
   return new SMData<
@@ -249,7 +249,7 @@ record.optional = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   const parsedBoxedValue: ISMData =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as ISMData)
+      ? (boxedValue._default as ISMData)
       : (boxedValue as ISMData);
 
   return new SMData<
@@ -273,7 +273,7 @@ export const array = <TBoxedValue extends ISMData | SMDataDefaultFn>(
   const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? ((boxedValue as any)._default as TBoxedValue)
+      ? (boxedValue._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
   function smArray(defaultValue: Array<GetSMDataType<TBoxedValue>>) {
