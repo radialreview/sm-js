@@ -1,4 +1,4 @@
-import { ArrayWithPagination } from './arrayWithPagination';
+import { PaginatedArray } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -770,7 +770,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TSMNode>
-          : ArrayWithPagination<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+          : PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
         : never
       : never
     : never
@@ -916,7 +916,7 @@ type ExtractQueriedDataFromMapFnReturn<
 type ExtractQueriedDataFromChildrenQuery<
   TChildrenQuery extends IChildrenQuery<any, any>
 > = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn>
-  ? ArrayWithPagination<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
+  ? PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>>
   : never;
 
 // Without this,ExtractQueriedDataFromByReferenceQuery and ExtractResultsUnionFromReferenceBuilder somehow cause a loop

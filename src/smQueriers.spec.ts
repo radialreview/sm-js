@@ -192,7 +192,7 @@ test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () 
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () => {
@@ -226,7 +226,7 @@ test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () 
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () => {
@@ -260,7 +260,7 @@ test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () =
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () => {
@@ -294,7 +294,7 @@ test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () 
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () => {
@@ -328,7 +328,7 @@ test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () =
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () => {
@@ -362,7 +362,7 @@ test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () =
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
@@ -397,7 +397,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () => {
@@ -433,7 +433,7 @@ test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () =>
           },
         }),
       })
-    ).data.users.length
+    ).data.users.value.length
   ).toBe(2);
 });
 
@@ -470,7 +470,7 @@ test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () =
           },
         }),
       })
-    ).data.users.length
+    ).data.users.value.length
   ).toBe(1);
 });
 
@@ -505,7 +505,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
@@ -539,7 +539,7 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_contains' operator`, async () => {
@@ -573,7 +573,7 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
@@ -607,7 +607,7 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () => {
@@ -641,7 +641,7 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.value.length).toBe(1);
 });
 
 test(`sm.query.filter supports old filter object format with '_eq' as default operator`, async () => {
@@ -675,7 +675,7 @@ test(`sm.query.filter supports old filter object format with '_eq' as default op
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.value.length).toBe(2);
 });
 
 test(`sm.query.filter can filter relational data`, async () => {
@@ -732,8 +732,8 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
-  expect(data.users[0].todos.length).toBe(2);
-  expect(data.users[1].todos.length).toBe(1);
+  expect(data.users.value[0].todos.value.length).toBe(2);
+  expect(data.users.value[1].todos.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter multilevel relational data`, async () => {
@@ -787,7 +787,7 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
-  expect(data.users[0].todos[0].users.length).toBe(1);
+  expect(data.users.value[0].todos.value[0].users.value.length).toBe(1);
 });
 
 test(`sm.query.filter can filter nested object property`, async () => {
@@ -826,7 +826,7 @@ test(`sm.query.filter can filter nested object property`, async () => {
           },
         }),
       })
-    ).data.users.length
+    ).data.users.value.length
   ).toBe(2);
 });
 
