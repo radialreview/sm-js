@@ -27,6 +27,12 @@ import {
 } from './consts';
 
 /**
+ * The functions in this file are responsible for translating queryDefinitionss to gql documents
+ * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
+ * other fns are exported for testing purposes only
+ */
+
+/**
  * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
@@ -75,11 +81,6 @@ function getMapFnReturn(opts: {
   >;
 }
 
-/**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
 function getQueriedProperties(opts: {
   queryId: string;
   mapFn: (smData: Record<string, any>) => Record<string, any>;
