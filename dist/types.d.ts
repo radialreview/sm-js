@@ -7,7 +7,10 @@ import { createTransaction } from './transaction/transaction';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
-export declare type SMDataDefaultFn = (_default: any) => ISMData;
+export declare type SMDataDefaultFn = {
+    _default: ISMData;
+    (_default: any): ISMData;
+};
 export declare type DocumentNode = import('@apollo/client/core').DocumentNode;
 export declare type SMPlugin = {
     DO?: {

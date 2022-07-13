@@ -55,18 +55,14 @@ function getMockValueForISMData(smData: ISMData): MockValuesISMDataReturnType {
     case SM_DATA_TYPES.array: {
       return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
         return typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(
-              (smData.boxedValue as any)._default as ISMData
-            )
+          ? getMockValueForISMData(smData.boxedValue._default as ISMData)
           : getMockValueForISMData(smData.boxedValue);
       });
     }
     case SM_DATA_TYPES.maybeArray: {
       return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
         return typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(
-              (smData.boxedValue as any)._default as ISMData
-            )
+          ? getMockValueForISMData(smData.boxedValue._default as ISMData)
           : getMockValueForISMData(smData.boxedValue);
       });
     }
@@ -74,9 +70,7 @@ function getMockValueForISMData(smData: ISMData): MockValuesISMDataReturnType {
       return {
         [generateRandomString()]:
           typeof smData.boxedValue === 'function'
-            ? getMockValueForISMData(
-                (smData.boxedValue as any)._default as ISMData
-              )
+            ? getMockValueForISMData(smData.boxedValue._default as ISMData)
             : getMockValueForISMData(smData.boxedValue),
       };
     }
@@ -84,9 +78,7 @@ function getMockValueForISMData(smData: ISMData): MockValuesISMDataReturnType {
       return {
         [generateRandomString()]:
           typeof smData.boxedValue === 'function'
-            ? getMockValueForISMData(
-                (smData.boxedValue as any)._default as ISMData
-              )
+            ? getMockValueForISMData(smData.boxedValue._default as ISMData)
             : getMockValueForISMData(smData.boxedValue),
       };
     }
@@ -100,7 +92,7 @@ export function getMockValuesForISMDataRecord(
 ) {
   return Object.entries(record).reduce((acc, [key, value]) => {
     if (typeof value === 'function') {
-      acc[key] = getMockValueForISMData((value as any)._default as ISMData);
+      acc[key] = getMockValueForISMData(value._default as ISMData);
     } else {
       acc[key] = getMockValueForISMData(value);
     }
