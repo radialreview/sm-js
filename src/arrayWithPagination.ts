@@ -10,53 +10,57 @@ function getPageResults<T>(opts: {
   );
 }
 
-export class ArrayWithPagination<T> extends Array<T> {
+interface PaginatedArrayOpts<T> {
+  itemsPerPage: number;
+  page: number;
+  items: T[];
+}
+export class PaginatedArray<T> {
   public itemsPerPage: number;
-  public currentPage: number;
-  private allItems: T[];
-  public totalPages: number;
-  constructor(opts: { items: T[]; itemsPerPage: number; page: number }) {
-    super(...getPageResults(opts));
-    this.allItems = opts.items;
+  public page: number;
+  public items: T[];
+
+  constructor(opts: PaginatedArrayOpts<T>) {
     this.itemsPerPage = opts.itemsPerPage;
-    this.currentPage = opts.page;
-    this.totalPages = Math.ceil((opts.items || []).length / opts.itemsPerPage);
+    this.page = opts.page;
+    this.items = opts.items;
+  }
+
+  public get value() {
+    return getPageResults({
+      items: this.items,
+      page: this.page,
+      itemsPerPage: this.itemsPerPage,
+    });
+  }
+
+  public get totalPages() {
+    return Math.ceil((this.items || []).length / this.itemsPerPage);
   }
 
   public goToPage(page: number) {
-    const results = getPageResults({
-      page,
-      items: this.allItems || [],
-      itemsPerPage: this.itemsPerPage,
-    });
-    this.splice(0, (Array.from(this.allItems || []) || []).length);
-    results.forEach(item => this.push(item));
-    this.currentPage = page;
+    this.page = page;
   }
 
   public get hasNextPage() {
-    return this.totalPages > this.currentPage;
+    return this.totalPages > this.page;
   }
 
   public get hasPreviousPage() {
-    return this.currentPage > 1;
+    return this.page > 1;
   }
 
   public goToNextPage() {
     if (!this.hasNextPage) {
       return;
     }
-    this.goToPage(this.currentPage + 1);
+    this.goToPage(this.page + 1);
   }
 
   public goToPreviousPage() {
     if (!this.hasPreviousPage) {
       return;
     }
-    this.goToPage(this.currentPage - 1);
-  }
-
-  public toArray(): T[] {
-    return Array.from(this);
+    this.goToPage(this.page - 1);
   }
 }
