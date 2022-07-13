@@ -466,7 +466,7 @@ export interface IDOAccessors {
   persistedData: Record<string,any>
 }
 
-export type NodeDO = Record<string, any> & SMNodeDefaultProps & IDOMethods & IDOAccessors;
+export type NodeDO = Record<string, any> & IDOMethods & IDOAccessors;
 
 export type NodeComputedFns<
   TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
