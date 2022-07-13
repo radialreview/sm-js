@@ -216,7 +216,7 @@ test('if the query record provided is updated, performs a new query and returns 
     );
     const { data, querying } = useSubscription(
       updateQueryDefinition
-        ? createMockQueryDefinitions(smJS, { useUnder: true })
+        ? createMockQueryDefinitions(smJS)
         : createMockQueryDefinitions(smJS, { useIds: true })
     );
 
@@ -253,9 +253,7 @@ test('handles a query definition switching from non nullish to nullish', async (
       false
     );
     const { data } = useSubscription(
-      updateQueryDefinition
-        ? { users: null }
-        : createMockQueryDefinitions(smJS, { useUnder: true })
+      updateQueryDefinition ? { users: null } : createMockQueryDefinitions(smJS)
     );
 
     React.useEffect(() => {
@@ -305,11 +303,8 @@ test('"querying" is true until all queries in the query definition record resolv
 
   function MyComponent() {
     const { data, querying, error } = useSubscription({
-      users: createMockQueryDefinitions(smJS, {
-        useUnder: true,
-      }).users,
+      users: createMockQueryDefinitions(smJS).users,
       usersNotSuspended: createMockQueryDefinitions(smJS, {
-        useUnder: true,
         doNotSuspend: true,
       }).users,
     });
@@ -353,7 +348,7 @@ test('if the query record provided is updated, unsubscribes from the previously 
     );
     useSubscription(
       updateQueryDefinition
-        ? createMockQueryDefinitions(smJS, { useUnder: true })
+        ? createMockQueryDefinitions(smJS)
         : createMockQueryDefinitions(smJS, { useIds: true })
     );
 

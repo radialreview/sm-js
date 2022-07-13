@@ -7,7 +7,7 @@ import {
   generateDOInstance,
   getMockConfig,
 } from './specUtilities';
-import { IChildrenQueryBuilder, ISMData, SM_RELATIONAL_TYPES } from './types';
+import { IOneToManyQueryBuilder, ISMData, SM_RELATIONAL_TYPES } from './types';
 
 describe('smData.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -147,7 +147,7 @@ describe('smData.DO', () => {
       'mock-type',
       {},
       {},
-      { todos: IChildrenQueryBuilder<TodoNode> },
+      { todos: IOneToManyQueryBuilder<TodoNode> },
       {}
     >({
       properties: {},
@@ -156,7 +156,7 @@ describe('smData.DO', () => {
         version: '1',
       },
       relational: {
-        todos: () => smData.children({ def: generateTodoNode(smJSInstance) }),
+        todos: () => smData.oneToMany(generateTodoNode(smJSInstance)),
       },
     });
 
@@ -165,7 +165,7 @@ describe('smData.DO', () => {
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
         map: queryFn,
-        _smRelational: SM_RELATIONAL_TYPES.children,
+        _smRelational: SM_RELATIONAL_TYPES.oneToMany,
       })
     );
   });

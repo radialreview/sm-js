@@ -9,7 +9,7 @@ import {
   NodeComputedFns,
   NodeRelationalFns,
   SMDataDefaultFn,
-  IChildrenQueryBuilder,
+  IOneToOneQueryBuilder,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 
@@ -228,14 +228,14 @@ describe('smData.repository', () => {
         task: SMDataDefaultFn;
       },
       {},
-      { assignee: IChildrenQueryBuilder<UserNode> },
+      { assignee: IOneToOneQueryBuilder<UserNode> },
       {}
     >({
       properties: {
         task: smData.string,
       },
       relational: {
-        assignee: () => smData.children({ def: generateUserNode(smJS) }),
+        assignee: () => smData.oneToOne(generateUserNode(smJS)),
       },
     });
 

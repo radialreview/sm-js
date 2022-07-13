@@ -53,7 +53,7 @@ describe('DOProxyGenerator', () => {
       },
       relationalQueries: {
         todos: {
-          children: true,
+          oneToMany: true,
         } as RelationalQueryRecordEntry,
       },
     });
