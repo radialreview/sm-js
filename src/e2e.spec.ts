@@ -8,7 +8,6 @@ const client = new MMGQL(getDefaultConfig());
 const measurableDef = client.def({
   type: 'measurable',
   properties: {
-    id: string,
     title: string,
   },
 });
@@ -16,7 +15,6 @@ const measurableDef = client.def({
 const userDef = client.def({
   type: 'user',
   properties: {
-    id: string,
     firstName: string,
   },
   relational: {
@@ -38,7 +36,7 @@ test('queries users and measurables', async () => {
   const { data } = await client.query({
     users: queryDefinition({
       def: userDef,
-      map: ({ id, measurables, firstName }) => ({
+      map: ({ id, /*measurables,*/ firstName }) => ({
         id,
         firstName,
         // measurables: measurables({
