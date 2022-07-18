@@ -1,4 +1,4 @@
-import { string, number } from './smDataTypes';
+import { string, number } from './dataTypes';
 
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = [
   'id',
