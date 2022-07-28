@@ -1,4 +1,4 @@
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry } from './types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry } from './types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -44,7 +44,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         notifyRepositories(opts: {
             data: Record<string, any>;
             queryRecord: {
-                [key: string]: BaseQueryRecordEntry;
+                [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
             };
         }): void;
         /**
@@ -54,6 +54,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getNewStateFromQueryResult(opts: {
             queryResult: Record<string, any>;
             queryId: string;
+            queryRecord: Record<string, BaseQueryRecordEntry>;
         }): QueryManagerState;
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
@@ -86,6 +87,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             relationalQueries: Record<string, RelationalQueryRecordEntry>;
             nodeData: Record<string, any>;
         }): Record<string, RelationalQueryRecordEntry>;
+        getDataFromResponse(opts: {
+            queryRecord: BaseQueryRecordEntry;
+            dataForThisAlias: any;
+        }): any;
     };
 };
 export {};

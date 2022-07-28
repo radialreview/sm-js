@@ -656,26 +656,30 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
 };
 export declare const mockQueryDataReturn: {
     users: {
-        id: string;
-        type: string;
-        version: string;
-        address: string;
-        address__dot__state: string;
-        address__dot__apt: string;
-        address__dot__apt__dot__floor: string;
-        address__dot__apt__dot__number: string;
-        todos: {
-            version: string;
+        nodes: {
             id: string;
             type: string;
-            assignee: {
-                id: string;
-                type: string;
-                version: string;
-                firstName: string;
-            }[];
+            version: string;
+            address: string;
+            address__dot__state: string;
+            address__dot__apt: string;
+            address__dot__apt__dot__floor: string;
+            address__dot__apt__dot__number: string;
+            todos: {
+                nodes: {
+                    version: string;
+                    id: string;
+                    type: string;
+                    assignee: {
+                        id: string;
+                        type: string;
+                        version: string;
+                        firstName: string;
+                    };
+                }[];
+            };
         }[];
-    }[];
+    };
 };
 export declare const mockQueryResultExpectations: {
     users: {

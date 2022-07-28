@@ -1136,13 +1136,8 @@ function createDOProxyGenerator(mmGQLInstance) {
         }
 
         if (relationalResults && opts.relationalQueries && Object.keys(relationalResults).includes(key)) {
-          // @TODO DOES THIS STILL APPLY?
-          // backend returns an array when "oneToOne" is used
-          // but we only care about the first result
           if ('oneToOne' in opts.relationalQueries[key]) {
-            var results = relationalResults[key];
-            if (!Array.isArray(results)) throw Error("Expected results to be an array but it wasn't");
-            return results[0];
+            return relationalResults[key];
           }
 
           return relationalResults[key];
@@ -1452,6 +1447,8 @@ function RepositoryFactory(opts) {
     var _proto = Repository.prototype;
 
     _proto.onDataReceived = function onDataReceived(data) {
+      console.log('data', data);
+
       if (opts.def.type !== data.type) {
         throw Error("Attempted to query a node with an id belonging to a different type - Expected: " + opts.def.type + " Received: " + data.type);
       }
@@ -3651,7 +3648,9 @@ function createQueryManager(mmGQLInstance) {
         data: opts.queryResult,
         queryRecord: this.queryRecord
       });
-      this.state = this.getNewStateFromQueryResult(opts);
+      this.state = this.getNewStateFromQueryResult(_extends({}, opts, {
+        queryRecord: this.queryRecord
+      }));
     };
 
     _proto.onSubscriptionMessage = function onSubscriptionMessage(opts) {
@@ -3713,7 +3712,10 @@ function createQueryManager(mmGQLInstance) {
       var _this2 = this;
 
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
-        var dataForThisAlias = opts.data[queryAlias];
+        var dataForThisAlias = _this2.getDataFromResponse({
+          queryRecord: opts.queryRecord[queryAlias],
+          dataForThisAlias: opts.data[queryAlias]
+        });
 
         if (!dataForThisAlias) {
           throw Error("notifyRepositories could not find resulting data for the alias \"" + queryAlias + "\" in the following queryRecord:\n" + JSON.stringify(opts.queryRecord, null, 2) + "\nResulting data:\n" + JSON.stringify(opts.data, null, 2));
@@ -3764,9 +3766,12 @@ function createQueryManager(mmGQLInstance) {
     _proto.getNewStateFromQueryResult = function getNewStateFromQueryResult(opts) {
       var _this3 = this;
 
-      return Object.keys(this.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
+      return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var cacheEntry = _this3.buildCacheEntry({
-          nodeData: opts.queryResult[queryAlias],
+          nodeData: _this3.getDataFromResponse({
+            dataForThisAlias: opts.queryResult[queryAlias],
+            queryRecord: opts.queryRecord[queryAlias]
+          }),
           queryId: opts.queryId,
           queryAlias: queryAlias
         });
@@ -3797,7 +3802,11 @@ function createQueryManager(mmGQLInstance) {
         return Object.keys(relational).reduce(function (relationalStateAcc, relationalAlias) {
           var _extends2;
 
-          var relationalDataForThisAlias = node[relationalAlias];
+          var relationalDataForThisAlias = _this4.getDataFromResponse({
+            queryRecord: relational[relationalAlias],
+            dataForThisAlias: node[relationalAlias]
+          });
+
           if (!relationalDataForThisAlias) return relationalStateAcc;
 
           var cacheEntry = _this4.buildCacheEntry({
@@ -4058,6 +4067,10 @@ function createQueryManager(mmGQLInstance) {
         if (firstResult && firstResult.type !== opts.relationalQueries[relationalQueryAlias].def.type) return acc;
         return _extends({}, acc, (_extends6 = {}, _extends6[_this6.removeUnionSuffix(relationalQueryAlias)] = opts.relationalQueries[relationalQueryAlias], _extends6));
       }, {});
+    };
+
+    _proto.getDataFromResponse = function getDataFromResponse(opts) {
+      return 'id' in opts.queryRecord || 'oneToOne' in opts.queryRecord ? opts.dataForThisAlias : opts.dataForThisAlias.nodes;
     };
 
     return QueryManager;
@@ -4913,8 +4926,8 @@ function getGQLCLient(gqlClientOpts) {
 function getDefaultConfig() {
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
-      wsUrl: 'wss://saasmaster.dev02.tt-devs.com/'
+      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
     })
   };
 }
