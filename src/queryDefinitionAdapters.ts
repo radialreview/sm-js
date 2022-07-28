@@ -486,9 +486,9 @@ function getQueryPropertiesString(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nestLevel: number;
 }) {
-  let propsString = `\n${getSpaces((opts.nestLevel + 2) * 2)}`;
+  let propsString = `${getSpaces(opts.nestLevel * 2)}`;
   propsString += opts.queryRecordEntry.properties.join(
-    `,\n${getSpaces((opts.nestLevel + 2) * 2)}`
+    `,\n${getSpaces(opts.nestLevel * 2)}`
   );
 
   if (opts.queryRecordEntry.relational) {
@@ -496,7 +496,7 @@ function getQueryPropertiesString(opts: {
       (propsString !== '' ? ',' : '') +
       getRelationalQueryString({
         relationalQueryRecord: opts.queryRecordEntry.relational,
-        nestLevel: opts.nestLevel + 2,
+        nestLevel: opts.nestLevel,
       });
   }
 
@@ -524,11 +524,19 @@ function getRelationalQueryString(opts: {
 
     return (
       acc +
-      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {` +
-      getQueryPropertiesString({
-        queryRecordEntry: relationalQueryRecordEntry,
-        nestLevel: opts.nestLevel,
-      }) +
+      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {\n` +
+      ('oneToMany' in relationalQueryRecordEntry
+        ? wrapInNodes({
+            propertiesString: getQueryPropertiesString({
+              queryRecordEntry: relationalQueryRecordEntry,
+              nestLevel: opts.nestLevel + 2,
+            }),
+            nestLevel: opts.nestLevel + 1,
+          })
+        : getQueryPropertiesString({
+            queryRecordEntry: relationalQueryRecordEntry,
+            nestLevel: opts.nestLevel + 1,
+          })) +
       `\n${getSpaces(opts.nestLevel * 2)}}`
     );
   }, '');
@@ -549,6 +557,12 @@ function getOperationFromQueryRecordEntry(queryRecordEntry: QueryRecordEntry) {
   return operation;
 }
 
+function wrapInNodes(opts: { propertiesString: string; nestLevel: number }) {
+  return `${getSpaces(opts.nestLevel * 2)}nodes {\n${
+    opts.propertiesString
+  }\n${getSpaces(opts.nestLevel * 2)}}`;
+}
+
 function getRootLevelQueryString(
   opts: {
     alias: string;
@@ -557,9 +571,19 @@ function getRootLevelQueryString(
   const operation = getOperationFromQueryRecordEntry(opts);
 
   return (
-    `${opts.alias}: ${operation} {` +
-    `${getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 1 })}` +
-    `\n${getSpaces(4)}}`
+    `  ${opts.alias}: ${operation} {\n` +
+    `${
+      opts.id == null
+        ? wrapInNodes({
+            propertiesString: getQueryPropertiesString({
+              queryRecordEntry: opts,
+              nestLevel: 3,
+            }),
+            nestLevel: 2,
+          })
+        : getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 2 })
+    }` +
+    `\n  }`
   );
 }
 
@@ -585,18 +609,18 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLString = `
-    query ${getSanitizedQueryId({ queryId: opts.queryId })} {
-        ${Object.keys(queryRecord)
-          .map(alias =>
-            getRootLevelQueryString({
-              alias,
-              ...queryRecord[alias],
-            })
-          )
-          .join('\n    ')}
-    }
-  `.trim();
+  const queryGQLString = (
+    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
+    Object.keys(queryRecord)
+      .map(alias =>
+        getRootLevelQueryString({
+          alias,
+          ...queryRecord[alias],
+        })
+      )
+      .join('\n    ') +
+    '\n}'
+  ).trim();
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord
