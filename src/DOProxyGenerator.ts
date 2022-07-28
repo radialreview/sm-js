@@ -141,14 +141,8 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
           opts.relationalQueries &&
           Object.keys(relationalResults).includes(key)
         ) {
-          // @TODO DOES THIS STILL APPLY?
-          // backend returns an array when "oneToOne" is used
-          // but we only care about the first result
           if ('oneToOne' in opts.relationalQueries[key]) {
-            const results = relationalResults[key];
-            if (!Array.isArray(results))
-              throw Error(`Expected results to be an array but it wasn't`);
-            return results[0];
+            return relationalResults[key];
           }
           return relationalResults[key];
         }

@@ -8,6 +8,7 @@ import {
   QueryRecord,
   BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
+  QueryRecordEntry,
 } from './types';
 
 type QueryManagerState = Record<
@@ -57,7 +58,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         queryRecord: this.queryRecord,
       });
 
-      this.state = this.getNewStateFromQueryResult(opts);
+      this.state = this.getNewStateFromQueryResult({
+        ...opts,
+        queryRecord: this.queryRecord,
+      });
     }
 
     public onSubscriptionMessage(opts: {
@@ -127,10 +131,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
      */
     public notifyRepositories(opts: {
       data: Record<string, any>;
-      queryRecord: { [key: string]: BaseQueryRecordEntry };
+      queryRecord: {
+        [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
+      };
     }) {
       Object.keys(opts.queryRecord).forEach(queryAlias => {
-        const dataForThisAlias = opts.data[queryAlias];
+        const dataForThisAlias = this.getDataFromResponse({
+          queryRecord: opts.queryRecord[queryAlias],
+          dataForThisAlias: opts.data[queryAlias],
+        });
 
         if (!dataForThisAlias) {
           throw Error(
@@ -189,11 +198,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getNewStateFromQueryResult(opts: {
       queryResult: Record<string, any>;
       queryId: string;
+      queryRecord: Record<string, BaseQueryRecordEntry>;
     }): QueryManagerState {
-      return Object.keys(this.queryRecord).reduce(
+      return Object.keys(opts.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
           const cacheEntry = this.buildCacheEntry({
-            nodeData: opts.queryResult[queryAlias],
+            nodeData: this.getDataFromResponse({
+              dataForThisAlias: opts.queryResult[queryAlias],
+              queryRecord: opts.queryRecord[queryAlias],
+            }),
             queryId: opts.queryId,
             queryAlias,
           });
@@ -233,7 +246,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         return Object.keys(relational).reduce(
           (relationalStateAcc, relationalAlias) => {
-            const relationalDataForThisAlias = node[relationalAlias];
+            const relationalDataForThisAlias = this.getDataFromResponse({
+              queryRecord: relational[relationalAlias],
+              dataForThisAlias: node[relationalAlias],
+            });
             if (!relationalDataForThisAlias) return relationalStateAcc;
 
             const cacheEntry = this.buildCacheEntry({
@@ -611,6 +627,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         },
         {} as Record<string, RelationalQueryRecordEntry>
       );
+    }
+
+    public getDataFromResponse(opts: {
+      queryRecord: BaseQueryRecordEntry;
+      dataForThisAlias: any;
+    }) {
+      return 'id' in opts.queryRecord || 'oneToOne' in opts.queryRecord
+        ? opts.dataForThisAlias
+        : opts.dataForThisAlias.nodes;
     }
   };
 }

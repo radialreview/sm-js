@@ -45,6 +45,7 @@ export function RepositoryFactory<
     public onDataReceived(
       data: { id: string; type: string } & Record<string, any>
     ) {
+      console.log('data', data);
       if (opts.def.type !== data.type) {
         throw Error(
           `Attempted to query a node with an id belonging to a different type - Expected: ${opts.def.type} Received: ${data.type}`

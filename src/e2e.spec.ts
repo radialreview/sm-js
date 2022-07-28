@@ -46,14 +46,5 @@ test('queries users and measurables', async () => {
     }),
   });
 
-  `
-    query SomeTitle {
-        users {
-            id
-         
-        }
-    }
- `;
-
   console.log('data', data);
 });
