@@ -202,7 +202,7 @@ test('if the query record provided is updated, performs a new query and returns 
         requestIdx++;
       } else {
         const updatedQueryDataReturn = deepClone(mockQueryDataReturn);
-        updatedQueryDataReturn.users[0].address__dot__state = 'Not FL';
+        updatedQueryDataReturn.users.nodes[0].address__dot__state = 'Not FL';
         setTimeout(() => {
           res(updatedQueryDataReturn);
         }, 100);
@@ -333,7 +333,7 @@ test('"querying" is true until all queries in the query definition record resolv
   );
 
   await result.findByText(
-    `${mockQueryDataReturn.users[0].id}+${mockQueryDataReturn.users[0].id}`
+    `${mockQueryDataReturn.users.nodes[0].id}+${mockQueryDataReturn.users.nodes[0].id}`
   );
   expect(mmGQL.gqlClient.query).toHaveBeenCalledTimes(2);
   done();
@@ -517,7 +517,7 @@ test('rendering multiple instances of the same component using useSubscription w
   );
 
   const results = await renderResult.findAllByText(
-    mockQueryDataReturn.users[0].id
+    mockQueryDataReturn.users.nodes[0].id
   );
   expect(results.length).toBe(2);
 });

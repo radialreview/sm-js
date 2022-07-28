@@ -214,33 +214,35 @@ export function createMockQueryDefinitions(
 }
 
 export const mockQueryDataReturn = {
-  users: [
-    {
-      id: 'mock-user-id',
-      type: 'user',
-      version: '1',
-      address: '__object__',
-      address__dot__state: 'FL',
-      address__dot__apt: '__object__',
-      address__dot__apt__dot__floor: '1',
-      address__dot__apt__dot__number: '1',
-      todos: [
-        {
-          version: '1',
-          id: 'mock-todo-id',
-          type: 'todo',
-          assignee: [
+  users: {
+    nodes: [
+      {
+        id: 'mock-user-id',
+        type: 'user',
+        version: '1',
+        address: '__object__',
+        address__dot__state: 'FL',
+        address__dot__apt: '__object__',
+        address__dot__apt__dot__floor: '1',
+        address__dot__apt__dot__number: '1',
+        todos: {
+          nodes: [
             {
-              id: 'mock-user-id',
-              type: 'user',
               version: '1',
-              firstName: 'Joe',
+              id: 'mock-todo-id',
+              type: 'todo',
+              assignee: {
+                id: 'mock-user-id',
+                type: 'user',
+                version: '1',
+                firstName: 'Joe',
+              },
             },
           ],
         },
-      ],
-    },
-  ],
+      },
+    ],
+  },
 };
 
 const expectedAssignee = {
