@@ -18,7 +18,5 @@ test('QueryManager handles a query result and returns the expected data', () => 
     queryId: 'MockQueryId',
   });
 
-  console.log('results', queryManager.getResults().users);
-
   expect(queryManager.getResults()).toEqual(mockQueryResultExpectations);
 });

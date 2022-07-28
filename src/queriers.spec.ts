@@ -102,7 +102,7 @@ test('query throws an error when the user specifies a token which has not been r
   } catch (e) {
     expect(
       (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it wit('setToken({ tokenName, token }))`
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
       )
     ).toBe(true);
 
@@ -480,7 +480,7 @@ test('subscribe throws an error when the user specifies a token which has not be
   } catch (e) {
     expect(
       (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it wit('setToken({ tokenName, token }))`
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
       )
     ).toBe(true);
     done();
