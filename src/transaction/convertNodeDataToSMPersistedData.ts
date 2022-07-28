@@ -1,4 +1,4 @@
-import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../smDataTypes';
+import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
 import { Maybe } from '../types';
 import { AdditionalEdgeProperties } from './edges/types';
 
