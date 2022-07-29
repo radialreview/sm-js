@@ -7,7 +7,10 @@ import { createTransaction } from './transaction/transaction';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
-export declare type DataDefaultFn = (_default: any) => IData;
+export declare type DataDefaultFn = {
+    _default: IData;
+    (_default: any): IData;
+};
 export declare type DocumentNode = import('@apollo/client/core').DocumentNode;
 export declare type Plugin = {
     DO?: {
@@ -30,6 +33,7 @@ export declare type Plugin = {
 export declare type Config = {
     gqlClient: IGQLClient;
     plugins?: Array<Plugin>;
+    generateMockData: boolean;
 };
 export interface IGQLClient {
     query(opts: {
@@ -110,6 +114,7 @@ export interface IMMGQL {
     transaction: ReturnType<typeof createTransaction>;
     gqlClient: IGQLClient;
     plugins: Array<Plugin> | undefined;
+    generateMockData: boolean | undefined;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
