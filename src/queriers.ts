@@ -1,4 +1,5 @@
 import { DEFAULT_TOKEN_NAME } from './consts';
+import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
@@ -156,6 +157,13 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           ([tokenName, queryDefinitions]) => {
+            if (mmGQLInstance.generateMockData) {
+              return generateMockNodeDataFromQueryDefinitions({
+                queryDefinitions,
+                queryId,
+              });
+            }
+
             const { queryGQL } = convertQueryDefinitionToQueryInfo({
               queryDefinitions: queryDefinitions,
               queryId: queryId + '_' + tokenName,
@@ -430,7 +438,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     }
 
     try {
-      initSubs();
+      if (!mmGQLInstance.generateMockData) {
+        initSubs();
+      }
       opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
     } catch (e) {
       const error = getError(

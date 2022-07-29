@@ -740,6 +740,150 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
         subscriptionAlias: string;
     };
 };
-export declare function getMockConfig(): Config;
+export declare function getMockConfig(opts?: {
+    generateMockData: boolean;
+}): Config;
 export declare function autoIndentGQL(gqlString: string): string;
+export declare function generateTestNode(mmGQLInstance: IMMGQL): TestNode;
+declare const testProperties: {
+    stringData: {
+        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+        _default: data.Data<"", "", undefined>;
+        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalString: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    defaultString: data.Data<"iAmADefaultString", "iAmADefaultString", undefined>;
+    numberData: {
+        (defaultValue: number): data.Data<number, string, undefined>;
+        _default: data.Data<number, string, undefined>;
+        optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
+    optionalNumber: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    defaultNumber: data.Data<number, string, undefined>;
+    booleanData: IData<boolean, string | boolean, undefined>;
+    optionalBoolean: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
+    defaultBoolean: IData<boolean, string | boolean, undefined>;
+    objectData: data.Data<import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: data.Data<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, import("./types").GetResultingDataTypeFromProperties<{
+        recordInObject: data.Data<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>, {
+        recordInObject: data.Data<Record<string, string>, Record<string, string>, {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        stringInObject: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    }>;
+    optionalObject: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: data.Data<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: data.Data<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): data.Data<number, string, undefined>;
+            _default: data.Data<number, string, undefined>;
+            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        defaultStringInOptionalObject: data.Data<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: data.Data<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): data.Data<number, string, undefined>;
+            _default: data.Data<number, string, undefined>;
+            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>>, {
+        defaultStringInOptionalObject: data.Data<"iAmADefaultStringInAnOptionalObject", "iAmADefaultStringInAnOptionalObject", undefined>;
+        recordInOptionalObject: data.Data<Record<string, number>, Record<string, number>, {
+            (defaultValue: number): data.Data<number, string, undefined>;
+            _default: data.Data<number, string, undefined>;
+            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        }>;
+    }>;
+    arrayData: {
+        (defaultValue: string[]): data.Data<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        optional: data.Data<import("./types").Maybe<string[]>, import("./types").Maybe<string[]>, {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        _default: data.Data<string[], string[], {
+            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
+            _default: data.Data<"", "", undefined>;
+            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+    };
+    optionalArray: data.Data<import("./types").Maybe<import("./types").Maybe<boolean>[]>, import("./types").Maybe<import("./types").Maybe<boolean>[]>, data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>>;
+    recordData: data.Data<Record<string, "iAmADefaultStringInARecord">, Record<string, "iAmADefaultStringInARecord">, data.Data<"iAmADefaultStringInARecord", "iAmADefaultStringInARecord", undefined>>;
+    optionalRecord: data.Data<import("./types").Maybe<Record<string, any>>, import("./types").Maybe<Record<string, any>>, IData<any, any, any>>;
+};
+declare type TestProperties = typeof testProperties;
+declare type TestNode = INode<'testNode', TestProperties, {}, {}, {}>;
+export declare const mockDataGenerationExpectedResultsForTodoNodeAllProperties: {
+    task: any;
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    type: any;
+    done: any;
+    assigneeId: any;
+    meetingId: any;
+    settings: any;
+    dataSetIds: any;
+    comments: any;
+    record: any;
+};
+export declare const mockedDataGenerationExpectedResultsForUserNodeAllProperties: {
+    id: any;
+    dateCreated: any;
+    dateLastModified: any;
+    lastUpdatedBy: any;
+    lastUpdatedClientTimestamp: any;
+    firstName: any;
+    lastName: any;
+    displayName: any;
+    address: any;
+};
+export declare const mockedDataGenerationExpectedResultsForTestNodeAllProperties: {
+    test: {
+        id: any;
+        dateCreated: any;
+        dateLastModified: any;
+        lastUpdatedBy: any;
+        lastUpdatedClientTimestamp: any;
+        stringData: any;
+        optionalString: any;
+        defaultString: any;
+        numberData: any;
+        optionalNumber: any;
+        defaultNumber: any;
+        booleanData: any;
+        optionalBoolean: any;
+        defaultBoolean: any;
+        objectData: any;
+        optionalObject: any;
+        arrayData: any;
+        optionalArray: any;
+        type: any;
+        version: any;
+        recordData: any;
+        optionalRecord: any;
+    };
+};
+export declare const mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined: {
+    users: any;
+};
 export {};

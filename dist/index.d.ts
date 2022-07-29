@@ -7,6 +7,7 @@ export * from './gqlClient';
 export * from './consts';
 export declare class MMGQL implements IMMGQL {
     gqlClient: IMMGQL['gqlClient'];
+    generateMockData: IMMGQL['generateMockData'];
     plugins: IMMGQL['plugins'];
     query: IMMGQL['query'];
     subscribe: IMMGQL['subscribe'];

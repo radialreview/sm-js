@@ -11,7 +11,11 @@ export type Maybe<T> = T | null;
 
 export type IsMaybe<Type> = null extends Type ? true : false
 
-export type DataDefaultFn = (_default: any) => IData;
+export type DataDefaultFn = {
+  _default: IData
+  (_default: any): IData;
+} 
+
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
@@ -40,6 +44,7 @@ export type Plugin = {
 export type Config = {
   gqlClient: IGQLClient;
   plugins?: Array<Plugin>;
+  generateMockData: boolean
 };
 
 export interface IGQLClient {
@@ -124,14 +129,15 @@ export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
 export interface IMMGQL {
-  getToken(opts: { tokenName: string }): string;
-  setToken(opts: { tokenName: string; token: string }): void;
+  getToken(opts: { tokenName: string }): string
+  setToken(opts: { tokenName: string; token: string }): void
   clearTokens(): void
   query: ReturnType<typeof generateQuerier>
   subscribe: ReturnType<typeof generateSubscriber>
   transaction: ReturnType<typeof createTransaction>
-  gqlClient: IGQLClient;
-  plugins: Array<Plugin> | undefined;
+  gqlClient: IGQLClient
+  plugins: Array<Plugin> | undefined
+  generateMockData: boolean | undefined
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
   QueryManager:ReturnType<typeof createQueryManager>

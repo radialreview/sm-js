@@ -276,7 +276,17 @@ function throwLocallyLogInProd(error) {
   } else {
     console.error(error);
   }
-}
+} // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
+
+var UnreachableCaseError = /*#__PURE__*/function (_Error10) {
+  _inheritsLoose(UnreachableCaseError, _Error10);
+
+  function UnreachableCaseError(val) {
+    return _Error10.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+  }
+
+  return UnreachableCaseError;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
 
 (function (DATA_TYPES) {
   DATA_TYPES["string"] = "s";
@@ -526,7 +536,9 @@ function queryDefinition(queryDefinition) {
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
 var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
-var DEFAULT_TOKEN_NAME = 'default';
+var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with smJS.def now has these properties auto added to their data.
+// They are not queried automatically and must be explicitly defined on the node definition, unless they also appear on PROPERTIES_QUERIED_FOR_ALL_NODES.
+
 var DEFAULT_NODE_PROPERTIES = {
   id: string,
   dateCreated: number,
@@ -2451,6 +2463,24 @@ try {
 }
 });
 
+var Chance = /*#__PURE__*/require('chance');
+
+function generateRandomString() {
+  var chance = new Chance();
+  return chance.word();
+}
+function generateRandomBoolean() {
+  var chance = new Chance();
+  return chance.bool();
+}
+function generateRandomNumber(min, max) {
+  var chance = new Chance();
+  return chance.integer({
+    min: min,
+    max: max
+  });
+}
+
 var _excluded = ["to"],
     _excluded2 = ["from"];
 var JSON_TAG$1 = '__JSON__';
@@ -3144,6 +3174,402 @@ function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
 }
 
+var _excluded$1 = ["to"],
+    _excluded2$1 = ["from"];
+var JSON_TAG$2 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @param IDataRecord a record of Data types to identify objects vs records
+ * @param generatingMockData a boolean to determine if escape text should be utilized
+ * @returns stringified params ready for mutation
+ */
+
+function revisedConvertNodeDataToSMPersistedData(opts) {
+  var nodeData = opts.nodeData,
+      IDataRecord = opts.IDataRecord,
+      generatingMockData = opts.generatingMockData,
+      skipBooleanStringWrapping = opts.skipBooleanStringWrapping;
+  var parsedData = revisedPrepareForBE({
+    obj: nodeData,
+    IDataRecord: IDataRecord,
+    generatingMockData: generatingMockData
+  });
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!skipBooleanStringWrapping;
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText$1(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param IDataRecordForKey a record of Data type for specific key to identify objects vs records
+ * @param generatingMockData a boolean to determine if escape text should be utilized
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function revisedPrepareObjectForBE(opts) {
+  var obj = opts.obj,
+      parentKey = opts.parentKey,
+      omitObjectIdentifier = opts.omitObjectIdentifier;
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = parentKey ? "" + parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
+      if (!omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, revisedConvertPropertyToBE(_extends({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }, opts)));
+      }, {}));
+    } else {
+      acc = _extends({}, acc, revisedConvertPropertyToBE(_extends({
+        key: preparedKey,
+        value: val
+      }, opts)));
+    }
+
+    return acc;
+  }, {});
+}
+
+function revisedConvertPropertyToBE(opts) {
+  var key = opts.key,
+      value = opts.value,
+      IDataRecordForKey = opts.IDataRecordForKey,
+      generatingMockData = opts.generatingMockData,
+      omitObjectIdentifier = opts.omitObjectIdentifier;
+
+  if (value === null) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[key] = null, _ref4;
+  } else if (Array.isArray(value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref5;
+  } else if (typeof value === 'object') {
+    if (IDataRecordForKey.type === exports.DATA_TYPES.record || IDataRecordForKey.type === exports.DATA_TYPES.maybeRecord) {
+      var _ref6;
+
+      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref6;
+    } else {
+      var _obj;
+
+      return revisedPrepareObjectForBE({
+        obj: (_obj = {}, _obj[key] = value, _obj),
+        IDataRecordForKey: IDataRecordForKey,
+        generatingMockData: generatingMockData,
+        omitObjectIdentifier: omitObjectIdentifier
+      });
+    }
+  } else if (typeof value === 'string') {
+    var _ref7;
+
+    return _ref7 = {}, _ref7[key] = escapeText$1(value), _ref7;
+  } else if (typeof value === 'boolean' || typeof value === 'number') {
+    var _ref9;
+
+    if (typeof value === 'number' && isNaN(value)) {
+      var _ref8;
+
+      return _ref8 = {}, _ref8[key] = null, _ref8;
+    }
+
+    return _ref9 = {}, _ref9[key] = String(value), _ref9;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof value + "\"");
+  }
+}
+
+function revisedConvertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$1);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function revisedPrepareForBE(opts) {
+  var IDataRecord = opts.IDataRecord,
+      obj = opts.obj,
+      generatingMockData = opts.generatingMockData;
+  return Object.entries(obj).reduce(function (acc, _ref10) {
+    var key = _ref10[0],
+        value = _ref10[1];
+    var IDataRecordForKey = typeof IDataRecord[key] === 'function' ? IDataRecord[key]._default : IDataRecord[key];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return revisedConvertNodeDataToSMPersistedData({
+            nodeData: item,
+            IDataRecord: IDataRecord,
+            generatingMockData: generatingMockData
+          });
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return revisedConvertNodeDataToSMPersistedData({
+            nodeData: revisedConvertEdgeDirectionNames(item),
+            IDataRecord: IDataRecord,
+            generatingMockData: generatingMockData,
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, revisedConvertPropertyToBE({
+      key: key,
+      value: value,
+      IDataRecordForKey: IDataRecordForKey,
+      generatingMockData: generatingMockData
+    }));
+  }, {});
+}
+
+function getMockValueForIData(data) {
+  switch (data.type) {
+    case exports.DATA_TYPES.string:
+      {
+        // We return the default value if it exists to account for cases where the string must be an enum.
+        return data.defaultValue ? data.defaultValue : generateRandomString();
+      }
+
+    case exports.DATA_TYPES.maybeString:
+      {
+        return generateRandomString();
+      }
+
+    case exports.DATA_TYPES.number:
+      {
+        return generateRandomNumber(1, 100);
+      }
+
+    case exports.DATA_TYPES.maybeNumber:
+      {
+        return generateRandomNumber(1, 100);
+      }
+
+    case exports.DATA_TYPES["boolean"]:
+      {
+        return generateRandomBoolean();
+      }
+
+    case exports.DATA_TYPES.maybeBoolean:
+      {
+        return generateRandomBoolean();
+      }
+
+    case exports.DATA_TYPES.object:
+      {
+        return getMockValuesForIDataRecord(data.boxedValue);
+      }
+
+    case exports.DATA_TYPES.maybeObject:
+      {
+        return getMockValuesForIDataRecord(data.boxedValue);
+      }
+
+    case exports.DATA_TYPES.array:
+      {
+        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+          return typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue);
+        });
+      }
+
+    case exports.DATA_TYPES.maybeArray:
+      {
+        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+          return typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue);
+        });
+      }
+
+    case exports.DATA_TYPES.record:
+      {
+        var _ref;
+
+        return _ref = {}, _ref[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref;
+      }
+
+    case exports.DATA_TYPES.maybeRecord:
+      {
+        var _ref2;
+
+        return _ref2 = {}, _ref2[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref2;
+      }
+
+    default:
+      throw new UnreachableCaseError(data.type);
+  }
+}
+
+function getMockValuesForIDataRecord(record) {
+  return Object.entries(record).reduce(function (acc, _ref3) {
+    var key = _ref3[0],
+        value = _ref3[1];
+
+    if (typeof value === 'function') {
+      acc[key] = getMockValueForIData(value._default);
+    } else {
+      acc[key] = getMockValueForIData(value);
+    }
+
+    return acc;
+  }, {});
+}
+
+function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
+  var queryRecord = opts.queryRecord;
+  var nodePropertiesToMock = Object.keys(queryRecord.def.data).filter(function (nodeProperty) {
+    return queryRecord.properties.includes(nodeProperty);
+  }).reduce(function (acc, item) {
+    acc[item] = queryRecord.def.data[item];
+    return acc;
+  }, {});
+
+  var mockedValues = _extends({
+    type: opts.queryRecord.def.type,
+    version: '1'
+  }, getMockValuesForIDataRecord(nodePropertiesToMock));
+
+  var valuesForNodeDataPreparedForBE = revisedPrepareForBE({
+    obj: mockedValues,
+    IDataRecord: nodePropertiesToMock,
+    generatingMockData: true
+  });
+  return valuesForNodeDataPreparedForBE;
+}
+
+function generateMockNodeDataForAllQueryRecords(opts) {
+  var queryRecords = opts.queryRecords;
+  var mockedNodeData = {};
+  Object.keys(queryRecords).forEach(function (queryRecordAlias) {
+    var queryRecord = queryRecords[queryRecordAlias];
+    var returnValueShouldBeAnArray = !!queryRecord.id === false && !('oneToOne' in queryRecord);
+    var mockedNodeDataReturnValues;
+    var relationalMockNodeProperties = {};
+
+    if (returnValueShouldBeAnArray) {
+      var numOfResultsToGenerate = generateRandomNumber(2, 10);
+      var arrayOfMockNodeValues = [];
+
+      for (var i = 0; i < numOfResultsToGenerate; i++) {
+        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+          queryRecord: queryRecord
+        });
+
+        if (queryRecord.relational) {
+          relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
+            queryRecords: queryRecord.relational
+          });
+        }
+
+        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
+      }
+
+      mockedNodeDataReturnValues = {
+        nodes: arrayOfMockNodeValues
+      };
+    } else {
+      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+        queryRecord: queryRecord
+      });
+
+      if (queryRecord.relational) {
+        relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
+          queryRecords: queryRecord.relational
+        });
+      }
+
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecord, relationalMockNodeProperties);
+    }
+
+    mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
+  });
+  return mockedNodeData;
+}
+
+function generateMockNodeDataFromQueryDefinitions(opts) {
+  var queryDefinitions = opts.queryDefinitions,
+      queryId = opts.queryId;
+  var queryRecords = getQueryRecordFromQueryDefinition({
+    queryDefinitions: queryDefinitions,
+    queryId: queryId
+  });
+  return generateMockNodeDataForAllQueryRecords({
+    queryRecords: queryRecords
+  });
+}
+
 var queryIdx = 0;
 
 function splitQueryDefinitionsByToken(queryDefinitions) {
@@ -3203,6 +3629,13 @@ function generateQuerier(_ref4) {
                           return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref5) {
                             var tokenName = _ref5[0],
                                 queryDefinitions = _ref5[1];
+
+                            if (mmGQLInstance.generateMockData) {
+                              return generateMockNodeDataFromQueryDefinitions({
+                                queryDefinitions: queryDefinitions,
+                                queryId: queryId
+                              });
+                            }
 
                             var _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                               queryDefinitions: queryDefinitions,
@@ -3510,7 +3943,11 @@ function generateSubscriber(mmGQLInstance) {
               mustAwaitQuery = !opts.skipInitialQuery;
               messageQueue = [];
               _context3.prev = 18;
-              initSubs();
+
+              if (!mmGQLInstance.generateMockData) {
+                initSubs();
+              }
+
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
               _context3.next = 32;
               break;
@@ -4926,7 +5363,8 @@ function getDefaultConfig() {
     gqlClient: getGQLCLient({
       httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
       wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
-    })
+    }),
+    generateMockData: false
   };
 }
 
@@ -5513,6 +5951,7 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
 var MMGQL = /*#__PURE__*/function () {
   function MMGQL(config) {
     this.gqlClient = void 0;
+    this.generateMockData = void 0;
     this.plugins = void 0;
     this.query = void 0;
     this.subscribe = void 0;
@@ -5523,6 +5962,7 @@ var MMGQL = /*#__PURE__*/function () {
     this.DOProxyGenerator = void 0;
     this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
+    this.generateMockData = config.generateMockData;
     this.plugins = config.plugins;
     this.query = generateQuerier({
       mmGQLInstance: this

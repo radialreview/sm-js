@@ -28,6 +28,7 @@ export * from './consts';
 
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
+  public generateMockData: IMMGQL['generateMockData'];
   public plugins: IMMGQL['plugins'];
   public query: IMMGQL['query'];
   public subscribe: IMMGQL['subscribe'];
@@ -42,6 +43,7 @@ export class MMGQL implements IMMGQL {
 
   constructor(config: Config) {
     this.gqlClient = config.gqlClient;
+    this.generateMockData = config.generateMockData;
     this.plugins = config.plugins;
     this.query = generateQuerier({ mmGQLInstance: this });
     this.subscribe = generateSubscriber(this);
