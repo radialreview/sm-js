@@ -318,11 +318,13 @@ var Data = function Data(opts) {
   this.boxedValue = void 0;
   this.defaultValue = void 0;
   this.isOptional = void 0;
+  this.acceptableValues = void 0;
   this.type = opts.type;
   this.parser = opts.parser;
   this.boxedValue = opts.boxedValue;
   this.defaultValue = (_opts$defaultValue = opts.defaultValue) != null ? _opts$defaultValue : null;
   this.isOptional = opts.isOptional;
+  this.acceptableValues = opts.acceptableValues;
 };
 /**
  * data serve 2 purposes:
@@ -355,14 +357,16 @@ var stringEnum = function stringEnum(enumValues) {
       return value != null ? String(value) : value;
     },
     defaultValue: enumValues[0],
-    isOptional: false
+    isOptional: false,
+    acceptableValues: enumValues
   });
   var optionalDataType = new Data({
     type: exports.DATA_TYPES.maybeStringEnum,
     parser: function parser(value) {
       return value != null ? String(value) : null;
     },
-    isOptional: true
+    isOptional: true,
+    acceptableValues: enumValues
   });
   dataType.optional = optionalDataType;
   return dataType;
@@ -3421,13 +3425,23 @@ function getMockValueForIData(data) {
   switch (data.type) {
     case exports.DATA_TYPES.string:
       {
-        // We return the default value if it exists to account for cases where the string must be an enum.
-        return data.defaultValue ? data.defaultValue : generateRandomString();
+        return generateRandomString();
       }
 
     case exports.DATA_TYPES.maybeString:
       {
-        return generateRandomString();
+        return getRandomItemFromArray([generateRandomString(), null]);
+      }
+
+    case exports.DATA_TYPES.stringEnum:
+      {
+        return getRandomItemFromArray(data.acceptableValues);
+      }
+
+    case exports.DATA_TYPES.maybeStringEnum:
+      {
+        // 50/50 chance to get a value or null
+        return getRandomItemFromArray([getRandomItemFromArray(data.acceptableValues), null]);
       }
 
     case exports.DATA_TYPES.number:
@@ -3437,7 +3451,7 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeNumber:
       {
-        return generateRandomNumber(1, 100);
+        return getRandomItemFromArray([generateRandomNumber(1, 100), null]);
       }
 
     case exports.DATA_TYPES["boolean"]:
@@ -3447,7 +3461,7 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeBoolean:
       {
-        return generateRandomBoolean();
+        return getRandomItemFromArray([generateRandomBoolean(), null]);
       }
 
     case exports.DATA_TYPES.object:
@@ -3457,7 +3471,7 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeObject:
       {
-        return getMockValuesForIDataRecord(data.boxedValue);
+        return getRandomItemFromArray([getMockValuesForIDataRecord(data.boxedValue), null]);
       }
 
     case exports.DATA_TYPES.array:
@@ -3469,9 +3483,9 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeArray:
       {
-        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+        return getRandomItemFromArray([new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
           return typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue);
-        });
+        }), null]);
       }
 
     case exports.DATA_TYPES.record:
@@ -3485,7 +3499,7 @@ function getMockValueForIData(data) {
       {
         var _ref2;
 
-        return _ref2 = {}, _ref2[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref2;
+        return getRandomItemFromArray([(_ref2 = {}, _ref2[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref2), null]);
       }
 
     default:
@@ -3589,6 +3603,10 @@ function generateMockNodeDataFromQueryDefinitions(opts) {
   return generateMockNodeDataForAllQueryRecords({
     queryRecords: queryRecords
   });
+}
+
+function getRandomItemFromArray(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
 var queryIdx = 0;
@@ -4193,7 +4211,12 @@ function createQueryManager(mmGQLInstance) {
           Object.keys(relationalQueries).forEach(function (relationalAlias) {
             var relationalDataForThisAlias = Array.isArray(dataForThisAlias) ? dataForThisAlias.flatMap(function (dataEntry) {
               return dataEntry[relationalAlias];
-            }) : dataForThisAlias[relationalAlias];
+            }) : dataForThisAlias[relationalAlias]; // makes it easier to simply handle this as an array below
+
+            if (!Array.isArray(relationalDataForThisAlias)) {
+              relationalDataForThisAlias = [relationalDataForThisAlias];
+            }
+
             relationalDataForThisAlias.forEach(function (relationalDataEntry) {
               var _data2, _queryRecord2;
 

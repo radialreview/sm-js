@@ -5,12 +5,14 @@ export declare class Data<TParsedValue, TValue, TBoxedValue extends IData | Data
     boxedValue: TBoxedValue;
     defaultValue: Maybe<TParsedValue>;
     isOptional: boolean;
+    acceptableValues?: Array<TParsedValue>;
     constructor(opts: {
         type: DATA_TYPES;
         parser: (value: TValue) => TParsedValue;
         boxedValue?: TBoxedValue;
         defaultValue?: TParsedValue;
         isOptional: boolean;
+        acceptableValues?: Array<TParsedValue>;
     });
 }
 /**
