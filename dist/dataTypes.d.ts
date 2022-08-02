@@ -5,12 +5,14 @@ export declare class Data<TParsedValue, TValue, TBoxedValue extends IData | Data
     boxedValue: TBoxedValue;
     defaultValue: Maybe<TParsedValue>;
     isOptional: boolean;
+    acceptableValues?: Array<TParsedValue>;
     constructor(opts: {
         type: DATA_TYPES;
         parser: (value: TValue) => TParsedValue;
         boxedValue?: TBoxedValue;
         defaultValue?: TParsedValue;
         isOptional: boolean;
+        acceptableValues?: Array<TParsedValue>;
     });
 }
 /**
@@ -22,6 +24,9 @@ export declare const string: {
     <TStringType extends string = string>(defaultValue: TStringType): Data<TStringType, TStringType, undefined>;
     _default: Data<"", "", undefined>;
     optional: Data<Maybe<string>, Maybe<string>, undefined>;
+};
+export declare const stringEnum: <TEnumEntry extends string, TEnumType extends TEnumEntry[] = TEnumEntry[]>(enumValues: TEnumType) => Data<TEnumType[number], TEnumType[number], undefined> & {
+    optional: Data<Maybe<TEnumType[number]>, Maybe<TEnumType[number]>, undefined>;
 };
 export declare const number: {
     (defaultValue: number): Data<number, string, undefined>;

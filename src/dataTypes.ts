@@ -36,6 +36,7 @@ export class Data<
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
+  acceptableValues?: Array<TParsedValue>;
 
   constructor(opts: {
     type: DATA_TYPES;
@@ -43,12 +44,14 @@ export class Data<
     boxedValue?: TBoxedValue;
     defaultValue?: TParsedValue;
     isOptional: boolean;
+    acceptableValues?: Array<TParsedValue>;
   }) {
     this.type = opts.type;
     this.parser = opts.parser;
     this.boxedValue = opts.boxedValue as TBoxedValue;
     this.defaultValue = opts.defaultValue ?? null;
     this.isOptional = opts.isOptional;
+    this.acceptableValues = opts.acceptableValues;
   }
 }
 
@@ -57,7 +60,6 @@ export class Data<
  * 1) they convert strings from the backend into their real types (objects, strings, numbers, booleans)
  * 2) they serve as a way for TS to infer the data type of the node based on the data types used,
  */
-
 export const string = <TStringType extends string = string>(
   defaultValue: TStringType
 ) =>
@@ -78,6 +80,52 @@ string.optional = new Data<Maybe<string>, Maybe<string>, undefined>({
   parser: value => (value != null ? String(value) : value),
   isOptional: true,
 });
+
+export const stringEnum = <
+  TEnumEntry extends string,
+  TEnumType extends Array<TEnumEntry> = Array<TEnumEntry>
+>(
+  enumValues: TEnumType
+) => {
+  const dataType: Data<TEnumType[number], TEnumType[number], undefined> & {
+    optional?: Data<
+      Maybe<TEnumType[number]>,
+      Maybe<TEnumType[number]>,
+      undefined
+    >;
+  } = new Data<TEnumType[number], TEnumType[number], undefined>({
+    type: DATA_TYPES.stringEnum,
+    parser: value =>
+      value != null
+        ? ((String(value) as unknown) as TEnumType[number])
+        : (value as TEnumType[number]),
+    defaultValue: enumValues[0],
+    isOptional: false,
+    acceptableValues: enumValues,
+  });
+
+  const optionalDataType = new Data<
+    Maybe<TEnumType[number]>,
+    Maybe<TEnumType[number]>,
+    undefined
+  >({
+    type: DATA_TYPES.maybeStringEnum,
+    parser: value =>
+      value != null ? ((String(value) as unknown) as TEnumType[number]) : null,
+    isOptional: true,
+    acceptableValues: enumValues,
+  });
+
+  dataType.optional = optionalDataType;
+
+  return dataType as Data<TEnumType[number], TEnumType[number], undefined> & {
+    optional: Data<
+      Maybe<TEnumType[number]>,
+      Maybe<TEnumType[number]>,
+      undefined
+    >;
+  };
+};
 
 export const number = (defaultValue: number): Data<number, string, undefined> =>
   new Data<number, string, undefined>({

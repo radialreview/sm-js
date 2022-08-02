@@ -2,6 +2,7 @@
 import { getDefaultConfig, queryDefinition, MMGQL, useSubscription } from './';
 import {
   string,
+  stringEnum,
   number,
   array,
   boolean,
@@ -19,7 +20,6 @@ import {
   INode,
   MapFnForNode,
   Maybe,
-  DataEnum,
   ValidFilterForNode,
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
@@ -103,17 +103,6 @@ const meetingNode: MeetingNode = mmGQL.def({
   },
 });
 
-const objectUnion = {
-  type: string('number'),
-  number: number,
-  string: string,
-} as
-  | { type: DataEnum<'number'>; number: typeof number }
-  | {
-      type: DataEnum<'string'>;
-      string: typeof string;
-    };
-
 const userProperties = {
   id: string,
   firstName: string,
@@ -127,10 +116,9 @@ const userProperties = {
       nestedNestedInAddress: boolean(true),
     }),
   }),
-  fooBarEnum: string('FOO' as 'FOO' | 'BAR'),
-  optionalBarBazEnum: string.optional as DataEnum<Maybe<'BAR' | 'BAZ'>>,
-  recordEnum: record(string('FOO' as 'FOO' | 'BAR')),
-  objectUnion: object(objectUnion),
+  fooBarEnum: stringEnum(['FOO', 'BAR']),
+  optionalBarBazEnum: stringEnum(['BAR', 'BAZ']).optional,
+  recordEnum: record(stringEnum(['FOO', 'BAR'])),
   arrayOfString: array(string),
 };
 const userRelational = {
@@ -276,10 +264,6 @@ const stateNode: StateNode = mmGQL.def({
     recordEnum: {
       someStringKey: 'FOO',
     },
-    objectUnion: {
-      type: 'string',
-      string: '',
-    },
     arrayOfString: [],
   };
 
@@ -366,17 +350,6 @@ const stateNode: StateNode = mmGQL.def({
 
   // @ts-expect-error property 'BAR' is in the enum used in the boxed value of the record `recordEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].recordEnum['some-key']];
-
-  const objUni = shorthandQueryResults.data.users[0].objectUnion;
-  if (objUni.type === 'string') {
-    objUni.string as string;
-    // @ts-expect-error not in uni when type is string
-    objUni.number as number;
-  } else {
-    objUni.number;
-    // @ts-expect-error no in uni when type is number
-    objUni.string as string;
-  }
 
   const withBarAndBaz = { BAR: 1, BAZ: 2 };
   const withBarOnly = { BAR: 1 };
@@ -769,6 +742,28 @@ const stateNode: StateNode = mmGQL.def({
   withNull.data.results
     ? (withNull.data.results[0].address.state as string)
     : null;
+
+  // ENUM TESTS
+  const node = mmGQL.def({
+    type: 'test',
+    properties: {
+      someEnum: stringEnum(['t', 't2']),
+      someOptionalEnum: stringEnum(['t', 't2']).optional,
+    },
+  });
+
+  const enumData = useSubscription({
+    nodes: node,
+  });
+
+  const validEnumEntryRecord = { t: '', t2: '' };
+
+  validEnumEntryRecord[enumData.data.nodes[0].someEnum];
+  // @ts-expect-error returns a maybe type, needs null check first
+  validEnumEntryRecord[enumData.data.nodes[0].someOptionalEnum];
+  if (enumData.data.nodes[0].someOptionalEnum) {
+    validEnumEntryRecord[enumData.data.nodes[0].someOptionalEnum];
+  }
 })();
 
 (async function ResultingDevExperienceWriteTests() {

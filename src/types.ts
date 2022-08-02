@@ -199,13 +199,12 @@ export interface IData<
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
+  /**
+   *  Enum type data will keep a reference to its acceptable values
+   *  so that later this can be used by the mock data generator to produce a random value from this array
+   */
+  acceptableValues?: Array<TParsedValue>
 }
-
-export type DataEnum<Enum extends string | number | null> = IData<
-  Enum,
-  Enum,
-  undefined
->;
 
 /**
  * Utility to extract the parsed value of an Data type
@@ -454,6 +453,8 @@ export interface IOneToManyQuery<
 export enum DATA_TYPES {
   string = 's',
   maybeString = 'mS',
+  stringEnum = 'sE',
+  maybeStringEnum = 'mSE',
   number = 'n',
   maybeNumber = 'mN',
   boolean = 'b',
