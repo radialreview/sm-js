@@ -201,12 +201,6 @@ export interface IData<
   isOptional: boolean;
 }
 
-export type DataEnum<Enum extends string | number | null> = IData<
-  Enum,
-  Enum,
-  undefined
->;
-
 /**
  * Utility to extract the parsed value of an Data type
  */
@@ -454,6 +448,8 @@ export interface IOneToManyQuery<
 export enum DATA_TYPES {
   string = 's',
   maybeString = 'mS',
+  stringEnum = 'sE',
+  maybeStringEnum = 'mSE',
   number = 'n',
   maybeNumber = 'mN',
   boolean = 'b',
