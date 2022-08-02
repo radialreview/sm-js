@@ -291,6 +291,8 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error10) {
 (function (DATA_TYPES) {
   DATA_TYPES["string"] = "s";
   DATA_TYPES["maybeString"] = "mS";
+  DATA_TYPES["stringEnum"] = "sE";
+  DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
   DATA_TYPES["boolean"] = "b";
@@ -346,6 +348,25 @@ string.optional = /*#__PURE__*/new Data({
   },
   isOptional: true
 });
+var stringEnum = function stringEnum(enumValues) {
+  var dataType = new Data({
+    type: exports.DATA_TYPES.stringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : value;
+    },
+    defaultValue: enumValues[0],
+    isOptional: false
+  });
+  var optionalDataType = new Data({
+    type: exports.DATA_TYPES.maybeStringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : null;
+    },
+    isOptional: true
+  });
+  dataType.optional = optionalDataType;
+  return dataType;
+};
 var number = function number(defaultValue) {
   return new Data({
     type: exports.DATA_TYPES.number,
@@ -6055,5 +6076,6 @@ exports.oneToOne = oneToOne;
 exports.queryDefinition = queryDefinition;
 exports.record = record;
 exports.string = string;
+exports.stringEnum = stringEnum;
 exports.useSubscription = useSubscription;
 //# sourceMappingURL=sm-js.cjs.development.js.map

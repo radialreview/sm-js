@@ -287,6 +287,8 @@ var DATA_TYPES;
 (function (DATA_TYPES) {
   DATA_TYPES["string"] = "s";
   DATA_TYPES["maybeString"] = "mS";
+  DATA_TYPES["stringEnum"] = "sE";
+  DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
   DATA_TYPES["boolean"] = "b";
@@ -344,6 +346,25 @@ string.optional = /*#__PURE__*/new Data({
   },
   isOptional: true
 });
+var stringEnum = function stringEnum(enumValues) {
+  var dataType = new Data({
+    type: DATA_TYPES.stringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : value;
+    },
+    defaultValue: enumValues[0],
+    isOptional: false
+  });
+  var optionalDataType = new Data({
+    type: DATA_TYPES.maybeStringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : null;
+    },
+    isOptional: true
+  });
+  dataType.optional = optionalDataType;
+  return dataType;
+};
 var number = function number(defaultValue) {
   return new Data({
     type: DATA_TYPES.number,
@@ -6030,5 +6051,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

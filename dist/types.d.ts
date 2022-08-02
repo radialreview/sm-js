@@ -144,7 +144,6 @@ TBoxedValue extends IData | DataDefaultFn | Record<string, IData | DataDefaultFn
     defaultValue: Maybe<TParsedValue>;
     isOptional: boolean;
 }
-export declare type DataEnum<Enum extends string | number | null> = IData<Enum, Enum, undefined>;
 /**
  * Utility to extract the parsed value of an Data type
  */
@@ -270,6 +269,8 @@ export interface IOneToManyQuery<TTargetNodeOrTargetNodeRecord extends INode | M
 export declare enum DATA_TYPES {
     string = "s",
     maybeString = "mS",
+    stringEnum = "sE",
+    maybeStringEnum = "mSE",
     number = "n",
     maybeNumber = "mN",
     boolean = "b",

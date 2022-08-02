@@ -23,6 +23,9 @@ export declare const string: {
     _default: Data<"", "", undefined>;
     optional: Data<Maybe<string>, Maybe<string>, undefined>;
 };
+export declare const stringEnum: <TEnumEntry extends string, TEnumType extends TEnumEntry[] = TEnumEntry[]>(enumValues: TEnumType) => Data<TEnumType[number], TEnumType[number], undefined> & {
+    optional: Data<Maybe<TEnumType[number]>, Maybe<TEnumType[number]>, undefined>;
+};
 export declare const number: {
     (defaultValue: number): Data<number, string, undefined>;
     _default: Data<number, string, undefined>;
