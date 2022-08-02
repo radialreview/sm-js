@@ -36,6 +36,7 @@ export class Data<
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
+  acceptableValues?: Array<TParsedValue>;
 
   constructor(opts: {
     type: DATA_TYPES;
@@ -43,12 +44,14 @@ export class Data<
     boxedValue?: TBoxedValue;
     defaultValue?: TParsedValue;
     isOptional: boolean;
+    acceptableValues?: Array<TParsedValue>;
   }) {
     this.type = opts.type;
     this.parser = opts.parser;
     this.boxedValue = opts.boxedValue as TBoxedValue;
     this.defaultValue = opts.defaultValue ?? null;
     this.isOptional = opts.isOptional;
+    this.acceptableValues = opts.acceptableValues;
   }
 }
 
@@ -98,6 +101,7 @@ export const stringEnum = <
         : (value as TEnumType[number]),
     defaultValue: enumValues[0],
     isOptional: false,
+    acceptableValues: enumValues,
   });
 
   const optionalDataType = new Data<
@@ -109,6 +113,7 @@ export const stringEnum = <
     parser: value =>
       value != null ? ((String(value) as unknown) as TEnumType[number]) : null,
     isOptional: true,
+    acceptableValues: enumValues,
   });
 
   dataType.optional = optionalDataType;

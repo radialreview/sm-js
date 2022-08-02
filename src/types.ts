@@ -199,6 +199,11 @@ export interface IData<
   boxedValue: TBoxedValue;
   defaultValue: Maybe<TParsedValue>;
   isOptional: boolean;
+  /**
+   *  Enum type data will keep a reference to its acceptable values
+   *  so that later this can be used by the mock data generator to produce a random value from this array
+   */
+  acceptableValues?: Array<TParsedValue>
 }
 
 /**

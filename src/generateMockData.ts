@@ -28,29 +28,41 @@ type MockValuesIDataReturnType =
 function getMockValueForIData(data: IData): MockValuesIDataReturnType {
   switch (data.type) {
     case DATA_TYPES.string: {
-      // We return the default value if it exists to account for cases where the string must be an enum.
-      return data.defaultValue ? data.defaultValue : generateRandomString();
+      return generateRandomString();
     }
     case DATA_TYPES.maybeString: {
-      return generateRandomString();
+      return getRandomItemFromArray([generateRandomString(), null]);
+    }
+    case DATA_TYPES.stringEnum: {
+      return getRandomItemFromArray(data.acceptableValues as Array<any>);
+    }
+    case DATA_TYPES.maybeStringEnum: {
+      // 50/50 chance to get a value or null
+      return getRandomItemFromArray([
+        getRandomItemFromArray(data.acceptableValues as Array<any>),
+        null,
+      ]);
     }
     case DATA_TYPES.number: {
       return generateRandomNumber(1, 100);
     }
     case DATA_TYPES.maybeNumber: {
-      return generateRandomNumber(1, 100);
+      return getRandomItemFromArray([generateRandomNumber(1, 100), null]);
     }
     case DATA_TYPES.boolean: {
       return generateRandomBoolean();
     }
     case DATA_TYPES.maybeBoolean: {
-      return generateRandomBoolean();
+      return getRandomItemFromArray([generateRandomBoolean(), null]);
     }
     case DATA_TYPES.object: {
       return getMockValuesForIDataRecord(data.boxedValue);
     }
     case DATA_TYPES.maybeObject: {
-      return getMockValuesForIDataRecord(data.boxedValue);
+      return getRandomItemFromArray([
+        getMockValuesForIDataRecord(data.boxedValue),
+        null,
+      ]);
     }
     case DATA_TYPES.array: {
       return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
@@ -60,11 +72,14 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
       });
     }
     case DATA_TYPES.maybeArray: {
-      return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
-        return typeof data.boxedValue === 'function'
-          ? getMockValueForIData(data.boxedValue._default as IData)
-          : getMockValueForIData(data.boxedValue);
-      });
+      return getRandomItemFromArray([
+        new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
+          return typeof data.boxedValue === 'function'
+            ? getMockValueForIData(data.boxedValue._default as IData)
+            : getMockValueForIData(data.boxedValue);
+        }),
+        null,
+      ]);
     }
     case DATA_TYPES.record: {
       return {
@@ -75,12 +90,15 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
       };
     }
     case DATA_TYPES.maybeRecord: {
-      return {
-        [generateRandomString()]:
-          typeof data.boxedValue === 'function'
-            ? getMockValueForIData(data.boxedValue._default as IData)
-            : getMockValueForIData(data.boxedValue),
-      };
+      return getRandomItemFromArray([
+        {
+          [generateRandomString()]:
+            typeof data.boxedValue === 'function'
+              ? getMockValueForIData(data.boxedValue._default as IData)
+              : getMockValueForIData(data.boxedValue),
+        },
+        null,
+      ]);
     }
     default:
       throw new UnreachableCaseError(data.type as never);
@@ -216,4 +234,8 @@ export function generateMockNodeDataFromQueryDefinitions<
   return generateMockNodeDataForAllQueryRecords({
     queryRecords,
   });
+}
+
+function getRandomItemFromArray(array: Array<any>) {
+  return array[Math.floor(Math.random() * array.length)];
 }

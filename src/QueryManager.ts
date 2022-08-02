@@ -163,11 +163,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         if (relationalQueries) {
           Object.keys(relationalQueries).forEach(relationalAlias => {
-            const relationalDataForThisAlias = Array.isArray(dataForThisAlias)
+            let relationalDataForThisAlias = Array.isArray(dataForThisAlias)
               ? dataForThisAlias.flatMap(
                   (dataEntry: any) => dataEntry[relationalAlias]
                 )
               : dataForThisAlias[relationalAlias];
+
+            // makes it easier to simply handle this as an array below
+            if (!Array.isArray(relationalDataForThisAlias)) {
+              relationalDataForThisAlias = [relationalDataForThisAlias];
+            }
 
             relationalDataForThisAlias.forEach((relationalDataEntry: any) => {
               const relationalQuery = relationalQueries[relationalAlias];
