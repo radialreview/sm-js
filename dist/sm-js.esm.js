@@ -783,7 +783,6 @@ function createDOFactory(mmGQLInstance) {
         this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
-        this.initializeNodeMutations();
       }
 
       var _proto = DO.prototype;
@@ -994,22 +993,6 @@ function createDOFactory(mmGQLInstance) {
             });
           });
         }
-      };
-
-      _proto.initializeNodeMutations = function initializeNodeMutations() {
-        var _this8 = this;
-
-        var mutations = node.mutations;
-
-        if (mutations) {
-          Object.keys(mutations).forEach(function (mutationName) {
-            Object.defineProperty(_this8, mutationName, {
-              get: function get() {
-                return mutations[mutationName].bind(_this8);
-              }
-            });
-          });
-        }
       }
       /**
        * Object type props have different getters and setters than non object type
@@ -1018,11 +1001,11 @@ function createDOFactory(mmGQLInstance) {
       ;
 
       _proto.setComputedProp = function setComputedProp(opts) {
-        var _this9 = this,
+        var _this8 = this,
             _mmGQLInstance$plugin2;
 
         var computedGetter = function computedGetter() {
-          return opts.computedFn(_this9);
+          return opts.computedFn(_this8);
         };
 
         (_mmGQLInstance$plugin2 = mmGQLInstance.plugins) == null ? void 0 : _mmGQLInstance$plugin2.forEach(function (plugin) {
@@ -1031,7 +1014,7 @@ function createDOFactory(mmGQLInstance) {
           if ((_plugin$DO2 = plugin.DO) != null && _plugin$DO2.computedDecorator) {
             computedGetter = plugin.DO.computedDecorator({
               computedFn: computedGetter,
-              DOInstance: _this9
+              DOInstance: _this8
             });
           }
         });
@@ -6050,8 +6033,7 @@ var MMGQL = /*#__PURE__*/function () {
       type: _def.type,
       data: properties,
       computed: _def.computed,
-      relational: _def.relational,
-      mutations: _def.mutations
+      relational: _def.relational
     };
   };
 
