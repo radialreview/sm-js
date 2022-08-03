@@ -13,7 +13,6 @@ import {
   IData,
   DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
-  NodeMutationFn,
   NodeDefArgs,
   INode,
   NodeDefaultProps,
@@ -60,25 +59,19 @@ export class MMGQL implements IMMGQL {
     TNodeType extends string,
     TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any> = {},
-    TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
-    TNodeMutations extends Record<
-      string,
-      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-    > = {}
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}
   >(
     def: NodeDefArgs<
       TNodeType,
       TNodeData,
       TNodeComputedData,
-      TNodeRelationalData,
-      TNodeMutations
+      TNodeRelationalData
     >
   ): INode<
     TNodeType,
     TNodeData & NodeDefaultProps,
     TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
+    TNodeRelationalData
   > {
     const propertyNames = Object.keys(def.properties);
     const defaultProp = propertyNames.find(x =>
@@ -107,7 +100,6 @@ export class MMGQL implements IMMGQL {
       data: properties,
       computed: def.computed,
       relational: def.relational,
-      mutations: def.mutations,
     };
   }
 

@@ -6,7 +6,6 @@ import {
   IData,
   DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
-  NodeMutationFn,
   NodeDO,
   NodeComputedFns,
   NodeRelationalFns,
@@ -24,27 +23,13 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
   return function DOFactory<
     TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
-    // the tsignore here is necessary
-    // because the generic that NodeRelationalQueryBuilderRecord needs is
-    // the node definition for the origin of the relational queries
-    // which when defining a node, is the node being defined
-    // attempting to replicate the node here would always end up in a loop
-    // since we need the relational data to construct a node
-    // and need the node to construct the relational data (without this ts ignore)
-    // @ts-ignore
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<
-      string,
-      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-    >,
     TDOClass = new (initialData?: Record<string, any>) => NodeDO
   >(node: {
     type: string;
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
-    // @ts-ignore
     relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
   }): TDOClass {
     // silences the error "A class can only implement an object type or intersection of object types with statically known members."
     // wich happens because NodeDO has non statically known members (each property on a node in the backend is mapped to a non-statically known property on the DO)
@@ -97,7 +82,6 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
-        this.initializeNodeMutations();
       }
 
       private parseReceivedData(opts: {
@@ -418,17 +402,6 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               relationalQueryGetter: relationalData[
                 relationshipName
               ] as () => NodeRelationalQueryBuilder<any>,
-            });
-          });
-        }
-      }
-
-      private initializeNodeMutations() {
-        const mutations = node.mutations;
-        if (mutations) {
-          Object.keys(mutations).forEach(mutationName => {
-            Object.defineProperty(this, mutationName, {
-              get: () => mutations[mutationName].bind(this),
             });
           });
         }
