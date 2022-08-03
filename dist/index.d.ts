@@ -1,4 +1,4 @@
-import { IMMGQL, Config, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, INode, NodeDefaultProps } from './types';
+import { IMMGQL, Config, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeDefArgs, INode, NodeDefaultProps } from './types';
 export * from './types';
 export * from './dataTypes';
 export * from './react';
@@ -18,7 +18,7 @@ export declare class MMGQL implements IMMGQL {
     DOProxyGenerator: IMMGQL['DOProxyGenerator'];
     private optimisticUpdatesOrchestrator;
     constructor(config: Config);
-    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData>): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData>;
     getToken(opts: {
         tokenName: string;
     }): string;

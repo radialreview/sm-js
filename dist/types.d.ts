@@ -118,14 +118,13 @@ export interface IMMGQL {
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
-    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData>): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData>;
 }
-export declare type NodeDefArgs<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn>> = {
+export declare type NodeDefArgs<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
     type: TNodeType;
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
 };
 /**
  * The interface implemented by each data type (like data.string, data.boolean)
@@ -221,13 +220,11 @@ export declare type NodeComputedFns<TNodeData extends Record<string, IData | Dat
 export declare type NodeRelationalFns<TNodeRelationalData extends NodeRelationalQueryBuilderRecord> = {
     [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
-export declare type NodeMutationFn = () => Promise<any>;
-export interface INode<TNodeType extends string = any, TNodeData extends Record<string, IData | DataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn> = {}, TNodeComputedFns = NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>, TNodeDO = NodeDO> {
+export interface INode<TNodeType extends string = any, TNodeData extends Record<string, IData | DataDefaultFn> = {}, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeComputedFns = NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>, TNodeDO = NodeDO> {
     _isNodeDef: true;
     data: TNodeData & NodeDefaultProps;
     computed?: TNodeComputedFns;
     relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
     type: TNodeType;
     repository: INodeRepository;
     do: new (data?: Record<string, any>) => TNodeDO;

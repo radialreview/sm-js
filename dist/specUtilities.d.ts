@@ -1,6 +1,6 @@
 import * as data from './dataTypes';
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
 declare const userProperties: {
     firstName: {
         <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
@@ -240,14 +240,12 @@ export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
     assignee: IOneToOneQueryBuilder<UserNode>;
 };
-export declare type TodoMutations = {};
-export declare type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData, TodoMutations>;
+export declare type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
 export declare function generateTodoNode(mmGQLInstance: IMMGQL, cachedUserNode?: UserNode): TodoNode;
-export declare function generateDOInstance<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord, TNodeMutations extends Record<string, NodeMutationFn>>(opts: {
+export declare function generateDOInstance<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord>(opts: {
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
     initialData: {
         id: string;
         version: string;

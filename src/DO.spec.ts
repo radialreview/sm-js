@@ -87,7 +87,6 @@ describe('data.DO', () => {
       'mock-type',
       typeof properties,
       { dropdownOpt: { value: string; display: string } },
-      {},
       {}
     >({
       properties,
@@ -119,7 +118,6 @@ describe('data.DO', () => {
       'mock-type',
       typeof properties,
       { taskWithTest: string; taskWithTestAndTest2: string },
-      {},
       {}
     >({
       properties,
@@ -147,8 +145,7 @@ describe('data.DO', () => {
       'mock-type',
       {},
       {},
-      { todos: IOneToManyQueryBuilder<TodoNode> },
-      {}
+      { todos: IOneToManyQueryBuilder<TodoNode> }
     >({
       properties: {},
       initialData: {
@@ -187,7 +184,6 @@ describe('data.DO', () => {
     const { doInstance } = generateDOInstance<
       'mock-type',
       typeof properties,
-      {},
       {},
       {}
     >({
@@ -237,7 +233,6 @@ describe('data.DO', () => {
     const { doInstance } = generateDOInstance<
       'mock-type',
       typeof properties,
-      {},
       {},
       {}
     >({
@@ -330,7 +325,6 @@ describe('data.DO', () => {
       'mock-type',
       typeof properties,
       {},
-      {},
       {}
     >({
       properties,
@@ -361,7 +355,6 @@ describe('data.DO', () => {
     const { doInstance } = generateDOInstance<
       'mock-type',
       typeof properties,
-      {},
       {},
       {}
     >({

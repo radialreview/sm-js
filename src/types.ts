@@ -147,19 +147,14 @@ export interface IMMGQL {
     TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<
-      string,
-      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-    >
   >(
     def: NodeDefArgs<
       TNodeType,
       TNodeData,
       TNodeComputedData,
-      TNodeRelationalData,
-      TNodeMutations
+      TNodeRelationalData
     >
-  ): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+  ): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData>;
 }
 
 export type NodeDefArgs<
@@ -167,13 +162,11 @@ export type NodeDefArgs<
   TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn>
 > = {
   type: TNodeType;
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
 };
 
 /**
@@ -356,19 +349,11 @@ export type NodeRelationalFns<
   [key in keyof TNodeRelationalData]: () => TNodeRelationalData[key];
 };
 
-export type NodeMutationFn<
-  // TNodeData,
-  // TAdditionalOpts extends Record<string, any>
-> = (
-  // opts: NodeMutationOpts<TNodeData> & TAdditionalOpts
-  ) => Promise<any>;
-
 export interface INode<
   TNodeType extends string = any,
   TNodeData extends Record<string, IData | DataDefaultFn> = {},
   TNodeComputedData extends Record<string, any> = {},
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {},
-  TNodeMutations extends Record<string, /*NodeMutationFn<TNodeData, any>*/NodeMutationFn> = {},
   TNodeComputedFns = NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>,
   TNodeDO = NodeDO
 > {
@@ -376,7 +361,6 @@ export interface INode<
   data: TNodeData & NodeDefaultProps;
   computed?: TNodeComputedFns;
   relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
   type: TNodeType;
   repository: INodeRepository;
   do: new (data?: Record<string, any>) => TNodeDO;
@@ -856,15 +840,6 @@ type ExtractNodeRelationalData<
   ? TNodeRelationalData
   : never;
 
-// type ExtractNodeMutations<TNode extends INode> = TNode extends INode<
-//   any,
-//   any,
-//   any,
-//   infer TNodeMutations
-// >
-//   ? TNodeMutations
-//   : never;
-
 /**
  * a record of all the queries identified in this query definitions
  * looks something like this
@@ -916,22 +891,6 @@ export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
 )
 
 export type QueryRecord = Record<string, QueryRecordEntry>;
-
-// export type NodeRequestUpdate<TNodeData> = (opts: {
-//   payload: DeepPartial<TNodeData>;
-//   // updateNode: (opts: IUpdateNodeOpts<TNodeData>) => void;
-// }) => Promise<void>;
-
-// type NodeMutationOpts<TNodeData> = {
-//   // nodeData: TNodeData;
-//   // createNode(): void;
-//   // createEdge(opts: ICreateEdgeOpts): void;
-//   // deleteNode(opts: IDeleteNodeOpts): void;
-//   // deleteEdge(opts: IDeleteEdgeOpts): void;
-//   // updateNode(opts: IUpdateNodeOpts<TNodeData>): void;
-//   // requestUpdate: NodeRequestUpdate<TNodeData>;
-// };
-
 export interface IDOProxy {
   updateRelationalResults(
     newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>

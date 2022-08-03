@@ -10,7 +10,6 @@ import {
   IData,
   DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
-  NodeMutationFn,
   NodeComputedFns,
   NodeRelationalFns,
   Config,
@@ -95,15 +94,7 @@ export type TodoRelationalData = {
   assignee: IOneToOneQueryBuilder<UserNode>;
 };
 
-export type TodoMutations = {};
-
-export type TodoNode = INode<
-  'todo',
-  TodoProperties,
-  {},
-  TodoRelationalData,
-  TodoMutations
->;
+export type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
 
 export function generateTodoNode(
   mmGQLInstance: IMMGQL,
@@ -127,25 +118,11 @@ export function generateDOInstance<
   TNodeType extends string,
   TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
-  // the tsignore here is necessary
-  // because the generic that NodeRelationalQueryBuilderRecord needs is
-  // the node definition for the origin of the relational queries
-  // which when defining a node, is the node being defined
-  // attempting to replicate the node here would always end up in a loop
-  // since we need the relational data to construct a node
-  // and need the node to construct the relational data (without this ts ignore)
-  // @ts-ignore
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<
-    string,
-    /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-  >
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 >(opts: {
   properties: TNodeData;
   computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
-  // @ts-ignore
   relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
   initialData: {
     id: string;
     version: string;
@@ -156,8 +133,7 @@ export function generateDOInstance<
     TNodeType,
     TNodeData,
     TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
+    TNodeRelationalData
   >({
     type: 'mockNodeType' as TNodeType,
     properties: opts.properties,
