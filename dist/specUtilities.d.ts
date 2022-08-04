@@ -1,113 +1,112 @@
-import * as data from './dataTypes';
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, QueryDefinitionTarget, NodeDefaultProps } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
 declare const userProperties: {
     firstName: {
-        (defaultValue: string): data.Data<{
+        (defaultValue: string): IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        _default: data.Data<{
+        _default: IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        optional: data.Data<{
+        optional: IData<{
             TValue: import("./types").Maybe<string>;
             TParsedValue: import("./types").Maybe<string>;
             TBoxedValue: undefined;
         }>;
     };
-    lastName: data.Data<{
+    lastName: IData<{
         TValue: string;
         TParsedValue: string;
         TBoxedValue: undefined;
     }>;
-    address: data.Data<{
+    address: IData<{
         TValue: import("./types").GetResultingDataTypeFromProperties<{
             streetName: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             zipCode: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             state: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
-            apt: data.Data<{
+            apt: IData<{
                 TValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -116,34 +115,34 @@ declare const userProperties: {
                 }>;
                 TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -152,34 +151,34 @@ declare const userProperties: {
                 }>;
                 TBoxedValue: {
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -190,87 +189,87 @@ declare const userProperties: {
         }>;
         TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
             streetName: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             zipCode: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             state: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
-            apt: data.Data<{
+            apt: IData<{
                 TValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -279,34 +278,34 @@ declare const userProperties: {
                 }>;
                 TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -315,34 +314,34 @@ declare const userProperties: {
                 }>;
                 TBoxedValue: {
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -353,87 +352,87 @@ declare const userProperties: {
         }>;
         TBoxedValue: {
             streetName: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             zipCode: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
             state: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
-            apt: data.Data<{
+            apt: IData<{
                 TValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -442,34 +441,34 @@ declare const userProperties: {
                 }>;
                 TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -478,34 +477,34 @@ declare const userProperties: {
                 }>;
                 TBoxedValue: {
                     number: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
                         }>;
                     };
                     floor: {
-                        (defaultValue: number): data.Data<{
+                        (defaultValue: number): IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        _default: data.Data<{
+                        _default: IData<{
                             TValue: string;
                             TParsedValue: number;
                             TBoxedValue: undefined;
                         }>;
-                        optional: data.Data<{
+                        optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
                             TBoxedValue: undefined;
@@ -526,17 +525,17 @@ export declare type UserNode = INode<'user', UserProperties, {
 export declare function generateUserNode(mmGQLInstance: IMMGQL, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     task: {
-        (defaultValue: string): data.Data<{
+        (defaultValue: string): IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        _default: data.Data<{
+        _default: IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        optional: data.Data<{
+        optional: IData<{
             TValue: import("./types").Maybe<string>;
             TParsedValue: import("./types").Maybe<string>;
             TBoxedValue: undefined;
@@ -548,58 +547,58 @@ declare const todoProperties: {
         TBoxedValue: undefined;
     }>;
     assigneeId: {
-        (defaultValue: string): data.Data<{
+        (defaultValue: string): IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        _default: data.Data<{
+        _default: IData<{
             TValue: string;
             TParsedValue: string;
             TBoxedValue: undefined;
         }>;
-        optional: data.Data<{
+        optional: IData<{
             TValue: import("./types").Maybe<string>;
             TParsedValue: import("./types").Maybe<string>;
             TBoxedValue: undefined;
         }>;
     };
-    meetingId: data.Data<{
+    meetingId: IData<{
         TValue: import("./types").Maybe<string>;
         TParsedValue: import("./types").Maybe<string>;
         TBoxedValue: undefined;
     }>;
-    settings: data.Data<{
-        TValue: import("./types").GetResultingDataTypeFromProperties<{
-            archiveAfterMeeting: data.Data<{
+    settings: IData<{
+        TValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            archiveAfterMeeting: IData<{
                 TValue: import("./types").Maybe<string | boolean>;
                 TParsedValue: import("./types").Maybe<boolean>;
                 TBoxedValue: undefined;
             }>;
-            nestedSettings: data.Data<{
-                TValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+            nestedSettings: IData<{
+                TValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
-                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+                }>>;
+                TParsedValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
+                }>>;
                 TBoxedValue: {
-                    nestedNestedMaybe: data.Data<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
                 };
             }>;
-            nestedRecord: data.Data<{
+            nestedRecord: IData<{
                 TValue: Record<string, boolean>;
                 TParsedValue: Record<string, boolean>;
                 TBoxedValue: IData<{
@@ -608,37 +607,37 @@ declare const todoProperties: {
                     TBoxedValue: undefined;
                 }>;
             }>;
-        }>;
-        TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
-            archiveAfterMeeting: data.Data<{
+        }>>;
+        TParsedValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            archiveAfterMeeting: IData<{
                 TValue: import("./types").Maybe<string | boolean>;
                 TParsedValue: import("./types").Maybe<boolean>;
                 TBoxedValue: undefined;
             }>;
-            nestedSettings: data.Data<{
-                TValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+            nestedSettings: IData<{
+                TValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
-                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+                }>>;
+                TParsedValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
+                }>>;
                 TBoxedValue: {
-                    nestedNestedMaybe: data.Data<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
                 };
             }>;
-            nestedRecord: data.Data<{
+            nestedRecord: IData<{
                 TValue: Record<string, boolean>;
                 TParsedValue: Record<string, boolean>;
                 TBoxedValue: IData<{
@@ -647,37 +646,37 @@ declare const todoProperties: {
                     TBoxedValue: undefined;
                 }>;
             }>;
-        }>;
+        }>>;
         TBoxedValue: {
-            archiveAfterMeeting: data.Data<{
+            archiveAfterMeeting: IData<{
                 TValue: import("./types").Maybe<string | boolean>;
                 TParsedValue: import("./types").Maybe<boolean>;
                 TBoxedValue: undefined;
             }>;
-            nestedSettings: data.Data<{
-                TValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+            nestedSettings: IData<{
+                TValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
-                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
-                    nestedNestedMaybe: data.Data<{
+                }>>;
+                TParsedValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
-                }>;
+                }>>;
                 TBoxedValue: {
-                    nestedNestedMaybe: data.Data<{
+                    nestedNestedMaybe: IData<{
                         TValue: import("./types").Maybe<string>;
                         TParsedValue: import("./types").Maybe<string>;
                         TBoxedValue: undefined;
                     }>;
                 };
             }>;
-            nestedRecord: data.Data<{
+            nestedRecord: IData<{
                 TValue: Record<string, boolean>;
                 TParsedValue: Record<string, boolean>;
                 TBoxedValue: IData<{
@@ -689,63 +688,63 @@ declare const todoProperties: {
         };
     }>;
     dataSetIds: {
-        (defaultValue: any[]): data.Data<{
-            TValue: any[];
-            TParsedValue: any[];
+        (defaultValue: string[]): IData<{
+            TValue: string[];
+            TParsedValue: string[];
             TBoxedValue: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
         }>;
-        optional: data.Data<{
-            TValue: import("./types").Maybe<any[]>;
-            TParsedValue: import("./types").Maybe<any[]>;
+        optional: IData<{
+            TValue: import("./types").Maybe<string[]>;
+            TParsedValue: import("./types").Maybe<string[]>;
             TBoxedValue: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
                 }>;
             };
         }>;
-        _default: data.Data<{
-            TValue: any[];
-            TParsedValue: any[];
+        _default: IData<{
+            TValue: string[];
+            TParsedValue: string[];
             TBoxedValue: {
-                (defaultValue: string): data.Data<{
+                (defaultValue: string): IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                _default: data.Data<{
+                _default: IData<{
                     TValue: string;
                     TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
-                optional: data.Data<{
+                optional: IData<{
                     TValue: import("./types").Maybe<string>;
                     TParsedValue: import("./types").Maybe<string>;
                     TBoxedValue: undefined;
@@ -753,30 +752,30 @@ declare const todoProperties: {
             };
         }>;
     };
-    comments: data.Data<{
-        TValue: import("./types").Maybe<any[]>;
-        TParsedValue: import("./types").Maybe<any[]>;
-        TBoxedValue: data.Data<{
+    comments: IData<{
+        TValue: import("./types").Maybe<import("./types").Maybe<string>[]>;
+        TParsedValue: import("./types").Maybe<import("./types").Maybe<string>[]>;
+        TBoxedValue: IData<{
             TValue: import("./types").Maybe<string>;
             TParsedValue: import("./types").Maybe<string>;
             TBoxedValue: undefined;
         }>;
     }>;
-    record: data.Data<{
-        TValue: Record<string, any>;
-        TParsedValue: Record<string, any>;
+    record: IData<{
+        TValue: Record<string, string>;
+        TParsedValue: Record<string, string>;
         TBoxedValue: {
-            (defaultValue: string): data.Data<{
+            (defaultValue: string): IData<{
                 TValue: string;
                 TParsedValue: string;
                 TBoxedValue: undefined;
             }>;
-            _default: data.Data<{
+            _default: IData<{
                 TValue: string;
                 TParsedValue: string;
                 TBoxedValue: undefined;
             }>;
-            optional: data.Data<{
+            optional: IData<{
                 TValue: import("./types").Maybe<string>;
                 TParsedValue: import("./types").Maybe<string>;
                 TBoxedValue: undefined;
@@ -809,13 +808,23 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
     doNotSuspend?: boolean;
 }): {
     users: import("./types").UseSubscriptionQueryDefinition<{
-        TNode: INode<any, NodeComputedFns<{
-            TNodeData: any;
-            TNodeComputedData: any;
-        }>, import("./types").NodeDO>;
-        TMapFn: import("./types").MapFnForNode<unknown> | undefined;
-        TQueryDefinitionTarget: QueryDefinitionTarget;
-        TUseSubscriptionQueryDefinitionOpts: import("./types").UseSubscriptionQueryDefinitionOpts;
+        TNode: any;
+        TMapFn: ({ id, todos, address }: {
+            [x: string]: DataDefaultFn | IData<any>;
+        } & NodeRelationalQueryBuilderRecord) => {
+            id: any;
+            address: any;
+            todos: any;
+        };
+        TQueryDefinitionTarget: {
+            id: string;
+            allowNullResult?: boolean | undefined;
+        } | {
+            ids: string[];
+        };
+        TUseSubscriptionQueryDefinitionOpts: {
+            doNotSuspend: boolean | undefined;
+        };
     }>;
 };
 export declare const mockQueryDataReturn: {

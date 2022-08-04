@@ -360,17 +360,22 @@ var stringEnum = function stringEnum(enumValues) {
     isOptional: false,
     acceptableValues: enumValues
   });
-  var optionalDataType = new Data({
-    type: DATA_TYPES.maybeStringEnum,
+  return dataType;
+};
+
+stringEnum.optional = function (enumValues) {
+  var dataType = new Data({
+    type: DATA_TYPES.stringEnum,
     parser: function parser(value) {
       return value != null ? String(value) : null;
     },
-    isOptional: true,
+    defaultValue: enumValues[0],
+    isOptional: false,
     acceptableValues: enumValues
   });
-  dataType.optional = optionalDataType;
   return dataType;
 };
+
 var number = function number(defaultValue) {
   return new Data({
     type: DATA_TYPES.number,

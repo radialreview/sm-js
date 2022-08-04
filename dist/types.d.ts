@@ -143,8 +143,8 @@ export declare type NodeDefArgs<TDefArgs extends {
  * The interface implemented by each data type (like data.string, data.boolean)
  */
 export interface IData<TDataArgs extends {
-    TParsedValue: any;
     TValue: any;
+    TParsedValue: any;
     /**
      * only defined for object and array types
      *
@@ -363,7 +363,7 @@ export declare type QueryDefinition<TQueryDefinitionArgs extends {
     target?: TQueryDefinitionArgs["TQueryDefinitionTarget"];
     tokenName?: string;
 };
-export declare type QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> | INode | null>;
+export declare type QueryDefinitions = Record<string, QueryDefinition | INode | null>;
 export declare type UseSubscriptionQueryDefinitionOpts = {
     doNotSuspend?: boolean;
 };

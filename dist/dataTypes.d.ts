@@ -25,45 +25,46 @@ export declare class Data<TDataArgs extends {
  * 2) they serve as a way for TS to infer the data type of the node based on the data types used,
  */
 export declare const string: {
-    (defaultValue: string): Data<{
+    (defaultValue: string): IData<{
         TValue: string;
         TParsedValue: string;
         TBoxedValue: undefined;
     }>;
-    _default: Data<{
+    _default: IData<{
         TValue: string;
         TParsedValue: string;
         TBoxedValue: undefined;
     }>;
-    optional: Data<{
+    optional: IData<{
         TValue: Maybe<string>;
         TParsedValue: Maybe<string>;
         TBoxedValue: undefined;
     }>;
 };
-export declare const stringEnum: <TEnumEntry extends string, TEnumType extends TEnumEntry[] = TEnumEntry[]>(enumValues: TEnumType) => Data<{
-    TValue: TEnumType[number];
-    TParsedValue: TEnumType[number];
-    TBoxedValue: undefined;
-}> & {
-    optional: Data<{
-        TValue: Maybe<TEnumType[number]>;
-        TParsedValue: Maybe<TEnumType[number]>;
+export declare const stringEnum: {
+    <TEnumEntry extends string, TEnumType extends TEnumEntry[] = TEnumEntry[]>(enumValues: TEnumType): IData<{
+        TValue: TEnumType[number];
+        TParsedValue: TEnumType[number];
+        TBoxedValue: undefined;
+    }>;
+    optional<TEnumEntry_1 extends string, TEnumType_1 extends TEnumEntry_1[] = TEnumEntry_1[]>(enumValues: TEnumType_1): IData<{
+        TValue: Maybe<TEnumType_1[number]>;
+        TParsedValue: Maybe<TEnumType_1[number]>;
         TBoxedValue: undefined;
     }>;
 };
 export declare const number: {
-    (defaultValue: number): Data<{
+    (defaultValue: number): IData<{
         TValue: string;
         TParsedValue: number;
         TBoxedValue: undefined;
     }>;
-    _default: Data<{
+    _default: IData<{
         TValue: string;
         TParsedValue: number;
         TBoxedValue: undefined;
     }>;
-    optional: Data<{
+    optional: IData<{
         TValue: Maybe<string>;
         TParsedValue: Maybe<number>;
         TBoxedValue: undefined;
@@ -80,33 +81,33 @@ export declare const boolean: {
         TParsedValue: boolean;
         TBoxedValue: undefined;
     }>;
-    optional: Data<{
+    optional: IData<{
         TValue: Maybe<string | boolean>;
         TParsedValue: Maybe<boolean>;
         TBoxedValue: undefined;
     }>;
 };
 declare type ObjectDataType = {
-    <TBoxedValue extends Record<string, IData | DataDefaultFn>>(boxedValue: TBoxedValue): Data<{
+    <TBoxedValue extends Record<string, IData | DataDefaultFn>>(boxedValue: TBoxedValue): IData<{
         TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
         TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
         TBoxedValue: TBoxedValue;
     }>;
     _default: any;
-    optional: <TBoxedValue extends Record<string, IData | DataDefaultFn>>(boxedValue: TBoxedValue) => Data<{
-        TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
-        TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    optional: <TBoxedValue extends Record<string, IData | DataDefaultFn>>(boxedValue: TBoxedValue) => IData<{
+        TValue: Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>;
+        TParsedValue: Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>;
         TBoxedValue: TBoxedValue;
     }>;
 };
 export declare const object: ObjectDataType;
 export declare const record: {
-    <TKey extends string, TBoxedValue extends IData<any> | DataDefaultFn>(boxedValue: TBoxedValue): Data<{
+    <TKey extends string, TBoxedValue extends IData<any> | DataDefaultFn>(boxedValue: TBoxedValue): IData<{
         TValue: Record<TKey, GetDataType<TBoxedValue>>;
         TParsedValue: Record<TKey, GetDataType<TBoxedValue>>;
         TBoxedValue: TBoxedValue;
     }>;
-    optional<TBoxedValue_1 extends IData<any> | DataDefaultFn>(boxedValue: TBoxedValue_1): Data<{
+    optional<TBoxedValue_1 extends IData<any> | DataDefaultFn>(boxedValue: TBoxedValue_1): IData<{
         TValue: Maybe<Record<string, any>>;
         TParsedValue: Maybe<Record<string, any>>;
         TBoxedValue: IData<any>;
@@ -114,17 +115,17 @@ export declare const record: {
     _default: any;
 };
 export declare const array: <TBoxedValue extends IData<any> | DataDefaultFn>(boxedValue: TBoxedValue) => {
-    (defaultValue: GetDataType<TBoxedValue>[]): Data<{
+    (defaultValue: GetDataType<TBoxedValue>[]): IData<{
         TValue: GetDataType<TBoxedValue>[];
         TParsedValue: GetDataType<TBoxedValue>[];
         TBoxedValue: TBoxedValue;
     }>;
-    optional: Data<{
+    optional: IData<{
         TValue: Maybe<GetDataType<TBoxedValue>[]>;
         TParsedValue: Maybe<GetDataType<TBoxedValue>[]>;
         TBoxedValue: TBoxedValue;
     }>;
-    _default: Data<{
+    _default: IData<{
         TValue: GetDataType<TBoxedValue>[];
         TParsedValue: GetDataType<TBoxedValue>[];
         TBoxedValue: TBoxedValue;
@@ -146,10 +147,15 @@ export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any
 }>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare const OBJECT_IDENTIFIER = "__object__";
-export declare function queryDefinition<TQueryDefinitionArgs extends {
-    TNode: INode;
-    TMapFn: MapFnForNode<TQueryDefinitionArgs['TNode']> | undefined;
-    TQueryDefinitionTarget: QueryDefinitionTarget;
-    TUseSubscriptionQueryDefinitionOpts: UseSubscriptionQueryDefinitionOpts;
-}>(queryDefinition: UseSubscriptionQueryDefinition<TQueryDefinitionArgs>): UseSubscriptionQueryDefinition<TQueryDefinitionArgs>;
+export declare function queryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts>(queryDefinition: UseSubscriptionQueryDefinition<{
+    TNode: TNode;
+    TMapFn: TMapFn;
+    TQueryDefinitionTarget: TQueryDefinitionTarget;
+    TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+}>): UseSubscriptionQueryDefinition<{
+    TNode: TNode;
+    TMapFn: TMapFn;
+    TQueryDefinitionTarget: TQueryDefinitionTarget;
+    TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+}>;
 export {};
