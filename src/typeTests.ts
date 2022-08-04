@@ -65,18 +65,18 @@ type MeetingRelational = {
   attendees: IOneToManyQueryBuilder<UserNode>;
 };
 
-type MeetingNode = INode<
-  'meeting',
-  typeof meetingProperties,
-  {},
-  MeetingRelational
->;
+type MeetingNode = INode<{
+  TNodeType: 'meeting';
+  TNodeData: typeof meetingProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: MeetingRelational;
+}>;
 
-type TodoNode = INode<
-  'todo',
-  typeof todoProperties,
-  {},
-  {
+type TodoNode = INode<{
+  TNodeType: 'todo';
+  TNodeData: typeof todoProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {
     assignee: IOneToOneQueryBuilder<UserNode>;
     meeting: IOneToOneQueryBuilder<Maybe<MeetingNode>>;
     assigneeUnionNullable: IOneToOneQueryBuilder<
@@ -86,8 +86,8 @@ type TodoNode = INode<
       meetingGuest: MeetingGuestNode;
       orgUser: UserNode;
     }>;
-  }
->;
+  };
+}>;
 
 const todoNode: TodoNode = mmGQL.def({
   type: 'todo',
@@ -126,15 +126,15 @@ const userRelational = {
   state: () => oneToOne(stateNode),
 };
 
-type UserNode = INode<
-  'user',
-  typeof userProperties,
-  { fullName: string; avatar: string },
-  {
+type UserNode = INode<{
+  TNodeType: 'user';
+  TNodeData: typeof userProperties;
+  TNodeComputedData: { fullName: string; avatar: string };
+  TNodeRelationalData: {
     todos: IOneToManyQueryBuilder<TodoNode>;
     state: IOneToOneQueryBuilder<StateNode>;
-  }
->;
+  };
+}>;
 
 const userNode: UserNode = mmGQL.def({
   type: 'user',
@@ -154,7 +154,12 @@ const meetingGuestProperties = {
   id: string,
   firstName: string,
 };
-type MeetingGuestNode = INode<'meeting-guest', typeof meetingGuestProperties>;
+type MeetingGuestNode = INode<{
+  TNodeType: 'meeting-guest';
+  TNodeData: typeof meetingGuestProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {};
+}>;
 const meetingGuestNode: MeetingGuestNode = mmGQL.def({
   type: 'meeting-guest' as 'meeting-guest',
   properties: meetingGuestProperties,
@@ -163,7 +168,12 @@ const meetingGuestNode: MeetingGuestNode = mmGQL.def({
 const stateNodeProperties = {
   name: string,
 };
-type StateNode = INode<'state', typeof stateNodeProperties>;
+type StateNode = INode<{
+  TNodeType: 'state';
+  TNodeData: typeof stateNodeProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {};
+}>;
 const stateNode: StateNode = mmGQL.def({
   type: 'state',
   properties: stateNodeProperties,
@@ -245,6 +255,7 @@ const stateNode: StateNode = mmGQL.def({
 })();
 
 (function TypeInferrenceTests() {
+  type D = GetResultingDataTypeFromProperties<typeof userProperties>;
   type UserNodeData = GetResultingDataTypeFromNodeDefinition<UserNode>;
   const validUserNodeData: UserNodeData = {
     id: '',

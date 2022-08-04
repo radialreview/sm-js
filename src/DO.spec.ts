@@ -161,7 +161,9 @@ describe('data.DO', () => {
     const queryFn = ({ id }: { id: IData<string> }) => ({ id });
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
-        map: queryFn,
+        queryBuilderOpts: expect.objectContaining({
+          map: queryFn,
+        }),
         _relational: RELATIONAL_TYPES.oneToMany,
       })
     );
