@@ -1,163 +1,519 @@
 import * as data from './dataTypes';
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, QueryDefinitionTarget, NodeDefaultProps } from './types';
 declare const userProperties: {
     firstName: {
-        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-        _default: data.Data<"", "", undefined>;
-        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        (defaultValue: string): data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        _default: data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        optional: data.Data<{
+            TValue: import("./types").Maybe<string>;
+            TParsedValue: import("./types").Maybe<string>;
+            TBoxedValue: undefined;
+        }>;
     };
-    lastName: data.Data<"joe", "joe", undefined>;
-    address: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-        streetName: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        zipCode: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        state: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        apt: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    lastName: data.Data<{
+        TValue: string;
+        TParsedValue: string;
+        TBoxedValue: undefined;
+    }>;
+    address: data.Data<{
+        TValue: import("./types").GetResultingDataTypeFromProperties<{
+            streetName: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            zipCode: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            state: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }>, {
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
+            apt: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TBoxedValue: {
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                };
+            }>;
         }>;
-    }>, import("./types").GetResultingDataTypeFromProperties<{
-        streetName: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        zipCode: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        state: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        apt: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+            streetName: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            zipCode: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            state: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
             };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }>, {
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
+            apt: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TBoxedValue: {
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                };
+            }>;
         }>;
-    }>, {
-        streetName: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        TBoxedValue: {
+            streetName: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            zipCode: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            state: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            apt: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }>;
+                TBoxedValue: {
+                    number: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: data.Data<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: data.Data<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                };
+            }>;
         };
-        zipCode: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        state: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        apt: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }>, {
-            number: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            floor: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }>;
     }>;
 };
 declare type UserProperties = typeof userProperties;
@@ -170,70 +526,262 @@ export declare type UserNode = INode<'user', UserProperties, {
 export declare function generateUserNode(mmGQLInstance: IMMGQL, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     task: {
-        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-        _default: data.Data<"", "", undefined>;
-        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        (defaultValue: string): data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        _default: data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        optional: data.Data<{
+            TValue: import("./types").Maybe<string>;
+            TParsedValue: import("./types").Maybe<string>;
+            TBoxedValue: undefined;
+        }>;
     };
-    done: IData<boolean, string | boolean, undefined>;
+    done: IData<{
+        TValue: string | boolean;
+        TParsedValue: boolean;
+        TBoxedValue: undefined;
+    }>;
     assigneeId: {
-        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-        _default: data.Data<"", "", undefined>;
-        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        (defaultValue: string): data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        _default: data.Data<{
+            TValue: string;
+            TParsedValue: string;
+            TBoxedValue: undefined;
+        }>;
+        optional: data.Data<{
+            TValue: import("./types").Maybe<string>;
+            TParsedValue: import("./types").Maybe<string>;
+            TBoxedValue: undefined;
+        }>;
     };
-    meetingId: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-    settings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-        archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    meetingId: data.Data<{
+        TValue: import("./types").Maybe<string>;
+        TParsedValue: import("./types").Maybe<string>;
+        TBoxedValue: undefined;
+    }>;
+    settings: data.Data<{
+        TValue: import("./types").GetResultingDataTypeFromProperties<{
+            archiveAfterMeeting: data.Data<{
+                TValue: import("./types").Maybe<string | boolean>;
+                TParsedValue: import("./types").Maybe<boolean>;
+                TBoxedValue: undefined;
+            }>;
+            nestedSettings: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TBoxedValue: {
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+            }>;
+            nestedRecord: data.Data<{
+                TValue: Record<string, boolean>;
+                TParsedValue: Record<string, boolean>;
+                TBoxedValue: IData<{
+                    TValue: string | boolean;
+                    TParsedValue: boolean;
+                    TBoxedValue: undefined;
+                }>;
+            }>;
         }>;
-        nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
-    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-        archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+            archiveAfterMeeting: data.Data<{
+                TValue: import("./types").Maybe<string | boolean>;
+                TParsedValue: import("./types").Maybe<boolean>;
+                TBoxedValue: undefined;
+            }>;
+            nestedSettings: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TBoxedValue: {
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+            }>;
+            nestedRecord: data.Data<{
+                TValue: Record<string, boolean>;
+                TParsedValue: Record<string, boolean>;
+                TBoxedValue: IData<{
+                    TValue: string | boolean;
+                    TParsedValue: boolean;
+                    TBoxedValue: undefined;
+                }>;
+            }>;
         }>;
-        nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
-    }>>, {
-        archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>;
-        nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
+        TBoxedValue: {
+            archiveAfterMeeting: data.Data<{
+                TValue: import("./types").Maybe<string | boolean>;
+                TParsedValue: import("./types").Maybe<boolean>;
+                TBoxedValue: undefined;
+            }>;
+            nestedSettings: data.Data<{
+                TValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                }>;
+                TBoxedValue: {
+                    nestedNestedMaybe: data.Data<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+            }>;
+            nestedRecord: data.Data<{
+                TValue: Record<string, boolean>;
+                TParsedValue: Record<string, boolean>;
+                TBoxedValue: IData<{
+                    TValue: string | boolean;
+                    TParsedValue: boolean;
+                    TBoxedValue: undefined;
+                }>;
+            }>;
+        };
     }>;
     dataSetIds: {
-        (defaultValue: string[]): data.Data<string[], string[], {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        (defaultValue: any[]): data.Data<{
+            TValue: any[];
+            TParsedValue: any[];
+            TBoxedValue: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
         }>;
-        optional: data.Data<import("./types").Maybe<string[]>, import("./types").Maybe<string[]>, {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        optional: data.Data<{
+            TValue: import("./types").Maybe<any[]>;
+            TParsedValue: import("./types").Maybe<any[]>;
+            TBoxedValue: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
         }>;
-        _default: data.Data<string[], string[], {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        _default: data.Data<{
+            TValue: any[];
+            TParsedValue: any[];
+            TBoxedValue: {
+                (defaultValue: string): data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: data.Data<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: data.Data<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
         }>;
     };
-    comments: data.Data<import("./types").Maybe<import("./types").Maybe<string>[]>, import("./types").Maybe<import("./types").Maybe<string>[]>, data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>>;
-    record: data.Data<Record<string, string>, Record<string, string>, {
-        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-        _default: data.Data<"", "", undefined>;
-        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+    comments: data.Data<{
+        TValue: import("./types").Maybe<any[]>;
+        TParsedValue: import("./types").Maybe<any[]>;
+        TBoxedValue: data.Data<{
+            TValue: import("./types").Maybe<string>;
+            TParsedValue: import("./types").Maybe<string>;
+            TBoxedValue: undefined;
+        }>;
+    }>;
+    record: data.Data<{
+        TValue: Record<string, any>;
+        TParsedValue: Record<string, any>;
+        TBoxedValue: {
+            (defaultValue: string): data.Data<{
+                TValue: string;
+                TParsedValue: string;
+                TBoxedValue: undefined;
+            }>;
+            _default: data.Data<{
+                TValue: string;
+                TParsedValue: string;
+                TBoxedValue: undefined;
+            }>;
+            optional: data.Data<{
+                TValue: import("./types").Maybe<string>;
+                TParsedValue: import("./types").Maybe<string>;
+                TBoxedValue: undefined;
+            }>;
+        };
     }>;
 };
 export declare type TodoProperties = typeof todoProperties;
@@ -260,396 +808,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
     tokenName?: string;
     doNotSuspend?: boolean;
 }): {
-    users: import("./types").UseSubscriptionQueryDefinition<UserNode, ({ id, todos, address }: {
-        firstName: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        lastName: data.Data<"joe", "joe", undefined>;
-        address: <TMapFn extends import("./types").MapFn<{
-            streetName: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            zipCode: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            state: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            apt: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            }>, import("./types").GetResultingDataTypeFromProperties<{
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            }>, {
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            }>;
-        }, {}, {}>>(opts: {
-            map: TMapFn;
-        }) => TMapFn;
-        id: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        dateCreated: {
-            (defaultValue: number): data.Data<number, string, undefined>;
-            _default: data.Data<number, string, undefined>;
-            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-        };
-        dateLastModified: {
-            (defaultValue: number): data.Data<number, string, undefined>;
-            _default: data.Data<number, string, undefined>;
-            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-        };
-        lastUpdatedBy: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        lastUpdatedClientTimestamp: {
-            (defaultValue: number): data.Data<number, string, undefined>;
-            _default: data.Data<number, string, undefined>;
-            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-        };
-    } & UserRelationalData) => {
-        id: {
-            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-            _default: data.Data<"", "", undefined>;
-            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        };
-        address: ({ state, apt }: {
-            streetName: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            zipCode: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            state: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            apt: <TMapFn_1 extends import("./types").MapFn<{
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            }, {}, {}>>(opts: {
-                map: TMapFn_1;
-            }) => TMapFn_1;
-            id: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            dateCreated: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            dateLastModified: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-            lastUpdatedBy: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            lastUpdatedClientTimestamp: {
-                (defaultValue: number): data.Data<number, string, undefined>;
-                _default: data.Data<number, string, undefined>;
-                optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-            };
-        }) => {
-            state: {
-                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                _default: data.Data<"", "", undefined>;
-                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-            };
-            apt: ({ floor, number }: {
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                id: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                dateCreated: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                dateLastModified: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                lastUpdatedBy: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                lastUpdatedClientTimestamp: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            }) => {
-                floor: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                number: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            };
-        };
-        todos: import("./types").IOneToManyQuery<TodoNode, {
-            map: ({ id, assignee }: {
-                task: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                done: IData<boolean, string | boolean, undefined>;
-                assigneeId: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                meetingId: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                settings: <TMapFn_2 extends import("./types").MapFn<{
-                    archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-                    nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-                        nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-                        nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>>, {
-                        nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>;
-                    nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
-                }, {}, {}>>(opts: {
-                    map: TMapFn_2;
-                }) => TMapFn_2;
-                dataSetIds: {
-                    (defaultValue: string[]): data.Data<string[], string[], {
-                        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                        _default: data.Data<"", "", undefined>;
-                        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>;
-                    optional: data.Data<import("./types").Maybe<string[]>, import("./types").Maybe<string[]>, {
-                        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                        _default: data.Data<"", "", undefined>;
-                        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>;
-                    _default: data.Data<string[], string[], {
-                        <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                        _default: data.Data<"", "", undefined>;
-                        optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }>;
-                };
-                comments: data.Data<import("./types").Maybe<import("./types").Maybe<string>[]>, import("./types").Maybe<import("./types").Maybe<string>[]>, data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>>;
-                record: data.Data<Record<string, string>, Record<string, string>, {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>;
-                id: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                dateCreated: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                dateLastModified: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-                lastUpdatedBy: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                lastUpdatedClientTimestamp: {
-                    (defaultValue: number): data.Data<number, string, undefined>;
-                    _default: data.Data<number, string, undefined>;
-                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                };
-            } & TodoRelationalData) => {
-                id: {
-                    <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                    _default: data.Data<"", "", undefined>;
-                    optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                };
-                assignee: import("./types").IOneToOneQuery<UserNode, {
-                    map: ({ id, firstName }: {
-                        firstName: {
-                            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                            _default: data.Data<"", "", undefined>;
-                            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                        };
-                        lastName: data.Data<"joe", "joe", undefined>;
-                        address: <TMapFn extends import("./types").MapFn<{
-                            streetName: {
-                                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                                _default: data.Data<"", "", undefined>;
-                                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                            };
-                            zipCode: {
-                                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                                _default: data.Data<"", "", undefined>;
-                                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                            };
-                            state: {
-                                <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                                _default: data.Data<"", "", undefined>;
-                                optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                            };
-                            apt: data.Data<import("./types").GetResultingDataTypeFromProperties<{
-                                number: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                                floor: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                            }>, import("./types").GetResultingDataTypeFromProperties<{
-                                number: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                                floor: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                            }>, {
-                                number: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                                floor: {
-                                    (defaultValue: number): data.Data<number, string, undefined>;
-                                    _default: data.Data<number, string, undefined>;
-                                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                                };
-                            }>;
-                        }, {}, {}>>(opts: {
-                            map: TMapFn;
-                        }) => TMapFn;
-                        id: {
-                            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                            _default: data.Data<"", "", undefined>;
-                            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                        };
-                        dateCreated: {
-                            (defaultValue: number): data.Data<number, string, undefined>;
-                            _default: data.Data<number, string, undefined>;
-                            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        dateLastModified: {
-                            (defaultValue: number): data.Data<number, string, undefined>;
-                            _default: data.Data<number, string, undefined>;
-                            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                        lastUpdatedBy: {
-                            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                            _default: data.Data<"", "", undefined>;
-                            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                        };
-                        lastUpdatedClientTimestamp: {
-                            (defaultValue: number): data.Data<number, string, undefined>;
-                            _default: data.Data<number, string, undefined>;
-                            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
-                        };
-                    } & UserRelationalData) => {
-                        id: {
-                            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                            _default: data.Data<"", "", undefined>;
-                            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                        };
-                        firstName: {
-                            <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
-                            _default: data.Data<"", "", undefined>;
-                            optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                        };
-                    };
-                }>;
-            };
-        }>;
-    }, {
-        id: string;
-        allowNullResult?: boolean | undefined;
-    } | {
-        ids: string[];
-    }, {
-        doNotSuspend: boolean | undefined;
+    users: import("./types").UseSubscriptionQueryDefinition<{
+        TNode: INode<any, NodeComputedFns<{
+            TNodeData: any;
+            TNodeComputedData: any;
+        }>, import("./types").NodeDO>;
+        TMapFn: import("./types").MapFnForNode<unknown> | undefined;
+        TQueryDefinitionTarget: QueryDefinitionTarget;
+        TUseSubscriptionQueryDefinitionOpts: import("./types").UseSubscriptionQueryDefinitionOpts;
     }>;
 };
 export declare const mockQueryDataReturn: {

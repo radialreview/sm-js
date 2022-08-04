@@ -333,14 +333,16 @@ var Data = function Data(opts) {
  */
 
 var string = function string(defaultValue) {
-  return new Data({
-    type: exports.DATA_TYPES.string,
-    parser: function parser(value) {
-      return value != null ? String(value) : value;
-    },
-    defaultValue: defaultValue,
-    isOptional: false
-  });
+  return (// TStringType, TStringType,  undefined}
+    new Data({
+      type: exports.DATA_TYPES.string,
+      parser: function parser(value) {
+        return value != null ? String(value) : value;
+      },
+      defaultValue: defaultValue,
+      isOptional: false
+    })
+  );
 };
 string._default = /*#__PURE__*/string('');
 string.optional = /*#__PURE__*/new Data({
