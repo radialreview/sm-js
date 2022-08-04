@@ -173,8 +173,8 @@ export type NodeDefArgs<
  */
 export interface IData<
   TDataArgs extends {
-    TParsedValue : any,
     TValue: any,
+    TParsedValue: any,
     /**
      * only defined for object and array types
      *
@@ -537,17 +537,12 @@ export type QueryDefinition<
 //    map: ({ id } => ({ id })
 //  })
 //
-export type QueryDefinitions<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget
-  // adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
-  // in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
-  // strangely, if we simply tell TS to ignore the error it works perfectly
-  // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
-  // eslint-disable-next-line
-  // @ts-ignore
-> = Record<string, QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> | INode | null>;
+// adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
+// in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
+// strangely, if we simply tell TS to ignore the error it works perfectly
+// see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
+// @ts-ignore
+export type QueryDefinitions = Record<string, QueryDefinition | INode | null>;
 
 export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 

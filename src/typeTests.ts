@@ -117,7 +117,7 @@ const userProperties = {
     }),
   }),
   fooBarEnum: stringEnum(['FOO', 'BAR']),
-  optionalBarBazEnum: stringEnum(['BAR', 'BAZ']).optional,
+  optionalBarBazEnum: stringEnum.optional(['BAR', 'BAZ']),
   recordEnum: record(stringEnum(['FOO', 'BAR'])),
   arrayOfString: array(string),
 };
@@ -255,7 +255,6 @@ const stateNode: StateNode = mmGQL.def({
 })();
 
 (function TypeInferrenceTests() {
-  type D = GetResultingDataTypeFromProperties<typeof userProperties>;
   type UserNodeData = GetResultingDataTypeFromNodeDefinition<UserNode>;
   const validUserNodeData: UserNodeData = {
     id: '',
@@ -284,6 +283,13 @@ const stateNode: StateNode = mmGQL.def({
     someFakeProp: '',
   };
   invalidPropAtRoot;
+
+  const invalidEnum: UserNodeData = {
+    ...validUserNodeData,
+    // @ts-expect-error
+    fooBarEnum: 'bogus',
+  };
+  invalidEnum;
 
   const invalidNestedProp: UserNodeData = {
     ...validUserNodeData,
