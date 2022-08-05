@@ -8,8 +8,12 @@ export class QuerySlimmer {
       results: Object | Array<Object> | null;
     }
   > = {};
-  // public onQueryExecuted (queryRecord: QueryRecord) {
-  //                             //take in a query record and return a new query record(either we didn’t find any matches in the cache and we return the original query record, we found a partial match so we return out a new query record with only the properties we didn’t find a match for, etc., could return null if we find a complete match in the cache) – has original query record, has slimmed query record {originalQuery: {queryRecord}, slimmedQuery: {queryRecord} }
+  // public onQueryExecuted ({originalQuery: {queryRecord}, slimmedQuery: {queryRecord}}) {
+  // should return a new queryRecord
+  // if no matches for queryRecord are found in resultsByContext, return original query
+  // if partial match for queryRecord is found in resultsByContext, return a new query record with only the properties that DID NOT match
+  // if complete match for queryRecord is found in resultsByContext, return null
+
   //   Object.keys(queryRecord).map(el => {
   //     const queryDefinitionKey = el.
   //   })
@@ -26,6 +30,7 @@ export class QuerySlimmer {
     queryRecord: QueryRecord,
     results: Record<string, any>
   ) {
+    console.log('AIDAN results: ', results);
     Object.keys(queryRecord).forEach(alias => {
       const queryRecordEntry = queryRecord[alias];
       const contextKey = `${
@@ -35,6 +40,7 @@ export class QuerySlimmer {
         subscriptionsByProperty: queryRecordEntry.properties.reduce(
           (previous: Record<string, number>, current: string) => {
             previous[current] = previous[current] ? previous[current] + 1 : 1;
+            console.log('AIDAN previous: ', previous);
             return previous;
           },
           this.resultsByContext[contextKey]?.subscriptionsByProperty || {}
@@ -50,6 +56,16 @@ export class QuerySlimmer {
     slimmedQueryResults: Record<string, any>;
     subscriptionEstablished: boolean;
   }) {
+    //nothing is being returned from this atm:
     this.populateResultsByContext(opts.slimmedQuery, opts.slimmedQueryResults);
+    console.log(
+      'AIDAN populateResultsByContext is returning: ',
+      this.populateResultsByContext(opts.slimmedQuery, opts.slimmedQueryResults)
+    );
+    //capture results from slimmedQuery (returned form onQueryExecuted)
+    // stitch this together with the rsults from slimmedQueryResults
+    // get originalQuery results from cache (the ones that matched)
+    //update resultsByContext with all data from both queries
+    // increment number of active subscriptions at each property of the original query if subscriptionsEstablished is true
   }
 }
