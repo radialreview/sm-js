@@ -28,25 +28,44 @@ export class QuerySlimmer {
 
   private populateResultsByContext(
     queryRecord: QueryRecord,
-    results: Record<string, any>
+    results: Record<string, any>,
+    parentContextKey: string | undefined
   ) {
-    console.log('AIDAN results: ', results);
     Object.keys(queryRecord).forEach(alias => {
       const queryRecordEntry = queryRecord[alias];
-      const contextKey = `${
+      const doesQueryHaveIdProperty = !!queryRecordEntry.id;
+      const parentContextKeyPrefix = parentContextKey
+        ? `${parentContextKey}.`
+        : '';
+      const contextKey = `${parentContextKeyPrefix}${
         queryRecordEntry.def.type
-      }s(${this.stringifyQueryParams(queryRecordEntry)})`;
+      }${doesQueryHaveIdProperty ? '' : 's'}(${this.stringifyQueryParams(
+        queryRecordEntry
+      )})`;
       this.resultsByContext[contextKey] = {
         subscriptionsByProperty: queryRecordEntry.properties.reduce(
           (previous: Record<string, number>, current: string) => {
             previous[current] = previous[current] ? previous[current] + 1 : 1;
-            console.log('AIDAN previous: ', previous);
             return previous;
           },
           this.resultsByContext[contextKey]?.subscriptionsByProperty || {}
         ),
         results: results[alias],
       };
+      if (queryRecordEntry.relational) {
+        const resultsForRelationalQueries = Object.keys(
+          queryRecordEntry.relational
+        ).reduce((previous: Record<string, any>, current: string) => {
+          //do array vs object check here before map in case there's only a single id
+          previous[current] = results[alias].map((user: any) => user[current]);
+          return previous;
+        }, {});
+        this.populateResultsByContext(
+          queryRecordEntry.relational,
+          resultsForRelationalQueries,
+          contextKey
+        );
+      }
     });
   }
 
@@ -56,12 +75,12 @@ export class QuerySlimmer {
     slimmedQueryResults: Record<string, any>;
     subscriptionEstablished: boolean;
   }) {
-    //nothing is being returned from this atm:
-    this.populateResultsByContext(opts.slimmedQuery, opts.slimmedQueryResults);
-    console.log(
-      'AIDAN populateResultsByContext is returning: ',
-      this.populateResultsByContext(opts.slimmedQuery, opts.slimmedQueryResults)
+    this.populateResultsByContext(
+      opts.slimmedQuery,
+      opts.slimmedQueryResults,
+      undefined
     );
+
     //capture results from slimmedQuery (returned form onQueryExecuted)
     // stitch this together with the rsults from slimmedQueryResults
     // get originalQuery results from cache (the ones that matched)
