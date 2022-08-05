@@ -519,9 +519,14 @@ declare type UserProperties = typeof userProperties;
 declare type UserRelationalData = {
     todos: IOneToManyQueryBuilder<TodoNode>;
 };
-export declare type UserNode = INode<'user', UserProperties, {
-    displayName: string;
-}, UserRelationalData, {}>;
+export declare type UserNode = INode<{
+    TNodeType: 'user';
+    TNodeData: UserProperties;
+    TNodeComputedData: {
+        displayName: string;
+    };
+    TNodeRelationalData: UserRelationalData;
+}>;
 export declare function generateUserNode(mmGQLInstance: IMMGQL, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     task: {
@@ -787,11 +792,19 @@ export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
     assignee: IOneToOneQueryBuilder<UserNode>;
 };
-export declare type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
+export declare type TodoNode = INode<{
+    TNodeType: 'todo';
+    TNodeData: TodoProperties;
+    TNodeComputedData: {};
+    TNodeRelationalData: TodoRelationalData;
+}>;
 export declare function generateTodoNode(mmGQLInstance: IMMGQL, cachedUserNode?: UserNode): TodoNode;
 export declare function generateDOInstance<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TNodeRelationalData extends NodeRelationalQueryBuilderRecord>(opts: {
     properties: TNodeData;
-    computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
+    computed?: NodeComputedFns<{
+        TNodeData: TNodeData & NodeDefaultProps;
+        TNodeComputedData: TNodeComputedData;
+    }>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
     initialData: {
         id: string;
@@ -808,13 +821,789 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
     doNotSuspend?: boolean;
 }): {
     users: import("./types").UseSubscriptionQueryDefinition<{
-        TNode: any;
-        TMapFn: ({ id, todos, address }: {
-            [x: string]: DataDefaultFn | IData<any>;
-        } & NodeRelationalQueryBuilderRecord) => {
-            id: any;
-            address: any;
-            todos: any;
+        TNode: UserNode;
+        TMapFn: ({ todos, address }: {
+            firstName: {
+                (defaultValue: string): IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            lastName: IData<{
+                TValue: string;
+                TParsedValue: string;
+                TBoxedValue: undefined;
+            }>;
+            address: <TMapFn extends import("./types").MapFn<{
+                TNodeData: {
+                    streetName: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    zipCode: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    state: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    apt: IData<{
+                        TValue: import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                            floor: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        }>;
+                        TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                            number: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                            floor: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        }>;
+                        TBoxedValue: {
+                            number: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                            floor: {
+                                (defaultValue: number): IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: number;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<number>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        };
+                    }>;
+                };
+                TNodeComputedData: {};
+                TNodeRelationalData: {};
+            }>>(opts: {
+                map: TMapFn;
+            }) => TMapFn;
+        } & UserRelationalData) => {
+            address: ({ state, apt }: {
+                streetName: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                zipCode: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                state: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                apt: <TMapFn_1 extends import("./types").MapFn<{
+                    TNodeData: {
+                        number: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        floor: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                    };
+                    TNodeComputedData: {};
+                    TNodeRelationalData: {};
+                }>>(opts: {
+                    map: TMapFn_1;
+                }) => TMapFn_1;
+            }) => {
+                state: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                apt: ({ floor, number }: {
+                    number: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    floor: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                }) => {
+                    floor: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    number: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                };
+            };
+            todos: import("./types").IOneToManyQuery<TodoNode, {
+                map: ({ assignee }: {
+                    task: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    done: IData<{
+                        TValue: string | boolean;
+                        TParsedValue: boolean;
+                        TBoxedValue: undefined;
+                    }>;
+                    assigneeId: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    meetingId: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                    settings: <TMapFn_2 extends import("./types").MapFn<{
+                        TNodeData: {
+                            archiveAfterMeeting: IData<{
+                                TValue: import("./types").Maybe<string | boolean>;
+                                TParsedValue: import("./types").Maybe<boolean>;
+                                TBoxedValue: undefined;
+                            }>;
+                            nestedSettings: IData<{
+                                TValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                                    nestedNestedMaybe: IData<{
+                                        TValue: import("./types").Maybe<string>;
+                                        TParsedValue: import("./types").Maybe<string>;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                }>>;
+                                TParsedValue: import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                                    nestedNestedMaybe: IData<{
+                                        TValue: import("./types").Maybe<string>;
+                                        TParsedValue: import("./types").Maybe<string>;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                }>>;
+                                TBoxedValue: {
+                                    nestedNestedMaybe: IData<{
+                                        TValue: import("./types").Maybe<string>;
+                                        TParsedValue: import("./types").Maybe<string>;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                };
+                            }>;
+                            nestedRecord: IData<{
+                                TValue: Record<string, boolean>;
+                                TParsedValue: Record<string, boolean>;
+                                TBoxedValue: IData<{
+                                    TValue: string | boolean;
+                                    TParsedValue: boolean;
+                                    TBoxedValue: undefined;
+                                }>;
+                            }>;
+                        };
+                        TNodeComputedData: {};
+                        TNodeRelationalData: {};
+                    }>>(opts: {
+                        map: TMapFn_2;
+                    }) => TMapFn_2;
+                    dataSetIds: {
+                        (defaultValue: string[]): IData<{
+                            TValue: string[];
+                            TParsedValue: string[];
+                            TBoxedValue: {
+                                (defaultValue: string): IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<string>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string[]>;
+                            TParsedValue: import("./types").Maybe<string[]>;
+                            TBoxedValue: {
+                                (defaultValue: string): IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<string>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        }>;
+                        _default: IData<{
+                            TValue: string[];
+                            TParsedValue: string[];
+                            TBoxedValue: {
+                                (defaultValue: string): IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                _default: IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                optional: IData<{
+                                    TValue: import("./types").Maybe<string>;
+                                    TParsedValue: import("./types").Maybe<string>;
+                                    TBoxedValue: undefined;
+                                }>;
+                            };
+                        }>;
+                    };
+                    comments: IData<{
+                        TValue: import("./types").Maybe<import("./types").Maybe<string>[]>;
+                        TParsedValue: import("./types").Maybe<import("./types").Maybe<string>[]>;
+                        TBoxedValue: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    }>;
+                    record: IData<{
+                        TValue: Record<string, string>;
+                        TParsedValue: Record<string, string>;
+                        TBoxedValue: {
+                            (defaultValue: string): IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<string>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                    }>;
+                } & TodoRelationalData) => {
+                    assignee: import("./types").IOneToOneQuery<{
+                        TTargetNodeOrTargetNodeRecord: UserNode;
+                        TQueryBuilderOpts: {
+                            map: ({ firstName }: {
+                                firstName: {
+                                    (defaultValue: string): IData<{
+                                        TValue: string;
+                                        TParsedValue: string;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                    _default: IData<{
+                                        TValue: string;
+                                        TParsedValue: string;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                    optional: IData<{
+                                        TValue: import("./types").Maybe<string>;
+                                        TParsedValue: import("./types").Maybe<string>;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                };
+                                lastName: IData<{
+                                    TValue: string;
+                                    TParsedValue: string;
+                                    TBoxedValue: undefined;
+                                }>;
+                                address: <TMapFn extends import("./types").MapFn<{
+                                    TNodeData: {
+                                        streetName: {
+                                            (defaultValue: string): IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            _default: IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            optional: IData<{
+                                                TValue: import("./types").Maybe<string>;
+                                                TParsedValue: import("./types").Maybe<string>;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                        };
+                                        zipCode: {
+                                            (defaultValue: string): IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            _default: IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            optional: IData<{
+                                                TValue: import("./types").Maybe<string>;
+                                                TParsedValue: import("./types").Maybe<string>;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                        };
+                                        state: {
+                                            (defaultValue: string): IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            _default: IData<{
+                                                TValue: string;
+                                                TParsedValue: string;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                            optional: IData<{
+                                                TValue: import("./types").Maybe<string>;
+                                                TParsedValue: import("./types").Maybe<string>;
+                                                TBoxedValue: undefined;
+                                            }>;
+                                        };
+                                        apt: IData<{
+                                            TValue: import("./types").GetResultingDataTypeFromProperties<{
+                                                number: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                                floor: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                            }>;
+                                            TParsedValue: import("./types").GetResultingDataTypeFromProperties<{
+                                                number: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                                floor: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                            }>;
+                                            TBoxedValue: {
+                                                number: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                                floor: {
+                                                    (defaultValue: number): IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    _default: IData<{
+                                                        TValue: string;
+                                                        TParsedValue: number;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                    optional: IData<{
+                                                        TValue: import("./types").Maybe<string>;
+                                                        TParsedValue: import("./types").Maybe<number>;
+                                                        TBoxedValue: undefined;
+                                                    }>;
+                                                };
+                                            };
+                                        }>;
+                                    };
+                                    TNodeComputedData: {};
+                                    TNodeRelationalData: {};
+                                }>>(opts: {
+                                    map: TMapFn;
+                                }) => TMapFn;
+                            } & UserRelationalData) => {
+                                firstName: {
+                                    (defaultValue: string): IData<{
+                                        TValue: string;
+                                        TParsedValue: string;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                    _default: IData<{
+                                        TValue: string;
+                                        TParsedValue: string;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                    optional: IData<{
+                                        TValue: import("./types").Maybe<string>;
+                                        TParsedValue: import("./types").Maybe<string>;
+                                        TBoxedValue: undefined;
+                                    }>;
+                                };
+                            };
+                        };
+                    }>;
+                };
+            }>;
         };
         TQueryDefinitionTarget: {
             id: string;

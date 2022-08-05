@@ -118,12 +118,17 @@ export interface IMMGQL {
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
-    def<TDefArgs extends {
-        TNodeType: string;
-        TNodeData: Record<string, IData | DataDefaultFn>;
-        TNodeComputedData: Record<string, any>;
-        TNodeRelationalData: NodeRelationalQueryBuilderRecord;
-    }>(def: NodeDefArgs<TDefArgs>): INode<TDefArgs>;
+    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<{
+        TNodeType: TNodeType;
+        TNodeData: TNodeData;
+        TNodeComputedData: TNodeComputedData;
+        TNodeRelationalData: TNodeRelationalData;
+    }>): INode<{
+        TNodeType: TNodeType;
+        TNodeData: TNodeData;
+        TNodeComputedData: TNodeComputedData;
+        TNodeRelationalData: TNodeRelationalData;
+    }>;
 }
 export declare type NodeDefArgs<TDefArgs extends {
     TNodeType: string;
@@ -151,7 +156,7 @@ export interface IData<TDataArgs extends {
      * for arrays is the data type of each item in that array
      * for objects is a record of strings to data (matching the structure the data.object received as an argument)
      */
-    TBoxedValue: IData<any> | DataDefaultFn | Record<string, IData<any> | DataDefaultFn> | undefined;
+    TBoxedValue: IData<any> | DataDefaultFn | Record<string, IData | DataDefaultFn> | undefined;
 } = any> {
     type: string;
     parser(value: TDataArgs["TValue"]): TDataArgs["TParsedValue"];
@@ -208,13 +213,13 @@ declare type IsArray<Thing extends any, Y = true, N = false> = Thing extends Arr
  * if each data property on that DO is currently guaranteed to be up to date.
  * Any property that is read while not being up to date throws a run-time error to ensure the devs never use outdated data mistakenly
  */
-export declare type UpToDateData<TNodeData extends Record<string, IData>> = DeepPartial<{
+export declare type UpToDateData<TNodeData extends Record<string, IData | DataDefaultFn>> = DeepPartial<{
     [Key in keyof TNodeData]: TNodeData[Key] extends IData<{
         TNodeData: Maybe<Array<any>>;
         TBoxedValue: any;
         TParsedValue: any;
         TValue: any;
-    }> ? boolean : TNodeData[Key] extends IData<infer TDataArgs> ? TDataArgs["TBoxedValue"] extends Record<string, IData> ? UpToDateData<TDataArgs["TBoxedValue"]> : boolean : boolean;
+    }> ? boolean : TNodeData[Key] extends IData<infer TDataArgs> ? TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? UpToDateData<TDataArgs["TBoxedValue"]> : boolean : boolean;
 }>;
 /**
  * These methods are called automatically when using this lib's public methods like "useData"
@@ -363,7 +368,11 @@ export declare type QueryDefinition<TQueryDefinitionArgs extends {
     target?: TQueryDefinitionArgs["TQueryDefinitionTarget"];
     tokenName?: string;
 };
-export declare type QueryDefinitions = Record<string, QueryDefinition | INode | null>;
+export declare type QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<{
+    TNode: TNode;
+    TMapFn: TMapFn;
+    TQueryDefinitionTarget: TQueryDefinitionTarget;
+}> | INode | null>;
 export declare type UseSubscriptionQueryDefinitionOpts = {
     doNotSuspend?: boolean;
 };
@@ -379,7 +388,12 @@ export declare type UseSubscriptionQueryDefinition<TUseSubscriptionQueryDefiniti
 }> & {
     useSubOpts?: TUseSubscriptionQueryDefinitionArgs["TUseSubscriptionQueryDefinitionOpts"];
 };
-export declare type UseSubscriptionQueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> = Record<string, UseSubscriptionQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | INode | null>;
+export declare type UseSubscriptionQueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> = Record<string, UseSubscriptionQueryDefinition<{
+    TNode: TNode;
+    TMapFn: TMapFn;
+    TQueryDefinitionTarget: TQueryDefinitionTarget;
+    TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+}> | INode | null>;
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     [Key in keyof TQueryDefinitions]: IsMaybe<TQueryDefinitions[Key]> extends true ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };
@@ -433,7 +447,7 @@ export declare type GetMapFnArgs<TNode extends INode> = TNode extends INode<infe
         TParsedValue: Maybe<Array<any>>;
         TValue: any;
         TBoxedValue: any;
-    }> ? TNodeArgs['TNodeData'][key] : TNodeArgs['TNodeData'][key] extends IData<infer TDataArgs> ? TDataArgs['TBoxedValue'] extends Record<string, IData> ? <TMapFn extends MapFn<{
+    }> ? TNodeArgs['TNodeData'][key] : TNodeArgs['TNodeData'][key] extends IData<infer TDataArgs> ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn> ? <TMapFn extends MapFn<{
         TNodeData: TDataArgs['TBoxedValue'];
         TNodeComputedData: {};
         TNodeRelationalData: {};
@@ -459,26 +473,14 @@ export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TNod
     type: TNode['type'];
 } & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode> & ExtractNodeComputedData<TNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TNode extends INode> = {
-    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromByOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any, any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
+    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any, any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
         map: MapFn<infer TMapFnArgs>;
     }) => MapFn<any> ? GetResultingDataTypeFromProperties<TMapFnArgs['TNodeData']> : TMapFnReturn[Key] extends MapFn<any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : never;
 };
 declare type Prev = [never, 0, 1];
-declare type ExtractQueriedDataFromByOneToOneQuery<TOneToOneQuery extends IOneToOneQuery<any>, D extends Prev[number] = 1> = [
+declare type ExtractQueriedDataFromOneToOneQuery<TOneToOneQuery extends IOneToOneQuery<any>, D extends Prev[number] = 1> = [
     D
-] extends [never] ? never : TOneToOneQuery extends IOneToOneQuery<infer TOneToOneQueryArgs> ? IsMaybe<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends {
-    map: MapFnForNode<NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>>;
-} ? Maybe<ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>>> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends {
-    [key in keyof TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']]: {
-        map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'][key]>;
-    };
-} ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>> : never : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends {
-    map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>;
-} ? ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends {
-    [key in keyof TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']]: {
-        map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'][key]>;
-    };
-} ? ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]> : never : never : never;
+] extends [never] ? never : TOneToOneQuery extends IOneToOneQuery<infer TOneToOneQueryArgs> ? IsMaybe<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>> ? Maybe<ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>>> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>> ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>> : never : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]> : never : never : never;
 declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneToManyQuery<any, any>, D extends Prev[number] = 1> = [
     D
 ] extends [never] ? never : TOneToManyQuery extends IOneToManyQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts> ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true ? TTargetNodeOrTargetNodeRecord extends INode ? TQueryBuilderOpts extends {
@@ -495,7 +497,7 @@ declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneTo
     };
 } ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>> : never : never : never;
 declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord extends Record<string, INode>, TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>, D extends Prev[number]> = ExtractObjectValues<{
-    [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromByOneToOneQuery<IOneToOneQuery<{
+    [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromOneToOneQuery<IOneToOneQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord[key];
         TQueryBuilderOpts: {
             map: TQueryBuilderOpts[key]['map'];

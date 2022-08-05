@@ -18,12 +18,17 @@ export declare class MMGQL implements IMMGQL {
     DOProxyGenerator: IMMGQL['DOProxyGenerator'];
     private optimisticUpdatesOrchestrator;
     constructor(config: Config);
-    def<TDefArgs extends {
-        TNodeType: string;
-        TNodeData: Record<string, IData | DataDefaultFn>;
-        TNodeComputedData: Record<string, any>;
-        TNodeRelationalData: NodeRelationalQueryBuilderRecord;
-    }>(def: NodeDefArgs<TDefArgs>): INode<TDefArgs>;
+    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<{
+        TNodeType: TNodeType;
+        TNodeData: TNodeData;
+        TNodeComputedData: TNodeComputedData;
+        TNodeRelationalData: TNodeRelationalData;
+    }>): INode<{
+        TNodeType: TNodeType;
+        TNodeData: TNodeData;
+        TNodeComputedData: TNodeComputedData;
+        TNodeRelationalData: TNodeRelationalData;
+    }>;
     getToken(opts: {
         tokenName: string;
     }): string;
