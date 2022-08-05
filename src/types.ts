@@ -143,15 +143,23 @@ export interface IMMGQL {
   QueryManager:ReturnType<typeof createQueryManager>
 
   def<
-    TDefArgs extends {
-      TNodeType: string,
-      TNodeData: Record<string, IData | DataDefaultFn>,
-      TNodeComputedData: Record<string, any>,
-      TNodeRelationalData: NodeRelationalQueryBuilderRecord,
-    }
+    TNodeType extends string,
+    TNodeData extends Record<string, IData | DataDefaultFn>,
+    TNodeComputedData extends Record<string, any> = {},
+    TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}
   >(
-    def: NodeDefArgs<TDefArgs>
-  ): INode<TDefArgs>;
+    def: NodeDefArgs<{
+      TNodeType: TNodeType;
+      TNodeData: TNodeData;
+      TNodeComputedData: TNodeComputedData;
+      TNodeRelationalData: TNodeRelationalData;
+    }>
+  ): INode<{
+    TNodeType: TNodeType;
+    TNodeData: TNodeData;
+    TNodeComputedData: TNodeComputedData;
+    TNodeRelationalData: TNodeRelationalData;
+  }>;
 }
 
 export type NodeDefArgs<
@@ -184,7 +192,7 @@ export interface IData<
     TBoxedValue:
       | IData<any>
       | DataDefaultFn
-      | Record<string, IData<any> | DataDefaultFn>
+      | Record<string, IData | DataDefaultFn>
       | undefined
   } = any
 > {
@@ -297,13 +305,13 @@ type IsArray<Thing extends any, Y = true, N = false> = Thing extends Array<any> 
  * Any property that is read while not being up to date throws a run-time error to ensure the devs never use outdated data mistakenly
  */
 export type UpToDateData<
-  TNodeData extends Record<string, IData>
+  TNodeData extends Record<string, IData | DataDefaultFn>
 > = DeepPartial<
   {
     [Key in keyof TNodeData]: TNodeData[Key] extends IData<{ TNodeData: Maybe<Array<any>>, TBoxedValue: any, TParsedValue: any, TValue: any }>
       ? boolean
       : TNodeData[Key] extends IData<infer TDataArgs>
-      ? TDataArgs["TBoxedValue"] extends Record<string, IData>
+      ? TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
         ? UpToDateData<TDataArgs["TBoxedValue"]>
         : boolean
       : boolean;
@@ -537,21 +545,24 @@ export type QueryDefinition<
 //    map: ({ id } => ({ id })
 //  })
 //
-// adding params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
-// in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
-// strangely, if we simply tell TS to ignore the error it works perfectly
-// see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
-// @ts-ignore
-export type QueryDefinitions = Record<string, QueryDefinition | INode | null>;
+export type QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget> = Record<
+  string,
+  // adding strict params to QueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
+  // in QueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
+  // strangely, if we simply tell TS to ignore the error it works perfectly
+  // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
+  // @ts-ignore
+  QueryDefinition<{ TNode: TNode, TMapFn: TMapFn, TQueryDefinitionTarget: TQueryDefinitionTarget }> | INode | null
+>;
 
 export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 
 export type UseSubscriptionQueryDefinition<
   TUseSubscriptionQueryDefinitionArgs extends {
     TNode : INode,
-  TMapFn :  MapFnForNode<TUseSubscriptionQueryDefinitionArgs['TNode']> | undefined,
-  TQueryDefinitionTarget : QueryDefinitionTarget,
-  TUseSubscriptionQueryDefinitionOpts: UseSubscriptionQueryDefinitionOpts
+    TMapFn :  MapFnForNode<TUseSubscriptionQueryDefinitionArgs['TNode']> | undefined,
+    TQueryDefinitionTarget : QueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts: UseSubscriptionQueryDefinitionOpts
   }
 > = QueryDefinition<{
   TNode: TUseSubscriptionQueryDefinitionArgs["TNode"],
@@ -564,13 +575,21 @@ export type UseSubscriptionQueryDefinitions<
   TMapFn,
   TQueryDefinitionTarget,
   TUseSubscriptionQueryDefinitionOpts
+> = Record<
+  string,
   // adding strict params to UseSubscriptionQueryDefinition here breaks the return type of a query function, since the TNodeData and TNodeComputedData types being infered
   // in UseSubscriptionQueryDefinition would no longer be infered correctly. This would result in "any" types being returned for the query result, or implicit anys in the query fn definition
   // strangely, if we simply tell TS to ignore the error it works perfectly
   // see https://tractiontools.atlassian.net/browse/MM-433 for simplified examples
   // eslint-disable-next-line
   // @ts-ignore
-> = Record<string, UseSubscriptionQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts> | INode | null>
+  UseSubscriptionQueryDefinition<{
+    TNode: TNode,
+    TMapFn: TMapFn,
+    TQueryDefinitionTarget: TQueryDefinitionTarget,
+    TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts
+  }> | INode | null
+>
 
 export type QueryDataReturn<
   // @ts-ignore
@@ -657,7 +676,7 @@ export type GetMapFnArgs<
       TNodeArgs['TNodeData'][key] extends IData<{TParsedValue: Maybe<Array<any>>, TValue: any, TBoxedValue: any}>
         ? TNodeArgs['TNodeData'][key]
         : TNodeArgs['TNodeData'][key] extends IData<infer TDataArgs>
-          ? TDataArgs['TBoxedValue'] extends Record<string, IData>
+          ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn>
             // allows querying a partial of an object within a node
             ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:{},  TNodeRelationalData: {} }>>(opts: {
                 map: TMapFn;
@@ -715,7 +734,7 @@ type ExtractQueriedDataFromMapFnReturn<
     ? never
     :
     TMapFnReturn[Key] extends IOneToOneQuery<any>
-    ? ExtractQueriedDataFromByOneToOneQuery<TMapFnReturn[Key]>
+    ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]>
     :
     TMapFnReturn[Key] extends IOneToManyQuery<any,any>
     ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]>
@@ -738,8 +757,8 @@ type ExtractQueriedDataFromMapFnReturn<
     never;
 };
 
-// Without this,ExtractQueriedDataFromByOneToOneQuery and ExtractResultsUnionFromOneToOneQueryBuilder somehow cause a loop
-// even though ExtractQueriedDataFromByOneToOneQuery does not call ExtractResultsUnionFromOneToOneQueryBuilder unless it's dealing with a record of node definitions (union representation)
+// Without this,ExtractQueriedDataFromOneToOneQuery and ExtractResultsUnionFromOneToOneQueryBuilder somehow cause a loop
+// even though ExtractQueriedDataFromOneToOneQuery does not call ExtractResultsUnionFromOneToOneQueryBuilder unless it's dealing with a record of node definitions (union representation)
 // borrowed this solution from this article
 // https://www.angularfix.com/2022/01/why-am-i-getting-instantiation-is.html
 // relavant github discussions:
@@ -748,28 +767,28 @@ type ExtractQueriedDataFromMapFnReturn<
 // https://github.com/microsoft/TypeScript/pull/45025
 type Prev = [never, 0, 1];
 
-type ExtractQueriedDataFromByOneToOneQuery<
+type ExtractQueriedDataFromOneToOneQuery<
   TOneToOneQuery extends IOneToOneQuery<any>,
   D extends Prev[number] = 1
 > = 
   [D] extends [never] ? never :
   TOneToOneQuery extends IOneToOneQuery<infer TOneToOneQueryArgs>
     ? IsMaybe<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true
-      ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
-        ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends { map: MapFnForNode<NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>> }
+      ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode>
+        ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>>
           ? Maybe<ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>>>
           : never
-        : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode>
-          ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends { [key in keyof TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']]: {map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'][key]>} }
-            ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>>
+        : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>>
+          ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>>
+            ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>>
             : never
-          : never
+          : never // @TODO incorrectly falling into this never
       : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
-        ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends { map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> }
+        ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
           ? ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
           : never
         : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode>
-        ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends { [key in keyof TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']]: {map: MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'][key]>} }
+          ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
             ? ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>
             : never
           : never
@@ -811,7 +830,7 @@ type ExtractResultsUnionFromOneToOneQueryBuilder<
       key extends keyof TTargetNodeOrTargetNodeRecord 
         ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
           ?
-            ExtractQueriedDataFromByOneToOneQuery<
+            ExtractQueriedDataFromOneToOneQuery<
               // says this doesn't satisfy the constraint of IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]>
               // but it does, and it works anyway
             // @ts-ignore

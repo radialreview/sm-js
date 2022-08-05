@@ -637,7 +637,7 @@ const stateNode: StateNode = mmGQL.def({
   const assigneeNullable = withRelationalUnion.data.todos[0].assigneeNullable;
   if (assigneeNullable && assigneeNullable.type === 'user') {
     assigneeNullable.id;
-    // to ensure the depth param in ExtractQueriedDataFromByReferenceQuery does not mess with depths greater than 1
+    // to ensure the depth param in ExtractQueriedDataFromOneToOneQuery does not mess with depths greater than 1
     assigneeNullable.todos[0].assigneeId;
     // @ts-expect-error no first name being queried for org user
     assigneeNullable.firstName;
@@ -687,7 +687,11 @@ const stateNode: StateNode = mmGQL.def({
   // because the return type of a MapFnForNode is assumed as a random partial of the data on a node
   // by only typing the arguments of the map function, TS then infers the return from the actual function instead of assuming a random partial
   const userMapFn = ({ firstName }: GetMapFnArgs<UserNode>) => ({ firstName });
-  type UserQueryDefinition = QueryDefinition<UserNode, typeof userMapFn, any>;
+  type UserQueryDefinition = QueryDefinition<{
+    TNode: UserNode;
+    TMapFn: typeof userMapFn;
+    TQueryDefinitionTarget: any;
+  }>;
   type UserData = GetResultingDataFromQueryDefinition<UserQueryDefinition>;
   const validUserData: UserData = {
     type: 'user',
@@ -765,7 +769,7 @@ const stateNode: StateNode = mmGQL.def({
     type: 'test',
     properties: {
       someEnum: stringEnum(['t', 't2']),
-      someOptionalEnum: stringEnum(['t', 't2']).optional,
+      someOptionalEnum: stringEnum.optional(['t', 't2']),
     },
   });
 
@@ -790,7 +794,12 @@ const stateNode: StateNode = mmGQL.def({
       flagEnabled: boolean(false),
     }),
   };
-  type NodeType = INode<'some-type', typeof nodeProperties>;
+  type NodeType = INode<{
+    TNodeType: 'some-type';
+    TNodeData: typeof nodeProperties;
+    TNodeComputedData: {};
+    TNodeRelationalData: {};
+  }>;
 
   mmGQL.transaction(ctx => {
     ctx.createNode<NodeType>({
