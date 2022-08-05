@@ -108,7 +108,10 @@ export function RepositoryFactory<
     >(
       receivedData: any
     ): { id: string; version: number } & DeepPartial<
-      GetAllAvailableNodeDataType<TNodeData, {}>
+      GetAllAvailableNodeDataType<{
+        TNodeData: TNodeData;
+        TNodeComputedData: {};
+      }>
     > {
       const oldStyleObjects: Record<string, any> = {};
       return Object.keys(receivedData).reduce((parsed, key: string) => {
@@ -236,7 +239,7 @@ export function RepositoryFactory<
           parsed[key as keyof TNodeData] = receivedData[key];
           return parsed;
         }
-      }, {} as { id: string; version: number } & DeepPartial<GetAllAvailableNodeDataType<TNodeData, {}>>);
+      }, {} as { id: string; version: number } & DeepPartial<GetAllAvailableNodeDataType<{ TNodeData: TNodeData; TNodeComputedData: {} }>>);
     }
 
     private getOnlyQueriedData(opts: {
