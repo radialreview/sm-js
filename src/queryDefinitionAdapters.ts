@@ -55,7 +55,7 @@ function getRelationalQueryBuildersFromRelationalFns(
 }
 
 function getMapFnReturn(opts: {
-  mapFn: MapFn<any, any, any>;
+  mapFn: MapFn<any>;
   properties: Record<string, IData>;
   relational?: NodeRelationalFns<any>;
 }) {
@@ -71,13 +71,13 @@ function getMapFnReturn(opts: {
       data.type === DATA_TYPES.object ||
       data.type === DATA_TYPES.maybeObject
     ) {
-      mapFnOpts[key] = (opts: { map: MapFn<any, any, any> }) => opts.map;
+      mapFnOpts[key] = (opts: { map: MapFn<any> }) => opts.map;
     }
   });
 
   return opts.mapFn(mapFnOpts) as Record<
     string,
-    IData | MapFn<any, any, any> | NodeRelationalQuery<INode>
+    IData | MapFn<any> | NodeRelationalQuery<INode>
   >;
 }
 
@@ -85,7 +85,10 @@ function getQueriedProperties(opts: {
   queryId: string;
   mapFn: (data: Record<string, any>) => Record<string, any>;
   data: Record<string, any>;
-  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  computed?: NodeComputedFns<{
+    TNodeData: Record<string, any>;
+    TNodeComputedData: Record<string, any>;
+  }>;
   relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
@@ -122,7 +125,10 @@ function getQueriedProperties(opts: {
       if (!isData) return acc;
 
       // we always query these properties, can ignore any explicit requests for it
-      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      if (
+        opts.isRootLevel &&
+        Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+      ) {
         return acc;
       }
 
@@ -140,7 +146,7 @@ function getQueriedProperties(opts: {
             queryId: opts.queryId,
             mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
-              : () => null) as MapFn<any, any, any>,
+              : () => null) as MapFn<any>,
             data: (data.boxedValue as unknown) as Record<string, IData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -151,7 +157,7 @@ function getQueriedProperties(opts: {
       return [...acc, key];
     },
     opts.isRootLevel
-      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      ? [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)]
       : ([] as Array<string>)
   );
 }
@@ -163,7 +169,10 @@ function getAllNodeProperties(opts: {
   return Object.keys(opts.nodeProperties).reduce(
     (acc, key) => {
       // we are already querying these properties, can ignore any explicit requests for it
-      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      if (
+        opts.isRootLevel &&
+        Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+      ) {
         return acc;
       }
 
@@ -188,7 +197,7 @@ function getAllNodeProperties(opts: {
       return [...acc, key];
     },
     opts.isRootLevel
-      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      ? [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)]
       : ([] as Array<string>)
   );
 }
@@ -197,7 +206,10 @@ function getRelationalQueries(opts: {
   queryId: string;
   mapFn: (data: Record<string, any>) => Record<string, any>;
   data: Record<string, any>;
-  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  computed?: NodeComputedFns<{
+    TNodeData: Record<string, any>;
+    TNodeComputedData: Record<string, any>;
+  }>;
   relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
@@ -357,7 +369,7 @@ export function getQueryRecordFromQueryDefinition<
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | INode | null =
+    const queryDefinition: QueryDefinition<any> | INode | null =
       opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;

@@ -18,7 +18,10 @@ function generateRepositoryInstance<
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+  computed?: NodeComputedFns<{
+    TNodeData: TNodeData;
+    TNodeComputedData: TNodeComputedData;
+  }>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
 }) {
   const mmGQL = new MMGQL(getDefaultConfig());

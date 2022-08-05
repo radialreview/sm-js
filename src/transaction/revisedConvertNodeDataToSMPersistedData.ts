@@ -1,9 +1,5 @@
-import {
-  OBJECT_IDENTIFIER,
-  OBJECT_PROPERTY_SEPARATOR,
-  Data,
-} from '../dataTypes';
-import { Maybe, DataDefaultFn, DATA_TYPES } from '../types';
+import { OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
+import { Maybe, DataDefaultFn, DATA_TYPES, IData } from '../types';
 import { AdditionalEdgeProperties } from './edges/types';
 
 const JSON_TAG = '__JSON__';
@@ -18,7 +14,7 @@ const JSON_TAG = '__JSON__';
  */
 export function revisedConvertNodeDataToSMPersistedData(opts: {
   nodeData: Record<string, any>;
-  IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
+  IDataRecord: Record<string, IData<any> | DataDefaultFn>;
   generatingMockData: boolean;
   skipBooleanStringWrapping?: boolean;
 }): string {
@@ -90,7 +86,7 @@ function escapeText(text: string): string {
  */
 export function revisedPrepareObjectForBE(opts: {
   obj: Record<string, any>;
-  IDataRecordForKey: Data<any, any, any>;
+  IDataRecordForKey: IData<any>;
   generatingMockData: boolean;
   parentKey?: string;
   omitObjectIdentifier?: boolean;
@@ -137,7 +133,7 @@ export function revisedPrepareObjectForBE(opts: {
 function revisedConvertPropertyToBE(opts: {
   key: string;
   value: any;
-  IDataRecordForKey: Data<any, any, any>;
+  IDataRecordForKey: IData<any>;
   generatingMockData: boolean;
   omitObjectIdentifier?: boolean;
 }): Record<string, Maybe<string | boolean>> {
@@ -213,7 +209,7 @@ function revisedConvertEdgeDirectionNames(edgeItem: AdditionalEdgeProperties) {
 
 export function revisedPrepareForBE(opts: {
   obj: Record<string, any>;
-  IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
+  IDataRecord: Record<string, IData<any> | DataDefaultFn>;
   generatingMockData: boolean;
 }) {
   const { IDataRecord, obj, generatingMockData } = opts;

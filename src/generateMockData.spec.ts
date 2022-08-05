@@ -147,7 +147,7 @@ test('it correctly generates mock data for optional properties on nodes', async 
 
   const mockNodeProperties = {
     stringProp: string.optional,
-    stringEnumProp: stringEnum(['foo', 'bar']).optional,
+    stringEnumProp: stringEnum.optional(['foo', 'bar']),
     numberProp: number.optional,
     booleanProp: boolean.optional,
     recordProp: record.optional(string.optional),

@@ -132,7 +132,7 @@ export function generateDOInstance<
   relational?: NodeRelationalFns<TNodeRelationalData>;
   initialData: {
     id: string;
-    version: string;
+    version: number;
   } & Record<string, any>;
 }) {
   const mmGQL = new MMGQL(getDefaultConfig());

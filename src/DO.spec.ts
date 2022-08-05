@@ -22,7 +22,7 @@ describe('data.DO', () => {
       },
       initialData: {
         id: '123',
-        version: '1',
+        version: 1,
         dueDate: ('295791241' as unknown) as number, // this is wrong but expected
         settings: {
           show: ('true' as unknown) as boolean,
@@ -42,7 +42,7 @@ describe('data.DO', () => {
       },
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
         dueDate: ('100' as unknown) as number,
       },
     });
@@ -63,7 +63,7 @@ describe('data.DO', () => {
       },
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
         settings: {
           schedule: {
             startTime: ('321' as unknown) as number,
@@ -92,7 +92,7 @@ describe('data.DO', () => {
       properties,
       initialData: {
         id: 'test-id',
-        version: '1',
+        version: 1,
         task: 'get it done',
       },
       computed: {
@@ -123,7 +123,7 @@ describe('data.DO', () => {
       properties,
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
         task: 'get it done',
       },
       computed: {
@@ -150,7 +150,7 @@ describe('data.DO', () => {
       properties: {},
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
       },
       relational: {
         todos: () => data.oneToMany(generateTodoNode(mmGQLInstance)),
@@ -158,7 +158,7 @@ describe('data.DO', () => {
     });
 
     expect(doInstance.todos).toBeInstanceOf(Function);
-    const queryFn = ({ id }: { id: IData<string> }) => ({ id });
+    const queryFn = ({ id }: { id: IData }) => ({ id });
     expect(doInstance.todos({ map: queryFn })).toEqual(
       expect.objectContaining({
         queryBuilderOpts: expect.objectContaining({
@@ -191,7 +191,7 @@ describe('data.DO', () => {
     >({
       properties,
       initialData: {
-        version: '1',
+        version: 1,
         id: '321',
         maybeStr: null,
         maybeBool: null,
@@ -241,7 +241,7 @@ describe('data.DO', () => {
       properties,
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
         rootLevelRecord: {
           foo: 'foo',
         },
@@ -300,7 +300,7 @@ describe('data.DO', () => {
       },
       initialData: {
         id: '123',
-        version: '1',
+        version: 1,
         object: { nested: { nestedNumber: '1' } },
       },
     });
@@ -332,7 +332,7 @@ describe('data.DO', () => {
       properties,
       initialData: {
         id: '321',
-        version: '1',
+        version: 1,
         rootLevelRecord: {
           foo: {
             testString: 'test string value',
@@ -363,7 +363,7 @@ describe('data.DO', () => {
       properties,
       initialData: {
         id: '123',
-        version: '1',
+        version: 1,
         meetingIds: NULL_TAG,
       },
     });

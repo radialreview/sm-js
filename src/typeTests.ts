@@ -694,6 +694,9 @@ const stateNode: StateNode = mmGQL.def({
   }>;
   type UserData = GetResultingDataFromQueryDefinition<UserQueryDefinition>;
   const validUserData: UserData = {
+    id: 'xyz',
+    version: 1,
+    lastUpdatedBy: 'xyz',
     type: 'user',
     firstName: 'UserFirstName',
     fullName: 'Full name',

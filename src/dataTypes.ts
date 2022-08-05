@@ -132,11 +132,11 @@ stringEnum.optional = <
     TParsedValue: Maybe<TEnumType[number]>;
     TBoxedValue: undefined;
   }>({
-    type: DATA_TYPES.stringEnum,
+    type: DATA_TYPES.maybeStringEnum,
     parser: value =>
       value != null ? (String(value) as TEnumType[number]) : null,
     defaultValue: enumValues[0],
-    isOptional: false,
+    isOptional: true,
     acceptableValues: enumValues,
   });
 

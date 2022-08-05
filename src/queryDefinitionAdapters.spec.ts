@@ -34,7 +34,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryDefinitions: {
         todos: queryDefinition({
           def: todoNode,
-          map: ({ id, task }) => ({ id, task }),
+          map: ({ task }) => ({ task }),
         }),
         users: queryDefinition({
           def: userNode,
@@ -49,7 +49,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(record.todos).toEqual(
       expect.objectContaining({
         def: expect.objectContaining({ type: 'todo' }),
-        properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'task'],
+        properties: [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES), 'task'],
       })
     );
 
@@ -57,7 +57,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       expect.objectContaining({
         def: expect.objectContaining({ type: 'user' }),
         properties: [
-          ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+          ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
           'firstName',
           'lastName',
         ],
@@ -74,7 +74,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
 
     expect(queryRecord.def).toEqual(expect.objectContaining({ type: 'user' }));
     expect(queryRecord.properties).toEqual([
-      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
       // include the root property name
       // so that we can continue querying old formats (stringified json)
       'address',
@@ -98,7 +98,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       expect.objectContaining({
         todos: expect.objectContaining({
           def: expect.objectContaining({ type: 'todo' }),
-          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES],
+          properties: [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)],
           oneToMany: true,
         }),
       })
@@ -116,7 +116,10 @@ describe('getQueryRecordFromQueryDefinition', () => {
       expect.objectContaining({
         assignee: expect.objectContaining({
           def: expect.objectContaining({ type: 'user' }),
-          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
+          properties: [
+            ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+            'firstName',
+          ],
           oneToOne: true,
         }),
       })
@@ -126,12 +129,12 @@ describe('getQueryRecordFromQueryDefinition', () => {
   it('handles oneToOne queries', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     const userProperties = {};
-    type UserNode = INode<
-      'user',
-      typeof userProperties,
-      {},
-      { todo: IOneToOneQueryBuilder<TodoNode> }
-    >;
+    type UserNode = INode<{
+      TNodeType: 'user';
+      TNodeData: typeof userProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: { todo: IOneToOneQueryBuilder<TodoNode> };
+    }>;
     const userNode: UserNode = mmGQLInstance.def({
       type: 'user',
       properties: {},
@@ -148,7 +151,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
             def: userNode,
             map: ({ todo }) => ({
               todo: todo({
-                map: ({ id }) => ({ id }),
+                map: () => ({}),
               }),
             }),
           }),
@@ -173,11 +176,18 @@ describe('getQueryRecordFromQueryDefinition', () => {
     const meetingGuestProperties = {
       firstName: string,
     };
-    type UserNode = INode<'user', typeof userProperties>;
-    type MeetingGuestNode = INode<
-      'meeting-guest',
-      typeof meetingGuestProperties
-    >;
+    type UserNode = INode<{
+      TNodeType: 'user';
+      TNodeData: typeof userProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: {};
+    }>;
+    type MeetingGuestNode = INode<{
+      TNodeType: 'meeting-guest';
+      TNodeData: typeof meetingGuestProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: {};
+    }>;
     const userNode: UserNode = mmGQLInstance.def({
       type: 'user',
       properties: userProperties,
@@ -190,17 +200,17 @@ describe('getQueryRecordFromQueryDefinition', () => {
     const todoProperties = {
       assigneeId: string,
     };
-    type TodoNode = INode<
-      'todo',
-      typeof todoProperties,
-      {},
-      {
+    type TodoNode = INode<{
+      TNodeType: 'todo';
+      TNodeData: typeof todoProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: {
         assignee: IOneToOneQueryBuilder<{
           user: UserNode;
           meetingGuest: MeetingGuestNode;
         }>;
-      }
-    >;
+      };
+    }>;
     const todoNode: TodoNode = mmGQLInstance.def({
       type: 'todo',
       properties: todoProperties,
@@ -221,9 +231,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             def: todoNode,
             map: ({ assignee }) => ({
               assignee: assignee({
-                user: { map: ({ id, lastName }) => ({ id, lastName }) },
+                user: { map: ({ lastName }) => ({ lastName }) },
                 meetingGuest: {
-                  map: ({ id, firstName }) => ({ id, firstName }),
+                  map: ({ firstName }) => ({ firstName }),
                 },
               }),
             }),
@@ -234,13 +244,19 @@ describe('getQueryRecordFromQueryDefinition', () => {
       [`assignee${RELATIONAL_UNION_QUERY_SEPARATOR}user`]: expect.objectContaining(
         {
           def: userNode,
-          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'lastName'],
+          properties: [
+            ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+            'lastName',
+          ],
         }
       ),
       [`assignee${RELATIONAL_UNION_QUERY_SEPARATOR}meetingGuest`]: expect.objectContaining(
         {
           def: meetingGuestNode,
-          properties: [...PROPERTIES_QUERIED_FOR_ALL_NODES, 'firstName'],
+          properties: [
+            ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+            'firstName',
+          ],
         }
       ),
     });
@@ -262,7 +278,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
         },
       }).todos.properties
     ).toEqual([
-      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
       'settings',
       'settings__dot__archiveAfterMeeting',
       'settings__dot__nestedSettings',
@@ -278,8 +294,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryDefinitions: {
         todos: queryDefinition({
           def: generateTodoNode(mmGQLInstance),
-          map: ({ id, assignee }) => ({
-            id,
+          map: ({ assignee }) => ({
             assignee: assignee({
               map: allData => allData,
             }),
@@ -293,7 +308,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
         assignee: expect.objectContaining({
           def: expect.objectContaining({ type: 'user' }),
           properties: [
-            ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+            ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
             'firstName',
             'lastName',
             'address',
@@ -346,7 +361,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     });
 
     expect(withDoubleNestedObjResults.mockNodes.properties).toEqual([
-      ...PROPERTIES_QUERIED_FOR_ALL_NODES,
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
       'obj',
       'obj__dot__nested',
       'obj__dot__nested__dot__doubleNested',
@@ -599,7 +614,7 @@ describe('getQueryInfo.queryGQLString', () => {
         queryDefinitions: {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
-            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            map: (() => ({})) as MapFnForNode<TodoNode>,
             filter: { task: 'get it done', done: false, meetingId: null },
           }),
         },
@@ -627,7 +642,7 @@ describe('getQueryInfo.queryGQLString', () => {
         queryDefinitions: {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
-            map: (todoData => ({ id: todoData.id })) as MapFnForNode<TodoNode>,
+            map: (() => ({})) as MapFnForNode<TodoNode>,
             filter: {
               settings: { nestedSettings: { nestedNestedMaybe: 'mock value' } },
             },

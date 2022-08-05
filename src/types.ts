@@ -1,4 +1,4 @@
-import { DEFAULT_NODE_PROPERTIES } from './consts';
+import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
@@ -125,6 +125,7 @@ export type SubscriptionOpts<
 
 
 export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
+export type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR_ALL_NODES;
 
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
@@ -200,6 +201,7 @@ export interface IData<
   parser(value: TDataArgs["TValue"]): TDataArgs["TParsedValue"];
   boxedValue: TDataArgs["TBoxedValue"];
   defaultValue: Maybe<TDataArgs["TParsedValue"]>;
+  // if isOptional is false, the DO will set a default value on this property if it receives a null value from the BE
   isOptional: boolean;
   /**
    *  Enum type data will keep a reference to its acceptable values
@@ -720,6 +722,7 @@ export type ExtractQueriedDataFromMapFn<
   TMapFn extends MapFnForNode<TNode>,
   TNode extends INode
 > = { type: TNode['type'] }
+  & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes>
   & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>
   & ExtractNodeComputedData<TNode>;
 

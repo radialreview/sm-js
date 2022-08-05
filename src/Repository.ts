@@ -112,9 +112,9 @@ export function RepositoryFactory<
     > {
       const oldStyleObjects: Record<string, any> = {};
       return Object.keys(receivedData).reduce((parsed, key: string) => {
-        const isDataStoredOnAllNodes = PROPERTIES_QUERIED_FOR_ALL_NODES.includes(
-          key
-        );
+        const isDataStoredOnAllNodes = Object.keys(
+          PROPERTIES_QUERIED_FOR_ALL_NODES
+        ).includes(key);
         if (isDataStoredOnAllNodes) {
           return {
             ...parsed,
