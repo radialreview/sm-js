@@ -808,7 +808,7 @@ export declare function generateDOInstance<TNodeType extends string, TNodeData e
     relational?: NodeRelationalFns<TNodeRelationalData>;
     initialData: {
         id: string;
-        version: string;
+        version: number;
     } & Record<string, any>;
 }): {
     doInstance: import("./types").NodeDO;

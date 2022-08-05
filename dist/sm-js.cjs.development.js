@@ -367,12 +367,12 @@ var stringEnum = function stringEnum(enumValues) {
 
 stringEnum.optional = function (enumValues) {
   var dataType = new Data({
-    type: exports.DATA_TYPES.stringEnum,
+    type: exports.DATA_TYPES.maybeStringEnum,
     parser: function parser(value) {
       return value != null ? String(value) : null;
     },
     defaultValue: enumValues[0],
-    isOptional: false,
+    isOptional: true,
     acceptableValues: enumValues
   });
   return dataType;
@@ -566,18 +566,24 @@ function queryDefinition(queryDefinition) {
   return queryDefinition;
 }
 
-var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
+var PROPERTIES_QUERIED_FOR_ALL_NODES = {
+  id: string,
+  version: number,
+  lastUpdatedBy: string,
+  type: string
+};
 var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
-var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with smJS.def now has these properties auto added to their data.
+var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with mmGQL.def now has these properties auto added to their data.
 // They are not queried automatically and must be explicitly defined on the node definition, unless they also appear on PROPERTIES_QUERIED_FOR_ALL_NODES.
 
-var DEFAULT_NODE_PROPERTIES = {
-  id: string,
+var PROPERTIES_QUERIED_FOR_ALL_NODES_MINUS_TYPE = /*#__PURE__*/_objectWithoutPropertiesLoose(PROPERTIES_QUERIED_FOR_ALL_NODES, ["type"]); // adding "type" to the default node properties causes it to be mocked by the mock data generator which is not desirable
+
+
+var DEFAULT_NODE_PROPERTIES = /*#__PURE__*/_extends({}, PROPERTIES_QUERIED_FOR_ALL_NODES_MINUS_TYPE, {
   dateCreated: number,
   dateLastModified: number,
-  lastUpdatedBy: string,
   lastUpdatedClientTimestamp: number
-};
+});
 
 var JSON_TAG = '__JSON__';
 var NULL_TAG = '__NULL__';
@@ -956,7 +962,7 @@ function createDOFactory(mmGQLInstance) {
         var _this5 = this;
 
         Object.keys(node.properties).forEach(function (prop) {
-          if (PROPERTIES_QUERIED_FOR_ALL_NODES.includes(prop)) {
+          if (Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(prop)) {
             // do not create getters for any properties included in the node definition which are already being queried by sm-js regardless
             // since the code in this DO relies on setting those properties directly using this.version or this.lastUpdatedBy
             return;
@@ -1129,7 +1135,7 @@ function createDOProxyGenerator(mmGQLInstance) {
         // This gives better json stringify results
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
-        if (opts.allPropertiesQueried.includes(key) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+        if (opts.allPropertiesQueried.includes(key) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
           return _extends({}, Object.getOwnPropertyDescriptor(target, key), {
             enumerable: true
           });
@@ -1540,7 +1546,7 @@ function RepositoryFactory(opts) {
       return Object.keys(receivedData).reduce(function (parsed, key) {
         var _opts$def$properties$;
 
-        var isDataStoredOnAllNodes = PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key);
+        var isDataStoredOnAllNodes = Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key);
 
         if (isDataStoredOnAllNodes) {
           var _extends2;
@@ -2747,7 +2753,7 @@ function getQueriedProperties(opts) {
     var isData = !!opts.data[key];
     if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
 
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+    if (opts.isRootLevel && Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
       return acc;
     }
 
@@ -2770,13 +2776,13 @@ function getQueriedProperties(opts) {
     }
 
     return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+  }, opts.isRootLevel ? [].concat(Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)) : []);
 }
 
 function getAllNodeProperties(opts) {
   return Object.keys(opts.nodeProperties).reduce(function (acc, key) {
     // we are already querying these properties, can ignore any explicit requests for it
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+    if (opts.isRootLevel && Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
       return acc;
     }
 
@@ -2796,7 +2802,7 @@ function getAllNodeProperties(opts) {
     }
 
     return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+  }, opts.isRootLevel ? [].concat(Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)) : []);
 }
 
 function getRelationalQueries(opts) {
@@ -3420,6 +3426,7 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeString:
       {
+        // 50/50 chance to get a value or null
         return getRandomItemFromArray([generateRandomString(), null]);
       }
 
@@ -3430,7 +3437,6 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeStringEnum:
       {
-        // 50/50 chance to get a value or null
         return getRandomItemFromArray([getRandomItemFromArray(data.acceptableValues), null]);
       }
 

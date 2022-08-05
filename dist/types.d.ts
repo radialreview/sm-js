@@ -1,4 +1,4 @@
-import { DEFAULT_NODE_PROPERTIES } from './consts';
+import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
@@ -95,6 +95,7 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
     batchKey?: string;
 };
 export declare type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
+export declare type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR_ALL_NODES;
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
@@ -471,7 +472,7 @@ declare type RequestedData<TRequestedDataArgs extends {
 } | {}>;
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TNode>, TNode extends INode> = {
     type: TNode['type'];
-} & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode> & ExtractNodeComputedData<TNode>;
+} & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes> & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode> & ExtractNodeComputedData<TNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TNode extends INode> = {
     [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any, any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
         map: MapFn<infer TMapFnArgs>;
