@@ -1,3 +1,4 @@
+import { ISMNode, ValidFilterForNode } from './types';
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
  */
@@ -39,3 +40,31 @@ export declare function extend(opts: {
  * @param obj - Object to flatten
  */
 export declare function getFlattenedObjectKeys(obj: Record<string, any>): string[];
+/**
+ * Returns flattened keys of the filter object
+ *
+ * ```
+ * getFlattenedNodeFilterObject({
+ *  settings: {
+ *    time: {_lte: Date.now()},
+ *    nested: {
+ *      prop: {_contains: "text"}
+ *    }
+ *  },
+ *  firstName: {_eq: 'John'}
+ * })
+ * ```
+ *
+ * Returns
+ *
+ * ```
+ * {
+ *  "settings.time": {_lte: Date.now()},
+ *  "settings.nested.prop": {_contains: "text"},
+ *  "firstName": {_eq: 'John'}
+ * }
+ * ```
+ * @param filterObject : ;
+ * @returns
+ */
+export declare function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(filterObject: ValidFilterForNode<TSMNode>): Record<string, any>;

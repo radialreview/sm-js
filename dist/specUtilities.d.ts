@@ -8,6 +8,13 @@ declare const userProperties: {
         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     };
     lastName: smData.SMData<"joe", "joe", undefined>;
+    score: {
+        (defaultValue: number): smData.SMData<number, string, undefined>;
+        _default: smData.SMData<number, string, undefined>;
+        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
+    archived: ISMData<boolean, string | boolean, undefined>;
+    optionalProp: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     address: smData.SMData<import("./types").GetResultingDataTypeFromProperties<{
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -35,7 +42,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }, false>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -46,7 +53,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, {
+        }, false>, {
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -58,7 +65,7 @@ declare const userProperties: {
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
         }>;
-    }>, import("./types").GetResultingDataTypeFromProperties<{
+    }, false>, import("./types").GetResultingDataTypeFromProperties<{
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
             _default: smData.SMData<"", "", undefined>;
@@ -85,7 +92,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }, false>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -96,7 +103,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, {
+        }, false>, {
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -108,7 +115,7 @@ declare const userProperties: {
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
         }>;
-    }>, {
+    }, false>, {
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
             _default: smData.SMData<"", "", undefined>;
@@ -135,7 +142,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, import("./types").GetResultingDataTypeFromProperties<{
+        }, false>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -146,7 +153,7 @@ declare const userProperties: {
                 _default: smData.SMData<number, string, undefined>;
                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }>, {
+        }, false>, {
             number: {
                 (defaultValue: number): smData.SMData<number, string, undefined>;
                 _default: smData.SMData<number, string, undefined>;
@@ -185,29 +192,29 @@ declare const todoProperties: {
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
-            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>;
-        nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
-    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-        archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
+        }, false>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
         nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
-    }>>, {
+    }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
         archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>>, {
+        }, false>>, {
+            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
+    }, false>>, {
+        archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
+        nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }, false>>, {
             nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
         nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
@@ -235,10 +242,16 @@ declare const todoProperties: {
         _default: smData.SMData<"", "", undefined>;
         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     }>;
+    numberProp: {
+        (defaultValue: number): smData.SMData<number, string, undefined>;
+        _default: smData.SMData<number, string, undefined>;
+        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
 };
 export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
     assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
+    users: IChildrenQueryBuilder<UserNode>;
 };
 export declare type TodoMutations = {};
 export declare type TodoNode = ISMNode<'todo', TodoProperties, {}, TodoRelationalData, TodoMutations>;
@@ -273,6 +286,13 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
             optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         };
         lastName: smData.SMData<"joe", "joe", undefined>;
+        score: {
+            (defaultValue: number): smData.SMData<number, string, undefined>;
+            _default: smData.SMData<number, string, undefined>;
+            optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        };
+        archived: ISMData<boolean, string | boolean, undefined>;
+        optionalProp: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         address: <TMapFn extends import("./types").MapFn<{
             streetName: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -300,7 +320,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                     _default: smData.SMData<number, string, undefined>;
                     optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                 };
-            }>, import("./types").GetResultingDataTypeFromProperties<{
+            }, false>, import("./types").GetResultingDataTypeFromProperties<{
                 number: {
                     (defaultValue: number): smData.SMData<number, string, undefined>;
                     _default: smData.SMData<number, string, undefined>;
@@ -311,7 +331,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                     _default: smData.SMData<number, string, undefined>;
                     optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                 };
-            }>, {
+            }, false>, {
                 number: {
                     (defaultValue: number): smData.SMData<number, string, undefined>;
                     _default: smData.SMData<number, string, undefined>;
@@ -484,9 +504,9 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                 archiveAfterMeeting: smData.SMData<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
                 nestedSettings: smData.SMData<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                }>>, {
+                }, false>>, {
                     nestedNestedMaybe: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
                 nestedRecord: smData.SMData<Record<string, boolean>, Record<string, boolean>, ISMData<boolean, string | boolean, undefined>>;
@@ -516,6 +536,11 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                 _default: smData.SMData<"", "", undefined>;
                 optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
             }>;
+            numberProp: {
+                (defaultValue: number): smData.SMData<number, string, undefined>;
+                _default: smData.SMData<number, string, undefined>;
+                optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+            };
             id: {
                 <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
                 _default: smData.SMData<"", "", undefined>;
@@ -555,6 +580,13 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                         optional: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     };
                     lastName: smData.SMData<"joe", "joe", undefined>;
+                    score: {
+                        (defaultValue: number): smData.SMData<number, string, undefined>;
+                        _default: smData.SMData<number, string, undefined>;
+                        optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                    };
+                    archived: ISMData<boolean, string | boolean, undefined>;
+                    optionalProp: smData.SMData<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     address: <TMapFn extends import("./types").MapFn<{
                         streetName: {
                             <TStringType extends string = string>(defaultValue: TStringType): smData.SMData<TStringType, TStringType, undefined>;
@@ -582,7 +614,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                                 _default: smData.SMData<number, string, undefined>;
                                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                             };
-                        }>, import("./types").GetResultingDataTypeFromProperties<{
+                        }, false>, import("./types").GetResultingDataTypeFromProperties<{
                             number: {
                                 (defaultValue: number): smData.SMData<number, string, undefined>;
                                 _default: smData.SMData<number, string, undefined>;
@@ -593,7 +625,7 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
                                 _default: smData.SMData<number, string, undefined>;
                                 optional: smData.SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                             };
-                        }>, {
+                        }, false>, {
                             number: {
                                 (defaultValue: number): smData.SMData<number, string, undefined>;
                                 _default: smData.SMData<number, string, undefined>;
@@ -660,6 +692,58 @@ export declare function createMockQueryDefinitions(smJSInstance: ISMJS, opts?: (
     }, {
         doNotSuspend: boolean | undefined;
     }>;
+};
+export declare const mockTodoData: {
+    version: string;
+    id: string;
+    type: string;
+    task: string;
+    numberProp: number;
+    users: {
+        id: string;
+        type: string;
+        version: string;
+        firstName: string;
+    }[];
+    assignee: {
+        id: string;
+        type: string;
+        version: string;
+        firstName: string;
+    }[];
+};
+export declare const mockUserData: {
+    id: string;
+    type: string;
+    version: string;
+    address: string;
+    address__dot__state: string;
+    address__dot__apt: string;
+    address__dot__apt__dot__floor: string;
+    address__dot__apt__dot__number: string;
+    firstName: string;
+    optionalProp: string;
+    score: number;
+    archived: boolean;
+    todos: {
+        version: string;
+        id: string;
+        type: string;
+        task: string;
+        numberProp: number;
+        users: {
+            id: string;
+            type: string;
+            version: string;
+            firstName: string;
+        }[];
+        assignee: {
+            id: string;
+            type: string;
+            version: string;
+            firstName: string;
+        }[];
+    }[];
 };
 export declare const mockQueryDataReturn: {
     users: {
@@ -743,6 +827,6 @@ export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
         subscriptionAlias: string;
     };
 };
-export declare function getMockConfig(): SMConfig;
+export declare function getMockConfig(mockData?: any): SMConfig;
 export declare function autoIndentGQL(gqlString: string): string;
 export {};

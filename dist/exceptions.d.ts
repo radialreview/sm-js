@@ -1,3 +1,4 @@
+import { FilterOperator } from './types';
 export declare class SMNotUpToDateException extends Error {
     propName: string;
     constructor(opts: {
@@ -60,6 +61,11 @@ export declare class SMUnexpectedQueryResultException extends Error {
     constructor(exception: {
         queryRecord: Record<string, any>;
         resultData: Record<string, any>;
+    });
+}
+export declare class SMFilterOperatorNotImplementedException extends Error {
+    constructor(exeption: {
+        operator: FilterOperator;
     });
 }
 export declare function throwLocallyLogInProd(error: Error): void;
