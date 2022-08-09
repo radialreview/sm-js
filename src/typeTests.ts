@@ -356,11 +356,11 @@ const stateNode: StateNode = smJS.def({
   idProp5;
 
   const filter1: ValidFilterForNode<UserNode> = {
-    firstName: { contains: 's' },
+    firstName: { _contains: 's' },
   };
   filter1;
   const filter2: ValidFilterForNode<UserNode> = {
-    address: { state: { contains: 's' }, nestedInAddress: {} },
+    address: { state: { _contains: 's' }, nestedInAddress: {} },
   };
   filter2;
   const filter3: ValidFilterForNode<UserNode> = {
@@ -374,15 +374,15 @@ const stateNode: StateNode = smJS.def({
   };
   filter4;
   const filter5: ValidFilterForNode<UserNode> = {
-    bool: { equal: true },
+    bool: { _eq: true },
   };
   filter5;
   const filter6: ValidFilterForNode<UserNode> = {
-    maybeBool: { equal: null },
+    maybeBool: { _eq: null },
   };
   filter6;
   const filter7: ValidFilterForNode<UserNode> = {
-    maybeStr: { equal: null },
+    maybeStr: { _eq: null },
   };
   filter7;
 })();
@@ -488,7 +488,7 @@ const stateNode: StateNode = smJS.def({
       map: userData => ({ id: userData.id }),
       filter: {
         firstName: {
-          equal: 'Meida',
+          _eq: 'Meida',
         },
         // @ts-expect-error not a property in the user node
         bogus: '',
@@ -503,7 +503,7 @@ const stateNode: StateNode = smJS.def({
       map: userData => ({ id: userData.id }),
       filter: {
         firstName: {
-          equal: 'Meida',
+          _eq: 'Meida',
         },
       },
     }),
