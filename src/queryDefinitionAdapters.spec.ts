@@ -328,6 +328,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             ...PROPERTIES_QUERIED_FOR_ALL_NODES,
             'firstName',
             'lastName',
+            'score',
+            'archived',
+            'optionalProp',
             'address',
             'address__dot__streetName',
             'address__dot__zipCode',
@@ -562,6 +565,7 @@ describe('getQueryInfo.queryGQLString', () => {
             dataSetIds,
             comments,
             record,
+            numberProp,
             dateCreated,
             dateLastModified,
             lastUpdatedClientTimestamp
@@ -601,6 +605,7 @@ describe('getQueryInfo.queryGQLString', () => {
             dataSetIds,
             comments,
             record,
+            numberProp,
             dateCreated,
             dateLastModified,
             lastUpdatedClientTimestamp
