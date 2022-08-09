@@ -827,22 +827,7 @@ test(`sm.query.filter can filter nested object property`, async () => {
   ).toBe(2);
 });
 
-test.only(`sm.query.pagination can paginate query with array results`, async () => {
-  // const arr = new ArrayWithPagination({
-  //   items: [
-  //     { firstName: 'Allan' },
-  //     { firstName: 'Christian' },
-  //     { firstName: 'Carlos' },
-  //     { firstName: 'Garcia' },
-  //     { firstName: 'Intal' },
-  //   ],
-  //   itemsPerPage: 1,
-  //   page: 1,
-  // });
-  // console.log(arr.map(x => x.firstName)[0]);
-  // expect(arr.toArray()).toEqual([{ firstName: 'Allan' }]);
-
-  // console.log(arr.map(x => x.id));
+test(`sm.query.pagination can paginate query with array results`, async () => {
   const { smJSInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -878,168 +863,387 @@ test.only(`sm.query.pagination can paginate query with array results`, async () 
       }),
       pagination: {
         itemsPerPage: 2,
+        page: 2,
+      },
+    }),
+  });
+
+  expect(data.users.value[0].firstName).toBe('3');
+  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.value.length).toBe(2);
+});
+
+test(`sm.query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
         page: 1,
       },
     }),
   });
 
-  console.log(data.users.hasNextPage);
-  // console.log(data.users.map(x => x.id));
-  //   expect(data.users.value.length).toBe(2);
-  // expect(data.users[1].firstName).toBe('2');
-
-  // data.users.pagination.next();
-
-  // expect(data.users.value.length).toBe(2);
-  // expect(data.users[0].firstName).toBe('3');
-  // expect(data.users[1].firstName).toBe('4');
-
-  // data.users.pagination.next();
-
-  // expect(data.users.value.length).toBe(2);
-  // expect(data.users[0].firstName).toBe('5');
-  // expect(data.users[1].firstName).toBe('6');
+  expect(data.users.hasNextPage).toBe(true);
 });
 
-// test(`sm.query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate`, async () => {
-//   const { smJSInstance } = setupTest({
-//     users: createMockDataItems({
-//       sampleMockData: mockUserData,
-//       items: [
-//         {
-//           firstName: '1',
-//         },
-//         {
-//           firstName: '2',
-//         },
-//         {
-//           firstName: '3',
-//         },
-//       ],
-//     }),
-//   });
+test(`sm.query.pagination 'hasNextPage' is set to 'false' if there are no next pages to paginate.`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+      ],
+    }),
+  });
 
-//   const { data } = await smJSInstance.query({
-//     users: queryDefinition({
-//       def: generateUserNode(smJSInstance),
-//       map: ({ id, firstName }) => ({
-//         id,
-//         firstName,
-//       }),
-//       pagination: {
-//         itemsPerPage: 2,
-//         page: 1,
-//       },
-//     }),
-//   });
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 2,
+      },
+    }),
+  });
 
-//   expect(data.users.pagination.hasNextPage).toBe(true);
-// });
+  expect(data.users.hasNextPage).toBe(false);
+});
 
-// test(`sm.query.pagination 'hasNextPage' is set to 'false' if there are no next pages to paginate.`, async () => {
-//   const { smJSInstance } = setupTest({
-//     users: createMockDataItems({
-//       sampleMockData: mockUserData,
-//       items: [
-//         {
-//           firstName: '1',
-//         },
-//         {
-//           firstName: '2',
-//         },
-//         {
-//           firstName: '3',
-//         },
-//       ],
-//     }),
-//   });
+test(`sm.query.pagination 'hasPreviousPage' is set to 'false' if there are previous pages to paginate`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+      ],
+    }),
+  });
 
-//   const { data } = await smJSInstance.query({
-//     users: queryDefinition({
-//       def: generateUserNode(smJSInstance),
-//       map: ({ id, firstName }) => ({
-//         id,
-//         firstName,
-//       }),
-//       pagination: {
-//         itemsPerPage: 2,
-//         page: 1,
-//       },
-//     }),
-//   });
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 2,
+      },
+    }),
+  });
 
-//   expect(data.users.pagination.hasNextPage).toBe(false);
-// });
+  expect(data.users.hasPreviousPage).toBe(true);
+});
 
-// test(`sm.query.pagination 'hasPreviousPage' is set to 'false' if there are previous pages to paginate`, async () => {
-//   const { smJSInstance } = setupTest({
-//     users: createMockDataItems({
-//       sampleMockData: mockUserData,
-//       items: [
-//         {
-//           firstName: '1',
-//         },
-//         {
-//           firstName: '2',
-//         },
-//         {
-//           firstName: '3',
-//         },
-//       ],
-//     }),
-//   });
+test(`sm.query.pagination 'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+      ],
+    }),
+  });
 
-//   const { data } = await smJSInstance.query({
-//     users: queryDefinition({
-//       def: generateUserNode(smJSInstance),
-//       map: ({ id, firstName }) => ({
-//         id,
-//         firstName,
-//       }),
-//       pagination: {
-//         itemsPerPage: 2,
-//         page: 1,
-//       },
-//     }),
-//   });
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 1,
+      },
+    }),
+  });
 
-//   expect(data.users.pagination.hasPreviousPage).toBe(true);
-// });
+  expect(data.users.hasPreviousPage).toBe(false);
+});
 
-// test(`sm.query.pagination 'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
-//   const { smJSInstance } = setupTest({
-//     users: createMockDataItems({
-//       sampleMockData: mockUserData,
-//       items: [
-//         {
-//           firstName: '1',
-//         },
-//         {
-//           firstName: '2',
-//         },
-//         {
-//           firstName: '3',
-//         },
-//       ],
-//     }),
-//   });
+test(`sm.query.pagination 'totalPages' should have the correct value.`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+        {
+          firstName: '4',
+        },
+        {
+          firstName: '5',
+        },
+      ],
+    }),
+  });
 
-//   const { data } = await smJSInstance.query({
-//     users: queryDefinition({
-//       def: generateUserNode(smJSInstance),
-//       map: ({ id, firstName }) => ({
-//         id,
-//         firstName,
-//       }),
-//       pagination: {
-//         itemsPerPage: 2,
-//         page: 1,
-//       },
-//     }),
-//   });
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 1,
+      },
+    }),
+  });
 
-//   expect(data.users.pagination.hasPreviousPage).toBe(false);
-// });
+  expect(data.users.totalPages).toBe(3);
+});
+
+test(`sm.query.pagination not defining pagination parameters should return all items`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+        {
+          firstName: '4',
+        },
+        {
+          firstName: '5',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(data.users.value.length).toBe(5);
+  expect(data.users.totalPages).toBe(1);
+  expect(data.users.hasNextPage).toBe(false);
+  expect(data.users.hasPreviousPage).toBe(false);
+});
+
+test(`sm.query.pagination calling goToNextPage should go to next page and update the current page`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+        {
+          firstName: '4',
+        },
+        {
+          firstName: '5',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 1,
+      },
+    }),
+  });
+
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('1');
+  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.page).toBe(1);
+  data.users.goToNextPage();
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('3');
+  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.page).toBe(2);
+});
+
+test(`sm.query.pagination calling goToPreviousPage should go to previous page and update the current page`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+        {
+          firstName: '4',
+        },
+        {
+          firstName: '5',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 2,
+      },
+    }),
+  });
+
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('3');
+  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.page).toBe(2);
+
+  data.users.goToPreviousPage();
+
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('1');
+  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.page).toBe(1);
+});
+
+test.only(`sm.query.pagination calling goToPage should go to the page defined and update the current page`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+        {
+          firstName: '3',
+        },
+        {
+          firstName: '4',
+        },
+        {
+          firstName: '5',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await smJSInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(smJSInstance),
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+        page: 2,
+      },
+    }),
+  });
+
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('3');
+  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.page).toBe(2);
+
+  data.users.goToPage(1);
+
+  expect(data.users.value.length).toBe(2);
+  expect(data.users.value[0].firstName).toBe('1');
+  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.page).toBe(1);
+});
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { smJSInstance, queryDefinitions } = setupTest();

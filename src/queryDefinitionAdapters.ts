@@ -485,6 +485,10 @@ export function getQueryRecordFromQueryDefinition<
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
       (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
     }
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      (queryRecordEntry as QueryRecordEntry).pagination =
+        queryDefinition.pagination;
+    }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
   });
