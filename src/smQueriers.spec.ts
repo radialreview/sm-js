@@ -386,9 +386,10 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, score, archived }) => ({
         id,
         score,
+        archived,
       }),
       filter: {
         archived: { _eq: true },
@@ -422,9 +423,10 @@ test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () =>
       await smJSInstance.query({
         users: queryDefinition({
           def: generateUserNode(smJSInstance),
-          map: ({ id, score }) => ({
+          map: ({ id, score, optionalProp }) => ({
             id,
             score,
+            optionalProp,
           }),
           filter: {
             optionalProp: { _eq: null },
@@ -458,9 +460,10 @@ test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () =
       await smJSInstance.query({
         users: queryDefinition({
           def: generateUserNode(smJSInstance),
-          map: ({ id, score }) => ({
+          map: ({ id, score, optionalProp }) => ({
             id,
             score,
+            optionalProp,
           }),
           filter: {
             optionalProp: { _neq: null },
@@ -492,9 +495,9 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, archived }) => ({
         id,
-        score,
+        archived,
       }),
       filter: {
         archived: { _eq: false },
@@ -526,9 +529,9 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, firstName }) => ({
         id,
-        score,
+        firstName,
       }),
       filter: {
         firstName: { _eq: 'John' },
@@ -560,9 +563,9 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, firstName }) => ({
         id,
-        score,
+        firstName,
       }),
       filter: {
         firstName: { _contains: 'John' },
@@ -594,9 +597,9 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, firstName }) => ({
         id,
-        score,
+        firstName,
       }),
       filter: {
         firstName: { _ncontains: 'John' },
@@ -628,9 +631,9 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, firstName }) => ({
         id,
-        score,
+        firstName,
       }),
       filter: {
         firstName: { _neq: 'John' },
@@ -662,9 +665,9 @@ test(`sm.query.filter supports old filter object format with '_eq' as default op
   const { data } = await smJSInstance.query({
     users: queryDefinition({
       def: generateUserNode(smJSInstance),
-      map: ({ id, score }) => ({
+      map: ({ id, firstName }) => ({
         id,
-        score,
+        firstName,
       }),
       filter: {
         firstName: 'Test',
@@ -825,6 +828,47 @@ test(`sm.query.filter can filter nested object property`, async () => {
       })
     ).data.users.length
   ).toBe(2);
+});
+
+test(`sm.query.filter should throw an error if property being filtered is not defined in the queryDefinition map function`, async () => {
+  const { smJSInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
+
+  try {
+    await smJSInstance.query({
+      users: queryDefinition({
+        def: generateUserNode(smJSInstance),
+        map: ({ id }) => ({
+          id,
+          address: ({ state }) => ({ state }),
+        }),
+        filter: {
+          score: { _gte: 20 },
+          address: { state: { _eq: 'test' } },
+        },
+      }),
+    });
+  } catch (e) {
+    expect(
+      (e as Error).stack?.includes(
+        `SMFilterPropertyNotDefinedInQueryException exception - The filter property 'score' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function`
+      )
+    ).toBe(true);
+  }
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {

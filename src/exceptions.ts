@@ -29,6 +29,13 @@ export class SMNotUpToDateInComputedException extends Error {
     );
   }
 }
+export class SMFilterPropertyNotDefinedInQueryException extends Error {
+  constructor(opts: { filterPropName: string }) {
+    super(
+      `SMFilterPropertyNotDefinedInQueryException exception - The filter property '${opts.filterPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+    );
+  }
+}
 export class SMImpliedNodePropertyException extends Error {
   constructor(opts: { propName: string }) {
     super(
