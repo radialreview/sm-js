@@ -1,9 +1,10 @@
-import { IDOProxy, Maybe, ISMJS, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry } from './types';
+import { IDOProxy, Maybe, ISMJS, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, ISMQueryPagination } from './types';
 declare type SMQueryManagerState = Record<string, // the alias for this set of results
 SMQueryManagerStateEntry>;
 declare type SMQueryManagerStateEntry = {
     idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: SMQueryManagerProxyCache;
+    pagination?: ISMQueryPagination;
 };
 declare type SMQueryManagerProxyCache = Record<string, // id of the node
 SMQueryManagerProxyCacheEntry>;

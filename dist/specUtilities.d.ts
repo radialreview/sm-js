@@ -798,6 +798,7 @@ export declare const mockQueryResultExpectations: {
         version: number;
     }[];
 };
+export declare function convertPaginatedArrayValuesToArray<T extends Record<string, any>>(obj: T): Record<string, any>;
 export declare function getMockQueryRecord(smJSInstance: ISMJS): import("./types").QueryRecord;
 export declare function getMockSubscriptionMessage(smJSInstance: ISMJS): {
     users: {

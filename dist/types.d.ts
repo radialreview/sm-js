@@ -1,3 +1,4 @@
+import { PaginatedArray } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -403,17 +404,6 @@ export declare type UseSubscriptionQueryDefinitions<TSMNode, TMapFn, TQueryDefin
 export declare type QueryDataReturn<TQueryDefinitions extends QueryDefinitions> = {
     [Key in keyof TQueryDefinitions]: IsMaybe<TQueryDefinitions[Key]> extends true ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>> : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>;
 };
-declare type IPaginatedArray<T> = Array<T> & {
-    pagination: {
-        next: () => void;
-        previous: () => void;
-        page: (page: number) => void;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        currentPage: number;
-    };
-};
 export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any, any, any> | ISMNode | null> = TQueryDefinition extends {
     map: MapFn<any, any, any>;
 } ? TQueryDefinition extends {
@@ -427,7 +417,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         allowNullResult: true;
     };
-} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
+} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : ExtractQueriedDataFromMapFn<TMapFn, TSMNode> : PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never : never : never : TQueryDefinition extends {
     def: ISMNode;
 } ? TQueryDefinition extends {
     def: infer TSMNode;
@@ -465,7 +455,7 @@ declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TSMNode extends ISM
         map: MapFn<infer TBoxedValue, any, any>;
     }) => MapFn<any, any, any> ? GetResultingDataTypeFromProperties<TBoxedValue> : TMapFnReturn[Key] extends MapFn<any, any, any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TSMNode> : never;
 };
-declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? IPaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
+declare type ExtractQueriedDataFromChildrenQuery<TChildrenQuery extends IChildrenQuery<any, any>> = TChildrenQuery extends IChildrenQuery<infer TSMNode, infer TMapFn> ? PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TSMNode>> : never;
 declare type Prev = [never, 0, 1];
 declare type ExtractQueriedDataFromByReferenceQuery<TByReferenceQuery extends IByReferenceQuery<any, any, any>, D extends Prev[number] = 1> = [
     D
@@ -548,6 +538,7 @@ export declare type BaseQueryRecordEntry = {
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
     underIds?: Array<string>;
     depth?: number;
+    pagination?: ISMQueryPagination;
     ids?: Array<string>;
     id?: string;
     allowNullResult?: boolean;
