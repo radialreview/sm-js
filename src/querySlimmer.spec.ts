@@ -55,11 +55,6 @@ test(`it should create a record for a query with no params and update the subscr
     subscriptionEstablished: true,
   });
 
-  console.log(
-    'actualResults',
-    QuerySlimmer.queriesByContext['users(NO_PARAMS)']
-  );
-
   expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: users,
