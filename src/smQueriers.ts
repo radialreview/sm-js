@@ -21,7 +21,10 @@ import {
 import { update, isArray } from 'lodash';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
 import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
-import { SMFilterOperatorNotImplementedException } from './exceptions';
+import {
+  SMFilterOperatorNotImplementedException,
+  SMFilterPropertyNotDefinedInQueryException,
+} from './exceptions';
 import { NULL_TAG } from './dataConversions';
 
 let queryIdx = 0;
@@ -190,79 +193,95 @@ export function generateQuerier({
                   );
                   if (filter && obj[alias]) {
                     Object.keys(filter).forEach(filterPropertyPath => {
-                      update(obj, alias, originalValue => {
-                        if (!isArray(originalValue)) {
-                          return originalValue;
-                        }
-                        return originalValue.filter(item => {
-                          const propertyFilter: FilterValue<any> =
-                            filter[filterPropertyPath];
-                          const itemPropertyPath = filterPropertyPath.replaceAll(
-                            '.',
-                            OBJECT_PROPERTY_SEPARATOR
-                          );
-                          const value =
-                            item[itemPropertyPath] === NULL_TAG
-                              ? null
-                              : item[itemPropertyPath];
+                      const itemPropertyPath = filterPropertyPath.replaceAll(
+                        '.',
+                        OBJECT_PROPERTY_SEPARATOR
+                      );
+                      if (
+                        queryRecordEntry.properties.includes(
+                          itemPropertyPath
+                        ) === false
+                      ) {
+                        throw new SMFilterPropertyNotDefinedInQueryException({
+                          filterPropName: filterPropertyPath,
+                        });
+                      }
 
-                          return (Object.keys(propertyFilter) as Array<
-                            FilterOperator
-                          >).every(filterOperator => {
-                            switch (filterOperator) {
-                              case '_contains': {
-                                return (
-                                  String(value)
-                                    .toLowerCase()
-                                    .indexOf(
-                                      String(
-                                        propertyFilter[filterOperator]
-                                      ).toLowerCase()
-                                    ) !== -1
-                                );
+                      if (filterPropertyPath)
+                        update(obj, alias, originalValue => {
+                          if (!isArray(originalValue)) {
+                            return originalValue;
+                          }
+                          return originalValue.filter(item => {
+                            const propertyFilter: FilterValue<any> =
+                              filter[filterPropertyPath];
+
+                            const value =
+                              item[itemPropertyPath] === NULL_TAG
+                                ? null
+                                : item[itemPropertyPath];
+
+                            return (Object.keys(propertyFilter) as Array<
+                              FilterOperator
+                            >).every(filterOperator => {
+                              switch (filterOperator) {
+                                case '_contains': {
+                                  return (
+                                    String(value)
+                                      .toLowerCase()
+                                      .indexOf(
+                                        String(
+                                          propertyFilter[filterOperator]
+                                        ).toLowerCase()
+                                      ) !== -1
+                                  );
+                                }
+                                case '_ncontains': {
+                                  return (
+                                    String(value)
+                                      .toLowerCase()
+                                      .indexOf(
+                                        String(
+                                          propertyFilter[filterOperator]
+                                        ).toLowerCase()
+                                      ) === -1
+                                  );
+                                }
+                                case '_eq': {
+                                  return (
+                                    String(value).toLowerCase() ===
+                                    String(
+                                      propertyFilter[filterOperator]
+                                    ).toLowerCase()
+                                  );
+                                }
+                                case '_neq':
+                                  return (
+                                    String(value).toLowerCase() !==
+                                    String(
+                                      propertyFilter[filterOperator]
+                                    ).toLowerCase()
+                                  );
+                                case '_gt':
+                                  return value > propertyFilter[filterOperator];
+                                case '_gte':
+                                  return (
+                                    value >= propertyFilter[filterOperator]
+                                  );
+                                case '_lt':
+                                  return value < propertyFilter[filterOperator];
+                                case '_lte':
+                                  return (
+                                    value <= propertyFilter[filterOperator]
+                                  );
+                                default:
+                                  throw new SMFilterOperatorNotImplementedException(
+                                    { operator: filterOperator }
+                                  );
                               }
-                              case '_ncontains': {
-                                return (
-                                  String(value)
-                                    .toLowerCase()
-                                    .indexOf(
-                                      String(
-                                        propertyFilter[filterOperator]
-                                      ).toLowerCase()
-                                    ) === -1
-                                );
-                              }
-                              case '_eq': {
-                                return (
-                                  String(value).toLowerCase() ===
-                                  String(
-                                    propertyFilter[filterOperator]
-                                  ).toLowerCase()
-                                );
-                              }
-                              case '_neq':
-                                return (
-                                  String(value).toLowerCase() !==
-                                  String(
-                                    propertyFilter[filterOperator]
-                                  ).toLowerCase()
-                                );
-                              case '_gt':
-                                return value > propertyFilter[filterOperator];
-                              case '_gte':
-                                return value >= propertyFilter[filterOperator];
-                              case '_lt':
-                                return value < propertyFilter[filterOperator];
-                              case '_lte':
-                                return value <= propertyFilter[filterOperator];
-                              default:
-                                throw new SMFilterOperatorNotImplementedException(
-                                  { operator: filterOperator }
-                                );
-                            }
+                            });
                           });
                         });
-                      });
                     });
                   }
                 }
