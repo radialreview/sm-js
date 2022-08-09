@@ -917,6 +917,7 @@ export type BaseQueryRecordEntry = {
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
+  pagination?: IQueryPagination
   ids?: Array<string> 
   id?: string
   allowNullResult?: boolean
