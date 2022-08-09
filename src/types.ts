@@ -1083,6 +1083,7 @@ export type BaseQueryRecordEntry = {
 export type QueryRecordEntry = BaseQueryRecordEntry & {
   underIds?: Array<string>
   depth?: number
+  pagination?: ISMQueryPagination
   ids?: Array<string> 
   id?: string
   allowNullResult?: boolean
