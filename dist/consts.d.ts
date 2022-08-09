@@ -1,3 +1,4 @@
+import { FilterOperator } from './types';
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: string[];
 export declare const RELATIONAL_UNION_QUERY_SEPARATOR = "__rU__";
 export declare const DEFAULT_TOKEN_NAME = "default";
@@ -28,3 +29,4 @@ export declare const DEFAULT_NODE_PROPERTIES: {
         optional: import("./smDataTypes").SMData<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
     };
 };
+export declare const FILTER_OPERATORS: Array<FilterOperator>;
