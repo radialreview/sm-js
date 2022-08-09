@@ -1,3 +1,4 @@
+import { PaginatedArray } from './arrayWithPagination';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import {
   NotUpToDateException,

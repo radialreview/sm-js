@@ -7,6 +7,7 @@ import {
   generateUserNode,
   mockUserData,
   mockTodoData,
+  convertPaginatedArrayValuesToArray,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { MMGQL, queryDefinition } from '.';
@@ -50,7 +51,9 @@ test('query returns the correct data', async () => {
 
   const { data } = await mmGQLInstance.query(queryDefinitions);
 
-  expect(data).toEqual(mockQueryResultExpectations);
+  expect(data).toEqual(
+    convertPaginatedArrayValuesToArray(mockQueryResultExpectations)
+  );
 });
 
 test('query calls "onData" with the result of the query', done => {
@@ -1397,7 +1400,7 @@ test('subscribe calls onData with the new set of results when a node is updated'
   const onData = jest.fn(({ results }) => {
     // ignore when onData is called with the query results
     if (iteration === 1) {
-      expect(results.users[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
     } else {
       iteration++;
     }
@@ -1446,7 +1449,7 @@ test('subscribe handles a case where a subscription message comes in before the 
 
   const onData = jest.fn(({ results }) => {
     try {
-      expect(results.users[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
     } catch (e) {
       done(e);
     }
