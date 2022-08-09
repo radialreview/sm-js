@@ -891,6 +891,7 @@ export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
 )
 
 export type QueryRecord = Record<string, QueryRecordEntry>;
+
 export interface IDOProxy {
   updateRelationalResults(
     newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>

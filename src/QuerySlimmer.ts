@@ -26,16 +26,29 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
-  // public onQueryExecuted ({originalQuery: {queryRecord}, slimmedQuery: {queryRecord}}) {
-  // should return a new queryRecord
-  // if no matches for queryRecord are found in queriesByContext, return original query
-  // if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
-  // if complete match for queryRecord is found in queriesByContext, return null
+  public onQueryExectued(originalQuery: QueryRecord) {
+    // Return a new QueryRecord
+    // - if no matches for the originalQuery are found in queriesByContext, return original query [X]
+    // - if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
+    // - if complete match for queryRecord is found in queriesByContext, return null [X]
 
-  //   Object.keys(queryRecord).map(el => {
-  //     const queryDefinitionKey = el.
-  //   })
-  //
+    const slimmedQueryRecord: QueryRecord = {};
+
+    Object.keys(originalQuery).forEach(originalQueryKey => {
+      const originalQueryRecordEntry = originalQuery[originalQueryKey];
+      const originalQueryContextKey = this.createContextKeyForQuery(
+        originalQueryRecordEntry
+      );
+
+      if (this.queriesByContext[originalQueryContextKey] === undefined) {
+        slimmedQueryRecord[originalQueryKey] = originalQueryRecordEntry;
+      }
+    });
+
+    return Object.keys(slimmedQueryRecord).length > 0
+      ? slimmedQueryRecord
+      : null;
+  }
 
   private populateQueriesByContext(
     queryRecord: QueryRecord,

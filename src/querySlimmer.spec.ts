@@ -23,11 +23,6 @@ function setupTests() {
   return { QuerySlimmer: new QuerySlimmer(), userNode, todoNode };
 }
 
-/*
-// TODO:
-// - test that you get back actual version of slimmed query after building out onResultsReceived func
-*/
-
 test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
   const { QuerySlimmer, userNode } = setupTests();
 
@@ -188,5 +183,72 @@ test('it should create separate records for child relational data that contain n
   ).toEqual({
     subscriptionsByProperty: { task: 1 },
     results: users.map(user => user.todos),
+  });
+});
+
+describe('onQueryExectued', () => {
+  test('it should return the given QueryRecord if the given QueryRecord is not found in queriesByContext', () => {
+    const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+      },
+      todos: {
+        def: todoNode,
+        properties: ['id', 'task'],
+      },
+    };
+
+    expect(QuerySlimmer.onQueryExectued(mockQueryRecord)).toEqual(
+      mockQueryRecord
+    );
+  });
+
+  test('it should return null if the given QueryRecord finds matches in queriesByContext', () => {
+    const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+      },
+      todos: {
+        def: todoNode,
+        properties: ['id', 'task'],
+      },
+    };
+    const mockUsersData = [
+      {
+        id: '0',
+        type: userNode.type,
+        firstName: 'Banana',
+        lastName: 'Man',
+      },
+    ];
+    const mockTodosData = [
+      {
+        id: '0',
+        type: todoNode.type,
+        task: 'Eat a banana',
+      },
+    ];
+
+    expect(QuerySlimmer.onQueryExectued(mockQueryRecord)).toEqual(
+      mockQueryRecord
+    );
+
+    QuerySlimmer.onResultsReceived({
+      slimmedQuery: mockQueryRecord,
+      originalQuery: mockQueryRecord,
+      slimmedQueryResults: {
+        users: mockUsersData,
+        todos: mockTodosData,
+      },
+      subscriptionEstablished: true,
+    });
+
+    expect(QuerySlimmer.onQueryExectued(mockQueryRecord)).toEqual(null);
   });
 });
