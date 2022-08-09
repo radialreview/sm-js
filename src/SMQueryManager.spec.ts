@@ -3,6 +3,7 @@ import {
   getMockQueryRecord,
   mockQueryResultExpectations,
   getMockConfig,
+  convertPaginatedArrayValuesToArray,
 } from './specUtilities';
 
 import { SMJS } from '.';
@@ -18,5 +19,7 @@ test('smQueryManager handles a query result and returns the expected data', () =
     queryId: 'MockQueryId',
   });
 
-  expect(queryManager.getResults()).toEqual(mockQueryResultExpectations);
+  expect(queryManager.getResults()).toEqual(
+    convertPaginatedArrayValuesToArray(mockQueryResultExpectations)
+  );
 });
