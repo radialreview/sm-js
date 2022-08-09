@@ -472,7 +472,10 @@ export enum RELATIONAL_TYPES {
   oneToMany = 'otM',
 }
 
-export interface IQueryPagination {}
+export interface IQueryPagination {
+  itemsPerPage: number
+  page: number
+}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
@@ -551,6 +554,7 @@ export type QueryDefinition<
   map: TMapFn;
   filter?: ValidFilterForNode<TNode>
   target?: TQueryDefinitionTarget
+  pagination?: IQueryPagination
   tokenName?: string
 };
 

@@ -1,3 +1,4 @@
+import { PaginatedArray } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -300,6 +301,8 @@ export declare enum RELATIONAL_TYPES {
     oneToMany = "otM"
 }
 export interface IQueryPagination {
+    itemsPerPage: number;
+    page: number;
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface INodeRepository {
@@ -345,6 +348,7 @@ export declare type QueryDefinition<TNode extends INode, TMapFn extends MapFnFor
     map: TMapFn;
     filter?: ValidFilterForNode<TNode>;
     target?: TQueryDefinitionTarget;
+    pagination?: IQueryPagination;
     tokenName?: string;
 };
 export declare type QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> | INode | null>;
@@ -371,7 +375,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         allowNullResult: true;
     };
-} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : never : never : never : TQueryDefinition extends {
+} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : never : never : never : TQueryDefinition extends {
     def: INode;
 } ? TQueryDefinition extends {
     def: infer TNode;
@@ -489,6 +493,7 @@ export declare type BaseQueryRecordEntry = {
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
+    pagination?: IQueryPagination;
     ids?: Array<string>;
     id?: string;
     allowNullResult?: boolean;

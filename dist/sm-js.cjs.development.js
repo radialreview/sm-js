@@ -48,6 +48,22 @@ function _asyncToGenerator(fn) {
   };
 }
 
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
 function _extends() {
   _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -3077,6 +3093,10 @@ function getQueryRecordFromQueryDefinition(opts) {
       queryRecordEntry.filter = queryDefinition.filter;
     }
 
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      queryRecordEntry.pagination = queryDefinition.pagination;
+    }
+
     queryRecord[queryDefinitionsAlias] = queryRecordEntry;
   });
   return queryRecord;
@@ -4300,6 +4320,72 @@ function generateSubscriber(mmGQLInstance) {
   }();
 }
 
+function getPageResults(opts) {
+  var startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
+  return Array.from(opts.items || []).slice(startIndex, startIndex + opts.itemsPerPage);
+}
+
+var PaginatedArray = /*#__PURE__*/function () {
+  function PaginatedArray(opts) {
+    this.itemsPerPage = void 0;
+    this.page = void 0;
+    this.items = void 0;
+    this.itemsPerPage = opts.itemsPerPage;
+    this.page = opts.page;
+    this.items = opts.items;
+  }
+
+  var _proto = PaginatedArray.prototype;
+
+  _proto.goToPage = function goToPage(page) {
+    this.page = page;
+  };
+
+  _proto.goToNextPage = function goToNextPage() {
+    if (!this.hasNextPage) {
+      return;
+    }
+
+    this.goToPage(this.page + 1);
+  };
+
+  _proto.goToPreviousPage = function goToPreviousPage() {
+    if (!this.hasPreviousPage) {
+      return;
+    }
+
+    this.goToPage(this.page - 1);
+  };
+
+  _createClass(PaginatedArray, [{
+    key: "value",
+    get: function get() {
+      return getPageResults({
+        items: this.items,
+        page: this.page,
+        itemsPerPage: this.itemsPerPage
+      });
+    }
+  }, {
+    key: "totalPages",
+    get: function get() {
+      return Math.ceil((this.items || []).length / this.itemsPerPage);
+    }
+  }, {
+    key: "hasNextPage",
+    get: function get() {
+      return this.totalPages > this.page;
+    }
+  }, {
+    key: "hasPreviousPage",
+    get: function get() {
+      return this.page > 1;
+    }
+  }]);
+
+  return PaginatedArray;
+}();
+
 function createQueryManager(mmGQLInstance) {
   /**
    * QueryManager is in charge of
@@ -4367,8 +4453,15 @@ function createQueryManager(mmGQLInstance) {
         var resultsAlias = _this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          resultsAcc[resultsAlias] = idsOrId.map(function (id) {
+          var _stateForThisAlias$pa, _stateForThisAlias$pa2;
+
+          var ids = idsOrId.map(function (id) {
             return stateForThisAlias.proxyCache[id].proxy;
+          });
+          resultsAcc[resultsAlias] = new PaginatedArray({
+            items: ids,
+            itemsPerPage: ((_stateForThisAlias$pa = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa.itemsPerPage) || ids.length,
+            page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
@@ -4507,13 +4600,15 @@ function createQueryManager(mmGQLInstance) {
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(node) {
         var relationalState = buildRelationalStateForNode(node);
         var nodeRepository = queryRecord[queryAlias].def.repository;
+        var test = relational ? _this4.getApplicableRelationalQueries({
+          relationalQueries: relational,
+          nodeData: node
+        }) : null; // console.log(opts.queryAlias, queryRecord[opts.queryAlias].pagination);
+
         var proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: relational ? _this4.getApplicableRelationalQueries({
-            relationalQueries: relational,
-            nodeData: node
-          }) : null,
+          relationalQueries: test,
           queryId: opts.queryId,
           relationalResults: !relationalState ? null : _this4.getResultsFromState(relationalState),
           "do": nodeRepository.byId(node.id)
@@ -4552,7 +4647,8 @@ function createQueryManager(mmGQLInstance) {
             proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
               proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
               return proxyCacheAcc;
-            }, {})
+            }, {}),
+            pagination: queryRecord[opts.queryAlias].pagination
           };
         }
       } else {
