@@ -2,6 +2,7 @@ import * as smData from './smDataTypes';
 import { queryDefinition } from './smDataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, SMJS } from '.';
+import { isObject } from 'lodash';
 import {
   IChildrenQueryBuilder,
   ISMNode,
@@ -18,6 +19,7 @@ import {
   SMNodeDefaultProps,
 } from './types';
 import { NULL_TAG } from './dataConversions';
+import { PaginatedArray } from './arrayWithPagination';
 
 const userProperties = {
   firstName: smData.string,
@@ -338,6 +340,27 @@ const expectedUsers = [
 ];
 
 export const mockQueryResultExpectations = { users: expectedUsers };
+
+export function convertPaginatedArrayValuesToArray<
+  T extends Record<string, any>
+>(obj: T) {
+  return Object.keys(obj).reduce((acc, key) => {
+    if (Array.isArray(acc[key])) {
+      const arrayValue = new PaginatedArray({
+        items: acc[key].map((item: any) => {
+          return isObject(item)
+            ? convertPaginatedArrayValuesToArray(item)
+            : item;
+        }),
+        itemsPerPage: 1,
+        page: 1,
+      });
+      acc[key] = arrayValue;
+    }
+
+    return acc;
+  }, obj as Record<string, any>);
+}
 
 export function getMockQueryRecord(smJSInstance: ISMJS) {
   const queryId = 'MockQuery';

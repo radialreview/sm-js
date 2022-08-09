@@ -1,3 +1,4 @@
+import { PaginatedArray } from './arrayWithPagination';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import {
   SMNotUpToDateException,
@@ -145,9 +146,9 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
           // but we only care about the first result
           if ('byReference' in opts.relationalQueries[key]) {
             const results = relationalResults[key];
-            if (!Array.isArray(results))
+            if (!(results instanceof PaginatedArray))
               throw Error(`Expected results to be an array but it wasn't`);
-            return results[0];
+            return results.value[0];
           }
           return relationalResults[key];
         }

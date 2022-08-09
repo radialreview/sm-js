@@ -7,6 +7,7 @@ import {
   generateUserNode,
   mockUserData,
   mockTodoData,
+  convertPaginatedArrayValuesToArray,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { queryDefinition, SMJS } from '.';
@@ -50,7 +51,9 @@ test('sm.query returns the correct data', async () => {
 
   const { data } = await smJSInstance.query(queryDefinitions);
 
-  expect(data).toEqual(mockQueryResultExpectations);
+  expect(data).toEqual(
+    convertPaginatedArrayValuesToArray(mockQueryResultExpectations)
+  );
 });
 
 test('sm.query calls "onData" with the result of the query', done => {
@@ -1388,7 +1391,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
   const onData = jest.fn(({ results }) => {
     // ignore when onData is called with the query results
     if (iteration === 1) {
-      expect(results.users[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
     } else {
       iteration++;
     }
@@ -1437,7 +1440,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
 
   const onData = jest.fn(({ results }) => {
     try {
-      expect(results.users[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
     } catch (e) {
       done(e);
     }
