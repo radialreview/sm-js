@@ -15,6 +15,11 @@ export declare class SMNotUpToDateInComputedException extends Error {
         queryId: string;
     });
 }
+export declare class SMFilterPropertyNotDefinedInQueryException extends Error {
+    constructor(opts: {
+        filterPropName: string;
+    });
+}
 export declare class SMImpliedNodePropertyException extends Error {
     constructor(opts: {
         propName: string;

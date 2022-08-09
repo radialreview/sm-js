@@ -209,58 +209,67 @@ var SMNotUpToDateInComputedException = /*#__PURE__*/function (_Error2) {
 
   return SMNotUpToDateInComputedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMImpliedNodePropertyException = /*#__PURE__*/function (_Error3) {
-  _inheritsLoose(SMImpliedNodePropertyException, _Error3);
+var SMFilterPropertyNotDefinedInQueryException = /*#__PURE__*/function (_Error3) {
+  _inheritsLoose(SMFilterPropertyNotDefinedInQueryException, _Error3);
+
+  function SMFilterPropertyNotDefinedInQueryException(opts) {
+    return _Error3.call(this, "SMFilterPropertyNotDefinedInQueryException exception - The filter property '" + opts.filterPropName + "' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.") || this;
+  }
+
+  return SMFilterPropertyNotDefinedInQueryException;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
+var SMImpliedNodePropertyException = /*#__PURE__*/function (_Error4) {
+  _inheritsLoose(SMImpliedNodePropertyException, _Error4);
 
   function SMImpliedNodePropertyException(opts) {
-    return _Error3.call(this, "SMImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
+    return _Error4.call(this, "SMImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
   }
 
   return SMImpliedNodePropertyException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMNotCachedException = /*#__PURE__*/function (_Error4) {
-  _inheritsLoose(SMNotCachedException, _Error4);
+var SMNotCachedException = /*#__PURE__*/function (_Error5) {
+  _inheritsLoose(SMNotCachedException, _Error5);
 
   function SMNotCachedException(opts) {
-    return _Error4.call(this, "SMNotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
+    return _Error5.call(this, "SMNotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
   }
 
   return SMNotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeException = /*#__PURE__*/function (_Error5) {
-  _inheritsLoose(SMDataTypeException, _Error5);
+var SMDataTypeException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(SMDataTypeException, _Error6);
 
   function SMDataTypeException(opts) {
-    return _Error5.call(this, "SMDataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+    return _Error6.call(this, "SMDataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
   return SMDataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeExplicitDefaultException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(SMDataTypeExplicitDefaultException, _Error6);
+var SMDataTypeExplicitDefaultException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(SMDataTypeExplicitDefaultException, _Error7);
 
   function SMDataTypeExplicitDefaultException(opts) {
-    return _Error6.call(this, "SMDataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+    return _Error7.call(this, "SMDataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
   return SMDataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataParsingException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(SMDataParsingException, _Error7);
+var SMDataParsingException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(SMDataParsingException, _Error8);
 
   function SMDataParsingException(opts) {
-    return _Error7.call(this, "SMDataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+    return _Error8.call(this, "SMDataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
   return SMDataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error8) {
-  _inheritsLoose(SMUnexpectedSubscriptionMessageException, _Error8);
+var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
+  _inheritsLoose(SMUnexpectedSubscriptionMessageException, _Error9);
 
   function SMUnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error8.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error9.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
@@ -268,11 +277,11 @@ var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error8) {
 
   return SMUnexpectedSubscriptionMessageException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMFilterOperatorNotImplementedException = /*#__PURE__*/function (_Error10) {
-  _inheritsLoose(SMFilterOperatorNotImplementedException, _Error10);
+var SMFilterOperatorNotImplementedException = /*#__PURE__*/function (_Error11) {
+  _inheritsLoose(SMFilterOperatorNotImplementedException, _Error11);
 
   function SMFilterOperatorNotImplementedException(exeption) {
-    return _Error10.call(this, "SMFilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
+    return _Error11.call(this, "SMFilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
   }
 
   return SMFilterOperatorNotImplementedException;
@@ -287,11 +296,11 @@ function throwLocallyLogInProd(error) {
   }
 } // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
 
-var UnreachableCaseError = /*#__PURE__*/function (_Error11) {
-  _inheritsLoose(UnreachableCaseError, _Error11);
+var UnreachableCaseError = /*#__PURE__*/function (_Error12) {
+  _inheritsLoose(UnreachableCaseError, _Error12);
 
   function UnreachableCaseError(val) {
-    return _Error11.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+    return _Error12.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
   }
 
   return UnreachableCaseError;
@@ -3796,14 +3805,21 @@ function generateQuerier(_ref4) {
 
                                             if (filter && obj[alias]) {
                                               Object.keys(filter).forEach(function (filterPropertyPath) {
-                                                lodash.update(obj, alias, function (originalValue) {
+                                                var itemPropertyPath = filterPropertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+
+                                                if (queryRecordEntry.properties.includes(itemPropertyPath) === false) {
+                                                  throw new SMFilterPropertyNotDefinedInQueryException({
+                                                    filterPropName: filterPropertyPath
+                                                  });
+                                                }
+
+                                                if (filterPropertyPath) lodash.update(obj, alias, function (originalValue) {
                                                   if (!lodash.isArray(originalValue)) {
                                                     return originalValue;
                                                   }
 
                                                   return originalValue.filter(function (item) {
                                                     var propertyFilter = filter[filterPropertyPath];
-                                                    var itemPropertyPath = filterPropertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
                                                     var value = item[itemPropertyPath] === NULL_TAG ? null : item[itemPropertyPath];
                                                     return Object.keys(propertyFilter).every(function (filterOperator) {
                                                       switch (filterOperator) {
