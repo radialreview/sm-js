@@ -34,8 +34,8 @@ export declare const number: {
     optional: Data<Maybe<number>, Maybe<string>, undefined>;
 };
 export declare const boolean: {
-    <TDefaultValue extends boolean | undefined>(defaultValue?: TDefaultValue | undefined): TDefaultValue extends undefined ? undefined : Data<boolean, string | boolean, undefined>;
-    _default: Data<boolean, string | boolean, undefined> | undefined;
+    <TDefaultValue extends boolean>(defaultValue?: TDefaultValue | undefined): IData<boolean, string | boolean, undefined>;
+    _default: IData<boolean, string | boolean, undefined>;
     optional: Data<Maybe<boolean>, Maybe<string | boolean>, undefined>;
 };
 declare type ObjectDataType = {

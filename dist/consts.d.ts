@@ -30,3 +30,4 @@ export declare const DEFAULT_NODE_PROPERTIES: {
     };
 };
 export declare const FILTER_OPERATORS: Array<FilterOperator>;
+export declare const NODES_PROPERTY_KEY = "nodes";

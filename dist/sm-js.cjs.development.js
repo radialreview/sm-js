@@ -560,8 +560,8 @@ var oneToMany = function oneToMany(def) {
       def: def,
       _relationshipName: queryBuilderOpts._relationshipName,
       _relational: exports.RELATIONAL_TYPES.oneToMany,
-      queryBuilderOpts: queryBuilderOpts,
-      filter: queryBuilderOpts.filter
+      filter: queryBuilderOpts.filter,
+      queryBuilderOpts: queryBuilderOpts
     };
   };
 };
@@ -597,6 +597,7 @@ var FILTER_OPERATORS_MAP = {
   _ncontains: '_ncontains'
 };
 var FILTER_OPERATORS = /*#__PURE__*/Object.values(FILTER_OPERATORS_MAP);
+var NODES_PROPERTY_KEY = 'nodes';
 
 var JSON_TAG = '__JSON__';
 var NULL_TAG = '__NULL__';
@@ -3737,7 +3738,7 @@ function generateQuerier(_ref4) {
       queryManager = _ref4.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+      var startStack, queryId, getError, getToken, mutateResponseWithQueryRecordFilters, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
 
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
@@ -3753,95 +3754,12 @@ function generateQuerier(_ref4) {
                           _context2.next = 2;
                           return Promise.all(Object.entries(queryDefinitionsSplitByToken).map( /*#__PURE__*/function () {
                             var _ref6 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(_ref5) {
-                              var tokenName, queryDefinitions, result, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, nodesKey, applyFilters;
+                              var tokenName, queryDefinitions, response, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts;
 
                               return runtime_1.wrap(function _callee$(_context) {
                                 while (1) {
                                   switch (_context.prev = _context.next) {
                                     case 0:
-                                      applyFilters = function _applyFilters(record, obj) {
-                                        Object.keys(record).forEach(function (alias) {
-                                          var queryRecordEntry = record[alias];
-
-                                          if (queryRecordEntry.filter) {
-                                            var filter = getFlattenedNodeFilterObject(queryRecordEntry.filter);
-
-                                            if (filter && obj[alias]) {
-                                              Object.keys(filter).forEach(function (filterPropertyPath) {
-                                                var itemPropertyPath = filterPropertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-
-                                                if (queryRecordEntry.properties.includes(itemPropertyPath) === false) {
-                                                  throw new FilterPropertyNotDefinedInQueryException({
-                                                    filterPropName: filterPropertyPath
-                                                  });
-                                                }
-
-                                                if (filterPropertyPath) lodash.update(obj, alias + "." + nodesKey, function (originalValue) {
-                                                  if (!lodash.isArray(originalValue)) {
-                                                    return originalValue;
-                                                  }
-
-                                                  return originalValue.filter(function (item) {
-                                                    var propertyFilter = filter[filterPropertyPath];
-                                                    var value = item[itemPropertyPath] === NULL_TAG ? null : item[itemPropertyPath];
-                                                    return Object.keys(propertyFilter).every(function (filterOperator) {
-                                                      switch (filterOperator) {
-                                                        case '_contains':
-                                                          {
-                                                            return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) !== -1;
-                                                          }
-
-                                                        case '_ncontains':
-                                                          {
-                                                            return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) === -1;
-                                                          }
-
-                                                        case '_eq':
-                                                          {
-                                                            return String(value).toLowerCase() === String(propertyFilter[filterOperator]).toLowerCase();
-                                                          }
-
-                                                        case '_neq':
-                                                          return String(value).toLowerCase() !== String(propertyFilter[filterOperator]).toLowerCase();
-
-                                                        case '_gt':
-                                                          return value > propertyFilter[filterOperator];
-
-                                                        case '_gte':
-                                                          return value >= propertyFilter[filterOperator];
-
-                                                        case '_lt':
-                                                          return value < propertyFilter[filterOperator];
-
-                                                        case '_lte':
-                                                          return value <= propertyFilter[filterOperator];
-
-                                                        default:
-                                                          throw new FilterOperatorNotImplementedException({
-                                                            operator: filterOperator
-                                                          });
-                                                      }
-                                                    });
-                                                  });
-                                                });
-                                              });
-                                            }
-                                          }
-
-                                          var relational = queryRecordEntry.relational;
-
-                                          if (relational != null) {
-                                            Object.keys(relational).forEach(function () {
-                                              if (obj[alias] && obj[alias][nodesKey]) {
-                                                obj[alias][nodesKey].forEach(function (obj2) {
-                                                  applyFilters(relational, obj2);
-                                                });
-                                              }
-                                            });
-                                          }
-                                        });
-                                      };
-
                                       tokenName = _ref5[0], queryDefinitions = _ref5[1];
                                       _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                                         queryDefinitions: queryDefinitions,
@@ -3849,18 +3767,18 @@ function generateQuerier(_ref4) {
                                       }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
 
                                       if (!mmGQLInstance.generateMockData) {
-                                        _context.next = 7;
+                                        _context.next = 6;
                                         break;
                                       }
 
-                                      result = generateMockNodeDataFromQueryDefinitions({
+                                      response = generateMockNodeDataFromQueryDefinitions({
                                         queryDefinitions: queryDefinitions,
                                         queryId: queryId
                                       });
-                                      _context.next = 12;
+                                      _context.next = 11;
                                       break;
 
-                                    case 7:
+                                    case 6:
                                       queryOpts = {
                                         gql: queryGQL,
                                         token: getToken(tokenName)
@@ -3870,18 +3788,17 @@ function generateQuerier(_ref4) {
                                         queryOpts.batchKey = opts.batchKey;
                                       }
 
-                                      _context.next = 11;
+                                      _context.next = 10;
                                       return mmGQLInstance.gqlClient.query(queryOpts);
 
+                                    case 10:
+                                      response = _context.sent;
+
                                     case 11:
-                                      result = _context.sent;
+                                      mutateResponseWithQueryRecordFilters(queryRecord, response);
+                                      return _context.abrupt("return", response);
 
-                                    case 12:
-                                      nodesKey = 'nodes';
-                                      applyFilters(queryRecord, result);
-                                      return _context.abrupt("return", result);
-
-                                    case 15:
+                                    case 13:
                                     case "end":
                                       return _context.stop();
                                   }
@@ -3914,6 +3831,93 @@ function generateQuerier(_ref4) {
                 return _performQueries.apply(this, arguments);
               };
 
+              mutateResponseWithQueryRecordFilters = function _mutateResponseWithQu(queryRecord, responseData) {
+                Object.keys(queryRecord).forEach(function (alias) {
+                  var queryRecordEntry = queryRecord[alias];
+
+                  if (queryRecordEntry.filter) {
+                    var filterObject = getFlattenedNodeFilterObject(queryRecordEntry.filter);
+
+                    if (filterObject && responseData[alias]) {
+                      Object.keys(filterObject).forEach(function (filterPropertyName) {
+                        var underscoreSeparatedPropertyPath = filterPropertyName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+                        var filterPropertyIsNotDefinedInTheQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropertyPath) === false;
+
+                        if (filterPropertyIsNotDefinedInTheQuery) {
+                          throw new FilterPropertyNotDefinedInQueryException({
+                            filterPropName: filterPropertyName
+                          });
+                        }
+
+                        if (filterPropertyName) {
+                          lodash.update(responseData, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
+                            if (!lodash.isArray(currentValue)) {
+                              return currentValue;
+                            }
+
+                            return currentValue.filter(function (item) {
+                              var propertyFilter = filterObject[filterPropertyName]; // Handle null filtering since backend returns "__NULL__" string instead of null
+
+                              var value = item[underscoreSeparatedPropertyPath] === NULL_TAG ? null : item[underscoreSeparatedPropertyPath];
+                              return Object.keys(propertyFilter).every(function (filterOperator) {
+                                switch (filterOperator) {
+                                  case '_contains':
+                                    {
+                                      return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) !== -1;
+                                    }
+
+                                  case '_ncontains':
+                                    {
+                                      return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) === -1;
+                                    }
+
+                                  case '_eq':
+                                    {
+                                      return String(value).toLowerCase() === String(propertyFilter[filterOperator]).toLowerCase();
+                                    }
+
+                                  case '_neq':
+                                    return String(value).toLowerCase() !== String(propertyFilter[filterOperator]).toLowerCase();
+
+                                  case '_gt':
+                                    return value > propertyFilter[filterOperator];
+
+                                  case '_gte':
+                                    return value >= propertyFilter[filterOperator];
+
+                                  case '_lt':
+                                    return value < propertyFilter[filterOperator];
+
+                                  case '_lte':
+                                    return value <= propertyFilter[filterOperator];
+
+                                  default:
+                                    throw new FilterOperatorNotImplementedException({
+                                      operator: filterOperator
+                                    });
+                                }
+                              });
+                            });
+                          });
+                        }
+                      });
+                    }
+                  }
+
+                  var relational = queryRecordEntry.relational;
+
+                  if (relational != null) {
+                    Object.keys(relational).forEach(function () {
+                      if (responseData[alias] && responseData[alias][NODES_PROPERTY_KEY]) {
+                        responseData[alias][NODES_PROPERTY_KEY].forEach(function (item) {
+                          mutateResponseWithQueryRecordFilters(relational, item);
+                        });
+                      }
+                    });
+                  }
+                });
+              };
+
               getToken = function _getToken(tokenName) {
                 var token = mmGQLInstance.getToken({
                   tokenName: tokenName
@@ -3937,10 +3941,10 @@ function generateQuerier(_ref4) {
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
               queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
-              _context3.prev = 9;
+              _context3.prev = 10;
 
               if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context3.next = 13;
+                _context3.next = 14;
                 break;
               }
 
@@ -3952,31 +3956,31 @@ function generateQuerier(_ref4) {
                 error: undefined
               });
 
-            case 13:
-              _context3.next = 15;
+            case 14:
+              _context3.next = 16;
               return performQueries();
 
-            case 15:
+            case 16:
               results = _context3.sent;
               qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
               }).queryRecord);
-              _context3.prev = 17;
+              _context3.prev = 18;
               qM.onQueryResult({
                 queryId: queryId,
                 queryResult: results
               });
-              _context3.next = 30;
+              _context3.next = 31;
               break;
 
-            case 21:
-              _context3.prev = 21;
-              _context3.t0 = _context3["catch"](17);
+            case 22:
+              _context3.prev = 22;
+              _context3.t0 = _context3["catch"](18);
               error = getError(new Error("Error applying query results"), _context3.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 29;
+                _context3.next = 30;
                 break;
               }
 
@@ -3986,10 +3990,10 @@ function generateQuerier(_ref4) {
                 error: error
               });
 
-            case 29:
+            case 30:
               throw error;
 
-            case 30:
+            case 31:
               qmResults = qM.getResults();
               (opts == null ? void 0 : opts.onData) && opts.onData({
                 results: _extends({}, nullishResults, qmResults)
@@ -3999,13 +4003,13 @@ function generateQuerier(_ref4) {
                 error: undefined
               });
 
-            case 35:
-              _context3.prev = 35;
-              _context3.t1 = _context3["catch"](9);
+            case 36:
+              _context3.prev = 36;
+              _context3.t1 = _context3["catch"](10);
               _error = getError(new Error("Error querying data"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 43;
+                _context3.next = 44;
                 break;
               }
 
@@ -4015,15 +4019,15 @@ function generateQuerier(_ref4) {
                 error: _error
               });
 
-            case 43:
+            case 44:
               throw _error;
 
-            case 44:
+            case 45:
             case "end":
               return _context3.stop();
           }
         }
-      }, _callee3, null, [[9, 35], [17, 21]]);
+      }, _callee3, null, [[10, 36], [18, 22]]);
     }));
 
     function query(_x, _x2) {
@@ -6283,6 +6287,7 @@ exports.LoggingContext = LoggingContext;
 exports.MMGQL = MMGQL;
 exports.MMGQLContext = MMGQLContext;
 exports.MMGQLProvider = MMGQLProvider;
+exports.NODES_PROPERTY_KEY = NODES_PROPERTY_KEY;
 exports.OBJECT_IDENTIFIER = OBJECT_IDENTIFIER;
 exports.OBJECT_PROPERTY_SEPARATOR = OBJECT_PROPERTY_SEPARATOR;
 exports.PROPERTIES_QUERIED_FOR_ALL_NODES = PROPERTIES_QUERIED_FOR_ALL_NODES;
