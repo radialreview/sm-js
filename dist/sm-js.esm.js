@@ -3751,7 +3751,7 @@ function generateQuerier(_ref4) {
                           _context2.next = 2;
                           return Promise.all(Object.entries(queryDefinitionsSplitByToken).map( /*#__PURE__*/function () {
                             var _ref6 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(_ref5) {
-                              var tokenName, queryDefinitions, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, result, applyFilters;
+                              var tokenName, queryDefinitions, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, result, nodesKey, applyFilters;
 
                               return runtime_1.wrap(function _callee$(_context) {
                                 while (1) {
@@ -3774,7 +3774,7 @@ function generateQuerier(_ref4) {
                                                   });
                                                 }
 
-                                                if (filterPropertyPath) update(obj, alias, function (originalValue) {
+                                                if (filterPropertyPath) update(obj, alias + "." + nodesKey, function (originalValue) {
                                                   if (!isArray(originalValue)) {
                                                     return originalValue;
                                                   }
@@ -3830,8 +3830,8 @@ function generateQuerier(_ref4) {
 
                                           if (relational != null) {
                                             Object.keys(relational).forEach(function () {
-                                              if (obj[alias]) {
-                                                obj[alias].forEach(function (obj2) {
+                                              if (obj[alias] && obj[alias][nodesKey]) {
+                                                obj[alias][nodesKey].forEach(function (obj2) {
                                                   applyFilters(relational, obj2);
                                                 });
                                               }
@@ -3871,10 +3871,11 @@ function generateQuerier(_ref4) {
 
                                     case 9:
                                       result = _context.sent;
+                                      nodesKey = 'nodes';
                                       applyFilters(queryRecord, result);
                                       return _context.abrupt("return", result);
 
-                                    case 12:
+                                    case 13:
                                     case "end":
                                       return _context.stop();
                                   }
