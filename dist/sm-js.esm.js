@@ -3983,7 +3983,14 @@ function generateQuerier(_ref4) {
               qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
-              }).queryRecord);
+              }).queryRecord, {
+                onPaginate: function onPaginate() {
+                  qM.onQueryResult({
+                    queryId: queryId,
+                    queryResult: results
+                  });
+                }
+              });
               _context3.prev = 18;
               qM.onQueryResult({
                 queryId: queryId,
@@ -4326,17 +4333,23 @@ function getPageResults(opts) {
 var PaginatedArray = /*#__PURE__*/function () {
   function PaginatedArray(opts) {
     this.itemsPerPage = void 0;
+    this.onPaginate = void 0;
     this.page = void 0;
     this.items = void 0;
     this.itemsPerPage = opts.itemsPerPage;
     this.page = opts.page;
     this.items = opts.items;
+    this.onPaginate = opts.onPaginate;
   }
 
   var _proto = PaginatedArray.prototype;
 
   _proto.goToPage = function goToPage(page) {
     this.page = page;
+    this.onPaginate && this.onPaginate({
+      page: page,
+      itemsPerPage: this.itemsPerPage
+    });
   };
 
   _proto.goToNextPage = function goToNextPage() {
@@ -4397,10 +4410,12 @@ function createQueryManager(mmGQLInstance) {
    *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
   return /*#__PURE__*/function () {
-    function QueryManager(queryRecord) {
+    function QueryManager(queryRecord, opts) {
       this.state = {};
       this.queryRecord = void 0;
+      this.opts = void 0;
       this.queryRecord = queryRecord;
+      this.opts = opts;
     }
 
     var _proto = QueryManager.prototype;
@@ -4451,7 +4466,7 @@ function createQueryManager(mmGQLInstance) {
         var resultsAlias = _this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          var _stateForThisAlias$pa, _stateForThisAlias$pa2;
+          var _stateForThisAlias$pa, _stateForThisAlias$pa2, _this$opts;
 
           var ids = idsOrId.map(function (id) {
             return stateForThisAlias.proxyCache[id].proxy;
@@ -4459,7 +4474,8 @@ function createQueryManager(mmGQLInstance) {
           resultsAcc[resultsAlias] = new PaginatedArray({
             items: ids,
             itemsPerPage: ((_stateForThisAlias$pa = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa.itemsPerPage) || ids.length,
-            page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1
+            page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1,
+            onPaginate: (_this$opts = _this.opts) == null ? void 0 : _this$opts.onPaginate
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
