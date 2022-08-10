@@ -394,7 +394,7 @@ export function getMockConfig(opts?: {
   return {
     gqlClient: {
       query: () =>
-        new Promise(res => res(opts.mockData ?? mockQueryDataReturn)),
+        new Promise(res => res(opts?.mockData ?? mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },

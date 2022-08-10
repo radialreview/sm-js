@@ -1,8 +1,5 @@
 import { getDefaultConfig, SMJS } from '.';
-import {
-  SMDataTypeException,
-  SMDataTypeExplicitDefaultException,
-} from './exceptions';
+import { SMDataTypeException } from './exceptions';
 import * as smData from './smDataTypes';
 
 describe('Node default properties', () => {

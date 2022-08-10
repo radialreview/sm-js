@@ -1213,7 +1213,9 @@ test('sm.subscribe throws an error when the user specifies a token which has not
 });
 
 function setupTest(mockData?: any) {
-  const smJSInstance = new SMJS(getMockConfig(mockData));
+  const smJSInstance = new SMJS(
+    getMockConfig({ mockData: mockData, generateMockData: false })
+  );
   smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
   const queryDefinitions = createMockQueryDefinitions(smJSInstance);
 
