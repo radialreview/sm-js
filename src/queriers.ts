@@ -168,13 +168,7 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           async ([tokenName, queryDefinitions]) => {
-            if (mmGQLInstance.generateMockData) {
-              return generateMockNodeDataFromQueryDefinitions({
-                queryDefinitions,
-                queryId,
-              });
-            }
-
+            let result;
             const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
               {
                 queryDefinitions: queryDefinitions,
@@ -182,16 +176,25 @@ export function generateQuerier({
               }
             );
 
-            const queryOpts: Parameters<IGQLClient['query']>[0] = {
-              gql: queryGQL,
-              token: getToken(tokenName),
-            };
-            if (opts && 'batchKey' in opts) {
-              queryOpts.batchKey = opts.batchKey;
+            if (mmGQLInstance.generateMockData) {
+              result = generateMockNodeDataFromQueryDefinitions({
+                queryDefinitions,
+                queryId,
+              });
+            } else {
+              const queryOpts: Parameters<IGQLClient['query']>[0] = {
+                gql: queryGQL,
+                token: getToken(tokenName),
+              };
+              if (opts && 'batchKey' in opts) {
+                queryOpts.batchKey = opts.batchKey;
+              }
+
+              result = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            const result = await mmGQLInstance.gqlClient.query(queryOpts);
             const nodesKey = 'nodes';
+
             function applyFilters(record: QueryRecord, obj: any) {
               Object.keys(record).forEach(alias => {
                 const queryRecordEntry = record[alias];
