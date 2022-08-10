@@ -356,7 +356,12 @@ export function generateQuerier({
           convertQueryDefinitionToQueryInfo({
             queryDefinitions: nonNullishQueryDefinitions,
             queryId,
-          }).queryRecord
+          }).queryRecord,
+          {
+            onPaginate: () => {
+              qM.onQueryResult({ queryId, queryResult: results });
+            },
+          }
         );
       try {
         qM.onQueryResult({

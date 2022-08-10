@@ -10,13 +10,20 @@ function getPageResults<T>(opts: {
   );
 }
 
+export type OnPaginateCallback = (opts: {
+  page: number;
+  itemsPerPage: number;
+}) => void;
+
 interface PaginatedArrayOpts<T> {
+  onPaginate?: OnPaginateCallback;
   itemsPerPage: number;
   page: number;
   items: T[];
 }
 export class PaginatedArray<T> {
   public itemsPerPage: number;
+  public onPaginate?: OnPaginateCallback;
   public page: number;
   public items: T[];
 
@@ -24,6 +31,7 @@ export class PaginatedArray<T> {
     this.itemsPerPage = opts.itemsPerPage;
     this.page = opts.page;
     this.items = opts.items;
+    this.onPaginate = opts.onPaginate;
   }
 
   public get value() {
@@ -40,6 +48,8 @@ export class PaginatedArray<T> {
 
   public goToPage(page: number) {
     this.page = page;
+    this.onPaginate &&
+      this.onPaginate({ page, itemsPerPage: this.itemsPerPage });
   }
 
   public get hasNextPage() {
