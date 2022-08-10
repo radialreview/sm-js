@@ -163,17 +163,13 @@ number.optional = new Data<Maybe<number>, Maybe<string>, undefined>({
   isOptional: true,
 });
 
-export const boolean = <TDefaultValue extends boolean | undefined>(
+export const boolean = <TDefaultValue extends boolean>(
   defaultValue?: TDefaultValue
-): TDefaultValue extends undefined
-  ? undefined
-  : Data<boolean, string | boolean, undefined> => {
+) => {
   if (defaultValue === undefined) {
     return (new DataTypeExplicitDefaultException({
       dataType: DATA_TYPES.boolean,
-    }) as unknown) as TDefaultValue extends undefined
-      ? undefined
-      : Data<boolean, string | boolean, undefined>;
+    }) as unknown) as IData<boolean, string | boolean, undefined>;
   }
 
   return new Data<boolean, string | boolean, undefined>({
@@ -193,8 +189,8 @@ export const boolean = <TDefaultValue extends boolean | undefined>(
     defaultValue,
     isOptional: false,
   }) as TDefaultValue extends undefined
-    ? undefined
-    : Data<boolean, string | boolean, undefined>;
+    ? Error
+    : IData<boolean, string | boolean, undefined>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
 boolean._default = boolean();
@@ -268,7 +264,7 @@ export const record = <
   const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? (boxedValue._default as TBoxedValue)
+      ? ((boxedValue as any)._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
   return new Data<
@@ -290,7 +286,7 @@ record.optional = <TBoxedValue extends IData | DataDefaultFn>(
   const parsedBoxedValue: IData =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? (boxedValue._default as IData)
+      ? ((boxedValue as any)._default as IData)
       : (boxedValue as IData);
 
   return new Data<
@@ -314,7 +310,7 @@ export const array = <TBoxedValue extends IData | DataDefaultFn>(
   const parsedBoxedValue: TBoxedValue =
     // will be a function if no explicit default set
     typeof boxedValue === 'function'
-      ? (boxedValue._default as TBoxedValue)
+      ? ((boxedValue as any)._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
   function array(defaultValue: Array<GetDataType<TBoxedValue>>) {
@@ -392,8 +388,8 @@ export const oneToMany = <
       def,
       _relationshipName: queryBuilderOpts._relationshipName,
       _relational: RELATIONAL_TYPES.oneToMany,
-      queryBuilderOpts,
       filter: queryBuilderOpts.filter,
+      queryBuilderOpts,
     };
   }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 };
