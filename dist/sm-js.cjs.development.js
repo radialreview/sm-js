@@ -3753,7 +3753,7 @@ function generateQuerier(_ref4) {
                           _context2.next = 2;
                           return Promise.all(Object.entries(queryDefinitionsSplitByToken).map( /*#__PURE__*/function () {
                             var _ref6 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(_ref5) {
-                              var tokenName, queryDefinitions, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, result, nodesKey, applyFilters;
+                              var tokenName, queryDefinitions, result, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, nodesKey, applyFilters;
 
                               return runtime_1.wrap(function _callee$(_context) {
                                 while (1) {
@@ -3843,22 +3843,24 @@ function generateQuerier(_ref4) {
                                       };
 
                                       tokenName = _ref5[0], queryDefinitions = _ref5[1];
-
-                                      if (!mmGQLInstance.generateMockData) {
-                                        _context.next = 4;
-                                        break;
-                                      }
-
-                                      return _context.abrupt("return", generateMockNodeDataFromQueryDefinitions({
-                                        queryDefinitions: queryDefinitions,
-                                        queryId: queryId
-                                      }));
-
-                                    case 4:
                                       _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                                         queryDefinitions: queryDefinitions,
                                         queryId: queryId + '_' + tokenName
                                       }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
+
+                                      if (!mmGQLInstance.generateMockData) {
+                                        _context.next = 7;
+                                        break;
+                                      }
+
+                                      result = generateMockNodeDataFromQueryDefinitions({
+                                        queryDefinitions: queryDefinitions,
+                                        queryId: queryId
+                                      });
+                                      _context.next = 12;
+                                      break;
+
+                                    case 7:
                                       queryOpts = {
                                         gql: queryGQL,
                                         token: getToken(tokenName)
@@ -3868,16 +3870,18 @@ function generateQuerier(_ref4) {
                                         queryOpts.batchKey = opts.batchKey;
                                       }
 
-                                      _context.next = 9;
+                                      _context.next = 11;
                                       return mmGQLInstance.gqlClient.query(queryOpts);
 
-                                    case 9:
+                                    case 11:
                                       result = _context.sent;
+
+                                    case 12:
                                       nodesKey = 'nodes';
                                       applyFilters(queryRecord, result);
                                       return _context.abrupt("return", result);
 
-                                    case 13:
+                                    case 15:
                                     case "end":
                                       return _context.stop();
                                   }
