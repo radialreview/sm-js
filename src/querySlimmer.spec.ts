@@ -1,5 +1,5 @@
 import { MMGQL, QueryRecord } from '.';
-import { string } from './dataTypes';
+import { string, boolean } from './dataTypes';
 import { QuerySlimmer } from './QuerySlimmer';
 import { getMockConfig } from './specUtilities';
 
@@ -11,16 +11,26 @@ function setupTests() {
     properties: {
       firstName: string,
       lastName: string,
+      email: string,
+    },
+  });
+  const meetingNode = mmGQL.def({
+    type: 'meeting',
+    properties: {
+      name: string,
+      archived: boolean,
+      isAgendaInitialized: boolean,
     },
   });
   const todoNode = mmGQL.def({
     type: 'todo',
     properties: {
       task: string,
+      done: boolean,
     },
   });
 
-  return { QuerySlimmer: new QuerySlimmer(), userNode, todoNode };
+  return { QuerySlimmer: new QuerySlimmer(), userNode, meetingNode, todoNode };
 }
 
 test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
@@ -186,8 +196,11 @@ test('it should create separate records for child relational data that contain n
   });
 });
 
+// PIOTR TODO NOTES:
+// - FOR CHILD RELATIONAL: RETURN EMPTY ARRAY IF ALL PROPS MATCH
+
 describe('onQueryExectued', () => {
-  test('it should return the given QueryRecord if the given QueryRecord is not found in queriesByContext', () => {
+  test('it should return the whole new query record without changes if none of the query record entries are found in queriesByContext', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -206,7 +219,7 @@ describe('onQueryExectued', () => {
     );
   });
 
-  test('it should return null if the given QueryRecord finds matches in queriesByContext', () => {
+  test('it should return null if the query record entries and the properties of each entry are already cached', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -250,5 +263,92 @@ describe('onQueryExectued', () => {
     });
 
     expect(QuerySlimmer.onQueryExectued(mockQueryRecord)).toEqual(null);
+  });
+
+  test('it should return a slimmed query record where query record entries are returned with non cached properties and any completely cached entries are removed', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+    const mockCachedQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+      },
+      meetings: {
+        def: meetingNode,
+        properties: ['name', 'archived'],
+      },
+      todos: {
+        def: todoNode,
+        properties: ['task'],
+      },
+    };
+    const mockCachedUsersData = [
+      {
+        id: '0',
+        type: userNode.type,
+        firstName: 'Banana',
+        lastName: 'Man',
+      },
+    ];
+    const mockCachedMeetingsData = [
+      {
+        id: '0',
+        type: meetingNode.type,
+        name: 'Banana Meeting',
+        archived: false,
+      },
+    ];
+    const mockCachedTodosData = [
+      {
+        id: '0',
+        type: todoNode.type,
+        task: 'Eat a banana',
+      },
+    ];
+
+    const mockNewQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName', 'email'],
+      },
+      meetings: {
+        def: meetingNode,
+        properties: ['name', 'archived'],
+      },
+      todos: {
+        def: todoNode,
+        properties: ['task', 'done'],
+      },
+    };
+
+    const expectedSlimmedNewQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['email'],
+      },
+      todos: {
+        def: todoNode,
+        properties: ['done'],
+      },
+    };
+
+    expect(QuerySlimmer.onQueryExectued(mockNewQueryRecord)).toEqual(
+      mockNewQueryRecord
+    );
+
+    QuerySlimmer.onResultsReceived({
+      slimmedQuery: mockCachedQueryRecord,
+      originalQuery: mockCachedQueryRecord,
+      slimmedQueryResults: {
+        users: mockCachedUsersData,
+        meetings: mockCachedMeetingsData,
+        todos: mockCachedTodosData,
+      },
+      subscriptionEstablished: true,
+    });
+
+    expect(QuerySlimmer.onQueryExectued(mockNewQueryRecord)).toEqual(
+      expectedSlimmedNewQueryRecord
+    );
   });
 });

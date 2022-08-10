@@ -26,22 +26,42 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
-  public onQueryExectued(originalQuery: QueryRecord) {
-    // Return a new QueryRecord
-    // - if no matches for the originalQuery are found in queriesByContext, return original query [X]
-    // - if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
-    // - if complete match for queryRecord is found in queriesByContext, return null [X]
+  // onQueryExectued
+  // Return a new QueryRecord
+  // - if no matches for the originalQuery are found in queriesByContext, return original query [X]
+  // - if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
+  // - if complete match for queryRecord is found in queriesByContext, return null [X]
 
+  // PIOTR TODO:
+  // - recursively handle relational data in queries
+
+  public onQueryExectued(newQuery: QueryRecord) {
     const slimmedQueryRecord: QueryRecord = {};
 
-    Object.keys(originalQuery).forEach(originalQueryKey => {
-      const originalQueryRecordEntry = originalQuery[originalQueryKey];
-      const originalQueryContextKey = this.createContextKeyForQuery(
-        originalQueryRecordEntry
+    Object.keys(newQuery).forEach(newQueryKey => {
+      const newQueryRecordEntry = newQuery[newQueryKey];
+      const newQueryContextKey = this.createContextKeyForQuery(
+        newQueryRecordEntry
       );
 
-      if (this.queriesByContext[originalQueryContextKey] === undefined) {
-        slimmedQueryRecord[originalQueryKey] = originalQueryRecordEntry;
+      if (this.queriesByContext[newQueryContextKey] === undefined) {
+        // If the query context key is not found in queriesByContext we know there is no duplicate query.
+        slimmedQueryRecord[newQueryKey] = newQueryRecordEntry;
+      } else {
+        // If a context key is found for this query in queriesByContext check the requested properties.
+        const cachedQuery = this.queriesByContext[newQueryContextKey];
+        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQueryProps: Object.keys(cachedQuery.subscriptionsByProperty),
+        });
+
+        // If there are newly requested properties we return the query with properties that have not already been cached.
+        if (newRequestedProperties !== null) {
+          slimmedQueryRecord[newQueryKey] = {
+            ...newQueryRecordEntry,
+            properties: newRequestedProperties,
+          };
+        }
       }
     });
 
@@ -115,5 +135,15 @@ export class QuerySlimmer {
       return 'NO_PARAMS';
     }
     return JSON.stringify(params);
+  }
+
+  private getPropertiesNotAlreadyCached(opts: {
+    newQueryProps: string[];
+    cachedQueryProps: string[];
+  }) {
+    const newRequestedProperties = opts.newQueryProps.filter(
+      newQueryProperty => !opts.cachedQueryProps.includes(newQueryProperty)
+    );
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 }
