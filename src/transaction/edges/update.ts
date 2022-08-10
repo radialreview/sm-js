@@ -11,7 +11,7 @@ import { getEdgePermissionsString } from './utilities';
 export function updateEdge(edge: UpdateEdgeOpts): UpdateEdgeOperation {
   return {
     type: 'updateEdge',
-    smOperationName: 'UpdateEdge',
+    operationName: 'UpdateEdge',
     ...edge,
   };
 }
@@ -24,7 +24,7 @@ export function updateEdges(
 ): UpdateEdgesOperation {
   return {
     type: 'updateEdges',
-    smOperationName: 'UpdateEdge',
+    operationName: 'UpdateEdge',
     edges,
   };
 }

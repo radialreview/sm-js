@@ -1,23 +1,21 @@
 // thrown when any property on the DO is accessed but is not marked as upToDate
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
-// this is done automatically by smData fetchers, smQuery and smSubscribe
-
+// this is done automatically by data fetchers, smQuery and smSubscribe
 import { FilterOperator } from './types';
-
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
-export class SMNotUpToDateException extends Error {
+export class NotUpToDateException extends Error {
   public propName: string;
 
   constructor(opts: { propName: string; nodeType: string; queryId: string }) {
     super(
-      `SMNotUpToDate exception - The property "${opts.propName}" on the DO for the node type ${opts.nodeType} was read but is not guaranteed to be up to date. Add that property to the query with the id ${opts.queryId}`
+      `NotUpToDate exception - The property "${opts.propName}" on the DO for the node type ${opts.nodeType} was read but is not guaranteed to be up to date. Add that property to the query with the id ${opts.queryId}`
     );
     this.propName = opts.propName;
   }
 }
 
-export class SMNotUpToDateInComputedException extends Error {
+export class NotUpToDateInComputedException extends Error {
   constructor(opts: {
     computedPropName: string;
     propName: string;
@@ -25,53 +23,54 @@ export class SMNotUpToDateInComputedException extends Error {
     queryId: string;
   }) {
     super(
-      `SMNotUpToDateInComputed exception - The property "${opts.propName}" on the DO for the node type "${opts.nodeType}" was read for the computed property "${opts.computedPropName}" but is not guaranteed to be up to date. Add that property to the query with the id ${opts.queryId}`
+      `NotUpToDateInComputed exception - The property "${opts.propName}" on the DO for the node type "${opts.nodeType}" was read for the computed property "${opts.computedPropName}" but is not guaranteed to be up to date. Add that property to the query with the id ${opts.queryId}`
     );
   }
 }
-export class SMFilterPropertyNotDefinedInQueryException extends Error {
+
+export class FilterPropertyNotDefinedInQueryException extends Error {
   constructor(opts: { filterPropName: string }) {
     super(
-      `SMFilterPropertyNotDefinedInQueryException exception - The filter property '${opts.filterPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+      `FilterPropertyNotDefinedInQueryException exception - The filter property '${opts.filterPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
     );
   }
 }
-export class SMImpliedNodePropertyException extends Error {
+export class ImpliedNodePropertyException extends Error {
   constructor(opts: { propName: string }) {
     super(
-      `SMImpliedPropertyException exception - The property "${opts.propName}" is implied and cannot be customized within a node definition.`
+      `ImpliedPropertyException exception - The property "${opts.propName}" is implied and cannot be customized within a node definition.`
     );
   }
 }
 
-export class SMNotCachedException extends Error {
+export class NotCachedException extends Error {
   constructor(opts: { nodeType: string; id: string }) {
     super(
-      `SMNotCached exception - Attempted to get the node with the type "${opts.nodeType}" and id "${opts.id}" but it was not cached.`
+      `NotCached exception - Attempted to get the node with the type "${opts.nodeType}" and id "${opts.id}" but it was not cached.`
     );
   }
 }
 
-export class SMDataTypeException extends Error {
+export class DataTypeException extends Error {
   constructor(opts: { dataType: string; value: any }) {
     super(
-      `SMDataType exception - the data type ${opts.dataType} received a bad value. Value: "${opts.value}"`
+      `DataType exception - the data type ${opts.dataType} received a bad value. Value: "${opts.value}"`
     );
   }
 }
 
-export class SMDataTypeExplicitDefaultException extends Error {
+export class DataTypeExplicitDefaultException extends Error {
   constructor(opts: { dataType: string }) {
     super(
-      `SMDataTypeExplicitDefaultException - the data type ${opts.dataType} requires setting an explicit default value for non-optional properties`
+      `DataTypeExplicitDefaultException - the data type ${opts.dataType} requires setting an explicit default value for non-optional properties`
     );
   }
 }
 
-export class SMDataParsingException extends Error {
+export class DataParsingException extends Error {
   constructor(opts: { receivedData: any; message: string }) {
     super(
-      `SMDataParsing exception - ${opts.message}\nData: ${JSON.stringify(
+      `DataParsing exception - ${opts.message}\nData: ${JSON.stringify(
         opts.receivedData,
         null,
         2
@@ -80,7 +79,7 @@ export class SMDataParsingException extends Error {
   }
 }
 
-export class SMUnexpectedSubscriptionMessageException extends Error {
+export class UnexpectedSubscriptionMessageException extends Error {
   public exception: {
     subscriptionMessage: Record<string, any>;
     description: string;
@@ -91,13 +90,13 @@ export class SMUnexpectedSubscriptionMessageException extends Error {
     description: string;
   }) {
     super(
-      `SMUnexpectedSubscriptionMessage exception - unexpected subscription message received`
+      `UnexpectedSubscriptionMessage exception - unexpected subscription message received`
     );
     this.exception = exception;
   }
 }
 
-export class SMUnexpectedQueryResultException extends Error {
+export class UnexpectedQueryResultException extends Error {
   public exception: {
     queryRecord: Record<string, any>;
     resultData: Record<string, any>;
@@ -107,17 +106,15 @@ export class SMUnexpectedQueryResultException extends Error {
     queryRecord: Record<string, any>;
     resultData: Record<string, any>;
   }) {
-    super(
-      `SMUnexpectedQueryResult exception - unexpected query result received`
-    );
+    super(`UnexpectedQueryResult exception - unexpected query result received`);
     this.exception = exception;
   }
 }
 
-export class SMFilterOperatorNotImplementedException extends Error {
+export class FilterOperatorNotImplementedException extends Error {
   constructor(exeption: { operator: FilterOperator }) {
     super(
-      `SMFilterOperatorNotImplementedException - '${exeption.operator}' operator not implemented.`
+      `FilterOperatorNotImplementedException - '${exeption.operator}' operator not implemented.`
     );
   }
 }

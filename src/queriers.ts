@@ -5,8 +5,8 @@ import {
   SubscriptionConfig,
 } from './queryDefinitionAdapters';
 import {
-  ISMJS,
-  ISMQueryManager,
+  IMMGQL,
+  IQueryManager,
   QueryDefinitions,
   QueryOpts,
   QueryReturn,
@@ -14,28 +14,28 @@ import {
   SubscriptionOpts,
   SubscriptionMeta,
   SubscriptionCanceller,
-  ISMGQLClient,
+  IGQLClient,
   FilterOperator,
   QueryRecord,
   FilterValue,
 } from './types';
 import { update, isArray } from 'lodash';
 import { getFlattenedNodeFilterObject } from './dataUtilities';
-import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
 import {
-  SMFilterOperatorNotImplementedException,
-  SMFilterPropertyNotDefinedInQueryException,
+  FilterOperatorNotImplementedException,
+  FilterPropertyNotDefinedInQueryException,
 } from './exceptions';
 import { NULL_TAG } from './dataConversions';
 
 let queryIdx = 0;
 
 function splitQueryDefinitionsByToken<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -61,11 +61,11 @@ function splitQueryDefinitionsByToken<
 }
 
 export function removeNullishQueryDefinitions<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -83,11 +83,11 @@ export function removeNullishQueryDefinitions<
 }
 
 function getNullishResults<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -110,18 +110,18 @@ function getNullishResults<
  * Which ensures that the socket messages are applied to the correct base set of results
  */
 export function generateQuerier({
-  smJSInstance,
+  mmGQLInstance,
   queryManager,
 }: {
-  smJSInstance: ISMJS;
-  queryManager?: ISMQueryManager;
+  mmGQLInstance: IMMGQL;
+  queryManager?: IQueryManager;
 }) {
   return async function query<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget,
     TQueryDefinitions extends QueryDefinitions<
-      TSMNode,
+      TNode,
       TMapFn,
       TQueryDefinitionTarget
     >
@@ -130,7 +130,7 @@ export function generateQuerier({
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
     const startStack = new Error().stack as string;
-    const queryId = opts?.queryId || `smQuery${queryIdx++}`;
+    const queryId = opts?.queryId || `query${queryIdx++}`;
 
     function getError(error: any, stack?: string) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
@@ -144,12 +144,12 @@ export function generateQuerier({
     }
 
     function getToken(tokenName: string) {
-      const token = smJSInstance.getToken({ tokenName });
+      const token = mmGQLInstance.getToken({ tokenName });
 
       if (!token) {
         throw new Error(
           `No token registered with the name "${tokenName}".\n` +
-            'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
+            'Please register this token prior to using it with setToken({ tokenName, token })) '
         );
       }
 
@@ -168,7 +168,7 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           async ([tokenName, queryDefinitions]) => {
-            if (smJSInstance.generateMockData) {
+            if (mmGQLInstance.generateMockData) {
               return generateMockNodeDataFromQueryDefinitions({
                 queryDefinitions,
                 queryId,
@@ -182,7 +182,7 @@ export function generateQuerier({
               }
             );
 
-            const queryOpts: Parameters<ISMGQLClient['query']>[0] = {
+            const queryOpts: Parameters<IGQLClient['query']>[0] = {
               gql: queryGQL,
               token: getToken(tokenName),
             };
@@ -190,7 +190,7 @@ export function generateQuerier({
               queryOpts.batchKey = opts.batchKey;
             }
 
-            const result = await smJSInstance.gqlClient.query(queryOpts);
+            const result = await mmGQLInstance.gqlClient.query(queryOpts);
 
             function applyFilters(record: QueryRecord, obj: any) {
               Object.keys(record).forEach(alias => {
@@ -210,7 +210,7 @@ export function generateQuerier({
                           itemPropertyPath
                         ) === false
                       ) {
-                        throw new SMFilterPropertyNotDefinedInQueryException({
+                        throw new FilterPropertyNotDefinedInQueryException({
                           filterPropName: filterPropertyPath,
                         });
                       }
@@ -283,7 +283,7 @@ export function generateQuerier({
                                     value <= propertyFilter[filterOperator]
                                   );
                                 default:
-                                  throw new SMFilterOperatorNotImplementedException(
+                                  throw new FilterOperatorNotImplementedException(
                                     { operator: filterOperator }
                                   );
                               }
@@ -339,7 +339,7 @@ export function generateQuerier({
 
       const qM =
         queryManager ||
-        new smJSInstance.SMQueryManager(
+        new mmGQLInstance.QueryManager(
           convertQueryDefinitionToQueryInfo({
             queryDefinitions: nonNullishQueryDefinitions,
             queryId,
@@ -391,13 +391,13 @@ export function generateQuerier({
 }
 
 let subscriptionId = 0;
-export function generateSubscriber(smJSInstance: ISMJS) {
+export function generateSubscriber(mmGQLInstance: IMMGQL) {
   return async function subscribe<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget,
     TQueryDefinitions extends QueryDefinitions<
-      TSMNode,
+      TNode,
       TMapFn,
       TQueryDefinitionTarget
     >,
@@ -418,7 +418,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
 
     // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
     const startStack = new Error().stack as string;
-    const queryId = opts?.queryId || `smQuery${subscriptionId++}`;
+    const queryId = opts?.queryId || `query${subscriptionId++}`;
     const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
       queryDefinitions
     );
@@ -447,7 +447,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
       return error;
     }
 
-    const queryManager = new smJSInstance.SMQueryManager(queryRecord);
+    const queryManager = new mmGQLInstance.QueryManager(queryRecord);
 
     function updateQueryManagerWithSubscriptionMessage(data: {
       message: Record<string, any>;
@@ -483,12 +483,12 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     function getToken(tokenName: string) {
-      const token = smJSInstance.getToken({ tokenName });
+      const token = mmGQLInstance.getToken({ tokenName });
 
       if (!token) {
         throw new Error(
           `No token registered with the name "${tokenName}".\n` +
-            'Please register this token prior to using it with sm.setToken({ tokenName, token })) '
+            'Please register this token prior to using it with setToken({ tokenName, token })) '
         );
       }
 
@@ -497,7 +497,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
 
     let subscriptionCancellers: Array<SubscriptionCanceller> = [];
     // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
-    // while the data for that node is being transfered from SM to the client. This would result in a missed update.
+    // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
     // However, we must be careful to not call opts.onData with any subscription messages before the query resolves,
     // because a subscription message only includes info about the node that changed, not all data being subscribed to,
     // which means the consumer of this API would receive and incomplete data set in this edge case.
@@ -521,7 +521,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
 
           subscriptionCancellers.push(
             ...subscriptionConfigs.map(subscriptionConfig => {
-              return smJSInstance.gqlClient.subscribe({
+              return mmGQLInstance.gqlClient.subscribe({
                 gql: subscriptionConfig.gql,
                 token: getToken(tokenName),
                 onMessage: message => {
@@ -571,10 +571,9 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     }
 
     try {
-      if (!!smJSInstance.generateMockData === false) {
+      if (!mmGQLInstance.generateMockData) {
         initSubs();
       }
-
       opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
     } catch (e) {
       const error = getError(
@@ -593,7 +592,7 @@ export function generateSubscriber(smJSInstance: ISMJS) {
     if (opts.skipInitialQuery) {
       return { unsub } as ReturnType;
     } else {
-      const query = generateQuerier({ smJSInstance, queryManager });
+      const query = generateQuerier({ mmGQLInstance, queryManager });
       try {
         const queryOpts: Parameters<typeof query>[1] = {
           queryId: opts.queryId,

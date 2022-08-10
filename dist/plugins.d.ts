@@ -1,2 +1,2 @@
-import { SMPlugin } from './types';
-export declare const mobxPlugin: SMPlugin;
+import { Plugin } from './types';
+export declare const mobxPlugin: Plugin;

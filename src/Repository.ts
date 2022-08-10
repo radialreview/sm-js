@@ -5,23 +5,23 @@ import {
   parseJSONFromBE,
   prepareValueForFE,
 } from './dataConversions';
-import { SMNotCachedException, SMDataParsingException } from './exceptions';
-import { OBJECT_PROPERTY_SEPARATOR, OBJECT_IDENTIFIER } from './smDataTypes';
+import { NotCachedException, DataParsingException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR, OBJECT_IDENTIFIER } from './dataTypes';
 import {
-  ISMData,
-  SMDataDefaultFn,
+  IData,
+  DataDefaultFn,
   NodeDO,
-  ISMNodeRepository,
+  INodeRepository,
   DeepPartial,
   GetAllAvailableNodeDataType,
-  SM_DATA_TYPES,
+  DATA_TYPES,
 } from './types';
 
 /**
- * Returns an initialized instance of a repository for an SMNode
+ * Returns an initialized instance of a repository for a Node
  */
 export function RepositoryFactory<
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>
+  TNodeData extends Record<string, IData | DataDefaultFn>
 >(opts: {
   def: {
     type: string;
@@ -34,12 +34,12 @@ export function RepositoryFactory<
   }): void;
   onDOConstructed?(DO: NodeDO): void;
   onDODeleted?(DO: NodeDO): void;
-}): ISMNodeRepository {
+}): INodeRepository {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
-  // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
+  // wich happens because NodeDO has non statically known members (each property on a node in the backend is mapped to a non-statically known property on the DO)
   // eslint-disable-next-line
   // @ts-ignore
-  class Repository implements ISMNodeRepository {
+  class Repository implements INodeRepository {
     private cached: Record<string, NodeDO> = {};
 
     public onDataReceived(
@@ -52,7 +52,7 @@ export function RepositoryFactory<
       }
       const cached = this.cached[data.id];
 
-      const parsedData = this.parseDataFromSM<TNodeData>(data);
+      const parsedData = this.parseDataFromBackend<TNodeData>(data);
 
       if (!cached) {
         const newDO = new opts.DOClass(parsedData);
@@ -76,7 +76,7 @@ export function RepositoryFactory<
       const cached = this.cached[id];
 
       if (!cached) {
-        throw new SMNotCachedException({
+        throw new NotCachedException({
           nodeType: opts.def.type,
           id,
         });
@@ -94,17 +94,17 @@ export function RepositoryFactory<
       }
     }
     /**
-     * This method takes data that comes in from SM and is about to be applied to this DO's instance. It needs to:
-     * 1) ignore data not specified in the smNode definition for this node
-     *     this is so that the querier in smDataContext can call onDataReceived on the DO with the data it receives from SM without having to ignore the relational aliases there
+     * This method takes data that comes in from the backend and is about to be applied to this DO's instance. It needs to:
+     * 1) ignore data not specified in the node definition for this node
+     *     this is so that the querier in dataContext can call onDataReceived on the DO with the data it receives from the backend without having to ignore the relational aliases there
      *     without doing this, we'd get errors about attempting to set a property on a DO which is read only
      * 2) take objects spread into root properties and convert them to regular objects
-     *     for example, if we are trying to store `settings: { show: true }` in SM, what is actually stored in the DB is
+     *     for example, if we are trying to store `settings: { show: true }` in the backend, what is actually stored in the DB is
      *     settings__dot__show: 'true'
-     *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the smDataTypes)
+     *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the dataTypes)
      */
-    private parseDataFromSM<
-      TNodeData extends Record<string, ISMData | SMDataDefaultFn>
+    private parseDataFromBackend<
+      TNodeData extends Record<string, IData | DataDefaultFn>
     >(
       receivedData: any
     ): { id: string; version: number } & DeepPartial<
@@ -131,14 +131,14 @@ export function RepositoryFactory<
 
         if (!isDataStoredOnTheNode) return parsed;
 
-        const type = (opts.def.properties[key] as ISMData)?.type;
+        const type = (opts.def.properties[key] as IData)?.type;
         const isObjectData =
           key.includes(OBJECT_PROPERTY_SEPARATOR) ||
-          type === SM_DATA_TYPES.object ||
-          type === SM_DATA_TYPES.maybeObject;
+          type === DATA_TYPES.object ||
+          type === DATA_TYPES.maybeObject;
 
         const isRecordData =
-          type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord;
+          type === DATA_TYPES.record || type === DATA_TYPES.maybeRecord;
 
         const isArrayData = (() => {
           if (isObjectData) {
@@ -147,14 +147,13 @@ export function RepositoryFactory<
 
           const receivedDataValue = opts.def.properties[key];
 
-          const smDataType =
+          const dataType =
             typeof receivedDataValue === 'function'
-              ? ((receivedDataValue as any)._default as ISMData).type
+              ? ((receivedDataValue as any)._default as IData).type
               : receivedDataValue.type;
 
           return (
-            smDataType === SM_DATA_TYPES.array ||
-            smDataType === SM_DATA_TYPES.maybeArray
+            dataType === DATA_TYPES.array || dataType === DATA_TYPES.maybeArray
           );
         })();
 
@@ -183,7 +182,7 @@ export function RepositoryFactory<
               oldStyleObjects[root] =
                 oldStyleObjects[root] || parseJSONFromBE(receivedData[root]);
             } catch (e) {
-              throw new SMDataParsingException({
+              throw new DataParsingException({
                 receivedData,
                 message: `Could not parse json stored in old format for an object in the key "${key}"`,
               });
@@ -223,7 +222,7 @@ export function RepositoryFactory<
           } else if (receivedData[key] == null) {
             parsed[key as keyof TNodeData] = null as any;
           } else {
-            throw new SMDataParsingException({
+            throw new DataParsingException({
               receivedData,
               message: `Could not parse json stored in old format for a record in the key "${key}"`,
             });

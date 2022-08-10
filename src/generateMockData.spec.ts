@@ -1,317 +1,432 @@
-import {
-  createMockQueryDefinitions,
-  getMockConfig,
-  generateUserNode,
-  generateTodoNode,
-  generateTestNode,
-  mockedDataGenerationExpectedResultsForTestNodeAllProperties,
-  mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined,
-  mockedDataGenerationExpectedResultsForUserNodeAllProperties,
-  mockDataGenerationExpectedResultsForTodoNodeAllProperties,
-} from './specUtilities';
-import { queryDefinition, SMJS } from '.';
+import { createMockQueryDefinitions, getMockConfig } from './specUtilities';
+import { queryDefinition, MMGQL } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
+import {
+  boolean,
+  number,
+  object,
+  oneToMany,
+  oneToOne,
+  record,
+  string,
+  stringEnum,
+} from './dataTypes';
+import { GetResultingDataTypeFromProperties } from './types';
 
-test('setupTest correctly returns smJSInstance.generateMockData as true', async () => {
-  const { smJSInstance } = setupTest({
+test('setupTest correctly returns mmGQLInstance.generateMockData as true', async () => {
+  const { mmGQLInstance } = setupTest({
     generateMockData: true,
   });
 
-  expect(smJSInstance.generateMockData).toEqual(true);
+  expect(mmGQLInstance.generateMockData).toEqual(true);
 });
 
-test('sm.query with mock data generates the correct results for qDs with mapped and relational properties', async () => {
-  const { smJSInstance, queryDefinitions } = setupTest({
+test('it correctly generates a single mock node when an id target is specified', async () => {
+  const { mmGQLInstance } = setupTest({
     generateMockData: true,
   });
 
-  const { data } = await smJSInstance.query(queryDefinitions);
+  const mockNode = mmGQLInstance.def({
+    type: 'mock',
+    properties: {},
+  });
 
-  data.users.forEach(userItem => {
-    // this is testing that all string and number types are truthy
-    expect(userItem.address.state).toBeTruthy();
-    expect(userItem.address.apt.floor).toBeTruthy();
-    expect(userItem.address.apt.number).toBeTruthy();
-    expect(userItem.id).toBeTruthy();
-    expect(userItem.type).toBeTruthy();
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      target: { id: 'some-id' },
+    }),
+  });
 
-    userItem.todos.forEach(todo => {
-      expect(todo.assignee.firstName).toBeTruthy();
-      expect(todo.assignee.id).toBeTruthy();
-      expect(todo.assignee.type).toBeTruthy();
-      expect(todo.id).toBeTruthy();
-      expect(todo.type).toBeTruthy();
+  expect(Array.isArray(data.mock)).toBeFalsy();
+  expect(typeof data.mock.id === 'string').toBeTruthy();
+});
+
+test('it correctly generates multiple mock nodes when no id target is specified', async () => {
+  const { mmGQLInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const mockNode = mmGQLInstance.def({
+    type: 'mock',
+    properties: {
+      stringProp: string,
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+    }),
+  });
+
+  expect(Array.isArray(data.mock)).toBeTruthy();
+  data.mock.forEach(test => {
+    expect(typeof test.id === 'string').toBeTruthy();
+  });
+});
+
+test('it correctly generates mock data for non optional properties on nodes', async () => {
+  const { mmGQLInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const mockNode = mmGQLInstance.def({
+    type: 'mock',
+    properties: {
+      stringProp: string,
+      stringEnumProp: stringEnum(['foo', 'bar']),
+      numberProp: number,
+      booleanProp: boolean(false),
+      recordProp: record(string),
+      objectProp: object({
+        nestedString: string,
+        nestedNumber: number,
+        nestedBoolean: boolean(false),
+        nestedObject: object({
+          doubleNestedString: string,
+        }),
+      }),
+      recordOfNumberProp: record(number),
+      recordOfObjectProp: record(
+        object({
+          nestedProp: string,
+        })
+      ),
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+    }),
+  });
+
+  data.mock.forEach(mockNode => {
+    expect(typeof mockNode.stringProp === 'string').toBeTruthy();
+    expect(typeof mockNode.stringEnumProp === 'string').toBeTruthy();
+    expect(
+      mockNode.stringEnumProp === 'foo' || mockNode.stringEnumProp === 'bar'
+    ).toBeTruthy();
+    expect(typeof mockNode.numberProp === 'number').toBeTruthy();
+    expect(typeof mockNode.booleanProp === 'boolean').toBeTruthy();
+    expect(typeof mockNode.recordProp === 'object').toBeTruthy();
+    Object.entries(mockNode.recordProp).forEach(([key, value]) => {
+      expect(typeof key === 'string').toBeTruthy();
+      expect(typeof value === 'string').toBeTruthy();
+    });
+    expect(typeof mockNode.objectProp === 'object').toBeTruthy();
+    expect(typeof mockNode.objectProp.nestedString === 'string').toBeTruthy();
+    expect(typeof mockNode.objectProp.nestedNumber === 'number').toBeTruthy();
+    expect(typeof mockNode.objectProp.nestedBoolean === 'boolean').toBeTruthy();
+    expect(typeof mockNode.objectProp.nestedObject === 'object').toBeTruthy();
+    expect(
+      typeof mockNode.objectProp.nestedObject.doubleNestedString === 'string'
+    ).toBeTruthy();
+    expect(typeof mockNode.recordOfNumberProp === 'object').toBeTruthy();
+    Object.entries(mockNode.recordOfNumberProp).forEach(([key, value]) => {
+      expect(typeof key === 'string').toBeTruthy();
+      expect(typeof value === 'number').toBeTruthy();
+    });
+    expect(typeof mockNode.recordOfObjectProp === 'object').toBeTruthy();
+    Object.entries(mockNode.recordOfObjectProp).forEach(([key, value]) => {
+      expect(typeof key === 'string').toBeTruthy();
+      expect(typeof value === 'object').toBeTruthy();
+      expect(typeof value.nestedProp === 'string').toBeTruthy();
     });
   });
-
-  expect(data).toMatchObject(
-    mockedDataGenerationExpectedResultsWithMapAndRelationalPropertiesDefined
-  );
 });
 
-test('sm.query with mock data generates all node properties when the qD is just the node definition', async () => {
-  const { smJSInstance } = setupTest({
+test('it correctly generates mock data for optional properties on nodes', async done => {
+  const { mmGQLInstance } = setupTest({
     generateMockData: true,
   });
 
-  const userNode = generateUserNode(smJSInstance);
-  const queryDefinitions = {
-    users: userNode,
-  };
-
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  // this is testing that all string and number types are truthy
-  data.users.forEach(userItem => {
-    expect(userItem.firstName).toBeTruthy();
-    expect(userItem.lastName).toBeTruthy();
-    expect(userItem.address.streetName).toBeTruthy();
-    expect(userItem.address.zipCode).toBeTruthy();
-    expect(userItem.address.state).toBeTruthy();
-    expect(userItem.address.apt.floor).toBeTruthy();
-    expect(userItem.address.apt.number).toBeTruthy();
-  });
-
-  expect(data).toEqual({
-    users: expect.arrayContaining([
-      expect.objectContaining(
-        mockedDataGenerationExpectedResultsForUserNodeAllProperties
-      ),
-    ]),
-  });
-});
-
-test('sm.query with mock data generates all node properties when the qD has an undefined map', async () => {
-  const { smJSInstance } = setupTest({
-    generateMockData: true,
-  });
-
-  const queryDefinitions = {
-    user: queryDefinition({
-      def: generateUserNode(smJSInstance),
-      map: undefined,
-      target: { id: '1' },
+  const mockNodeProperties = {
+    stringProp: string.optional,
+    stringEnumProp: stringEnum(['foo', 'bar']).optional,
+    numberProp: number.optional,
+    booleanProp: boolean.optional,
+    recordProp: record.optional(string.optional),
+    objectProp: object.optional({
+      nestedString: string.optional,
+      nestedNumber: number.optional,
+      nestedBoolean: boolean.optional,
+      nestedObject: object.optional({
+        doubleNestedString: string.optional,
+      }),
     }),
-  };
-
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  // this is testing that all string and number types are truthy
-  expect(data.user.firstName).toBeTruthy();
-  expect(data.user.lastName).toBeTruthy();
-  expect(data.user.address.streetName).toBeTruthy();
-  expect(data.user.address.zipCode).toBeTruthy();
-  expect(data.user.address.state).toBeTruthy();
-  expect(data.user.address.apt.floor).toBeTruthy();
-  expect(data.user.address.apt.number).toBeTruthy();
-
-  expect(data).toEqual({
-    user: expect.objectContaining(
-      mockedDataGenerationExpectedResultsForUserNodeAllProperties
+    recordOfNumberProp: record.optional(number.optional),
+    recordOfObjectProp: record.optional(
+      object.optional({
+        nestedProp: string.optional,
+      })
     ),
-  });
-});
-
-test('sm.query with mock data generates node properites for multiple queryDefinitions', async () => {
-  const { smJSInstance } = setupTest({
-    generateMockData: true,
-  });
-
-  const queryDefinitions = {
-    user: queryDefinition({
-      def: generateUserNode(smJSInstance),
-      map: undefined,
-      target: { id: '1' },
-    }),
-    todos: generateTodoNode(smJSInstance),
   };
 
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  data.todos.forEach(todoItem => {
-    // this is testing that all string and number types are truthy, and records contain correct types
-    expect(todoItem.id).toBeTruthy();
-    expect(todoItem.task).toBeTruthy();
-    expect(todoItem.meetingId).toBeTruthy();
-    expect(todoItem.assigneeId).toBeTruthy();
-    expect(todoItem.settings?.nestedSettings?.nestedNestedMaybe).toBeTruthy();
-
-    // this is testing that a string is added to the record as the value
-    expect(Object.values(todoItem.record)[0]).toEqual(expect.any(String));
-
-    // this is testing that a boolean is added to the nestedRecord as the value
-    expect(Object.values(todoItem.settings?.nestedRecord || [])[0]).toEqual(
-      expect.any(Boolean)
-    );
+  const mockNodeDef = mmGQLInstance.def({
+    type: 'mock',
+    properties: mockNodeProperties,
   });
 
-  expect(data).toEqual({
-    user: expect.objectContaining(
-      mockedDataGenerationExpectedResultsForUserNodeAllProperties
-    ),
-    todos: expect.arrayContaining([
-      expect.objectContaining(
-        mockDataGenerationExpectedResultsForTodoNodeAllProperties
-      ),
-    ]),
-  });
-});
+  async function generateMockNode() {
+    return (
+      await mmGQLInstance.query({
+        mockNodes: queryDefinition({
+          def: mockNodeDef,
+          map: undefined,
+          target: { id: 'some-id' },
+        }),
+      })
+    ).data.mockNodes;
+  }
 
-test('sm.query with mock data generates node properites for all smData types with default values', async () => {
-  const { smJSInstance } = setupTest({
-    generateMockData: true,
-  });
-
-  const queryDefinitions = {
-    test: queryDefinition({
-      def: generateTestNode(smJSInstance),
-      map: undefined,
-      target: { id: '1' },
-    }),
-  };
-
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  // this is testing that the record keys are truthy
-  Object.keys({
-    ...data.test.objectData.recordInObject,
-    ...data.test.recordData,
-    ...data.test.optionalRecord,
-  }).forEach(key => {
-    expect(key).toBeTruthy();
-  });
-
-  // this is testing that the default string is added to a record as the value
-  expect(Object.values(data.test.recordData)[0]).toEqual(
-    'iAmADefaultStringInARecord'
-  );
-
-  // this is testing that the array of numbers is added to a record as the value
-  expect(Object.values(data.test.optionalRecord || [])[0]).toContainEqual(
-    expect.any(Number)
-  );
-
-  // this is testing that all string and number types are truthy
-  expect(data.test.id).toBeTruthy();
-  expect(data.test.lastUpdatedBy).toBeTruthy();
-  expect(data.test.stringData).toBeTruthy();
-  expect(data.test.optionalString).toBeTruthy();
-  expect(data.test.objectData.stringInObject).toBeTruthy();
-  expect(data.test.numberData).toBeTruthy();
-  expect(data.test.optionalNumber).toBeTruthy();
-  expect(data.test.defaultNumber).toBeTruthy();
-
-  expect(data).toMatchObject(
-    mockedDataGenerationExpectedResultsForTestNodeAllProperties
-  );
-});
-
-test('sm.query with mock data generates multiple results when underIds are passed to target', async () => {
-  const { smJSInstance } = setupTest({
-    generateMockData: true,
-  });
-
-  const queryDefinitions = {
-    users: queryDefinition({
-      def: generateUserNode(smJSInstance),
-      map: undefined,
-      target: { underIds: ['1', '2', '3', '4'] },
-    }),
-  };
-
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  expect(data.users.length).toBeGreaterThan(1);
-
-  data.users.forEach(userItem => {
-    // this is testing that all string and number types are truthy
-    expect(userItem.firstName).toBeTruthy();
-    expect(userItem.lastName).toBeTruthy();
-    expect(userItem.address.streetName).toBeTruthy();
-    expect(userItem.address.zipCode).toBeTruthy();
-    expect(userItem.address.state).toBeTruthy();
-    expect(userItem.address.apt.floor).toBeTruthy();
-    expect(userItem.address.apt.number).toBeTruthy();
-  });
-
-  expect(data).toEqual(
-    expect.objectContaining({
-      users: expect.arrayContaining([
-        expect.objectContaining(
-          mockedDataGenerationExpectedResultsForUserNodeAllProperties
+  /**
+   * Creating tests for this was a bit tricky, since I wanted to verify that optional properties
+   * will randomly return null or a valid value
+   * The approach I took was to create 2 functions:
+   * one returns all the tests for when the data is filled, or not null
+   * another one returns the tests for when the data is null
+   *
+   * Both return arrays of functions, so that the execution of the `expect` functions can be delayed until the number of total tests is known
+   */
+  function generateDataFilledTestsForMockNode(
+    mockNode: GetResultingDataTypeFromProperties<typeof mockNodeProperties>
+  ): Array<Function> {
+    return [
+      () => expect(typeof mockNode.stringProp === 'string').toBeTruthy(),
+      () => expect(typeof mockNode.stringEnumProp === 'string').toBeTruthy(),
+      () =>
+        expect(
+          mockNode.stringEnumProp === 'foo' || mockNode.stringEnumProp === 'bar'
+        ).toBeTruthy(),
+      () => expect(typeof mockNode.numberProp === 'number').toBeTruthy(),
+      () => expect(typeof mockNode.booleanProp === 'boolean').toBeTruthy(),
+      () => expect(typeof mockNode.recordProp === 'object').toBeTruthy(),
+      () =>
+        Object.entries(mockNode.recordProp as Record<string, string>).forEach(
+          ([key, value]) => {
+            expect(typeof key === 'string').toBeTruthy();
+            expect(typeof value === 'string').toBeTruthy();
+          }
         ),
-      ]),
-    })
-  );
+      () => expect(typeof mockNode.objectProp === 'object').toBeTruthy(),
+      () =>
+        expect(
+          typeof mockNode.objectProp?.nestedString === 'string'
+        ).toBeTruthy(),
+      () =>
+        expect(
+          typeof mockNode.objectProp?.nestedNumber === 'number'
+        ).toBeTruthy(),
+      () =>
+        expect(
+          typeof mockNode.objectProp?.nestedBoolean === 'boolean'
+        ).toBeTruthy(),
+      () =>
+        expect(
+          typeof mockNode.objectProp?.nestedObject === 'object'
+        ).toBeTruthy(),
+      () =>
+        expect(
+          typeof mockNode.objectProp?.nestedObject?.doubleNestedString ===
+            'string'
+        ).toBeTruthy(),
+      () =>
+        expect(typeof mockNode.recordOfNumberProp === 'object').toBeTruthy(),
+      () =>
+        Object.entries(
+          mockNode.recordOfNumberProp as Record<string, number>
+        ).forEach(([key, value]) => {
+          expect(typeof key === 'string').toBeTruthy();
+          expect(typeof value === 'number').toBeTruthy();
+        }),
+      () =>
+        expect(typeof mockNode.recordOfObjectProp === 'object').toBeTruthy(),
+      () =>
+        Object.entries(
+          mockNode.recordOfObjectProp as Record<string, { nestedProp: string }>
+        ).forEach(([key, value]) => {
+          expect(typeof key === 'string').toBeTruthy();
+          expect(typeof value === 'object').toBeTruthy();
+          expect(typeof value.nestedProp === 'string').toBeTruthy();
+        }),
+    ];
+  }
+
+  function generateDataNullTestsForMockNode(
+    mockNode: GetResultingDataTypeFromProperties<typeof mockNodeProperties>
+  ): Array<Function> {
+    return [
+      () => expect(mockNode.stringProp === null).toBeTruthy(),
+      () => expect(mockNode.stringEnumProp === null).toBeTruthy(),
+      () => expect(mockNode.stringEnumProp === null).toBeTruthy(),
+      () => expect(mockNode.numberProp === null).toBeTruthy(),
+      () => expect(mockNode.booleanProp === null).toBeTruthy(),
+      () => expect(mockNode.recordProp === null).toBeTruthy(),
+      () => expect(mockNode.recordProp === null).toBeTruthy(),
+      () => expect(mockNode.objectProp === null).toBeTruthy(),
+      () => expect(mockNode.objectProp?.nestedString === null).toBeTruthy(),
+      () => expect(mockNode.objectProp?.nestedNumber === null).toBeTruthy(),
+      () => expect(mockNode.objectProp?.nestedBoolean === null).toBeTruthy(),
+      () => expect(mockNode.objectProp?.nestedObject === null).toBeTruthy(),
+      () =>
+        expect(
+          mockNode.objectProp?.nestedObject?.doubleNestedString === null
+        ).toBeTruthy(),
+      () => expect(mockNode.recordOfNumberProp === null).toBeTruthy(),
+      () => expect(mockNode.recordOfNumberProp === null).toBeTruthy(),
+      () => expect(mockNode.recordOfObjectProp === null).toBeTruthy(),
+    ];
+  }
+
+  /**
+   * The rest of the code in this test is responsible for running each of the expectations from the functions above
+   * while capturing exceptions (when the data is null and is being expected to not be null or vice versa)
+   * WITHOUT repeating all the expectations that had already been validated, since for ALL properties on the node to pass ALL the expectations
+   * would be extremely unlikely and would require a very high number of iterations
+   *
+   * It also ensures that if after the max number of iterations set by maxIterations not all tests have passed
+   * the test fails with the last exception thrown by an expectation
+   */
+  let iterations = 0;
+  const maxIterations = 200;
+  let currentDataFilledTestIndex = 0;
+  let currentDataNullTestIndex = 0;
+
+  let mockNode = await generateMockNode();
+  let lastException;
+  let allTestsPassed = false;
+
+  do {
+    try {
+      const dataFilledTests = generateDataFilledTestsForMockNode(mockNode);
+      for (
+        currentDataFilledTestIndex;
+        currentDataFilledTestIndex < dataFilledTests.length - 1;
+        currentDataFilledTestIndex++
+      ) {
+        dataFilledTests[currentDataFilledTestIndex]();
+      }
+
+      const dataNullTests = generateDataNullTestsForMockNode(mockNode);
+      for (
+        currentDataNullTestIndex;
+        currentDataNullTestIndex < dataNullTests.length - 1;
+        currentDataNullTestIndex++
+      ) {
+        dataNullTests[currentDataNullTestIndex]();
+      }
+
+      // double check that we did indeed run through each of the tests
+      if (
+        currentDataFilledTestIndex === dataFilledTests.length - 1 &&
+        currentDataNullTestIndex === dataNullTests.length - 1
+      ) {
+        done();
+        allTestsPassed = true;
+      }
+    } catch (e) {
+      mockNode = await generateMockNode();
+      lastException = e;
+      iterations++;
+    }
+  } while (iterations < maxIterations && !allTestsPassed);
+
+  if (!allTestsPassed) {
+    throw lastException;
+  }
 });
 
-test('sm.query with mock data generates multiple results when ids are passed to target', async () => {
-  const { smJSInstance } = setupTest({
+/**
+ * Relational tests
+ */
+test('it correctly generates mock data for oneToOne relational queries', async () => {
+  const { mmGQLInstance } = setupTest({
     generateMockData: true,
   });
 
-  const queryDefinitions = {
-    tests: queryDefinition({
-      def: generateTestNode(smJSInstance),
-      map: undefined,
-      target: { ids: ['1', '2', '3', '4'] },
-    }),
-  };
-
-  const { data } = await smJSInstance.query(queryDefinitions);
-
-  expect(data.tests.length).toBeGreaterThan(1);
-
-  data.tests.forEach(testItem => {
-    // this is testing that the record keys are truthy
-
-    Object.keys({
-      ...testItem.objectData.recordInObject,
-      ...testItem.recordData,
-      ...testItem.optionalRecord,
-    }).forEach(item => {
-      expect(item).toBeTruthy();
-    });
-
-    // this is testing that the default string is added to a record as the value
-    expect(Object.values(testItem.recordData)[0]).toEqual(
-      'iAmADefaultStringInARecord'
-    );
-
-    // this is testing that the array of numbers is added to a record as the value
-    expect(Object.values(testItem.optionalRecord || [])[0]).toContainEqual(
-      expect.any(Number)
-    );
-
-    // this is testing that all string and number types are truthy
-    expect(testItem.id).toBeTruthy();
-    expect(testItem.lastUpdatedBy).toBeTruthy();
-    expect(testItem.stringData).toBeTruthy();
-    expect(testItem.optionalString).toBeTruthy();
-    expect(testItem.objectData.stringInObject).toBeTruthy();
-    expect(testItem.numberData).toBeTruthy();
-    expect(testItem.optionalNumber).toBeTruthy();
-    expect(testItem.defaultNumber).toBeTruthy();
+  const childNode = mmGQLInstance.def({
+    type: 'child',
+    properties: {
+      testProp: string,
+    },
+  });
+  const parentNode = mmGQLInstance.def({
+    type: 'parent',
+    properties: {},
+    relational: {
+      child: () => oneToOne(childNode),
+    },
   });
 
-  expect(data).toEqual({
-    tests: expect.arrayContaining([
-      expect.objectContaining(
-        mockedDataGenerationExpectedResultsForTestNodeAllProperties.test
-      ),
-    ]),
+  const { data } = await mmGQLInstance.query({
+    parent: queryDefinition({
+      def: parentNode,
+      map: ({ child }) => ({
+        child: child({
+          map: ({ testProp }) => ({ testProp }),
+        }),
+      }),
+      target: { id: 'some-id' },
+    }),
+  });
+
+  expect(typeof data.parent.child.testProp === 'string').toBeTruthy();
+});
+
+test('it correctly generates mock data for oneToMany relational queries', async () => {
+  const { mmGQLInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const childNode = mmGQLInstance.def({
+    type: 'child',
+    properties: {
+      testProp: string,
+    },
+  });
+  const parentNode = mmGQLInstance.def({
+    type: 'parent',
+    properties: {},
+    relational: {
+      children: () => oneToMany(childNode),
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    parent: queryDefinition({
+      def: parentNode,
+      map: ({ children }) => ({
+        children: children({
+          map: ({ testProp }) => ({ testProp }),
+        }),
+      }),
+      target: { id: 'some-id' },
+    }),
+  });
+
+  expect(Array.isArray(data.parent.children)).toBeTruthy();
+  data.parent.children.forEach(child => {
+    expect(typeof child.testProp === 'string').toBeTruthy();
   });
 });
 
 function setupTest(opts?: { generateMockData: boolean }) {
-  const smJSInstance = new SMJS(
+  const mmGQLInstance = new MMGQL(
     opts?.generateMockData
       ? getMockConfig({ generateMockData: opts.generateMockData })
       : getMockConfig()
   );
 
-  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
-  const queryDefinitions = createMockQueryDefinitions(smJSInstance);
+  mmGQLInstance.setToken({
+    tokenName: DEFAULT_TOKEN_NAME,
+    token: 'mock token',
+  });
+  const queryDefinitions = createMockQueryDefinitions(mmGQLInstance);
 
-  return { smJSInstance, queryDefinitions, createMockQueryDefinitions };
+  return { mmGQLInstance, queryDefinitions, createMockQueryDefinitions };
 }

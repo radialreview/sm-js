@@ -5,12 +5,12 @@ import {
   getMockConfig,
 } from './specUtilities';
 
-import { SMJS } from '.';
+import { MMGQL } from '.';
 
-test('smQueryManager handles a query result and returns the expected data', () => {
-  const smJSInstance = new SMJS(getMockConfig());
-  const queryManager = new smJSInstance.SMQueryManager(
-    getMockQueryRecord(smJSInstance)
+test('QueryManager handles a query result and returns the expected data', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const queryManager = new mmGQLInstance.QueryManager(
+    getMockQueryRecord(mmGQLInstance)
   );
 
   queryManager.onQueryResult({

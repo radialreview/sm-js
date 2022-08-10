@@ -1,4 +1,4 @@
-import { string, number } from './smDataTypes';
+import { string, number } from './dataTypes';
 import { FilterOperator } from './types';
 
 // These are the properties that are essential for sm-js to function and are queried automatically with each query.

@@ -5,96 +5,114 @@ import {
   generateRandomString,
 } from './generateMockDataUtilities';
 import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
-import { SMData } from './smDataTypes';
+import { Data } from './dataTypes';
 import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
-  ISMData,
+  IData,
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
   RelationalQueryRecordEntry,
-  SMDataDefaultFn,
-  SM_DATA_TYPES,
+  DataDefaultFn,
+  DATA_TYPES,
 } from './types';
 
-type MockValuesISMDataReturnType =
+type MockValuesIDataReturnType =
   | Record<string, any>
   | number
   | string
   | boolean
   | Array<any>;
 
-function getMockValueForISMData(smData: ISMData): MockValuesISMDataReturnType {
-  switch (smData.type) {
-    case SM_DATA_TYPES.string: {
-      // We return the default value if it exists to account for cases where the string must be an enum.
-      return smData.defaultValue ? smData.defaultValue : generateRandomString();
-    }
-    case SM_DATA_TYPES.maybeString: {
+function getMockValueForIData(data: IData): MockValuesIDataReturnType {
+  switch (data.type) {
+    case DATA_TYPES.string: {
       return generateRandomString();
     }
-    case SM_DATA_TYPES.number: {
+    case DATA_TYPES.maybeString: {
+      return getRandomItemFromArray([generateRandomString(), null]);
+    }
+    case DATA_TYPES.stringEnum: {
+      return getRandomItemFromArray(data.acceptableValues as Array<any>);
+    }
+    case DATA_TYPES.maybeStringEnum: {
+      // 50/50 chance to get a value or null
+      return getRandomItemFromArray([
+        getRandomItemFromArray(data.acceptableValues as Array<any>),
+        null,
+      ]);
+    }
+    case DATA_TYPES.number: {
       return generateRandomNumber(1, 100);
     }
-    case SM_DATA_TYPES.maybeNumber: {
-      return generateRandomNumber(1, 100);
+    case DATA_TYPES.maybeNumber: {
+      return getRandomItemFromArray([generateRandomNumber(1, 100), null]);
     }
-    case SM_DATA_TYPES.boolean: {
+    case DATA_TYPES.boolean: {
       return generateRandomBoolean();
     }
-    case SM_DATA_TYPES.maybeBoolean: {
-      return generateRandomBoolean();
+    case DATA_TYPES.maybeBoolean: {
+      return getRandomItemFromArray([generateRandomBoolean(), null]);
     }
-    case SM_DATA_TYPES.object: {
-      return getMockValuesForISMDataRecord(smData.boxedValue);
+    case DATA_TYPES.object: {
+      return getMockValuesForIDataRecord(data.boxedValue);
     }
-    case SM_DATA_TYPES.maybeObject: {
-      return getMockValuesForISMDataRecord(smData.boxedValue);
+    case DATA_TYPES.maybeObject: {
+      return getRandomItemFromArray([
+        getMockValuesForIDataRecord(data.boxedValue),
+        null,
+      ]);
     }
-    case SM_DATA_TYPES.array: {
+    case DATA_TYPES.array: {
       return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
-        return typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(smData.boxedValue._default as ISMData)
-          : getMockValueForISMData(smData.boxedValue);
+        return typeof data.boxedValue === 'function'
+          ? getMockValueForIData(data.boxedValue._default as IData)
+          : getMockValueForIData(data.boxedValue);
       });
     }
-    case SM_DATA_TYPES.maybeArray: {
-      return new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
-        return typeof smData.boxedValue === 'function'
-          ? getMockValueForISMData(smData.boxedValue._default as ISMData)
-          : getMockValueForISMData(smData.boxedValue);
-      });
+    case DATA_TYPES.maybeArray: {
+      return getRandomItemFromArray([
+        new Array(generateRandomNumber(1, 10)).fill('').map(_ => {
+          return typeof data.boxedValue === 'function'
+            ? getMockValueForIData(data.boxedValue._default as IData)
+            : getMockValueForIData(data.boxedValue);
+        }),
+        null,
+      ]);
     }
-    case SM_DATA_TYPES.record: {
+    case DATA_TYPES.record: {
       return {
         [generateRandomString()]:
-          typeof smData.boxedValue === 'function'
-            ? getMockValueForISMData(smData.boxedValue._default as ISMData)
-            : getMockValueForISMData(smData.boxedValue),
+          typeof data.boxedValue === 'function'
+            ? getMockValueForIData(data.boxedValue._default as IData)
+            : getMockValueForIData(data.boxedValue),
       };
     }
-    case SM_DATA_TYPES.maybeRecord: {
-      return {
-        [generateRandomString()]:
-          typeof smData.boxedValue === 'function'
-            ? getMockValueForISMData(smData.boxedValue._default as ISMData)
-            : getMockValueForISMData(smData.boxedValue),
-      };
+    case DATA_TYPES.maybeRecord: {
+      return getRandomItemFromArray([
+        {
+          [generateRandomString()]:
+            typeof data.boxedValue === 'function'
+              ? getMockValueForIData(data.boxedValue._default as IData)
+              : getMockValueForIData(data.boxedValue),
+        },
+        null,
+      ]);
     }
     default:
-      throw new UnreachableCaseError(smData.type as never);
+      throw new UnreachableCaseError(data.type as never);
   }
 }
 
-export function getMockValuesForISMDataRecord(
-  record: Record<string, SMData<any, any, any> | SMDataDefaultFn>
+export function getMockValuesForIDataRecord(
+  record: Record<string, Data<any, any, any> | DataDefaultFn>
 ) {
   return Object.entries(record).reduce((acc, [key, value]) => {
     if (typeof value === 'function') {
-      acc[key] = getMockValueForISMData(value._default as ISMData);
+      acc[key] = getMockValueForIData(value._default as IData);
     } else {
-      acc[key] = getMockValueForISMData(value);
+      acc[key] = getMockValueForIData(value);
     }
     return acc;
   }, {} as Record<string, any>);
@@ -104,27 +122,27 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
   queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const queryRecord = opts.queryRecord;
-  const nodePropertiesToMock = Object.keys(queryRecord.def.smData)
+  const nodePropertiesToMock = Object.keys(queryRecord.def.data)
     .filter(nodeProperty => {
       return queryRecord.properties.includes(nodeProperty);
     })
     .reduce((acc, item) => {
-      acc[item] = (queryRecord.def.smData as Record<
+      acc[item] = (queryRecord.def.data as Record<
         string,
-        SMData<any, any, any> | SMDataDefaultFn
+        Data<any, any, any> | DataDefaultFn
       >)[item];
       return acc;
-    }, {} as Record<string, SMData<any, any, any> | SMDataDefaultFn>);
+    }, {} as Record<string, Data<any, any, any> | DataDefaultFn>);
 
   const mockedValues = {
     type: opts.queryRecord.def.type,
     version: '1',
-    ...getMockValuesForISMDataRecord(nodePropertiesToMock),
+    ...getMockValuesForIDataRecord(nodePropertiesToMock),
   };
 
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: mockedValues,
-    ISMDataRecord: nodePropertiesToMock,
+    IDataRecord: nodePropertiesToMock,
     generatingMockData: true,
   });
 
@@ -140,7 +158,8 @@ function generateMockNodeDataForAllQueryRecords(opts: {
   Object.keys(queryRecords).forEach(queryRecordAlias => {
     const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
       queryRecords[queryRecordAlias];
-    const returnValueShouldBeAnArray = !!queryRecord.id === false;
+    const returnValueShouldBeAnArray =
+      !!queryRecord.id === false && !('oneToOne' in queryRecord);
 
     let mockedNodeDataReturnValues;
     let relationalMockNodeProperties: Record<string, any> = {};
@@ -169,7 +188,7 @@ function generateMockNodeDataForAllQueryRecords(opts: {
         });
       }
 
-      mockedNodeDataReturnValues = arrayOfMockNodeValues;
+      mockedNodeDataReturnValues = { nodes: arrayOfMockNodeValues };
     } else {
       const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
         {
@@ -215,4 +234,8 @@ export function generateMockNodeDataFromQueryDefinitions<
   return generateMockNodeDataForAllQueryRecords({
     queryRecords,
   });
+}
+
+function getRandomItemFromArray(array: Array<any>) {
+  return array[Math.floor(Math.random() * array.length)];
 }

@@ -11,7 +11,7 @@ import { getEdgePermissionsString } from './utilities';
 export function replaceEdge(edge: ReplaceEdgeOpts): ReplaceEdgeOperation {
   return {
     type: 'replaceEdge',
-    smOperationName: 'ReplaceEdge',
+    operationName: 'ReplaceEdge',
     ...edge,
   };
 }
@@ -24,7 +24,7 @@ export function replaceEdges(
 ): ReplaceEdgesOperation {
   return {
     type: 'replaceEdges',
-    smOperationName: 'ReplaceEdge',
+    operationName: 'ReplaceEdge',
     edges,
   };
 }

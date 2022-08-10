@@ -4,18 +4,18 @@ import { getMutationNameFromOperations } from './getMutationNameFromOperations';
 
 export type DropNodeOperation = {
   type: 'dropNode';
-  smOperationName: 'DropNode';
+  operationName: 'DropNode';
   id: string;
   name?: string;
   onSuccess?: () => any;
 };
 
 export function dropNode(
-  operation: Omit<DropNodeOperation, 'type' | 'smOperationName'>
+  operation: Omit<DropNodeOperation, 'type' | 'operationName'>
 ): DropNodeOperation {
   return {
     type: 'dropNode',
-    smOperationName: 'DropNode',
+    operationName: 'DropNode',
     ...operation,
   };
 }

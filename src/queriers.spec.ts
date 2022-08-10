@@ -9,7 +9,7 @@ import {
   mockTodoData,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { queryDefinition, SMJS } from '.';
+import { MMGQL, queryDefinition } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { NULL_TAG } from './dataConversions';
 
@@ -22,10 +22,10 @@ afterAll(() => {
   console.error = nativeConsoleError;
 });
 
-test('sm.query uses the gql client, passing in the expected params', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('query uses the gql client, passing in the expected params', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const token = 'mock token';
-  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
+  mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
   const queryId = 'MockQueryId';
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
@@ -37,26 +37,26 @@ test('sm.query uses the gql client, passing in the expected params', async done 
     expect(opts.token).toEqual(token);
     return mockQueryDataReturn;
   });
-  smJSInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.query = mockQuery;
 
-  await smJSInstance.query(queryDefinitions, { queryId });
+  await mmGQLInstance.query(queryDefinitions, { queryId });
 
   expect(mockQuery).toHaveBeenCalled();
   done();
 });
 
-test('sm.query returns the correct data', async () => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('query returns the correct data', async () => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
-  const { data } = await smJSInstance.query(queryDefinitions);
+  const { data } = await mmGQLInstance.query(queryDefinitions);
 
   expect(data).toEqual(mockQueryResultExpectations);
 });
 
-test('sm.query calls "onData" with the result of the query', done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('query calls "onData" with the result of the query', done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
-  smJSInstance.query(queryDefinitions, {
+  mmGQLInstance.query(queryDefinitions, {
     onData: ({ results }) => {
       expect(results).toEqual(mockQueryResultExpectations);
       done();
@@ -64,14 +64,14 @@ test('sm.query calls "onData" with the result of the query', done => {
   });
 });
 
-test('sm.query calls "onError" when the query fails', done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('query calls "onError" when the query fails', done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(async () => {
     throw new Error('Something went wrong');
   });
-  smJSInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.query = mockQuery;
 
-  smJSInstance.query(queryDefinitions, {
+  mmGQLInstance.query(queryDefinitions, {
     onError: e => {
       expect(e.stack.includes(`Error: Something went wrong`)).toBe(true);
       done();
@@ -79,34 +79,34 @@ test('sm.query calls "onError" when the query fails', done => {
   });
 });
 
-test('sm.query throws an error when the query fails and no "onError" handler is provided', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('query throws an error when the query fails and no "onError" handler is provided', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(async () => {
     throw new Error('Something went wrong');
   });
-  smJSInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.query = mockQuery;
 
   try {
-    await smJSInstance.query(queryDefinitions);
+    await mmGQLInstance.query(queryDefinitions);
   } catch (e) {
     expect((e as any).stack.includes(`Error: Something went wrong`)).toBe(true);
     done();
   }
 });
 
-test('sm.query throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, createMockQueryDefinitions } = setupTest();
+test('query throws an error when the user specifies a token which has not been registered', async done => {
+  const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.query(
-      createMockQueryDefinitions(smJSInstance, {
+    await mmGQLInstance.query(
+      createMockQueryDefinitions(mmGQLInstance, {
         tokenName: 'invalidTokenName',
       })
     );
   } catch (e) {
     expect(
       (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with sm.setToken({ tokenName, token }))`
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
       )
     ).toBe(true);
 
@@ -114,36 +114,36 @@ test('sm.query throws an error when the user specifies a token which has not bee
   }
 });
 
-test('sm.query can query data using multiple tokens, by making parallel requests', () => {
-  const { smJSInstance, createMockQueryDefinitions } = setupTest();
+test('query can query data using multiple tokens, by making parallel requests', () => {
+  const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
 
-  smJSInstance.setToken({ tokenName: 'mainToken', token: '123' });
-  smJSInstance.setToken({ tokenName: 'altToken', token: '321' });
+  mmGQLInstance.setToken({ tokenName: 'mainToken', token: '123' });
+  mmGQLInstance.setToken({ tokenName: 'altToken', token: '321' });
 
-  const mainTokenQD = createMockQueryDefinitions(smJSInstance, {
+  const mainTokenQD = createMockQueryDefinitions(mmGQLInstance, {
     tokenName: 'mainToken',
   }).users;
-  const altTokenQD = createMockQueryDefinitions(smJSInstance, {
+  const altTokenQD = createMockQueryDefinitions(mmGQLInstance, {
     tokenName: 'altToken',
   }).users;
 
-  smJSInstance.gqlClient.query = jest.fn(async () => ({
+  mmGQLInstance.gqlClient.query = jest.fn(async () => ({
     mainTokenQD: mockQueryDataReturn.users,
     altTokenQD: mockQueryDataReturn.users,
   }));
 
-  smJSInstance.query({
+  mmGQLInstance.query({
     mainTokenQD,
     altTokenQD,
   });
 
-  expect(smJSInstance.gqlClient.query).toHaveBeenCalledTimes(2);
-  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+  expect(mmGQLInstance.gqlClient.query).toHaveBeenCalledTimes(2);
+  expect(mmGQLInstance.gqlClient.query).toHaveBeenCalledWith(
     expect.objectContaining({
       token: '123',
     })
   );
-  expect(smJSInstance.gqlClient.query).toHaveBeenCalledWith(
+  expect(mmGQLInstance.gqlClient.query).toHaveBeenCalledWith(
     expect.objectContaining({
       token: '321',
     })
@@ -162,7 +162,7 @@ function createMockDataItems<T>(opts: {
 }
 
 test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -179,9 +179,9 @@ test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () 
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -196,7 +196,7 @@ test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -213,9 +213,9 @@ test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () 
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -230,7 +230,7 @@ test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -247,9 +247,9 @@ test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () =
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -264,7 +264,7 @@ test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -281,9 +281,9 @@ test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () 
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -298,7 +298,7 @@ test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -315,9 +315,9 @@ test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () =
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -332,7 +332,7 @@ test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -349,9 +349,9 @@ test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () =
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score }) => ({
         id,
         score,
@@ -366,7 +366,7 @@ test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -383,9 +383,9 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score, archived }) => ({
         id,
         score,
@@ -401,7 +401,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
 });
 
 test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -420,9 +420,9 @@ test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () =>
 
   expect(
     (
-      await smJSInstance.query({
+      await mmGQLInstance.query({
         users: queryDefinition({
-          def: generateUserNode(smJSInstance),
+          def: generateUserNode(mmGQLInstance),
           map: ({ id, score, optionalProp }) => ({
             id,
             score,
@@ -438,7 +438,7 @@ test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () =>
 });
 
 test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -457,9 +457,9 @@ test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () =
 
   expect(
     (
-      await smJSInstance.query({
+      await mmGQLInstance.query({
         users: queryDefinition({
-          def: generateUserNode(smJSInstance),
+          def: generateUserNode(mmGQLInstance),
           map: ({ id, score, optionalProp }) => ({
             id,
             score,
@@ -475,7 +475,7 @@ test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -492,9 +492,9 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, archived }) => ({
         id,
         archived,
@@ -509,7 +509,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
 });
 
 test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -526,9 +526,9 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, firstName }) => ({
         id,
         firstName,
@@ -543,7 +543,7 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
 });
 
 test(`sm.query.filter can filter 'string' prop using '_contains' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -560,9 +560,9 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, firstName }) => ({
         id,
         firstName,
@@ -577,7 +577,7 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
 });
 
 test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -594,9 +594,9 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, firstName }) => ({
         id,
         firstName,
@@ -611,7 +611,7 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
 });
 
 test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -628,9 +628,9 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, firstName }) => ({
         id,
         firstName,
@@ -645,7 +645,7 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
 });
 
 test(`sm.query.filter supports old filter object format with '_eq' as default operator`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -662,9 +662,9 @@ test(`sm.query.filter supports old filter object format with '_eq' as default op
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, firstName }) => ({
         id,
         firstName,
@@ -679,7 +679,7 @@ test(`sm.query.filter supports old filter object format with '_eq' as default op
 });
 
 test(`sm.query.filter can filter relational data`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -716,9 +716,9 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score, todos }) => ({
         id,
         score,
@@ -737,7 +737,7 @@ test(`sm.query.filter can filter relational data`, async () => {
 });
 
 test(`sm.query.filter can filter multilevel relational data`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -766,9 +766,9 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
-  const { data } = await smJSInstance.query({
+  const { data } = await mmGQLInstance.query({
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, score, todos }) => ({
         id,
         score,
@@ -791,7 +791,7 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
 });
 
 test(`sm.query.filter can filter nested object property`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -810,9 +810,9 @@ test(`sm.query.filter can filter nested object property`, async () => {
 
   expect(
     (
-      await smJSInstance.query({
+      await mmGQLInstance.query({
         users: queryDefinition({
-          def: generateUserNode(smJSInstance),
+          def: generateUserNode(mmGQLInstance),
           map: ({ id, address }) => ({
             id,
             address: address({
@@ -831,7 +831,7 @@ test(`sm.query.filter can filter nested object property`, async () => {
 });
 
 test(`sm.query.filter should throw an error if property being filtered is not defined in the queryDefinition map function`, async () => {
-  const { smJSInstance } = setupTest({
+  const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
@@ -849,9 +849,9 @@ test(`sm.query.filter should throw an error if property being filtered is not de
   });
 
   try {
-    await smJSInstance.query({
+    await mmGQLInstance.query({
       users: queryDefinition({
-        def: generateUserNode(smJSInstance),
+        def: generateUserNode(mmGQLInstance),
         map: ({ id }) => ({
           id,
           address: ({ state }) => ({ state }),
@@ -872,14 +872,14 @@ test(`sm.query.filter should throw an error if property being filtered is not de
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
   const mockSubscribe = jest.fn(() => () => {});
-  smJSInstance.gqlClient.query = mockQuery;
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       done(e);
@@ -891,15 +891,15 @@ test('sm.subscribe by default queries and subscribes to the data set', async don
   done();
 });
 
-test('sm.subscribe does not query if skipInitialQuery is true', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe does not query if skipInitialQuery is true', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
   const mockSubscribe = jest.fn(() => () => {});
-  smJSInstance.gqlClient.query = mockQuery;
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -911,10 +911,10 @@ test('sm.subscribe does not query if skipInitialQuery is true', async done => {
   done();
 });
 
-test('sm.subscribe returns the expected data', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe returns the expected data', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
-  const { data } = await smJSInstance.subscribe(queryDefinitions, {
+  const { data } = await mmGQLInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       done(e);
@@ -925,14 +925,14 @@ test('sm.subscribe returns the expected data', async done => {
   done();
 });
 
-test('sm.subscribe returns a method to cancel any subscriptions started', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe returns a method to cancel any subscriptions started', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const cancel = jest.fn();
   const mockSubscribe = jest.fn(() => cancel);
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  const { unsub } = await smJSInstance.subscribe(queryDefinitions, {
+  const { unsub } = await mmGQLInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -945,9 +945,9 @@ test('sm.subscribe returns a method to cancel any subscriptions started', async 
   done();
 });
 
-test('sm.subscribe calls onData with the new set of results when a node is updated', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
-  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+test('subscribe calls onData with the new set of results when a node is updated', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQLInstance);
 
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
@@ -964,7 +964,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
     }, 20);
     return () => {};
   });
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
   let iteration = 0;
   const onData = jest.fn(({ results }) => {
@@ -975,7 +975,7 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
       iteration++;
     }
   });
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -988,9 +988,9 @@ test('sm.subscribe calls onData with the new set of results when a node is updat
   }, 40);
 });
 
-test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
-  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+test('subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQLInstance);
 
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
@@ -1014,8 +1014,8 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       }, 40);
     });
   });
-  smJSInstance.gqlClient.query = mockQuery;
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
   const onData = jest.fn(({ results }) => {
     try {
@@ -1024,7 +1024,7 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       done(e);
     }
   });
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -1037,9 +1037,9 @@ test('sm.subscribe handles a case where a subscription message comes in before t
   }, 60);
 });
 
-test('sm.subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
-  const mockSubscriptionMessage = getMockSubscriptionMessage(smJSInstance);
+test('subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
+  const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQLInstance);
 
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
@@ -1063,13 +1063,13 @@ test('sm.subscribe handles a case where a subscription message comes in before t
       }, 40);
     });
   });
-  smJSInstance.gqlClient.query = mockQuery;
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
   const onData = jest.fn(({ results }) => {
     expect(results).toEqual(mockQueryResultExpectations);
   });
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     onData: onData,
     onError: e => {
       done(e);
@@ -1082,15 +1082,15 @@ test('sm.subscribe handles a case where a subscription message comes in before t
   }, 60);
 });
 
-test('sm.subscribe calls onError when a subscription error occurs', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe calls onError when a subscription error occurs', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  await smJSInstance.subscribe(queryDefinitions, {
+  await mmGQLInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: () => {
@@ -1099,16 +1099,16 @@ test('sm.subscribe calls onError when a subscription error occurs', async done =
   });
 });
 
-test('sm.subscribe throws an error when a subscription initialization error occurs and no onError handler is provided', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe throws an error when a subscription initialization error occurs and no onError handler is provided', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
   try {
-    await smJSInstance.subscribe(queryDefinitions, {
+    await mmGQLInstance.subscribe(queryDefinitions, {
       skipInitialQuery: true,
       onData: () => {},
     });
@@ -1118,14 +1118,14 @@ test('sm.subscribe throws an error when a subscription initialization error occu
   }
 });
 
-test('sm.subscribe calls onError when a subscription initialization error occurs', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe calls onError when a subscription initialization error occurs', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
   });
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  smJSInstance.subscribe(queryDefinitions, {
+  mmGQLInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -1135,17 +1135,17 @@ test('sm.subscribe calls onError when a subscription initialization error occurs
   });
 });
 
-test('sm.subscribe calls onError when an ongoing subscription error occurs', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe calls onError when an ongoing subscription error occurs', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {
       opts.onError(new Error('Something went wrong'));
     }, 30);
     return () => {};
   });
-  smJSInstance.gqlClient.subscribe = mockSubscribe;
+  mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
-  smJSInstance.subscribe(queryDefinitions, {
+  mmGQLInstance.subscribe(queryDefinitions, {
     skipInitialQuery: true,
     onData: () => {},
     onError: e => {
@@ -1157,14 +1157,14 @@ test('sm.subscribe calls onError when an ongoing subscription error occurs', asy
   });
 });
 
-test('sm.subscribe calls onError when a query error occurs', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe calls onError when a query error occurs', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(() => {
     throw Error('Some error');
   });
-  smJSInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.query = mockQuery;
 
-  smJSInstance.subscribe(queryDefinitions, {
+  mmGQLInstance.subscribe(queryDefinitions, {
     onData: () => {},
     onError: e => {
       expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
@@ -1173,15 +1173,15 @@ test('sm.subscribe calls onError when a query error occurs', async done => {
   });
 });
 
-test('sm.subscribe throws an error when a query error occurs and no onError handler is provided', async done => {
-  const { smJSInstance, queryDefinitions } = setupTest();
+test('subscribe throws an error when a query error occurs and no onError handler is provided', async done => {
+  const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockQuery = jest.fn(() => {
     throw Error('Some error');
   });
-  smJSInstance.gqlClient.query = mockQuery;
+  mmGQLInstance.gqlClient.query = mockQuery;
 
   try {
-    await smJSInstance.subscribe(queryDefinitions, {
+    await mmGQLInstance.subscribe(queryDefinitions, {
       onData: () => {},
     });
   } catch (e) {
@@ -1190,12 +1190,12 @@ test('sm.subscribe throws an error when a query error occurs and no onError hand
   }
 });
 
-test('sm.subscribe throws an error when the user specifies a token which has not been registered', async done => {
-  const { smJSInstance, createMockQueryDefinitions } = setupTest();
+test('subscribe throws an error when the user specifies a token which has not been registered', async done => {
+  const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
 
   try {
-    await smJSInstance.subscribe(
-      createMockQueryDefinitions(smJSInstance, {
+    await mmGQLInstance.subscribe(
+      createMockQueryDefinitions(mmGQLInstance, {
         tokenName: 'invalidTokenName',
       }),
       {
@@ -1205,7 +1205,7 @@ test('sm.subscribe throws an error when the user specifies a token which has not
   } catch (e) {
     expect(
       (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with sm.setToken({ tokenName, token }))`
+        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
       )
     ).toBe(true);
     done();
@@ -1213,11 +1213,14 @@ test('sm.subscribe throws an error when the user specifies a token which has not
 });
 
 function setupTest(mockData?: any) {
-  const smJSInstance = new SMJS(
+  const mmGQLInstance = new MMGQL(
     getMockConfig({ mockData: mockData, generateMockData: false })
   );
-  smJSInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
-  const queryDefinitions = createMockQueryDefinitions(smJSInstance);
+  mmGQLInstance.setToken({
+    tokenName: DEFAULT_TOKEN_NAME,
+    token: 'mock token',
+  });
+  const queryDefinitions = createMockQueryDefinitions(mmGQLInstance);
 
-  return { smJSInstance, queryDefinitions, createMockQueryDefinitions };
+  return { mmGQLInstance, queryDefinitions, createMockQueryDefinitions };
 }

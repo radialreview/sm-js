@@ -4,14 +4,14 @@ import { OBJECT_PROPERTY_SEPARATOR } from '..';
 import {
   DeepPartial,
   GetResultingDataTypeFromNodeDefinition,
-  ISMNode,
+  INode,
 } from '../types';
 import { convertNodeDataToSMPersistedData } from './convertNodeDataToSMPersistedData';
 import { getMutationNameFromOperations } from './getMutationNameFromOperations';
 
 export type UpdateNodesOperation = {
   type: 'updateNodes';
-  smOperationName: 'UpdateNodes';
+  operationName: 'UpdateNodes';
   nodes: Array<{
     data: { id: string } & Record<string, any>;
     position?: number;
@@ -22,22 +22,22 @@ export type UpdateNodesOperation = {
 };
 
 export function updateNodes(
-  operation: Omit<UpdateNodesOperation, 'type' | 'smOperationName'>
+  operation: Omit<UpdateNodesOperation, 'type' | 'operationName'>
 ): UpdateNodesOperation {
   return {
     type: 'updateNodes',
-    smOperationName: 'UpdateNodes',
+    operationName: 'UpdateNodes',
     ...operation,
   };
 }
 
 export type UpdateNodeOperation<
-  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
+  TNode extends INode = INode<any, Record<string, any>>
 > = {
   type: 'updateNode';
-  smOperationName: 'UpdateNodes';
+  operationName: 'UpdateNodes';
   data: { id: string } & DeepPartial<
-    GetResultingDataTypeFromNodeDefinition<TSMNode>
+    GetResultingDataTypeFromNodeDefinition<TNode>
   >;
   name?: string;
   onSuccess?: (data: any) => void;
@@ -45,13 +45,13 @@ export type UpdateNodeOperation<
 };
 
 export function updateNode<
-  TSMNode extends ISMNode = ISMNode<any, Record<string, any>>
+  TNode extends INode = INode<any, Record<string, any>>
 >(
-  operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>
-): UpdateNodeOperation<TSMNode> {
+  operation: Omit<UpdateNodeOperation<TNode>, 'type' | 'operationName'>
+): UpdateNodeOperation<TNode> {
   return {
     type: 'updateNode',
-    smOperationName: 'UpdateNodes',
+    operationName: 'UpdateNodes',
     ...operation,
   };
 }
@@ -137,9 +137,9 @@ export function getMutationsFromTransactionUpdateOperations(
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation: {
   id: string;
 }): string {
-  const dataToPersistInSM = convertNodeDataToSMPersistedData(operation);
+  const dataToPersist = convertNodeDataToSMPersistedData(operation);
 
   return `{
-      ${dataToPersistInSM}
+      ${dataToPersist}
     }`;
 }

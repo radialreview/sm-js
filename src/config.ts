@@ -1,11 +1,14 @@
 import { getGQLCLient } from './gqlClient';
-import { SMConfig } from './types';
+import { Config } from './types';
 
-export function getDefaultConfig(): SMConfig {
+export function getDefaultConfig(): Config {
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
-      wsUrl: 'wss://saasmaster.dev02.tt-devs.com/',
+      httpUrl:
+        'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl:
+        'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
     }),
+    generateMockData: false,
   };
 }

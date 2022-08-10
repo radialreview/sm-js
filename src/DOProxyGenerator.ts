@@ -1,22 +1,22 @@
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import {
-  SMNotUpToDateException,
-  SMNotUpToDateInComputedException,
+  NotUpToDateException,
+  NotUpToDateInComputedException,
 } from './exceptions';
-import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
 import {
-  ISMJS,
-  ISMData,
-  SMDataDefaultFn,
+  IMMGQL,
+  IData,
+  DataDefaultFn,
   IDOProxy,
-  ISMNode,
+  INode,
   NodeDO,
   Maybe,
   RelationalQueryRecordEntry,
-  SM_DATA_TYPES,
+  DATA_TYPES,
 } from './types';
 
-export function createDOProxyGenerator(smJSInstance: ISMJS) {
+export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
   /**
    * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
    * Instead, we decorate each DO instance with a bit of functionality
@@ -47,14 +47,14 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
    */
   return function DOProxyGenerator<
     TNodeType extends string,
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
     TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
   >(opts: {
-    node: ISMNode<TNodeType, TNodeData, TNodeComputedData>;
+    node: INode<TNodeType, TNodeData, TNodeComputedData>;
     queryId: string;
     do: NodeDO;
-    // The DOProxy protects the dev from reading a property that we haven't actually queried from SM
+    // The DOProxy protects the dev from reading a property that we haven't actually queried from the backend
     allPropertiesQueried: Array<string>;
     relationalResults: Maybe<TRelationalResults>;
     relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
@@ -62,15 +62,15 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
     let relationalResults = opts.relationalResults;
 
     // Casting to unknown here because we don't want type safety around structure of a node's data when building plugins
-    // but completely losing type safety in opts.node.smComputed would break the return type inference in QueryDataReturn
-    const nodeSMComputed = (opts.node.smComputed as unknown) as Record<
+    // but completely losing type safety in opts.node.computed would break the return type inference in QueryDataReturn
+    const nodeComputed = (opts.node.computed as unknown) as Record<
       string,
       (proxy: IDOProxy) => any
     >;
-    const computedAccessors = nodeSMComputed
-      ? Object.keys(nodeSMComputed).reduce((acc, computedKey) => {
-          let computedFn = () => nodeSMComputed[computedKey](proxy as IDOProxy);
-          smJSInstance.plugins?.forEach(plugin => {
+    const computedAccessors = nodeComputed
+      ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
+          let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
+          mmGQLInstance.plugins?.forEach(plugin => {
             if (plugin.DOProxy?.computedDecorator) {
               computedFn = plugin.DOProxy.computedDecorator({
                 ProxyInstance: proxy,
@@ -103,8 +103,8 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
         }
 
         // enumerate computed properties which have all the data they need queried
-        // otherwise they throw SMNotUpToDateException and we don't enumerate
-        if (nodeSMComputed && Object.keys(nodeSMComputed).includes(key)) {
+        // otherwise they throw NotUpToDateException and we don't enumerate
+        if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
           try {
             computedAccessors[key]();
             return {
@@ -112,7 +112,7 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
               enumerable: true,
             };
           } catch (e) {
-            if (!(e instanceof SMNotUpToDateException)) throw e;
+            if (!(e instanceof NotUpToDateException)) throw e;
 
             return {
               ...Object.getOwnPropertyDescriptor(target, key),
@@ -141,39 +141,34 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
           opts.relationalQueries &&
           Object.keys(relationalResults).includes(key)
         ) {
-          // SM returns an array when "byReference" is used
-          // but we only care about the first result
-          if ('byReference' in opts.relationalQueries[key]) {
-            const results = relationalResults[key];
-            if (!Array.isArray(results))
-              throw Error(`Expected results to be an array but it wasn't`);
-            return results[0];
+          if ('oneToOne' in opts.relationalQueries[key]) {
+            return relationalResults[key];
           }
           return relationalResults[key];
         }
 
-        if (Object.keys(opts.node.smData).includes(key)) {
+        if (Object.keys(opts.node.data).includes(key)) {
           if (!opts.allPropertiesQueried.includes(key)) {
-            throw new SMNotUpToDateException({
+            throw new NotUpToDateException({
               propName: key,
               queryId: opts.queryId,
               nodeType: opts.node.type,
             });
           }
 
-          const smDataForThisProp = opts.node.smData[key] as ISMData;
+          const dataForThisProp = opts.node.data[key] as IData;
           if (
-            smDataForThisProp.type === SM_DATA_TYPES.object ||
-            smDataForThisProp.type === SM_DATA_TYPES.maybeObject
+            dataForThisProp.type === DATA_TYPES.object ||
+            dataForThisProp.type === DATA_TYPES.maybeObject
           ) {
-            // do not return an object if this prop came back as null from SM
+            // do not return an object if this prop came back as null from backend
             if (opts.do[key] == null) return opts.do[key];
 
             return getNestedObjectWithNotUpToDateProtection({
               nodeType: opts.node.type,
               queryId: opts.queryId,
               allCachedData: opts.do[key],
-              smDataForThisObject: smDataForThisProp.boxedValue,
+              dataForThisObject: dataForThisProp.boxedValue,
               allPropertiesQueried: opts.allPropertiesQueried,
               parentObjectKey: key,
             });
@@ -184,8 +179,8 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
           try {
             return computedAccessors[key]();
           } catch (e) {
-            if (e instanceof SMNotUpToDateException) {
-              throw new SMNotUpToDateInComputedException({
+            if (e instanceof NotUpToDateException) {
+              throw new NotUpToDateInComputedException({
                 computedPropName: key,
                 propName: e.propName,
                 nodeType: opts.node.type,
@@ -208,17 +203,17 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
     nodeType: string;
     queryId: string;
     allCachedData: Record<string, any>;
-    smDataForThisObject: Record<string, ISMData>;
+    dataForThisObject: Record<string, IData>;
     allPropertiesQueried: Array<string>;
     parentObjectKey: Maybe<string>;
   }) {
     const objectToReturn = {};
 
-    Object.keys(opts.smDataForThisObject).forEach(objectProp => {
+    Object.keys(opts.dataForThisObject).forEach(objectProp => {
       const name = opts.parentObjectKey
         ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
         : objectProp;
-      const smDataForThisProp = opts.smDataForThisObject[objectProp];
+      const dataForThisProp = opts.dataForThisObject[objectProp];
       const isUpToDate =
         opts.allPropertiesQueried.includes(name) ||
         // this second case handles ensuring that nested objects are enumerable
@@ -232,8 +227,8 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
         enumerable: isUpToDate,
         get: () => {
           if (
-            smDataForThisProp.type === SM_DATA_TYPES.object ||
-            smDataForThisProp.type === SM_DATA_TYPES.maybeObject
+            dataForThisProp.type === DATA_TYPES.object ||
+            dataForThisProp.type === DATA_TYPES.maybeObject
           ) {
             if (opts.allCachedData[objectProp] == null)
               return opts.allCachedData[objectProp];
@@ -242,14 +237,14 @@ export function createDOProxyGenerator(smJSInstance: ISMJS) {
               nodeType: opts.nodeType,
               queryId: opts.queryId,
               allCachedData: opts.allCachedData[objectProp],
-              smDataForThisObject: smDataForThisProp.boxedValue,
+              dataForThisObject: dataForThisProp.boxedValue,
               allPropertiesQueried: opts.allPropertiesQueried,
               parentObjectKey: name,
             });
           }
 
           if (!isUpToDate) {
-            throw new SMNotUpToDateException({
+            throw new NotUpToDateException({
               propName: name,
               nodeType: opts.nodeType,
               queryId: opts.queryId,

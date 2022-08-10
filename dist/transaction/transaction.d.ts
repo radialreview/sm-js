@@ -3,7 +3,7 @@ import { CreateEdgeOperation, CreateEdgesOperation, DropEdgeOperation, DropEdges
 import { createNode, CreateNodeOperation, createNodes, CreateNodesOperation } from './create';
 import { updateNode, UpdateNodeOperation, updateNodes, UpdateNodesOperation } from './update';
 import { dropNode, DropNodeOperation } from './drop';
-import { ISMJS } from '../types';
+import { IMMGQL } from '../types';
 export interface ITransactionContext {
     createNodes: typeof createNodes;
     createNode: typeof createNode;
@@ -35,7 +35,7 @@ export interface IPendingTransaction {
     token: string;
 }
 declare type OperationType = CreateNodeOperation | CreateNodesOperation | UpdateNodeOperation | UpdateNodesOperation | DropNodeOperation | CreateEdgeOperation | CreateEdgesOperation | DropEdgeOperation | DropEdgesOperation | UpdateEdgeOperation | UpdateEdgesOperation | ReplaceEdgeOperation | ReplaceEdgesOperation;
-export declare function createTransaction(smJSInstance: ISMJS, globalOperationHandlers: {
+export declare function createTransaction(mmGQLInstance: IMMGQL, globalOperationHandlers: {
     onUpdateRequested(update: {
         id: string;
         payload: Record<string, any>;

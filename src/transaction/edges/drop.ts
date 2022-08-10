@@ -10,7 +10,7 @@ import {
 export function dropEdge(edge: DropEdgeOpts): DropEdgeOperation {
   return {
     type: 'dropEdge',
-    smOperationName: 'DropEdge',
+    operationName: 'DropEdge',
     ...edge,
   };
 }
@@ -18,7 +18,7 @@ export function dropEdge(edge: DropEdgeOpts): DropEdgeOperation {
 export function dropEdges(edges: Array<DropEdgeOpts>): DropEdgesOperation {
   return {
     type: 'dropEdges',
-    smOperationName: 'DropEdge',
+    operationName: 'DropEdge',
     edges,
   };
 }

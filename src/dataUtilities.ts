@@ -3,7 +3,7 @@ import { FILTER_OPERATORS } from './consts';
 import {
   FilterOperator,
   FilterValue,
-  ISMNode,
+  INode,
   ValidFilterForNode,
 } from './types';
 
@@ -199,8 +199,8 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
  * @param filterObject : ;
  * @returns
  */
-export function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(
-  filterObject: ValidFilterForNode<TSMNode>
+export function getFlattenedNodeFilterObject<TNode extends INode>(
+  filterObject: ValidFilterForNode<TNode>
 ) {
   const result: Record<string, FilterValue<any>> = {};
 

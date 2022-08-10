@@ -1,3 +1,3 @@
-export declare function generateRandomString(): any;
-export declare function generateRandomBoolean(): any;
-export declare function generateRandomNumber(min: number, max: number): any;
+export declare function generateRandomString(): string;
+export declare function generateRandomBoolean(): boolean;
+export declare function generateRandomNumber(min: number, max: number): number;

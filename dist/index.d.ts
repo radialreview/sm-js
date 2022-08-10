@@ -1,24 +1,24 @@
-import { ISMJS, SMConfig, ISMData, SMDataDefaultFn, NodeRelationalQueryBuilderRecord, NodeMutationFn, NodeDefArgs, ISMNode, SMNodeDefaultProps } from './types';
+import { IMMGQL, Config, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeDefArgs, INode, NodeDefaultProps } from './types';
 export * from './types';
-export * from './smDataTypes';
+export * from './dataTypes';
 export * from './react';
 export * from './config';
 export * from './gqlClient';
 export * from './consts';
-export declare class SMJS implements ISMJS {
-    gqlClient: ISMJS['gqlClient'];
-    plugins: ISMJS['plugins'];
-    query: ISMJS['query'];
-    generateMockData: ISMJS['generateMockData'];
-    subscribe: ISMJS['subscribe'];
-    SMQueryManager: ISMJS['SMQueryManager'];
-    transaction: ISMJS['transaction'];
+export declare class MMGQL implements IMMGQL {
+    gqlClient: IMMGQL['gqlClient'];
+    generateMockData: IMMGQL['generateMockData'];
+    plugins: IMMGQL['plugins'];
+    query: IMMGQL['query'];
+    subscribe: IMMGQL['subscribe'];
+    QueryManager: IMMGQL['QueryManager'];
+    transaction: IMMGQL['transaction'];
     tokens: Record<string, string>;
-    DOFactory: ISMJS['DOFactory'];
-    DOProxyGenerator: ISMJS['DOProxyGenerator'];
+    DOFactory: IMMGQL['DOFactory'];
+    DOProxyGenerator: IMMGQL['DOProxyGenerator'];
     private optimisticUpdatesOrchestrator;
-    constructor(config: SMConfig);
-    def<TNodeType extends string, TNodeData extends Record<string, ISMData | SMDataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}, TNodeMutations extends Record<string, NodeMutationFn> = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData, TNodeMutations>): ISMNode<TNodeType, TNodeData & SMNodeDefaultProps, TNodeComputedData, TNodeRelationalData, TNodeMutations>;
+    constructor(config: Config);
+    def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<TNodeType, TNodeData, TNodeComputedData, TNodeRelationalData>): INode<TNodeType, TNodeData & NodeDefaultProps, TNodeComputedData, TNodeRelationalData>;
     getToken(opts: {
         tokenName: string;
     }): string;

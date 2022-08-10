@@ -1,8 +1,8 @@
 import { DocumentNode } from '@apollo/client/core';
-import { DeepPartial, GetResultingDataTypeFromNodeDefinition, ISMNode } from '../types';
+import { DeepPartial, GetResultingDataTypeFromNodeDefinition, INode } from '../types';
 export declare type UpdateNodesOperation = {
     type: 'updateNodes';
-    smOperationName: 'UpdateNodes';
+    operationName: 'UpdateNodes';
     nodes: Array<{
         data: {
             id: string;
@@ -13,16 +13,16 @@ export declare type UpdateNodesOperation = {
     }>;
     name?: string;
 };
-export declare function updateNodes(operation: Omit<UpdateNodesOperation, 'type' | 'smOperationName'>): UpdateNodesOperation;
-export declare type UpdateNodeOperation<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>> = {
+export declare function updateNodes(operation: Omit<UpdateNodesOperation, 'type' | 'operationName'>): UpdateNodesOperation;
+export declare type UpdateNodeOperation<TNode extends INode = INode<any, Record<string, any>>> = {
     type: 'updateNode';
-    smOperationName: 'UpdateNodes';
+    operationName: 'UpdateNodes';
     data: {
         id: string;
-    } & DeepPartial<GetResultingDataTypeFromNodeDefinition<TSMNode>>;
+    } & DeepPartial<GetResultingDataTypeFromNodeDefinition<TNode>>;
     name?: string;
     onSuccess?: (data: any) => void;
     onFail?: () => void;
 };
-export declare function updateNode<TSMNode extends ISMNode = ISMNode<any, Record<string, any>>>(operation: Omit<UpdateNodeOperation<TSMNode>, 'type' | 'smOperationName'>): UpdateNodeOperation<TSMNode>;
+export declare function updateNode<TNode extends INode = INode<any, Record<string, any>>>(operation: Omit<UpdateNodeOperation<TNode>, 'type' | 'operationName'>): UpdateNodeOperation<TNode>;
 export declare function getMutationsFromTransactionUpdateOperations(operations: Array<UpdateNodeOperation | UpdateNodesOperation>): Array<DocumentNode>;

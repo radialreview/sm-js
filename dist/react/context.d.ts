@@ -1,6 +1,6 @@
 import React from 'react';
-import { SubscriptionCanceller, ISMJS, DocumentNode } from '../types';
-export interface ISMContextSubscription {
+import { SubscriptionCanceller, IMMGQL, DocumentNode } from '../types';
+export interface IContextSubscription {
     results?: any;
     error?: any;
     querying?: boolean;
@@ -15,10 +15,10 @@ export interface ISMContextSubscription {
     } | null;
     lastQueryTimestamp?: number;
 }
-export interface ISMContext {
-    smJSInstance: ISMJS;
-    ongoingSubscriptionRecord: Record<string, ISMContextSubscription>;
-    updateSubscriptionInfo: (subscriptionId: string, subInfo: Partial<ISMContextSubscription>) => void;
+export interface IContext {
+    mmGQLInstance: IMMGQL;
+    ongoingSubscriptionRecord: Record<string, IContextSubscription>;
+    updateSubscriptionInfo: (subscriptionId: string, subInfo: Partial<IContextSubscription>) => void;
     scheduleCleanup: (subscriptionId: string) => void;
     cancelCleanup: (subscriptionId: string) => void;
     onHookMount: (subscriptionId: string, opts: {
@@ -26,15 +26,15 @@ export interface ISMContext {
     }) => void;
     onHookUnmount: (subscriptionId: string) => void;
 }
-export declare const SMContext: React.Context<ISMContext>;
+export declare const MMGQLContext: React.Context<IContext>;
 export declare const LoggingContext: React.Context<{
     unsafe__silenceDuplicateSubIdErrors: boolean;
 }>;
 export declare const UnsafeNoDuplicateSubIdErrorProvider: (props: {
     children: React.ReactNode;
 }) => JSX.Element;
-export declare const SMProvider: (props: {
+export declare const MMGQLProvider: (props: {
     children: React.ReactNode;
-    smJS: ISMJS;
+    mmGQL: IMMGQL;
     subscriptionTTLMs?: number;
 }) => JSX.Element;

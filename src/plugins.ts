@@ -1,7 +1,7 @@
 import { computed, makeAutoObservable } from 'mobx';
-import { SMPlugin } from './types';
+import { Plugin } from './types';
 
-export const mobxPlugin: SMPlugin = {
+export const mobxPlugin: Plugin = {
   DO: {
     onConstruct: ({ DOInstance, parsedDataKey }) => {
       makeAutoObservable(DOInstance[parsedDataKey]);

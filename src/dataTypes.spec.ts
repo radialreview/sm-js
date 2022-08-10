@@ -1,15 +1,18 @@
-import { getDefaultConfig, SMJS } from '.';
-import { SMDataTypeException } from './exceptions';
-import * as smData from './smDataTypes';
+import { getDefaultConfig, MMGQL } from '.';
+import {
+  DataTypeException,
+  DataTypeExplicitDefaultException,
+} from './exceptions';
+import * as data from './dataTypes';
 
 describe('Node default properties', () => {
   it('should handle defaults/optional properties for string types', () => {
     const properties = {
-      firstName: smData.string('Joe'),
-      lastName: smData.string,
-      nickname: smData.string('Joey'),
-      address: smData.string.optional,
-      description: smData.string.optional,
+      firstName: data.string('Joe'),
+      lastName: data.string,
+      nickname: data.string('Joey'),
+      address: data.string.optional,
+      description: data.string.optional,
     };
 
     const def = {
@@ -17,7 +20,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       nickname: 'Joseph',
@@ -33,11 +36,11 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for number types', () => {
     const properties = {
-      price: smData.number(123.15),
-      taxRate: smData.number,
-      credits: smData.number(5),
-      total: smData.number.optional,
-      subTotal: smData.number.optional,
+      price: data.number(123.15),
+      taxRate: data.number,
+      credits: data.number(5),
+      total: data.number.optional,
+      subTotal: data.number.optional,
     };
 
     const def = {
@@ -45,7 +48,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       credits: '40',
@@ -61,10 +64,10 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for boolean types', () => {
     const properties = {
-      isLoggingEnabled: smData.boolean(true),
-      isBillingEnabled: smData.boolean(false),
-      isAdminEnabled: smData.boolean.optional,
-      isProduction: smData.boolean.optional,
+      isLoggingEnabled: data.boolean(true),
+      isBillingEnabled: data.boolean(false),
+      isAdminEnabled: data.boolean.optional,
+      isProduction: data.boolean.optional,
     };
 
     const def = {
@@ -72,7 +75,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       isBillingEnabled: 'true',
@@ -85,10 +88,10 @@ describe('Node default properties', () => {
     expect(DO.isProduction).toEqual(false);
   });
 
-  it('should throw an error if a number is passed an invalid default', () => {
+  it('should throw an error if no explicit default is set', () => {
     const properties = {
-      firstNumber: smData.number(42),
-      invalidNumber: smData.number,
+      isLoggingEnabled: data.boolean(true),
+      isBillingEnabled: data.boolean,
     };
 
     const def = {
@@ -96,29 +99,51 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
+
+    try {
+      new DOClass({
+        isLoggingEnabled: true,
+      });
+    } catch (e) {
+      expect(e instanceof DataTypeExplicitDefaultException).toEqual(true);
+    }
+  });
+
+  it('should throw an error if a number is passed an invalid default', () => {
+    const properties = {
+      firstNumber: data.number(42),
+      invalidNumber: data.number,
+    };
+
+    const def = {
+      type: 'mockNodeType',
+      properties,
+    };
+
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     try {
       new DOClass({
         invalidNumber: 'hello',
       });
     } catch (e) {
-      expect(e instanceof SMDataTypeException).toEqual(true);
+      expect(e instanceof DataTypeException).toEqual(true);
     }
   });
 
   it('should handle defaults/optional properties for array types', () => {
     const properties = {
-      pets: smData.array(smData.string)(['cat', 'dog', 'bird']),
-      dogBreeds: smData.array(smData.string)(['pug', 'golden retriever']),
-      catBreeds: smData.array(smData.string),
-      insects: smData.array(smData.string),
-      birdBreeds: smData.array(smData.string).optional,
-      petsInStock: smData.array(
-        smData.object({
-          name: smData.string,
-          type: smData.string('n/a'),
-          onSale: smData.boolean(true),
+      pets: data.array(data.string)(['cat', 'dog', 'bird']),
+      dogBreeds: data.array(data.string)(['pug', 'golden retriever']),
+      catBreeds: data.array(data.string),
+      insects: data.array(data.string),
+      birdBreeds: data.array(data.string).optional,
+      petsInStock: data.array(
+        data.object({
+          name: data.string,
+          type: data.string('n/a'),
+          onSale: data.boolean(true),
         })
       ),
     };
@@ -128,7 +153,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       dogBreeds: ['husky'],
@@ -158,18 +183,18 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for object types', () => {
     const properties = {
-      zoo: smData.string,
-      animal: smData.object.optional({
-        type: smData.string('cat'),
-        name: smData.string('joe'),
-        age: smData.number,
-        isGoodBoy: smData.boolean.optional,
-        favoriteFoods: smData.array(smData.string).optional,
+      zoo: data.string,
+      animal: data.object.optional({
+        type: data.string('cat'),
+        name: data.string('joe'),
+        age: data.number,
+        isGoodBoy: data.boolean.optional,
+        favoriteFoods: data.array(data.string).optional,
 
-        owner: smData.object({ name: smData.string('rick') }),
-        bestFriend: smData.object.optional({ name: smData.string }),
-        favoriteNumbers: smData.array(smData.number),
-        leastFavoriteNumbers: smData.array(smData.number).optional,
+        owner: data.object({ name: data.string('rick') }),
+        bestFriend: data.object.optional({ name: data.string }),
+        favoriteNumbers: data.array(data.number),
+        leastFavoriteNumbers: data.array(data.number).optional,
       }),
     };
 
@@ -178,7 +203,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       zoo: 'brendans zoo',
@@ -203,9 +228,9 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for record types (string values)', () => {
     const properties = {
-      person: smData.record.optional(smData.string),
-      animal: smData.record.optional(smData.string),
-      other: smData.record(smData.string('John')),
+      person: data.record.optional(data.string),
+      animal: data.record.optional(data.string),
+      other: data.record(data.string('John')),
     };
 
     const def = {
@@ -213,7 +238,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       person: {
@@ -233,10 +258,10 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for record types (number values)', () => {
     const properties = {
-      productName: smData.string,
-      cost: smData.record(smData.number),
-      test: smData.record(smData.array(smData.string)),
-      secretPrice: smData.record(smData.number(100)),
+      productName: data.string,
+      cost: data.record(data.number),
+      test: data.record(data.array(data.string)),
+      secretPrice: data.record(data.number(100)),
     };
 
     const def = {
@@ -244,7 +269,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       productName: 'guitar',
@@ -269,8 +294,8 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for record types (boolean values)', () => {
     const properties = {
-      todos: smData.record(smData.boolean(false)),
-      featureFlags: smData.record(smData.boolean(true)),
+      todos: data.record(data.boolean(false)),
+      featureFlags: data.record(data.boolean(true)),
     };
 
     const def = {
@@ -278,30 +303,30 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       todos: {
-        hasTestedSmDataTypes: 'true',
+        hasTestedDataTypes: 'true',
       },
       featureFlags: {
         enableBilling: undefined,
       },
     });
 
-    expect(DO.todos.hasTestedSmDataTypes).toEqual(true);
+    expect(DO.todos.hasTestedDataTypes).toEqual(true);
     expect(DO.featureFlags.enableBilling).toEqual(true);
   });
 
   it('should handle defaults/optional properties for record types (array values)', () => {
     const properties = {
-      numbers: smData.record(smData.array(smData.number)),
-      people: smData.record(
-        smData.array(
-          smData.object({
-            name: smData.string,
-            age: smData.number,
-            occupation: smData.string('plumber'),
+      numbers: data.record(data.array(data.number)),
+      people: data.record(
+        data.array(
+          data.object({
+            name: data.string,
+            age: data.number,
+            occupation: data.string('plumber'),
           })
         )
       ),
@@ -312,7 +337,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       numbers: {
@@ -335,11 +360,11 @@ describe('Node default properties', () => {
 
   it('should handle defaults/optional properties for record types (object values)', () => {
     const properties = {
-      peopleById: smData.record(
-        smData.object({
-          name: smData.string,
-          age: smData.number,
-          occupation: smData.string('plumber'),
+      peopleById: data.record(
+        data.object({
+          name: data.string,
+          age: data.number,
+          occupation: data.string('plumber'),
         })
       ),
     };
@@ -349,7 +374,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       peopleById: {
@@ -369,7 +394,7 @@ describe('Node default properties', () => {
 
   it('defines default node properties', () => {
     const properties = {
-      custom: smData.string,
+      custom: data.string,
     };
 
     const def = {
@@ -377,7 +402,7 @@ describe('Node default properties', () => {
       properties,
     };
 
-    const DOClass = new SMJS(getDefaultConfig()).def(def).do;
+    const DOClass = new MMGQL(getDefaultConfig()).def(def).do;
 
     const DO = new DOClass({
       id: 'joe',

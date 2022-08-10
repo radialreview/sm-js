@@ -1,13 +1,13 @@
-import { children, getDefaultConfig, SMJS, string } from 'sm-js';
+import { children, getDefaultConfig, MMGQL, string } from 'mm-gql';
 import { gql } from '@apollo/client/core';
 
 const config = getDefaultConfig();
 
-const smJS = new SMJS(config);
+const mmGQL = new MMGQL(config);
 
-export default smJS;
+export default mmGQL;
 
-export const todoNode = smJS.def({
+export const todoNode = mmGQL.def({
   type: 'todo',
   properties: {
     id: string,
@@ -15,8 +15,8 @@ export const todoNode = smJS.def({
   },
 });
 
-export const userNode = smJS.def({
-  type: 'tt-user',
+export const userNode = mmGQL.def({
+  type: 'user',
   properties: {
     id: string,
     firstName: string,

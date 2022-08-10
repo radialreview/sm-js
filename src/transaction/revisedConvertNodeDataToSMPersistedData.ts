@@ -1,9 +1,9 @@
 import {
   OBJECT_IDENTIFIER,
   OBJECT_PROPERTY_SEPARATOR,
-  SMData,
-} from '../smDataTypes';
-import { Maybe, SMDataDefaultFn, SM_DATA_TYPES } from '../types';
+  Data,
+} from '../dataTypes';
+import { Maybe, DataDefaultFn, DATA_TYPES } from '../types';
 import { AdditionalEdgeProperties } from './edges/types';
 
 const JSON_TAG = '__JSON__';
@@ -12,25 +12,25 @@ const JSON_TAG = '__JSON__';
  * Takes the json representation of a node's data and prepares it to be sent to SM
  *
  * @param nodeData an object with arbitrary data
- * @param ISMDataRecord a record of SMData types to identify objects vs records
+ * @param IDataRecord a record of Data types to identify objects vs records
  * @param generatingMockData a boolean to determine if escape text should be utilized
  * @returns stringified params ready for mutation
  */
 export function revisedConvertNodeDataToSMPersistedData(opts: {
   nodeData: Record<string, any>;
-  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>;
+  IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
   generatingMockData: boolean;
   skipBooleanStringWrapping?: boolean;
 }): string {
   const {
     nodeData,
-    ISMDataRecord,
+    IDataRecord,
     generatingMockData,
     skipBooleanStringWrapping,
   } = opts;
   const parsedData = revisedPrepareForBE({
     obj: nodeData,
-    ISMDataRecord,
+    IDataRecord,
     generatingMockData,
   });
 
@@ -67,7 +67,7 @@ function escapeText(text: string): string {
  * Takes an object node value and flattens it to be sent to SM
  *
  * @param obj an object with arbitrary data
- * @param ISMDataRecordForKey a record of SMData type for specific key to identify objects vs records
+ * @param IDataRecordForKey a record of Data type for specific key to identify objects vs records
  * @param generatingMockData a boolean to determine if escape text should be utilized
  * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
  * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
@@ -90,7 +90,7 @@ function escapeText(text: string): string {
  */
 export function revisedPrepareObjectForBE(opts: {
   obj: Record<string, any>;
-  ISMDataRecordForKey: SMData<any, any, any>;
+  IDataRecordForKey: Data<any, any, any>;
   generatingMockData: boolean;
   parentKey?: string;
   omitObjectIdentifier?: boolean;
@@ -137,14 +137,14 @@ export function revisedPrepareObjectForBE(opts: {
 function revisedConvertPropertyToBE(opts: {
   key: string;
   value: any;
-  ISMDataRecordForKey: SMData<any, any, any>;
+  IDataRecordForKey: Data<any, any, any>;
   generatingMockData: boolean;
   omitObjectIdentifier?: boolean;
 }): Record<string, Maybe<string | boolean>> {
   const {
     key,
     value,
-    ISMDataRecordForKey,
+    IDataRecordForKey,
     generatingMockData,
     omitObjectIdentifier,
   } = opts;
@@ -160,8 +160,8 @@ function revisedConvertPropertyToBE(opts: {
     };
   } else if (typeof value === 'object') {
     if (
-      ISMDataRecordForKey.type === SM_DATA_TYPES.record ||
-      ISMDataRecordForKey.type === SM_DATA_TYPES.maybeRecord
+      IDataRecordForKey.type === DATA_TYPES.record ||
+      IDataRecordForKey.type === DATA_TYPES.maybeRecord
     ) {
       return {
         [key]: `${JSON_TAG}${
@@ -173,7 +173,7 @@ function revisedConvertPropertyToBE(opts: {
     } else {
       return revisedPrepareObjectForBE({
         obj: { [key]: value },
-        ISMDataRecordForKey,
+        IDataRecordForKey,
         generatingMockData,
         omitObjectIdentifier,
       });
@@ -213,16 +213,16 @@ function revisedConvertEdgeDirectionNames(edgeItem: AdditionalEdgeProperties) {
 
 export function revisedPrepareForBE(opts: {
   obj: Record<string, any>;
-  ISMDataRecord: Record<string, SMData<any, any, any> | SMDataDefaultFn>;
+  IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
   generatingMockData: boolean;
 }) {
-  const { ISMDataRecord, obj, generatingMockData } = opts;
+  const { IDataRecord, obj, generatingMockData } = opts;
 
   return Object.entries(obj).reduce((acc, [key, value]) => {
-    const ISMDataRecordForKey =
-      typeof ISMDataRecord[key] === 'function'
-        ? (ISMDataRecord[key] as any)._default
-        : ISMDataRecord[key];
+    const IDataRecordForKey =
+      typeof IDataRecord[key] === 'function'
+        ? (IDataRecord[key] as any)._default
+        : IDataRecord[key];
 
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
@@ -234,7 +234,7 @@ export function revisedPrepareForBE(opts: {
         childNodes: value.map(item =>
           revisedConvertNodeDataToSMPersistedData({
             nodeData: item,
-            ISMDataRecord,
+            IDataRecord,
             generatingMockData,
           })
         ),
@@ -250,7 +250,7 @@ export function revisedPrepareForBE(opts: {
         additionalEdges: value.map(item =>
           revisedConvertNodeDataToSMPersistedData({
             nodeData: revisedConvertEdgeDirectionNames(item),
-            ISMDataRecord,
+            IDataRecord,
             generatingMockData,
             skipBooleanStringWrapping: true,
           })
@@ -263,7 +263,7 @@ export function revisedPrepareForBE(opts: {
       ...revisedConvertPropertyToBE({
         key,
         value,
-        ISMDataRecordForKey,
+        IDataRecordForKey,
         generatingMockData,
       }),
     };

@@ -1,30 +1,30 @@
-import { ISMJS, ISMData, SMDataDefaultFn, IDOProxy, ISMNode, NodeDO, Maybe, RelationalQueryRecordEntry } from './types';
-export declare function createDOProxyGenerator(smJSInstance: ISMJS): <TNodeType extends string, TNodeData extends Record<string, ISMData<any, any, any> | SMDataDefaultFn>, TNodeComputedData extends Record<string, any>, TRelationalResults extends Record<string, IDOProxy | IDOProxy[]>>(opts: {
-    node: ISMNode<TNodeType, TNodeData, TNodeComputedData, {}, {}, import("./types").NodeComputedFns<TNodeData & {
+import { IMMGQL, IData, DataDefaultFn, IDOProxy, INode, NodeDO, Maybe, RelationalQueryRecordEntry } from './types';
+export declare function createDOProxyGenerator(mmGQLInstance: IMMGQL): <TNodeType extends string, TNodeData extends Record<string, IData<any, any, any> | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TRelationalResults extends Record<string, IDOProxy | IDOProxy[]>>(opts: {
+    node: INode<TNodeType, TNodeData, TNodeComputedData, {}, import("./types").NodeComputedFns<TNodeData & {
         id: {
-            <TStringType extends string = string>(defaultValue: TStringType): import("./smDataTypes").SMData<TStringType, TStringType, undefined>;
-            _default: import("./smDataTypes").SMData<"", "", undefined>;
-            optional: import("./smDataTypes").SMData<Maybe<string>, Maybe<string>, undefined>;
+            <TStringType extends string = string>(defaultValue: TStringType): import("./dataTypes").Data<TStringType, TStringType, undefined>;
+            _default: import("./dataTypes").Data<"", "", undefined>;
+            optional: import("./dataTypes").Data<Maybe<string>, Maybe<string>, undefined>;
         };
         dateCreated: {
-            (defaultValue: number): import("./smDataTypes").SMData<number, string, undefined>;
-            _default: import("./smDataTypes").SMData<number, string, undefined>;
-            optional: import("./smDataTypes").SMData<Maybe<number>, Maybe<string>, undefined>;
+            (defaultValue: number): import("./dataTypes").Data<number, string, undefined>;
+            _default: import("./dataTypes").Data<number, string, undefined>;
+            optional: import("./dataTypes").Data<Maybe<number>, Maybe<string>, undefined>;
         };
         dateLastModified: {
-            (defaultValue: number): import("./smDataTypes").SMData<number, string, undefined>;
-            _default: import("./smDataTypes").SMData<number, string, undefined>;
-            optional: import("./smDataTypes").SMData<Maybe<number>, Maybe<string>, undefined>;
+            (defaultValue: number): import("./dataTypes").Data<number, string, undefined>;
+            _default: import("./dataTypes").Data<number, string, undefined>;
+            optional: import("./dataTypes").Data<Maybe<number>, Maybe<string>, undefined>;
         };
         lastUpdatedBy: {
-            <TStringType extends string = string>(defaultValue: TStringType): import("./smDataTypes").SMData<TStringType, TStringType, undefined>;
-            _default: import("./smDataTypes").SMData<"", "", undefined>;
-            optional: import("./smDataTypes").SMData<Maybe<string>, Maybe<string>, undefined>;
+            <TStringType extends string = string>(defaultValue: TStringType): import("./dataTypes").Data<TStringType, TStringType, undefined>;
+            _default: import("./dataTypes").Data<"", "", undefined>;
+            optional: import("./dataTypes").Data<Maybe<string>, Maybe<string>, undefined>;
         };
         lastUpdatedClientTimestamp: {
-            (defaultValue: number): import("./smDataTypes").SMData<number, string, undefined>;
-            _default: import("./smDataTypes").SMData<number, string, undefined>;
-            optional: import("./smDataTypes").SMData<Maybe<number>, Maybe<string>, undefined>;
+            (defaultValue: number): import("./dataTypes").Data<number, string, undefined>;
+            _default: import("./dataTypes").Data<number, string, undefined>;
+            optional: import("./dataTypes").Data<Maybe<number>, Maybe<string>, undefined>;
         };
     }, TNodeComputedData>, NodeDO>;
     queryId: string;

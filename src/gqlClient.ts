@@ -10,7 +10,7 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { DocumentNode, ISMGQLClient } from './types';
+import { DocumentNode, IGQLClient } from './types';
 
 require('isomorphic-fetch');
 
@@ -159,7 +159,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     },
   });
 
-  const gqlClient: ISMGQLClient = {
+  const gqlClient: IGQLClient = {
     query: async opts => {
       const { data } = await baseClient.query({
         query: opts.gql,

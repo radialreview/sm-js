@@ -1,5 +1,5 @@
 import { FilterOperator } from './types';
-export declare class SMNotUpToDateException extends Error {
+export declare class NotUpToDateException extends Error {
     propName: string;
     constructor(opts: {
         propName: string;
@@ -7,7 +7,7 @@ export declare class SMNotUpToDateException extends Error {
         queryId: string;
     });
 }
-export declare class SMNotUpToDateInComputedException extends Error {
+export declare class NotUpToDateInComputedException extends Error {
     constructor(opts: {
         computedPropName: string;
         propName: string;
@@ -15,40 +15,40 @@ export declare class SMNotUpToDateInComputedException extends Error {
         queryId: string;
     });
 }
-export declare class SMFilterPropertyNotDefinedInQueryException extends Error {
+export declare class FilterPropertyNotDefinedInQueryException extends Error {
     constructor(opts: {
         filterPropName: string;
     });
 }
-export declare class SMImpliedNodePropertyException extends Error {
+export declare class ImpliedNodePropertyException extends Error {
     constructor(opts: {
         propName: string;
     });
 }
-export declare class SMNotCachedException extends Error {
+export declare class NotCachedException extends Error {
     constructor(opts: {
         nodeType: string;
         id: string;
     });
 }
-export declare class SMDataTypeException extends Error {
+export declare class DataTypeException extends Error {
     constructor(opts: {
         dataType: string;
         value: any;
     });
 }
-export declare class SMDataTypeExplicitDefaultException extends Error {
+export declare class DataTypeExplicitDefaultException extends Error {
     constructor(opts: {
         dataType: string;
     });
 }
-export declare class SMDataParsingException extends Error {
+export declare class DataParsingException extends Error {
     constructor(opts: {
         receivedData: any;
         message: string;
     });
 }
-export declare class SMUnexpectedSubscriptionMessageException extends Error {
+export declare class UnexpectedSubscriptionMessageException extends Error {
     exception: {
         subscriptionMessage: Record<string, any>;
         description: string;
@@ -58,7 +58,7 @@ export declare class SMUnexpectedSubscriptionMessageException extends Error {
         description: string;
     });
 }
-export declare class SMUnexpectedQueryResultException extends Error {
+export declare class UnexpectedQueryResultException extends Error {
     exception: {
         queryRecord: Record<string, any>;
         resultData: Record<string, any>;
@@ -68,7 +68,7 @@ export declare class SMUnexpectedQueryResultException extends Error {
         resultData: Record<string, any>;
     });
 }
-export declare class SMFilterOperatorNotImplementedException extends Error {
+export declare class FilterOperatorNotImplementedException extends Error {
     constructor(exeption: {
         operator: FilterOperator;
     });

@@ -1,11 +1,11 @@
-import { SMJS } from '..';
+import { MMGQL } from '..';
 import { autoIndentGQL, getMockConfig } from '../specUtilities';
 import { DocumentNode } from '../types';
 
 test('transaction calls gqlClient.mutate with the expected operations', async done => {
-  const smJSInstance = new SMJS(getMockConfig());
+  const mmGQLInstance = new MMGQL(getMockConfig());
 
-  smJSInstance.gqlClient.mutate = (opts: any) => {
+  mmGQLInstance.gqlClient.mutate = (opts: any) => {
     // 1 for all node creates, 1 for all node updates, 1 per each node drop and edge mutation
     expect(opts.mutations.length).toBe(16);
     expect(
@@ -256,7 +256,7 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
     return new Promise(res => res(null));
   };
 
-  await smJSInstance
+  await mmGQLInstance
     .transaction(context => {
       context.createNode({
         data: { type: 'todo', task: 'Do the thing' },
@@ -426,14 +426,14 @@ test('transaction calls gqlClient.mutate with the expected operations', async do
 
 // allows devs to fetch data when building a transaction
 test('transaction awaits the callback if it returns a promise', async done => {
-  const smJSInstance = new SMJS(getMockConfig());
-  smJSInstance.gqlClient.mutate = (opts: any) => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  mmGQLInstance.gqlClient.mutate = (opts: any) => {
     expect(opts.mutations.length).toBe(1);
     done();
     return new Promise(res => res(null));
   };
 
-  await smJSInstance
+  await mmGQLInstance
     .transaction(async ctx => {
       const dataFromServer: { id: string } = await new Promise(res => {
         res({ id: 'mock-todo-id' });
@@ -446,9 +446,9 @@ test('transaction awaits the callback if it returns a promise', async done => {
 
 test('transactions that receive an array of transaction results should group them all', async () => {
   try {
-    const smJSInstance = new SMJS(getMockConfig());
+    const mmGQLInstance = new MMGQL(getMockConfig());
 
-    smJSInstance.gqlClient.mutate = () => {
+    mmGQLInstance.gqlClient.mutate = () => {
       const result = [
         {
           data: {
@@ -470,9 +470,9 @@ test('transactions that receive an array of transaction results should group the
       return new Promise(res => res(result));
     };
 
-    const mutateSpy = jest.spyOn(smJSInstance.gqlClient, 'mutate');
+    const mutateSpy = jest.spyOn(mmGQLInstance.gqlClient, 'mutate');
 
-    const transaction1 = smJSInstance.transaction(ctx => {
+    const transaction1 = mmGQLInstance.transaction(ctx => {
       ctx.createNodes({
         nodes: [
           {
@@ -505,7 +505,7 @@ test('transactions that receive an array of transaction results should group the
       });
     });
 
-    const transaction2 = smJSInstance.transaction(async ctx => {
+    const transaction2 = mmGQLInstance.transaction(async ctx => {
       try {
         const dataFromServer: { id: string } = await new Promise(res => {
           res({ id: 'mock-todo-id' });
@@ -517,7 +517,7 @@ test('transactions that receive an array of transaction results should group the
       }
     });
 
-    await smJSInstance.transaction([transaction1, transaction2]).execute();
+    await mmGQLInstance.transaction([transaction1, transaction2]).execute();
 
     expect(mutateSpy).toHaveBeenCalledTimes(2);
   } catch (e) {
@@ -526,19 +526,19 @@ test('transactions that receive an array of transaction results should group the
 });
 
 test('providing different tokens in a group of transactions throws an error', async () => {
-  const smJSInstance = new SMJS(getMockConfig());
+  const mmGQLInstance = new MMGQL(getMockConfig());
 
-  smJSInstance.setToken({
+  mmGQLInstance.setToken({
     tokenName: 'user',
     token: '123',
   });
 
-  smJSInstance.setToken({
+  mmGQLInstance.setToken({
     tokenName: 'admin',
     token: '456',
   });
 
-  const t1 = smJSInstance.transaction(
+  const t1 = mmGQLInstance.transaction(
     ctx => {
       ctx.createNode({
         data: {
@@ -550,7 +550,7 @@ test('providing different tokens in a group of transactions throws an error', as
     { tokenName: 'user' }
   );
 
-  const t2 = smJSInstance.transaction(
+  const t2 = mmGQLInstance.transaction(
     ctx => {
       ctx.createNode({
         data: {
@@ -563,7 +563,7 @@ test('providing different tokens in a group of transactions throws an error', as
   );
 
   try {
-    await smJSInstance.transaction([t1, t2]).execute();
+    await mmGQLInstance.transaction([t1, t2]).execute();
   } catch (e) {
     expect((e as any).message).toBe(
       'transactionGroup - All grouped transactions must use the same authentication token.'
@@ -579,9 +579,9 @@ test('onSuccess callback is executed with correct argument', async done => {
   const replaceEdgeMock = jest.fn();
   const updateEdgeMock = jest.fn();
 
-  const smJSInstance = new SMJS(getMockConfig());
+  const mmGQLInstance = new MMGQL(getMockConfig());
 
-  smJSInstance.gqlClient.mutate = () => {
+  mmGQLInstance.gqlClient.mutate = () => {
     const result = [
       {
         data: {
@@ -670,7 +670,7 @@ test('onSuccess callback is executed with correct argument', async done => {
     return new Promise(res => res(result));
   };
 
-  await smJSInstance
+  await mmGQLInstance
     .transaction(ctx => {
       ctx.createNodes({
         nodes: [

@@ -1,37 +1,36 @@
-import * as smData from './smDataTypes';
-import { queryDefinition } from './smDataTypes';
+import * as data from './dataTypes';
+import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { getDefaultConfig, SMJS } from '.';
+import { getDefaultConfig, MMGQL } from '.';
 import {
-  IChildrenQueryBuilder,
-  ISMNode,
-  ISMJS,
-  IByReferenceQueryBuilder,
-  ISMData,
-  SMDataDefaultFn,
+  IOneToOneQueryBuilder,
+  IOneToManyQueryBuilder,
+  INode,
+  IMMGQL,
+  IData,
+  DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
-  NodeMutationFn,
   NodeComputedFns,
   NodeRelationalFns,
-  SMConfig,
+  Config,
   QueryDefinitionTarget,
-  SMNodeDefaultProps,
+  NodeDefaultProps,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 
 const userProperties = {
-  firstName: smData.string,
-  lastName: smData.string('joe'),
-  score: smData.number,
-  archived: smData.boolean(false),
-  optionalProp: smData.string.optional,
-  address: smData.object({
-    streetName: smData.string,
-    zipCode: smData.string,
-    state: smData.string,
-    apt: smData.object({
-      number: smData.number,
-      floor: smData.number,
+  firstName: data.string,
+  lastName: data.string('joe'),
+  score: data.number,
+  archived: data.boolean(false),
+  optionalProp: data.string.optional,
+  address: data.object({
+    streetName: data.string,
+    zipCode: data.string,
+    state: data.string,
+    apt: data.object({
+      number: data.number,
+      floor: data.number,
     }),
   }),
 };
@@ -39,13 +38,13 @@ const userProperties = {
 type UserProperties = typeof userProperties;
 
 type UserRelationalData = {
-  todos: IChildrenQueryBuilder<TodoNode>;
+  todos: IOneToManyQueryBuilder<TodoNode>;
 };
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = ISMNode<
-  'tt-user',
+export type UserNode = INode<
+  'user',
   UserProperties,
   { displayName: string },
   UserRelationalData,
@@ -54,11 +53,11 @@ export type UserNode = ISMNode<
 
 // factory functions so that tests don't share DO repositories
 export function generateUserNode(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   cachedTodoNode?: TodoNode
 ): UserNode {
-  const userNode: UserNode = smJSInstance.def({
-    type: 'tt-user',
+  const userNode: UserNode = mmGQLInstance.def({
+    type: 'user',
     properties: userProperties,
     computed: {
       displayName: () => {
@@ -66,143 +65,106 @@ export function generateUserNode(
       },
     },
     relational: {
-      todos: () => smData.children({ def: todoNode }),
+      todos: () => data.oneToMany(todoNode),
     },
   });
 
   const todoNode: TodoNode =
-    cachedTodoNode || generateTodoNode(smJSInstance, userNode);
+    cachedTodoNode || generateTodoNode(mmGQLInstance, userNode);
 
   return userNode;
 }
 
 const todoProperties = {
-  task: smData.string,
-  done: smData.boolean(false),
-  assigneeId: smData.string,
-  meetingId: smData.string.optional,
-  settings: smData.object.optional({
-    archiveAfterMeeting: smData.boolean.optional,
-    nestedSettings: smData.object.optional({
-      nestedNestedMaybe: smData.string.optional,
+  task: data.string,
+  done: data.boolean(false),
+  assigneeId: data.string,
+  meetingId: data.string.optional,
+  settings: data.object.optional({
+    archiveAfterMeeting: data.boolean.optional,
+    nestedSettings: data.object.optional({
+      nestedNestedMaybe: data.string.optional,
     }),
-    nestedRecord: smData.record(smData.boolean(false)),
+    nestedRecord: data.record(data.boolean(false)),
   }),
-  dataSetIds: smData.array(smData.string),
-  comments: smData.array(smData.string.optional).optional,
-  record: smData.record(smData.string),
-  numberProp: smData.number,
+  dataSetIds: data.array(data.string),
+  comments: data.array(data.string.optional).optional,
+  record: data.record(data.string),
+  numberProp: data.number,
 };
 
 export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
-  assignee: IByReferenceQueryBuilder<TodoNode, UserNode>;
-  users: IChildrenQueryBuilder<UserNode>;
+  assignee: IOneToOneQueryBuilder<UserNode>;
+  users: IOneToManyQueryBuilder<UserNode>;
 };
 
-export type TodoMutations = {};
-
-export type TodoNode = ISMNode<
-  'todo',
-  TodoProperties,
-  {},
-  TodoRelationalData,
-  TodoMutations
->;
+export type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
 
 export function generateTodoNode(
-  smJSInstance: ISMJS,
+  mmGQLInstance: IMMGQL,
   cachedUserNode?: UserNode
 ): TodoNode {
-  const todoNode = smJSInstance.def({
+  const todoNode = mmGQLInstance.def({
     type: 'todo',
     properties: todoProperties,
     relational: {
-      assignee: () =>
-        smData.reference<TodoNode, UserNode>({
-          def: userNode,
-          idProp: 'assigneeId',
-        }),
-      users: () =>
-        smData.children<UserNode>({
-          def: userNode,
-          depth: 1,
-        }),
+      assignee: () => data.oneToOne<UserNode>(userNode),
+      users: () => data.oneToMany<UserNode>(userNode),
     },
   }) as TodoNode;
 
   const userNode: UserNode =
-    cachedUserNode || generateUserNode(smJSInstance, todoNode);
+    cachedUserNode || generateUserNode(mmGQLInstance, todoNode);
 
   return todoNode;
 }
 
 export function generateDOInstance<
   TNodeType extends string,
-  TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+  TNodeData extends Record<string, IData | DataDefaultFn>,
   TNodeComputedData extends Record<string, any>,
-  // the tsignore here is necessary
-  // because the generic that NodeRelationalQueryBuilderRecord needs is
-  // the node definition for the origin of the relational queries
-  // which when defining a node, is the node being defined
-  // attempting to replicate the node here would always end up in a loop
-  // since we need the relational data to construct a node
-  // and need the node to construct the relational data (without this ts ignore)
-  // @ts-ignore
-  TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-  TNodeMutations extends Record<
-    string,
-    /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-  >
+  TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData & SMNodeDefaultProps, TNodeComputedData>;
-  // @ts-ignore
+  computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
-  mutations?: TNodeMutations;
   initialData: {
     id: string;
     version: string;
   } & Record<string, any>;
 }) {
-  const smJS = new SMJS(getDefaultConfig());
-  const DOclass = smJS.def<
+  const mmGQL = new MMGQL(getDefaultConfig());
+  const DOclass = mmGQL.def<
     TNodeType,
     TNodeData,
     TNodeComputedData,
-    TNodeRelationalData,
-    TNodeMutations
+    TNodeRelationalData
   >({
     type: 'mockNodeType' as TNodeType,
     properties: opts.properties,
     computed: opts.computed,
     relational: opts.relational,
   }).do;
-  return { doInstance: new DOclass(opts.initialData), smJSInstance: smJS };
+  return { doInstance: new DOclass(opts.initialData), mmGQLInstance: mmGQL };
 }
 
 export function createMockQueryDefinitions(
-  smJSInstance: ISMJS,
-  opts: ({ useIds?: true } | { useUnder?: true } | { useNoUnder?: true }) & {
+  mmGQLInstance: IMMGQL,
+  opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
-  } = {
-    useUnder: true,
-  }
+  } = {}
 ) {
   let target = {} as QueryDefinitionTarget;
   if ('useIds' in opts) {
     target = { ids: ['mock-id'] };
-  } else if ('useUnder' in opts) {
-    target = { underIds: ['mock-id'] };
-  } else if ('useNoUnder' in opts) {
-    // do nothing, leave target empty
   }
 
   return {
     users: queryDefinition({
-      def: generateUserNode(smJSInstance),
+      def: generateUserNode(mmGQLInstance),
       map: ({ id, todos, address }) => ({
         id,
         address: address({
@@ -281,38 +243,40 @@ export const mockUserData = {
 };
 
 export const mockQueryDataReturn = {
-  users: [
-    {
-      id: 'mock-user-id',
-      type: 'tt-user',
-      version: '1',
-      address: '__object__',
-      address__dot__state: 'FL',
-      address__dot__apt: '__object__',
-      address__dot__apt__dot__floor: '1',
-      address__dot__apt__dot__number: '1',
-      todos: [
-        {
-          version: '1',
-          id: 'mock-todo-id',
-          type: 'todo',
-          assignee: [
+  users: {
+    nodes: [
+      {
+        id: 'mock-user-id',
+        type: 'user',
+        version: '1',
+        address: '__object__',
+        address__dot__state: 'FL',
+        address__dot__apt: '__object__',
+        address__dot__apt__dot__floor: '1',
+        address__dot__apt__dot__number: '1',
+        todos: {
+          nodes: [
             {
-              id: 'mock-user-id',
-              type: 'tt-user',
               version: '1',
-              firstName: 'Joe',
+              id: 'mock-todo-id',
+              type: 'todo',
+              assignee: {
+                id: 'mock-user-id',
+                type: 'user',
+                version: '1',
+                firstName: 'Joe',
+              },
             },
           ],
         },
-      ],
-    },
-  ],
+      },
+    ],
+  },
 };
 
 const expectedAssignee = {
   id: 'mock-user-id',
-  type: 'tt-user',
+  type: 'user',
   displayName: 'User display name',
   lastUpdatedBy: undefined,
   firstName: 'Joe',
@@ -328,7 +292,7 @@ const expectedTodo = {
 const expectedUsers = [
   {
     id: 'mock-user-id',
-    type: 'tt-user',
+    type: 'user',
     displayName: 'User display name',
     lastUpdatedBy: undefined,
     address: { state: 'FL', apt: { number: 1, floor: 1 } },
@@ -339,25 +303,25 @@ const expectedUsers = [
 
 export const mockQueryResultExpectations = { users: expectedUsers };
 
-export function getMockQueryRecord(smJSInstance: ISMJS) {
+export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
   const { queryRecord } = convertQueryDefinitionToQueryInfo({
-    queryDefinitions: createMockQueryDefinitions(smJSInstance),
+    queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
   });
 
   return queryRecord;
 }
 
-export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
+export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
-  const queryRecord = getMockQueryRecord(smJSInstance);
+  const queryRecord = getMockQueryRecord(mmGQLInstance);
   return {
     users: {
       node: {
         // same prop values
         id: 'mock-user-id',
-        type: 'tt-user',
+        type: 'user',
         address__dot__state: 'AK',
         version: '2',
         todos: [
@@ -368,7 +332,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
             assignee: [
               {
                 id: 'mock-user-id',
-                type: 'tt-user',
+                type: 'user',
                 version: '1',
                 firstName: 'Joe',
               },
@@ -390,7 +354,7 @@ export function getMockSubscriptionMessage(smJSInstance: ISMJS) {
 export function getMockConfig(opts?: {
   generateMockData: boolean;
   mockData?: any;
-}): SMConfig {
+}): Config {
   return {
     gqlClient: {
       query: () =>
@@ -398,7 +362,7 @@ export function getMockConfig(opts?: {
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
-    generateMockData: opts?.generateMockData,
+    generateMockData: !!opts?.generateMockData,
   };
 }
 
@@ -448,8 +412,8 @@ export function autoIndentGQL(gqlString: string): string {
     .join('\n');
 }
 
-export function generateTestNode(smJSInstance: ISMJS): TestNode {
-  const testNode = smJSInstance.def({
+export function generateTestNode(mmGQLInstance: IMMGQL): TestNode {
+  const testNode = mmGQLInstance.def({
     type: 'testNode',
     properties: testProperties,
   }) as TestNode;
@@ -458,35 +422,35 @@ export function generateTestNode(smJSInstance: ISMJS): TestNode {
 }
 
 const testProperties = {
-  stringData: smData.string,
-  optionalString: smData.string.optional,
-  defaultString: smData.string('iAmADefaultString'),
-  numberData: smData.number,
-  optionalNumber: smData.number.optional,
-  defaultNumber: smData.number(22),
-  booleanData: smData.boolean(true),
-  optionalBoolean: smData.boolean.optional,
-  defaultBoolean: smData.boolean(true),
-  objectData: smData.object({
-    recordInObject: smData.record(smData.string),
-    stringInObject: smData.string.optional,
+  stringData: data.string,
+  optionalString: data.string.optional,
+  defaultString: data.string('iAmADefaultString'),
+  numberData: data.number,
+  optionalNumber: data.number.optional,
+  defaultNumber: data.number(22),
+  booleanData: data.boolean(true),
+  optionalBoolean: data.boolean.optional,
+  defaultBoolean: data.boolean(true),
+  objectData: data.object({
+    recordInObject: data.record(data.string),
+    stringInObject: data.string.optional,
   }),
-  optionalObject: smData.object.optional({
-    defaultStringInOptionalObject: smData.string(
+  optionalObject: data.object.optional({
+    defaultStringInOptionalObject: data.string(
       'iAmADefaultStringInAnOptionalObject'
     ),
 
-    recordInOptionalObject: smData.record(smData.number),
+    recordInOptionalObject: data.record(data.number),
   }),
-  arrayData: smData.array(smData.string),
-  optionalArray: smData.array(smData.boolean.optional).optional,
-  recordData: smData.record(smData.string('iAmADefaultStringInARecord')),
-  optionalRecord: smData.record.optional(smData.array(smData.number)),
+  arrayData: data.array(data.string),
+  optionalArray: data.array(data.boolean.optional).optional,
+  recordData: data.record(data.string('iAmADefaultStringInARecord')),
+  optionalRecord: data.record.optional(data.array(data.number)),
 };
 
 type TestProperties = typeof testProperties;
 
-type TestNode = ISMNode<'testNode', TestProperties, {}, {}, {}>;
+type TestNode = INode<'testNode', TestProperties, {}, {}, {}>;
 
 export const mockDataGenerationExpectedResultsForTodoNodeAllProperties = {
   task: expect.any(String),

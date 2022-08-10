@@ -1,4 +1,4 @@
-import { ISMNode, ValidFilterForNode } from './types';
+import { INode, ValidFilterForNode } from './types';
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
  */
@@ -67,4 +67,4 @@ export declare function getFlattenedObjectKeys(obj: Record<string, any>): string
  * @param filterObject : ;
  * @returns
  */
-export declare function getFlattenedNodeFilterObject<TSMNode extends ISMNode>(filterObject: ValidFilterForNode<TSMNode>): Record<string, any>;
+export declare function getFlattenedNodeFilterObject<TNode extends INode>(filterObject: ValidFilterForNode<TNode>): Record<string, any>;

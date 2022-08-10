@@ -181,110 +181,106 @@ function _taggedTemplateLiteralLoose(strings, raw) {
   return strings;
 }
 
-// thrown when any property on the DO is accessed but is not marked as upToDate
-// by calling DO.setUpToDateData({ [propName]: true })
-// or DO.setUpToDateData({ nested: { [propName]: true } })
-// this is done automatically by smData fetchers, smQuery and smSubscribe
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
-var SMNotUpToDateException = /*#__PURE__*/function (_Error) {
-  _inheritsLoose(SMNotUpToDateException, _Error);
+var NotUpToDateException = /*#__PURE__*/function (_Error) {
+  _inheritsLoose(NotUpToDateException, _Error);
 
-  function SMNotUpToDateException(opts) {
+  function NotUpToDateException(opts) {
     var _this;
 
-    _this = _Error.call(this, "SMNotUpToDate exception - The property \"" + opts.propName + "\" on the DO for the node type " + opts.nodeType + " was read but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
+    _this = _Error.call(this, "NotUpToDate exception - The property \"" + opts.propName + "\" on the DO for the node type " + opts.nodeType + " was read but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
     _this.propName = void 0;
     _this.propName = opts.propName;
     return _this;
   }
 
-  return SMNotUpToDateException;
+  return NotUpToDateException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMNotUpToDateInComputedException = /*#__PURE__*/function (_Error2) {
-  _inheritsLoose(SMNotUpToDateInComputedException, _Error2);
+var NotUpToDateInComputedException = /*#__PURE__*/function (_Error2) {
+  _inheritsLoose(NotUpToDateInComputedException, _Error2);
 
-  function SMNotUpToDateInComputedException(opts) {
-    return _Error2.call(this, "SMNotUpToDateInComputed exception - The property \"" + opts.propName + "\" on the DO for the node type \"" + opts.nodeType + "\" was read for the computed property \"" + opts.computedPropName + "\" but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
+  function NotUpToDateInComputedException(opts) {
+    return _Error2.call(this, "NotUpToDateInComputed exception - The property \"" + opts.propName + "\" on the DO for the node type \"" + opts.nodeType + "\" was read for the computed property \"" + opts.computedPropName + "\" but is not guaranteed to be up to date. Add that property to the query with the id " + opts.queryId) || this;
   }
 
-  return SMNotUpToDateInComputedException;
+  return NotUpToDateInComputedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMFilterPropertyNotDefinedInQueryException = /*#__PURE__*/function (_Error3) {
-  _inheritsLoose(SMFilterPropertyNotDefinedInQueryException, _Error3);
+var FilterPropertyNotDefinedInQueryException = /*#__PURE__*/function (_Error3) {
+  _inheritsLoose(FilterPropertyNotDefinedInQueryException, _Error3);
 
-  function SMFilterPropertyNotDefinedInQueryException(opts) {
-    return _Error3.call(this, "SMFilterPropertyNotDefinedInQueryException exception - The filter property '" + opts.filterPropName + "' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.") || this;
+  function FilterPropertyNotDefinedInQueryException(opts) {
+    return _Error3.call(this, "FilterPropertyNotDefinedInQueryException exception - The filter property '" + opts.filterPropName + "' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.") || this;
   }
 
-  return SMFilterPropertyNotDefinedInQueryException;
+  return FilterPropertyNotDefinedInQueryException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMImpliedNodePropertyException = /*#__PURE__*/function (_Error4) {
-  _inheritsLoose(SMImpliedNodePropertyException, _Error4);
+var ImpliedNodePropertyException = /*#__PURE__*/function (_Error4) {
+  _inheritsLoose(ImpliedNodePropertyException, _Error4);
 
-  function SMImpliedNodePropertyException(opts) {
-    return _Error4.call(this, "SMImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
+  function ImpliedNodePropertyException(opts) {
+    return _Error4.call(this, "ImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
   }
 
-  return SMImpliedNodePropertyException;
+  return ImpliedNodePropertyException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMNotCachedException = /*#__PURE__*/function (_Error5) {
-  _inheritsLoose(SMNotCachedException, _Error5);
+var NotCachedException = /*#__PURE__*/function (_Error5) {
+  _inheritsLoose(NotCachedException, _Error5);
 
-  function SMNotCachedException(opts) {
-    return _Error5.call(this, "SMNotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
+  function NotCachedException(opts) {
+    return _Error5.call(this, "NotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
   }
 
-  return SMNotCachedException;
+  return NotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(SMDataTypeException, _Error6);
+var DataTypeException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(DataTypeException, _Error6);
 
-  function SMDataTypeException(opts) {
-    return _Error6.call(this, "SMDataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+  function DataTypeException(opts) {
+    return _Error6.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
-  return SMDataTypeException;
+  return DataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataTypeExplicitDefaultException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(SMDataTypeExplicitDefaultException, _Error7);
+var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(DataTypeExplicitDefaultException, _Error7);
 
-  function SMDataTypeExplicitDefaultException(opts) {
-    return _Error7.call(this, "SMDataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+  function DataTypeExplicitDefaultException(opts) {
+    return _Error7.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
-  return SMDataTypeExplicitDefaultException;
+  return DataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMDataParsingException = /*#__PURE__*/function (_Error8) {
-  _inheritsLoose(SMDataParsingException, _Error8);
+var DataParsingException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(DataParsingException, _Error8);
 
-  function SMDataParsingException(opts) {
-    return _Error8.call(this, "SMDataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+  function DataParsingException(opts) {
+    return _Error8.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
-  return SMDataParsingException;
+  return DataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMUnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
-  _inheritsLoose(SMUnexpectedSubscriptionMessageException, _Error9);
+var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
+  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error9);
 
-  function SMUnexpectedSubscriptionMessageException(exception) {
+  function UnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error9.call(this, "SMUnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error9.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
   }
 
-  return SMUnexpectedSubscriptionMessageException;
+  return UnexpectedSubscriptionMessageException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var SMFilterOperatorNotImplementedException = /*#__PURE__*/function (_Error11) {
-  _inheritsLoose(SMFilterOperatorNotImplementedException, _Error11);
+var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error11) {
+  _inheritsLoose(FilterOperatorNotImplementedException, _Error11);
 
-  function SMFilterOperatorNotImplementedException(exeption) {
-    return _Error11.call(this, "SMFilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
+  function FilterOperatorNotImplementedException(exeption) {
+    return _Error11.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
   }
 
-  return SMFilterOperatorNotImplementedException;
+  return FilterOperatorNotImplementedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
 function throwLocallyLogInProd(error) {
   var _process, _process$env;
@@ -306,28 +302,29 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error12) {
   return UnreachableCaseError;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
 
-(function (SM_DATA_TYPES) {
-  SM_DATA_TYPES["string"] = "s";
-  SM_DATA_TYPES["maybeString"] = "mS";
-  SM_DATA_TYPES["number"] = "n";
-  SM_DATA_TYPES["maybeNumber"] = "mN";
-  SM_DATA_TYPES["boolean"] = "b";
-  SM_DATA_TYPES["maybeBoolean"] = "mB";
-  SM_DATA_TYPES["object"] = "o";
-  SM_DATA_TYPES["maybeObject"] = "mO";
-  SM_DATA_TYPES["record"] = "r";
-  SM_DATA_TYPES["maybeRecord"] = "mR";
-  SM_DATA_TYPES["array"] = "a";
-  SM_DATA_TYPES["maybeArray"] = "mA";
-})(exports.SM_DATA_TYPES || (exports.SM_DATA_TYPES = {}));
+(function (DATA_TYPES) {
+  DATA_TYPES["string"] = "s";
+  DATA_TYPES["maybeString"] = "mS";
+  DATA_TYPES["stringEnum"] = "sE";
+  DATA_TYPES["maybeStringEnum"] = "mSE";
+  DATA_TYPES["number"] = "n";
+  DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["boolean"] = "b";
+  DATA_TYPES["maybeBoolean"] = "mB";
+  DATA_TYPES["object"] = "o";
+  DATA_TYPES["maybeObject"] = "mO";
+  DATA_TYPES["record"] = "r";
+  DATA_TYPES["maybeRecord"] = "mR";
+  DATA_TYPES["array"] = "a";
+  DATA_TYPES["maybeArray"] = "mA";
+})(exports.DATA_TYPES || (exports.DATA_TYPES = {}));
 
-(function (SM_RELATIONAL_TYPES) {
-  SM_RELATIONAL_TYPES["byReference"] = "bR";
-  SM_RELATIONAL_TYPES["byReferenceArray"] = "bRA";
-  SM_RELATIONAL_TYPES["children"] = "bP";
-})(exports.SM_RELATIONAL_TYPES || (exports.SM_RELATIONAL_TYPES = {}));
+(function (RELATIONAL_TYPES) {
+  RELATIONAL_TYPES["oneToOne"] = "oTO";
+  RELATIONAL_TYPES["oneToMany"] = "otM";
+})(exports.RELATIONAL_TYPES || (exports.RELATIONAL_TYPES = {}));
 
-var SMData = function SMData(opts) {
+var Data = function Data(opts) {
   var _opts$defaultValue;
 
   this.type = void 0;
@@ -335,21 +332,23 @@ var SMData = function SMData(opts) {
   this.boxedValue = void 0;
   this.defaultValue = void 0;
   this.isOptional = void 0;
+  this.acceptableValues = void 0;
   this.type = opts.type;
   this.parser = opts.parser;
   this.boxedValue = opts.boxedValue;
   this.defaultValue = (_opts$defaultValue = opts.defaultValue) != null ? _opts$defaultValue : null;
   this.isOptional = opts.isOptional;
+  this.acceptableValues = opts.acceptableValues;
 };
 /**
- * smData serve 2 purposes:
- * 1) they convert strings from SM into their real types (objects, strings, numbers, booleans)
- * 2) they serve as a way for TS to infer the data type of the node based on the smData types used,
+ * data serve 2 purposes:
+ * 1) they convert strings from the backend into their real types (objects, strings, numbers, booleans)
+ * 2) they serve as a way for TS to infer the data type of the node based on the data types used,
  */
 
 var string = function string(defaultValue) {
-  return new SMData({
-    type: exports.SM_DATA_TYPES.string,
+  return new Data({
+    type: exports.DATA_TYPES.string,
     parser: function parser(value) {
       return value != null ? String(value) : value;
     },
@@ -358,22 +357,43 @@ var string = function string(defaultValue) {
   });
 };
 string._default = /*#__PURE__*/string('');
-string.optional = /*#__PURE__*/new SMData({
-  type: exports.SM_DATA_TYPES.maybeString,
+string.optional = /*#__PURE__*/new Data({
+  type: exports.DATA_TYPES.maybeString,
   parser: function parser(value) {
     return value != null ? String(value) : value;
   },
   isOptional: true
 });
+var stringEnum = function stringEnum(enumValues) {
+  var dataType = new Data({
+    type: exports.DATA_TYPES.stringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : value;
+    },
+    defaultValue: enumValues[0],
+    isOptional: false,
+    acceptableValues: enumValues
+  });
+  var optionalDataType = new Data({
+    type: exports.DATA_TYPES.maybeStringEnum,
+    parser: function parser(value) {
+      return value != null ? String(value) : null;
+    },
+    isOptional: true,
+    acceptableValues: enumValues
+  });
+  dataType.optional = optionalDataType;
+  return dataType;
+};
 var number = function number(defaultValue) {
-  return new SMData({
-    type: exports.SM_DATA_TYPES.number,
+  return new Data({
+    type: exports.DATA_TYPES.number,
     parser: function parser(value) {
       var parsed = Number(value);
 
       if (isNaN(parsed)) {
-        throwLocallyLogInProd(new SMDataTypeException({
-          dataType: exports.SM_DATA_TYPES.number,
+        throwLocallyLogInProd(new DataTypeException({
+          dataType: exports.DATA_TYPES.number,
           value: value
         }));
         return number._default.defaultValue;
@@ -386,8 +406,8 @@ var number = function number(defaultValue) {
   });
 };
 number._default = /*#__PURE__*/number(0);
-number.optional = /*#__PURE__*/new SMData({
-  type: exports.SM_DATA_TYPES.maybeNumber,
+number.optional = /*#__PURE__*/new Data({
+  type: exports.DATA_TYPES.maybeNumber,
   parser: function parser(value) {
     if (value != null) {
       return Number(value);
@@ -400,21 +420,21 @@ number.optional = /*#__PURE__*/new SMData({
 
 var _boolean = function _boolean(defaultValue) {
   if (defaultValue === undefined) {
-    return new SMDataTypeExplicitDefaultException({
-      dataType: exports.SM_DATA_TYPES["boolean"]
+    return new DataTypeExplicitDefaultException({
+      dataType: exports.DATA_TYPES["boolean"]
     });
   }
 
-  return new SMData({
-    type: exports.SM_DATA_TYPES["boolean"],
+  return new Data({
+    type: exports.DATA_TYPES["boolean"],
     parser: function parser(value) {
       if (value === 'true' || value === true) {
         return true;
       } else if (value === 'false' || value === false) {
         return false;
       } else {
-        throw new SMDataTypeException({
-          dataType: exports.SM_DATA_TYPES["boolean"],
+        throw new DataTypeException({
+          dataType: exports.DATA_TYPES["boolean"],
           value: value
         });
       }
@@ -424,8 +444,8 @@ var _boolean = function _boolean(defaultValue) {
   });
 }; // need this in order to trigger an error when a user doesn't provide a default
 _boolean._default = /*#__PURE__*/_boolean();
-_boolean.optional = /*#__PURE__*/new SMData({
-  type: exports.SM_DATA_TYPES.maybeBoolean,
+_boolean.optional = /*#__PURE__*/new Data({
+  type: exports.DATA_TYPES.maybeBoolean,
   parser: function parser(value) {
     if (value == null) return value;
 
@@ -438,8 +458,8 @@ _boolean.optional = /*#__PURE__*/new SMData({
   isOptional: true
 });
 var object = function object(boxedValue) {
-  return new SMData({
-    type: exports.SM_DATA_TYPES.object,
+  return new Data({
+    type: exports.DATA_TYPES.object,
 
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -455,8 +475,8 @@ var object = function object(boxedValue) {
 object._default = null;
 
 object.optional = function (boxedValue) {
-  return new SMData({
-    type: exports.SM_DATA_TYPES.maybeObject,
+  return new Data({
+    type: exports.DATA_TYPES.maybeObject,
 
     /**
      * Doesn't need to do any parsing on the data to convert strings to their real types
@@ -471,8 +491,8 @@ object.optional = function (boxedValue) {
 };
 
 var record = function record(boxedValue) {
-  return new SMData({
-    type: exports.SM_DATA_TYPES.record,
+  return new Data({
+    type: exports.DATA_TYPES.record,
     parser: function parser(val) {
       return val;
     },
@@ -485,8 +505,8 @@ var record = function record(boxedValue) {
 record.optional = function (boxedValue) {
   var parsedBoxedValue = // will be a function if no explicit default set
   typeof boxedValue === 'function' ? boxedValue._default : boxedValue;
-  return new SMData({
-    type: exports.SM_DATA_TYPES.maybeRecord,
+  return new Data({
+    type: exports.DATA_TYPES.maybeRecord,
     parser: function parser(val) {
       return val;
     },
@@ -501,9 +521,9 @@ var array = function array(boxedValue) {
   var parsedBoxedValue = // will be a function if no explicit default set
   typeof boxedValue === 'function' ? boxedValue._default : boxedValue;
 
-  function smArray(defaultValue) {
-    return new SMData({
-      type: exports.SM_DATA_TYPES.array,
+  function array(defaultValue) {
+    return new Data({
+      type: exports.DATA_TYPES.array,
       parser: function parser(value) {
         return value;
       },
@@ -513,44 +533,36 @@ var array = function array(boxedValue) {
     });
   }
 
-  smArray.optional = new SMData({
-    type: exports.SM_DATA_TYPES.maybeArray,
+  array.optional = new Data({
+    type: exports.DATA_TYPES.maybeArray,
     parser: function parser(value) {
       return value;
     },
     boxedValue: parsedBoxedValue,
     isOptional: true
   });
-  smArray._default = smArray([]);
-  return smArray;
+  array._default = array([]);
+  return array;
 };
-var reference = function reference(opts) {
+var oneToOne = function oneToOne(def) {
   return function (queryBuilderOpts) {
-    return _extends({}, opts, {
-      idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
-      _smRelational: exports.SM_RELATIONAL_TYPES.byReference,
+    return {
+      def: def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _relational: exports.RELATIONAL_TYPES.oneToOne,
       queryBuilderOpts: queryBuilderOpts
-    });
+    };
   };
 };
-var referenceArray = function referenceArray(opts) {
+var oneToMany = function oneToMany(def) {
   return function (queryBuilderOpts) {
-    return _extends({}, opts, {
-      idProp: opts.idProp.replaceAll('.', OBJECT_PROPERTY_SEPARATOR),
-      _smRelational: exports.SM_RELATIONAL_TYPES.byReferenceArray,
-      queryBuilderOpts: queryBuilderOpts
-    });
-  };
-};
-var children = function children(opts) {
-  return function (queryBuilderOpts) {
-    return _extends({}, opts, {
-      _smRelational: exports.SM_RELATIONAL_TYPES.children,
-      map: queryBuilderOpts.map,
-      pagination: queryBuilderOpts.pagination,
-      filter: queryBuilderOpts.filter,
-      depth: opts.depth
-    });
+    return {
+      def: def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _relational: exports.RELATIONAL_TYPES.oneToMany,
+      queryBuilderOpts: queryBuilderOpts,
+      filter: queryBuilderOpts.filter
+    };
   };
 };
 var OBJECT_PROPERTY_SEPARATOR = '__dot__';
@@ -633,20 +645,20 @@ function prepareForFE(beData) {
   }, {});
 }
 
-function createDOFactory(smJSInstance) {
+function createDOFactory(mmGQLInstance) {
   /**
    * Returns a DO class, since there is one instance of the DO class
-   * for each instance of that node type that is fetched from SM
+   * for each instance of that node type that is fetched from the backend
    */
   return function DOFactory(node) {
     // silences the error "A class can only implement an object type or intersection of object types with statically known members."
-    // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
+    // wich happens because NodeDO has non statically known members (each property on a node in the backend is mapped to a non-statically known property on the DO)
     // eslint-disable-next-line
     // @ts-ignore
     return /*#__PURE__*/function () {
       function DO(initialData) {
         var _this = this,
-            _smJSInstance$plugins;
+            _mmGQLInstance$plugin;
 
         this.parsedData = void 0;
         this.version = -1;
@@ -656,17 +668,17 @@ function createDOFactory(smJSInstance) {
         this._defaults = void 0;
         this.type = node.type;
 
-        this.getDefaultData = function (nodePropertiesOrSMData) {
-          if (nodePropertiesOrSMData instanceof SMData) {
-            if (_this.isObjectType(nodePropertiesOrSMData.type)) {
-              return _this.getDefaultData(nodePropertiesOrSMData.boxedValue);
+        this.getDefaultData = function (nodePropertiesOrData) {
+          if (nodePropertiesOrData instanceof Data) {
+            if (_this.isObjectType(nodePropertiesOrData.type)) {
+              return _this.getDefaultData(nodePropertiesOrData.boxedValue);
             }
 
-            return nodePropertiesOrSMData.defaultValue;
+            return nodePropertiesOrData.defaultValue;
           }
 
-          var getDefaultFnValue = function getDefaultFnValue(propName, defaultSMData) {
-            var defaultFn = defaultSMData || nodePropertiesOrSMData[propName]._default; // if a boolean dataType is not passed a default value, it returns an error. We throw it here
+          var getDefaultFnValue = function getDefaultFnValue(propName, defaultData) {
+            var defaultFn = defaultData || nodePropertiesOrData[propName]._default; // if a boolean dataType is not passed a default value, it returns an error. We throw it here
 
             if (defaultFn instanceof Error) {
               throw defaultFn;
@@ -684,12 +696,12 @@ function createDOFactory(smJSInstance) {
             return defaultFn.defaultValue;
           };
 
-          if (typeof nodePropertiesOrSMData === 'function') {
-            return getDefaultFnValue(undefined, nodePropertiesOrSMData._default);
+          if (typeof nodePropertiesOrData === 'function') {
+            return getDefaultFnValue(undefined, nodePropertiesOrData._default);
           }
 
-          return Object.keys(nodePropertiesOrSMData).reduce(function (acc, prop) {
-            var propValue = nodePropertiesOrSMData[prop];
+          return Object.keys(nodePropertiesOrData).reduce(function (acc, prop) {
+            var propValue = nodePropertiesOrData[prop];
 
             if (_this.isObjectType(propValue.type) || _this.isRecordType(propValue.type)) {
               acc[prop] = _this.getDefaultData(propValue.boxedValue);
@@ -697,7 +709,7 @@ function createDOFactory(smJSInstance) {
               var defaultValue = getDefaultFnValue(prop);
               acc[prop] = defaultValue;
             } else {
-              acc[prop] = nodePropertiesOrSMData[prop].defaultValue;
+              acc[prop] = nodePropertiesOrData[prop].defaultValue;
             }
 
             return acc;
@@ -723,13 +735,13 @@ function createDOFactory(smJSInstance) {
             });
 
             _this.extendPersistedWithNewlyReceivedData({
-              smData: node.properties,
+              data: node.properties,
               object: _this.persistedData,
               extension: newData
             });
 
             _this.parsedData = _this.getParsedData({
-              smData: node.properties,
+              data: node.properties,
               persistedData: _this.persistedData,
               defaultData: _this._defaults
             });
@@ -782,11 +794,11 @@ function createDOFactory(smJSInstance) {
         }
 
         this.parsedData = this.getParsedData({
-          smData: node.properties,
+          data: node.properties,
           persistedData: this.persistedData,
           defaultData: this._defaults
         });
-        (_smJSInstance$plugins = smJSInstance.plugins) == null ? void 0 : _smJSInstance$plugins.forEach(function (plugin) {
+        (_mmGQLInstance$plugin = mmGQLInstance.plugins) == null ? void 0 : _mmGQLInstance$plugin.forEach(function (plugin) {
           var _plugin$DO;
 
           if ((_plugin$DO = plugin.DO) != null && _plugin$DO.onConstruct) {
@@ -799,7 +811,6 @@ function createDOFactory(smJSInstance) {
         this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
-        this.initializeNodeMutations();
       }
 
       var _proto = DO.prototype;
@@ -813,7 +824,7 @@ function createDOFactory(smJSInstance) {
           var propName = _ref[0],
               propValue = _ref[1];
 
-          var property = _this2.getSMData(propValue);
+          var property = _this2.getData(propValue);
 
           var propExistsInInitialData = propName in initialData && initialData[propName] != null && initialData[propName] !== NULL_TAG;
 
@@ -837,13 +848,13 @@ function createDOFactory(smJSInstance) {
       _proto.getParsedData = function getParsedData(opts) {
         var _this3 = this;
 
-        if (opts.smData instanceof SMData && opts.smData.isOptional && opts.persistedData == null) {
+        if (opts.data instanceof Data && opts.data.isOptional && opts.persistedData == null) {
           return null;
         }
 
-        var property = this.getSMData(opts.smData);
+        var property = this.getData(opts.data);
 
-        if (property instanceof SMData && property.boxedValue) {
+        if (property instanceof Data && property.boxedValue) {
           // sm.array, sm.object or sm.record
           if (this.isArrayType(property.type)) {
             if (opts.persistedData) {
@@ -851,9 +862,9 @@ function createDOFactory(smJSInstance) {
                 var _opts$defaultData;
 
                 return _this3.getParsedData({
-                  smData: property.boxedValue,
+                  data: property.boxedValue,
                   persistedData: data,
-                  defaultData: property.type === exports.SM_DATA_TYPES.array ? ((_opts$defaultData = opts.defaultData) == null ? void 0 : _opts$defaultData[0]) || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
+                  defaultData: property.type === exports.DATA_TYPES.array ? ((_opts$defaultData = opts.defaultData) == null ? void 0 : _opts$defaultData[0]) || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
                   : null
                 });
               });
@@ -867,13 +878,13 @@ function createDOFactory(smJSInstance) {
               opts.persistedData = {};
             }
 
-            var boxedValueSMProperty = this.getSMData(property.boxedValue);
+            var boxedValueData = this.getData(property.boxedValue);
 
-            if (boxedValueSMProperty instanceof SMData) {
+            if (boxedValueData instanceof Data) {
               // sm.record
               return Object.keys(opts.persistedData).reduce(function (acc, key) {
                 acc[key] = _this3.getParsedData({
-                  smData: property.boxedValue,
+                  data: property.boxedValue,
                   persistedData: opts.persistedData[key],
                   defaultData: opts.defaultData //opts.defaultData,
 
@@ -887,7 +898,7 @@ function createDOFactory(smJSInstance) {
                 var _opts$defaultData2;
 
                 acc[key] = _this3.getParsedData({
-                  smData: property.boxedValue[key],
+                  data: property.boxedValue[key],
                   persistedData: opts.persistedData[key],
                   defaultData: (_opts$defaultData2 = opts.defaultData) == null ? void 0 : _opts$defaultData2[key]
                 });
@@ -895,10 +906,10 @@ function createDOFactory(smJSInstance) {
               }, {});
             }
           }
-        } else if (property instanceof SMData) {
+        } else if (property instanceof Data) {
           // sm.string, sm.boolean, sm.number
           // if a property was nulled using our old format, parse as native null
-          if (opts.persistedData === NULL_TAG && opts.smData.isOptional) {
+          if (opts.persistedData === NULL_TAG && opts.data.isOptional) {
             return null;
           }
 
@@ -912,7 +923,7 @@ function createDOFactory(smJSInstance) {
           return Object.keys(property).reduce(function (acc, prop) {
             acc[prop] = _this3.getParsedData({
               // @ts-ignore
-              smData: property[prop],
+              data: property[prop],
               persistedData: opts.persistedData[prop],
               defaultData: opts.defaultData[prop]
             });
@@ -928,21 +939,21 @@ function createDOFactory(smJSInstance) {
           var key = _ref2[0],
               value = _ref2[1];
 
-          var smDataForThisProp = _this4.getSMData(opts.smData[key]); // if this is a record, completely overwrite the stored persisted data
+          var dataForThisProp = _this4.getData(opts.data[key]); // if this is a record, completely overwrite the stored persisted data
 
 
-          if (_this4.isRecordType(smDataForThisProp.type)) {
+          if (_this4.isRecordType(dataForThisProp.type)) {
             opts.object[key] = value;
           } else {
             // if it's an object, extend the persisted data we've received so far with the newly received data
-            if (_this4.isObjectType(smDataForThisProp.type)) {
+            if (_this4.isObjectType(dataForThisProp.type)) {
               if (value == null) {
                 opts.object[key] = null;
               } else {
                 opts.object[key] = opts.object[key] || {};
 
                 _this4.extendPersistedWithNewlyReceivedData({
-                  smData: smDataForThisProp.boxedValue,
+                  data: dataForThisProp.boxedValue,
                   object: opts.object[key],
                   extension: value
                 });
@@ -955,7 +966,7 @@ function createDOFactory(smJSInstance) {
         });
       }
       /**
-       * initializes getters for properties that are stored on this node in SM
+       * initializes getters for properties that are stored on this node in the backend
        * as properties on this DO instance
        */
       ;
@@ -970,7 +981,7 @@ function createDOFactory(smJSInstance) {
             return;
           }
 
-          var property = _this5.getSMData(node.properties[prop]);
+          var property = _this5.getData(node.properties[prop]);
 
           if (_this5.isObjectType(property.type)) {
             _this5.setObjectProp(prop);
@@ -1003,26 +1014,10 @@ function createDOFactory(smJSInstance) {
         var relationalData = node.relational;
 
         if (relationalData) {
-          Object.keys(relationalData).forEach(function (relationalProp) {
+          Object.keys(relationalData).forEach(function (relationshipName) {
             _this7.setRelationalProp({
-              propName: relationalProp,
-              relationalQueryGetter: relationalData[relationalProp]
-            });
-          });
-        }
-      };
-
-      _proto.initializeNodeMutations = function initializeNodeMutations() {
-        var _this8 = this;
-
-        var mutations = node.mutations;
-
-        if (mutations) {
-          Object.keys(mutations).forEach(function (mutationName) {
-            Object.defineProperty(_this8, mutationName, {
-              get: function get() {
-                return mutations[mutationName].bind(_this8);
-              }
+              relationshipName: relationshipName,
+              relationalQueryGetter: relationalData[relationshipName]
             });
           });
         }
@@ -1034,20 +1029,20 @@ function createDOFactory(smJSInstance) {
       ;
 
       _proto.setComputedProp = function setComputedProp(opts) {
-        var _this9 = this,
-            _smJSInstance$plugins2;
+        var _this8 = this,
+            _mmGQLInstance$plugin2;
 
         var computedGetter = function computedGetter() {
-          return opts.computedFn(_this9);
+          return opts.computedFn(_this8);
         };
 
-        (_smJSInstance$plugins2 = smJSInstance.plugins) == null ? void 0 : _smJSInstance$plugins2.forEach(function (plugin) {
+        (_mmGQLInstance$plugin2 = mmGQLInstance.plugins) == null ? void 0 : _mmGQLInstance$plugin2.forEach(function (plugin) {
           var _plugin$DO2;
 
           if ((_plugin$DO2 = plugin.DO) != null && _plugin$DO2.computedDecorator) {
             computedGetter = plugin.DO.computedDecorator({
               computedFn: computedGetter,
-              DOInstance: _this9
+              DOInstance: _this8
             });
           }
         });
@@ -1061,7 +1056,7 @@ function createDOFactory(smJSInstance) {
       };
 
       _proto.setRelationalProp = function setRelationalProp(opts) {
-        Object.defineProperty(this, opts.propName, {
+        Object.defineProperty(this, opts.relationshipName, {
           configurable: true,
           get: function get() {
             return opts.relationalQueryGetter();
@@ -1069,7 +1064,7 @@ function createDOFactory(smJSInstance) {
         });
       };
 
-      _proto.getSMData = function getSMData(prop) {
+      _proto.getData = function getData(prop) {
         if (typeof prop === 'function') {
           return prop._default;
         }
@@ -1078,15 +1073,15 @@ function createDOFactory(smJSInstance) {
       };
 
       _proto.isArrayType = function isArrayType(type) {
-        return type === exports.SM_DATA_TYPES.array || type === exports.SM_DATA_TYPES.maybeArray;
+        return type === exports.DATA_TYPES.array || type === exports.DATA_TYPES.maybeArray;
       };
 
       _proto.isObjectType = function isObjectType(type) {
-        return type === exports.SM_DATA_TYPES.object || type === exports.SM_DATA_TYPES.maybeObject;
+        return type === exports.DATA_TYPES.object || type === exports.DATA_TYPES.maybeObject;
       };
 
       _proto.isRecordType = function isRecordType(type) {
-        return type === exports.SM_DATA_TYPES.record || type === exports.SM_DATA_TYPES.maybeRecord;
+        return type === exports.DATA_TYPES.record || type === exports.DATA_TYPES.maybeRecord;
       };
 
       return DO;
@@ -1094,7 +1089,7 @@ function createDOFactory(smJSInstance) {
   };
 }
 
-function createDOProxyGenerator(smJSInstance) {
+function createDOProxyGenerator(mmGQLInstance) {
   /**
    * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
    * Instead, we decorate each DO instance with a bit of functionality
@@ -1125,17 +1120,17 @@ function createDOProxyGenerator(smJSInstance) {
    */
   return function DOProxyGenerator(opts) {
     var relationalResults = opts.relationalResults; // Casting to unknown here because we don't want type safety around structure of a node's data when building plugins
-    // but completely losing type safety in opts.node.smComputed would break the return type inference in QueryDataReturn
+    // but completely losing type safety in opts.node.computed would break the return type inference in QueryDataReturn
 
-    var nodeSMComputed = opts.node.smComputed;
-    var computedAccessors = nodeSMComputed ? Object.keys(nodeSMComputed).reduce(function (acc, computedKey) {
-      var _smJSInstance$plugins;
+    var nodeComputed = opts.node.computed;
+    var computedAccessors = nodeComputed ? Object.keys(nodeComputed).reduce(function (acc, computedKey) {
+      var _mmGQLInstance$plugin;
 
       var computedFn = function computedFn() {
-        return nodeSMComputed[computedKey](proxy);
+        return nodeComputed[computedKey](proxy);
       };
 
-      (_smJSInstance$plugins = smJSInstance.plugins) == null ? void 0 : _smJSInstance$plugins.forEach(function (plugin) {
+      (_mmGQLInstance$plugin = mmGQLInstance.plugins) == null ? void 0 : _mmGQLInstance$plugin.forEach(function (plugin) {
         var _plugin$DOProxy;
 
         if ((_plugin$DOProxy = plugin.DOProxy) != null && _plugin$DOProxy.computedDecorator) {
@@ -1158,17 +1153,17 @@ function createDOProxyGenerator(smJSInstance) {
             enumerable: true
           });
         } // enumerate computed properties which have all the data they need queried
-        // otherwise they throw SMNotUpToDateException and we don't enumerate
+        // otherwise they throw NotUpToDateException and we don't enumerate
 
 
-        if (nodeSMComputed && Object.keys(nodeSMComputed).includes(key)) {
+        if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
           try {
             computedAccessors[key]();
             return _extends({}, Object.getOwnPropertyDescriptor(target, key), {
               enumerable: true
             });
           } catch (e) {
-            if (!(e instanceof SMNotUpToDateException)) throw e;
+            if (!(e instanceof NotUpToDateException)) throw e;
             return _extends({}, Object.getOwnPropertyDescriptor(target, key), {
               enumerable: false
             });
@@ -1187,36 +1182,32 @@ function createDOProxyGenerator(smJSInstance) {
         }
 
         if (relationalResults && opts.relationalQueries && Object.keys(relationalResults).includes(key)) {
-          // SM returns an array when "byReference" is used
-          // but we only care about the first result
-          if ('byReference' in opts.relationalQueries[key]) {
-            var results = relationalResults[key];
-            if (!Array.isArray(results)) throw Error("Expected results to be an array but it wasn't");
-            return results[0];
+          if ('oneToOne' in opts.relationalQueries[key]) {
+            return relationalResults[key];
           }
 
           return relationalResults[key];
         }
 
-        if (Object.keys(opts.node.smData).includes(key)) {
+        if (Object.keys(opts.node.data).includes(key)) {
           if (!opts.allPropertiesQueried.includes(key)) {
-            throw new SMNotUpToDateException({
+            throw new NotUpToDateException({
               propName: key,
               queryId: opts.queryId,
               nodeType: opts.node.type
             });
           }
 
-          var smDataForThisProp = opts.node.smData[key];
+          var dataForThisProp = opts.node.data[key];
 
-          if (smDataForThisProp.type === exports.SM_DATA_TYPES.object || smDataForThisProp.type === exports.SM_DATA_TYPES.maybeObject) {
-            // do not return an object if this prop came back as null from SM
+          if (dataForThisProp.type === exports.DATA_TYPES.object || dataForThisProp.type === exports.DATA_TYPES.maybeObject) {
+            // do not return an object if this prop came back as null from backend
             if (opts["do"][key] == null) return opts["do"][key];
             return getNestedObjectWithNotUpToDateProtection({
               nodeType: opts.node.type,
               queryId: opts.queryId,
               allCachedData: opts["do"][key],
-              smDataForThisObject: smDataForThisProp.boxedValue,
+              dataForThisObject: dataForThisProp.boxedValue,
               allPropertiesQueried: opts.allPropertiesQueried,
               parentObjectKey: key
             });
@@ -1227,8 +1218,8 @@ function createDOProxyGenerator(smJSInstance) {
           try {
             return computedAccessors[key]();
           } catch (e) {
-            if (e instanceof SMNotUpToDateException) {
-              throw new SMNotUpToDateInComputedException({
+            if (e instanceof NotUpToDateException) {
+              throw new NotUpToDateInComputedException({
                 computedPropName: key,
                 propName: e.propName,
                 nodeType: opts.node.type,
@@ -1248,9 +1239,9 @@ function createDOProxyGenerator(smJSInstance) {
 
   function getNestedObjectWithNotUpToDateProtection(opts) {
     var objectToReturn = {};
-    Object.keys(opts.smDataForThisObject).forEach(function (objectProp) {
+    Object.keys(opts.dataForThisObject).forEach(function (objectProp) {
       var name = opts.parentObjectKey ? "" + opts.parentObjectKey + OBJECT_PROPERTY_SEPARATOR + objectProp : objectProp;
-      var smDataForThisProp = opts.smDataForThisObject[objectProp];
+      var dataForThisProp = opts.dataForThisObject[objectProp];
       var isUpToDate = opts.allPropertiesQueried.includes(name) || // this second case handles ensuring that nested objects are enumerable
       // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
       // and we request address_apt_floor and address_apt_unit
@@ -1262,20 +1253,20 @@ function createDOProxyGenerator(smJSInstance) {
         // @TODO write tests for this enumeration
         enumerable: isUpToDate,
         get: function get() {
-          if (smDataForThisProp.type === exports.SM_DATA_TYPES.object || smDataForThisProp.type === exports.SM_DATA_TYPES.maybeObject) {
+          if (dataForThisProp.type === exports.DATA_TYPES.object || dataForThisProp.type === exports.DATA_TYPES.maybeObject) {
             if (opts.allCachedData[objectProp] == null) return opts.allCachedData[objectProp];
             return getNestedObjectWithNotUpToDateProtection({
               nodeType: opts.nodeType,
               queryId: opts.queryId,
               allCachedData: opts.allCachedData[objectProp],
-              smDataForThisObject: smDataForThisProp.boxedValue,
+              dataForThisObject: dataForThisProp.boxedValue,
               allPropertiesQueried: opts.allPropertiesQueried,
               parentObjectKey: name
             });
           }
 
           if (!isUpToDate) {
-            throw new SMNotUpToDateException({
+            throw new NotUpToDateException({
               propName: name,
               nodeType: opts.nodeType,
               queryId: opts.queryId
@@ -1548,12 +1539,12 @@ var OptimisticUpdatesOrchestrator = /*#__PURE__*/function () {
 }();
 
 /**
- * Returns an initialized instance of a repository for an SMNode
+ * Returns an initialized instance of a repository for a Node
  */
 
 function RepositoryFactory(opts) {
   // silences the error "A class can only implement an object type or intersection of object types with statically known members."
-  // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
+  // wich happens because NodeDO has non statically known members (each property on a node in the backend is mapped to a non-statically known property on the DO)
   // eslint-disable-next-line
   // @ts-ignore
   var Repository = /*#__PURE__*/function () {
@@ -1569,7 +1560,7 @@ function RepositoryFactory(opts) {
       }
 
       var cached = this.cached[data.id];
-      var parsedData = this.parseDataFromSM(data);
+      var parsedData = this.parseDataFromBackend(data);
 
       if (!cached) {
         var newDO = new opts.DOClass(parsedData);
@@ -1593,7 +1584,7 @@ function RepositoryFactory(opts) {
       var cached = this.cached[id];
 
       if (!cached) {
-        throw new SMNotCachedException({
+        throw new NotCachedException({
           nodeType: opts.def.type,
           id: id
         });
@@ -1612,18 +1603,18 @@ function RepositoryFactory(opts) {
       }
     }
     /**
-     * This method takes data that comes in from SM and is about to be applied to this DO's instance. It needs to:
-     * 1) ignore data not specified in the smNode definition for this node
-     *     this is so that the querier in smDataContext can call onDataReceived on the DO with the data it receives from SM without having to ignore the relational aliases there
+     * This method takes data that comes in from the backend and is about to be applied to this DO's instance. It needs to:
+     * 1) ignore data not specified in the node definition for this node
+     *     this is so that the querier in dataContext can call onDataReceived on the DO with the data it receives from the backend without having to ignore the relational aliases there
      *     without doing this, we'd get errors about attempting to set a property on a DO which is read only
      * 2) take objects spread into root properties and convert them to regular objects
-     *     for example, if we are trying to store `settings: { show: true }` in SM, what is actually stored in the DB is
+     *     for example, if we are trying to store `settings: { show: true }` in the backend, what is actually stored in the DB is
      *     settings__dot__show: 'true'
-     *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the smDataTypes)
+     *     since all data must be a string (we don't need to worry about coercing strings to booleans or numbers though, that's handled by the dataTypes)
      */
     ;
 
-    _proto.parseDataFromSM = function parseDataFromSM(receivedData) {
+    _proto.parseDataFromBackend = function parseDataFromBackend(receivedData) {
       var _this = this;
 
       var oldStyleObjects = {};
@@ -1642,8 +1633,8 @@ function RepositoryFactory(opts) {
         var isDataStoredOnTheNode = key.includes(OBJECT_PROPERTY_SEPARATOR) ? Object.keys(opts.def.properties).includes(key.split(OBJECT_PROPERTY_SEPARATOR)[0]) : Object.keys(opts.def.properties).includes(key);
         if (!isDataStoredOnTheNode) return parsed;
         var type = (_opts$def$properties$ = opts.def.properties[key]) == null ? void 0 : _opts$def$properties$.type;
-        var isObjectData = key.includes(OBJECT_PROPERTY_SEPARATOR) || type === exports.SM_DATA_TYPES.object || type === exports.SM_DATA_TYPES.maybeObject;
-        var isRecordData = type === exports.SM_DATA_TYPES.record || type === exports.SM_DATA_TYPES.maybeRecord;
+        var isObjectData = key.includes(OBJECT_PROPERTY_SEPARATOR) || type === exports.DATA_TYPES.object || type === exports.DATA_TYPES.maybeObject;
+        var isRecordData = type === exports.DATA_TYPES.record || type === exports.DATA_TYPES.maybeRecord;
 
         var isArrayData = function () {
           if (isObjectData) {
@@ -1651,8 +1642,8 @@ function RepositoryFactory(opts) {
           }
 
           var receivedDataValue = opts.def.properties[key];
-          var smDataType = typeof receivedDataValue === 'function' ? receivedDataValue._default.type : receivedDataValue.type;
-          return smDataType === exports.SM_DATA_TYPES.array || smDataType === exports.SM_DATA_TYPES.maybeArray;
+          var dataType = typeof receivedDataValue === 'function' ? receivedDataValue._default.type : receivedDataValue.type;
+          return dataType === exports.DATA_TYPES.array || dataType === exports.DATA_TYPES.maybeArray;
         }(); // point 2 above
 
 
@@ -1678,7 +1669,7 @@ function RepositoryFactory(opts) {
             try {
               oldStyleObjects[root] = oldStyleObjects[root] || parseJSONFromBE(receivedData[root]);
             } catch (e) {
-              throw new SMDataParsingException({
+              throw new DataParsingException({
                 receivedData: receivedData,
                 message: "Could not parse json stored in old format for an object in the key \"" + key + "\""
               });
@@ -1711,7 +1702,7 @@ function RepositoryFactory(opts) {
           } else if (receivedData[key] == null) {
             parsed[key] = null;
           } else {
-            throw new SMDataParsingException({
+            throw new DataParsingException({
               receivedData: receivedData,
               message: "Could not parse json stored in old format for a record in the key \"" + key + "\""
             });
@@ -2766,7 +2757,13 @@ function prepareForBE(obj) {
 }
 
 /**
- * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
+ * The functions in this file are responsible for translating queryDefinitionss to gql documents
+ * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
+ * other fns are exported for testing purposes only
+ */
+
+/**
+ * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
  * This fn executs those fns at query time, and returns a record of relational query builders
@@ -2774,8 +2771,15 @@ function prepareForBE(obj) {
 
 function getRelationalQueryBuildersFromRelationalFns(relationaFns) {
   if (!relationaFns) return {};
-  return Object.keys(relationaFns).reduce(function (acc, key) {
-    acc[key] = relationaFns[key]();
+  return Object.keys(relationaFns).reduce(function (acc, relationshipName) {
+    var relationalQueryBuilder = relationaFns[relationshipName]();
+
+    acc[relationshipName] = function (opts) {
+      return _extends({}, relationalQueryBuilder(opts), {
+        _relationshipName: relationshipName
+      });
+    };
+
     return acc;
   }, {});
 }
@@ -2786,7 +2790,7 @@ function getMapFnReturn(opts) {
   Object.keys(opts.properties).forEach(function (key) {
     var data = opts.properties[key];
 
-    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.DATA_TYPES.object || data.type === exports.DATA_TYPES.maybeObject) {
       mapFnOpts[key] = function (opts) {
         return opts.map;
       };
@@ -2794,18 +2798,12 @@ function getMapFnReturn(opts) {
   });
   return opts.mapFn(mapFnOpts);
 }
-/**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
-
 
 function getQueriedProperties(opts) {
   var mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational
+    properties: opts.data,
+    relational: opts.relational
   });
   /**
    * a mapFnReturn will be null when the dev returns an object type in a map fn, but does not specify a map fn for that object
@@ -2826,17 +2824,17 @@ function getQueriedProperties(opts) {
    * in this case, we just assume they want to query the entire object
    */
 
-  return Object.keys(mapFnReturn || opts.smData).reduce(function (acc, key) {
-    var isData = !!opts.smData[key];
+  return Object.keys(mapFnReturn || opts.data).reduce(function (acc, key) {
+    var isData = !!opts.data[key];
     if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
 
     if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
       return acc;
     }
 
-    var data = opts.smData[key];
+    var data = opts.data[key];
 
-    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.DATA_TYPES.object || data.type === exports.DATA_TYPES.maybeObject) {
       // query for any data stored in old format (stringified json at the root of the node)
       acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
 
@@ -2845,7 +2843,7 @@ function getQueriedProperties(opts) {
         mapFn: mapFnReturn && typeof mapFnReturn[key] === 'function' ? mapFnReturn[key] : function () {
           return null;
         },
-        smData: data.boxedValue
+        data: data.boxedValue
       }).map(function (nestedKey) {
         return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;
       }));
@@ -2865,7 +2863,7 @@ function getAllNodeProperties(opts) {
 
     var data = opts.nodeProperties[key];
 
-    if (data.type === exports.SM_DATA_TYPES.object || data.type === exports.SM_DATA_TYPES.maybeObject) {
+    if (data.type === exports.DATA_TYPES.object || data.type === exports.DATA_TYPES.maybeObject) {
       // query for any data stored in old format (stringified json at the root of the node)
       acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
 
@@ -2885,12 +2883,12 @@ function getAllNodeProperties(opts) {
 function getRelationalQueries(opts) {
   var mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational
+    properties: opts.data,
+    relational: opts.relational
   });
-  var relationalQueries = Object.keys(mapFnReturn).reduce(function (acc, key) {
-    var isData = !!opts.smData[key];
-    var isComputed = opts.smComputed ? !!opts.smComputed[key] : false;
+  var relationalQueries = Object.keys(mapFnReturn).reduce(function (acc, alias) {
+    var isData = !!opts.data[alias];
+    var isComputed = opts.computed ? !!opts.computed[alias] : false;
 
     if (isData || isComputed) {
       return acc;
@@ -2898,53 +2896,46 @@ function getRelationalQueries(opts) {
       var addRelationalQueryRecord = function addRelationalQueryRecord(queryRecord) {
         var relationalQueryRecord = {
           def: queryRecord.def,
+          _relationshipName: queryRecord._relationshipName,
           properties: getQueriedProperties({
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
-            smData: queryRecord.def.smData,
-            smComputed: queryRecord.def.smComputed,
-            smRelational: queryRecord.def.smRelational,
+            data: queryRecord.def.data,
+            computed: queryRecord.def.computed,
+            relational: queryRecord.def.relational,
             isRootLevel: true
           })
         };
         var relationalQueriesWithinThisRelationalQuery = getRelationalQueries({
           queryId: opts.queryId,
           mapFn: queryRecord.mapFn,
-          smData: queryRecord.def.smData,
-          smComputed: queryRecord.def.smComputed,
-          smRelational: queryRecord.def.smRelational
+          data: queryRecord.def.data,
+          computed: queryRecord.def.computed,
+          relational: queryRecord.def.relational
         });
 
         if (relationalQueriesWithinThisRelationalQuery) {
           relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
         }
 
-        var relationalType = queryRecord._smRelational;
+        var relationalType = queryRecord._relational;
 
-        if (relationalType === exports.SM_RELATIONAL_TYPES.byReference) {
-          relationalQueryRecord.byReference = true;
-          relationalQueryRecord.idProp = relationalQuery.idProp;
-        } else if (relationalType === exports.SM_RELATIONAL_TYPES.byReferenceArray) {
-          relationalQueryRecord.byReferenceArray = true;
-          relationalQueryRecord.idProp = relationalQuery.idProp;
-        } else if (relationalType === exports.SM_RELATIONAL_TYPES.children) {
-          relationalQueryRecord.children = true;
+        if (relationalType === exports.RELATIONAL_TYPES.oneToOne) {
+          relationalQueryRecord.oneToOne = true;
+        } else if (relationalType === exports.RELATIONAL_TYPES.oneToMany) {
+          relationalQueryRecord.oneToMany = true;
 
-          if ('depth' in relationalQuery) {
-            relationalQueryRecord.depth = relationalQuery.depth;
-          }
-
-          if ('filter' in relationalQuery && relationalQuery.filter != null) {
-            relationalQueryRecord.filter = relationalQuery.filter;
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.filter) {
+            relationalQueryRecord.filter = relationalQuery.queryBuilderOpts.filter;
           }
         } else {
           throw Error("relationalType \"" + relationalType + "\" is not valid.");
         }
 
-        acc[queryRecord.key] = relationalQueryRecord;
+        acc[queryRecord.alias] = relationalQueryRecord;
       };
 
-      var relationalQuery = mapFnReturn[key];
+      var relationalQuery = mapFnReturn[alias];
       /**
        * happens when a map function for a relational query returns all the data for that node
        * example:
@@ -2966,17 +2957,18 @@ function getRelationalQueries(opts) {
         return acc;
       }
 
-      if (relationalQuery._smRelational == null) {
-        throw Error("getRelationalQueries - the key \"" + key + "\" is not a data property, not a computed property and does not contain a relational query.");
+      if (relationalQuery._relational == null) {
+        throw Error("getRelationalQueries - the key \"" + alias + "\" is not a data property, not a computed property and does not contain a relational query.");
       }
 
-      if (relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.byReference || relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.byReferenceArray) {
+      if (relationalQuery._relational === exports.RELATIONAL_TYPES.oneToOne || relationalQuery._relational === exports.RELATIONAL_TYPES.oneToMany) {
         if ('map' in relationalQuery.queryBuilderOpts && typeof relationalQuery.queryBuilderOpts.map === 'function') {
           // non union
           var queryBuilderOpts = relationalQuery.queryBuilderOpts;
           addRelationalQueryRecord({
-            _smRelational: relationalQuery._smRelational,
-            key: key,
+            _relational: relationalQuery._relational,
+            _relationshipName: relationalQuery._relationshipName,
+            alias: alias,
             def: relationalQuery.def,
             mapFn: queryBuilderOpts.map
           });
@@ -2985,23 +2977,17 @@ function getRelationalQueries(opts) {
           var _queryBuilderOpts = relationalQuery.queryBuilderOpts;
           Object.keys(_queryBuilderOpts).forEach(function (unionType) {
             addRelationalQueryRecord({
-              _smRelational: relationalQuery._smRelational,
-              key: "" + key + RELATIONAL_UNION_QUERY_SEPARATOR + unionType,
+              _relational: relationalQuery._relational,
+              _relationshipName: relationalQuery._relationshipName,
+              alias: "" + alias + RELATIONAL_UNION_QUERY_SEPARATOR + unionType,
               def: relationalQuery.def[unionType],
               mapFn: _queryBuilderOpts[unionType].map
             });
           });
         }
-      } else if (relationalQuery._smRelational === exports.SM_RELATIONAL_TYPES.children) {
-        addRelationalQueryRecord({
-          _smRelational: relationalQuery._smRelational,
-          key: key,
-          def: relationalQuery.def,
-          mapFn: relationalQuery.map
-        });
       } else {
         throw Error( // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
-        "The relational query type " + relationalQuery._smRelational + " is not valid");
+        "The relational query type " + relationalQuery._relational + " is not valid");
       }
 
       return acc;
@@ -3022,11 +3008,11 @@ function getQueryRecordFromQueryDefinition(opts) {
 
     if (!queryDefinition) {
       return;
-    } else if ('_isSMNodeDef' in queryDefinition) {
+    } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
       nodeDef = queryDefinition;
       queriedProps = getAllNodeProperties({
-        nodeProperties: nodeDef.smData,
+        nodeProperties: nodeDef.data,
         isRootLevel: true
       });
     } else {
@@ -3039,21 +3025,21 @@ function getQueryRecordFromQueryDefinition(opts) {
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: queryDefinition.def.smData,
-          smComputed: queryDefinition.def.smComputed,
-          smRelational: queryDefinition.def.smRelational,
+          data: queryDefinition.def.data,
+          computed: queryDefinition.def.computed,
+          relational: queryDefinition.def.relational,
           isRootLevel: true
         });
         relational = getRelationalQueries({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: nodeDef.smData,
-          smComputed: nodeDef.smComputed,
-          smRelational: nodeDef.smRelational
+          data: nodeDef.data,
+          computed: nodeDef.computed,
+          relational: nodeDef.relational
         });
       } else {
         queriedProps = getAllNodeProperties({
-          nodeProperties: nodeDef.smData,
+          nodeProperties: nodeDef.data,
           isRootLevel: true
         });
       }
@@ -3083,20 +3069,6 @@ function getQueryRecordFromQueryDefinition(opts) {
         }
 
         queryRecordEntry.id = queryDefinition.target.id;
-      }
-
-      if ('underIds' in queryDefinition.target && queryDefinition.target.underIds != null) {
-        if (queryDefinition.target.underIds.some(function (id) {
-          return typeof id !== 'string';
-        })) {
-          throw Error('Invalid id in target.underIds');
-        }
-
-        queryRecordEntry.underIds = queryDefinition.target.underIds;
-      }
-
-      if (queryDefinition.target.depth != null) {
-        queryRecordEntry.depth = queryDefinition.target.depth;
       }
     }
 
@@ -3144,37 +3116,11 @@ function getKeyValueFilterString(filter) {
 }
 
 function getGetNodeOptions(opts) {
-  var options = ["type: \"" + opts.def.type + "\""];
-
-  if (opts.underIds) {
-    options.push("underIds: [" + opts.underIds.map(function (id) {
-      return "\"" + id + "\"";
-    }).join(',') + "]");
-  }
-
-  if (opts.depth !== null && opts.depth !== undefined) {
-    options.push("depth: " + opts.depth);
-  }
+  var options = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
     options.push("filter: " + getKeyValueFilterString(opts.filter));
   }
-
-  return options.join(', ');
-} // subscriptions use a slightly different set of arguments for now
-// https://tractiontools.atlassian.net/secure/RapidBoard.jspa?rapidView=53&projectKey=SMT&modal=detail&selectedIssue=SMT-636
-
-
-function getSubscriptionGetNodeOptions(opts) {
-  var options = ["type: \"" + opts.def.type + "\""];
-
-  if (opts.under) {
-    options.push("underIds: [\"" + opts.under + "\"]");
-  } // @TODO uncomment when subscriptions support depth params
-  // if (opts.depth != null) {
-  //   options.push(`depth: ${opts.depth}`)
-  // }
-
 
   return options.join(', ');
 }
@@ -3184,13 +3130,13 @@ function getSpaces(numberOfSpaces) {
 }
 
 function getQueryPropertiesString(opts) {
-  var propsString = "\n" + getSpaces((opts.nestLevel + 2) * 2);
-  propsString += opts.queryRecordEntry.properties.join(",\n" + getSpaces((opts.nestLevel + 2) * 2));
+  var propsString = "" + getSpaces(opts.nestLevel * 2);
+  propsString += opts.queryRecordEntry.properties.join(",\n" + getSpaces(opts.nestLevel * 2));
 
   if (opts.queryRecordEntry.relational) {
     propsString += (propsString !== '' ? ',' : '') + getRelationalQueryString({
       relationalQueryRecord: opts.queryRecordEntry.relational,
-      nestLevel: opts.nestLevel + 2
+      nestLevel: opts.nestLevel
     });
   }
 
@@ -3200,81 +3146,82 @@ function getQueryPropertiesString(opts) {
 function getRelationalQueryString(opts) {
   return Object.keys(opts.relationalQueryRecord).reduce(function (acc, alias) {
     var relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
-    var operation;
 
-    if ('byReference' in relationalQueryRecordEntry || 'byReferenceArray' in relationalQueryRecordEntry) {
-      operation = "GetReferences(propertyNames: \"" + relationalQueryRecordEntry.idProp + "\")";
-    } else if ('children' in relationalQueryRecordEntry) {
-      var depthString = 'depth' in relationalQueryRecordEntry ? relationalQueryRecordEntry.depth !== undefined ? ",depth: " + relationalQueryRecordEntry.depth : '' : '';
-      operation = "GetChildren(type: \"" + relationalQueryRecordEntry.def.type + "\"" + depthString + ")";
-    } else {
+    if (!relationalQueryRecordEntry._relationshipName) {
       throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
     }
 
-    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {") + getQueryPropertiesString({
+    var operation = "" + relationalQueryRecordEntry._relationshipName;
+    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {\n") + ('oneToMany' in relationalQueryRecordEntry ? wrapInNodes({
+      propertiesString: getQueryPropertiesString({
+        queryRecordEntry: relationalQueryRecordEntry,
+        nestLevel: opts.nestLevel + 2
+      }),
+      nestLevel: opts.nestLevel + 1
+    }) : getQueryPropertiesString({
       queryRecordEntry: relationalQueryRecordEntry,
-      nestLevel: opts.nestLevel
-    }) + ("\n" + getSpaces(opts.nestLevel * 2) + "}");
+      nestLevel: opts.nestLevel + 1
+    })) + ("\n" + getSpaces(opts.nestLevel * 2) + "}");
   }, '');
 }
 
-function getRootLevelQueryString(opts) {
+function getOperationFromQueryRecordEntry(queryRecordEntry) {
+  var nodeType = queryRecordEntry.def.type;
   var operation;
 
-  if ('ids' in opts && opts.ids != null) {
-    operation = "GetNodesByIdNew(ids: " + getIdsString(opts.ids) + ")";
-  } else if ('id' in opts && opts.id != null) {
-    operation = "GetNodesByIdNew(ids: " + getIdsString([opts.id]) + ")";
+  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
+    operation = nodeType + "s(ids: " + getIdsString(queryRecordEntry.ids) + ")";
+  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
+    operation = nodeType + "(id: \"" + queryRecordEntry.id + "\")";
   } else {
-    operation = "GetNodesNew(" + getGetNodeOptions(opts) + ")";
+    var options = getGetNodeOptions(queryRecordEntry);
+    operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   }
 
-  return opts.alias + ": " + operation + " {" + ("" + getQueryPropertiesString({
+  return operation;
+}
+
+function wrapInNodes(opts) {
+  return getSpaces(opts.nestLevel * 2) + "nodes {\n" + opts.propertiesString + "\n" + getSpaces(opts.nestLevel * 2) + "}";
+}
+
+function getRootLevelQueryString(opts) {
+  var operation = getOperationFromQueryRecordEntry(opts);
+  return "  " + opts.alias + ": " + operation + " {\n" + ("" + (opts.id == null ? wrapInNodes({
+    propertiesString: getQueryPropertiesString({
+      queryRecordEntry: opts,
+      nestLevel: 3
+    }),
+    nestLevel: 2
+  }) : getQueryPropertiesString({
     queryRecordEntry: opts,
-    nestLevel: 1
-  })) + ("\n" + getSpaces(4) + "}");
+    nestLevel: 2
+  }))) + "\n  }";
 }
 
 function getQueryInfo(opts) {
   var queryRecord = getQueryRecordFromQueryDefinition(opts);
-  var queryGQLString = ("\n    query " + getSanitizedQueryId({
+  var queryGQLString = ("query " + getSanitizedQueryId({
     queryId: opts.queryId
-  }) + " {\n        " + Object.keys(queryRecord).map(function (alias) {
+  }) + " {\n" + Object.keys(queryRecord).map(function (alias) {
     return getRootLevelQueryString(_extends({
       alias: alias
     }, queryRecord[alias]));
-  }).join('\n    ') + "\n    }\n  ").trim();
+  }).join('\n    ') + '\n}').trim();
   var subscriptionConfigs = Object.keys(queryRecord).reduce(function (subscriptionConfigsAcc, alias) {
     var subscriptionName = getSanitizedQueryId({
       queryId: opts.queryId + '_' + alias
     });
     var queryRecordEntry = queryRecord[alias];
-    var operations;
-
-    if (queryRecordEntry.ids != null) {
-      operations = ["GetNodesById(ids: " + getIdsString(queryRecordEntry.ids) + ", monitorChildEvents: true)"];
-    } else if (queryRecordEntry.id != null) {
-      operations = ["GetNodesById(ids: " + getIdsString([queryRecordEntry.id]) + ", monitorChildEvents: true)"];
-    } else if (queryRecordEntry.underIds != null) {
-      operations = queryRecordEntry.underIds.map(function (underId) {
-        return "GetNodesNew(" + getSubscriptionGetNodeOptions(_extends({}, queryRecordEntry, {
-          under: underId
-        })) + ", monitorChildEvents: true)";
-      });
-    } else {
-      operations = ["GetNodesNew(" + getSubscriptionGetNodeOptions(queryRecordEntry) + ", monitorChildEvents: true)"];
-    }
-
-    var gqlStrings = operations.map(function (operation) {
-      return ("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
-        queryRecordEntry: queryRecordEntry,
-        nestLevel: 5
-      }) + "\n        }\n        operation { action, path }\n      }\n    }\n        ").trim();
-    });
+    var operation = getOperationFromQueryRecordEntry(queryRecordEntry);
+    var gqlStrings = [("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
+      queryRecordEntry: queryRecordEntry,
+      nestLevel: 5
+    }) + "\n        }\n        operation { action, path }\n      }\n    }\n        ").trim()];
 
     function extractNodeFromSubscriptionMessage(subscriptionMessage) {
       if (!subscriptionMessage[alias].node) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage: subscriptionMessage,
           description: 'No "node" found in message'
         });
@@ -3285,7 +3232,7 @@ function getQueryInfo(opts) {
 
     function extractOperationFromSubscriptionMessage(subscriptionMessage) {
       if (!subscriptionMessage[alias].operation) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage: subscriptionMessage,
           description: 'No "operation" found in message'
         });
@@ -3345,19 +3292,19 @@ var JSON_TAG$2 = '__JSON__';
  * Takes the json representation of a node's data and prepares it to be sent to SM
  *
  * @param nodeData an object with arbitrary data
- * @param ISMDataRecord a record of SMData types to identify objects vs records
+ * @param IDataRecord a record of Data types to identify objects vs records
  * @param generatingMockData a boolean to determine if escape text should be utilized
  * @returns stringified params ready for mutation
  */
 
 function revisedConvertNodeDataToSMPersistedData(opts) {
   var nodeData = opts.nodeData,
-      ISMDataRecord = opts.ISMDataRecord,
+      IDataRecord = opts.IDataRecord,
       generatingMockData = opts.generatingMockData,
       skipBooleanStringWrapping = opts.skipBooleanStringWrapping;
   var parsedData = revisedPrepareForBE({
     obj: nodeData,
-    ISMDataRecord: ISMDataRecord,
+    IDataRecord: IDataRecord,
     generatingMockData: generatingMockData
   });
   var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
@@ -3385,7 +3332,7 @@ function escapeText$1(text) {
  * Takes an object node value and flattens it to be sent to SM
  *
  * @param obj an object with arbitrary data
- * @param ISMDataRecordForKey a record of SMData type for specific key to identify objects vs records
+ * @param IDataRecordForKey a record of Data type for specific key to identify objects vs records
  * @param generatingMockData a boolean to determine if escape text should be utilized
  * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
  * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
@@ -3444,7 +3391,7 @@ function revisedPrepareObjectForBE(opts) {
 function revisedConvertPropertyToBE(opts) {
   var key = opts.key,
       value = opts.value,
-      ISMDataRecordForKey = opts.ISMDataRecordForKey,
+      IDataRecordForKey = opts.IDataRecordForKey,
       generatingMockData = opts.generatingMockData,
       omitObjectIdentifier = opts.omitObjectIdentifier;
 
@@ -3457,7 +3404,7 @@ function revisedConvertPropertyToBE(opts) {
 
     return _ref5 = {}, _ref5[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref5;
   } else if (typeof value === 'object') {
-    if (ISMDataRecordForKey.type === exports.SM_DATA_TYPES.record || ISMDataRecordForKey.type === exports.SM_DATA_TYPES.maybeRecord) {
+    if (IDataRecordForKey.type === exports.DATA_TYPES.record || IDataRecordForKey.type === exports.DATA_TYPES.maybeRecord) {
       var _ref6;
 
       return _ref6 = {}, _ref6[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref6;
@@ -3466,7 +3413,7 @@ function revisedConvertPropertyToBE(opts) {
 
       return revisedPrepareObjectForBE({
         obj: (_obj = {}, _obj[key] = value, _obj),
-        ISMDataRecordForKey: ISMDataRecordForKey,
+        IDataRecordForKey: IDataRecordForKey,
         generatingMockData: generatingMockData,
         omitObjectIdentifier: omitObjectIdentifier
       });
@@ -3510,13 +3457,13 @@ function revisedConvertEdgeDirectionNames(edgeItem) {
 }
 
 function revisedPrepareForBE(opts) {
-  var ISMDataRecord = opts.ISMDataRecord,
+  var IDataRecord = opts.IDataRecord,
       obj = opts.obj,
       generatingMockData = opts.generatingMockData;
   return Object.entries(obj).reduce(function (acc, _ref10) {
     var key = _ref10[0],
         value = _ref10[1];
-    var ISMDataRecordForKey = typeof ISMDataRecord[key] === 'function' ? ISMDataRecord[key]._default : ISMDataRecord[key];
+    var IDataRecordForKey = typeof IDataRecord[key] === 'function' ? IDataRecord[key]._default : IDataRecord[key];
 
     if (key === 'childNodes') {
       if (!Array.isArray(value)) {
@@ -3527,7 +3474,7 @@ function revisedPrepareForBE(opts) {
         childNodes: value.map(function (item) {
           return revisedConvertNodeDataToSMPersistedData({
             nodeData: item,
-            ISMDataRecord: ISMDataRecord,
+            IDataRecord: IDataRecord,
             generatingMockData: generatingMockData
           });
         })
@@ -3543,7 +3490,7 @@ function revisedPrepareForBE(opts) {
         additionalEdges: value.map(function (item) {
           return revisedConvertNodeDataToSMPersistedData({
             nodeData: revisedConvertEdgeDirectionNames(item),
-            ISMDataRecord: ISMDataRecord,
+            IDataRecord: IDataRecord,
             generatingMockData: generatingMockData,
             skipBooleanStringWrapping: true
           });
@@ -3554,97 +3501,107 @@ function revisedPrepareForBE(opts) {
     return _extends({}, acc, revisedConvertPropertyToBE({
       key: key,
       value: value,
-      ISMDataRecordForKey: ISMDataRecordForKey,
+      IDataRecordForKey: IDataRecordForKey,
       generatingMockData: generatingMockData
     }));
   }, {});
 }
 
-function getMockValueForISMData(smData) {
-  switch (smData.type) {
-    case exports.SM_DATA_TYPES.string:
-      {
-        // We return the default value if it exists to account for cases where the string must be an enum.
-        return smData.defaultValue ? smData.defaultValue : generateRandomString();
-      }
-
-    case exports.SM_DATA_TYPES.maybeString:
+function getMockValueForIData(data) {
+  switch (data.type) {
+    case exports.DATA_TYPES.string:
       {
         return generateRandomString();
       }
 
-    case exports.SM_DATA_TYPES.number:
+    case exports.DATA_TYPES.maybeString:
+      {
+        return getRandomItemFromArray([generateRandomString(), null]);
+      }
+
+    case exports.DATA_TYPES.stringEnum:
+      {
+        return getRandomItemFromArray(data.acceptableValues);
+      }
+
+    case exports.DATA_TYPES.maybeStringEnum:
+      {
+        // 50/50 chance to get a value or null
+        return getRandomItemFromArray([getRandomItemFromArray(data.acceptableValues), null]);
+      }
+
+    case exports.DATA_TYPES.number:
       {
         return generateRandomNumber(1, 100);
       }
 
-    case exports.SM_DATA_TYPES.maybeNumber:
+    case exports.DATA_TYPES.maybeNumber:
       {
-        return generateRandomNumber(1, 100);
+        return getRandomItemFromArray([generateRandomNumber(1, 100), null]);
       }
 
-    case exports.SM_DATA_TYPES["boolean"]:
-      {
-        return generateRandomBoolean();
-      }
-
-    case exports.SM_DATA_TYPES.maybeBoolean:
+    case exports.DATA_TYPES["boolean"]:
       {
         return generateRandomBoolean();
       }
 
-    case exports.SM_DATA_TYPES.object:
+    case exports.DATA_TYPES.maybeBoolean:
       {
-        return getMockValuesForISMDataRecord(smData.boxedValue);
+        return getRandomItemFromArray([generateRandomBoolean(), null]);
       }
 
-    case exports.SM_DATA_TYPES.maybeObject:
+    case exports.DATA_TYPES.object:
       {
-        return getMockValuesForISMDataRecord(smData.boxedValue);
+        return getMockValuesForIDataRecord(data.boxedValue);
       }
 
-    case exports.SM_DATA_TYPES.array:
+    case exports.DATA_TYPES.maybeObject:
+      {
+        return getRandomItemFromArray([getMockValuesForIDataRecord(data.boxedValue), null]);
+      }
+
+    case exports.DATA_TYPES.array:
       {
         return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
-          return typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue);
+          return typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue);
         });
       }
 
-    case exports.SM_DATA_TYPES.maybeArray:
+    case exports.DATA_TYPES.maybeArray:
       {
-        return new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
-          return typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue);
-        });
+        return getRandomItemFromArray([new Array(generateRandomNumber(1, 10)).fill('').map(function (_) {
+          return typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue);
+        }), null]);
       }
 
-    case exports.SM_DATA_TYPES.record:
+    case exports.DATA_TYPES.record:
       {
         var _ref;
 
-        return _ref = {}, _ref[generateRandomString()] = typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue), _ref;
+        return _ref = {}, _ref[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref;
       }
 
-    case exports.SM_DATA_TYPES.maybeRecord:
+    case exports.DATA_TYPES.maybeRecord:
       {
         var _ref2;
 
-        return _ref2 = {}, _ref2[generateRandomString()] = typeof smData.boxedValue === 'function' ? getMockValueForISMData(smData.boxedValue._default) : getMockValueForISMData(smData.boxedValue), _ref2;
+        return getRandomItemFromArray([(_ref2 = {}, _ref2[generateRandomString()] = typeof data.boxedValue === 'function' ? getMockValueForIData(data.boxedValue._default) : getMockValueForIData(data.boxedValue), _ref2), null]);
       }
 
     default:
-      throw new UnreachableCaseError(smData.type);
+      throw new UnreachableCaseError(data.type);
   }
 }
 
-function getMockValuesForISMDataRecord(record) {
+function getMockValuesForIDataRecord(record) {
   return Object.entries(record).reduce(function (acc, _ref3) {
     var key = _ref3[0],
         value = _ref3[1];
 
     if (typeof value === 'function') {
-      acc[key] = getMockValueForISMData(value._default);
+      acc[key] = getMockValueForIData(value._default);
     } else {
-      acc[key] = getMockValueForISMData(value);
+      acc[key] = getMockValueForIData(value);
     }
 
     return acc;
@@ -3653,21 +3610,21 @@ function getMockValuesForISMDataRecord(record) {
 
 function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
   var queryRecord = opts.queryRecord;
-  var nodePropertiesToMock = Object.keys(queryRecord.def.smData).filter(function (nodeProperty) {
+  var nodePropertiesToMock = Object.keys(queryRecord.def.data).filter(function (nodeProperty) {
     return queryRecord.properties.includes(nodeProperty);
   }).reduce(function (acc, item) {
-    acc[item] = queryRecord.def.smData[item];
+    acc[item] = queryRecord.def.data[item];
     return acc;
   }, {});
 
   var mockedValues = _extends({
     type: opts.queryRecord.def.type,
     version: '1'
-  }, getMockValuesForISMDataRecord(nodePropertiesToMock));
+  }, getMockValuesForIDataRecord(nodePropertiesToMock));
 
   var valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: mockedValues,
-    ISMDataRecord: nodePropertiesToMock,
+    IDataRecord: nodePropertiesToMock,
     generatingMockData: true
   });
   return valuesForNodeDataPreparedForBE;
@@ -3678,7 +3635,7 @@ function generateMockNodeDataForAllQueryRecords(opts) {
   var mockedNodeData = {};
   Object.keys(queryRecords).forEach(function (queryRecordAlias) {
     var queryRecord = queryRecords[queryRecordAlias];
-    var returnValueShouldBeAnArray = !!queryRecord.id === false;
+    var returnValueShouldBeAnArray = !!queryRecord.id === false && !('oneToOne' in queryRecord);
     var mockedNodeDataReturnValues;
     var relationalMockNodeProperties = {};
 
@@ -3700,7 +3657,9 @@ function generateMockNodeDataForAllQueryRecords(opts) {
         arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
       }
 
-      mockedNodeDataReturnValues = arrayOfMockNodeValues;
+      mockedNodeDataReturnValues = {
+        nodes: arrayOfMockNodeValues
+      };
     } else {
       var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
         queryRecord: queryRecord
@@ -3730,6 +3689,10 @@ function generateMockNodeDataFromQueryDefinitions(opts) {
   return generateMockNodeDataForAllQueryRecords({
     queryRecords: queryRecords
   });
+}
+
+function getRandomItemFromArray(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
 var queryIdx = 0;
@@ -3770,7 +3733,7 @@ function getNullishResults(queryDefinitions) {
 
 
 function generateQuerier(_ref4) {
-  var smJSInstance = _ref4.smJSInstance,
+  var mmGQLInstance = _ref4.mmGQLInstance,
       queryManager = _ref4.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
@@ -3808,7 +3771,7 @@ function generateQuerier(_ref4) {
                                                 var itemPropertyPath = filterPropertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
 
                                                 if (queryRecordEntry.properties.includes(itemPropertyPath) === false) {
-                                                  throw new SMFilterPropertyNotDefinedInQueryException({
+                                                  throw new FilterPropertyNotDefinedInQueryException({
                                                     filterPropName: filterPropertyPath
                                                   });
                                                 }
@@ -3854,7 +3817,7 @@ function generateQuerier(_ref4) {
                                                           return value <= propertyFilter[filterOperator];
 
                                                         default:
-                                                          throw new SMFilterOperatorNotImplementedException({
+                                                          throw new FilterOperatorNotImplementedException({
                                                             operator: filterOperator
                                                           });
                                                       }
@@ -3881,7 +3844,7 @@ function generateQuerier(_ref4) {
 
                                       tokenName = _ref5[0], queryDefinitions = _ref5[1];
 
-                                      if (!smJSInstance.generateMockData) {
+                                      if (!mmGQLInstance.generateMockData) {
                                         _context.next = 4;
                                         break;
                                       }
@@ -3906,7 +3869,7 @@ function generateQuerier(_ref4) {
                                       }
 
                                       _context.next = 9;
-                                      return smJSInstance.gqlClient.query(queryOpts);
+                                      return mmGQLInstance.gqlClient.query(queryOpts);
 
                                     case 9:
                                       result = _context.sent;
@@ -3947,12 +3910,12 @@ function generateQuerier(_ref4) {
               };
 
               getToken = function _getToken(tokenName) {
-                var token = smJSInstance.getToken({
+                var token = mmGQLInstance.getToken({
                   tokenName: tokenName
                 });
 
                 if (!token) {
-                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
                 }
 
                 return token;
@@ -3965,7 +3928,7 @@ function generateQuerier(_ref4) {
               };
 
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
               queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
@@ -3990,7 +3953,7 @@ function generateQuerier(_ref4) {
 
             case 15:
               results = _context3.sent;
-              qM = queryManager || new smJSInstance.SMQueryManager(convertQueryDefinitionToQueryInfo({
+              qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
               }).queryRecord);
@@ -4066,7 +4029,7 @@ function generateQuerier(_ref4) {
   }();
 }
 var subscriptionId = 0;
-function generateSubscriber(smJSInstance) {
+function generateSubscriber(mmGQLInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(queryDefinitions, opts) {
       var startStack, queryId, nonNullishQueryDefinitions, nullishResults, _convertQueryDefiniti2, queryGQL, queryRecord, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, initSubs, unsub, error, query, queryOpts, _error2, qmResults;
@@ -4094,7 +4057,7 @@ function generateSubscriber(smJSInstance) {
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
                   subscriptionCancellers.push.apply(subscriptionCancellers, subscriptionConfigs.map(function (subscriptionConfig) {
-                    return smJSInstance.gqlClient.subscribe({
+                    return mmGQLInstance.gqlClient.subscribe({
                       gql: subscriptionConfig.gql,
                       token: getToken(tokenName),
                       onMessage: function onMessage(message) {
@@ -4134,12 +4097,12 @@ function generateSubscriber(smJSInstance) {
               };
 
               getToken = function _getToken2(tokenName) {
-                var token = smJSInstance.getToken({
+                var token = mmGQLInstance.getToken({
                   tokenName: tokenName
                 });
 
                 if (!token) {
-                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with sm.setToken({ tokenName, token })) ');
+                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
                 }
 
                 return token;
@@ -4177,7 +4140,7 @@ function generateSubscriber(smJSInstance) {
 
               // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "smQuery" + subscriptionId++;
+              queryId = (opts == null ? void 0 : opts.queryId) || "query" + subscriptionId++;
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
 
@@ -4203,9 +4166,9 @@ function generateSubscriber(smJSInstance) {
                 queryGQL: queryGQL,
                 queryId: queryId
               });
-              queryManager = new smJSInstance.SMQueryManager(queryRecord);
+              queryManager = new mmGQLInstance.QueryManager(queryRecord);
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
-              // while the data for that node is being transfered from SM to the client. This would result in a missed update.
+              // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
               // However, we must be careful to not call opts.onData with any subscription messages before the query resolves,
               // because a subscription message only includes info about the node that changed, not all data being subscribed to,
               // which means the consumer of this API would receive and incomplete data set in this edge case.
@@ -4215,7 +4178,7 @@ function generateSubscriber(smJSInstance) {
               messageQueue = [];
               _context4.prev = 18;
 
-              if (!!smJSInstance.generateMockData === false) {
+              if (!mmGQLInstance.generateMockData) {
                 initSubs();
               }
 
@@ -4255,7 +4218,7 @@ function generateSubscriber(smJSInstance) {
 
             case 36:
               query = generateQuerier({
-                smJSInstance: smJSInstance,
+                mmGQLInstance: mmGQLInstance,
                 queryManager: queryManager
               });
               _context4.prev = 37;
@@ -4328,33 +4291,35 @@ function generateSubscriber(smJSInstance) {
   }();
 }
 
-function createSMQueryManager(smJSInstance) {
+function createQueryManager(mmGQLInstance) {
   /**
-   * SMQueryManager is in charge of
+   * QueryManager is in charge of
    *
-   *    1) receiving data from an SM query and notifying the appropriate DO repositories
+   *    1) receiving data from a query and notifying the appropriate DO repositories
    *    2) building proxies for those DOs
    *    3) keeping a cache of those generated proxies so that we can update proxies on subscription messages, rather than generating new ones
-   *    4) handling incoming SM subscription messages and
+   *    4) handling incoming subscription messages and
    *       4.1) notifying DO repositories with the data in those sub messages
    *       4.2) build proxies for new DOs received + update relational data (recursively) for proxies that had been previously built
-   *    5) building the resulting data that is returned by useSMQuery from its cache of proxies
+   *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
   return /*#__PURE__*/function () {
-    function SMQueryManager(queryRecord) {
+    function QueryManager(queryRecord) {
       this.state = {};
       this.queryRecord = void 0;
       this.queryRecord = queryRecord;
     }
 
-    var _proto = SMQueryManager.prototype;
+    var _proto = QueryManager.prototype;
 
     _proto.onQueryResult = function onQueryResult(opts) {
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: this.queryRecord
       });
-      this.state = this.getNewStateFromQueryResult(opts);
+      this.state = this.getNewStateFromQueryResult(_extends({}, opts, {
+        queryRecord: this.queryRecord
+      }));
     };
 
     _proto.onSubscriptionMessage = function onSubscriptionMessage(opts) {
@@ -4416,7 +4381,10 @@ function createSMQueryManager(smJSInstance) {
       var _this2 = this;
 
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
-        var dataForThisAlias = opts.data[queryAlias];
+        var dataForThisAlias = _this2.getDataFromResponse({
+          queryRecord: opts.queryRecord[queryAlias],
+          dataForThisAlias: opts.data[queryAlias]
+        });
 
         if (!dataForThisAlias) {
           throw Error("notifyRepositories could not find resulting data for the alias \"" + queryAlias + "\" in the following queryRecord:\n" + JSON.stringify(opts.queryRecord, null, 2) + "\nResulting data:\n" + JSON.stringify(opts.data, null, 2));
@@ -4438,7 +4406,12 @@ function createSMQueryManager(smJSInstance) {
           Object.keys(relationalQueries).forEach(function (relationalAlias) {
             var relationalDataForThisAlias = Array.isArray(dataForThisAlias) ? dataForThisAlias.flatMap(function (dataEntry) {
               return dataEntry[relationalAlias];
-            }) : dataForThisAlias[relationalAlias];
+            }) : dataForThisAlias[relationalAlias]; // makes it easier to simply handle this as an array below
+
+            if (!Array.isArray(relationalDataForThisAlias)) {
+              relationalDataForThisAlias = [relationalDataForThisAlias];
+            }
+
             relationalDataForThisAlias.forEach(function (relationalDataEntry) {
               var _data2, _queryRecord2;
 
@@ -4467,9 +4440,12 @@ function createSMQueryManager(smJSInstance) {
     _proto.getNewStateFromQueryResult = function getNewStateFromQueryResult(opts) {
       var _this3 = this;
 
-      return Object.keys(this.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
+      return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var cacheEntry = _this3.buildCacheEntry({
-          nodeData: opts.queryResult[queryAlias],
+          nodeData: _this3.getDataFromResponse({
+            dataForThisAlias: opts.queryResult[queryAlias],
+            queryRecord: opts.queryRecord[queryAlias]
+          }),
           queryId: opts.queryId,
           queryAlias: queryAlias
         });
@@ -4500,7 +4476,11 @@ function createSMQueryManager(smJSInstance) {
         return Object.keys(relational).reduce(function (relationalStateAcc, relationalAlias) {
           var _extends2;
 
-          var relationalDataForThisAlias = node[relationalAlias];
+          var relationalDataForThisAlias = _this4.getDataFromResponse({
+            queryRecord: relational[relationalAlias],
+            dataForThisAlias: node[relationalAlias]
+          });
+
           if (!relationalDataForThisAlias) return relationalStateAcc;
 
           var cacheEntry = _this4.buildCacheEntry({
@@ -4518,7 +4498,7 @@ function createSMQueryManager(smJSInstance) {
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(node) {
         var relationalState = buildRelationalStateForNode(node);
         var nodeRepository = queryRecord[queryAlias].def.repository;
-        var proxy = smJSInstance.DOProxyGenerator({
+        var proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
           relationalQueries: relational ? _this4.getApplicableRelationalQueries({
@@ -4538,7 +4518,7 @@ function createSMQueryManager(smJSInstance) {
       if (Array.isArray(opts.nodeData)) {
         if ('id' in queryRecord[opts.queryAlias]) {
           if (opts.nodeData[0] == null) {
-            if (!queryRecord[opts.queryAlias].allowNullResult) throw new SMDataParsingException({
+            if (!queryRecord[opts.queryAlias].allowNullResult) throw new DataParsingException({
               receivedData: opts.nodeData,
               message: "Queried a node by id for the query with the id \"" + opts.queryId + "\" but received back an empty array"
             });
@@ -4763,7 +4743,11 @@ function createSMQueryManager(smJSInstance) {
       }, {});
     };
 
-    return SMQueryManager;
+    _proto.getDataFromResponse = function getDataFromResponse(opts) {
+      return 'id' in opts.queryRecord || 'oneToOne' in opts.queryRecord ? opts.dataForThisAlias : opts.dataForThisAlias.nodes;
+    };
+
+    return QueryManager;
   }();
 }
 
@@ -4794,13 +4778,13 @@ function createEdge(edge) {
   return _extends({
     type: 'createEdge'
   }, edge, {
-    smOperationName: 'AttachEdge'
+    operationName: 'AttachEdge'
   });
 }
 function createEdges(edges) {
   return {
     type: 'createEdges',
-    smOperationName: 'AttachEdge',
+    operationName: 'AttachEdge',
     edges: edges
   };
 }
@@ -4831,13 +4815,13 @@ var _templateObject$1;
 function dropEdge(edge) {
   return _extends({
     type: 'dropEdge',
-    smOperationName: 'DropEdge'
+    operationName: 'DropEdge'
   }, edge);
 }
 function dropEdges(edges) {
   return {
     type: 'dropEdges',
-    smOperationName: 'DropEdge',
+    operationName: 'DropEdge',
     edges: edges
   };
 }
@@ -4868,13 +4852,13 @@ var _templateObject$2;
 function replaceEdge(edge) {
   return _extends({
     type: 'replaceEdge',
-    smOperationName: 'ReplaceEdge'
+    operationName: 'ReplaceEdge'
   }, edge);
 }
 function replaceEdges(edges) {
   return {
     type: 'replaceEdges',
-    smOperationName: 'ReplaceEdge',
+    operationName: 'ReplaceEdge',
     edges: edges
   };
 }
@@ -4905,13 +4889,13 @@ var _templateObject$3;
 function updateEdge(edge) {
   return _extends({
     type: 'updateEdge',
-    smOperationName: 'UpdateEdge'
+    operationName: 'UpdateEdge'
   }, edge);
 }
 function updateEdges(edges) {
   return {
     type: 'updateEdges',
-    smOperationName: 'UpdateEdge',
+    operationName: 'UpdateEdge',
     edges: edges
   };
 }
@@ -4942,13 +4926,13 @@ var _templateObject$4;
 function createNodes(operation) {
   return _extends({
     type: 'createNodes',
-    smOperationName: 'CreateNodes'
+    operationName: 'CreateNodes'
   }, operation);
 }
 function createNode(operation) {
   return _extends({
     type: 'createNode',
-    smOperationName: 'CreateNodes'
+    operationName: 'CreateNodes'
   }, operation);
 }
 function getMutationsFromTransactionCreateOperations(operations) {
@@ -4969,8 +4953,8 @@ function getMutationsFromTransactionCreateOperations(operations) {
 }
 
 function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
-  var dataToPersistInSM = convertNodeDataToSMPersistedData(operation.data);
-  var mutationArgs = ["node: {\n        " + dataToPersistInSM + "\n      }"];
+  var dataToPersist = convertNodeDataToSMPersistedData(operation.data);
+  var mutationArgs = ["node: {\n        " + dataToPersist + "\n      }"];
 
   if (operation.under) {
     var value = typeof operation.under === 'string' ? "[\"" + operation.under + "\"]" : "[\"" + operation.under.join('", "') + "\"]";
@@ -4984,13 +4968,13 @@ var _templateObject$5, _templateObject2;
 function updateNodes(operation) {
   return _extends({
     type: 'updateNodes',
-    smOperationName: 'UpdateNodes'
+    operationName: 'UpdateNodes'
   }, operation);
 }
 function updateNode(operation) {
   return _extends({
     type: 'updateNode',
-    smOperationName: 'UpdateNodes'
+    operationName: 'UpdateNodes'
   }, operation);
 }
 
@@ -5039,15 +5023,15 @@ function getMutationsFromTransactionUpdateOperations(operations) {
 }
 
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
-  var dataToPersistInSM = convertNodeDataToSMPersistedData(operation);
-  return "{\n      " + dataToPersistInSM + "\n    }";
+  var dataToPersist = convertNodeDataToSMPersistedData(operation);
+  return "{\n      " + dataToPersist + "\n    }";
 }
 
 var _templateObject$6;
 function dropNode(operation) {
   return _extends({
     type: 'dropNode',
-    smOperationName: 'DropNode'
+    operationName: 'DropNode'
   }, operation);
 }
 function getMutationsFromTransactionDropOperations(operations) {
@@ -5065,7 +5049,7 @@ function getMutationsFromTransactionDropOperations(operations) {
   });
 }
 
-function createTransaction(smJSInstance, globalOperationHandlers) {
+function createTransaction(mmGQLInstance, globalOperationHandlers) {
   /**
    * A transaction allows developers to build groups of mutations that execute with transactional integrity
    *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
@@ -5090,8 +5074,8 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
     };
     /**
      * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
-     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from SM.
-     * SM responds with each operation in the order they were sent up.
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
+     * The backend responds with each operation in the order they were sent up.
      */
 
     var createOperationsCount = 0;
@@ -5269,29 +5253,29 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
     }
 
     var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
-    var token = smJSInstance.getToken({
+    var token = mmGQLInstance.getToken({
       tokenName: tokenName
     });
     /**
-     * Group operations by their SM operation name, sorted by position if applicable
+     * Group operations by their operation name, sorted by position if applicable
      */
 
-    function groupBySMOperationName(operations) {
+    function groupByOperationName(operations) {
       var result = Object.entries(operations).reduce(function (acc, _ref) {
         var operations = _ref[1];
         operations.forEach(function (operation) {
-          if (acc.hasOwnProperty(operation.smOperationName)) {
-            acc[operation.smOperationName] = [].concat(acc[operation.smOperationName], [operation]);
+          if (acc.hasOwnProperty(operation.operationName)) {
+            acc[operation.operationName] = [].concat(acc[operation.operationName], [operation]);
           } else {
-            acc[operation.smOperationName] = [operation];
+            acc[operation.operationName] = [operation];
           }
         });
         return acc;
       }, {});
       Object.entries(result).forEach(function (_ref2) {
-        var smOperationName = _ref2[0],
+        var operationName = _ref2[0],
             operations = _ref2[1];
-        result[smOperationName] = lodash.sortBy(operations, function (operation) {
+        result[operationName] = lodash.sortBy(operations, function (operation) {
           return operation.position;
         });
       });
@@ -5306,13 +5290,13 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
 
     function handleErrorCallbacks(opts) {
       var operationsByType = opts.operationsByType;
-      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
-      Object.entries(operationsBySMOperationName).forEach(function (_ref3) {
-        var smOperationName = _ref3[0],
+      var operationsByOperationName = groupByOperationName(operationsByType);
+      Object.entries(operationsByOperationName).forEach(function (_ref3) {
+        var operationName = _ref3[0],
             operations = _ref3[1];
         operations.forEach(function (operation) {
           // we only need to gather the data for node create/update operations
-          if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
+          if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
             // for createNodes, execute callback on each individual node rather than top-level operation
             if (operation.hasOwnProperty('nodes')) {
               operation.nodes.forEach(function (node) {
@@ -5331,9 +5315,9 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
     function handleSuccessCallbacks(opts) {
       var executionResult = opts.executionResult,
           operationsByType = opts.operationsByType;
-      var operationsBySMOperationName = groupBySMOperationName(operationsByType);
+      var operationsByOperationName = groupByOperationName(operationsByType);
       /**
-       * Loop through the operations, map the operation to each result sent back from SM,
+       * Loop through the operations, map the operation to each result sent back from the backend,
        * then pass the result into the callback if it exists
        */
 
@@ -5344,15 +5328,15 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
             executeCallbacksWithData(result);
           } else {
             var resultData = result.data;
-            Object.entries(operationsBySMOperationName).forEach(function (_ref4) {
-              var smOperationName = _ref4[0],
+            Object.entries(operationsByOperationName).forEach(function (_ref4) {
+              var operationName = _ref4[0],
                   operations = _ref4[1];
 
-              if (resultData.hasOwnProperty(smOperationName)) {
+              if (resultData.hasOwnProperty(operationName)) {
                 operations.forEach(function (operation) {
                   // we only need to gather the data for node create/update operations
-                  if (smOperationName === 'CreateNodes' || smOperationName === 'UpdateNodes') {
-                    var groupedResult = resultData[smOperationName]; // for createNodes, execute callback on each individual node rather than top-level operation
+                  if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
+                    var groupedResult = resultData[operationName]; // for createNodes, execute callback on each individual node rather than top-level operation
 
                     if (operation.hasOwnProperty('nodes')) {
                       operation.nodes.forEach(function (node) {
@@ -5379,11 +5363,11 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
        * Transactions will guarantee that all operations have succeeded, so this is safe to do
        */
 
-      Object.entries(operationsBySMOperationName).forEach(function (_ref5) {
-        var smOperationName = _ref5[0],
+      Object.entries(operationsByOperationName).forEach(function (_ref5) {
+        var operationName = _ref5[0],
             operations = _ref5[1];
 
-        if (smOperationName !== 'CreateNodes' && smOperationName !== 'UpdateNodes') {
+        if (operationName !== 'CreateNodes' && operationName !== 'UpdateNodes') {
           operations.forEach(function (operation) {
             if (operation.hasOwnProperty('onSuccess')) {
               operation.onSuccess();
@@ -5428,7 +5412,7 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
               case 5:
                 mutations = getAllMutations(operationsByType);
                 _context2.next = 8;
-                return smJSInstance.gqlClient.mutate({
+                return mmGQLInstance.gqlClient.mutate({
                   mutations: mutations,
                   token: token
                 });
@@ -5514,7 +5498,7 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
                 case 7:
                   allMutations = transactions.map(function (_ref8) {
                     var operations = _ref8.operations;
-                    return smJSInstance.gqlClient.mutate({
+                    return mmGQLInstance.gqlClient.mutate({
                       mutations: getAllMutations(operations),
                       token: token
                     });
@@ -5560,7 +5544,7 @@ function createTransaction(smJSInstance, globalOperationHandlers) {
   };
 }
 
-var SMContext = /*#__PURE__*/React.createContext(undefined);
+var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({
   unsafe__silenceDuplicateSubIdErrors: false
 }); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
@@ -5573,11 +5557,11 @@ var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorPr
     }
   }, props.children);
 };
-var SMProvider = function SMProvider(props) {
-  var existingContext = React.useContext(SMContext);
+var MMGQLProvider = function MMGQLProvider(props) {
+  var existingContext = React.useContext(MMGQLContext);
 
   if (existingContext) {
-    throw Error('Another instance of an SMProvider was already detected higher up the render tree.\nHaving multiple instances of SMProviders is not supported and may lead to unexpected results.');
+    throw Error('Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.');
   }
 
   var ongoingSubscriptionRecord = React.useRef({});
@@ -5606,8 +5590,8 @@ var SMProvider = function SMProvider(props) {
     clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
     delete cleanupTimeoutRecord.current[subscriptionId];
   }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
-  // using a useSMSubscription hook are mounted at the same time
-  // since useSMSubscription uses the first line of the error stack to construct a unique sub id
+  // using a useSubscription hook are mounted at the same time
+  // since useSubscription uses the first line of the error stack to construct a unique sub id
   // fixes https://tractiontools.atlassian.net/browse/MM-404
 
   var onHookMount = React.useCallback(function (subscriptionId, _ref) {
@@ -5622,9 +5606,9 @@ var SMProvider = function SMProvider(props) {
   var onHookUnmount = React.useCallback(function (subscriptionId) {
     delete mountedHooksBySubId.current[subscriptionId];
   }, []);
-  return React.createElement(SMContext.Provider, {
+  return React.createElement(MMGQLContext.Provider, {
     value: {
-      smJSInstance: props.smJS,
+      mmGQLInstance: props.mmGQL,
       ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
       updateSubscriptionInfo: updateSubscriptionInfo,
       scheduleCleanup: scheduleCleanup,
@@ -5636,10 +5620,10 @@ var SMProvider = function SMProvider(props) {
 };
 
 function useSubscription(queryDefinitions, opts) {
-  var smContext = React.useContext(SMContext);
+  var context = React.useContext(MMGQLContext);
 
-  if (!smContext) {
-    throw Error('You must wrap your app with an SMProvider before using useSubscription.');
+  if (!context) {
+    throw Error('You must wrap your app with an MMGQLProvider before using useSubscription.');
   }
 
   var obj = {
@@ -5655,7 +5639,7 @@ function useSubscription(queryDefinitions, opts) {
   var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
   var preExistingState = getPreexistingState({
     subscriptionId: subscriptionId,
-    smContext: smContext,
+    context: context,
     queryDefinitions: queryDefinitions
   });
 
@@ -5680,7 +5664,7 @@ function useSubscription(queryDefinitions, opts) {
     // we catch that promise here and re-throw it further down, so that we can manage cleanup
     // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
     qdStateManager = buildQueryDefinitionStateManager({
-      smContext: smContext,
+      context: context,
       subscriptionId: subscriptionId,
       queryDefinitions: queryDefinitions,
       data: {
@@ -5712,13 +5696,13 @@ function useSubscription(queryDefinitions, opts) {
     // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
     // to memoize all of their query definitions, which seems overkill
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [smContext, subscriptionId]);
+  }, [context, subscriptionId]);
   if (error || qdError) throw error || qdError;
   return qdStateManager;
 }
 
 function getPreexistingState(opts) {
-  var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[opts.subscriptionId];
+  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
   var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
     acc[key] = null;
     return acc;
@@ -5766,27 +5750,27 @@ function buildQueryDefinitionStateManager(opts) {
   // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
   // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
   var parentSubscriptionId = opts.subscriptionId;
-  var preExistingContextForThisParentSubscription = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+  var preExistingContextForThisParentSubscription = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
   if (!preExistingContextForThisParentSubscription) {
-    opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId] = {};
+    opts.context.ongoingSubscriptionRecord[parentSubscriptionId] = {};
   }
 
   function onHookMount() {
-    opts.smContext.onHookMount(parentSubscriptionId, {
+    opts.context.onHookMount(parentSubscriptionId, {
       silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
     });
-    opts.smContext.cancelCleanup(parentSubscriptionId);
+    opts.context.cancelCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(function (subId) {
-      return opts.smContext.cancelCleanup(subId);
+      return opts.context.cancelCleanup(subId);
     });
   }
 
   function onHookUnmount() {
-    opts.smContext.onHookUnmount(parentSubscriptionId);
-    opts.smContext.scheduleCleanup(parentSubscriptionId);
+    opts.context.onHookUnmount(parentSubscriptionId);
+    opts.context.scheduleCleanup(parentSubscriptionId);
     allSubscriptionIds.forEach(function (subId) {
-      return opts.smContext.scheduleCleanup(subId);
+      return opts.context.scheduleCleanup(subId);
     });
   } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
   // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
@@ -5795,7 +5779,7 @@ function buildQueryDefinitionStateManager(opts) {
   // and call that in "onData" instead.
 
 
-  opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+  opts.context.updateSubscriptionInfo(parentSubscriptionId, {
     onResults: opts.handlers.onResults,
     onError: opts.handlers.onError,
     setQuerying: opts.handlers.setQuerying
@@ -5811,7 +5795,7 @@ function buildQueryDefinitionStateManager(opts) {
 
   function getAllSubscriptionStates() {
     return allSubscriptionIds.map(function (subscriptionId) {
-      return opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+      return opts.context.ongoingSubscriptionRecord[subscriptionId];
     });
   } // From the received queried definitions
   // and a static parentSubscriptionId+subscriptionSuffix identifier
@@ -5823,17 +5807,17 @@ function buildQueryDefinitionStateManager(opts) {
 
 
   function handleNewQueryDefitions(subOpts) {
-    var _opts$smContext$ongoi;
+    var _opts$context$ongoing;
 
     var queryDefinitions = subOpts.queryDefinitions,
         parentSubscriptionId = subOpts.parentSubscriptionId,
         subscriptionSuffix = subOpts.subscriptionSuffix,
         suspend = subOpts.suspend;
     var subscriptionId = parentSubscriptionId + subscriptionSuffix;
-    var preExistingContextForThisSubscription = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
 
     if (!preExistingContextForThisSubscription) {
-      opts.smContext.ongoingSubscriptionRecord[subscriptionId] = {};
+      opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
     }
 
     var newQueryInfo;
@@ -5850,7 +5834,7 @@ function buildQueryDefinitionStateManager(opts) {
         });
       } else {
         newQueryDefinitionsAreAllNull = true;
-        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
           queryInfo: null
         });
       }
@@ -5867,45 +5851,45 @@ function buildQueryDefinitionStateManager(opts) {
     }
 
     var queryTimestamp = new Date().valueOf();
-    opts.smContext.updateSubscriptionInfo(subscriptionId, {
+    opts.context.updateSubscriptionInfo(subscriptionId, {
       querying: true,
       lastQueryTimestamp: queryTimestamp
     });
-    opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+    opts.context.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true
     });
-    var setQuerying = (_opts$smContext$ongoi = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi.setQuerying;
+    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
     setQuerying && setQuerying(true);
     opts.handlers.setQuerying(true);
-    var suspendPromise = opts.smContext.smJSInstance.subscribe(queryDefinitions, {
+    var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
       batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
-        var contextforThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+        var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
         var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
 
         if (thisQueryIsMostRecent) {
-          var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
           contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
-          opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
             results: _extends({}, contextForThisParentSub.results, newResults)
           });
         }
       },
       onError: function onError(error) {
-        var contextForThisParentSub = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId];
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
         contextForThisParentSub.onError && contextForThisParentSub.onError(error);
-        opts.smContext.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
           error: error
         });
       },
       onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
-        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
           unsub: function unsub() {
             return subscriptionCanceller();
           }
         });
-        opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
           unsub: function unsub() {
             getAllSubscriptionStates().forEach(function (subscriptionState) {
               return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
@@ -5914,16 +5898,16 @@ function buildQueryDefinitionStateManager(opts) {
         });
       },
       onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
-        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
           queryInfo: queryInfo
         });
       }
     })["finally"](function () {
-      var contextForThisSub = opts.smContext.ongoingSubscriptionRecord[subscriptionId];
+      var contextForThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
       var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
 
       if (thisQueryIsMostRecent) {
-        opts.smContext.updateSubscriptionInfo(subscriptionId, {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
           suspendPromise: undefined,
           querying: false
         }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
@@ -5933,13 +5917,13 @@ function buildQueryDefinitionStateManager(opts) {
         });
 
         if (allQueriesHaveResolved) {
-          var _opts$smContext$ongoi2;
+          var _opts$context$ongoing2;
 
-          opts.smContext.updateSubscriptionInfo(parentSubscriptionId, {
+          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false
           });
 
-          var _setQuerying = (_opts$smContext$ongoi2 = opts.smContext.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$smContext$ongoi2.setQuerying;
+          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
 
           _setQuerying && _setQuerying(false);
           opts.handlers.setQuerying(false);
@@ -5948,7 +5932,7 @@ function buildQueryDefinitionStateManager(opts) {
     });
 
     if (!preExistingContextForThisSubscription && suspend) {
-      opts.smContext.updateSubscriptionInfo(subscriptionId, {
+      opts.context.updateSubscriptionInfo(subscriptionId, {
         suspendPromise: suspendPromise
       });
       return suspendPromise;
@@ -6196,42 +6180,43 @@ function getGQLCLient(gqlClientOpts) {
 function getDefaultConfig() {
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'https://saasmaster.dev02.tt-devs.com/playground/..',
-      wsUrl: 'wss://saasmaster.dev02.tt-devs.com/'
-    })
+      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+    }),
+    generateMockData: false
   };
 }
 
-var SMJS = /*#__PURE__*/function () {
-  function SMJS(config) {
+var MMGQL = /*#__PURE__*/function () {
+  function MMGQL(config) {
     this.gqlClient = void 0;
+    this.generateMockData = void 0;
     this.plugins = void 0;
     this.query = void 0;
-    this.generateMockData = void 0;
     this.subscribe = void 0;
-    this.SMQueryManager = void 0;
+    this.QueryManager = void 0;
     this.transaction = void 0;
     this.tokens = {};
     this.DOFactory = void 0;
     this.DOProxyGenerator = void 0;
     this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
-    this.plugins = config.plugins;
     this.generateMockData = config.generateMockData;
+    this.plugins = config.plugins;
     this.query = generateQuerier({
-      smJSInstance: this
+      mmGQLInstance: this
     });
     this.subscribe = generateSubscriber(this);
     this.DOProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
-    this.SMQueryManager = createSMQueryManager(this);
+    this.QueryManager = createQueryManager(this);
     this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested
     });
   }
 
-  var _proto = SMJS.prototype;
+  var _proto = MMGQL.prototype;
 
   _proto.def = function def(_def) {
     var propertyNames = Object.keys(_def.properties);
@@ -6240,7 +6225,7 @@ var SMJS = /*#__PURE__*/function () {
     });
 
     if (defaultProp) {
-      throw new SMImpliedNodePropertyException({
+      throw new ImpliedNodePropertyException({
         propName: defaultProp
       });
     }
@@ -6250,7 +6235,7 @@ var SMJS = /*#__PURE__*/function () {
       properties: properties
     }));
     return {
-      _isSMNodeDef: true,
+      _isNodeDef: true,
       "do": DOClass,
       repository: RepositoryFactory({
         def: _def,
@@ -6260,10 +6245,9 @@ var SMJS = /*#__PURE__*/function () {
         onDataReceived: this.optimisticUpdatesOrchestrator.onPersistedDataReceived
       }),
       type: _def.type,
-      smData: properties,
-      smComputed: _def.computed,
-      smRelational: _def.relational,
-      smMutations: _def.mutations
+      data: properties,
+      computed: _def.computed,
+      relational: _def.relational
     };
   };
 
@@ -6283,33 +6267,33 @@ var SMJS = /*#__PURE__*/function () {
     return _extends({}, nodeProperties, DEFAULT_NODE_PROPERTIES);
   };
 
-  return SMJS;
+  return MMGQL;
 }();
 
 exports.DEFAULT_NODE_PROPERTIES = DEFAULT_NODE_PROPERTIES;
 exports.DEFAULT_TOKEN_NAME = DEFAULT_TOKEN_NAME;
+exports.Data = Data;
 exports.FILTER_OPERATORS = FILTER_OPERATORS;
 exports.LoggingContext = LoggingContext;
+exports.MMGQL = MMGQL;
+exports.MMGQLContext = MMGQLContext;
+exports.MMGQLProvider = MMGQLProvider;
 exports.OBJECT_IDENTIFIER = OBJECT_IDENTIFIER;
 exports.OBJECT_PROPERTY_SEPARATOR = OBJECT_PROPERTY_SEPARATOR;
 exports.PROPERTIES_QUERIED_FOR_ALL_NODES = PROPERTIES_QUERIED_FOR_ALL_NODES;
 exports.RELATIONAL_UNION_QUERY_SEPARATOR = RELATIONAL_UNION_QUERY_SEPARATOR;
-exports.SMContext = SMContext;
-exports.SMData = SMData;
-exports.SMJS = SMJS;
-exports.SMProvider = SMProvider;
 exports.UnsafeNoDuplicateSubIdErrorProvider = UnsafeNoDuplicateSubIdErrorProvider;
 exports.array = array;
 exports.boolean = _boolean;
-exports.children = children;
 exports.getDefaultConfig = getDefaultConfig;
 exports.getGQLCLient = getGQLCLient;
 exports.number = number;
 exports.object = object;
+exports.oneToMany = oneToMany;
+exports.oneToOne = oneToOne;
 exports.queryDefinition = queryDefinition;
 exports.record = record;
-exports.reference = reference;
-exports.referenceArray = referenceArray;
 exports.string = string;
+exports.stringEnum = stringEnum;
 exports.useSubscription = useSubscription;
 //# sourceMappingURL=sm-js.cjs.development.js.map

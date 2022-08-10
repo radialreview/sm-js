@@ -1,8 +1,8 @@
-import { ISMData, SMDataDefaultFn, NodeDO, ISMNodeRepository } from './types';
+import { IData, DataDefaultFn, NodeDO, INodeRepository } from './types';
 /**
- * Returns an initialized instance of a repository for an SMNode
+ * Returns an initialized instance of a repository for a Node
  */
-export declare function RepositoryFactory<TNodeData extends Record<string, ISMData | SMDataDefaultFn>>(opts: {
+export declare function RepositoryFactory<TNodeData extends Record<string, IData | DataDefaultFn>>(opts: {
     def: {
         type: string;
         properties: TNodeData;
@@ -16,4 +16,4 @@ export declare function RepositoryFactory<TNodeData extends Record<string, ISMDa
     }): void;
     onDOConstructed?(DO: NodeDO): void;
     onDODeleted?(DO: NodeDO): void;
-}): ISMNodeRepository;
+}): INodeRepository;

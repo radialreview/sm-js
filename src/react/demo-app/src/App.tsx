@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { useSubscription, queryDefinition } from 'sm-js';
-import smJS, { userNode, authenticate } from './smJS';
+import { useSubscription, queryDefinition } from 'mm-gql';
+import mmGQL, { userNode, authenticate } from './mmGQL';
 
 function MyComponent() {
   const { data } = useSubscription({
@@ -42,7 +42,7 @@ function MyComponent() {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(
-    !!smJS.getToken({ tokenName: 'default' })
+    !!mmGQL.getToken({ tokenName: 'default' })
   );
   const [showData, setShowData] = React.useState(isAuthenticated);
 
@@ -63,7 +63,7 @@ function App() {
         },
       } = res[0];
 
-      smJS.setToken({
+      mmGQL.setToken({
         tokenName: 'default',
         token,
       });

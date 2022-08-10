@@ -1,27 +1,24 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from './smDataTypes';
-import { SMUnexpectedSubscriptionMessageException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { UnexpectedSubscriptionMessageException } from './exceptions';
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
   MapFn,
-  ISMData,
+  IData,
   NodeRelationalQuery,
-  ISMNode,
+  INode,
   NodeComputedFns,
   RelationalQueryRecordEntry,
-  BaseQueryRecordEntry,
-  IByReferenceQuery,
   QueryDefinitions,
   QueryRecord,
   QueryRecordEntry,
   ValidFilterForNode,
-  SM_DATA_TYPES,
-  SM_RELATIONAL_TYPES,
-  ByReferenceQueryBuilderOpts,
-  IByReferenceArrayQuery,
+  DATA_TYPES,
+  RELATIONAL_TYPES,
   QueryDefinition,
-  SMDataDefaultFn,
+  DataDefaultFn,
+  IOneToOneQueryBuilderOpts,
 } from './types';
 import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
@@ -31,7 +28,13 @@ import {
 import { getFlattenedNodeFilterObject } from './dataUtilities';
 import { set as lodashSet } from 'lodash';
 /**
- * Relational fns are specified when creating an smNode as fns that return a NodeRelationalQueryBuilder
+ * The functions in this file are responsible for translating queryDefinitionss to gql documents
+ * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
+ * other fns are exported for testing purposes only
+ */
+
+/**
+ * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
  * This fn executs those fns at query time, and returns a record of relational query builders
@@ -41,8 +44,12 @@ function getRelationalQueryBuildersFromRelationalFns(
 ) {
   if (!relationaFns) return {};
 
-  return Object.keys(relationaFns).reduce((acc, key) => {
-    acc[key] = relationaFns[key]();
+  return Object.keys(relationaFns).reduce((acc, relationshipName) => {
+    const relationalQueryBuilder = relationaFns[relationshipName]();
+    acc[relationshipName] = (opts: Record<string, any>) => ({
+      ...relationalQueryBuilder(opts),
+      _relationshipName: relationshipName,
+    });
 
     return acc;
   }, {} as NodeRelationalQueryBuilderRecord);
@@ -50,7 +57,7 @@ function getRelationalQueryBuildersFromRelationalFns(
 
 function getMapFnReturn(opts: {
   mapFn: MapFn<any, any, any>;
-  properties: Record<string, ISMData>;
+  properties: Record<string, IData>;
   relational?: NodeRelationalFns<any>;
 }) {
   const mapFnOpts: Record<string, any> = {
@@ -59,11 +66,11 @@ function getMapFnReturn(opts: {
   };
 
   Object.keys(opts.properties).forEach(key => {
-    const data = opts.properties[key] as ISMData;
+    const data = opts.properties[key] as IData;
 
     if (
-      data.type === SM_DATA_TYPES.object ||
-      data.type === SM_DATA_TYPES.maybeObject
+      data.type === DATA_TYPES.object ||
+      data.type === DATA_TYPES.maybeObject
     ) {
       mapFnOpts[key] = (opts: { map: MapFn<any, any, any> }) => opts.map;
     }
@@ -71,29 +78,24 @@ function getMapFnReturn(opts: {
 
   return opts.mapFn(mapFnOpts) as Record<
     string,
-    ISMData | MapFn<any, any, any> | NodeRelationalQuery<ISMNode>
+    IData | MapFn<any, any, any> | NodeRelationalQuery<INode>
   >;
 }
 
-/**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
 function getQueriedProperties(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
-  smData: Record<string, any>;
-  smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  mapFn: (data: Record<string, any>) => Record<string, any>;
+  data: Record<string, any>;
+  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
   isRootLevel?: true;
 }): Array<string> {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational,
+    properties: opts.data,
+    relational: opts.relational,
   });
 
   /**
@@ -114,9 +116,9 @@ function getQueriedProperties(opts: {
    *
    * in this case, we just assume they want to query the entire object
    */
-  return Object.keys(mapFnReturn || opts.smData).reduce(
+  return Object.keys(mapFnReturn || opts.data).reduce(
     (acc, key) => {
-      const isData = !!opts.smData[key];
+      const isData = !!opts.data[key];
 
       if (!isData) return acc;
 
@@ -125,10 +127,10 @@ function getQueriedProperties(opts: {
         return acc;
       }
 
-      const data = opts.smData[key] as ISMData;
+      const data = opts.data[key] as IData;
       if (
-        data.type === SM_DATA_TYPES.object ||
-        data.type === SM_DATA_TYPES.maybeObject
+        data.type === DATA_TYPES.object ||
+        data.type === DATA_TYPES.maybeObject
       ) {
         // query for any data stored in old format (stringified json at the root of the node)
         acc.push(key);
@@ -140,7 +142,7 @@ function getQueriedProperties(opts: {
             mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
               : () => null) as MapFn<any, any, any>,
-            smData: (data.boxedValue as unknown) as Record<string, ISMData>,
+            data: (data.boxedValue as unknown) as Record<string, IData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
 
@@ -156,7 +158,7 @@ function getQueriedProperties(opts: {
 }
 
 function getAllNodeProperties(opts: {
-  nodeProperties: Record<string, ISMData | SMDataDefaultFn>;
+  nodeProperties: Record<string, IData | DataDefaultFn>;
   isRootLevel: boolean;
 }) {
   return Object.keys(opts.nodeProperties).reduce(
@@ -166,18 +168,18 @@ function getAllNodeProperties(opts: {
         return acc;
       }
 
-      const data = opts.nodeProperties[key] as ISMData;
+      const data = opts.nodeProperties[key] as IData;
       if (
-        data.type === SM_DATA_TYPES.object ||
-        data.type === SM_DATA_TYPES.maybeObject
+        data.type === DATA_TYPES.object ||
+        data.type === DATA_TYPES.maybeObject
       ) {
         // query for any data stored in old format (stringified json at the root of the node)
         acc.push(key);
         // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
         acc.push(
           ...getAllNodeProperties({
-            nodeProperties: (opts.nodeProperties[key] as ISMData)
-              .boxedValue as Record<string, ISMData>,
+            nodeProperties: (opts.nodeProperties[key] as IData)
+              .boxedValue as Record<string, IData>,
             isRootLevel: false,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -194,25 +196,27 @@ function getAllNodeProperties(opts: {
 
 function getRelationalQueries(opts: {
   queryId: string;
-  mapFn: (smData: Record<string, any>) => Record<string, any>;
-  smData: Record<string, any>;
-  smComputed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
-  smRelational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
+  mapFn: (data: Record<string, any>) => Record<string, any>;
+  data: Record<string, any>;
+  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
     mapFn: opts.mapFn,
-    properties: opts.smData,
-    relational: opts.smRelational,
+    properties: opts.data,
+    relational: opts.relational,
   });
 
-  const relationalQueries = Object.keys(mapFnReturn).reduce((acc, key) => {
-    const isData = !!opts.smData[key];
-    const isComputed = opts.smComputed ? !!opts.smComputed[key] : false;
+  const relationalQueries = Object.keys(mapFnReturn).reduce((acc, alias) => {
+    const isData = !!opts.data[alias];
+    const isComputed = opts.computed ? !!opts.computed[alias] : false;
 
     if (isData || isComputed) {
       return acc;
     } else {
-      const relationalQuery = mapFnReturn[key] as NodeRelationalQuery<ISMNode>;
+      const relationalQuery = mapFnReturn[alias] as NodeRelationalQuery<
+        INode | Record<string, INode>
+      >;
 
       /**
        * happens when a map function for a relational query returns all the data for that node
@@ -234,74 +238,69 @@ function getRelationalQueries(opts: {
         return acc;
       }
 
-      if (relationalQuery._smRelational == null) {
+      if (relationalQuery._relational == null) {
         throw Error(
-          `getRelationalQueries - the key "${key}" is not a data property, not a computed property and does not contain a relational query.`
+          `getRelationalQueries - the key "${alias}" is not a data property, not a computed property and does not contain a relational query.`
         );
       }
 
       if (
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReference ||
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.byReferenceArray
+        relationalQuery._relational === RELATIONAL_TYPES.oneToOne ||
+        relationalQuery._relational === RELATIONAL_TYPES.oneToMany
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
           typeof relationalQuery.queryBuilderOpts.map === 'function'
         ) {
           // non union
-          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
-            ISMNode
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
+            INode
           >;
           addRelationalQueryRecord({
-            _smRelational: relationalQuery._smRelational,
-            key,
-            def: relationalQuery.def,
+            _relational: relationalQuery._relational,
+            _relationshipName: relationalQuery._relationshipName,
+            alias,
+            def: relationalQuery.def as INode,
             mapFn: queryBuilderOpts.map,
           });
         } else {
           // union
-          const queryBuilderOpts = relationalQuery.queryBuilderOpts as ByReferenceQueryBuilderOpts<
-            Record<string, ISMNode>
+          const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
+            Record<string, INode>
           >;
           Object.keys(queryBuilderOpts).forEach(unionType => {
             addRelationalQueryRecord({
-              _smRelational: relationalQuery._smRelational,
-              key: `${key}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
-              def: relationalQuery.def[unionType],
+              _relational: relationalQuery._relational,
+              _relationshipName: relationalQuery._relationshipName,
+              alias: `${alias}${RELATIONAL_UNION_QUERY_SEPARATOR}${unionType}`,
+              def: (relationalQuery.def as Record<string, INode>)[unionType],
               mapFn: queryBuilderOpts[unionType].map,
             });
           });
         }
-      } else if (
-        relationalQuery._smRelational === SM_RELATIONAL_TYPES.children
-      ) {
-        addRelationalQueryRecord({
-          _smRelational: relationalQuery._smRelational,
-          key,
-          def: relationalQuery.def,
-          mapFn: relationalQuery.map,
-        });
       } else {
         throw Error(
           // @ts-expect-error relationalQuery is currently a never case here, since both existing types are being checked above
-          `The relational query type ${relationalQuery._smRelational} is not valid`
+          `The relational query type ${relationalQuery._relational} is not valid`
         );
       }
 
       function addRelationalQueryRecord(queryRecord: {
-        _smRelational: SM_RELATIONAL_TYPES;
-        def: ISMNode;
+        _relational: RELATIONAL_TYPES;
+        _relationshipName: string;
+        def: INode;
         mapFn: (data: any) => any;
-        key: string;
+        alias: string;
       }) {
-        const relationalQueryRecord: BaseQueryRecordEntry = {
+        const relationalQueryRecord: Partial<RelationalQueryRecordEntry> = {
           def: queryRecord.def,
+          _relationshipName: queryRecord._relationshipName,
           properties: getQueriedProperties({
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
-            smData: queryRecord.def.smData,
-            smComputed: queryRecord.def.smComputed,
-            smRelational: queryRecord.def.smRelational,
+            data: queryRecord.def.data,
+            computed: queryRecord.def.computed,
+            relational: queryRecord.def.relational,
             isRootLevel: true,
           }),
         };
@@ -310,9 +309,9 @@ function getRelationalQueries(opts: {
           {
             queryId: opts.queryId,
             mapFn: queryRecord.mapFn,
-            smData: queryRecord.def.smData,
-            smComputed: queryRecord.def.smComputed,
-            smRelational: queryRecord.def.smRelational,
+            data: queryRecord.def.data,
+            computed: queryRecord.def.computed,
+            relational: queryRecord.def.relational,
           }
         );
 
@@ -320,48 +319,28 @@ function getRelationalQueries(opts: {
           relationalQueryRecord.relational = relationalQueriesWithinThisRelationalQuery;
         }
 
-        const relationalType = queryRecord._smRelational;
-        if (relationalType === SM_RELATIONAL_TYPES.byReference) {
+        const relationalType = queryRecord._relational;
+        if (relationalType === RELATIONAL_TYPES.oneToOne) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
-            byReference: true;
-          }).byReference = true;
+            oneToOne: true;
+          }).oneToOne = true;
+        } else if (relationalType === RELATIONAL_TYPES.oneToMany) {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
-            idProp: string;
-          }).idProp = (relationalQuery as IByReferenceQuery<
-            ISMNode,
-            any,
-            any
-          >).idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.byReferenceArray) {
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            byReferenceArray: true;
-          }).byReferenceArray = true;
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            idProp: string;
-          }).idProp = (relationalQuery as IByReferenceArrayQuery<
-            ISMNode,
-            any,
-            any
-          >).idProp;
-        } else if (relationalType === SM_RELATIONAL_TYPES.children) {
-          (relationalQueryRecord as RelationalQueryRecordEntry & {
-            children: true;
-          }).children = true;
-          if ('depth' in relationalQuery) {
-            (relationalQueryRecord as RelationalQueryRecordEntry & {
-              depth?: number;
-            }).depth = relationalQuery.depth;
-          }
-          if ('filter' in relationalQuery && relationalQuery.filter != null) {
+            oneToMany: true;
+          }).oneToMany = true;
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.filter
+          ) {
             (relationalQueryRecord as RelationalQueryRecordEntry).filter =
-              relationalQuery.filter;
+              relationalQuery.queryBuilderOpts.filter;
           }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
 
         acc[
-          queryRecord.key
+          queryRecord.alias
         ] = relationalQueryRecord as RelationalQueryRecordEntry;
       }
 
@@ -374,11 +353,11 @@ function getRelationalQueries(opts: {
 }
 
 export function getQueryRecordFromQueryDefinition<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
@@ -386,7 +365,7 @@ export function getQueryRecordFromQueryDefinition<
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | ISMNode | null =
+    const queryDefinition: QueryDefinition<any, any, any> | INode | null =
       opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;
@@ -395,11 +374,11 @@ export function getQueryRecordFromQueryDefinition<
     let allowNullResult;
     if (!queryDefinition) {
       return;
-    } else if ('_isSMNodeDef' in queryDefinition) {
+    } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
-      nodeDef = queryDefinition as ISMNode;
+      nodeDef = queryDefinition as INode;
       queriedProps = getAllNodeProperties({
-        nodeProperties: nodeDef.smData,
+        nodeProperties: nodeDef.data,
         isRootLevel: true,
       });
     } else {
@@ -409,21 +388,21 @@ export function getQueryRecordFromQueryDefinition<
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: queryDefinition.def.smData,
-          smComputed: queryDefinition.def.smComputed,
-          smRelational: queryDefinition.def.smRelational,
+          data: queryDefinition.def.data,
+          computed: queryDefinition.def.computed,
+          relational: queryDefinition.def.relational,
           isRootLevel: true,
         });
         relational = getRelationalQueries({
           mapFn: queryDefinition.map,
           queryId: opts.queryId,
-          smData: nodeDef.smData,
-          smComputed: nodeDef.smComputed,
-          smRelational: nodeDef.smRelational,
+          data: nodeDef.data,
+          computed: nodeDef.computed,
+          relational: nodeDef.relational,
         });
       } else {
         queriedProps = getAllNodeProperties({
-          nodeProperties: nodeDef.smData,
+          nodeProperties: nodeDef.data,
           isRootLevel: true,
         });
       }
@@ -460,26 +439,6 @@ export function getQueryRecordFromQueryDefinition<
         (queryRecordEntry as QueryRecordEntry & { id: string }).id =
           queryDefinition.target.id;
       }
-      if (
-        'underIds' in queryDefinition.target &&
-        queryDefinition.target.underIds != null
-      ) {
-        if (
-          (queryDefinition.target.underIds as Array<string>).some(
-            id => typeof id !== 'string'
-          )
-        ) {
-          throw Error('Invalid id in target.underIds');
-        }
-
-        (queryRecordEntry as QueryRecordEntry & {
-          underIds: Array<string>;
-        }).underIds = queryDefinition.target.underIds;
-      }
-      if (queryDefinition.target.depth != null) {
-        (queryRecordEntry as QueryRecordEntry & { depth?: string }).depth =
-          queryDefinition.target.depth;
-      }
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
@@ -495,8 +454,8 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<TSMNode extends ISMNode>(
-  filter: ValidFilterForNode<TSMNode>
+export function getKeyValueFilterString<TNode extends INode>(
+  filter: ValidFilterForNode<TNode>
 ) {
   /**
    * @TODO MM-486: Currently SM only supports _eq condition when filtering.
@@ -510,7 +469,7 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
     .reduce((acc, current) => {
       lodashSet(acc, current, flattenedFilters[current]._eq);
       return acc;
-    }, {} as ValidFilterForNode<TSMNode>);
+    }, {} as ValidFilterForNode<TNode>);
 
   const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
     omitObjectIdentifier: true,
@@ -527,46 +486,15 @@ export function getKeyValueFilterString<TSMNode extends ISMNode>(
   )}}`;
 }
 
-function getGetNodeOptions<TSMNode extends ISMNode>(opts: {
-  def: TSMNode;
-  underIds?: Array<string>;
-  depth?: number;
-  filter?: ValidFilterForNode<TSMNode>;
+function getGetNodeOptions<TNode extends INode>(opts: {
+  def: TNode;
+  filter?: ValidFilterForNode<TNode>;
 }) {
-  const options: Array<string> = [`type: "${opts.def.type}"`];
-
-  if (opts.underIds) {
-    options.push(`underIds: [${opts.underIds.map(id => `"${id}"`).join(',')}]`);
-  }
-
-  if (opts.depth !== null && opts.depth !== undefined) {
-    options.push(`depth: ${opts.depth}`);
-  }
+  const options: Array<string> = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
     options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
   }
-
-  return options.join(', ');
-}
-
-// subscriptions use a slightly different set of arguments for now
-// https://tractiontools.atlassian.net/secure/RapidBoard.jspa?rapidView=53&projectKey=SMT&modal=detail&selectedIssue=SMT-636
-function getSubscriptionGetNodeOptions(opts: {
-  def: ISMNode;
-  under?: string;
-  depth?: number;
-}) {
-  const options: Array<string> = [`type: "${opts.def.type}"`];
-
-  if (opts.under) {
-    options.push(`underIds: ["${opts.under}"]`);
-  }
-
-  // @TODO uncomment when subscriptions support depth params
-  // if (opts.depth != null) {
-  //   options.push(`depth: ${opts.depth}`)
-  // }
 
   return options.join(', ');
 }
@@ -579,9 +507,9 @@ function getQueryPropertiesString(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nestLevel: number;
 }) {
-  let propsString = `\n${getSpaces((opts.nestLevel + 2) * 2)}`;
+  let propsString = `${getSpaces(opts.nestLevel * 2)}`;
   propsString += opts.queryRecordEntry.properties.join(
-    `,\n${getSpaces((opts.nestLevel + 2) * 2)}`
+    `,\n${getSpaces(opts.nestLevel * 2)}`
   );
 
   if (opts.queryRecordEntry.relational) {
@@ -589,7 +517,7 @@ function getQueryPropertiesString(opts: {
       (propsString !== '' ? ',' : '') +
       getRelationalQueryString({
         relationalQueryRecord: opts.queryRecordEntry.relational,
-        nestLevel: opts.nestLevel + 2,
+        nestLevel: opts.nestLevel,
       });
   }
 
@@ -603,22 +531,7 @@ function getRelationalQueryString(opts: {
   return Object.keys(opts.relationalQueryRecord).reduce((acc, alias) => {
     const relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
 
-    let operation: string;
-
-    if (
-      'byReference' in relationalQueryRecordEntry ||
-      'byReferenceArray' in relationalQueryRecordEntry
-    ) {
-      operation = `GetReferences(propertyNames: "${relationalQueryRecordEntry.idProp}")`;
-    } else if ('children' in relationalQueryRecordEntry) {
-      const depthString =
-        'depth' in relationalQueryRecordEntry
-          ? relationalQueryRecordEntry.depth !== undefined
-            ? `,depth: ${relationalQueryRecordEntry.depth}`
-            : ''
-          : '';
-      operation = `GetChildren(type: "${relationalQueryRecordEntry.def.type}"${depthString})`;
-    } else {
+    if (!relationalQueryRecordEntry._relationshipName) {
       throw Error(
         `relationalQueryRecordEntry is invalid\n${JSON.stringify(
           relationalQueryRecordEntry,
@@ -628,16 +541,47 @@ function getRelationalQueryString(opts: {
       );
     }
 
+    const operation = `${relationalQueryRecordEntry._relationshipName}`;
+
     return (
       acc +
-      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {` +
-      getQueryPropertiesString({
-        queryRecordEntry: relationalQueryRecordEntry,
-        nestLevel: opts.nestLevel,
-      }) +
+      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {\n` +
+      ('oneToMany' in relationalQueryRecordEntry
+        ? wrapInNodes({
+            propertiesString: getQueryPropertiesString({
+              queryRecordEntry: relationalQueryRecordEntry,
+              nestLevel: opts.nestLevel + 2,
+            }),
+            nestLevel: opts.nestLevel + 1,
+          })
+        : getQueryPropertiesString({
+            queryRecordEntry: relationalQueryRecordEntry,
+            nestLevel: opts.nestLevel + 1,
+          })) +
       `\n${getSpaces(opts.nestLevel * 2)}}`
     );
   }, '');
+}
+
+function getOperationFromQueryRecordEntry(queryRecordEntry: QueryRecordEntry) {
+  const nodeType = queryRecordEntry.def.type;
+  let operation: string;
+  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
+    operation = `${nodeType}s(ids: ${getIdsString(queryRecordEntry.ids)})`;
+  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
+    operation = `${nodeType}(id: "${queryRecordEntry.id}")`;
+  } else {
+    const options = getGetNodeOptions(queryRecordEntry);
+    operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
+  }
+
+  return operation;
+}
+
+function wrapInNodes(opts: { propertiesString: string; nestLevel: number }) {
+  return `${getSpaces(opts.nestLevel * 2)}nodes {\n${
+    opts.propertiesString
+  }\n${getSpaces(opts.nestLevel * 2)}}`;
 }
 
 function getRootLevelQueryString(
@@ -645,19 +589,22 @@ function getRootLevelQueryString(
     alias: string;
   } & QueryRecordEntry
 ) {
-  let operation: string;
-  if ('ids' in opts && opts.ids != null) {
-    operation = `GetNodesByIdNew(ids: ${getIdsString(opts.ids)})`;
-  } else if ('id' in opts && opts.id != null) {
-    operation = `GetNodesByIdNew(ids: ${getIdsString([opts.id])})`;
-  } else {
-    operation = `GetNodesNew(${getGetNodeOptions(opts)})`;
-  }
+  const operation = getOperationFromQueryRecordEntry(opts);
 
   return (
-    `${opts.alias}: ${operation} {` +
-    `${getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 1 })}` +
-    `\n${getSpaces(4)}}`
+    `  ${opts.alias}: ${operation} {\n` +
+    `${
+      opts.id == null
+        ? wrapInNodes({
+            propertiesString: getQueryPropertiesString({
+              queryRecordEntry: opts,
+              nestLevel: 3,
+            }),
+            nestLevel: 2,
+          })
+        : getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 2 })
+    }` +
+    `\n  }`
   );
 }
 
@@ -673,28 +620,28 @@ export type SubscriptionConfig = {
 };
 
 export function getQueryInfo<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLString = `
-    query ${getSanitizedQueryId({ queryId: opts.queryId })} {
-        ${Object.keys(queryRecord)
-          .map(alias =>
-            getRootLevelQueryString({
-              alias,
-              ...queryRecord[alias],
-            })
-          )
-          .join('\n    ')}
-    }
-  `.trim();
+  const queryGQLString = (
+    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
+    Object.keys(queryRecord)
+      .map(alias =>
+        getRootLevelQueryString({
+          alias,
+          ...queryRecord[alias],
+        })
+      )
+      .join('\n    ') +
+    '\n}'
+  ).trim();
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord
@@ -704,36 +651,10 @@ export function getQueryInfo<
     });
     const queryRecordEntry = queryRecord[alias];
 
-    let operations: Array<string>;
-    if (queryRecordEntry.ids != null) {
-      operations = [
-        `GetNodesById(ids: ${getIdsString(
-          queryRecordEntry.ids
-        )}, monitorChildEvents: true)`,
-      ];
-    } else if (queryRecordEntry.id != null) {
-      operations = [
-        `GetNodesById(ids: ${getIdsString([
-          queryRecordEntry.id,
-        ])}, monitorChildEvents: true)`,
-      ];
-    } else if (queryRecordEntry.underIds != null) {
-      operations = queryRecordEntry.underIds.map(underId => {
-        return `GetNodesNew(${getSubscriptionGetNodeOptions({
-          ...queryRecordEntry,
-          under: underId,
-        })}, monitorChildEvents: true)`;
-      });
-    } else {
-      operations = [
-        `GetNodesNew(${getSubscriptionGetNodeOptions(
-          queryRecordEntry
-        )}, monitorChildEvents: true)`,
-      ];
-    }
+    const operation = getOperationFromQueryRecordEntry(queryRecordEntry);
 
-    const gqlStrings = operations.map(operation => {
-      return `
+    const gqlStrings = [
+      `
     subscription ${subscriptionName} {
       ${alias}: ${operation} {
         node {
@@ -742,14 +663,14 @@ export function getQueryInfo<
         operation { action, path }
       }
     }
-        `.trim();
-    });
+        `.trim(),
+    ];
 
     function extractNodeFromSubscriptionMessage(
       subscriptionMessage: Record<string, any>
     ) {
       if (!subscriptionMessage[alias].node) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage,
           description: 'No "node" found in message',
         });
@@ -762,7 +683,7 @@ export function getQueryInfo<
       subscriptionMessage: Record<string, any>
     ) {
       if (!subscriptionMessage[alias].operation) {
-        throw new SMUnexpectedSubscriptionMessageException({
+        throw new UnexpectedSubscriptionMessageException({
           subscriptionMessage,
           description: 'No "operation" found in message',
         });
@@ -797,11 +718,11 @@ export function getQueryInfo<
  * taking into account the previous query record to avoid requesting data already in memory
  */
 export function convertQueryDefinitionToQueryInfo<
-  TSMNode,
+  TNode,
   TMapFn,
   TQueryDefinitionTarget,
   TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
+    TNode,
     TMapFn,
     TQueryDefinitionTarget
   >

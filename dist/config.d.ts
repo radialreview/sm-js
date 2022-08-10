@@ -1,2 +1,2 @@
-import { SMConfig } from './types';
-export declare function getDefaultConfig(): SMConfig;
+import { Config } from './types';
+export declare function getDefaultConfig(): Config;

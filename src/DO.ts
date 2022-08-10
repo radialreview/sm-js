@@ -1,53 +1,38 @@
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { NULL_TAG } from './dataConversions';
-import { SMData } from './smDataTypes';
+import { Data } from './dataTypes';
 import {
-  ISMJS,
-  ISMData,
-  SMDataDefaultFn,
+  IMMGQL,
+  IData,
+  DataDefaultFn,
   NodeRelationalQueryBuilderRecord,
-  NodeMutationFn,
   NodeDO,
   NodeComputedFns,
   NodeRelationalFns,
   DeepPartial,
   NodeRelationalQueryBuilder,
-  ISMNode,
-  SM_DATA_TYPES,
+  INode,
+  DATA_TYPES,
 } from './types';
 
-export function createDOFactory(smJSInstance: ISMJS) {
+export function createDOFactory(mmGQLInstance: IMMGQL) {
   /**
    * Returns a DO class, since there is one instance of the DO class
-   * for each instance of that node type that is fetched from SM
+   * for each instance of that node type that is fetched from the backend
    */
   return function DOFactory<
-    TNodeData extends Record<string, ISMData | SMDataDefaultFn>,
+    TNodeData extends Record<string, IData | DataDefaultFn>,
     TNodeComputedData extends Record<string, any>,
-    // the tsignore here is necessary
-    // because the generic that NodeRelationalQueryBuilderRecord needs is
-    // the node definition for the origin of the relational queries
-    // which when defining a node, is the node being defined
-    // attempting to replicate the node here would always end up in a loop
-    // since we need the relational data to construct a node
-    // and need the node to construct the relational data (without this ts ignore)
-    // @ts-ignore
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord,
-    TNodeMutations extends Record<
-      string,
-      /*NodeMutationFn<TNodeData, any>*/ NodeMutationFn
-    >,
     TDOClass = new (initialData?: Record<string, any>) => NodeDO
   >(node: {
     type: string;
     properties: TNodeData;
     computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
-    // @ts-ignore
     relational?: NodeRelationalFns<TNodeRelationalData>;
-    mutations?: TNodeMutations;
   }): TDOClass {
     // silences the error "A class can only implement an object type or intersection of object types with statically known members."
-    // wich happens because NodeDO has non statically known members (each property on a node in SM is mapped to a non-statically known property on the DO)
+    // wich happens because NodeDO has non statically known members (each property on a node in the backend is mapped to a non-statically known property on the DO)
     // eslint-disable-next-line
     // @ts-ignore
     return class DO implements TDOClass {
@@ -81,11 +66,11 @@ export function createDOFactory(smJSInstance: ISMJS) {
         }
 
         this.parsedData = this.getParsedData({
-          smData: node.properties,
+          data: node.properties,
           persistedData: this.persistedData,
           defaultData: this._defaults,
         });
-        smJSInstance.plugins?.forEach(plugin => {
+        mmGQLInstance.plugins?.forEach(plugin => {
           if (plugin.DO?.onConstruct) {
             plugin.DO.onConstruct({
               DOInstance: this,
@@ -97,7 +82,6 @@ export function createDOFactory(smJSInstance: ISMJS) {
         this.initializeNodePropGetters();
         this.initializeNodeComputedGetters();
         this.initializeNodeRelationalGetters();
-        this.initializeNodeMutations();
       }
 
       private parseReceivedData(opts: {
@@ -108,7 +92,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
         return Object.entries(nodeProperties).reduce(
           (acc, [propName, propValue]) => {
-            const property = this.getSMData(propValue);
+            const property = this.getData(propValue);
 
             const propExistsInInitialData =
               propName in initialData &&
@@ -143,25 +127,25 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       private getDefaultData = (
-        nodePropertiesOrSMData:
+        nodePropertiesOrData:
           | typeof node.properties
-          | SMData<any, any, any>
-          | ((_default: any) => SMData<any, any, any>)
+          | Data<any, any, any>
+          | ((_default: any) => Data<any, any, any>)
       ): Record<keyof TNodeData, any> => {
-        if (nodePropertiesOrSMData instanceof SMData) {
-          if (this.isObjectType(nodePropertiesOrSMData.type)) {
-            return this.getDefaultData(nodePropertiesOrSMData.boxedValue);
+        if (nodePropertiesOrData instanceof Data) {
+          if (this.isObjectType(nodePropertiesOrData.type)) {
+            return this.getDefaultData(nodePropertiesOrData.boxedValue);
           }
-          return nodePropertiesOrSMData.defaultValue;
+          return nodePropertiesOrData.defaultValue;
         }
 
         const getDefaultFnValue = (
           propName?: keyof TNodeData,
-          defaultSMData?: ISMData
+          defaultData?: IData
         ) => {
           const defaultFn =
-            defaultSMData ||
-            ((nodePropertiesOrSMData as TNodeData)[
+            defaultData ||
+            ((nodePropertiesOrData as TNodeData)[
               propName as keyof TNodeData
             ] as any)._default;
 
@@ -181,16 +165,16 @@ export function createDOFactory(smJSInstance: ISMJS) {
           return defaultFn.defaultValue;
         };
 
-        if (typeof nodePropertiesOrSMData === 'function') {
+        if (typeof nodePropertiesOrData === 'function') {
           return getDefaultFnValue(
             undefined,
-            (nodePropertiesOrSMData as any)._default as ISMData
+            (nodePropertiesOrData as any)._default as IData
           );
         }
 
-        return Object.keys(nodePropertiesOrSMData).reduce(
+        return Object.keys(nodePropertiesOrData).reduce(
           (acc, prop: keyof TNodeData) => {
-            const propValue = nodePropertiesOrSMData[prop] as ISMData;
+            const propValue = nodePropertiesOrData[prop] as IData;
             if (
               this.isObjectType(propValue.type) ||
               this.isRecordType(propValue.type)
@@ -201,9 +185,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
 
               acc[prop] = defaultValue;
             } else {
-              acc[prop] = (nodePropertiesOrSMData[
-                prop
-              ] as ISMData).defaultValue;
+              acc[prop] = (nodePropertiesOrData[prop] as IData).defaultValue;
             }
             return acc;
           },
@@ -212,30 +194,30 @@ export function createDOFactory(smJSInstance: ISMJS) {
       };
 
       private getParsedData(opts: {
-        smData: ISMData | Record<string, ISMData | SMDataDefaultFn>; // because it can be a single value (sm.number, sm.string, sm.boolean, sm.array, sm.record) or an object (root node data, nested objects)
+        data: IData | Record<string, IData | DataDefaultFn>; // because it can be a single value (dataTypes.number, dataTypes.string, dataTypes.boolean, dataTypes.array, dataTypes.record) or an object (root node data, nested objects)
         persistedData: any;
         defaultData: any;
       }) {
         if (
-          opts.smData instanceof SMData &&
-          opts.smData.isOptional &&
+          opts.data instanceof Data &&
+          opts.data.isOptional &&
           opts.persistedData == null
         ) {
           return null;
         }
 
-        const property = this.getSMData(opts.smData as ISMData);
+        const property = this.getData(opts.data as IData);
 
-        if (property instanceof SMData && property.boxedValue) {
+        if (property instanceof Data && property.boxedValue) {
           // sm.array, sm.object or sm.record
           if (this.isArrayType(property.type)) {
             if (opts.persistedData) {
               return (opts.persistedData || []).map((data: any) => {
                 return this.getParsedData({
-                  smData: property.boxedValue,
+                  data: property.boxedValue,
                   persistedData: data,
                   defaultData:
-                    property.type === SM_DATA_TYPES.array
+                    property.type === DATA_TYPES.array
                       ? opts.defaultData?.[0] || null // If property is a non-optional array and the boxed value is of type sm.object, the default data for an array should be an array with a single item, where that item is the default data for that object
                       : null,
                 });
@@ -250,13 +232,13 @@ export function createDOFactory(smJSInstance: ISMJS) {
               opts.persistedData = {};
             }
 
-            const boxedValueSMProperty = this.getSMData(property.boxedValue);
+            const boxedValueData = this.getData(property.boxedValue);
 
-            if (boxedValueSMProperty instanceof SMData) {
+            if (boxedValueData instanceof Data) {
               // sm.record
               return Object.keys(opts.persistedData).reduce((acc, key) => {
                 acc[key] = this.getParsedData({
-                  smData: property.boxedValue,
+                  data: property.boxedValue,
                   persistedData: opts.persistedData[key],
                   defaultData: opts.defaultData, //opts.defaultData,
                 }); // no default value for values in a record
@@ -266,7 +248,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
               // if we're dealing with an object, lets loop over the keys in its boxed value
               return Object.keys(property.boxedValue).reduce((acc, key) => {
                 acc[key] = this.getParsedData({
-                  smData: property.boxedValue[key],
+                  data: property.boxedValue[key],
                   persistedData: opts.persistedData[key],
                   defaultData: opts.defaultData?.[key],
                 });
@@ -274,11 +256,11 @@ export function createDOFactory(smJSInstance: ISMJS) {
               }, {} as Record<string, any>);
             }
           }
-        } else if (property instanceof SMData) {
+        } else if (property instanceof Data) {
           // sm.string, sm.boolean, sm.number
 
           // if a property was nulled using our old format, parse as native null
-          if (opts.persistedData === NULL_TAG && opts.smData.isOptional) {
+          if (opts.persistedData === NULL_TAG && opts.data.isOptional) {
             return null;
           }
 
@@ -292,7 +274,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
           return Object.keys(property).reduce((acc, prop) => {
             acc[prop] = this.getParsedData({
               // @ts-ignore
-              smData: property[prop],
+              data: property[prop],
               persistedData: opts.persistedData[prop],
               defaultData: opts.defaultData[prop],
             });
@@ -327,13 +309,13 @@ export function createDOFactory(smJSInstance: ISMJS) {
           });
 
           this.extendPersistedWithNewlyReceivedData({
-            smData: node.properties,
+            data: node.properties,
             object: this.persistedData,
             extension: newData,
           });
 
           this.parsedData = this.getParsedData({
-            smData: node.properties,
+            data: node.properties,
             persistedData: this.persistedData,
             defaultData: this._defaults,
           });
@@ -341,26 +323,26 @@ export function createDOFactory(smJSInstance: ISMJS) {
       };
 
       private extendPersistedWithNewlyReceivedData(opts: {
-        smData: Record<string, ISMData | SMDataDefaultFn>;
+        data: Record<string, IData | DataDefaultFn>;
         object: Record<string, any>;
         extension: Record<string, any>;
       }) {
         Object.entries(opts.extension).forEach(([key, value]) => {
-          const smDataForThisProp = this.getSMData(opts.smData[key]);
+          const dataForThisProp = this.getData(opts.data[key]);
 
           // if this is a record, completely overwrite the stored persisted data
-          if (this.isRecordType(smDataForThisProp.type)) {
+          if (this.isRecordType(dataForThisProp.type)) {
             opts.object[key] = value;
           } else {
             // if it's an object, extend the persisted data we've received so far with the newly received data
-            if (this.isObjectType(smDataForThisProp.type)) {
+            if (this.isObjectType(dataForThisProp.type)) {
               if (value == null) {
                 opts.object[key] = null;
               } else {
                 opts.object[key] = opts.object[key] || {};
 
                 this.extendPersistedWithNewlyReceivedData({
-                  smData: smDataForThisProp.boxedValue,
+                  data: dataForThisProp.boxedValue,
                   object: opts.object[key],
                   extension: value,
                 });
@@ -374,7 +356,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       /**
-       * initializes getters for properties that are stored on this node in SM
+       * initializes getters for properties that are stored on this node in the backend
        * as properties on this DO instance
        */
       private initializeNodePropGetters() {
@@ -385,7 +367,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
             return;
           }
 
-          const property = this.getSMData(node.properties[prop]);
+          const property = this.getData(node.properties[prop]);
 
           if (this.isObjectType(property.type)) {
             this.setObjectProp(prop);
@@ -414,23 +396,12 @@ export function createDOFactory(smJSInstance: ISMJS) {
       private initializeNodeRelationalGetters() {
         const relationalData = node.relational;
         if (relationalData) {
-          Object.keys(relationalData).forEach(relationalProp => {
+          Object.keys(relationalData).forEach(relationshipName => {
             this.setRelationalProp({
-              propName: relationalProp,
+              relationshipName,
               relationalQueryGetter: relationalData[
-                relationalProp
+                relationshipName
               ] as () => NodeRelationalQueryBuilder<any>,
-            });
-          });
-        }
-      }
-
-      private initializeNodeMutations() {
-        const mutations = node.mutations;
-        if (mutations) {
-          Object.keys(mutations).forEach(mutationName => {
-            Object.defineProperty(this, mutationName, {
-              get: () => mutations[mutationName].bind(this),
             });
           });
         }
@@ -475,7 +446,7 @@ export function createDOFactory(smJSInstance: ISMJS) {
         computedFn: (nodeData: Record<string, any>) => any;
       }) {
         let computedGetter = () => opts.computedFn(this);
-        smJSInstance.plugins?.forEach(plugin => {
+        mmGQLInstance.plugins?.forEach(plugin => {
           if (plugin.DO?.computedDecorator) {
             computedGetter = plugin.DO.computedDecorator({
               computedFn: computedGetter,
@@ -492,12 +463,12 @@ export function createDOFactory(smJSInstance: ISMJS) {
       }
 
       private setRelationalProp(opts: {
-        propName: string;
+        relationshipName: string;
         relationalQueryGetter: () => NodeRelationalQueryBuilder<
-          ISMNode<any, TNodeData, TNodeComputedData, TNodeRelationalData>
+          INode<any, TNodeData, TNodeComputedData, TNodeRelationalData>
         >;
       }) {
-        Object.defineProperty(this, opts.propName, {
+        Object.defineProperty(this, opts.relationshipName, {
           configurable: true,
           get: () => {
             return opts.relationalQueryGetter();
@@ -505,29 +476,23 @@ export function createDOFactory(smJSInstance: ISMJS) {
         });
       }
 
-      private getSMData(prop: ISMData<any, any, any> | SMDataDefaultFn) {
+      private getData(prop: IData<any, any, any> | DataDefaultFn) {
         if (typeof prop === 'function') {
-          return (prop as any)._default as ISMData;
+          return (prop as any)._default as IData;
         }
-        return prop as ISMData;
+        return prop as IData;
       }
 
       private isArrayType(type: string) {
-        return (
-          type === SM_DATA_TYPES.array || type === SM_DATA_TYPES.maybeArray
-        );
+        return type === DATA_TYPES.array || type === DATA_TYPES.maybeArray;
       }
 
       private isObjectType(type: string) {
-        return (
-          type === SM_DATA_TYPES.object || type === SM_DATA_TYPES.maybeObject
-        );
+        return type === DATA_TYPES.object || type === DATA_TYPES.maybeObject;
       }
 
       private isRecordType(type: string) {
-        return (
-          type === SM_DATA_TYPES.record || type === SM_DATA_TYPES.maybeRecord
-        );
+        return type === DATA_TYPES.record || type === DATA_TYPES.maybeRecord;
       }
     };
   };
