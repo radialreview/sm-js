@@ -191,7 +191,7 @@ export function generateQuerier({
             }
 
             const result = await mmGQLInstance.gqlClient.query(queryOpts);
-
+            const nodesKey = 'nodes';
             function applyFilters(record: QueryRecord, obj: any) {
               Object.keys(record).forEach(alias => {
                 const queryRecordEntry = record[alias];
@@ -205,6 +205,7 @@ export function generateQuerier({
                         '.',
                         OBJECT_PROPERTY_SEPARATOR
                       );
+
                       if (
                         queryRecordEntry.properties.includes(
                           itemPropertyPath
@@ -216,7 +217,7 @@ export function generateQuerier({
                       }
 
                       if (filterPropertyPath)
-                        update(obj, alias, originalValue => {
+                        update(obj, `${alias}.${nodesKey}`, originalValue => {
                           if (!isArray(originalValue)) {
                             return originalValue;
                           }
@@ -298,8 +299,8 @@ export function generateQuerier({
 
                 if (relational != null) {
                   Object.keys(relational).forEach(() => {
-                    if (obj[alias]) {
-                      obj[alias].forEach((obj2: any) => {
+                    if (obj[alias] && obj[alias][nodesKey]) {
+                      obj[alias][nodesKey].forEach((obj2: any) => {
                         applyFilters(relational, obj2);
                       });
                     }

@@ -228,7 +228,7 @@ export const mockTodoData = {
 
 export const mockUserData = {
   id: 'mock-user-id',
-  type: 'tt-user',
+  type: 'user',
   version: '1',
   address: '__object__',
   address__dot__state: 'FL',

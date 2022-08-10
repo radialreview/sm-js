@@ -152,13 +152,15 @@ test('query can query data using multiple tokens, by making parallel requests', 
 
 function createMockDataItems<T>(opts: {
   sampleMockData: T & { id: string };
-  items: Array<Partial<T>>;
+  items: Array<Partial<any>>;
 }) {
-  return opts.items.map((mockItem, index) => ({
-    ...opts.sampleMockData,
-    ...mockItem,
-    id: opts.sampleMockData.id + index,
-  }));
+  return {
+    nodes: opts.items.map((mockItem, index) => ({
+      ...opts.sampleMockData,
+      ...mockItem,
+      id: opts.sampleMockData.id + index,
+    })),
+  };
 }
 
 test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () => {
@@ -732,7 +734,10 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
+  // @TODO_NEVER_TYPE_ISSUE
+  // @ts-ignore-error
   expect(data.users[0].todos.length).toBe(2);
+  // @ts-ignore-error
   expect(data.users[1].todos.length).toBe(1);
 });
 
@@ -787,6 +792,8 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
+  // @TODO_NEVER_TYPE_ISSUE
+  // @ts-ignore-error
   expect(data.users[0].todos[0].users.length).toBe(1);
 });
 
@@ -854,6 +861,8 @@ test(`sm.query.filter should throw an error if property being filtered is not de
         def: generateUserNode(mmGQLInstance),
         map: ({ id }) => ({
           id,
+          // @TODO_NEVER_TYPE_ISSUE
+          // @ts-ignore-error
           address: ({ state }) => ({ state }),
         }),
         filter: {
@@ -865,7 +874,7 @@ test(`sm.query.filter should throw an error if property being filtered is not de
   } catch (e) {
     expect(
       (e as Error).stack?.includes(
-        `SMFilterPropertyNotDefinedInQueryException exception - The filter property 'score' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function`
+        `FilterPropertyNotDefinedInQueryException exception - The filter property 'score' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function`
       )
     ).toBe(true);
   }
