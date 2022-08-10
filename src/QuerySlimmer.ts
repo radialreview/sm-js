@@ -45,17 +45,17 @@ export class QuerySlimmer {
       );
 
       if (this.queriesByContext[newQueryContextKey] === undefined) {
-        // If the query context key is not found in queriesByContext we know there is no duplicate query.
+        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
         slimmedQueryRecord[newQueryKey] = newQueryRecordEntry;
       } else {
-        // If a context key is found for this query in queriesByContext check the requested properties.
+        // If a context key is found for the new query in queriesByContext we need to check if any of the requested properties are already cached.
         const cachedQuery = this.queriesByContext[newQueryContextKey];
         const newRequestedProperties = this.getPropertiesNotAlreadyCached({
           newQueryProps: newQueryRecordEntry.properties,
           cachedQueryProps: Object.keys(cachedQuery.subscriptionsByProperty),
         });
 
-        // If there are newly requested properties we return the query with properties that have not already been cached.
+        // If properties that are not cached are being requested we will return the new query with only those newly requested properties.
         if (newRequestedProperties !== null) {
           slimmedQueryRecord[newQueryKey] = {
             ...newQueryRecordEntry,
