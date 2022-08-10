@@ -1,4 +1,4 @@
-import { PaginatedArray } from './arrayWithPagination';
+import { OnPaginateCallback, PaginatedArray } from './arrayWithPagination';
 import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
 import { DataParsingException } from './exceptions';
 import {
@@ -35,6 +35,8 @@ type QueryManagerProxyCacheEntry = {
   relationalState: Maybe<QueryManagerState>;
 }; // the proxy for that DO and relational state from the query results/latest subscription message
 
+type QueryManagerOpts = { onPaginate: OnPaginateCallback };
+
 export function createQueryManager(mmGQLInstance: IMMGQL) {
   /**
    * QueryManager is in charge of
@@ -50,9 +52,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
   return class QueryManager implements IQueryManager {
     public state: QueryManagerState = {};
     public queryRecord: QueryRecord;
+    public opts: QueryManagerOpts | undefined;
 
-    constructor(queryRecord: QueryRecord) {
+    constructor(queryRecord: QueryRecord, opts?: QueryManagerOpts) {
       this.queryRecord = queryRecord;
+      this.opts = opts;
     }
 
     public onQueryResult(opts: { queryResult: any; queryId: string }) {
@@ -117,6 +121,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             itemsPerPage:
               stateForThisAlias.pagination?.itemsPerPage || ids.length,
             page: stateForThisAlias.pagination?.page || 1,
+            onPaginate: this.opts?.onPaginate,
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] =
