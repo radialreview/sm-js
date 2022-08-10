@@ -1,4 +1,4 @@
-import { DEFAULT_TOKEN_NAME } from './consts';
+import { DEFAULT_TOKEN_NAME, NODES_PROPERTY_KEY } from './consts';
 import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
@@ -156,6 +156,134 @@ export function generateQuerier({
       return token;
     }
 
+    // Mutates the response object to apply the filters on the client side.
+    // This is just temporary until backend supports all the filters.
+    function mutateResponseWithQueryRecordFilters(
+      queryRecord: QueryRecord,
+      responseData: any
+    ) {
+      Object.keys(queryRecord).forEach(alias => {
+        const queryRecordEntry = queryRecord[alias];
+        if (queryRecordEntry.filter) {
+          const filterObject = getFlattenedNodeFilterObject(
+            queryRecordEntry.filter
+          );
+          if (filterObject && responseData[alias]) {
+            Object.keys(filterObject).forEach(filterPropertyName => {
+              const underscoreSeparatedPropertyPath = filterPropertyName.replaceAll(
+                '.',
+                OBJECT_PROPERTY_SEPARATOR
+              );
+
+              const filterPropertyIsNotDefinedInTheQuery =
+                queryRecordEntry.properties.includes(
+                  underscoreSeparatedPropertyPath
+                ) === false;
+
+              if (filterPropertyIsNotDefinedInTheQuery) {
+                throw new FilterPropertyNotDefinedInQueryException({
+                  filterPropName: filterPropertyName,
+                });
+              }
+
+              if (filterPropertyName) {
+                update(
+                  responseData,
+                  `${alias}.${NODES_PROPERTY_KEY}`,
+                  currentValue => {
+                    if (!isArray(currentValue)) {
+                      return currentValue;
+                    }
+                    return currentValue.filter(item => {
+                      const propertyFilter: FilterValue<any> =
+                        filterObject[filterPropertyName];
+
+                      // Handle null filtering since backend returns "__NULL__" string instead of null
+                      const value =
+                        item[underscoreSeparatedPropertyPath] === NULL_TAG
+                          ? null
+                          : item[underscoreSeparatedPropertyPath];
+
+                      return (Object.keys(propertyFilter) as Array<
+                        FilterOperator
+                      >).every(filterOperator => {
+                        switch (filterOperator) {
+                          case '_contains': {
+                            return (
+                              String(value)
+                                .toLowerCase()
+                                .indexOf(
+                                  String(
+                                    propertyFilter[filterOperator]
+                                  ).toLowerCase()
+                                ) !== -1
+                            );
+                          }
+                          case '_ncontains': {
+                            return (
+                              String(value)
+                                .toLowerCase()
+                                .indexOf(
+                                  String(
+                                    propertyFilter[filterOperator]
+                                  ).toLowerCase()
+                                ) === -1
+                            );
+                          }
+                          case '_eq': {
+                            return (
+                              String(value).toLowerCase() ===
+                              String(
+                                propertyFilter[filterOperator]
+                              ).toLowerCase()
+                            );
+                          }
+                          case '_neq':
+                            return (
+                              String(value).toLowerCase() !==
+                              String(
+                                propertyFilter[filterOperator]
+                              ).toLowerCase()
+                            );
+                          case '_gt':
+                            return value > propertyFilter[filterOperator];
+                          case '_gte':
+                            return value >= propertyFilter[filterOperator];
+                          case '_lt':
+                            return value < propertyFilter[filterOperator];
+                          case '_lte':
+                            return value <= propertyFilter[filterOperator];
+                          default:
+                            throw new FilterOperatorNotImplementedException({
+                              operator: filterOperator,
+                            });
+                        }
+                      });
+                    });
+                  }
+                );
+              }
+            });
+          }
+        }
+
+        const relational = queryRecordEntry.relational;
+
+        if (relational != null) {
+          Object.keys(relational).forEach(() => {
+            if (
+              responseData[alias] &&
+              responseData[alias][NODES_PROPERTY_KEY]
+            ) {
+              responseData[alias][NODES_PROPERTY_KEY].forEach((item: any) => {
+                mutateResponseWithQueryRecordFilters(relational, item);
+              });
+            }
+          });
+        }
+      });
+    }
+
     const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
       queryDefinitions
     );
@@ -168,7 +296,7 @@ export function generateQuerier({
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
           async ([tokenName, queryDefinitions]) => {
-            let result;
+            let response;
             const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
               {
                 queryDefinitions: queryDefinitions,
@@ -177,7 +305,7 @@ export function generateQuerier({
             );
 
             if (mmGQLInstance.generateMockData) {
-              result = generateMockNodeDataFromQueryDefinitions({
+              response = generateMockNodeDataFromQueryDefinitions({
                 queryDefinitions,
                 queryId,
               });
@@ -190,131 +318,12 @@ export function generateQuerier({
                 queryOpts.batchKey = opts.batchKey;
               }
 
-              result = await mmGQLInstance.gqlClient.query(queryOpts);
+              response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            const nodesKey = 'nodes';
+            mutateResponseWithQueryRecordFilters(queryRecord, response);
 
-            function applyFilters(record: QueryRecord, obj: any) {
-              Object.keys(record).forEach(alias => {
-                const queryRecordEntry = record[alias];
-                if (queryRecordEntry.filter) {
-                  const filter = getFlattenedNodeFilterObject(
-                    queryRecordEntry.filter
-                  );
-                  if (filter && obj[alias]) {
-                    Object.keys(filter).forEach(filterPropertyPath => {
-                      const itemPropertyPath = filterPropertyPath.replaceAll(
-                        '.',
-                        OBJECT_PROPERTY_SEPARATOR
-                      );
-
-                      if (
-                        queryRecordEntry.properties.includes(
-                          itemPropertyPath
-                        ) === false
-                      ) {
-                        throw new FilterPropertyNotDefinedInQueryException({
-                          filterPropName: filterPropertyPath,
-                        });
-                      }
-
-                      if (filterPropertyPath)
-                        update(obj, `${alias}.${nodesKey}`, originalValue => {
-                          if (!isArray(originalValue)) {
-                            return originalValue;
-                          }
-                          return originalValue.filter(item => {
-                            const propertyFilter: FilterValue<any> =
-                              filter[filterPropertyPath];
-
-                            const value =
-                              item[itemPropertyPath] === NULL_TAG
-                                ? null
-                                : item[itemPropertyPath];
-
-                            return (Object.keys(propertyFilter) as Array<
-                              FilterOperator
-                            >).every(filterOperator => {
-                              switch (filterOperator) {
-                                case '_contains': {
-                                  return (
-                                    String(value)
-                                      .toLowerCase()
-                                      .indexOf(
-                                        String(
-                                          propertyFilter[filterOperator]
-                                        ).toLowerCase()
-                                      ) !== -1
-                                  );
-                                }
-                                case '_ncontains': {
-                                  return (
-                                    String(value)
-                                      .toLowerCase()
-                                      .indexOf(
-                                        String(
-                                          propertyFilter[filterOperator]
-                                        ).toLowerCase()
-                                      ) === -1
-                                  );
-                                }
-                                case '_eq': {
-                                  return (
-                                    String(value).toLowerCase() ===
-                                    String(
-                                      propertyFilter[filterOperator]
-                                    ).toLowerCase()
-                                  );
-                                }
-                                case '_neq':
-                                  return (
-                                    String(value).toLowerCase() !==
-                                    String(
-                                      propertyFilter[filterOperator]
-                                    ).toLowerCase()
-                                  );
-                                case '_gt':
-                                  return value > propertyFilter[filterOperator];
-                                case '_gte':
-                                  return (
-                                    value >= propertyFilter[filterOperator]
-                                  );
-                                case '_lt':
-                                  return value < propertyFilter[filterOperator];
-                                case '_lte':
-                                  return (
-                                    value <= propertyFilter[filterOperator]
-                                  );
-                                default:
-                                  throw new FilterOperatorNotImplementedException(
-                                    { operator: filterOperator }
-                                  );
-                              }
-                            });
-                          });
-                        });
-                    });
-                  }
-                }
-
-                const relational = queryRecordEntry.relational;
-
-                if (relational != null) {
-                  Object.keys(relational).forEach(() => {
-                    if (obj[alias] && obj[alias][nodesKey]) {
-                      obj[alias][nodesKey].forEach((obj2: any) => {
-                        applyFilters(relational, obj2);
-                      });
-                    }
-                  });
-                }
-              });
-            }
-
-            applyFilters(queryRecord, result);
-
-            return result;
+            return response;
           }
         )
       );

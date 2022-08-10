@@ -37,3 +37,5 @@ const FILTER_OPERATORS_MAP: Record<FilterOperator, FilterOperator> = {
 export const FILTER_OPERATORS: Array<FilterOperator> = Object.values(
   FILTER_OPERATORS_MAP
 );
+
+export const NODES_PROPERTY_KEY = 'nodes';
