@@ -425,7 +425,6 @@ export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INo
   TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-      pagination?: IQueryPagination;
       filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
@@ -493,7 +492,23 @@ export interface INodeRepository {
   onNodeDeleted(id: string): void;
 }
 
-export type FilterOperator = '_gte' | '_lte' | '_eq' | '_gt' | '_lt' | '_neq' | '_contains' | '_ncontains'
+export type FilterOperator = 
+/** greater than or equal */
+'_gte' | 
+/** less than or equal */
+'_lte' | 
+/** equal */
+'_eq' | 
+/** greater than */
+'_gt' | 
+/** less than */
+'_lt' | 
+/** not equal */
+'_neq' | 
+/** contains */
+'_contains' | 
+/** does not contain */
+'_ncontains'
 
 /**
  * Returns the valid filter for a node
@@ -533,7 +548,6 @@ export type QueryDefinition<
 > = { 
   def: TNode;
   map: TMapFn;
-  pagination?: IQueryPagination
   filter?: ValidFilterForNode<TNode>
   target?: TQueryDefinitionTarget
   tokenName?: string

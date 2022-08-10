@@ -405,9 +405,7 @@ const stateNode: StateNode = mmGQL.def({
       def: userNode,
       map: userData => ({ id: userData.id }),
       filter: {
-        firstName: {
-          _eq: 'Meida',
-        },
+        firstName: 'Meida',
         // @ts-expect-error not a property in the user node
         bogus: '',
       },
