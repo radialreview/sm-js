@@ -186,3 +186,75 @@ test('when it queries by a multiple ids in query results it caches them correctl
     results: users.map(user => user.todos),
   });
 });
+test('when a subscription is cancelled the cache is appropriately updated', () => {
+  const { QuerySlimmer, userNode } = setupTests();
+
+  const slimmedQuery: QueryRecord = {
+    users: {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+    },
+  };
+
+  const users = [
+    {
+      id: 'id-5',
+      type: userNode.type,
+      firstName: 'Noley',
+      lastName: 'Holland',
+    },
+  ];
+
+  QuerySlimmer.onResultsReceived({
+    slimmedQuery,
+    originalQuery: slimmedQuery,
+    slimmedQueryResults: {
+      users,
+    },
+    subscriptionEstablished: true,
+  });
+  QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
+  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toBe(undefined);
+});
+
+test('when a subscription is cancelled the subscription count is appropriately decremented', () => {
+  const { QuerySlimmer, userNode } = setupTests();
+
+  const slimmedQuery: QueryRecord = {
+    users: {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+    },
+  };
+
+  const users = [
+    {
+      id: 'id-5',
+      type: userNode.type,
+      firstName: 'Noley',
+      lastName: 'Holland',
+    },
+  ];
+
+  QuerySlimmer.onResultsReceived({
+    slimmedQuery,
+    originalQuery: slimmedQuery,
+    slimmedQueryResults: {
+      users,
+    },
+    subscriptionEstablished: true,
+  });
+  QuerySlimmer.onResultsReceived({
+    slimmedQuery,
+    originalQuery: slimmedQuery,
+    slimmedQueryResults: {
+      users,
+    },
+    subscriptionEstablished: true,
+  });
+  QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
+  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toEqual({
+    subscriptionsByProperty: { firstName: 1, lastName: 1 },
+    results: users,
+  });
+});
