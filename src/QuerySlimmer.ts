@@ -1,4 +1,9 @@
-import { QueryRecord, QueryRecordEntry } from './types';
+import {
+  QueryRecord,
+  QueryRecordEntry,
+  RelationalQueryRecord,
+  RelationalQueryRecordEntry,
+} from './types';
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
@@ -26,16 +31,107 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
-  // public onQueryExecuted ({originalQuery: {queryRecord}, slimmedQuery: {queryRecord}}) {
-  // should return a new queryRecord
-  // if no matches for queryRecord are found in queriesByContext, return original query
-  // if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
-  // if complete match for queryRecord is found in queriesByContext, return null
+  public onNewQueryReceived(
+    newQuery: QueryRecord | RelationalQueryRecord,
+    parentContextKey?: string
+  ) {
+    // The query record could be a root query (not relational), or a child relational query.
+    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
+    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
+    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
+    // We know we are dealing with a relational query when parentContextKey is NOT undefined
+    const slimmedQueryRecord: QueryRecord = {};
+    const slimmedRelationalQueryRecord: RelationalQueryRecord = {};
+    const isNewQueryARootQuery = parentContextKey === undefined;
 
-  //   Object.keys(queryRecord).map(el => {
-  //     const queryDefinitionKey = el.
-  //   })
-  //
+    Object.keys(newQuery).forEach(newQueryKey => {
+      const newQueryRecordEntry = newQuery[newQueryKey];
+      const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
+      const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
+
+      const newQueryContextKey = this.createContextKeyForQuery(
+        newQueryRecordEntry,
+        parentContextKey
+      );
+
+      if (this.queriesByContext[newQueryContextKey] === undefined) {
+        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
+        if (isNewQueryARootQuery) {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        } else {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        }
+      } else {
+        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
+        // by the new query are already cached.
+        const cachedQuery = this.queriesByContext[newQueryContextKey];
+        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQueryProps: Object.keys(cachedQuery.subscriptionsByProperty),
+        });
+
+        // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+        if (
+          newRequestedProperties !== null &&
+          newQueryRecordEntry.relational === undefined
+        ) {
+          if (isNewQueryARootQuery) {
+            slimmedQueryRecord[newQueryKey] = {
+              ...newRootRecordEntry,
+              properties: newRequestedProperties,
+            };
+          } else {
+            slimmedRelationalQueryRecord[newQueryKey] = {
+              ...newRelationalRecordEntry,
+              properties: newRequestedProperties,
+            };
+          }
+        }
+
+        // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
+        if (newQueryRecordEntry.relational !== undefined) {
+          const slimmedNewRelationalQueryRecord = this.onNewQueryReceived(
+            newQueryRecordEntry.relational,
+            newQueryContextKey
+          );
+
+          // If there are any non-cached properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isNewQueryARootQuery) {
+              slimmedQueryRecord[newQueryKey] = {
+                ...newRootRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            } else {
+              slimmedRelationalQueryRecord[newQueryKey] = {
+                ...newRelationalRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            }
+          }
+        }
+      }
+    });
+
+    if (isNewQueryARootQuery) {
+      return Object.keys(slimmedQueryRecord).length > 0
+        ? slimmedQueryRecord
+        : null;
+    } else {
+      return Object.keys(slimmedRelationalQueryRecord).length > 0
+        ? slimmedRelationalQueryRecord
+        : null;
+    }
+  }
 
   private populateQueriesByContext(
     queryRecord: QueryRecord,
@@ -102,5 +198,15 @@ export class QuerySlimmer {
       return 'NO_PARAMS';
     }
     return JSON.stringify(params);
+  }
+
+  private getPropertiesNotAlreadyCached(opts: {
+    newQueryProps: string[];
+    cachedQueryProps: string[];
+  }) {
+    const newRequestedProperties = opts.newQueryProps.filter(
+      newQueryProperty => !opts.cachedQueryProps.includes(newQueryProperty)
+    );
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 }
