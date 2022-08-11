@@ -42,7 +42,6 @@ export class QuerySlimmer {
     results: Record<string, any>,
     parentContextKey?: string
   ) {
-    // console.log('AIDAN queryRecord: ', queryRecord);
     Object.keys(queryRecord).forEach(alias => {
       const queryRecordEntry = queryRecord[alias];
       const currentQueryContextKey = this.createContextKeyForQuery(
@@ -105,6 +104,31 @@ export class QuerySlimmer {
     return JSON.stringify(params);
   }
 
+  private handleDeleteContextKey(
+    currentQueryContextKey: string,
+    property: string
+  ) {
+    delete this.queriesByContext[currentQueryContextKey]
+      .subscriptionsByProperty[property];
+
+    Array.isArray(this.queriesByContext[currentQueryContextKey].results) &&
+      this.queriesByContext[currentQueryContextKey].results.map(
+        (el: any) => delete el[property]
+      );
+    if (
+      Object.keys(this.queriesByContext[currentQueryContextKey].results[0])
+        .length === 2 &&
+      this.queriesByContext[currentQueryContextKey].results[0].hasOwnProperty(
+        'id'
+      ) &&
+      this.queriesByContext[currentQueryContextKey].results[0].hasOwnProperty(
+        'type'
+      )
+    ) {
+      delete this.queriesByContext[currentQueryContextKey];
+    }
+  }
+
   public onSubscriptionCancelled(
     queryRecord: QueryRecord,
     parentContextKey: string | undefined
@@ -112,55 +136,26 @@ export class QuerySlimmer {
     Object.keys(queryRecord).forEach(alias => {
       const properties = queryRecord[alias].properties;
       const queryRecordEntry = queryRecord[alias];
-      const doesQueryHaveIdProperty = !!queryRecordEntry.id;
-      const parentContextKeyPrefix = parentContextKey
-        ? `${parentContextKey}.`
-        : '';
-      const contextKey = `${parentContextKeyPrefix}${
-        queryRecordEntry.def.type
-      }${doesQueryHaveIdProperty ? '' : 's'}(${this.stringifyQueryParams(
-        queryRecordEntry
-      )})`;
-      if (contextKey in this.queriesByContext) {
+      const currentQueryContextKey = this.createContextKeyForQuery(
+        queryRecordEntry,
+        parentContextKey
+      );
+      if (currentQueryContextKey in this.queriesByContext) {
         properties.map(property => {
-          const subscribedToPropertyCount = this.queriesByContext[contextKey]
-            .subscriptionsByProperty[property];
-
-          if (subscribedToPropertyCount === 1) {
-            console.log('AIDAN in next if');
-            delete this.queriesByContext[contextKey].subscriptionsByProperty[
-              property
-            ];
-            if (Array.isArray(this.queriesByContext[contextKey].results)) {
-              this.queriesByContext[contextKey].results.map(
-                (el: any) => delete el[property]
-              );
-            }
-            if (
-              Object.keys(this.queriesByContext[contextKey].results[0])
-                .length === 2 &&
-              this.queriesByContext[contextKey].results[0].hasOwnProperty(
-                'id'
-              ) &&
-              this.queriesByContext[contextKey].results[0].hasOwnProperty(
-                'type'
-              )
-            ) {
-              delete this.queriesByContext[contextKey];
-            }
-          }
+          const subscribedToPropertyCount = this.queriesByContext[
+            currentQueryContextKey
+          ].subscriptionsByProperty[property];
           if (subscribedToPropertyCount > 1) {
-            console.log('AIDAN in appropriate if: ', subscribedToPropertyCount);
-            return subscribedToPropertyCount - 1;
+            const newPropertyCount = subscribedToPropertyCount - 1;
+            return (this.queriesByContext[
+              currentQueryContextKey
+            ].subscriptionsByProperty[property] = newPropertyCount);
+          } else {
+            return this.handleDeleteContextKey(
+              currentQueryContextKey,
+              property
+            );
           }
-          console.log(
-            'AIDAN after if: ',
-            subscribedToPropertyCount,
-            'property: ',
-            property
-          );
-
-          return property;
         });
       }
     });

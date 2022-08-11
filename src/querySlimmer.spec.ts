@@ -218,7 +218,7 @@ test('when a subscription is cancelled the cache is appropriately updated', () =
     subscriptionEstablished: true,
   });
   QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
-  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toBe(undefined);
+  expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toBe(undefined);
 });
 
 test('when a subscription is cancelled the subscription count is appropriately decremented', () => {
@@ -257,7 +257,7 @@ test('when a subscription is cancelled the subscription count is appropriately d
     subscriptionEstablished: true,
   });
   QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
-  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toEqual({
+  expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: users,
   });
