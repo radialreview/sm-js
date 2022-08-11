@@ -356,12 +356,7 @@ export function generateQuerier({
           convertQueryDefinitionToQueryInfo({
             queryDefinitions: nonNullishQueryDefinitions,
             queryId,
-          }).queryRecord,
-          {
-            onPaginate: () => {
-              qM.onQueryResult({ queryId, queryResult: results });
-            },
-          }
+          }).queryRecord
         );
       try {
         qM.onQueryResult({
@@ -465,7 +460,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       return error;
     }
 
-    const queryManager = new mmGQLInstance.QueryManager(queryRecord);
+    const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
+      onPaginate: opts.onPaginate,
+    });
 
     function updateQueryManagerWithSubscriptionMessage(data: {
       message: Record<string, any>;

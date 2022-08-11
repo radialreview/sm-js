@@ -1,4 +1,4 @@
-import { PaginatedArray } from './arrayWithPagination';
+import { OnPaginateCallback, PaginatedArray } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -101,6 +101,7 @@ export type SubscriptionOpts<
   // @ts-ignore
   TQueryDefinitions extends QueryDefinitions
 > = {
+  onPaginate: OnPaginateCallback
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
   // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
