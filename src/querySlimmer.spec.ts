@@ -23,16 +23,20 @@ function setupTests() {
   return { QuerySlimmer: new QuerySlimmer(), userNode, todoNode };
 }
 
-test(`when it receives a query's results, it caches the results correctly`, () => {
+/*
+// TODO:
+// - test that you get back actual version of slimmed query after building out onResultsReceived func
+*/
+
+test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
   const { QuerySlimmer, userNode } = setupTests();
 
-  const slimmedQuery: QueryRecord = {
+  const mockQueryRecord: QueryRecord = {
     users: {
       def: userNode,
       properties: ['firstName', 'lastName'],
     },
   };
-
   const users = [
     {
       id: 'id-1',
@@ -41,30 +45,30 @@ test(`when it receives a query's results, it caches the results correctly`, () =
       lastName: 'Goodman',
     },
   ];
+
   QuerySlimmer.onResultsReceived({
-    slimmedQuery,
-    originalQuery: slimmedQuery,
+    slimmedQuery: mockQueryRecord,
+    originalQuery: mockQueryRecord,
     slimmedQueryResults: {
       users,
     },
     subscriptionEstablished: true,
   });
 
-  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toEqual({
+  expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: users,
   });
 });
-//test that you get back actual version of slimmed query after building out onResultsReceived func
 
-test('when it queries by a single id in query results it caches them correctly', () => {
+test('it should create a record with the id parameter included when querying by an id', () => {
   const { QuerySlimmer, userNode } = setupTests();
 
-  const slimmedQuery: QueryRecord = {
+  const mockQueryRecord: QueryRecord = {
     user: {
+      id: 'id-2',
       def: userNode,
       properties: ['firstName', 'lastName'],
-      id: 'id-2',
     },
   };
   const user = {
@@ -75,24 +79,24 @@ test('when it queries by a single id in query results it caches them correctly',
   };
 
   QuerySlimmer.onResultsReceived({
-    slimmedQuery,
-    originalQuery: slimmedQuery,
+    slimmedQuery: mockQueryRecord,
+    originalQuery: mockQueryRecord,
     slimmedQueryResults: {
       user,
     },
     subscriptionEstablished: true,
   });
 
-  expect(QuerySlimmer.resultsByContext['user({"id":"id-2"})']).toEqual({
+  expect(QuerySlimmer.queriesByContext['user({"id":"id-2"})']).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: user,
   });
 });
 
-test('when it queries by a multiple ids in query results it caches them correctly', () => {
+test('it should create a record with all the id parameters included when querying by multiple ids', () => {
   const { QuerySlimmer, userNode } = setupTests();
 
-  const slimmedQuery: QueryRecord = {
+  const mockQueryRecord: QueryRecord = {
     users: {
       def: userNode,
       properties: ['firstName', 'lastName'],
@@ -115,8 +119,8 @@ test('when it queries by a multiple ids in query results it caches them correctl
   ];
 
   QuerySlimmer.onResultsReceived({
-    slimmedQuery,
-    originalQuery: slimmedQuery,
+    slimmedQuery: mockQueryRecord,
+    originalQuery: mockQueryRecord,
     slimmedQueryResults: {
       users,
     },
@@ -124,17 +128,17 @@ test('when it queries by a multiple ids in query results it caches them correctl
   });
 
   expect(
-    QuerySlimmer.resultsByContext['users({"ids":["id-3","id-4"]})']
+    QuerySlimmer.queriesByContext['users({"ids":["id-3","id-4"]})']
   ).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: users,
   });
 });
 
-test('when it queries by a multiple ids in query results it caches them correctly', () => {
+test('it should create separate records for child relational data that contain no parameters', () => {
   const { QuerySlimmer, userNode, todoNode } = setupTests();
 
-  const slimmedQuery: QueryRecord = {
+  const mockQueryRecord: QueryRecord = {
     users: {
       def: userNode,
       properties: ['firstName', 'lastName'],
@@ -166,21 +170,21 @@ test('when it queries by a multiple ids in query results it caches them correctl
   ];
 
   QuerySlimmer.onResultsReceived({
-    slimmedQuery,
-    originalQuery: slimmedQuery,
+    slimmedQuery: mockQueryRecord,
+    originalQuery: mockQueryRecord,
     slimmedQueryResults: {
       users,
     },
     subscriptionEstablished: true,
   });
 
-  expect(QuerySlimmer.resultsByContext['users(NO_PARAMS)']).toEqual({
+  expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
     subscriptionsByProperty: { firstName: 1, lastName: 1 },
     results: users,
   });
 
   expect(
-    QuerySlimmer.resultsByContext['users(NO_PARAMS).todos(NO_PARAMS)']
+    QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
   ).toEqual({
     subscriptionsByProperty: { task: 1 },
     results: users.map(user => user.todos),
