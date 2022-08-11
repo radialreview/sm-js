@@ -31,24 +31,24 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
-  // onQueryExectued
-  // Return a new QueryRecord
-  // - if no matches for the originalQuery are found in queriesByContext, return original query [X]
-  // - if partial match for queryRecord is found in queriesByContext, return a new query record with only the properties that DID NOT match
-  // - if complete match for queryRecord is found in queriesByContext, return null [X]
-
-  // PIOTR TODO:
-  // - recursively handle relational data in queries
-
   public onNewQueryReceived(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
   ) {
+    // The query record could be a root query (not relational), or a child relational query.
+    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
+    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
+    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
+    // We know we are dealing with a relational query when parentContextKey is NOT undefined
     const slimmedQueryRecord: QueryRecord = {};
     const slimmedRelationalQueryRecord: RelationalQueryRecord = {};
+    const isNewQueryARootQuery = parentContextKey === undefined;
 
     Object.keys(newQuery).forEach(newQueryKey => {
       const newQueryRecordEntry = newQuery[newQueryKey];
+      const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
+      const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
+
       const newQueryContextKey = this.createContextKeyForQuery(
         newQueryRecordEntry,
         parentContextKey
@@ -56,16 +56,14 @@ export class QuerySlimmer {
 
       if (this.queriesByContext[newQueryContextKey] === undefined) {
         // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
-        if (parentContextKey === undefined) {
-          slimmedQueryRecord[newQueryKey] = newQueryRecordEntry;
+        if (isNewQueryARootQuery) {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
         } else {
-          const newRelationalQueryRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
-          slimmedRelationalQueryRecord[
-            newQueryKey
-          ] = newRelationalQueryRecordEntry;
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
         }
       } else {
-        // If a context key is found for the new query in queriesByContext we need to check if any of the requested properties are already cached.
+        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
+        // by the new query are already cached.
         const cachedQuery = this.queriesByContext[newQueryContextKey];
         const newRequestedProperties = this.getPropertiesNotAlreadyCached({
           newQueryProps: newQueryRecordEntry.properties,
@@ -78,10 +76,17 @@ export class QuerySlimmer {
           newRequestedProperties !== null &&
           newQueryRecordEntry.relational === undefined
         ) {
-          slimmedQueryRecord[newQueryKey] = {
-            ...newQueryRecordEntry,
-            properties: newRequestedProperties,
-          };
+          if (isNewQueryARootQuery) {
+            slimmedQueryRecord[newQueryKey] = {
+              ...newRootRecordEntry,
+              properties: newRequestedProperties,
+            };
+          } else {
+            slimmedRelationalQueryRecord[newQueryKey] = {
+              ...newRelationalRecordEntry,
+              properties: newRequestedProperties,
+            };
+          }
         }
 
         // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
@@ -92,22 +97,32 @@ export class QuerySlimmer {
           );
 
           // If there are any non-cached properties being requested in the child relational query
-          // we will still need to return the query record even if it is not requesting any un-cached properties.
-          // In this scenario we return an empty array for properties while the child relational query is populated.
+          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
           if (slimmedNewRelationalQueryRecord !== null) {
-            slimmedQueryRecord[newQueryKey] = {
-              ...newQueryRecordEntry,
-              properties: newRequestedProperties ?? [],
-              relational: {
-                ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
-              },
-            };
+            if (isNewQueryARootQuery) {
+              slimmedQueryRecord[newQueryKey] = {
+                ...newRootRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            } else {
+              slimmedRelationalQueryRecord[newQueryKey] = {
+                ...newRelationalRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            }
           }
         }
       }
     });
 
-    if (parentContextKey === undefined) {
+    if (isNewQueryARootQuery) {
       return Object.keys(slimmedQueryRecord).length > 0
         ? slimmedQueryRecord
         : null;
