@@ -1,4 +1,9 @@
-import { QueryRecord, QueryRecordEntry } from './types';
+import {
+  QueryRecord,
+  QueryRecordEntry,
+  RelationalQueryRecord,
+  RelationalQueryRecordEntry,
+} from './types';
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
@@ -35,18 +40,30 @@ export class QuerySlimmer {
   // PIOTR TODO:
   // - recursively handle relational data in queries
 
-  public onQueryExectued(newQuery: QueryRecord) {
+  public onNewQueryReceived(
+    newQuery: QueryRecord | RelationalQueryRecord,
+    parentContextKey?: string
+  ) {
     const slimmedQueryRecord: QueryRecord = {};
+    const slimmedRelationalQueryRecord: RelationalQueryRecord = {};
 
     Object.keys(newQuery).forEach(newQueryKey => {
       const newQueryRecordEntry = newQuery[newQueryKey];
       const newQueryContextKey = this.createContextKeyForQuery(
-        newQueryRecordEntry
+        newQueryRecordEntry,
+        parentContextKey
       );
 
       if (this.queriesByContext[newQueryContextKey] === undefined) {
         // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
-        slimmedQueryRecord[newQueryKey] = newQueryRecordEntry;
+        if (parentContextKey === undefined) {
+          slimmedQueryRecord[newQueryKey] = newQueryRecordEntry;
+        } else {
+          const newRelationalQueryRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
+          slimmedRelationalQueryRecord[
+            newQueryKey
+          ] = newRelationalQueryRecordEntry;
+        }
       } else {
         // If a context key is found for the new query in queriesByContext we need to check if any of the requested properties are already cached.
         const cachedQuery = this.queriesByContext[newQueryContextKey];
@@ -55,19 +72,50 @@ export class QuerySlimmer {
           cachedQueryProps: Object.keys(cachedQuery.subscriptionsByProperty),
         });
 
-        // If properties that are not cached are being requested we will return the new query with only those newly requested properties.
-        if (newRequestedProperties !== null) {
+        // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+        if (
+          newRequestedProperties !== null &&
+          newQueryRecordEntry.relational === undefined
+        ) {
           slimmedQueryRecord[newQueryKey] = {
             ...newQueryRecordEntry,
             properties: newRequestedProperties,
           };
         }
+
+        // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
+        if (newQueryRecordEntry.relational !== undefined) {
+          const slimmedNewRelationalQueryRecord = this.onNewQueryReceived(
+            newQueryRecordEntry.relational,
+            newQueryContextKey
+          );
+
+          // If there are any non-cached properties being requested in the child relational query
+          // we will still need to return the query record even if it is not requesting any un-cached properties.
+          // In this scenario we return an empty array for properties while the child relational query is populated.
+          if (slimmedNewRelationalQueryRecord !== null) {
+            slimmedQueryRecord[newQueryKey] = {
+              ...newQueryRecordEntry,
+              properties: newRequestedProperties ?? [],
+              relational: {
+                ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+              },
+            };
+          }
+        }
       }
     });
 
-    return Object.keys(slimmedQueryRecord).length > 0
-      ? slimmedQueryRecord
-      : null;
+    if (parentContextKey === undefined) {
+      return Object.keys(slimmedQueryRecord).length > 0
+        ? slimmedQueryRecord
+        : null;
+    } else {
+      return Object.keys(slimmedRelationalQueryRecord).length > 0
+        ? slimmedRelationalQueryRecord
+        : null;
+    }
   }
 
   private populateQueriesByContext(
