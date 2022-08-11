@@ -6,9 +6,10 @@ import {
   mockQueryDataReturn,
   getMockSubscriptionMessage,
   getMockConfig,
+  generateUserNode,
 } from '../specUtilities';
 import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
-import { MMGQLProvider, MMGQL } from '..';
+import { MMGQLProvider, MMGQL, queryDefinition } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 
@@ -279,6 +280,74 @@ test('handles a query definition switching from non nullish to nullish', async (
   await result.findByText('No users');
 });
 
+test('updates data when paginating', async () => {
+  const { mmGQL } = setupTests({
+    users: {
+      nodes: [
+        {
+          id: 'mock-user-id',
+          type: 'user',
+          version: '1',
+          address: '__object__',
+          address__dot__state: 'FL',
+          address__dot__apt: '__object__',
+          address__dot__apt__dot__floor: '1',
+          address__dot__apt__dot__number: '1',
+        },
+        {
+          id: 'mock-user-id2',
+          type: 'user',
+          version: '1',
+          address: '__object__',
+          address__dot__state: 'CA',
+          address__dot__apt: '__object__',
+          address__dot__apt__dot__floor: '1',
+          address__dot__apt__dot__number: '1',
+        },
+      ],
+    },
+  });
+
+  function MyComponent() {
+    const { data } = useSubscription({
+      users: queryDefinition({
+        pagination: {
+          itemsPerPage: 1,
+          page: 1,
+        },
+        def: generateUserNode(mmGQL),
+        map: ({ id, address }) => ({
+          id,
+          address: address({
+            map: ({ state }) => ({
+              state,
+            }),
+          }),
+        }),
+      }),
+    });
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        data.users.goToNextPage();
+      }, 200);
+    }, []);
+
+    return <>{data.users.value[0].address.state}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <MMGQLProvider mmGQL={mmGQL}>
+        <MyComponent />
+      </MMGQLProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('FL');
+  await result.findByText('CA');
+});
+
 test('"querying" is true until all queries in the query definition record resolve', async done => {
   const { mmGQL } = setupTests();
   let requestIdx = 0;
@@ -522,8 +591,10 @@ test('rendering multiple instances of the same component using useSubscription w
   expect(results.length).toBe(2);
 });
 
-function setupTests() {
-  const mmGQL = new MMGQL(getMockConfig());
+function setupTests(mockData?: any) {
+  const mmGQL = new MMGQL(
+    getMockConfig({ mockData: mockData, generateMockData: false })
+  );
   mmGQL.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
 
   return { mmGQL };
