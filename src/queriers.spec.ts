@@ -734,7 +734,6 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
-  // @TODO_NEVER_TYPE_ISSUE
   // @ts-ignore-error
   expect(data.users[0].todos.length).toBe(2);
   // @ts-ignore-error
@@ -792,7 +791,6 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
-  // @TODO_NEVER_TYPE_ISSUE
   // @ts-ignore-error
   expect(data.users[0].todos[0].users.length).toBe(1);
 });
@@ -861,7 +859,6 @@ test(`sm.query.filter should throw an error if property being filtered is not de
         def: generateUserNode(mmGQLInstance),
         map: ({ id }) => ({
           id,
-          // @TODO_NEVER_TYPE_ISSUE
           // @ts-ignore-error
           address: ({ state }) => ({ state }),
         }),

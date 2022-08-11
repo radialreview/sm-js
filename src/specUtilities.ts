@@ -47,8 +47,7 @@ export type UserNode = INode<
   'user',
   UserProperties,
   { displayName: string },
-  UserRelationalData,
-  {}
+  UserRelationalData
 >;
 
 // factory functions so that tests don't share DO repositories
