@@ -245,6 +245,12 @@ export class QuerySlimmer {
         queryRecordEntry,
         parentContextKey
       );
+      if (queryRecordEntry.relational !== undefined) {
+        this.onSubscriptionCancelled(
+          queryRecordEntry.relational,
+          currentQueryContextKey
+        );
+      }
       if (currentQueryContextKey in this.queriesByContext) {
         properties.map(property => {
           const subscribedToPropertyCount = this.queriesByContext[
