@@ -7,7 +7,14 @@ import {
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
-  results: any | Array<any> | null;
+  // can be a single entry or it can be an object with results indexed by parent id
+  // for example
+  // users(NO_PARAMS).meetings(NO_PARAMS) = {
+  //   results: Record<parentId, Array<meeting>> = {
+  //     [userId]: Array<meeting>
+  //   }
+  // }
+  results: any;
 }
 
 export type IQueryDataByContextMap = Record<string, IFetchedQueryData>;
@@ -157,17 +164,33 @@ export class QuerySlimmer {
         results: results[alias],
       };
 
-      if (queryRecordEntry.relational) {
+      console.log('results', results);
+
+      const queryRecordEntryRelational = queryRecordEntry.relational;
+      if (queryRecordEntryRelational) {
         const resultsForRelationalQueries = Object.keys(
-          queryRecordEntry.relational
-        ).reduce((previous: Record<string, any>, current: string) => {
-          // do array vs object check here before map in case there's only a single id
-          previous[current] = results[alias].map((user: any) => user[current]);
-          return previous;
+          queryRecordEntryRelational
+        ).reduce((acc: Record<string, any>, relationalAlias: string) => {
+          if (Array.isArray(results[alias])) {
+            // if we received an array for this relational alias
+            // we store in our cache those arrays indexed by the parent id
+            acc[relationalAlias] = results[alias].reduce(
+              (acc: any, entry: any) => {
+                acc[entry.id] = entry[relationalAlias];
+                return acc;
+              },
+              {}
+            );
+          } else {
+            // otherwise we store just the node we received
+            acc[relationalAlias] = results[alias][relationalAlias];
+          }
+
+          return acc;
         }, {});
 
         this.populateQueriesByContext(
-          queryRecordEntry.relational,
+          queryRecordEntryRelational,
           resultsForRelationalQueries,
           currentQueryContextKey
         );
@@ -241,10 +264,17 @@ export class QuerySlimmer {
     Object.keys(queryRecord).forEach(alias => {
       const properties = queryRecord[alias].properties;
       const queryRecordEntry = queryRecord[alias];
-      const currentQueryContextKey = this.createContextKeyForQuery(
+      let currentQueryContextKey = this.createContextKeyForQuery(
         queryRecordEntry,
         parentContextKey
       );
+      if (queryRecordEntry.relational !== undefined) {
+        this.onSubscriptionCancelled(
+          queryRecordEntry.relational,
+          currentQueryContextKey
+        );
+      }
+
       if (currentQueryContextKey in this.queriesByContext) {
         properties.map(property => {
           const subscribedToPropertyCount = this.queriesByContext[
