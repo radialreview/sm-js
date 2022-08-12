@@ -1,4 +1,4 @@
-import { PaginatedArray } from './arrayWithPagination';
+import { OnPaginateCallback, PaginatedArray } from './arrayWithPagination';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -82,6 +82,7 @@ export declare type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
     batchKey?: string;
 };
 export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+    onPaginate: OnPaginateCallback;
     onData: (info: {
         results: QueryDataReturn<TQueryDefinitions>;
     }) => void;

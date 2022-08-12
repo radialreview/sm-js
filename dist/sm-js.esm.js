@@ -3983,14 +3983,7 @@ function generateQuerier(_ref4) {
               qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
-              }).queryRecord, {
-                onPaginate: function onPaginate() {
-                  qM.onQueryResult({
-                    queryId: queryId,
-                    queryResult: results
-                  });
-                }
-              });
+              }).queryRecord);
               _context3.prev = 18;
               qM.onQueryResult({
                 queryId: queryId,
@@ -4200,7 +4193,9 @@ function generateSubscriber(mmGQLInstance) {
                 queryGQL: queryGQL,
                 queryId: queryId
               });
-              queryManager = new mmGQLInstance.QueryManager(queryRecord);
+              queryManager = new mmGQLInstance.QueryManager(queryRecord, {
+                onPaginate: opts.onPaginate
+              });
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
               // However, we must be careful to not call opts.onData with any subscription messages before the query resolves,
@@ -5982,6 +5977,11 @@ function buildQueryDefinitionStateManager(opts) {
     opts.handlers.setQuerying(true);
     var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
       batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+      // Make sure to re-render the component on paginate
+      onPaginate: function onPaginate() {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
+      },
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
