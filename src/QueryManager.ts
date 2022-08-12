@@ -290,18 +290,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       ): QueryManagerProxyCacheEntry => {
         const relationalState = buildRelationalStateForNode(node);
         const nodeRepository = queryRecord[queryAlias].def.repository;
-        const test = relational
+        const relationalQueries = relational
           ? this.getApplicableRelationalQueries({
               relationalQueries: relational,
               nodeData: node,
             })
           : null;
 
-        // console.log(opts.queryAlias, queryRecord[opts.queryAlias].pagination);
         const proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: test,
+          relationalQueries: relationalQueries,
           queryId: opts.queryId,
           relationalResults: !relationalState
             ? null

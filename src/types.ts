@@ -441,6 +441,7 @@ export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INo
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
       filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
+      pagination?: IQueryPagination
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
@@ -931,6 +932,7 @@ export type BaseQueryRecordEntry = {
   def: INode;
   properties: Array<string>;
   filter?: ValidFilterForNode<INode>
+  pagination?: IQueryPagination
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 

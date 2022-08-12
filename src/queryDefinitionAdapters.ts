@@ -335,6 +335,13 @@ function getRelationalQueries(opts: {
             (relationalQueryRecord as RelationalQueryRecordEntry).filter =
               relationalQuery.queryBuilderOpts.filter;
           }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.pagination
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).pagination =
+              relationalQuery.queryBuilderOpts.pagination;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
