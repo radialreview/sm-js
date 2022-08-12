@@ -18,7 +18,7 @@ import {
   NodeDefaultProps,
 } from './types';
 import { NULL_TAG } from './dataConversions';
-import { PaginatedArray } from './arrayWithPagination';
+import { NodesCollection } from './nodesCollection';
 
 const userProperties = {
   firstName: data.string,
@@ -413,15 +413,15 @@ export function autoIndentGQL(gqlString: string): string {
     .join('\n');
 }
 
-export function convertPaginatedArrayValuesToArray<
+export function convertNodesCollectionValuesToArray<
   T extends Record<string, any>
 >(obj: T) {
   return Object.keys(obj).reduce((acc, key) => {
     if (Array.isArray(acc[key])) {
-      const arrayValue = new PaginatedArray({
+      const arrayValue = new NodesCollection({
         items: acc[key].map((item: any) => {
           return isObject(item)
-            ? convertPaginatedArrayValuesToArray(item)
+            ? convertNodesCollectionValuesToArray(item)
             : item;
         }),
         itemsPerPage: 1,

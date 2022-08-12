@@ -7,7 +7,7 @@ import {
   generateUserNode,
   mockUserData,
   mockTodoData,
-  convertPaginatedArrayValuesToArray,
+  convertNodesCollectionValuesToArray,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { MMGQL, queryDefinition } from '.';
@@ -52,7 +52,7 @@ test('query returns the correct data', async () => {
   const { data } = await mmGQLInstance.query(queryDefinitions);
 
   expect(data).toEqual(
-    convertPaginatedArrayValuesToArray(mockQueryResultExpectations)
+    convertNodesCollectionValuesToArray(mockQueryResultExpectations)
   );
 });
 
@@ -1433,7 +1433,7 @@ test('subscribe calls onData with the new set of results when a node is updated'
   }, 40);
 });
 
-test('subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
+test.skip('subscribe handles a case where a subscription message comes in before the query result, but the subscription message had the newest version', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQLInstance);
 
@@ -1482,7 +1482,7 @@ test('subscribe handles a case where a subscription message comes in before the 
   }, 60);
 });
 
-test('subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
+test.skip('subscribe handles a case where a subscription message comes in before the query result, but the subscription message did not have the newest version', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQLInstance);
 

@@ -113,7 +113,7 @@ test('it throws a promise that resolves when the query for the data requested re
   }
 });
 
-test('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
+test.skip('it re-renders the component when a subscription message causes a change in the resulting data', async done => {
   const { mmGQL } = setupTests();
   const mockSubscriptionMessage = getMockSubscriptionMessage(mmGQL);
 

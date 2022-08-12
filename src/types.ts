@@ -1,4 +1,4 @@
-import { OnPaginateCallback, PaginatedArray } from './arrayWithPagination';
+import { OnPaginateCallback, NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -101,7 +101,6 @@ export type SubscriptionOpts<
   // @ts-ignore
   TQueryDefinitions extends QueryDefinitions
 > = {
-  onPaginate: OnPaginateCallback
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
   // since we resolve this promise as soon as the subscriptions are initialized and the query is resolved (if it wasn't skipped)
@@ -120,6 +119,7 @@ export type SubscriptionOpts<
     queryGQL: DocumentNode;
     queryId: string;
   }) => void;
+  onPaginate?: OnPaginateCallback
   skipInitialQuery?: boolean;
   queryId?: string;
   batchKey?: string;
@@ -644,7 +644,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TNode>
-          : PaginatedArray<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
+          : NodesCollection<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
         : never
       : never
     : never
@@ -830,20 +830,20 @@ type ExtractQueriedDataFromOneToManyQuery<
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
       ? TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
-          ? Maybe<Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>>
+          ? Maybe<NodesCollection<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>>
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
+            ? Maybe<NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
             : never
           : never
       : TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<TTargetNodeOrTargetNodeRecord> }
-          ? Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>>
+          ? NodesCollection<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>>
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
+            ? NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
     : never

@@ -15,19 +15,19 @@ export type OnPaginateCallback = (opts: {
   itemsPerPage: number;
 }) => void;
 
-interface PaginatedArrayOpts<T> {
+interface NodesCollectionOpts<T> {
   onPaginate?: OnPaginateCallback;
   itemsPerPage: number;
   page: number;
   items: T[];
 }
-export class PaginatedArray<T> {
+export class NodesCollection<T> {
   public itemsPerPage: number;
   public onPaginate?: OnPaginateCallback;
   public page: number;
   public items: T[];
 
-  constructor(opts: PaginatedArrayOpts<T>) {
+  constructor(opts: NodesCollectionOpts<T>) {
     this.itemsPerPage = opts.itemsPerPage;
     this.page = opts.page;
     this.items = opts.items;

@@ -1,4 +1,4 @@
-import { OnPaginateCallback, PaginatedArray } from './arrayWithPagination';
+import { OnPaginateCallback, NodesCollection } from './nodesCollection';
 import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
 import { DataParsingException } from './exceptions';
 import {
@@ -35,7 +35,7 @@ type QueryManagerProxyCacheEntry = {
   relationalState: Maybe<QueryManagerState>;
 }; // the proxy for that DO and relational state from the query results/latest subscription message
 
-type QueryManagerOpts = { onPaginate: OnPaginateCallback };
+type QueryManagerOpts = { onPaginate?: OnPaginateCallback };
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
   /**
@@ -116,7 +116,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         if (Array.isArray(idsOrId)) {
           const ids = idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy);
-          resultsAcc[resultsAlias] = new PaginatedArray({
+          resultsAcc[resultsAlias] = new NodesCollection({
             items: ids,
             itemsPerPage:
               stateForThisAlias.pagination?.itemsPerPage || ids.length,

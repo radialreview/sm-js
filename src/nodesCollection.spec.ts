@@ -1,4 +1,4 @@
-import { PaginatedArray } from './arrayWithPagination';
+import { NodesCollection } from './nodesCollection';
 
 const items = [
   { firstName: 'User 1' },
@@ -8,9 +8,9 @@ const items = [
   { firstName: 'User 5' },
 ];
 
-describe('PaginatedArray', () => {
+describe('NodesCollection', () => {
   test(`can paginate to next pages`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 1,
@@ -27,7 +27,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`can paginate to previous pages`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 5,
@@ -44,7 +44,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`can paginate to specific pages`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 1,
@@ -57,7 +57,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`'totalPages' should return total pages base on 'itemsPerPage' and 'items' length`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 2,
       page: 1,
@@ -66,7 +66,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`'hasNextPage' is set to 'true' if there are next pages to paginate`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 1,
@@ -75,7 +75,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`'hasNextPage' is set to 'false' if there are no next pages to paginate.`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 5,
@@ -84,7 +84,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`'hasPreviousPage' is set to 'true' if there are previous pages to paginate`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 2,
@@ -93,7 +93,7 @@ describe('PaginatedArray', () => {
   });
 
   test(`'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
-    const arrayWithPagination = new PaginatedArray({
+    const arrayWithPagination = new NodesCollection({
       items,
       itemsPerPage: 1,
       page: 1,

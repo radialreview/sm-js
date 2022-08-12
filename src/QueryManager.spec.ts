@@ -3,7 +3,7 @@ import {
   getMockQueryRecord,
   mockQueryResultExpectations,
   getMockConfig,
-  convertPaginatedArrayValuesToArray,
+  convertNodesCollectionValuesToArray,
 } from './specUtilities';
 
 import { MMGQL } from '.';
@@ -20,6 +20,6 @@ test('QueryManager handles a query result and returns the expected data', () => 
   });
 
   expect(queryManager.getResults()).toEqual(
-    convertPaginatedArrayValuesToArray(mockQueryResultExpectations)
+    convertNodesCollectionValuesToArray(mockQueryResultExpectations)
   );
 });
