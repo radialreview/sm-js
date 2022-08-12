@@ -142,7 +142,7 @@ export class QuerySlimmer {
         : null;
 
     if (isNewQueryARootQuery) {
-      this.log('onNewQueryReceived', newQuery, queryRecordToReturn);
+      this.log({ originalQuery: newQuery, slimmedQuery: queryRecordToReturn });
     }
 
     return queryRecordToReturn;
@@ -250,12 +250,15 @@ export class QuerySlimmer {
     }
   }
 
-  private log(functionName: string, input: any, output: any) {
+  private log(opts: {
+    originalQuery: QueryRecord | RelationalQueryRecord;
+    slimmedQuery: QueryRecord | RelationalQueryRecord | null;
+  }) {
     if (this.loggingEnabled) {
       console.log(
-        `QuerySlimmer.${functionName}`,
-        `INPUT: ${JSON.stringify(input)}`,
-        `OUTPUT: ${JSON.stringify(output)}`
+        `QuerySlimmer`,
+        `Received Query: ${JSON.stringify(opts.originalQuery)}`,
+        `Slimmed Exectued Query: ${JSON.stringify(opts.slimmedQuery)}`
       );
     }
   }
