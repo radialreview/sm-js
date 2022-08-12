@@ -331,7 +331,7 @@ test('updates data when paginating', async () => {
       setTimeout(() => {
         data.users.goToNextPage();
       }, 200);
-    }, []);
+    }, []); // eslint-disable-line
 
     return <>{data.users.value[0].address.state}</>;
   }
