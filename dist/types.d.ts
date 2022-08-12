@@ -263,6 +263,7 @@ export interface IOneToOneQuery<TTargetNodeOrTargetNodeRecord extends INode | Ma
 export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> = TTargetNodeOrTargetNodeRecord extends INode ? {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
     filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>;
+    pagination?: IQueryPagination;
 } : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? {
     [Tkey in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]>;
@@ -487,6 +488,7 @@ export declare type BaseQueryRecordEntry = {
     def: INode;
     properties: Array<string>;
     filter?: ValidFilterForNode<INode>;
+    pagination?: IQueryPagination;
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {

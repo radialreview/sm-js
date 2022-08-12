@@ -2945,6 +2945,10 @@ function getRelationalQueries(opts) {
           if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.filter) {
             relationalQueryRecord.filter = relationalQuery.queryBuilderOpts.filter;
           }
+
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.pagination) {
+            relationalQueryRecord.pagination = relationalQuery.queryBuilderOpts.pagination;
+          }
         } else {
           throw Error("relationalType \"" + relationalType + "\" is not valid.");
         }
@@ -4611,15 +4615,14 @@ function createQueryManager(mmGQLInstance) {
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(node) {
         var relationalState = buildRelationalStateForNode(node);
         var nodeRepository = queryRecord[queryAlias].def.repository;
-        var test = relational ? _this4.getApplicableRelationalQueries({
+        var relationalQueries = relational ? _this4.getApplicableRelationalQueries({
           relationalQueries: relational,
           nodeData: node
-        }) : null; // console.log(opts.queryAlias, queryRecord[opts.queryAlias].pagination);
-
+        }) : null;
         var proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: test,
+          relationalQueries: relationalQueries,
           queryId: opts.queryId,
           relationalResults: !relationalState ? null : _this4.getResultsFromState(relationalState),
           "do": nodeRepository.byId(node.id)
