@@ -27,6 +27,7 @@ export class QuerySlimmer {
   constructor(config: IQuerySlimmerConfig) {
     this.loggingEnabled = config.enableLogging;
   }
+
   private loggingEnabled: boolean;
 
   public queriesByContext: IQueryDataByContextMap = {};
@@ -141,7 +142,7 @@ export class QuerySlimmer {
         : null;
 
     if (isNewQueryARootQuery) {
-      this.log('onNewQueryReceived', newQuery, slimmedQueryRecord);
+      this.log('onNewQueryReceived', newQuery, queryRecordToReturn);
     }
 
     return queryRecordToReturn;
