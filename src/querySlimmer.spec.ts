@@ -30,10 +30,15 @@ function setupTests() {
     },
   });
 
-  return { QuerySlimmer: new QuerySlimmer(), userNode, meetingNode, todoNode };
+  return {
+    QuerySlimmer: new QuerySlimmer({ enableLogging: false }),
+    userNode,
+    meetingNode,
+    todoNode,
+  };
 }
 
-describe('onNewQueryReceived', () => {
+describe('onResultsReceived', () => {
   test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
     const { QuerySlimmer, userNode } = setupTests();
 
@@ -636,6 +641,7 @@ describe('onNewQueryReceived', () => {
     });
   });
 });
+
 test('when a subscription is cancelled the cache is appropriately updated', () => {
   const { QuerySlimmer, userNode } = setupTests();
 
