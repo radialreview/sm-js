@@ -173,7 +173,7 @@ declare type UserRelationalData = {
 };
 export declare type UserNode = INode<'user', UserProperties, {
     displayName: string;
-}, UserRelationalData, {}>;
+}, UserRelationalData>;
 export declare function generateUserNode(mmGQLInstance: IMMGQL, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     task: {
