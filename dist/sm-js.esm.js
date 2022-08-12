@@ -4328,8 +4328,8 @@ function getPageResults(opts) {
 var NodesCollection = /*#__PURE__*/function () {
   function NodesCollection(opts) {
     this.itemsPerPage = void 0;
-    this.onPaginate = void 0;
     this.page = void 0;
+    this.onPaginate = void 0;
     this.items = void 0;
     this.itemsPerPage = opts.itemsPerPage;
     this.page = opts.page;

@@ -23,9 +23,9 @@ interface NodesCollectionOpts<T> {
 }
 export class NodesCollection<T> {
   public itemsPerPage: number;
-  public onPaginate?: OnPaginateCallback;
   public page: number;
-  public items: T[];
+  private onPaginate?: OnPaginateCallback;
+  private items: T[];
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.itemsPerPage = opts.itemsPerPage;

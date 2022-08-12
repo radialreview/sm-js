@@ -10,9 +10,9 @@ interface NodesCollectionOpts<T> {
 }
 export declare class NodesCollection<T> {
     itemsPerPage: number;
-    onPaginate?: OnPaginateCallback;
     page: number;
-    items: T[];
+    private onPaginate?;
+    private items;
     constructor(opts: NodesCollectionOpts<T>);
     get value(): T[];
     get totalPages(): number;
