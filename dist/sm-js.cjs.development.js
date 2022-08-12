@@ -4327,8 +4327,8 @@ function getPageResults(opts) {
   return Array.from(opts.items || []).slice(startIndex, startIndex + opts.itemsPerPage);
 }
 
-var PaginatedArray = /*#__PURE__*/function () {
-  function PaginatedArray(opts) {
+var NodesCollection = /*#__PURE__*/function () {
+  function NodesCollection(opts) {
     this.itemsPerPage = void 0;
     this.onPaginate = void 0;
     this.page = void 0;
@@ -4339,7 +4339,7 @@ var PaginatedArray = /*#__PURE__*/function () {
     this.onPaginate = opts.onPaginate;
   }
 
-  var _proto = PaginatedArray.prototype;
+  var _proto = NodesCollection.prototype;
 
   _proto.goToPage = function goToPage(page) {
     this.page = page;
@@ -4365,7 +4365,7 @@ var PaginatedArray = /*#__PURE__*/function () {
     this.goToPage(this.page - 1);
   };
 
-  _createClass(PaginatedArray, [{
+  _createClass(NodesCollection, [{
     key: "value",
     get: function get() {
       return getPageResults({
@@ -4391,7 +4391,7 @@ var PaginatedArray = /*#__PURE__*/function () {
     }
   }]);
 
-  return PaginatedArray;
+  return NodesCollection;
 }();
 
 function createQueryManager(mmGQLInstance) {
@@ -4468,7 +4468,7 @@ function createQueryManager(mmGQLInstance) {
           var ids = idsOrId.map(function (id) {
             return stateForThisAlias.proxyCache[id].proxy;
           });
-          resultsAcc[resultsAlias] = new PaginatedArray({
+          resultsAcc[resultsAlias] = new NodesCollection({
             items: ids,
             itemsPerPage: ((_stateForThisAlias$pa = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa.itemsPerPage) || ids.length,
             page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1,

@@ -1,4 +1,4 @@
-import { OnPaginateCallback } from './arrayWithPagination';
+import { OnPaginateCallback } from './nodesCollection';
 import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, IQueryPagination } from './types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
@@ -14,7 +14,7 @@ declare type QueryManagerProxyCacheEntry = {
     relationalState: Maybe<QueryManagerState>;
 };
 declare type QueryManagerOpts = {
-    onPaginate: OnPaginateCallback;
+    onPaginate?: OnPaginateCallback;
 };
 export declare function createQueryManager(mmGQLInstance: IMMGQL): {
     new (queryRecord: QueryRecord, opts?: QueryManagerOpts | undefined): {
