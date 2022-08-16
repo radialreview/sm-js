@@ -197,7 +197,7 @@ test(`sm.query.filter can filter 'number' prop using '_gte' operator`, async () 
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () => {
@@ -231,7 +231,7 @@ test(`sm.query.filter can filter 'number' prop using '_lte' operator`, async () 
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () => {
@@ -265,7 +265,7 @@ test(`sm.query.filter can filter 'number' prop using '_eq' operator`, async () =
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () => {
@@ -299,7 +299,7 @@ test(`sm.query.filter can filter 'number' prop using '_neq' operator`, async () 
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () => {
@@ -333,7 +333,7 @@ test(`sm.query.filter can filter 'number' prop using '_gt' operator`, async () =
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () => {
@@ -367,7 +367,7 @@ test(`sm.query.filter can filter 'number' prop using '_lt' operator`, async () =
     }),
   });
 
-  expect(data.users.value.length).toBe(1);
+  expect(data.users.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
@@ -402,7 +402,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_eq' operator`, async () 
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () => {
@@ -438,7 +438,7 @@ test(`sm.query.filter can filter 'null' values with '_eq' operator`, async () =>
           },
         }),
       })
-    ).data.users.value.length
+    ).data.users.nodes.length
   ).toBe(2);
 });
 
@@ -475,7 +475,7 @@ test(`sm.query.filter can filter 'null' values with '_neq' operator`, async () =
           },
         }),
       })
-    ).data.users.value.length
+    ).data.users.nodes.length
   ).toBe(1);
 });
 
@@ -510,7 +510,7 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
     }),
   });
 
-  expect(data.users.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
@@ -544,7 +544,7 @@ test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () =
     }),
   });
 
-  expect(data.users.value.length).toBe(1);
+  expect(data.users.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_contains' operator`, async () => {
@@ -578,7 +578,7 @@ test(`sm.query.filter can filter 'string' prop using '_contains' operator`, asyn
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
@@ -612,7 +612,7 @@ test(`sm.query.filter can filter 'string' prop using '_ncontains' operator`, asy
     }),
   });
 
-  expect(data.users.value.length).toBe(1);
+  expect(data.users.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () => {
@@ -646,7 +646,7 @@ test(`sm.query.filter can filter 'string' prop using '_neq' operator`, async () 
     }),
   });
 
-  expect(data.users.value.length).toBe(1);
+  expect(data.users.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter supports old filter object format with '_eq' as default operator`, async () => {
@@ -680,7 +680,7 @@ test(`sm.query.filter supports old filter object format with '_eq' as default op
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`sm.query.filter can filter relational data`, async () => {
@@ -737,8 +737,8 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
-  expect(data.users.value[0].todos.value.length).toBe(2);
-  expect(data.users.value[1].todos.value.length).toBe(1);
+  expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+  expect(data.users.nodes[1].todos.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter can filter multilevel relational data`, async () => {
@@ -792,7 +792,7 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
-  expect(data.users.value[0].todos.value[0].users.value.length).toBe(1);
+  expect(data.users.nodes[0].todos.nodes[0].users.nodes.length).toBe(1);
 });
 
 test(`sm.query.filter can filter nested object property`, async () => {
@@ -831,7 +831,7 @@ test(`sm.query.filter can filter nested object property`, async () => {
           },
         }),
       })
-    ).data.users.value.length
+    ).data.users.nodes.length
   ).toBe(2);
 });
 
@@ -919,9 +919,9 @@ test(`query.pagination can paginate query with array results`, async () => {
     }),
   });
 
-  expect(data.users.value[0].firstName).toBe('3');
-  expect(data.users.value[1].firstName).toBe('4');
-  expect(data.users.value.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('3');
+  expect(data.users.nodes[1].firstName).toBe('4');
+  expect(data.users.nodes.length).toBe(2);
 });
 
 test(`query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate`, async () => {
@@ -1139,7 +1139,7 @@ test(`query.pagination not defining pagination parameters should return all item
     }),
   });
 
-  expect(data.users.value.length).toBe(5);
+  expect(data.users.nodes.length).toBe(5);
   expect(data.users.totalPages).toBe(1);
   expect(data.users.hasNextPage).toBe(false);
   expect(data.users.hasPreviousPage).toBe(false);
@@ -1183,14 +1183,14 @@ test(`query.pagination calling goToNextPage should go to next page and update th
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('1');
-  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('1');
+  expect(data.users.nodes[1].firstName).toBe('2');
   expect(data.users.page).toBe(1);
   data.users.goToNextPage();
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('3');
-  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('3');
+  expect(data.users.nodes[1].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 });
 
@@ -1232,16 +1232,16 @@ test(`query.pagination calling goToPreviousPage should go to previous page and u
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('3');
-  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('3');
+  expect(data.users.nodes[1].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 
   data.users.goToPreviousPage();
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('1');
-  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('1');
+  expect(data.users.nodes[1].firstName).toBe('2');
   expect(data.users.page).toBe(1);
 });
 
@@ -1283,16 +1283,16 @@ test(`query.pagination calling goToPage should go to the page defined and update
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('3');
-  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('3');
+  expect(data.users.nodes[1].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 
   data.users.goToPage(1);
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('1');
-  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('1');
+  expect(data.users.nodes[1].firstName).toBe('2');
   expect(data.users.page).toBe(1);
 });
 
@@ -1334,16 +1334,16 @@ test(`query.pagination calling goToPage should go to the page defined and update
     }),
   });
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('3');
-  expect(data.users.value[1].firstName).toBe('4');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('3');
+  expect(data.users.nodes[1].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 
   data.users.goToPage(1);
 
-  expect(data.users.value.length).toBe(2);
-  expect(data.users.value[0].firstName).toBe('1');
-  expect(data.users.value[1].firstName).toBe('2');
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('1');
+  expect(data.users.nodes[1].firstName).toBe('2');
   expect(data.users.page).toBe(1);
 });
 
@@ -1387,11 +1387,11 @@ test(`query.pagination can paginate relational data`, async () => {
     }),
   });
 
-  expect(data.users.value[0].todos.value.length).toBe(1);
-  expect(data.users.value[0].todos.value[0].task).toBe('1');
-  data.users.value[0].todos.goToNextPage();
-  expect(data.users.value[0].todos.value.length).toBe(1);
-  expect(data.users.value[0].todos.value[0].task).toBe('2');
+  expect(data.users.nodes[0].todos.nodes.length).toBe(1);
+  expect(data.users.nodes[0].todos.nodes[0].task).toBe('1');
+  data.users.nodes[0].todos.goToNextPage();
+  expect(data.users.nodes[0].todos.nodes.length).toBe(1);
+  expect(data.users.nodes[0].todos.nodes[0].task).toBe('2');
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
@@ -1493,7 +1493,7 @@ test('subscribe calls onData with the new set of results when a node is updated'
   const onData = jest.fn(({ results }) => {
     // ignore when onData is called with the query results
     if (iteration === 1) {
-      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.nodes[0].address.state).toEqual('Definitely not FL');
     } else {
       iteration++;
     }
@@ -1542,7 +1542,7 @@ test.skip('subscribe handles a case where a subscription message comes in before
 
   const onData = jest.fn(({ results }) => {
     try {
-      expect(results.users.value[0].address.state).toEqual('Definitely not FL');
+      expect(results.users.nodes[0].address.state).toEqual('Definitely not FL');
     } catch (e) {
       done(e);
     }

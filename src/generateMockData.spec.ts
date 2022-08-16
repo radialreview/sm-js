@@ -410,7 +410,7 @@ test('it correctly generates mock data for oneToMany relational queries', async 
   });
 
   expect(Array.isArray(data.parent.children)).toBeTruthy();
-  data.parent.children.value.forEach(child => {
+  data.parent.children.nodes.forEach(child => {
     expect(typeof child.testProp === 'string').toBeTruthy();
   });
 });

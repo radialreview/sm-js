@@ -15,15 +15,15 @@ describe('NodesCollection', () => {
       itemsPerPage: 1,
       page: 1,
     });
-    expect(arrayWithPagination.value).toEqual([items[0]]);
+    expect(arrayWithPagination.nodes).toEqual([items[0]]);
     arrayWithPagination.goToNextPage();
-    expect(arrayWithPagination.value).toEqual([items[1]]);
+    expect(arrayWithPagination.nodes).toEqual([items[1]]);
     arrayWithPagination.goToNextPage();
-    expect(arrayWithPagination.value).toEqual([items[2]]);
+    expect(arrayWithPagination.nodes).toEqual([items[2]]);
     arrayWithPagination.goToNextPage();
-    expect(arrayWithPagination.value).toEqual([items[3]]);
+    expect(arrayWithPagination.nodes).toEqual([items[3]]);
     arrayWithPagination.goToNextPage();
-    expect(arrayWithPagination.value).toEqual([items[4]]);
+    expect(arrayWithPagination.nodes).toEqual([items[4]]);
   });
 
   test(`can paginate to previous pages`, async () => {
@@ -32,15 +32,15 @@ describe('NodesCollection', () => {
       itemsPerPage: 1,
       page: 5,
     });
-    expect(arrayWithPagination.value).toEqual([items[4]]);
+    expect(arrayWithPagination.nodes).toEqual([items[4]]);
     arrayWithPagination.goToPreviousPage();
-    expect(arrayWithPagination.value).toEqual([items[3]]);
+    expect(arrayWithPagination.nodes).toEqual([items[3]]);
     arrayWithPagination.goToPreviousPage();
-    expect(arrayWithPagination.value).toEqual([items[2]]);
+    expect(arrayWithPagination.nodes).toEqual([items[2]]);
     arrayWithPagination.goToPreviousPage();
-    expect(arrayWithPagination.value).toEqual([items[1]]);
+    expect(arrayWithPagination.nodes).toEqual([items[1]]);
     arrayWithPagination.goToPreviousPage();
-    expect(arrayWithPagination.value).toEqual([items[0]]);
+    expect(arrayWithPagination.nodes).toEqual([items[0]]);
   });
 
   test(`can paginate to specific pages`, async () => {
@@ -49,11 +49,11 @@ describe('NodesCollection', () => {
       itemsPerPage: 1,
       page: 1,
     });
-    expect(arrayWithPagination.value).toEqual([items[0]]);
+    expect(arrayWithPagination.nodes).toEqual([items[0]]);
     arrayWithPagination.goToPage(3);
-    expect(arrayWithPagination.value).toEqual([items[2]]);
+    expect(arrayWithPagination.nodes).toEqual([items[2]]);
     arrayWithPagination.goToPage(2);
-    expect(arrayWithPagination.value).toEqual([items[1]]);
+    expect(arrayWithPagination.nodes).toEqual([items[1]]);
   });
 
   test(`'totalPages' should return total pages base on 'itemsPerPage' and 'items' length`, async () => {

@@ -34,7 +34,7 @@ export class NodesCollection<T> {
     this.onPaginate = opts.onPaginate;
   }
 
-  public get value() {
+  public get nodes() {
     return getPageResults({
       items: this.items,
       page: this.page,

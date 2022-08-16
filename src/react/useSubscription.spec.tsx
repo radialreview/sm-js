@@ -140,7 +140,7 @@ test.skip('it re-renders the component when a subscription message causes a chan
 
     return (
       <>
-        {data.users.value.map(user => (
+        {data.users.nodes.map(user => (
           <div key={user.id}>{user.address.state}</div>
         ))}
       </>
@@ -228,7 +228,7 @@ test('if the query record provided is updated, performs a new query and returns 
     }, []);
 
     if (querying) return <>querying</>;
-    return <>{data.users.value[0].address.state}</>;
+    return <>{data.users.nodes[0].address.state}</>;
   }
 
   const result = render(
@@ -265,7 +265,7 @@ test('handles a query definition switching from non nullish to nullish', async (
       }, 200);
     }, []);
 
-    return <>{data.users ? data.users.value[0].address.state : 'No users'}</>;
+    return <>{data.users ? data.users.nodes[0].address.state : 'No users'}</>;
   }
 
   const result = render(
@@ -333,7 +333,7 @@ test('updates data when paginating', async () => {
       }, 200);
     }, []); // eslint-disable-line
 
-    return <>{data.users.value[0].address.state}</>;
+    return <>{data.users.nodes[0].address.state}</>;
   }
 
   const result = render(
@@ -389,7 +389,7 @@ test('"querying" is true until all queries in the query definition record resolv
       done(new Error('Unexpected null result'));
       return null;
     }
-    const text = `${data.users.value[0].id}+${data.usersNotSuspended.value[0].id}`;
+    const text = `${data.users.nodes[0].id}+${data.usersNotSuspended.nodes[0].id}`;
     return <>{text}</>;
   }
 
@@ -468,7 +468,7 @@ test('suspense barrier is not triggered when doNotSuspend is true', async () => 
 
     return (
       <>
-        {data.users?.value.map(user => (
+        {data.users?.nodes.map(user => (
           <div key={user.id}>{user.address.state}</div>
         ))}
       </>
@@ -575,7 +575,7 @@ test('rendering multiple instances of the same component using useSubscription w
 
     if (data.users == null) return null;
 
-    return <pre>{data.users.value[0].id}</pre>;
+    return <pre>{data.users.nodes[0].id}</pre>;
   }
 
   const renderResult = render(
