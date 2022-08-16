@@ -4368,7 +4368,7 @@ var NodesCollection = /*#__PURE__*/function () {
   };
 
   _createClass(NodesCollection, [{
-    key: "value",
+    key: "nodes",
     get: function get() {
       return getPageResults({
         items: this.items,

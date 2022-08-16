@@ -14,7 +14,7 @@ export declare class NodesCollection<T> {
     private onPaginate?;
     private items;
     constructor(opts: NodesCollectionOpts<T>);
-    get value(): T[];
+    get nodes(): T[];
     get totalPages(): number;
     goToPage(page: number): void;
     get hasNextPage(): boolean;
