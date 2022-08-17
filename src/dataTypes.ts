@@ -21,6 +21,7 @@ import {
   UseSubscriptionQueryDefinitionOpts,
   UseSubscriptionQueryDefinition,
   ValidFilterForNode,
+  ValidSortForNode,
 } from './types';
 
 export class Data<
@@ -380,7 +381,11 @@ export const oneToMany = <
   return (<
     TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord
-    > & { _relationshipName: string; filter?: ValidFilterForNode<INode> }
+    > & {
+      _relationshipName: string;
+      filter?: ValidFilterForNode<INode>;
+      sort?: ValidSortForNode<INode>;
+    }
   >(
     queryBuilderOpts: TQueryBuilderOpts
   ) => {

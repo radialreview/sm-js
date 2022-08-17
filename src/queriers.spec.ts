@@ -1428,6 +1428,455 @@ test(`query.pagination goToPage should throw an error if page is less than 1 or 
   );
 });
 
+test(`query.sorting can sort 'string' properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'a',
+        },
+        {
+          firstName: 'c',
+        },
+        {
+          firstName: 'b',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        firstName: 'asc',
+      },
+      map: ({ id, firstName, lastName, address }) => ({
+        id,
+        firstName,
+        lastName,
+        address: address({
+          map: ({ state }) => ({ state }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].firstName).toBe('a');
+  expect(data.users.nodes[1].firstName).toBe('b');
+  expect(data.users.nodes[2].firstName).toBe('c');
+});
+
+test(`query.sorting can sort 'string' properties descending`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'a',
+        },
+        {
+          firstName: 'c',
+        },
+        {
+          firstName: 'b',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        firstName: 'desc',
+      },
+      map: ({ id, firstName, lastName, address }) => ({
+        id,
+        firstName,
+        lastName,
+        address: address({
+          map: ({ state }) => ({ state }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].firstName).toBe('c');
+  expect(data.users.nodes[1].firstName).toBe('b');
+  expect(data.users.nodes[2].firstName).toBe('a');
+});
+
+test(`query.sorting can sort 'number' properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: '22',
+        },
+        {
+          score: '11',
+        },
+        {
+          score: '2',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        score: 'asc',
+      },
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].score).toBe(2);
+  expect(data.users.nodes[1].score).toBe(11);
+  expect(data.users.nodes[2].score).toBe(22);
+});
+
+test(`query.sorting can sort 'number' properties descending`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: '22',
+        },
+        {
+          score: '11',
+        },
+        {
+          score: '2',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        score: 'desc',
+      },
+      map: ({ id, score }) => ({
+        id,
+        score,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].score).toBe(22);
+  expect(data.users.nodes[1].score).toBe(11);
+  expect(data.users.nodes[2].score).toBe(2);
+});
+
+test(`query.sorting can sort 'boolean' properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          archived: 'true',
+        },
+        {
+          archived: 'false',
+        },
+        {
+          archived: 'true',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        archived: 'asc',
+      },
+      map: ({ id, archived }) => ({
+        id,
+        archived,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].archived).toBe(false);
+  expect(data.users.nodes[1].archived).toBe(true);
+  expect(data.users.nodes[2].archived).toBe(true);
+});
+
+test(`query.sorting can sort 'boolean' properties descending`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          archived: 'true',
+        },
+        {
+          archived: 'false',
+        },
+        {
+          archived: 'true',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        archived: 'desc',
+      },
+      map: ({ id, archived }) => ({
+        id,
+        archived,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].archived).toBe(true);
+  expect(data.users.nodes[1].archived).toBe(true);
+  expect(data.users.nodes[2].archived).toBe(false);
+});
+
+test(`query.sorting can sort 'object' properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          address__dot__state: 'FL',
+        },
+        {
+          address__dot__state: 'CA',
+        },
+        {
+          address__dot__state: 'IL',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        address: {
+          state: 'asc',
+        },
+      },
+      map: ({ id, address }) => ({
+        id,
+        address,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].address.state).toBe('CA');
+  expect(data.users.nodes[1].address.state).toBe('FL');
+  expect(data.users.nodes[2].address.state).toBe('IL');
+});
+
+test(`query.sorting can sort 'object' properties decsending`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          address__dot__state: 'FL',
+        },
+        {
+          address__dot__state: 'CA',
+        },
+        {
+          address__dot__state: 'IL',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        address: {
+          state: 'desc',
+        },
+      },
+      map: ({ id, address }) => ({
+        id,
+        address,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].address.state).toBe('IL');
+  expect(data.users.nodes[1].address.state).toBe('FL');
+  expect(data.users.nodes[2].address.state).toBe('CA');
+});
+
+test(`query.sorting can sort multiple properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'B',
+          address__dot__state: 'FL',
+        },
+        {
+          firstName: 'C',
+          address__dot__state: 'IL',
+        },
+        {
+          firstName: 'B',
+          address__dot__state: 'CA',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        firstName: 'asc',
+        address: {
+          state: 'desc',
+        },
+      },
+      map: ({ id, firstName, address }) => ({
+        id,
+        firstName,
+        address,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].firstName).toBe('B');
+  expect(data.users.nodes[0].address.state).toBe('FL');
+  expect(data.users.nodes[1].firstName).toBe('B');
+  expect(data.users.nodes[1].address.state).toBe('CA');
+  expect(data.users.nodes[2].firstName).toBe('C');
+  expect(data.users.nodes[2].address.state).toBe('IL');
+});
+
+test(`query.sorting can prioritize sorting`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'A',
+          lastName: 'Y',
+          address__dot__state: 'FL',
+        },
+        {
+          firstName: 'S',
+          lastName: 'S',
+          address__dot__state: 'IL',
+        },
+        {
+          firstName: 'B',
+          lastName: 'Y',
+          address__dot__state: 'FL',
+        },
+        {
+          firstName: 'Z',
+          lastName: 'Z',
+          address__dot__state: 'FL',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        firstName: { _direction: 'asc', _priority: 3 },
+        address: {
+          state: { _direction: 'asc', _priority: 1 },
+        },
+        lastName: { _direction: 'desc', _priority: 2 },
+      },
+      map: ({ id, firstName, lastName, address }) => ({
+        id,
+        firstName,
+        lastName,
+        address,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].address.state).toBe('FL');
+  expect(data.users.nodes[0].lastName).toBe('Z');
+  expect(data.users.nodes[0].firstName).toBe('Z');
+  expect(data.users.nodes[1].address.state).toBe('FL');
+  expect(data.users.nodes[1].lastName).toBe('Y');
+  expect(data.users.nodes[1].firstName).toBe('A');
+  expect(data.users.nodes[2].address.state).toBe('FL');
+  expect(data.users.nodes[2].lastName).toBe('Y');
+  expect(data.users.nodes[2].firstName).toBe('B');
+  expect(data.users.nodes[3].address.state).toBe('IL');
+  expect(data.users.nodes[3].lastName).toBe('S');
+  expect(data.users.nodes[3].firstName).toBe('S');
+});
+
+test(`query.sorting should throw an error if property being sorted is not defined in the queryDefinition map function`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
+
+  try {
+    await mmGQLInstance.query({
+      users: queryDefinition({
+        def: generateUserNode(mmGQLInstance),
+        map: ({ id, score }) => ({
+          id,
+          score,
+          address: ({ state }) => ({ state }),
+        }),
+        sort: {
+          score: 'asc',
+        },
+      }),
+    });
+  } catch (e) {
+    expect(
+      (e as Error).stack?.includes(
+        `SortPropertyNotDefinedInQueryException exception - The sort property 'score' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+      )
+    ).toBe(true);
+  }
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 

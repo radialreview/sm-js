@@ -4,7 +4,9 @@ import {
   FilterOperator,
   FilterValue,
   INode,
+  SortObject,
   ValidFilterForNode,
+  ValidSortForNode,
 } from './types';
 
 /**
@@ -226,6 +228,40 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
       } else {
         const filter: Partial<Record<FilterOperator, any>> = {
           _eq: value,
+        };
+        result[i] = filter;
+      }
+    }
+  }
+  return result;
+}
+
+export function getFlattenedNodeSortObject<TNode extends INode>(
+  sortObject: ValidSortForNode<TNode>
+) {
+  const result: Record<string, SortObject> = {};
+
+  for (const i in sortObject) {
+    const value = sortObject[i] as any;
+    const valueIsNotASortObject =
+      isObject(value) && !Object.keys(value).includes('_direction');
+    if (
+      typeof sortObject[i] == 'object' &&
+      sortObject[i] !== null &&
+      valueIsNotASortObject
+    ) {
+      const flatObject = getFlattenedNodeSortObject(value);
+      for (const x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      if (isObject(value)) {
+        result[i] = value as SortObject;
+      } else {
+        const filter: SortObject = {
+          _direction: value,
         };
         result[i] = filter;
       }

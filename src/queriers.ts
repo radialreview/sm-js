@@ -18,13 +18,18 @@ import {
   FilterOperator,
   QueryRecord,
   FilterValue,
+  SortDirection,
 } from './types';
-import { update, isArray } from 'lodash';
-import { getFlattenedNodeFilterObject } from './dataUtilities';
+import { update, isArray, orderBy } from 'lodash';
+import {
+  getFlattenedNodeFilterObject,
+  getFlattenedNodeSortObject,
+} from './dataUtilities';
 import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
 import {
   FilterOperatorNotImplementedException,
   FilterPropertyNotDefinedInQueryException,
+  SortPropertyNotDefinedInQueryException,
 } from './exceptions';
 import { NULL_TAG } from './dataConversions';
 
@@ -158,7 +163,7 @@ export function generateQuerier({
 
     // Mutates the response object to apply the filters on the client side.
     // This is just temporary until backend supports all the filters.
-    function mutateResponseWithQueryRecordFilters(
+    function mutateResponseWithQueryRecordFiltersAndSorting(
       queryRecord: QueryRecord,
       responseData: any
     ) {
@@ -267,6 +272,65 @@ export function generateQuerier({
           }
         }
 
+        if (queryRecordEntry.sort) {
+          const sortObject = getFlattenedNodeSortObject(queryRecordEntry.sort);
+          if (sortObject && responseData[alias]) {
+            const sorting: Array<{
+              sortFn: (d: any) => any;
+              priority?: number;
+              direction: SortDirection;
+              propertyPath: string;
+              underscoreSeparatedPropertyPath: string;
+            }> = orderBy(
+              Object.keys(sortObject).map((propertyPath, index) => {
+                const underscoreSeparatedPropertyPath = propertyPath.replaceAll(
+                  '.',
+                  OBJECT_PROPERTY_SEPARATOR
+                );
+                return {
+                  sortFn: item =>
+                    Number(item[underscoreSeparatedPropertyPath]) ||
+                    item[underscoreSeparatedPropertyPath],
+                  direction: sortObject[propertyPath]._direction || 'asc',
+                  underscoreSeparatedPropertyPath,
+                  propertyPath,
+                  priority:
+                    sortObject[propertyPath]._priority || (index + 1) * 10000,
+                };
+              }),
+              x => x.priority,
+              'asc'
+            );
+
+            const sortPropertiesNotDefinedInSorting = sorting.filter(
+              i =>
+                queryRecordEntry.properties.includes(
+                  i.underscoreSeparatedPropertyPath
+                ) === false
+            );
+
+            if (sortPropertiesNotDefinedInSorting.length > 0) {
+              throw new SortPropertyNotDefinedInQueryException({
+                sortPropName: sortPropertiesNotDefinedInSorting[0].propertyPath,
+              });
+            }
+
+            update(
+              responseData,
+              `${alias}.${NODES_PROPERTY_KEY}`,
+              currentValue => {
+                if (!isArray(currentValue)) {
+                  return currentValue;
+                }
+                return orderBy(
+                  currentValue,
+                  sorting.map(item => item.sortFn),
+                  sorting.map(item => item.direction)
+                );
+              }
+            );
+          }
+        }
         const relational = queryRecordEntry.relational;
 
         if (relational != null) {
@@ -276,7 +340,10 @@ export function generateQuerier({
               responseData[alias][NODES_PROPERTY_KEY]
             ) {
               responseData[alias][NODES_PROPERTY_KEY].forEach((item: any) => {
-                mutateResponseWithQueryRecordFilters(relational, item);
+                mutateResponseWithQueryRecordFiltersAndSorting(
+                  relational,
+                  item
+                );
               });
             }
           });
@@ -321,7 +388,10 @@ export function generateQuerier({
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            mutateResponseWithQueryRecordFilters(queryRecord, response);
+            mutateResponseWithQueryRecordFiltersAndSorting(
+              queryRecord,
+              response
+            );
 
             return response;
           }

@@ -35,6 +35,13 @@ export class FilterPropertyNotDefinedInQueryException extends Error {
     );
   }
 }
+export class SortPropertyNotDefinedInQueryException extends Error {
+  constructor(opts: { sortPropName: string }) {
+    super(
+      `SortPropertyNotDefinedInQueryException exception - The sort property '${opts.sortPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+    );
+  }
+}
 export class ImpliedNodePropertyException extends Error {
   constructor(opts: { propName: string }) {
     super(
