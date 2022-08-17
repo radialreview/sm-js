@@ -271,11 +271,11 @@ export class QuerySlimmer {
           }
         });
 
-        const isEntireRecordUnsubbed = Object.values(
+        const doesRecordStillHaveSubscriptions = Object.values(
           cachedQuerySubsByProperty
         ).some(numberOfSubs => numberOfSubs !== 0);
 
-        if (!isEntireRecordUnsubbed) {
+        if (!doesRecordStillHaveSubscriptions) {
           delete this.queriesByContext[currentQueryContextKey];
         }
       }
