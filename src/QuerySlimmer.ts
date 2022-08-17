@@ -271,9 +271,9 @@ export class QuerySlimmer {
           }
         });
 
-        const isEntireRecordUnsubbed = Object.keys(
+        const isEntireRecordUnsubbed = Object.values(
           cachedQuerySubsByProperty
-        ).some(subByPropKey => cachedQuerySubsByProperty[subByPropKey] !== 0);
+        ).some(numberOfSubs => numberOfSubs !== 0);
 
         if (!isEntireRecordUnsubbed) {
           delete this.queriesByContext[currentQueryContextKey];
