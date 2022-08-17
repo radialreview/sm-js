@@ -230,67 +230,76 @@ var FilterPropertyNotDefinedInQueryException = /*#__PURE__*/function (_Error3) {
 
   return FilterPropertyNotDefinedInQueryException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var ImpliedNodePropertyException = /*#__PURE__*/function (_Error4) {
-  _inheritsLoose(ImpliedNodePropertyException, _Error4);
+var SortPropertyNotDefinedInQueryException = /*#__PURE__*/function (_Error4) {
+  _inheritsLoose(SortPropertyNotDefinedInQueryException, _Error4);
+
+  function SortPropertyNotDefinedInQueryException(opts) {
+    return _Error4.call(this, "SortPropertyNotDefinedInQueryException exception - The sort property '" + opts.sortPropName + "' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.") || this;
+  }
+
+  return SortPropertyNotDefinedInQueryException;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
+var ImpliedNodePropertyException = /*#__PURE__*/function (_Error5) {
+  _inheritsLoose(ImpliedNodePropertyException, _Error5);
 
   function ImpliedNodePropertyException(opts) {
-    return _Error4.call(this, "ImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
+    return _Error5.call(this, "ImpliedPropertyException exception - The property \"" + opts.propName + "\" is implied and cannot be customized within a node definition.") || this;
   }
 
   return ImpliedNodePropertyException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var NotCachedException = /*#__PURE__*/function (_Error5) {
-  _inheritsLoose(NotCachedException, _Error5);
+var NotCachedException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(NotCachedException, _Error6);
 
   function NotCachedException(opts) {
-    return _Error5.call(this, "NotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
+    return _Error6.call(this, "NotCached exception - Attempted to get the node with the type \"" + opts.nodeType + "\" and id \"" + opts.id + "\" but it was not cached.") || this;
   }
 
   return NotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var NodesCollectionPageOutOfBoundsException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(NodesCollectionPageOutOfBoundsException, _Error6);
+var NodesCollectionPageOutOfBoundsException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(NodesCollectionPageOutOfBoundsException, _Error7);
 
   function NodesCollectionPageOutOfBoundsException(opts) {
-    return _Error6.call(this, "NodesCollectionPageOutOfBoundsException - page '" + opts.page + "' does not exist.") || this;
+    return _Error7.call(this, "NodesCollectionPageOutOfBoundsException - page '" + opts.page + "' does not exist.") || this;
   }
 
   return NodesCollectionPageOutOfBoundsException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(DataTypeException, _Error7);
+var DataTypeException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(DataTypeException, _Error8);
 
   function DataTypeException(opts) {
-    return _Error7.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+    return _Error8.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
   return DataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error8) {
-  _inheritsLoose(DataTypeExplicitDefaultException, _Error8);
+var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error9) {
+  _inheritsLoose(DataTypeExplicitDefaultException, _Error9);
 
   function DataTypeExplicitDefaultException(opts) {
-    return _Error8.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+    return _Error9.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
   return DataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataParsingException = /*#__PURE__*/function (_Error9) {
-  _inheritsLoose(DataParsingException, _Error9);
+var DataParsingException = /*#__PURE__*/function (_Error10) {
+  _inheritsLoose(DataParsingException, _Error10);
 
   function DataParsingException(opts) {
-    return _Error9.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+    return _Error10.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
   return DataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error10) {
-  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error10);
+var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error11) {
+  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error11);
 
   function UnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error10.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error11.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
@@ -298,11 +307,11 @@ var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error10) {
 
   return UnexpectedSubscriptionMessageException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error12) {
-  _inheritsLoose(FilterOperatorNotImplementedException, _Error12);
+var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error13) {
+  _inheritsLoose(FilterOperatorNotImplementedException, _Error13);
 
   function FilterOperatorNotImplementedException(exeption) {
-    return _Error12.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
+    return _Error13.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
   }
 
   return FilterOperatorNotImplementedException;
@@ -317,11 +326,11 @@ function throwLocallyLogInProd(error) {
   }
 } // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
 
-var UnreachableCaseError = /*#__PURE__*/function (_Error13) {
-  _inheritsLoose(UnreachableCaseError, _Error13);
+var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
+  _inheritsLoose(UnreachableCaseError, _Error14);
 
   function UnreachableCaseError(val) {
-    return _Error13.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+    return _Error14.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
   }
 
   return UnreachableCaseError;
@@ -1390,6 +1399,34 @@ function getFlattenedNodeFilterObject(filterObject) {
 
   for (var i in filterObject) {
     _loop(i);
+  }
+
+  return result;
+}
+function getFlattenedNodeSortObject(sortObject) {
+  var result = {};
+
+  for (var i in sortObject) {
+    var value = sortObject[i];
+    var valueIsNotASortObject = lodash.isObject(value) && !Object.keys(value).includes('_direction');
+
+    if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
+      var flatObject = getFlattenedNodeSortObject(value);
+
+      for (var x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      if (lodash.isObject(value)) {
+        result[i] = value;
+      } else {
+        var filter = {
+          _direction: value
+        };
+        result[i] = filter;
+      }
+    }
   }
 
   return result;
@@ -2958,6 +2995,10 @@ function getRelationalQueries(opts) {
           if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.pagination) {
             relationalQueryRecord.pagination = relationalQuery.queryBuilderOpts.pagination;
           }
+
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.sort) {
+            relationalQueryRecord.sort = relationalQuery.queryBuilderOpts.sort;
+          }
         } else {
           throw Error("relationalType \"" + relationalType + "\" is not valid.");
         }
@@ -3108,6 +3149,10 @@ function getQueryRecordFromQueryDefinition(opts) {
 
     if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
       queryRecordEntry.pagination = queryDefinition.pagination;
+    }
+
+    if ('sort' in queryDefinition && queryDefinition.sort != null) {
+      queryRecordEntry.sort = queryDefinition.sort;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry;
@@ -3771,7 +3816,7 @@ function generateQuerier(_ref4) {
       queryManager = _ref4.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, mutateResponseWithQueryRecordFilters, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+      var startStack, queryId, getError, getToken, mutateResponseWithQueryRecordFiltersAndSorting, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
 
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
@@ -3828,7 +3873,7 @@ function generateQuerier(_ref4) {
                                       response = _context.sent;
 
                                     case 11:
-                                      mutateResponseWithQueryRecordFilters(queryRecord, response);
+                                      mutateResponseWithQueryRecordFiltersAndSorting(queryRecord, response);
                                       return _context.abrupt("return", response);
 
                                     case 13:
@@ -3864,7 +3909,7 @@ function generateQuerier(_ref4) {
                 return _performQueries.apply(this, arguments);
               };
 
-              mutateResponseWithQueryRecordFilters = function _mutateResponseWithQu(queryRecord, responseData) {
+              mutateResponseWithQueryRecordFiltersAndSorting = function _mutateResponseWithQu(queryRecord, responseData) {
                 Object.keys(queryRecord).forEach(function (alias) {
                   var queryRecordEntry = queryRecord[alias];
 
@@ -3937,13 +3982,55 @@ function generateQuerier(_ref4) {
                     }
                   }
 
+                  if (queryRecordEntry.sort) {
+                    var sortObject = getFlattenedNodeSortObject(queryRecordEntry.sort);
+
+                    if (sortObject && responseData[alias]) {
+                      var sorting = lodash.orderBy(Object.keys(sortObject).map(function (propertyPath, index) {
+                        var underscoreSeparatedPropertyPath = propertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+                        return {
+                          sortFn: function sortFn(item) {
+                            return Number(item[underscoreSeparatedPropertyPath]) || item[underscoreSeparatedPropertyPath];
+                          },
+                          direction: sortObject[propertyPath]._direction || 'asc',
+                          underscoreSeparatedPropertyPath: underscoreSeparatedPropertyPath,
+                          propertyPath: propertyPath,
+                          priority: sortObject[propertyPath]._priority || (index + 1) * 10000
+                        };
+                      }), function (x) {
+                        return x.priority;
+                      }, 'asc');
+                      var sortPropertiesNotDefinedInSorting = sorting.filter(function (i) {
+                        return queryRecordEntry.properties.includes(i.underscoreSeparatedPropertyPath) === false;
+                      });
+
+                      if (sortPropertiesNotDefinedInSorting.length > 0) {
+                        throw new SortPropertyNotDefinedInQueryException({
+                          sortPropName: sortPropertiesNotDefinedInSorting[0].propertyPath
+                        });
+                      }
+
+                      lodash.update(responseData, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
+                        if (!lodash.isArray(currentValue)) {
+                          return currentValue;
+                        }
+
+                        return lodash.orderBy(currentValue, sorting.map(function (item) {
+                          return item.sortFn;
+                        }), sorting.map(function (item) {
+                          return item.direction;
+                        }));
+                      });
+                    }
+                  }
+
                   var relational = queryRecordEntry.relational;
 
                   if (relational != null) {
                     Object.keys(relational).forEach(function () {
                       if (responseData[alias] && responseData[alias][NODES_PROPERTY_KEY]) {
                         responseData[alias][NODES_PROPERTY_KEY].forEach(function (item) {
-                          mutateResponseWithQueryRecordFilters(relational, item);
+                          mutateResponseWithQueryRecordFiltersAndSorting(relational, item);
                         });
                       }
                     });

@@ -20,6 +20,11 @@ export declare class FilterPropertyNotDefinedInQueryException extends Error {
         filterPropName: string;
     });
 }
+export declare class SortPropertyNotDefinedInQueryException extends Error {
+    constructor(opts: {
+        sortPropName: string;
+    });
+}
 export declare class ImpliedNodePropertyException extends Error {
     constructor(opts: {
         propName: string;
