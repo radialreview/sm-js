@@ -5,6 +5,10 @@ import {
   RelationalQueryRecordEntry,
 } from './types';
 
+export interface IQuerySlimmerConfig {
+  enableLogging: boolean;
+}
+
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
   results: any | Array<any> | null;
@@ -20,6 +24,12 @@ export type IQueryDataByContextMap = Record<string, IFetchedQueryData>;
 // Increment number of active subscriptions at each property of the original query if subscriptionsEstablished is true.
 */
 export class QuerySlimmer {
+  constructor(config: IQuerySlimmerConfig) {
+    this.loggingEnabled = config.enableLogging;
+  }
+
+  private loggingEnabled: boolean;
+
   public queriesByContext: IQueryDataByContextMap = {};
 
   public onResultsReceived(opts: {
@@ -122,15 +132,20 @@ export class QuerySlimmer {
       }
     });
 
+    const queryRecordToReturn =
+      Object.keys(
+        isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord
+      ).length > 0
+        ? isNewQueryARootQuery
+          ? slimmedQueryRecord
+          : slimmedRelationalQueryRecord
+        : null;
+
     if (isNewQueryARootQuery) {
-      return Object.keys(slimmedQueryRecord).length > 0
-        ? slimmedQueryRecord
-        : null;
-    } else {
-      return Object.keys(slimmedRelationalQueryRecord).length > 0
-        ? slimmedRelationalQueryRecord
-        : null;
+      this.log({ originalQuery: newQuery, slimmedQuery: queryRecordToReturn });
     }
+
+    return queryRecordToReturn;
   }
 
   private populateQueriesByContext(
@@ -191,6 +206,7 @@ export class QuerySlimmer {
     );
     return `${parentContextKeyPrefix}${currentQueryTypeProperty}(${currentQueryStringifiedParams})`;
   }
+
   private getPropertiesNotAlreadyCached(opts: {
     newQueryProps: string[];
     cachedQueryProps: string[];
@@ -231,6 +247,19 @@ export class QuerySlimmer {
       )
     ) {
       delete this.queriesByContext[currentQueryContextKey];
+    }
+  }
+
+  private log(opts: {
+    originalQuery: QueryRecord | RelationalQueryRecord;
+    slimmedQuery: QueryRecord | RelationalQueryRecord | null;
+  }) {
+    if (this.loggingEnabled) {
+      console.log(
+        `QuerySlimmer`,
+        `Received Query: ${JSON.stringify(opts.originalQuery)}`,
+        `Slimmed Exectued Query: ${JSON.stringify(opts.slimmedQuery)}`
+      );
     }
   }
 
