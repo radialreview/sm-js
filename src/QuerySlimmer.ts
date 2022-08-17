@@ -266,19 +266,16 @@ export class QuerySlimmer {
 
         queryRecordEntry.properties.forEach(property => {
           const propertySubCount = cachedQuerySubsByProperty[property];
-
           if (propertySubCount >= 1) {
             cachedQuerySubsByProperty[property] = propertySubCount - 1;
           }
         });
 
-        const doesRecordStillHaveAnActiveSubscriptionForProperty = Object.keys(
+        const isEntireRecordUnsubbed = Object.keys(
           cachedQuerySubsByProperty
-        ).some(subByPropKey => {
-          return cachedQuerySubsByProperty[subByPropKey] !== 0;
-        });
+        ).some(subByPropKey => cachedQuerySubsByProperty[subByPropKey] !== 0);
 
-        if (!doesRecordStillHaveAnActiveSubscriptionForProperty) {
+        if (!isEntireRecordUnsubbed) {
           delete this.queriesByContext[currentQueryContextKey];
         }
       }
