@@ -164,20 +164,29 @@ export function generateQuerier({
               });
             }
 
-            const { queryGQL } = convertQueryDefinitionToQueryInfo({
-              queryDefinitions: queryDefinitions,
-              queryId: queryId + '_' + tokenName,
-            });
+            if (mmGQLInstance.enableQuerySlimming) {
+              return mmGQLInstance.QuerySlimmer.query({
+                queryId: `${queryId}_${tokenName}`,
+                queryDefinitions,
+                tokenName,
+                opts,
+              });
+            } else {
+              const { queryGQL } = convertQueryDefinitionToQueryInfo({
+                queryDefinitions: queryDefinitions,
+                queryId: queryId + '_' + tokenName,
+              });
 
-            const queryOpts: Parameters<IGQLClient['query']>[0] = {
-              gql: queryGQL,
-              token: getToken(tokenName),
-            };
-            if (opts && 'batchKey' in opts) {
-              queryOpts.batchKey = opts.batchKey;
+              const queryOpts: Parameters<IGQLClient['query']>[0] = {
+                gql: queryGQL,
+                token: getToken(tokenName),
+              };
+              if (opts && 'batchKey' in opts) {
+                queryOpts.batchKey = opts.batchKey;
+              }
+
+              return mmGQLInstance.gqlClient.query(queryOpts);
             }
-
-            return mmGQLInstance.gqlClient.query(queryOpts);
           }
         )
       );

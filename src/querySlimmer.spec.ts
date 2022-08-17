@@ -203,7 +203,7 @@ describe('onResultsReceived', () => {
   });
 });
 
-describe('onNewQueryReceived', () => {
+describe('getSlimmedQueryAgainstQueriesByContext', () => {
   describe('when the new query contains no requests for relational data', () => {
     test('it should return the whole new query record without changes if none of the query record entries are found in queriesByContext', () => {
       const { QuerySlimmer, userNode, todoNode } = setupTests();
@@ -219,9 +219,9 @@ describe('onNewQueryReceived', () => {
         },
       };
 
-      expect(QuerySlimmer.onNewQueryReceived(mockQueryRecord)).toEqual(
-        mockQueryRecord
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
+      ).toEqual(mockQueryRecord);
     });
 
     test('it should return null if the query record entries and the properties of each entry are already cached', () => {
@@ -253,9 +253,9 @@ describe('onNewQueryReceived', () => {
         },
       ];
 
-      expect(QuerySlimmer.onNewQueryReceived(mockQueryRecord)).toEqual(
-        mockQueryRecord
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
+      ).toEqual(mockQueryRecord);
 
       QuerySlimmer.onResultsReceived({
         slimmedQuery: mockQueryRecord,
@@ -267,7 +267,9 @@ describe('onNewQueryReceived', () => {
         subscriptionEstablished: true,
       });
 
-      expect(QuerySlimmer.onNewQueryReceived(mockQueryRecord)).toEqual(null);
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
+      ).toEqual(null);
     });
 
     test('it should return a slimmed query record where query record entries are returned with only non cached properties', () => {
@@ -337,9 +339,9 @@ describe('onNewQueryReceived', () => {
         },
       };
 
-      expect(QuerySlimmer.onNewQueryReceived(mockNewQueryRecord)).toEqual(
-        mockNewQueryRecord
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
+      ).toEqual(mockNewQueryRecord);
 
       QuerySlimmer.onResultsReceived({
         slimmedQuery: mockCachedQueryRecord,
@@ -352,9 +354,9 @@ describe('onNewQueryReceived', () => {
         subscriptionEstablished: true,
       });
 
-      expect(QuerySlimmer.onNewQueryReceived(mockNewQueryRecord)).toEqual(
-        expectedSlimmedNewQueryRecord
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
+      ).toEqual(expectedSlimmedNewQueryRecord);
     });
   });
 
@@ -416,7 +418,9 @@ describe('onNewQueryReceived', () => {
         subscriptionEstablished: true,
       });
 
-      expect(QuerySlimmer.onNewQueryReceived(mockCachedQuery)).toBe(null);
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockCachedQuery)
+      ).toBe(null);
     });
 
     test('it should return a query with only non cached properties for the entire query tree', () => {
@@ -520,9 +524,9 @@ describe('onNewQueryReceived', () => {
         subscriptionEstablished: true,
       });
 
-      expect(QuerySlimmer.onNewQueryReceived(mockNewQuery)).toEqual(
-        expectedSlimmedQuery
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
+      ).toEqual(expectedSlimmedQuery);
     });
 
     test('it should return the query record entry with an empty properties array when those properties are cached but the relational query`s are not', () => {
@@ -635,9 +639,9 @@ describe('onNewQueryReceived', () => {
         subscriptionEstablished: true,
       });
 
-      expect(QuerySlimmer.onNewQueryReceived(mockNewQuery)).toEqual(
-        expectedSlimmedNewQuery
-      );
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
+      ).toEqual(expectedSlimmedNewQuery);
     });
   });
 });

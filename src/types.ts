@@ -4,6 +4,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './QueryManager';
 import { createTransaction } from './transaction/transaction';
+import { QuerySlimmer } from './QuerySlimmer'
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
@@ -45,6 +46,8 @@ export type Config = {
   gqlClient: IGQLClient;
   plugins?: Array<Plugin>;
   generateMockData: boolean
+  enableQuerySlimming: boolean
+  enableQuerySlimmingLogging: boolean
 };
 
 export interface IGQLClient {
@@ -128,6 +131,7 @@ export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
+
 export interface IMMGQL {
   getToken(opts: { tokenName: string }): string
   setToken(opts: { tokenName: string; token: string }): void
@@ -138,9 +142,12 @@ export interface IMMGQL {
   gqlClient: IGQLClient
   plugins: Array<Plugin> | undefined
   generateMockData: boolean | undefined
+  enableQuerySlimming: boolean | undefined
+  enableQuerySlimmingLogging: boolean | undefined
   DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>
   DOFactory: ReturnType<typeof createDOFactory>
-  QueryManager:ReturnType<typeof createQueryManager>
+  QueryManager: ReturnType<typeof createQueryManager>
+  QuerySlimmer: QuerySlimmer
 
   def<
     TNodeType extends string,
@@ -899,6 +906,3 @@ export interface IDOProxy {
     newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>
   ): void;
 }
-
-
-
