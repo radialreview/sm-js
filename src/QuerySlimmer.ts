@@ -23,13 +23,6 @@ export type IQueryDataByContextMap = Record<string, IFetchedQueryData>;
 
 export type IInFlightQueryByContextMap = Record<string, QueryRecord>;
 
-/*
-// Capture results from a slimmedQuery (returned form onQueryExecuted).
-// Stitch this together with the results from slimmedQueryResults.
-// Get originalQuery results from cache (the ones that matched).
-// Update queriesByContext with all data from both queries.
-// Increment number of active subscriptions at each property of the original query if subscriptionsEstablished is true.
-*/
 export class QuerySlimmer {
   constructor(config: IQuerySlimmerConfig) {
     this.loggingEnabled = config.enableLogging;
@@ -283,6 +276,47 @@ export class QuerySlimmer {
     return queryRecordToReturn;
   }
 
+  public onSubscriptionCancelled(
+    queryRecord: QueryRecord,
+    parentContextKey?: string
+  ) {
+    Object.keys(queryRecord).forEach(queryRecordKey => {
+      const queryRecordEntry = queryRecord[queryRecordKey];
+      const currentQueryContextKey = this.createContextKeyForQuery(
+        queryRecordEntry,
+        parentContextKey
+      );
+
+      if (queryRecordEntry.relational !== undefined) {
+        this.onSubscriptionCancelled(
+          queryRecordEntry.relational,
+          currentQueryContextKey
+        );
+      }
+
+      if (currentQueryContextKey in this.queriesByContext) {
+        const cachedQuerySubsByProperty = this.queriesByContext[
+          currentQueryContextKey
+        ].subscriptionsByProperty;
+
+        queryRecordEntry.properties.forEach(property => {
+          const propertySubCount = cachedQuerySubsByProperty[property];
+          if (propertySubCount >= 1) {
+            cachedQuerySubsByProperty[property] = propertySubCount - 1;
+          }
+        });
+
+        const doesRecordStillHaveSubscriptions = Object.values(
+          cachedQuerySubsByProperty
+        ).some(numberOfSubs => numberOfSubs !== 0);
+
+        if (!doesRecordStillHaveSubscriptions) {
+          delete this.queriesByContext[currentQueryContextKey];
+        }
+      }
+    });
+  }
+
   private populateQueriesByContext(
     queryRecord: QueryRecord,
     results: Record<string, any>,
@@ -373,46 +407,5 @@ export class QuerySlimmer {
         `Slimmed Exectued Query: ${JSON.stringify(opts.slimmedQuery)}`
       );
     }
-  }
-
-  public onSubscriptionCancelled(
-    queryRecord: QueryRecord,
-    parentContextKey?: string
-  ) {
-    Object.keys(queryRecord).forEach(queryRecordKey => {
-      const queryRecordEntry = queryRecord[queryRecordKey];
-      const currentQueryContextKey = this.createContextKeyForQuery(
-        queryRecordEntry,
-        parentContextKey
-      );
-
-      if (queryRecordEntry.relational !== undefined) {
-        this.onSubscriptionCancelled(
-          queryRecordEntry.relational,
-          currentQueryContextKey
-        );
-      }
-
-      if (currentQueryContextKey in this.queriesByContext) {
-        const cachedQuerySubsByProperty = this.queriesByContext[
-          currentQueryContextKey
-        ].subscriptionsByProperty;
-
-        queryRecordEntry.properties.forEach(property => {
-          const propertySubCount = cachedQuerySubsByProperty[property];
-          if (propertySubCount >= 1) {
-            cachedQuerySubsByProperty[property] = propertySubCount - 1;
-          }
-        });
-
-        const doesRecordStillHaveSubscriptions = Object.values(
-          cachedQuerySubsByProperty
-        ).some(numberOfSubs => numberOfSubs !== 0);
-
-        if (!doesRecordStillHaveSubscriptions) {
-          delete this.queriesByContext[currentQueryContextKey];
-        }
-      }
-    });
   }
 }

@@ -171,22 +171,22 @@ export function generateQuerier({
                 tokenName,
                 opts,
               });
-            } else {
-              const { queryGQL } = convertQueryDefinitionToQueryInfo({
-                queryDefinitions: queryDefinitions,
-                queryId: queryId + '_' + tokenName,
-              });
-
-              const queryOpts: Parameters<IGQLClient['query']>[0] = {
-                gql: queryGQL,
-                token: getToken(tokenName),
-              };
-              if (opts && 'batchKey' in opts) {
-                queryOpts.batchKey = opts.batchKey;
-              }
-
-              return mmGQLInstance.gqlClient.query(queryOpts);
             }
+
+            const { queryGQL } = convertQueryDefinitionToQueryInfo({
+              queryDefinitions: queryDefinitions,
+              queryId: queryId + '_' + tokenName,
+            });
+
+            const queryOpts: Parameters<IGQLClient['query']>[0] = {
+              gql: queryGQL,
+              token: getToken(tokenName),
+            };
+            if (opts && 'batchKey' in opts) {
+              queryOpts.batchKey = opts.batchKey;
+            }
+
+            return mmGQLInstance.gqlClient.query(queryOpts);
           }
         )
       );
