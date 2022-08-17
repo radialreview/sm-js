@@ -41,6 +41,7 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
+  // TODO PIOTR: CHECK SUB COUNTS WHEN LOOKING AT CACHED PROPERTIES
   public onNewQueryReceived(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
@@ -218,36 +219,13 @@ export class QuerySlimmer {
   }
 
   private stringifyQueryParams(entry: QueryRecordEntry) {
+    // https://tractiontools.atlassian.net/browse/TTD-315
+    // Handle filter/pagination/sorting query params
     const params = { ids: entry.ids, id: entry.id };
     if (!Object.values(params).some(value => value != null)) {
       return 'NO_PARAMS';
     }
     return JSON.stringify(params);
-  }
-
-  private handleDeleteContextKey(
-    currentQueryContextKey: string,
-    property: string
-  ) {
-    delete this.queriesByContext[currentQueryContextKey]
-      .subscriptionsByProperty[property];
-
-    Array.isArray(this.queriesByContext[currentQueryContextKey].results) &&
-      this.queriesByContext[currentQueryContextKey].results.map(
-        (el: any) => delete el[property]
-      );
-    if (
-      Object.keys(this.queriesByContext[currentQueryContextKey].results[0])
-        .length === 2 &&
-      this.queriesByContext[currentQueryContextKey].results[0].hasOwnProperty(
-        'id'
-      ) &&
-      this.queriesByContext[currentQueryContextKey].results[0].hasOwnProperty(
-        'type'
-      )
-    ) {
-      delete this.queriesByContext[currentQueryContextKey];
-    }
   }
 
   private log(opts: {
@@ -265,40 +243,45 @@ export class QuerySlimmer {
 
   public onSubscriptionCancelled(
     queryRecord: QueryRecord,
-    parentContextKey: string | undefined
+    parentContextKey?: string
   ) {
-    Object.keys(queryRecord).forEach(alias => {
-      const properties = queryRecord[alias].properties;
-      const queryRecordEntry = queryRecord[alias];
+    Object.keys(queryRecord).forEach(queryRecordKey => {
+      const queryRecordEntry = queryRecord[queryRecordKey];
       const currentQueryContextKey = this.createContextKeyForQuery(
         queryRecordEntry,
         parentContextKey
       );
+
       if (queryRecordEntry.relational !== undefined) {
         this.onSubscriptionCancelled(
           queryRecordEntry.relational,
           currentQueryContextKey
         );
       }
+
       if (currentQueryContextKey in this.queriesByContext) {
-        properties.map(property => {
-          const subscribedToPropertyCount = this.queriesByContext[
-            currentQueryContextKey
-          ].subscriptionsByProperty[property];
-          if (subscribedToPropertyCount > 1) {
-            const newPropertyCount = subscribedToPropertyCount - 1;
-            return (this.queriesByContext[
-              currentQueryContextKey
-            ].subscriptionsByProperty[property] = newPropertyCount);
-          } else {
-            return this.handleDeleteContextKey(
-              currentQueryContextKey,
-              property
-            );
+        const cachedQuerySubsByProperty = this.queriesByContext[
+          currentQueryContextKey
+        ].subscriptionsByProperty;
+
+        queryRecordEntry.properties.forEach(property => {
+          const propertySubCount = cachedQuerySubsByProperty[property];
+
+          if (propertySubCount >= 1) {
+            cachedQuerySubsByProperty[property] = propertySubCount - 1;
           }
         });
+
+        const doesRecordStillHaveAnActiveSubscriptionForProperty = Object.keys(
+          cachedQuerySubsByProperty
+        ).some(subByPropKey => {
+          return cachedQuerySubsByProperty[subByPropKey] !== 0;
+        });
+
+        if (!doesRecordStillHaveAnActiveSubscriptionForProperty) {
+          delete this.queriesByContext[currentQueryContextKey];
+        }
       }
     });
-    return queryRecord;
   }
 }

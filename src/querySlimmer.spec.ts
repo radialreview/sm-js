@@ -643,81 +643,9 @@ describe('onNewQueryReceived', () => {
 });
 
 describe('onSubscriptionCancelled', () => {
-  test('when a subscription with a count of 1 is cancelled the cache is appropriately updated', () => {
-    const { QuerySlimmer, userNode } = setupTests();
+  test(`when a query subscription is cancelled the subcription counts for the query's properties should be decremented`, () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-    const slimmedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-      },
-    };
-
-    const users = [
-      {
-        id: 'id-5',
-        type: userNode.type,
-        firstName: 'Noley',
-        lastName: 'Holland',
-      },
-    ];
-
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery,
-      originalQuery: slimmedQuery,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
-    QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toBe(undefined);
-  });
-
-  test('when a subscription with a count higher than 1 is cancelled the subscription count is appropriately decremented', () => {
-    const { QuerySlimmer, userNode } = setupTests();
-
-    const slimmedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-      },
-    };
-
-    const users = [
-      {
-        id: 'id-5',
-        type: userNode.type,
-        firstName: 'Noley',
-        lastName: 'Holland',
-      },
-    ];
-
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery,
-      originalQuery: slimmedQuery,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery,
-      originalQuery: slimmedQuery,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
-    QuerySlimmer.onSubscriptionCancelled(slimmedQuery, undefined);
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: users,
-    });
-  });
-
-  test(`when a relational query's subscription is cancelled, the property count is decremented appropriately`, () => {
-    const { QuerySlimmer, userNode, todoNode, meetingNode } = setupTests();
     const mockCachedQuery: QueryRecord = {
       users: {
         def: userNode,
@@ -732,7 +660,7 @@ describe('onSubscriptionCancelled', () => {
               todos: {
                 _relationshipName: 'todos',
                 def: todoNode,
-                properties: ['task'],
+                properties: ['task', 'done'],
                 oneToMany: true,
               },
             },
@@ -749,7 +677,6 @@ describe('onSubscriptionCancelled', () => {
         meetings: [
           {
             id: '0',
-            type: meetingNode.type,
             name: 'Banana Meeting',
             archived: false,
             todos: [
@@ -757,12 +684,40 @@ describe('onSubscriptionCancelled', () => {
                 id: '0',
                 type: todoNode.type,
                 task: 'Eat a banana',
+                done: false,
               },
             ],
           },
         ],
       },
     ];
+
+    const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
+    const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
+    const mockCachedQueryTodosContextKey = `${mockCachedQueryMeetingsContextKey}.todos(NO_PARAMS)`;
+
+    const mockUnsubbedQuery: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['name'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['task'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+    };
 
     QuerySlimmer.onResultsReceived({
       slimmedQuery: mockCachedQuery,
@@ -772,6 +727,130 @@ describe('onSubscriptionCancelled', () => {
       },
       subscriptionEstablished: true,
     });
+
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      firstName: 1,
+      lastName: 1,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      name: 1,
+      archived: 1,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      task: 1,
+      done: 1,
+    });
+
+    QuerySlimmer.onSubscriptionCancelled(mockUnsubbedQuery);
+
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      firstName: 0,
+      lastName: 1,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      name: 0,
+      archived: 1,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      task: 0,
+      done: 1,
+    });
+  });
+
+  test(`when a query subscription is cancelled and all the properties have subscription counts of 0, the individual QueryRecord should be deleted from the cache`, () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+    const mockCachedQuery: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['name', 'archived'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['task', 'done'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+    };
+    const mockCachedQueryData = [
+      {
+        id: '0',
+        type: userNode.type,
+        firstName: 'Banana',
+        lastName: 'Man',
+        meetings: [
+          {
+            id: '0',
+            name: 'Banana Meeting',
+            archived: false,
+            todos: [
+              {
+                id: '0',
+                type: todoNode.type,
+                task: 'Eat a banana',
+                done: false,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
+    const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
+    const mockCachedQueryTodosContextKey = `${mockCachedQueryMeetingsContextKey}.todos(NO_PARAMS)`;
+
+    const mockUnsubbedQuery: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['archived'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['task', 'done'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+    };
+
     QuerySlimmer.onResultsReceived({
       slimmedQuery: mockCachedQuery,
       originalQuery: mockCachedQuery,
@@ -780,13 +859,43 @@ describe('onSubscriptionCancelled', () => {
       },
       subscriptionEstablished: true,
     });
-    QuerySlimmer.onSubscriptionCancelled(mockCachedQuery, undefined);
+
     expect(
-      QuerySlimmer.queriesByContext[
-        'users(NO_PARAMS).meetings(NO_PARAMS).todos(NO_PARAMS)'
-      ]
+      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+        .subscriptionsByProperty
     ).toEqual({
-      subscriptionsByProperty: { task: 1 },
+      firstName: 1,
+      lastName: 1,
     });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      name: 1,
+      archived: 1,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      task: 1,
+      done: 1,
+    });
+
+    QuerySlimmer.onSubscriptionCancelled(mockUnsubbedQuery);
+
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+    ).toBeUndefined();
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+        .subscriptionsByProperty
+    ).toEqual({
+      name: 1,
+      archived: 0,
+    });
+    expect(
+      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+    ).toBeUndefined();
   });
 });
