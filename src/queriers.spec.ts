@@ -1923,6 +1923,62 @@ test(`query.sorting can sort relational data`, async () => {
   expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
 });
 
+test.only(`query.filter can filter using "OR" condition`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'Todo 3',
+              },
+              {
+                task: 'Todo 4',
+              },
+              {
+                task: 'Todo 1',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        _or: {
+          firstName: {
+            _contains: 'John'
+          }
+        },
+
+        ['or', {firstName: {_contains: 'test'}}],
+        ['and', {firstName}],
+      },
+      map: ({ id, score, todos }) => ({
+        id,
+        score,
+        todos: todos({
+          map: ({ task }) => ({ task }),
+          sort: {
+            task: 'asc',
+          },
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].todos.nodes[0].task).toBe('Todo 1');
+  expect(data.users.nodes[0].todos.nodes[1].task).toBe('Todo 3');
+  expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
