@@ -21,7 +21,7 @@ export interface IFetchedQueryData {
 
 export type IQueryDataByContextMap = Record<string, IFetchedQueryData>;
 
-export type IInFlightQueryByContextMap = Record<string, QueryRecord>;
+export type IQueryRecordEntriesByContextMap = Record<string, QueryRecordEntry>;
 
 export class QuerySlimmer {
   constructor(config: IQuerySlimmerConfig) {
@@ -31,7 +31,7 @@ export class QuerySlimmer {
   private loggingEnabled: boolean;
 
   public queriesByContext: IQueryDataByContextMap = observable({});
-  public inFlightQueriesByContext: Array<IInFlightQueryByContextMap> = [];
+  public inFlightQueryRecords: Array<QueryRecord> = [];
 
   // Slim given query before it gets sents to the BE:
   //   1: First slim the new query against the cache.
@@ -95,24 +95,59 @@ export class QuerySlimmer {
   // }
 
   /**
-   * Returns a boolean for if a newQueryRecord should slim against an inFlightQuery.
-   * The new query should wait for an in flight query if:
-   *   - At least one ContextKey in the inFlightQuery matches a ContextKey in the newQuery.
+   * Returns a partial QueryRecord by context map of the given inFlightQuery containing entries that we are able to slim the new query against.
+   * The new query should wait for an in flight query to slim against if:
+   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
    *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
    */
-  // private getIfShouldSlimAgainstInFlightQuery(opts: {
-  //   newQuery: QueryRecord;
-  //   inFlightQuery: IInFlightQueryByContextMap;
-  // }) {
-  //   const newQueryContextKeys = Object.values(
-  //     opts.newQuery
-  //   ).map(newQueryRecord => this.createContextKeyForQuery(newQueryRecord));
-  //   const inFlightQueryContextKeys = Object.keys(opts.inFlightQuery);
+  public getInFlightQueriesToSlimAgainst(
+    newQuery: IQueryRecordEntriesByContextMap
+  ) {
+    const inFlightQueriesToSlimAgainst: Array<IQueryRecordEntriesByContextMap> = [];
+    const newQueryCtxtKeys = Object.keys(newQuery);
 
-  //   const matchedContextKeys = inFlightQueryContextKeys.filter(inFlightCtxKey =>
-  //     newQueryContextKeys.includes(inFlightCtxKey)
-  //   );
-  // }
+    this.inFlightQueryRecords.forEach(inFlightRecord => {
+      const inFlightQueryContextMap = this.getQueryRecordEntriesByContextMap(
+        inFlightRecord
+      );
+      const inFlightQueryCtxKeys = Object.keys(inFlightQueryContextMap);
+      const matchedCtxKeys = inFlightQueryCtxKeys.filter(inFlightCtxKey =>
+        newQueryCtxtKeys.includes(inFlightCtxKey)
+      );
+
+      if (matchedCtxKeys.length !== 0) {
+        const partialOfInFlightQueryWeCanSlimAgainst = matchedCtxKeys.reduce(
+          (recordToSlimAgainst, matchedCtxKey) => {
+            const newRecordEntry = newQuery[matchedCtxKey];
+            const inFlightRecordEntry = inFlightQueryContextMap[matchedCtxKey];
+            const newRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
+              newRecordEntry
+            );
+            const inFlightRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
+              inFlightRecordEntry
+            );
+
+            if (inFlightRecordDepth <= newRecordDepth) {
+              recordToSlimAgainst[matchedCtxKey] = inFlightRecordEntry;
+            }
+
+            return recordToSlimAgainst;
+          },
+          {} as IQueryRecordEntriesByContextMap
+        );
+
+        if (Object.keys(partialOfInFlightQueryWeCanSlimAgainst).length !== 0) {
+          inFlightQueriesToSlimAgainst.push(
+            partialOfInFlightQueryWeCanSlimAgainst
+          );
+        }
+      }
+    });
+
+    return Object.keys(inFlightQueriesToSlimAgainst).length === 0
+      ? null
+      : inFlightQueriesToSlimAgainst;
+  }
 
   public getRelationalDepthOfQueryRecordEntry(
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry
@@ -432,6 +467,17 @@ export class QuerySlimmer {
       return 'NO_PARAMS';
     }
     return JSON.stringify(params);
+  }
+
+  private getQueryRecordEntriesByContextMap(queryRecord: QueryRecord) {
+    return Object.values(queryRecord).reduce(
+      (entriesByContext, queryRecordEntry) => {
+        const contextKey = this.createContextKeyForQuery(queryRecordEntry);
+        entriesByContext[contextKey] = queryRecordEntry;
+        return entriesByContext;
+      },
+      {} as IQueryRecordEntriesByContextMap
+    );
   }
 
   private log(opts: {
