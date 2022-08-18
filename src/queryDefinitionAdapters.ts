@@ -20,13 +20,10 @@ import {
   DataDefaultFn,
   IOneToOneQueryBuilderOpts,
 } from './types';
-import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-import { getFlattenedNodeFilterObject } from './dataUtilities';
-import { set as lodashSet } from 'lodash';
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -454,36 +451,35 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<TNode extends INode>(
-  filter: ValidFilterForNode<TNode>
-) {
-  /**
-   * @TODO MM-486: Currently SM only supports _eq condition when filtering.
-   * we need to filter out the other conditions for now.
-   */
-  const flattenedFilters = getFlattenedNodeFilterObject(filter);
-  const filtersWithEqualCondition = Object.keys(flattenedFilters)
-    .filter(x => {
-      return flattenedFilters[x]._eq !== undefined;
-    })
-    .reduce((acc, current) => {
-      lodashSet(acc, current, flattenedFilters[current]._eq);
-      return acc;
-    }, {} as ValidFilterForNode<TNode>);
+/**
+ * @TODO TTD-316: https://tractiontools.atlassian.net/browse/TTD-316
+ */
+// export function getKeyValueFilterString<TNode extends INode>(
+export function getKeyValueFilterString() {
+  // filter: ValidFilterForNode<TNode>
+  // const flattenedFilters = getFlattenedNodeFilterObject(filter);
+  // const filtersWithEqualCondition = Object.keys(flattenedFilters)
+  //   .filter(x => {
+  //     return flattenedFilters[x]._eq === undefined;
+  //   })
+  //   .reduce((acc, current) => {
+  //     lodashSet(acc, current, flattenedFilters[current]._eq);
+  //     return acc;
+  //   }, {} as ValidFilterForNode<TNode>);
 
-  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
-    omitObjectIdentifier: true,
-  });
-  return `{${Object.entries(convertedToDotFormat).reduce(
-    (acc, [key, value], idx, entries) => {
-      acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
-      if (idx < entries.length - 1) {
-        acc += `, `;
-      }
-      return acc;
-    },
-    ''
-  )}}`;
+  // const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
+  //   omitObjectIdentifier: true,
+  // });
+  //
+  // return `{${Object.entries(convertedToDotFormat).reduce(
+
+  return `{${Object.entries({}).reduce((acc, [key, value], idx, entries) => {
+    acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
+    if (idx < entries.length - 1) {
+      acc += `, `;
+    }
+    return acc;
+  }, '')}}`;
 }
 
 function getGetNodeOptions<TNode extends INode>(opts: {
@@ -493,7 +489,10 @@ function getGetNodeOptions<TNode extends INode>(opts: {
   const options: Array<string> = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
+    /**
+     * @TODO TTD-316: https://tractiontools.atlassian.net/browse/TTD-316
+     */
+    // options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
   }
 
   return options.join(', ');
