@@ -502,12 +502,12 @@ test(`sm.query.filter can filter 'boolean' prop using '_neq' operator`, async ()
         archived,
       }),
       filter: {
-        archived: { _eq: false },
+        archived: { _neq: false },
       },
     }),
   });
 
-  expect(data.users.length).toBe(1);
+  expect(data.users.length).toBe(2);
 });
 
 test(`sm.query.filter can filter 'string' prop using '_eq' operator`, async () => {
@@ -734,9 +734,7 @@ test(`sm.query.filter can filter relational data`, async () => {
     }),
   });
 
-  // @ts-ignore-error
   expect(data.users[0].todos.length).toBe(2);
-  // @ts-ignore-error
   expect(data.users[1].todos.length).toBe(1);
 });
 
@@ -791,7 +789,6 @@ test(`sm.query.filter can filter multilevel relational data`, async () => {
     }),
   });
 
-  // @ts-ignore-error
   expect(data.users[0].todos[0].users.length).toBe(1);
 });
 
