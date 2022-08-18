@@ -48,6 +48,22 @@ function _asyncToGenerator(fn) {
   };
 }
 
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
 function _extends() {
   _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -232,40 +248,49 @@ var NotCachedException = /*#__PURE__*/function (_Error5) {
 
   return NotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(DataTypeException, _Error6);
+var NodesCollectionPageOutOfBoundsException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(NodesCollectionPageOutOfBoundsException, _Error6);
+
+  function NodesCollectionPageOutOfBoundsException(opts) {
+    return _Error6.call(this, "NodesCollectionPageOutOfBoundsException - page '" + opts.page + "' does not exist.") || this;
+  }
+
+  return NodesCollectionPageOutOfBoundsException;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
+var DataTypeException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(DataTypeException, _Error7);
 
   function DataTypeException(opts) {
-    return _Error6.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+    return _Error7.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
   return DataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(DataTypeExplicitDefaultException, _Error7);
+var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(DataTypeExplicitDefaultException, _Error8);
 
   function DataTypeExplicitDefaultException(opts) {
-    return _Error7.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+    return _Error8.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
   return DataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataParsingException = /*#__PURE__*/function (_Error8) {
-  _inheritsLoose(DataParsingException, _Error8);
+var DataParsingException = /*#__PURE__*/function (_Error9) {
+  _inheritsLoose(DataParsingException, _Error9);
 
   function DataParsingException(opts) {
-    return _Error8.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+    return _Error9.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
   return DataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
-  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error9);
+var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error10) {
+  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error10);
 
   function UnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error9.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error10.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
@@ -273,11 +298,11 @@ var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
 
   return UnexpectedSubscriptionMessageException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error11) {
-  _inheritsLoose(FilterOperatorNotImplementedException, _Error11);
+var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error12) {
+  _inheritsLoose(FilterOperatorNotImplementedException, _Error12);
 
   function FilterOperatorNotImplementedException(exeption) {
-    return _Error11.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
+    return _Error12.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
   }
 
   return FilterOperatorNotImplementedException;
@@ -292,11 +317,11 @@ function throwLocallyLogInProd(error) {
   }
 } // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
 
-var UnreachableCaseError = /*#__PURE__*/function (_Error12) {
-  _inheritsLoose(UnreachableCaseError, _Error12);
+var UnreachableCaseError = /*#__PURE__*/function (_Error13) {
+  _inheritsLoose(UnreachableCaseError, _Error13);
 
   function UnreachableCaseError(val) {
-    return _Error12.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+    return _Error13.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
   }
 
   return UnreachableCaseError;
@@ -2929,6 +2954,10 @@ function getRelationalQueries(opts) {
           if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.filter) {
             relationalQueryRecord.filter = relationalQuery.queryBuilderOpts.filter;
           }
+
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.pagination) {
+            relationalQueryRecord.pagination = relationalQuery.queryBuilderOpts.pagination;
+          }
         } else {
           throw Error("relationalType \"" + relationalType + "\" is not valid.");
         }
@@ -3075,6 +3104,10 @@ function getQueryRecordFromQueryDefinition(opts) {
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
       queryRecordEntry.filter = queryDefinition.filter;
+    }
+
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      queryRecordEntry.pagination = queryDefinition.pagination;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry;
@@ -4175,7 +4208,9 @@ function generateSubscriber(mmGQLInstance) {
                 queryGQL: queryGQL,
                 queryId: queryId
               });
-              queryManager = new mmGQLInstance.QueryManager(queryRecord);
+              queryManager = new mmGQLInstance.QueryManager(queryRecord, {
+                onPaginate: opts.onPaginate
+              });
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
               // However, we must be careful to not call opts.onData with any subscription messages before the query resolves,
@@ -4300,6 +4335,84 @@ function generateSubscriber(mmGQLInstance) {
   }();
 }
 
+function getPageResults(opts) {
+  var startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
+  return Array.from(opts.items || []).slice(startIndex, startIndex + opts.itemsPerPage);
+}
+
+var NodesCollection = /*#__PURE__*/function () {
+  function NodesCollection(opts) {
+    this.itemsPerPage = void 0;
+    this.page = void 0;
+    this.onPaginate = void 0;
+    this.items = void 0;
+    this.itemsPerPage = opts.itemsPerPage;
+    this.page = opts.page;
+    this.items = opts.items;
+    this.onPaginate = opts.onPaginate;
+  }
+
+  var _proto = NodesCollection.prototype;
+
+  _proto.goToPage = function goToPage(page) {
+    if (page < 1 || page > this.totalPages) {
+      throw new NodesCollectionPageOutOfBoundsException({
+        page: page
+      });
+    }
+
+    this.page = page;
+    this.onPaginate && this.onPaginate({
+      page: page,
+      itemsPerPage: this.itemsPerPage
+    });
+  };
+
+  _proto.goToNextPage = function goToNextPage() {
+    if (!this.hasNextPage) {
+      return;
+    }
+
+    this.goToPage(this.page + 1);
+  };
+
+  _proto.goToPreviousPage = function goToPreviousPage() {
+    if (!this.hasPreviousPage) {
+      return;
+    }
+
+    this.goToPage(this.page - 1);
+  };
+
+  _createClass(NodesCollection, [{
+    key: "nodes",
+    get: function get() {
+      return getPageResults({
+        items: this.items,
+        page: this.page,
+        itemsPerPage: this.itemsPerPage
+      });
+    }
+  }, {
+    key: "totalPages",
+    get: function get() {
+      return Math.ceil((this.items || []).length / this.itemsPerPage);
+    }
+  }, {
+    key: "hasNextPage",
+    get: function get() {
+      return this.totalPages > this.page;
+    }
+  }, {
+    key: "hasPreviousPage",
+    get: function get() {
+      return this.page > 1;
+    }
+  }]);
+
+  return NodesCollection;
+}();
+
 function createQueryManager(mmGQLInstance) {
   /**
    * QueryManager is in charge of
@@ -4313,10 +4426,12 @@ function createQueryManager(mmGQLInstance) {
    *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
   return /*#__PURE__*/function () {
-    function QueryManager(queryRecord) {
+    function QueryManager(queryRecord, opts) {
       this.state = {};
       this.queryRecord = void 0;
+      this.opts = void 0;
       this.queryRecord = queryRecord;
+      this.opts = opts;
     }
 
     var _proto = QueryManager.prototype;
@@ -4367,8 +4482,16 @@ function createQueryManager(mmGQLInstance) {
         var resultsAlias = _this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          resultsAcc[resultsAlias] = idsOrId.map(function (id) {
+          var _stateForThisAlias$pa, _stateForThisAlias$pa2, _this$opts;
+
+          var ids = idsOrId.map(function (id) {
             return stateForThisAlias.proxyCache[id].proxy;
+          });
+          resultsAcc[resultsAlias] = new NodesCollection({
+            items: ids,
+            itemsPerPage: ((_stateForThisAlias$pa = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa.itemsPerPage) || ids.length,
+            page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1,
+            onPaginate: (_this$opts = _this.opts) == null ? void 0 : _this$opts.onPaginate
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
@@ -4507,13 +4630,14 @@ function createQueryManager(mmGQLInstance) {
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(node) {
         var relationalState = buildRelationalStateForNode(node);
         var nodeRepository = queryRecord[queryAlias].def.repository;
+        var relationalQueries = relational ? _this4.getApplicableRelationalQueries({
+          relationalQueries: relational,
+          nodeData: node
+        }) : null;
         var proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: relational ? _this4.getApplicableRelationalQueries({
-            relationalQueries: relational,
-            nodeData: node
-          }) : null,
+          relationalQueries: relationalQueries,
           queryId: opts.queryId,
           relationalResults: !relationalState ? null : _this4.getResultsFromState(relationalState),
           "do": nodeRepository.byId(node.id)
@@ -4552,7 +4676,8 @@ function createQueryManager(mmGQLInstance) {
             proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
               proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
               return proxyCacheAcc;
-            }, {})
+            }, {}),
+            pagination: queryRecord[opts.queryAlias].pagination
           };
         }
       } else {
@@ -5872,6 +5997,11 @@ function buildQueryDefinitionStateManager(opts) {
     opts.handlers.setQuerying(true);
     var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
       batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+      // Make sure to re-render the component on paginate
+      onPaginate: function onPaginate() {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
+      },
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];

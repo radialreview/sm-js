@@ -827,4 +827,5 @@ export declare function getMockConfig(opts?: {
     mockData?: any;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
+export declare function convertNodesCollectionValuesToArray<T extends Record<string, any>>(obj: T): Record<string, any>;
 export {};

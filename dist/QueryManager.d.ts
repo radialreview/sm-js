@@ -1,9 +1,11 @@
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry } from './types';
+import { OnPaginateCallback } from './nodesCollection';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, IQueryPagination } from './types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
     idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: QueryManagerProxyCache;
+    pagination?: IQueryPagination;
 };
 declare type QueryManagerProxyCache = Record<string, // id of the node
 QueryManagerProxyCacheEntry>;
@@ -11,10 +13,14 @@ declare type QueryManagerProxyCacheEntry = {
     proxy: IDOProxy;
     relationalState: Maybe<QueryManagerState>;
 };
+declare type QueryManagerOpts = {
+    onPaginate?: OnPaginateCallback;
+};
 export declare function createQueryManager(mmGQLInstance: IMMGQL): {
-    new (queryRecord: QueryRecord): {
+    new (queryRecord: QueryRecord, opts?: QueryManagerOpts | undefined): {
         state: QueryManagerState;
         queryRecord: QueryRecord;
+        opts: QueryManagerOpts | undefined;
         onQueryResult(opts: {
             queryResult: any;
             queryId: string;

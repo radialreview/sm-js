@@ -335,6 +335,13 @@ function getRelationalQueries(opts: {
             (relationalQueryRecord as RelationalQueryRecordEntry).filter =
               relationalQuery.queryBuilderOpts.filter;
           }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.pagination
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).pagination =
+              relationalQuery.queryBuilderOpts.pagination;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
@@ -443,6 +450,10 @@ export function getQueryRecordFromQueryDefinition<
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
       (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
+    }
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      (queryRecordEntry as QueryRecordEntry).pagination =
+        queryDefinition.pagination;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;

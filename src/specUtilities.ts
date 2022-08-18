@@ -2,6 +2,7 @@ import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
+import { isObject } from 'lodash';
 import {
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
@@ -17,6 +18,7 @@ import {
   NodeDefaultProps,
 } from './types';
 import { NULL_TAG } from './dataConversions';
+import { NodesCollection } from './nodesCollection';
 
 const userProperties = {
   firstName: data.string,
@@ -409,4 +411,25 @@ export function autoIndentGQL(gqlString: string): string {
       }${line}`;
     })
     .join('\n');
+}
+
+export function convertNodesCollectionValuesToArray<
+  T extends Record<string, any>
+>(obj: T) {
+  return Object.keys(obj).reduce((acc, key) => {
+    if (Array.isArray(acc[key])) {
+      const arrayValue = new NodesCollection({
+        items: acc[key].map((item: any) => {
+          return isObject(item)
+            ? convertNodesCollectionValuesToArray(item)
+            : item;
+        }),
+        itemsPerPage: 1,
+        page: 1,
+      });
+      acc[key] = arrayValue;
+    }
+
+    return acc;
+  }, obj as Record<string, any>);
 }
