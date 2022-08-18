@@ -76,13 +76,16 @@ export class QuerySlimmer {
   // public getSlimmedQueryAgainstInFlightQueries(newQuery: QueryRecord) {
   //   const slimmedQueryRecord: QueryRecord = {};
 
+  //   // We want to slim against an in flight query IF:
+  //   // At least one context key matches
+
   //   Object.keys(newQuery).forEach(newQueryKey => {
   //     const newQueryRecordEntry = newQuery[newQueryKey];
   //     const newQueryContextKey = this.createContextKeyForQuery(
   //       newQueryRecordEntry
   //     );
 
-  //     this.inFlightQueries.forEach(inFlightQueriesByContextKey => {
+  //     this.inFlightQueriesByContext.forEach(inFlightQueriesByContextKey => {
   //       if (inFlightQueriesByContextKey[newQueryContextKey]) {
   //         // If an in flight query is matched by context key we can try slimming the query
   //         const inFlightQuery = inFlightQueriesByContextKey[newQueryContextKey];
@@ -90,6 +93,41 @@ export class QuerySlimmer {
   //     });
   //   });
   // }
+
+  /**
+   * Returns a boolean for if a newQueryRecord should slim against an inFlightQuery.
+   * The new query should wait for an in flight query if:
+   *   - At least one ContextKey in the inFlightQuery matches a ContextKey in the newQuery.
+   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
+   */
+  // private getIfShouldSlimAgainstInFlightQuery(opts: {
+  //   newQuery: QueryRecord;
+  //   inFlightQuery: IInFlightQueryByContextMap;
+  // }) {
+  //   const newQueryContextKeys = Object.values(
+  //     opts.newQuery
+  //   ).map(newQueryRecord => this.createContextKeyForQuery(newQueryRecord));
+  //   const inFlightQueryContextKeys = Object.keys(opts.inFlightQuery);
+
+  //   const matchedContextKeys = inFlightQueryContextKeys.filter(inFlightCtxKey =>
+  //     newQueryContextKeys.includes(inFlightCtxKey)
+  //   );
+  // }
+
+  public getRelationalDepthOfQueryRecordEntry(
+    queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry
+  ) {
+    let relationalDepth = 0;
+    if (queryRecordEntry.relational !== undefined) {
+      relationalDepth += 1;
+      Object.values(queryRecordEntry.relational).forEach(relationalEntry => {
+        relationalDepth += this.getRelationalDepthOfQueryRecordEntry(
+          relationalEntry
+        );
+      });
+    }
+    return relationalDepth;
+  }
 
   // private slimNewQueryAgainstExistingQuery(
   //   newQuery: QueryRecord | RelationalQueryRecord,
