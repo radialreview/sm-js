@@ -31,6 +31,11 @@ export declare class NotCachedException extends Error {
         id: string;
     });
 }
+export declare class NodesCollectionPageOutOfBoundsException extends Error {
+    constructor(opts: {
+        page: number;
+    });
+}
 export declare class DataTypeException extends Error {
     constructor(opts: {
         dataType: string;

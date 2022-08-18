@@ -242,40 +242,49 @@ var NotCachedException = /*#__PURE__*/function (_Error5) {
 
   return NotCachedException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeException = /*#__PURE__*/function (_Error6) {
-  _inheritsLoose(DataTypeException, _Error6);
+var NodesCollectionPageOutOfBoundsException = /*#__PURE__*/function (_Error6) {
+  _inheritsLoose(NodesCollectionPageOutOfBoundsException, _Error6);
+
+  function NodesCollectionPageOutOfBoundsException(opts) {
+    return _Error6.call(this, "NodesCollectionPageOutOfBoundsException - page '" + opts.page + "' does not exist.") || this;
+  }
+
+  return NodesCollectionPageOutOfBoundsException;
+}( /*#__PURE__*/_wrapNativeSuper(Error));
+var DataTypeException = /*#__PURE__*/function (_Error7) {
+  _inheritsLoose(DataTypeException, _Error7);
 
   function DataTypeException(opts) {
-    return _Error6.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
+    return _Error7.call(this, "DataType exception - the data type " + opts.dataType + " received a bad value. Value: \"" + opts.value + "\"") || this;
   }
 
   return DataTypeException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error7) {
-  _inheritsLoose(DataTypeExplicitDefaultException, _Error7);
+var DataTypeExplicitDefaultException = /*#__PURE__*/function (_Error8) {
+  _inheritsLoose(DataTypeExplicitDefaultException, _Error8);
 
   function DataTypeExplicitDefaultException(opts) {
-    return _Error7.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
+    return _Error8.call(this, "DataTypeExplicitDefaultException - the data type " + opts.dataType + " requires setting an explicit default value for non-optional properties") || this;
   }
 
   return DataTypeExplicitDefaultException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var DataParsingException = /*#__PURE__*/function (_Error8) {
-  _inheritsLoose(DataParsingException, _Error8);
+var DataParsingException = /*#__PURE__*/function (_Error9) {
+  _inheritsLoose(DataParsingException, _Error9);
 
   function DataParsingException(opts) {
-    return _Error8.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
+    return _Error9.call(this, "DataParsing exception - " + opts.message + "\nData: " + JSON.stringify(opts.receivedData, null, 2) + ".") || this;
   }
 
   return DataParsingException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
-  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error9);
+var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error10) {
+  _inheritsLoose(UnexpectedSubscriptionMessageException, _Error10);
 
   function UnexpectedSubscriptionMessageException(exception) {
     var _this2;
 
-    _this2 = _Error9.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
+    _this2 = _Error10.call(this, "UnexpectedSubscriptionMessage exception - unexpected subscription message received") || this;
     _this2.exception = void 0;
     _this2.exception = exception;
     return _this2;
@@ -283,11 +292,11 @@ var UnexpectedSubscriptionMessageException = /*#__PURE__*/function (_Error9) {
 
   return UnexpectedSubscriptionMessageException;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
-var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error11) {
-  _inheritsLoose(FilterOperatorNotImplementedException, _Error11);
+var FilterOperatorNotImplementedException = /*#__PURE__*/function (_Error12) {
+  _inheritsLoose(FilterOperatorNotImplementedException, _Error12);
 
   function FilterOperatorNotImplementedException(exeption) {
-    return _Error11.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
+    return _Error12.call(this, "FilterOperatorNotImplementedException - '" + exeption.operator + "' operator not implemented.") || this;
   }
 
   return FilterOperatorNotImplementedException;
@@ -302,11 +311,11 @@ function throwLocallyLogInProd(error) {
   }
 } // http://ideasintosoftware.com/exhaustive-switch-in-typescript/
 
-var UnreachableCaseError = /*#__PURE__*/function (_Error12) {
-  _inheritsLoose(UnreachableCaseError, _Error12);
+var UnreachableCaseError = /*#__PURE__*/function (_Error13) {
+  _inheritsLoose(UnreachableCaseError, _Error13);
 
   function UnreachableCaseError(val) {
-    return _Error12.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
+    return _Error13.call(this, "Unreachable case: " + (typeof val === 'object' ? JSON.stringify(val, null, 2) : val)) || this;
   }
 
   return UnreachableCaseError;
@@ -4344,6 +4353,12 @@ var NodesCollection = /*#__PURE__*/function () {
   var _proto = NodesCollection.prototype;
 
   _proto.goToPage = function goToPage(page) {
+    if (page < 1 || page > this.totalPages) {
+      throw new NodesCollectionPageOutOfBoundsException({
+        page: page
+      });
+    }
+
     this.page = page;
     this.onPaginate && this.onPaginate({
       page: page,
