@@ -566,11 +566,11 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withRelationalMapFnReturningAllData.data.users.nodes[0].todos.nodes[0]
-    .id as string;
+  const todos =
+    withRelationalMapFnReturningAllData.data.users.nodes[0].todos.nodes;
+  todos[0].id as string;
   // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
-  withRelationalMapFnReturningAllData.data.users.nodes[0].todos.nodes[0]
-    .assignee.id;
+  todos[0].assignee.id;
 
   const mockNode = mmGQL.def({
     type: 'test',
