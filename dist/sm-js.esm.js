@@ -3772,6 +3772,159 @@ function getRandomItemFromArray(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+function applyClientSideFilterToData(_ref) {
+  var queryRecordEntry = _ref.queryRecordEntry,
+      data = _ref.data,
+      alias = _ref.alias,
+      queryRecordEntryFilter = _ref.filter;
+  var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+
+  if (filterObject && data[alias]) {
+    Object.keys(filterObject).forEach(function (filterPropertyName) {
+      var underscoreSeparatedPropertyPath = filterPropertyName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      var filterPropertyIsNotDefinedInTheQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropertyPath) === false;
+
+      if (filterPropertyIsNotDefinedInTheQuery) {
+        throw new FilterPropertyNotDefinedInQueryException({
+          filterPropName: filterPropertyName
+        });
+      }
+
+      if (filterPropertyName) {
+        update(data, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
+          if (!isArray(currentValue)) {
+            return currentValue;
+          }
+
+          return currentValue.filter(function (item) {
+            var propertyFilter = filterObject[filterPropertyName]; // Handle null filtering since backend returns "__NULL__" string instead of null
+
+            var value = item[underscoreSeparatedPropertyPath] === NULL_TAG ? null : item[underscoreSeparatedPropertyPath];
+            return Object.keys(propertyFilter).every(function (filterOperator) {
+              switch (filterOperator) {
+                case '_contains':
+                  {
+                    return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) !== -1;
+                  }
+
+                case '_ncontains':
+                  {
+                    return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) === -1;
+                  }
+
+                case '_eq':
+                  {
+                    return String(value).toLowerCase() === String(propertyFilter[filterOperator]).toLowerCase();
+                  }
+
+                case '_neq':
+                  return String(value).toLowerCase() !== String(propertyFilter[filterOperator]).toLowerCase();
+
+                case '_gt':
+                  return value > propertyFilter[filterOperator];
+
+                case '_gte':
+                  return value >= propertyFilter[filterOperator];
+
+                case '_lt':
+                  return value < propertyFilter[filterOperator];
+
+                case '_lte':
+                  return value <= propertyFilter[filterOperator];
+
+                default:
+                  throw new FilterOperatorNotImplementedException({
+                    operator: filterOperator
+                  });
+              }
+            });
+          });
+        });
+      }
+    });
+  }
+}
+function applyClientSideSortToData(_ref2) {
+  var queryRecordEntry = _ref2.queryRecordEntry,
+      data = _ref2.data,
+      alias = _ref2.alias,
+      queryRecordEntrySort = _ref2.sort;
+  var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
+
+  if (sortObject && data[alias]) {
+    var sorting = orderBy(Object.keys(sortObject).map(function (propertyPath, index) {
+      var underscoreSeparatedPropertyPath = propertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      return {
+        sortFn: function sortFn(item) {
+          return Number(item[underscoreSeparatedPropertyPath]) || item[underscoreSeparatedPropertyPath];
+        },
+        direction: sortObject[propertyPath]._direction || 'asc',
+        underscoreSeparatedPropertyPath: underscoreSeparatedPropertyPath,
+        propertyPath: propertyPath,
+        priority: sortObject[propertyPath]._priority || (index + 1) * 10000
+      };
+    }), function (x) {
+      return x.priority;
+    }, 'asc');
+    var sortPropertiesNotDefinedInSorting = sorting.filter(function (i) {
+      return queryRecordEntry.properties.includes(i.underscoreSeparatedPropertyPath) === false;
+    });
+
+    if (sortPropertiesNotDefinedInSorting.length > 0) {
+      throw new SortPropertyNotDefinedInQueryException({
+        sortPropName: sortPropertiesNotDefinedInSorting[0].propertyPath
+      });
+    }
+
+    update(data, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
+      if (!isArray(currentValue)) {
+        return currentValue;
+      }
+
+      return orderBy(currentValue, sorting.map(function (item) {
+        return item.sortFn;
+      }), sorting.map(function (item) {
+        return item.direction;
+      }));
+    });
+  }
+}
+function applyClientSideSortAndFilterToData(queryRecord, data) {
+  Object.keys(queryRecord).forEach(function (alias) {
+    var queryRecordEntry = queryRecord[alias];
+
+    if (queryRecordEntry.filter) {
+      applyClientSideFilterToData({
+        queryRecordEntry: queryRecordEntry,
+        filter: queryRecordEntry.filter,
+        data: data,
+        alias: alias
+      });
+    }
+
+    if (queryRecordEntry.sort) {
+      applyClientSideSortToData({
+        queryRecordEntry: queryRecordEntry,
+        sort: queryRecordEntry.sort,
+        data: data,
+        alias: alias
+      });
+    }
+
+    var relational = queryRecordEntry.relational;
+
+    if (relational != null) {
+      Object.keys(relational).forEach(function () {
+        if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
+          data[alias][NODES_PROPERTY_KEY].forEach(function (item) {
+            applyClientSideSortAndFilterToData(relational, item);
+          });
+        }
+      });
+    }
+  });
+}
+
 var queryIdx = 0;
 
 function splitQueryDefinitionsByToken(queryDefinitions) {
@@ -3814,7 +3967,7 @@ function generateQuerier(_ref4) {
       queryManager = _ref4.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, mutateResponseWithQueryRecordFiltersAndSorting, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+      var startStack, queryId, getError, getToken, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
 
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
@@ -3871,7 +4024,7 @@ function generateQuerier(_ref4) {
                                       response = _context.sent;
 
                                     case 11:
-                                      mutateResponseWithQueryRecordFiltersAndSorting(queryRecord, response);
+                                      applyClientSideSortAndFilterToData(queryRecord, response);
                                       return _context.abrupt("return", response);
 
                                     case 13:
@@ -3907,135 +4060,6 @@ function generateQuerier(_ref4) {
                 return _performQueries.apply(this, arguments);
               };
 
-              mutateResponseWithQueryRecordFiltersAndSorting = function _mutateResponseWithQu(queryRecord, responseData) {
-                Object.keys(queryRecord).forEach(function (alias) {
-                  var queryRecordEntry = queryRecord[alias];
-
-                  if (queryRecordEntry.filter) {
-                    var filterObject = getFlattenedNodeFilterObject(queryRecordEntry.filter);
-
-                    if (filterObject && responseData[alias]) {
-                      Object.keys(filterObject).forEach(function (filterPropertyName) {
-                        var underscoreSeparatedPropertyPath = filterPropertyName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-                        var filterPropertyIsNotDefinedInTheQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropertyPath) === false;
-
-                        if (filterPropertyIsNotDefinedInTheQuery) {
-                          throw new FilterPropertyNotDefinedInQueryException({
-                            filterPropName: filterPropertyName
-                          });
-                        }
-
-                        if (filterPropertyName) {
-                          update(responseData, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
-                            if (!isArray(currentValue)) {
-                              return currentValue;
-                            }
-
-                            return currentValue.filter(function (item) {
-                              var propertyFilter = filterObject[filterPropertyName]; // Handle null filtering since backend returns "__NULL__" string instead of null
-
-                              var value = item[underscoreSeparatedPropertyPath] === NULL_TAG ? null : item[underscoreSeparatedPropertyPath];
-                              return Object.keys(propertyFilter).every(function (filterOperator) {
-                                switch (filterOperator) {
-                                  case '_contains':
-                                    {
-                                      return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) !== -1;
-                                    }
-
-                                  case '_ncontains':
-                                    {
-                                      return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) === -1;
-                                    }
-
-                                  case '_eq':
-                                    {
-                                      return String(value).toLowerCase() === String(propertyFilter[filterOperator]).toLowerCase();
-                                    }
-
-                                  case '_neq':
-                                    return String(value).toLowerCase() !== String(propertyFilter[filterOperator]).toLowerCase();
-
-                                  case '_gt':
-                                    return value > propertyFilter[filterOperator];
-
-                                  case '_gte':
-                                    return value >= propertyFilter[filterOperator];
-
-                                  case '_lt':
-                                    return value < propertyFilter[filterOperator];
-
-                                  case '_lte':
-                                    return value <= propertyFilter[filterOperator];
-
-                                  default:
-                                    throw new FilterOperatorNotImplementedException({
-                                      operator: filterOperator
-                                    });
-                                }
-                              });
-                            });
-                          });
-                        }
-                      });
-                    }
-                  }
-
-                  if (queryRecordEntry.sort) {
-                    var sortObject = getFlattenedNodeSortObject(queryRecordEntry.sort);
-
-                    if (sortObject && responseData[alias]) {
-                      var sorting = orderBy(Object.keys(sortObject).map(function (propertyPath, index) {
-                        var underscoreSeparatedPropertyPath = propertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-                        return {
-                          sortFn: function sortFn(item) {
-                            return Number(item[underscoreSeparatedPropertyPath]) || item[underscoreSeparatedPropertyPath];
-                          },
-                          direction: sortObject[propertyPath]._direction || 'asc',
-                          underscoreSeparatedPropertyPath: underscoreSeparatedPropertyPath,
-                          propertyPath: propertyPath,
-                          priority: sortObject[propertyPath]._priority || (index + 1) * 10000
-                        };
-                      }), function (x) {
-                        return x.priority;
-                      }, 'asc');
-                      var sortPropertiesNotDefinedInSorting = sorting.filter(function (i) {
-                        return queryRecordEntry.properties.includes(i.underscoreSeparatedPropertyPath) === false;
-                      });
-
-                      if (sortPropertiesNotDefinedInSorting.length > 0) {
-                        throw new SortPropertyNotDefinedInQueryException({
-                          sortPropName: sortPropertiesNotDefinedInSorting[0].propertyPath
-                        });
-                      }
-
-                      update(responseData, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
-                        if (!isArray(currentValue)) {
-                          return currentValue;
-                        }
-
-                        return orderBy(currentValue, sorting.map(function (item) {
-                          return item.sortFn;
-                        }), sorting.map(function (item) {
-                          return item.direction;
-                        }));
-                      });
-                    }
-                  }
-
-                  var relational = queryRecordEntry.relational;
-
-                  if (relational != null) {
-                    Object.keys(relational).forEach(function () {
-                      if (responseData[alias] && responseData[alias][NODES_PROPERTY_KEY]) {
-                        responseData[alias][NODES_PROPERTY_KEY].forEach(function (item) {
-                          mutateResponseWithQueryRecordFiltersAndSorting(relational, item);
-                        });
-                      }
-                    });
-                  }
-                });
-              };
-
               getToken = function _getToken(tokenName) {
                 var token = mmGQLInstance.getToken({
                   tokenName: tokenName
@@ -4059,10 +4083,10 @@ function generateQuerier(_ref4) {
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
               queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
-              _context3.prev = 10;
+              _context3.prev = 9;
 
               if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context3.next = 14;
+                _context3.next = 13;
                 break;
               }
 
@@ -4074,31 +4098,31 @@ function generateQuerier(_ref4) {
                 error: undefined
               });
 
-            case 14:
-              _context3.next = 16;
+            case 13:
+              _context3.next = 15;
               return performQueries();
 
-            case 16:
+            case 15:
               results = _context3.sent;
               qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId
               }).queryRecord);
-              _context3.prev = 18;
+              _context3.prev = 17;
               qM.onQueryResult({
                 queryId: queryId,
                 queryResult: results
               });
-              _context3.next = 31;
+              _context3.next = 30;
               break;
 
-            case 22:
-              _context3.prev = 22;
-              _context3.t0 = _context3["catch"](18);
+            case 21:
+              _context3.prev = 21;
+              _context3.t0 = _context3["catch"](17);
               error = getError(new Error("Error applying query results"), _context3.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 30;
+                _context3.next = 29;
                 break;
               }
 
@@ -4108,10 +4132,10 @@ function generateQuerier(_ref4) {
                 error: error
               });
 
-            case 30:
+            case 29:
               throw error;
 
-            case 31:
+            case 30:
               qmResults = qM.getResults();
               (opts == null ? void 0 : opts.onData) && opts.onData({
                 results: _extends({}, nullishResults, qmResults)
@@ -4121,13 +4145,13 @@ function generateQuerier(_ref4) {
                 error: undefined
               });
 
-            case 36:
-              _context3.prev = 36;
-              _context3.t1 = _context3["catch"](10);
+            case 35:
+              _context3.prev = 35;
+              _context3.t1 = _context3["catch"](9);
               _error = getError(new Error("Error querying data"), _context3.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 44;
+                _context3.next = 43;
                 break;
               }
 
@@ -4137,15 +4161,15 @@ function generateQuerier(_ref4) {
                 error: _error
               });
 
-            case 44:
+            case 43:
               throw _error;
 
-            case 45:
+            case 44:
             case "end":
               return _context3.stop();
           }
         }
-      }, _callee3, null, [[10, 36], [18, 22]]);
+      }, _callee3, null, [[9, 35], [17, 21]]);
     }));
 
     function query(_x, _x2) {
