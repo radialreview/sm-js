@@ -242,30 +242,38 @@ export type GetParsedValueTypeFromDefaultFn<
    *   flag: boolean, // boolean and string native types from TS
    *   name: string
    * }
-   * 
-   * setting TFilter to true
-   * 
-   * will return 
-   * 
-   * {
-   *   flag: Record<FilterCondition, boolean>
-   *   name: Record<FilterCondition, string>
-   * }
    */
-export type GetResultingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>, TFilter = false> =  {
+export type GetResultingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> =  {
   [key in keyof TProperties]:
     TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue>
       ? TBoxedValue extends Record<string, IData | DataDefaultFn>
         ? IsMaybe<TParsedValue> extends true
-          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}, TFilter>>
-          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}, TFilter>
+          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>
         : TParsedValue extends Array<infer TArrayItemType>
           ? IsMaybe<TParsedValue> extends true
             ? Maybe<Array<TArrayItemType>>
             : Array<TArrayItemType>
-          : TFilter extends true ? FilterValue<TParsedValue> : TParsedValue
+          : TParsedValue
       : TProperties[key] extends DataDefaultFn
-        ?  TFilter extends true ? FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>> : GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        ?  GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        : never;
+}
+
+export type GetResultingFilterDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> =  {
+  [key in keyof TProperties]:
+    TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, IData | DataDefaultFn>
+        ? IsMaybe<TParsedValue> extends true
+          ? Maybe<GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>>
+          : GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>
+        : TParsedValue extends Array<infer TArrayItemType>
+          ? IsMaybe<TParsedValue> extends true
+            ? Maybe<Array<TArrayItemType>>
+            : Array<TArrayItemType>
+          : FilterValue<TParsedValue>
+      : TProperties[key] extends DataDefaultFn
+        ?  FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>>
         : never;
 }
 
@@ -274,7 +282,8 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
 
 export type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>
 
-export type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode, TFilter = false> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties, TFilter> : never
+export type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -289,8 +298,12 @@ export type GetAllAvailableNodeDataType<
 type GetAllAvailableNodeDataTypeWithoutDefaultProps<
   TSMData extends Record<string, IData | DataDefaultFn>,
   TComputedData extends Record<string, any>,
-  TFilter = false
-> = GetResultingDataTypeFromProperties<TSMData, TFilter> & TComputedData;
+> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+
+type GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<
+  TSMData extends Record<string, IData | DataDefaultFn>,
+  TComputedData extends Record<string, any>,
+> = GetResultingFilterDataTypeFromProperties<TSMData> & TComputedData;
 
 
 /**
@@ -531,8 +544,8 @@ export type ValidFilterForNode<TNode extends INode> = DeepPartial<{
             ? never
             : TKey
           : TKey  
-  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TNode, true>
-    ? GetResultingDataTypeFromNodeDefinition<TNode, true>[TKey]
+  ]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode>
+    ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey]
     : never
 }>
 
