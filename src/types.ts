@@ -1,3 +1,4 @@
+import { OnPaginateCallback, NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -118,6 +119,7 @@ export type SubscriptionOpts<
     queryGQL: DocumentNode;
     queryId: string;
   }) => void;
+  onPaginate?: OnPaginateCallback
   skipInitialQuery?: boolean;
   queryId?: string;
   batchKey?: string;
@@ -277,13 +279,33 @@ export type GetResultingFilterDataTypeFromProperties<TProperties extends Record<
         : never;
 }
 
+export type GetSortingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> =  {
+  [key in keyof TProperties]:
+    TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, IData | DataDefaultFn>
+        ? IsMaybe<TParsedValue> extends true
+          ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}>>
+          : GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}>
+        : TParsedValue extends Array<infer TArrayItemType>
+          ? IsMaybe<TParsedValue> extends true
+            ? Maybe<Array<TArrayItemType>>
+            : Array<TArrayItemType>
+          : SortValue
+      : TProperties[key] extends DataDefaultFn
+        ?  SortValue
+        : never;
+}
 
 
 
+export type SortDirection = 'asc' | 'desc'
 export type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>
+export type SortObject = {_direction: SortDirection, _priority?: number}
+export type SortValue = SortDirection | SortObject
 
 export type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
 export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never
+export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetSortingDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -294,6 +316,11 @@ export type GetAllAvailableNodeDataType<
   TData extends Record<string, IData | DataDefaultFn>,
   TComputedData extends Record<string, any>
 > = GetResultingDataTypeFromProperties<TData & NodeDefaultProps> & TComputedData;
+
+type GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<
+  TSMData extends Record<string, IData | DataDefaultFn>,
+  TComputedData extends Record<string, any>,
+> = GetSortingDataTypeFromProperties<TSMData> & TComputedData;
 
 type GetAllAvailableNodeDataTypeWithoutDefaultProps<
   TSMData extends Record<string, IData | DataDefaultFn>,
@@ -439,6 +466,8 @@ export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INo
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
       filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
+      pagination?: IQueryPagination
+      sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
@@ -484,7 +513,10 @@ export enum RELATIONAL_TYPES {
   oneToMany = 'otM',
 }
 
-export interface IQueryPagination {}
+export interface IQueryPagination {
+  itemsPerPage: number
+  page: number
+}
 
 export type NodeRelationalQueryBuilderRecord = Record<
   string,
@@ -549,6 +581,27 @@ export type ValidFilterForNode<TNode extends INode> = DeepPartial<{
     : never
 }>
 
+export type ValidSortForNode<TNode extends INode> = DeepPartial<{
+  [
+    TKey in keyof ExtractNodeData<TNode> as
+      ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue>
+        ? IsArray<TDataParsedValueType> extends true
+          ? never
+          : TBoxedValue extends undefined 
+            ? TKey
+            : TBoxedValue extends Record<string, IData | DataDefaultFn>
+              ? TKey
+              : never
+        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
+            ? never
+            : TKey
+          : TKey  
+  ]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode>
+    ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey]
+    : never
+}>
+
 export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
@@ -562,7 +615,9 @@ export type QueryDefinition<
   def: TNode;
   map: TMapFn;
   filter?: ValidFilterForNode<TNode>
+  sort?: ValidSortForNode<TNode>
   target?: TQueryDefinitionTarget
+  pagination?: IQueryPagination
   tokenName?: string
 };
 
@@ -638,7 +693,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TNode>
-          : Array<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
+          : NodesCollection<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
         : never
       : never
     : never
@@ -824,20 +879,20 @@ type ExtractQueriedDataFromOneToManyQuery<
     ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true
       ? TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> }
-          ? Maybe<Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>>
+          ? Maybe<NodesCollection<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>>
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
           ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
+            ? Maybe<NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>>
             : never
           : never
       : TTargetNodeOrTargetNodeRecord extends INode
         ? TQueryBuilderOpts extends { map: MapFnForNode<TTargetNodeOrTargetNodeRecord> }
-          ? Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>>
+          ? NodesCollection<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>>
           : never
         : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
         ? TQueryBuilderOpts extends { [key in keyof TTargetNodeOrTargetNodeRecord]: {map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>} }
-            ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
+            ? NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>
             : never
           : never
     : never
@@ -925,10 +980,13 @@ export type BaseQueryRecordEntry = {
   def: INode;
   properties: Array<string>;
   filter?: ValidFilterForNode<INode>
+  sort?: ValidFilterForNode<INode>
+  pagination?: IQueryPagination
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
+  pagination?: IQueryPagination
   ids?: Array<string> 
   id?: string
   allowNullResult?: boolean

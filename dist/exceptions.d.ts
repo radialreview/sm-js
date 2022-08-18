@@ -20,6 +20,11 @@ export declare class FilterPropertyNotDefinedInQueryException extends Error {
         filterPropName: string;
     });
 }
+export declare class SortPropertyNotDefinedInQueryException extends Error {
+    constructor(opts: {
+        sortPropName: string;
+    });
+}
 export declare class ImpliedNodePropertyException extends Error {
     constructor(opts: {
         propName: string;
@@ -29,6 +34,11 @@ export declare class NotCachedException extends Error {
     constructor(opts: {
         nodeType: string;
         id: string;
+    });
+}
+export declare class NodesCollectionPageOutOfBoundsException extends Error {
+    constructor(opts: {
+        page: number;
     });
 }
 export declare class DataTypeException extends Error {
