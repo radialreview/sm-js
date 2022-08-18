@@ -857,10 +857,11 @@ test(`sm.query.filter should throw an error if property being filtered is not de
     await mmGQLInstance.query({
       users: queryDefinition({
         def: generateUserNode(mmGQLInstance),
-        map: ({ id }) => ({
+        map: ({ id, address }) => ({
           id,
-          // @ts-ignore-error
-          address: ({ state }) => ({ state }),
+          address: address({
+            map: ({ state }) => ({ state }),
+          }),
         }),
         filter: {
           score: { _gte: 20 },
