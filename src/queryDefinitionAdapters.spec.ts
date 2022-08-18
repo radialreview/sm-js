@@ -596,7 +596,8 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  it('supports filters', () => {
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  it.skip('supports filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
@@ -623,7 +624,8 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  it('supports filters for nested properties', () => {
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  it.skip('supports filters for nested properties', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
 
     expect(
