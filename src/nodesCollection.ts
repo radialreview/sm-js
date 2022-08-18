@@ -1,3 +1,5 @@
+import { NodesCollectionPageOutOfBoundsException } from './exceptions';
+
 function getPageResults<T>(opts: {
   items: T[];
   page: number;
@@ -47,6 +49,9 @@ export class NodesCollection<T> {
   }
 
   public goToPage(page: number) {
+    if (page < 1 || page > this.totalPages) {
+      throw new NodesCollectionPageOutOfBoundsException({ page });
+    }
     this.page = page;
     this.onPaginate &&
       this.onPaginate({ page, itemsPerPage: this.itemsPerPage });

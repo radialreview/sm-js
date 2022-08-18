@@ -994,7 +994,7 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
   expect(data.users.hasNextPage).toBe(false);
 });
 
-test(`query.pagination 'hasPreviousPage' is set to 'false' if there are previous pages to paginate`, async () => {
+test(`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -1392,6 +1392,40 @@ test(`query.pagination can paginate relational data`, async () => {
   data.users.nodes[0].todos.goToNextPage();
   expect(data.users.nodes[0].todos.nodes.length).toBe(1);
   expect(data.users.nodes[0].todos.nodes[0].task).toBe('2');
+});
+
+test(`query.pagination goToPage should throw an error if page is less than 1 or greater than the totalPages`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+        },
+        {
+          firstName: '2',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      pagination: {
+        itemsPerPage: 2,
+        page: 1,
+      },
+      map: ({ id, firstName }) => ({
+        id,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(() => data.users.goToPage(2)).toThrowError(
+    `NodesCollectionPageOutOfBoundsException - page '2' does not exist.`
+  );
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
