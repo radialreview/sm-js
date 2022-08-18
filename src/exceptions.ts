@@ -2,6 +2,7 @@
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
 // this is done automatically by data fetchers, smQuery and smSubscribe
+import { FilterOperator } from './types';
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
 export class NotUpToDateException extends Error {
   public propName: string;
@@ -23,6 +24,14 @@ export class NotUpToDateInComputedException extends Error {
   }) {
     super(
       `NotUpToDateInComputed exception - The property "${opts.propName}" on the DO for the node type "${opts.nodeType}" was read for the computed property "${opts.computedPropName}" but is not guaranteed to be up to date. Add that property to the query with the id ${opts.queryId}`
+    );
+  }
+}
+
+export class FilterPropertyNotDefinedInQueryException extends Error {
+  constructor(opts: { filterPropName: string }) {
+    super(
+      `FilterPropertyNotDefinedInQueryException exception - The filter property '${opts.filterPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
     );
   }
 }
@@ -99,6 +108,14 @@ export class UnexpectedQueryResultException extends Error {
   }) {
     super(`UnexpectedQueryResult exception - unexpected query result received`);
     this.exception = exception;
+  }
+}
+
+export class FilterOperatorNotImplementedException extends Error {
+  constructor(exeption: { operator: FilterOperator }) {
+    super(
+      `FilterOperatorNotImplementedException - '${exeption.operator}' operator not implemented.`
+    );
   }
 }
 

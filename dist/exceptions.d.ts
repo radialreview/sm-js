@@ -1,3 +1,4 @@
+import { FilterOperator } from './types';
 export declare class NotUpToDateException extends Error {
     propName: string;
     constructor(opts: {
@@ -12,6 +13,11 @@ export declare class NotUpToDateInComputedException extends Error {
         propName: string;
         nodeType: string;
         queryId: string;
+    });
+}
+export declare class FilterPropertyNotDefinedInQueryException extends Error {
+    constructor(opts: {
+        filterPropName: string;
     });
 }
 export declare class ImpliedNodePropertyException extends Error {
@@ -60,6 +66,11 @@ export declare class UnexpectedQueryResultException extends Error {
     constructor(exception: {
         queryRecord: Record<string, any>;
         resultData: Record<string, any>;
+    });
+}
+export declare class FilterOperatorNotImplementedException extends Error {
+    constructor(exeption: {
+        operator: FilterOperator;
     });
 }
 export declare function throwLocallyLogInProd(error: Error): void;

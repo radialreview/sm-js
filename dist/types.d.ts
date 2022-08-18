@@ -173,13 +173,19 @@ export declare type GetParsedValueTypeFromDefaultFn<TDefaultFn extends (_default
 export declare type GetResultingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
     [key in keyof TProperties]: TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, IData | DataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}>> : GetAllAvailableNodeDataTypeWithoutDefaultProps<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : TParsedValue : TProperties[key] extends DataDefaultFn ? GetParsedValueTypeFromDefaultFn<TProperties[key]> : never;
 };
-export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
+export declare type GetResultingFilterDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
+    [key in keyof TProperties]: TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, IData | DataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>> : GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : FilterValue<TParsedValue> : TProperties[key] extends DataDefaultFn ? FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>> : never;
+};
+export declare type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>;
+export declare type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
+export declare type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never;
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
 export declare type GetAllAvailableNodeDataType<TData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TData & NodeDefaultProps> & TComputedData;
-declare type GetAllAvailableNodeDataTypeWithoutDefaultProps<TData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TData> & TComputedData;
+declare type GetAllAvailableNodeDataTypeWithoutDefaultProps<TSMData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+declare type GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TSMData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingFilterDataTypeFromProperties<TSMData> & TComputedData;
 /**
  * Takes in any object and returns a Partial of that object type
  * for nested objects, those will also be turned into partials
@@ -254,6 +260,7 @@ export interface IOneToOneQuery<TTargetNodeOrTargetNodeRecord extends INode | Ma
 }
 export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> = TTargetNodeOrTargetNodeRecord extends INode ? {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+    filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>;
 } : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? {
     [Tkey in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]>;
@@ -298,13 +305,30 @@ export interface INodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
+export declare type FilterOperator = 
+/** greater than or equal */
+'_gte' | 
+/** less than or equal */
+'_lte' | 
+/** equal */
+'_eq' | 
+/** greater than */
+'_gt' | 
+/** less than */
+'_lt' | 
+/** not equal */
+'_neq' | 
+/** contains */
+'_contains' | 
+/** does not contain */
+'_ncontains';
 /**
  * Returns the valid filter for a node
  * excluding properties which are arrays and records
  * and including properties which are nested in objects
  */
 export declare type ValidFilterForNode<TNode extends INode> = DeepPartial<{
-    [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue> ? IsArray<TDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TNode> ? GetResultingDataTypeFromNodeDefinition<TNode>[TKey] : never;
+    [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue> ? IsArray<TDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode> ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
 export declare type QueryDefinitionTarget = {
     id: string;
@@ -457,6 +481,7 @@ declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INod
 export declare type BaseQueryRecordEntry = {
     def: INode;
     properties: Array<string>;
+    filter?: ValidFilterForNode<INode>;
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
@@ -472,6 +497,7 @@ export declare type RelationalQueryRecordEntry = {
     oneToMany: true;
 }));
 export declare type QueryRecord = Record<string, QueryRecordEntry>;
+export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
 }

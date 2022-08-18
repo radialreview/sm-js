@@ -16,10 +16,14 @@ import {
   QueryDefinitionTarget,
   NodeDefaultProps,
 } from './types';
+import { NULL_TAG } from './dataConversions';
 
 const userProperties = {
   firstName: data.string,
   lastName: data.string('joe'),
+  score: data.number,
+  archived: data.boolean(false),
+  optionalProp: data.string.optional,
   address: data.object({
     streetName: data.string,
     zipCode: data.string,
@@ -43,8 +47,7 @@ export type UserNode = INode<
   'user',
   UserProperties,
   { displayName: string },
-  UserRelationalData,
-  {}
+  UserRelationalData
 >;
 
 // factory functions so that tests don't share DO repositories
@@ -86,12 +89,14 @@ const todoProperties = {
   dataSetIds: data.array(data.string),
   comments: data.array(data.string.optional).optional,
   record: data.record(data.string),
+  numberProp: data.number,
 };
 
 export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
   assignee: IOneToOneQueryBuilder<UserNode>;
+  users: IOneToManyQueryBuilder<UserNode>;
 };
 
 export type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
@@ -105,6 +110,7 @@ export function generateTodoNode(
     properties: todoProperties,
     relational: {
       assignee: () => data.oneToOne<UserNode>(userNode),
+      users: () => data.oneToMany<UserNode>(userNode),
     },
   }) as TodoNode;
 
@@ -188,6 +194,52 @@ export function createMockQueryDefinitions(
     }),
   };
 }
+
+export const mockTodoData = {
+  version: '1',
+  id: 'mock-todo-id',
+  type: 'todo',
+  task: 'My Todo',
+  numberProp: 10,
+  users: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+    {
+      id: 'mock-user-id-2',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'John',
+    },
+  ],
+  assignee: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+  ],
+};
+
+export const mockUserData = {
+  id: 'mock-user-id',
+  type: 'user',
+  version: '1',
+  address: '__object__',
+  address__dot__state: 'FL',
+  address__dot__apt: '__object__',
+  address__dot__apt__dot__floor: '1',
+  address__dot__apt__dot__number: '1',
+  firstName: 'Paul',
+  optionalProp: NULL_TAG,
+  score: 12,
+  archived: false,
+  todos: [mockTodoData],
+};
 
 export const mockQueryDataReturn = {
   users: {
@@ -298,10 +350,14 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
   };
 }
 
-export function getMockConfig(opts?: { generateMockData: boolean }): Config {
+export function getMockConfig(opts?: {
+  generateMockData: boolean;
+  mockData?: any;
+}): Config {
   return {
     gqlClient: {
-      query: () => new Promise(res => res(mockQueryDataReturn)),
+      query: () =>
+        new Promise(res => res(opts?.mockData ?? mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },

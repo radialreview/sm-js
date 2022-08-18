@@ -54,7 +54,7 @@ export declare const array: <TBoxedValue extends IData<any, any, any> | DataDefa
     optional: Data<Maybe<GetDataType<TBoxedValue>[]>, Maybe<GetDataType<TBoxedValue>[]>, TBoxedValue>;
     _default: Data<GetDataType<TBoxedValue>[], GetDataType<TBoxedValue>[], TBoxedValue>;
 };
-export declare const oneToOne: <TTargetNodeOrTargetNodeRecord extends INode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+export declare const oneToOne: <TTargetNodeOrTargetNodeRecord extends INode<any, {}, {}, {}, import("./types").NodeComputedFns<{
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): Data<TStringType, TStringType, undefined>;
         _default: Data<"", "", undefined>;
@@ -80,7 +80,7 @@ export declare const oneToOne: <TTargetNodeOrTargetNodeRecord extends INode<any,
         _default: Data<number, string, undefined>;
         optional: Data<Maybe<number>, Maybe<string>, undefined>;
     };
-}, {}>, import("./types").NodeDO> | Record<string, INode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+}, {}>, import("./types").NodeDO> | Record<string, INode<any, {}, {}, {}, import("./types").NodeComputedFns<{
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): Data<TStringType, TStringType, undefined>;
         _default: Data<"", "", undefined>;
@@ -107,7 +107,7 @@ export declare const oneToOne: <TTargetNodeOrTargetNodeRecord extends INode<any,
         optional: Data<Maybe<number>, Maybe<string>, undefined>;
     };
 }, {}>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>;
-export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any, {}, {}, {}, import("./types").NodeComputedFns<{
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): Data<TStringType, TStringType, undefined>;
         _default: Data<"", "", undefined>;
@@ -133,7 +133,7 @@ export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any
         _default: Data<number, string, undefined>;
         optional: Data<Maybe<number>, Maybe<string>, undefined>;
     };
-}, {}>, import("./types").NodeDO> | Record<string, INode<any, {}, {}, {}, {}, import("./types").NodeComputedFns<{
+}, {}>, import("./types").NodeDO> | Record<string, INode<any, {}, {}, {}, import("./types").NodeComputedFns<{
     id: {
         <TStringType extends string = string>(defaultValue: TStringType): Data<TStringType, TStringType, undefined>;
         _default: Data<"", "", undefined>;

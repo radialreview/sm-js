@@ -256,11 +256,34 @@ export type GetResultingDataTypeFromProperties<TProperties extends Record<string
             : Array<TArrayItemType>
           : TParsedValue
       : TProperties[key] extends DataDefaultFn
-        ? GetParsedValueTypeFromDefaultFn<TProperties[key]>
+        ?  GetParsedValueTypeFromDefaultFn<TProperties[key]>
         : never;
 }
 
-export type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingFilterDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> =  {
+  [key in keyof TProperties]:
+    TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue>
+      ? TBoxedValue extends Record<string, IData | DataDefaultFn>
+        ? IsMaybe<TParsedValue> extends true
+          ? Maybe<GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>>
+          : GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>
+        : TParsedValue extends Array<infer TArrayItemType>
+          ? IsMaybe<TParsedValue> extends true
+            ? Maybe<Array<TArrayItemType>>
+            : Array<TArrayItemType>
+          : FilterValue<TParsedValue>
+      : TProperties[key] extends DataDefaultFn
+        ?  FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>>
+        : never;
+}
+
+
+
+
+export type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>
+
+export type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never
+export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -273,9 +296,14 @@ export type GetAllAvailableNodeDataType<
 > = GetResultingDataTypeFromProperties<TData & NodeDefaultProps> & TComputedData;
 
 type GetAllAvailableNodeDataTypeWithoutDefaultProps<
-  TData extends Record<string, IData | DataDefaultFn>,
-  TComputedData extends Record<string, any>
-> = GetResultingDataTypeFromProperties<TData> & TComputedData;
+  TSMData extends Record<string, IData | DataDefaultFn>,
+  TComputedData extends Record<string, any>,
+> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
+
+type GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<
+  TSMData extends Record<string, IData | DataDefaultFn>,
+  TComputedData extends Record<string, any>,
+> = GetResultingFilterDataTypeFromProperties<TSMData> & TComputedData;
 
 
 /**
@@ -410,7 +438,7 @@ export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INo
   TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-      // @TODO add filtering and pagination here
+      filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
@@ -477,6 +505,24 @@ export interface INodeRepository {
   onNodeDeleted(id: string): void;
 }
 
+export type FilterOperator = 
+/** greater than or equal */
+'_gte' | 
+/** less than or equal */
+'_lte' | 
+/** equal */
+'_eq' | 
+/** greater than */
+'_gt' | 
+/** less than */
+'_lt' | 
+/** not equal */
+'_neq' | 
+/** contains */
+'_contains' | 
+/** does not contain */
+'_ncontains'
+
 /**
  * Returns the valid filter for a node
  * excluding properties which are arrays and records
@@ -498,8 +544,8 @@ export type ValidFilterForNode<TNode extends INode> = DeepPartial<{
             ? never
             : TKey
           : TKey  
-  ]: TKey extends keyof GetResultingDataTypeFromNodeDefinition<TNode>
-    ? GetResultingDataTypeFromNodeDefinition<TNode>[TKey]
+  ]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode>
+    ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey]
     : never
 }>
 
@@ -576,6 +622,8 @@ export type QueryDataReturn<
     ? Maybe<GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>>
     : GetResultingDataFromQueryDefinition<TQueryDefinitions[Key]>
 };
+
+
 
 export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDefinition<any,any,any> | INode | null> = TQueryDefinition extends {
   map: MapFn<any, any, any>;
@@ -876,6 +924,7 @@ type ExtractNodeRelationalData<
 export type BaseQueryRecordEntry = {
   def: INode;
   properties: Array<string>;
+  filter?: ValidFilterForNode<INode>
   relational?: Record<string, RelationalQueryRecordEntry>;
 };
 

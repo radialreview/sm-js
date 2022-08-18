@@ -296,6 +296,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             ...PROPERTIES_QUERIED_FOR_ALL_NODES,
             'firstName',
             'lastName',
+            'score',
+            'archived',
+            'optionalProp',
             'address',
             'address__dot__streetName',
             'address__dot__zipCode',
@@ -541,6 +544,7 @@ describe('getQueryInfo.queryGQLString', () => {
             dataSetIds,
             comments,
             record,
+            numberProp,
             dateCreated,
             dateLastModified,
             lastUpdatedClientTimestamp
@@ -582,6 +586,7 @@ describe('getQueryInfo.queryGQLString', () => {
             dataSetIds,
             comments,
             record,
+            numberProp,
             dateCreated,
             dateLastModified,
             lastUpdatedClientTimestamp
@@ -591,7 +596,8 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  it('supports filters', () => {
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  it.skip('supports filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
@@ -618,7 +624,8 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  it('supports filters for nested properties', () => {
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  it.skip('supports filters for nested properties', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
 
     expect(

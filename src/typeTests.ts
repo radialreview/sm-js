@@ -285,11 +285,11 @@ const stateNode: StateNode = mmGQL.def({
   invalidNestedProp;
 
   const filter1: ValidFilterForNode<UserNode> = {
-    firstName: 'some first name',
+    firstName: { _contains: 's' },
   };
   filter1;
   const filter2: ValidFilterForNode<UserNode> = {
-    address: { state: 'some state' },
+    address: { state: { _contains: 's' }, nestedInAddress: {} },
   };
   filter2;
   const filter3: ValidFilterForNode<UserNode> = {
@@ -303,15 +303,15 @@ const stateNode: StateNode = mmGQL.def({
   };
   filter4;
   const filter5: ValidFilterForNode<UserNode> = {
-    bool: true,
+    bool: { _eq: true },
   };
   filter5;
   const filter6: ValidFilterForNode<UserNode> = {
-    maybeBool: null,
+    maybeBool: { _eq: null },
   };
   filter6;
   const filter7: ValidFilterForNode<UserNode> = {
-    maybeStr: null,
+    maybeStr: { _eq: null },
   };
   filter7;
 })();
@@ -418,7 +418,9 @@ const stateNode: StateNode = mmGQL.def({
       def: userNode,
       map: userData => ({ id: userData.id }),
       filter: {
-        firstName: 'Meida',
+        firstName: {
+          _eq: 'Meida',
+        },
       },
     }),
   });

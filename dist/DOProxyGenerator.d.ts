@@ -1,6 +1,6 @@
 import { IMMGQL, IData, DataDefaultFn, IDOProxy, INode, NodeDO, Maybe, RelationalQueryRecordEntry } from './types';
 export declare function createDOProxyGenerator(mmGQLInstance: IMMGQL): <TNodeType extends string, TNodeData extends Record<string, IData<any, any, any> | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TRelationalResults extends Record<string, IDOProxy | IDOProxy[]>>(opts: {
-    node: INode<TNodeType, TNodeData, TNodeComputedData, {}, {}, import("./types").NodeComputedFns<TNodeData & {
+    node: INode<TNodeType, TNodeData, TNodeComputedData, {}, import("./types").NodeComputedFns<TNodeData & {
         id: {
             <TStringType extends string = string>(defaultValue: TStringType): import("./dataTypes").Data<TStringType, TStringType, undefined>;
             _default: import("./dataTypes").Data<"", "", undefined>;

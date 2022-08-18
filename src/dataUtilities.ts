@@ -1,4 +1,11 @@
 import { isArray, isObject } from 'lodash';
+import { FILTER_OPERATORS } from './consts';
+import {
+  FilterOperator,
+  FilterValue,
+  INode,
+  ValidFilterForNode,
+} from './types';
 
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
@@ -163,4 +170,66 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
     }
   }
   return valuesByKeyPath;
+}
+
+/**
+ * Returns flattened keys of the filter object
+ *
+ * ```
+ * getFlattenedNodeFilterObject({
+ *  settings: {
+ *    time: {_lte: Date.now()},
+ *    nested: {
+ *      prop: {_contains: "text"}
+ *    }
+ *  },
+ *  firstName: {_eq: 'John'}
+ * })
+ * ```
+ *
+ * Returns
+ *
+ * ```
+ * {
+ *  "settings.time": {_lte: Date.now()},
+ *  "settings.nested.prop": {_contains: "text"},
+ *  "firstName": {_eq: 'John'}
+ * }
+ * ```
+ * @param filterObject : ;
+ * @returns
+ */
+export function getFlattenedNodeFilterObject<TNode extends INode>(
+  filterObject: ValidFilterForNode<TNode>
+) {
+  const result: Record<string, FilterValue<any>> = {};
+
+  for (const i in filterObject) {
+    const value = filterObject[i] as any;
+    const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
+      condition => isObject(value) && !value.hasOwnProperty(condition)
+    );
+    if (
+      typeof filterObject[i] == 'object' &&
+      filterObject[i] !== null &&
+      valueIsNotAFilterCondition
+    ) {
+      const flatObject = getFlattenedNodeFilterObject(value);
+      for (const x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      if (isObject(value)) {
+        result[i] = value;
+      } else {
+        const filter: Partial<Record<FilterOperator, any>> = {
+          _eq: value,
+        };
+        result[i] = filter;
+      }
+    }
+  }
+  return result;
 }

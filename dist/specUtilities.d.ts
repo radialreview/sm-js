@@ -8,6 +8,13 @@ declare const userProperties: {
         optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     };
     lastName: data.Data<"joe", "joe", undefined>;
+    score: {
+        (defaultValue: number): data.Data<number, string, undefined>;
+        _default: data.Data<number, string, undefined>;
+        optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
+    archived: IData<boolean, string | boolean, undefined>;
+    optionalProp: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     address: data.Data<import("./types").GetResultingDataTypeFromProperties<{
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
@@ -166,7 +173,7 @@ declare type UserRelationalData = {
 };
 export declare type UserNode = INode<'user', UserProperties, {
     displayName: string;
-}, UserRelationalData, {}>;
+}, UserRelationalData>;
 export declare function generateUserNode(mmGQLInstance: IMMGQL, cachedTodoNode?: TodoNode): UserNode;
 declare const todoProperties: {
     task: {
@@ -235,10 +242,16 @@ declare const todoProperties: {
         _default: data.Data<"", "", undefined>;
         optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
     }>;
+    numberProp: {
+        (defaultValue: number): data.Data<number, string, undefined>;
+        _default: data.Data<number, string, undefined>;
+        optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+    };
 };
 export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
     assignee: IOneToOneQueryBuilder<UserNode>;
+    users: IOneToManyQueryBuilder<UserNode>;
 };
 export declare type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
 export declare function generateTodoNode(mmGQLInstance: IMMGQL, cachedUserNode?: UserNode): TodoNode;
@@ -267,6 +280,13 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
             optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         };
         lastName: data.Data<"joe", "joe", undefined>;
+        score: {
+            (defaultValue: number): data.Data<number, string, undefined>;
+            _default: data.Data<number, string, undefined>;
+            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+        };
+        archived: IData<boolean, string | boolean, undefined>;
+        optionalProp: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         address: <TMapFn extends import("./types").MapFn<{
             streetName: {
                 <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
@@ -511,6 +531,11 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                     _default: data.Data<"", "", undefined>;
                     optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                 }>;
+                numberProp: {
+                    (defaultValue: number): data.Data<number, string, undefined>;
+                    _default: data.Data<number, string, undefined>;
+                    optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                };
                 id: {
                     <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
                     _default: data.Data<"", "", undefined>;
@@ -550,6 +575,13 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             optional: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         };
                         lastName: data.Data<"joe", "joe", undefined>;
+                        score: {
+                            (defaultValue: number): data.Data<number, string, undefined>;
+                            _default: data.Data<number, string, undefined>;
+                            optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
+                        };
+                        archived: IData<boolean, string | boolean, undefined>;
+                        optionalProp: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                         address: <TMapFn extends import("./types").MapFn<{
                             streetName: {
                                 <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
@@ -652,6 +684,58 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
         doNotSuspend: boolean | undefined;
     }>;
 };
+export declare const mockTodoData: {
+    version: string;
+    id: string;
+    type: string;
+    task: string;
+    numberProp: number;
+    users: {
+        id: string;
+        type: string;
+        version: string;
+        firstName: string;
+    }[];
+    assignee: {
+        id: string;
+        type: string;
+        version: string;
+        firstName: string;
+    }[];
+};
+export declare const mockUserData: {
+    id: string;
+    type: string;
+    version: string;
+    address: string;
+    address__dot__state: string;
+    address__dot__apt: string;
+    address__dot__apt__dot__floor: string;
+    address__dot__apt__dot__number: string;
+    firstName: string;
+    optionalProp: string;
+    score: number;
+    archived: boolean;
+    todos: {
+        version: string;
+        id: string;
+        type: string;
+        task: string;
+        numberProp: number;
+        users: {
+            id: string;
+            type: string;
+            version: string;
+            firstName: string;
+        }[];
+        assignee: {
+            id: string;
+            type: string;
+            version: string;
+            firstName: string;
+        }[];
+    }[];
+};
 export declare const mockQueryDataReturn: {
     users: {
         nodes: {
@@ -740,6 +824,7 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
 };
 export declare function getMockConfig(opts?: {
     generateMockData: boolean;
+    mockData?: any;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
 export {};

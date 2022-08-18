@@ -25,7 +25,8 @@ import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-
+import { getFlattenedNodeFilterObject } from './dataUtilities';
+import { set as lodashSet } from 'lodash';
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -327,6 +328,13 @@ function getRelationalQueries(opts: {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             oneToMany: true;
           }).oneToMany = true;
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.filter
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter =
+              relationalQuery.queryBuilderOpts.filter;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
@@ -434,8 +442,7 @@ export function getQueryRecordFromQueryDefinition<
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
-      (queryRecordEntry as QueryRecordEntry & { filter: any }).filter =
-        queryDefinition.filter;
+      (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
@@ -450,7 +457,20 @@ function getIdsString(ids: Array<string>) {
 export function getKeyValueFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
-  const convertedToDotFormat = prepareObjectForBE(filter, {
+  const flattenedFilters = getFlattenedNodeFilterObject(filter);
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  // Adding '{} || ' temporarily disable all server filters
+  // Remove those line once backend filters are ready
+  const filtersWithEqualCondition = Object.keys({} || flattenedFilters)
+    .filter(x => {
+      return flattenedFilters[x]._eq !== undefined;
+    })
+    .reduce((acc, current) => {
+      lodashSet(acc, current, flattenedFilters[current]._eq);
+      return acc;
+    }, {} as ValidFilterForNode<TNode>);
+
+  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
     omitObjectIdentifier: true,
   });
   return `{${Object.entries(convertedToDotFormat).reduce(
