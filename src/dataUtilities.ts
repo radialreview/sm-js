@@ -4,9 +4,13 @@ import {
   FilterOperator,
   FilterValue,
   INode,
+<<<<<<< HEAD
   SortObject,
   ValidFilterForNode,
   ValidSortForNode,
+=======
+  ValidFilterForNode,
+>>>>>>> origin/mm-gql
 } from './types';
 
 /**

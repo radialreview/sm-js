@@ -1,4 +1,4 @@
-import { DEFAULT_TOKEN_NAME } from './consts';
+import { DEFAULT_TOKEN_NAME, NODES_PROPERTY_KEY } from './consts';
 import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
@@ -15,6 +15,9 @@ import {
   SubscriptionMeta,
   SubscriptionCanceller,
   IGQLClient,
+  FilterOperator,
+  QueryRecord,
+  FilterValue,
 } from './types';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 

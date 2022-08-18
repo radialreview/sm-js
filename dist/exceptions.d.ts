@@ -20,11 +20,14 @@ export declare class FilterPropertyNotDefinedInQueryException extends Error {
         filterPropName: string;
     });
 }
+<<<<<<< HEAD
 export declare class SortPropertyNotDefinedInQueryException extends Error {
     constructor(opts: {
         sortPropName: string;
     });
 }
+=======
+>>>>>>> origin/mm-gql
 export declare class ImpliedNodePropertyException extends Error {
     constructor(opts: {
         propName: string;
@@ -36,11 +39,14 @@ export declare class NotCachedException extends Error {
         id: string;
     });
 }
+<<<<<<< HEAD
 export declare class NodesCollectionPageOutOfBoundsException extends Error {
     constructor(opts: {
         page: number;
     });
 }
+=======
+>>>>>>> origin/mm-gql
 export declare class DataTypeException extends Error {
     constructor(opts: {
         dataType: string;
