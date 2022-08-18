@@ -3087,12 +3087,11 @@ function getIdsString(ids) {
 }
 
 function getKeyValueFilterString(filter) {
-  /**
-   * @TODO MM-486: Currently SM only supports _eq condition when filtering.
-   * we need to filter out the other conditions for now.
-   */
-  var flattenedFilters = getFlattenedNodeFilterObject(filter);
-  var filtersWithEqualCondition = Object.keys(flattenedFilters).filter(function (x) {
+  var flattenedFilters = getFlattenedNodeFilterObject(filter); // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  // Adding '{} || ' temporarily disable all server filters
+  // Remove those line once backend filters are ready
+
+  var filtersWithEqualCondition = Object.keys({} || flattenedFilters).filter(function (x) {
     return flattenedFilters[x]._eq !== undefined;
   }).reduce(function (acc, current) {
     set(acc, current, flattenedFilters[current]._eq);
@@ -3267,7 +3266,8 @@ function convertQueryDefinitionToQueryInfo(opts) {
   var _getQueryInfo = getQueryInfo(opts),
       queryGQLString = _getQueryInfo.queryGQLString,
       subscriptionConfigs = _getQueryInfo.subscriptionConfigs,
-      queryRecord = _getQueryInfo.queryRecord;
+      queryRecord = _getQueryInfo.queryRecord; //call plugin function here that takes in the queryRecord
+
 
   return {
     queryGQL: gql(queryGQLString),

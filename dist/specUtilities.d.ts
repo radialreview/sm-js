@@ -42,7 +42,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, import("./types").GetResultingDataTypeFromProperties<{
+        }>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -53,7 +53,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, {
+        }>, {
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -65,7 +65,7 @@ declare const userProperties: {
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
         }>;
-    }, false>, import("./types").GetResultingDataTypeFromProperties<{
+    }>, import("./types").GetResultingDataTypeFromProperties<{
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
             _default: data.Data<"", "", undefined>;
@@ -92,7 +92,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, import("./types").GetResultingDataTypeFromProperties<{
+        }>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -103,7 +103,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, {
+        }>, {
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -115,7 +115,7 @@ declare const userProperties: {
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
         }>;
-    }, false>, {
+    }>, {
         streetName: {
             <TStringType extends string = string>(defaultValue: TStringType): data.Data<TStringType, TStringType, undefined>;
             _default: data.Data<"", "", undefined>;
@@ -142,7 +142,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, import("./types").GetResultingDataTypeFromProperties<{
+        }>, import("./types").GetResultingDataTypeFromProperties<{
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -153,7 +153,7 @@ declare const userProperties: {
                 _default: data.Data<number, string, undefined>;
                 optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
             };
-        }, false>, {
+        }>, {
             number: {
                 (defaultValue: number): data.Data<number, string, undefined>;
                 _default: data.Data<number, string, undefined>;
@@ -192,29 +192,29 @@ declare const todoProperties: {
         archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, {
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }>;
-        nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
-    }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-        archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
-        nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
-            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, {
+        }>>, {
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
         nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
-    }, false>>, {
+    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
         archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
         nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-        }, false>>, {
+        }>>, {
+            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>;
+        nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
+    }>>, {
+        archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
+        nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+            nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
+        }>>, {
             nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
         }>;
         nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
@@ -314,7 +314,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                     _default: data.Data<number, string, undefined>;
                     optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                 };
-            }, false>, import("./types").GetResultingDataTypeFromProperties<{
+            }>, import("./types").GetResultingDataTypeFromProperties<{
                 number: {
                     (defaultValue: number): data.Data<number, string, undefined>;
                     _default: data.Data<number, string, undefined>;
@@ -325,7 +325,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                     _default: data.Data<number, string, undefined>;
                     optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                 };
-            }, false>, {
+            }>, {
                 number: {
                     (defaultValue: number): data.Data<number, string, undefined>;
                     _default: data.Data<number, string, undefined>;
@@ -499,9 +499,9 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                     archiveAfterMeeting: data.Data<import("./types").Maybe<boolean>, import("./types").Maybe<string | boolean>, undefined>;
                     nestedSettings: data.Data<import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                         nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }, false>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
+                    }>>, import("./types").Maybe<import("./types").GetResultingDataTypeFromProperties<{
                         nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
-                    }, false>>, {
+                    }>>, {
                         nestedNestedMaybe: data.Data<import("./types").Maybe<string>, import("./types").Maybe<string>, undefined>;
                     }>;
                     nestedRecord: data.Data<Record<string, boolean>, Record<string, boolean>, IData<boolean, string | boolean, undefined>>;
@@ -609,7 +609,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     _default: data.Data<number, string, undefined>;
                                     optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                                 };
-                            }, false>, import("./types").GetResultingDataTypeFromProperties<{
+                            }>, import("./types").GetResultingDataTypeFromProperties<{
                                 number: {
                                     (defaultValue: number): data.Data<number, string, undefined>;
                                     _default: data.Data<number, string, undefined>;
@@ -620,7 +620,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     _default: data.Data<number, string, undefined>;
                                     optional: data.Data<import("./types").Maybe<number>, import("./types").Maybe<string>, undefined>;
                                 };
-                            }, false>, {
+                            }>, {
                                 number: {
                                     (defaultValue: number): data.Data<number, string, undefined>;
                                     _default: data.Data<number, string, undefined>;
