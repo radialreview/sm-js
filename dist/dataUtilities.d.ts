@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { INode, SortObject, ValidFilterForNode, ValidSortForNode } from './types';
-=======
-import { INode, ValidFilterForNode } from './types';
->>>>>>> origin/mm-gql
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
  */
@@ -72,7 +68,4 @@ export declare function getFlattenedObjectKeys(obj: Record<string, any>): string
  * @returns
  */
 export declare function getFlattenedNodeFilterObject<TNode extends INode>(filterObject: ValidFilterForNode<TNode>): Record<string, any>;
-<<<<<<< HEAD
 export declare function getFlattenedNodeSortObject<TNode extends INode>(sortObject: ValidSortForNode<TNode>): Record<string, SortObject>;
-=======
->>>>>>> origin/mm-gql

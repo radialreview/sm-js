@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { OnPaginateCallback, NodesCollection } from './nodesCollection';
-=======
->>>>>>> origin/mm-gql
 import { DEFAULT_NODE_PROPERTIES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -94,10 +91,7 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
         queryGQL: DocumentNode;
         queryId: string;
     }) => void;
-<<<<<<< HEAD
     onPaginate?: OnPaginateCallback;
-=======
->>>>>>> origin/mm-gql
     skipInitialQuery?: boolean;
     queryId?: string;
     batchKey?: string;
@@ -184,7 +178,6 @@ export declare type GetResultingDataTypeFromProperties<TProperties extends Recor
 export declare type GetResultingFilterDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
     [key in keyof TProperties]: TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, IData | DataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}>> : GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : FilterValue<TParsedValue> : TProperties[key] extends DataDefaultFn ? FilterValue<GetParsedValueTypeFromDefaultFn<TProperties[key]>> : never;
 };
-<<<<<<< HEAD
 export declare type GetSortingDataTypeFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
     [key in keyof TProperties]: TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, IData | DataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}>> : GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : SortValue : TProperties[key] extends DataDefaultFn ? SortValue : never;
 };
@@ -198,20 +191,12 @@ export declare type SortValue = SortDirection | SortObject;
 export declare type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
 export declare type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never;
 export declare type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetSortingDataTypeFromProperties<TProperties> : never;
-=======
-export declare type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>;
-export declare type GetResultingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingDataTypeFromProperties<TProperties> : never;
-export declare type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<any, infer TProperties> ? GetResultingFilterDataTypeFromProperties<TProperties> : never;
->>>>>>> origin/mm-gql
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
  */
 export declare type GetAllAvailableNodeDataType<TData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TData & NodeDefaultProps> & TComputedData;
-<<<<<<< HEAD
 declare type GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TSMData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetSortingDataTypeFromProperties<TSMData> & TComputedData;
-=======
->>>>>>> origin/mm-gql
 declare type GetAllAvailableNodeDataTypeWithoutDefaultProps<TSMData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingDataTypeFromProperties<TSMData> & TComputedData;
 declare type GetAllAvailableNodeFilterDataTypeWithoutDefaultProps<TSMData extends Record<string, IData | DataDefaultFn>, TComputedData extends Record<string, any>> = GetResultingFilterDataTypeFromProperties<TSMData> & TComputedData;
 /**
@@ -289,11 +274,8 @@ export interface IOneToOneQuery<TTargetNodeOrTargetNodeRecord extends INode | Ma
 export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> = TTargetNodeOrTargetNodeRecord extends INode ? {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
     filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>;
-<<<<<<< HEAD
     pagination?: IQueryPagination;
     sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>;
-=======
->>>>>>> origin/mm-gql
 } : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? {
     [Tkey in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]>;
@@ -329,11 +311,8 @@ export declare enum RELATIONAL_TYPES {
     oneToMany = "otM"
 }
 export interface IQueryPagination {
-<<<<<<< HEAD
     itemsPerPage: number;
     page: number;
-=======
->>>>>>> origin/mm-gql
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface INodeRepository {
@@ -368,12 +347,9 @@ export declare type FilterOperator =
 export declare type ValidFilterForNode<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue> ? IsArray<TDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode> ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
-<<<<<<< HEAD
 export declare type ValidSortForNode<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue> ? IsArray<TDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode> ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
-=======
->>>>>>> origin/mm-gql
 export declare type QueryDefinitionTarget = {
     id: string;
     allowNullResult?: boolean;
@@ -384,13 +360,9 @@ export declare type QueryDefinition<TNode extends INode, TMapFn extends MapFnFor
     def: TNode;
     map: TMapFn;
     filter?: ValidFilterForNode<TNode>;
-<<<<<<< HEAD
     sort?: ValidSortForNode<TNode>;
     target?: TQueryDefinitionTarget;
     pagination?: IQueryPagination;
-=======
-    target?: TQueryDefinitionTarget;
->>>>>>> origin/mm-gql
     tokenName?: string;
 };
 export declare type QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget> = Record<string, QueryDefinition<TNode, TMapFn, TQueryDefinitionTarget> | INode | null>;
@@ -417,11 +389,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         allowNullResult: true;
     };
-<<<<<<< HEAD
 } ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : NodesCollection<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : never : never : never : TQueryDefinition extends {
-=======
-} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : Array<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : never : never : never : TQueryDefinition extends {
->>>>>>> origin/mm-gql
     def: INode;
 } ? TQueryDefinition extends {
     def: infer TNode;
@@ -479,7 +447,6 @@ declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneTo
     D
 ] extends [never] ? never : TOneToManyQuery extends IOneToManyQuery<infer TTargetNodeOrTargetNodeRecord, infer TQueryBuilderOpts> ? IsMaybe<TTargetNodeOrTargetNodeRecord> extends true ? TTargetNodeOrTargetNodeRecord extends INode ? TQueryBuilderOpts extends {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-<<<<<<< HEAD
 } ? Maybe<NodesCollection<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>> : never : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? TQueryBuilderOpts extends {
     [key in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
@@ -491,19 +458,6 @@ declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneTo
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
     };
 } ? NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>> : never : never : never;
-=======
-} ? Maybe<Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], NonNullable<TTargetNodeOrTargetNodeRecord>>>> : never : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? TQueryBuilderOpts extends {
-    [key in keyof TTargetNodeOrTargetNodeRecord]: {
-        map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
-    };
-} ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>>> : never : never : TTargetNodeOrTargetNodeRecord extends INode ? TQueryBuilderOpts extends {
-    map: MapFnForNode<TTargetNodeOrTargetNodeRecord>;
-} ? Array<ExtractQueriedDataFromMapFn<TQueryBuilderOpts['map'], TTargetNodeOrTargetNodeRecord>> : never : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? TQueryBuilderOpts extends {
-    [key in keyof TTargetNodeOrTargetNodeRecord]: {
-        map: MapFnForNode<TTargetNodeOrTargetNodeRecord[key]>;
-    };
-} ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts, Prev[D]>> : never : never : never;
->>>>>>> origin/mm-gql
 declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord extends Record<string, INode>, TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>, D extends Prev[number]> = ExtractObjectValues<{
     [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromByOneToOneQuery<IOneToOneQuery<TTargetNodeOrTargetNodeRecord[key], {
         map: TQueryBuilderOpts[key]['map'];
@@ -550,18 +504,12 @@ export declare type BaseQueryRecordEntry = {
     def: INode;
     properties: Array<string>;
     filter?: ValidFilterForNode<INode>;
-<<<<<<< HEAD
     sort?: ValidFilterForNode<INode>;
     pagination?: IQueryPagination;
     relational?: Record<string, RelationalQueryRecordEntry>;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
     pagination?: IQueryPagination;
-=======
-    relational?: Record<string, RelationalQueryRecordEntry>;
-};
-export declare type QueryRecordEntry = BaseQueryRecordEntry & {
->>>>>>> origin/mm-gql
     ids?: Array<string>;
     id?: string;
     allowNullResult?: boolean;
