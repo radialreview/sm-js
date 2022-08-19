@@ -1,6 +1,7 @@
 import { isArray, isObject } from 'lodash';
 import { FILTER_OPERATORS } from './consts';
 import {
+  FilterCondition,
   FilterOperator,
   FilterValue,
   INode,
@@ -204,10 +205,13 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
 export function getFlattenedNodeFilterObject<TNode extends INode>(
   filterObject: ValidFilterForNode<TNode>
 ) {
-  const result: Record<string, FilterValue<any>> = {};
+  const result: Record<
+    string,
+    Partial<Record<FilterOperator, any>> & { _condition: FilterCondition }
+  > = {};
 
   for (const i in filterObject) {
-    const value = filterObject[i] as any;
+    const value = filterObject[i] as FilterValue<string>;
     const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
       condition => isObject(value) && !value.hasOwnProperty(condition)
     );
@@ -224,12 +228,15 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
       }
     } else {
       if (isObject(value)) {
-        result[i] = value;
-      } else {
-        const filter: Partial<Record<FilterOperator, any>> = {
-          _eq: value,
+        result[i] = {
+          ...value,
+          _condition: value._condition || 'AND',
         };
-        result[i] = filter;
+      } else {
+        result[i] = {
+          _eq: value,
+          _condition: 'AND',
+        };
       }
     }
   }

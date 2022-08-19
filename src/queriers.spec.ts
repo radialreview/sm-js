@@ -1923,26 +1923,26 @@ test(`query.sorting can sort relational data`, async () => {
   expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
 });
 
-test.only(`query.filter can filter using "OR" condition`, async () => {
+test(`query.filter can filter using "OR" condition`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
       items: [
         {
-          todos: createMockDataItems({
-            sampleMockData: mockTodoData,
-            items: [
-              {
-                task: 'Todo 3',
-              },
-              {
-                task: 'Todo 4',
-              },
-              {
-                task: 'Todo 1',
-              },
-            ],
-          }),
+          firstName: 'John',
+          score: '10',
+        },
+        {
+          firstName: 'Mary',
+          score: '20',
+        },
+        {
+          firstName: 'Mary 2',
+          score: '21',
+        },
+        {
+          firstName: 'Joe',
+          score: '1',
         },
       ],
     }),
@@ -1952,31 +1952,26 @@ test.only(`query.filter can filter using "OR" condition`, async () => {
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
       filter: {
-        _or: {
-          firstName: {
-            _contains: 'John'
-          }
+        firstName: {
+          _contains: 'j',
+          _condition: 'OR',
         },
-
-        ['or', {firstName: {_contains: 'test'}}],
-        ['and', {firstName}],
+        score: {
+          _eq: 20,
+          _condition: 'OR',
+        },
       },
-      map: ({ id, score, todos }) => ({
+      map: ({ id, score, firstName }) => ({
         id,
+        firstName,
         score,
-        todos: todos({
-          map: ({ task }) => ({ task }),
-          sort: {
-            task: 'asc',
-          },
-        }),
       }),
     }),
   });
 
-  expect(data.users.nodes[0].todos.nodes[0].task).toBe('Todo 1');
-  expect(data.users.nodes[0].todos.nodes[1].task).toBe('Todo 3');
-  expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(
+    expect.arrayContaining(['Joe', 'John', 'Mary'])
+  );
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
