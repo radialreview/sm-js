@@ -1974,6 +1974,65 @@ test(`query.filter can filter using "OR" condition`, async () => {
   );
 });
 
+test(`query.filter can filter relational data using "OR" condition`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'Joj',
+                numberProp: '10',
+              },
+              {
+                task: 'Todo 4',
+                numberProp: '20',
+              },
+              {
+                task: 'Jacob',
+                numberProp: '11',
+              },
+              {
+                task: 'Mark',
+                numberProp: '220',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ id, todos }) => ({
+        id,
+        todos: todos({
+          filter: {
+            task: {
+              _contains: 'j',
+              _condition: 'OR',
+            },
+            numberProp: {
+              _eq: 20,
+              _condition: 'OR',
+            },
+          },
+          map: ({ task, numberProp }) => ({ task, numberProp }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].todos.nodes.map(x => x.task)).toEqual(
+    expect.arrayContaining(['Joj', 'Todo 4', 'Jacob'])
+  );
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
