@@ -1387,12 +1387,14 @@ function getFlattenedNodeFilterObject(filterObject) {
       }
     } else {
       if (lodash.isObject(value)) {
-        result[i] = value;
+        result[i] = _extends({}, value, {
+          _condition: value._condition || 'AND'
+        });
       } else {
-        var filter = {
-          _eq: value
+        result[i] = {
+          _eq: value,
+          _condition: 'AND'
         };
-        result[i] = filter;
       }
     }
   };
@@ -3799,83 +3801,136 @@ function getRandomItemFromArray(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-function applyClientSideFilterToData(_ref) {
-  var queryRecordEntry = _ref.queryRecordEntry,
-      data = _ref.data,
-      alias = _ref.alias,
-      queryRecordEntryFilter = _ref.filter;
-  var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+function checkFilter(_ref) {
+  var operator = _ref.operator,
+      itemValue = _ref.itemValue,
+      filterValue = _ref.filterValue;
 
-  if (filterObject && data[alias]) {
-    Object.keys(filterObject).forEach(function (filterPropertyName) {
-      var underscoreSeparatedPropertyPath = filterPropertyName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-      var filterPropertyIsNotDefinedInTheQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropertyPath) === false;
-
-      if (filterPropertyIsNotDefinedInTheQuery) {
-        throw new FilterPropertyNotDefinedInQueryException({
-          filterPropName: filterPropertyName
-        });
+  switch (operator) {
+    case '_contains':
+      {
+        return String(itemValue).toLowerCase().indexOf(String(filterValue).toLowerCase()) !== -1;
       }
 
-      if (filterPropertyName) {
-        lodash.update(data, alias + "." + NODES_PROPERTY_KEY, function (currentValue) {
-          if (!lodash.isArray(currentValue)) {
-            return currentValue;
-          }
-
-          return currentValue.filter(function (item) {
-            var propertyFilter = filterObject[filterPropertyName]; // Handle null filtering since backend returns "__NULL__" string instead of null
-
-            var value = item[underscoreSeparatedPropertyPath] === NULL_TAG ? null : item[underscoreSeparatedPropertyPath];
-            return Object.keys(propertyFilter).every(function (filterOperator) {
-              switch (filterOperator) {
-                case '_contains':
-                  {
-                    return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) !== -1;
-                  }
-
-                case '_ncontains':
-                  {
-                    return String(value).toLowerCase().indexOf(String(propertyFilter[filterOperator]).toLowerCase()) === -1;
-                  }
-
-                case '_eq':
-                  {
-                    return String(value).toLowerCase() === String(propertyFilter[filterOperator]).toLowerCase();
-                  }
-
-                case '_neq':
-                  return String(value).toLowerCase() !== String(propertyFilter[filterOperator]).toLowerCase();
-
-                case '_gt':
-                  return value > propertyFilter[filterOperator];
-
-                case '_gte':
-                  return value >= propertyFilter[filterOperator];
-
-                case '_lt':
-                  return value < propertyFilter[filterOperator];
-
-                case '_lte':
-                  return value <= propertyFilter[filterOperator];
-
-                default:
-                  throw new FilterOperatorNotImplementedException({
-                    operator: filterOperator
-                  });
-              }
-            });
-          });
-        });
+    case '_ncontains':
+      {
+        return String(itemValue).toLowerCase().indexOf(String(filterValue).toLowerCase()) === -1;
       }
-    });
+
+    case '_eq':
+      {
+        return String(itemValue).toLowerCase() === String(filterValue).toLowerCase();
+      }
+
+    case '_neq':
+      return String(itemValue).toLowerCase() !== String(filterValue).toLowerCase();
+
+    case '_gt':
+      return itemValue > filterValue;
+
+    case '_gte':
+      return itemValue >= filterValue;
+
+    case '_lt':
+      return itemValue < filterValue;
+
+    case '_lte':
+      return itemValue <= filterValue;
+
+    default:
+      throw new FilterOperatorNotImplementedException({
+        operator: operator
+      });
   }
 }
-function applyClientSideSortToData(_ref2) {
+
+function applyClientSideFilterToData(_ref2) {
   var queryRecordEntry = _ref2.queryRecordEntry,
       data = _ref2.data,
       alias = _ref2.alias,
-      queryRecordEntrySort = _ref2.sort;
+      queryRecordEntryFilter = _ref2.filter;
+  var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+
+  if (filterObject && data[alias]) {
+    var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
+      var propertyFilter = filterObject[dotSeparatedPropName];
+      var operators = Object.keys(propertyFilter).filter(function (x) {
+        return x !== '_condition';
+      }).map(function (operator) {
+        return {
+          operator: operator,
+          value: propertyFilter[operator]
+        };
+      });
+      var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      var propNotInQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
+      return {
+        dotSeparatedPropName: dotSeparatedPropName,
+        underscoreSeparatedPropName: underscoreSeparatedPropName,
+        propNotInQuery: propNotInQuery,
+        operators: operators,
+        condition: propertyFilter._condition
+      };
+    });
+
+    if (filterProperties.length > 0) {
+      lodash.update(data, alias + "." + NODES_PROPERTY_KEY, function (items) {
+        if (!lodash.isArray(items)) {
+          return items;
+        }
+
+        return items.filter(function (item) {
+          var propertyNotInQuery = filterProperties.find(function (x) {
+            return x.propNotInQuery;
+          });
+
+          if (!!propertyNotInQuery) {
+            throw new FilterPropertyNotDefinedInQueryException({
+              filterPropName: propertyNotInQuery.dotSeparatedPropName
+            });
+          }
+
+          var orConditions = filterProperties.filter(function (x) {
+            return x.condition === 'OR';
+          });
+          var andConditions = filterProperties.filter(function (x) {
+            return x.condition === 'AND';
+          });
+          var hasPassOrConditions = orConditions.some(function (filter) {
+            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+            return filter.operators.some(function (_ref3) {
+              var operator = _ref3.operator,
+                  value = _ref3.value;
+              return checkFilter({
+                operator: operator,
+                filterValue: value,
+                itemValue: itemValue
+              });
+            });
+          }) || orConditions.length === 0;
+          var hasPassAndConditions = andConditions.every(function (filter) {
+            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+            return filter.operators.every(function (_ref4) {
+              var operator = _ref4.operator,
+                  value = _ref4.value;
+              return checkFilter({
+                operator: operator,
+                filterValue: value,
+                itemValue: itemValue
+              });
+            });
+          }) || andConditions.length === 0;
+          return hasPassAndConditions && hasPassOrConditions;
+        });
+      });
+    }
+  }
+}
+function applyClientSideSortToData(_ref5) {
+  var queryRecordEntry = _ref5.queryRecordEntry,
+      data = _ref5.data,
+      alias = _ref5.alias,
+      queryRecordEntrySort = _ref5.sort;
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {
