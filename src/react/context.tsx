@@ -9,7 +9,13 @@ export interface IContextSubscription {
   onResults?: (newResults: any) => void;
   onError?: (newError: any) => void;
   setQuerying?: (querying: boolean) => void;
-  queryInfo?: { queryGQL: DocumentNode; queryId: string } | null;
+  queryInfo?: {
+    queryGQL: DocumentNode;
+    queryId: string;
+    /** @TODO_REMOVE_QUERY_PARAMS_STRING */
+    queryParamsString: string;
+  } | null;
+
   lastQueryTimestamp?: number;
 }
 

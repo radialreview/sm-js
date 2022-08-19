@@ -118,6 +118,8 @@ export type SubscriptionOpts<
   onQueryInfoConstructed?: (queryInfo: {
     queryGQL: DocumentNode;
     queryId: string;
+    /** @TODO_REMOVE_QUERY_PARAMS_STRING */
+    queryParamsString: string;
   }) => void;
   onPaginate?: OnPaginateCallback
   skipInitialQuery?: boolean;

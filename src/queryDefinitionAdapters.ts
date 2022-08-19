@@ -639,6 +639,19 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
+function getQueryRecordSortAndFilterValues(record: QueryRecord) {
+  return Object.keys(record).reduce((acc, alias) => {
+    acc.push(record[alias].filter);
+    acc.push(record[alias].sort);
+    const relational = record[alias].relational;
+    if (relational) {
+      acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
+    }
+
+    return acc;
+  }, [] as any[]);
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,
@@ -650,6 +663,9 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
+  const queryParamsString = JSON.stringify(
+    getQueryRecordSortAndFilterValues(queryRecord)
+  );
   const queryGQLString = (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(queryRecord)
@@ -727,6 +743,13 @@ export function getQueryInfo<
   return {
     subscriptionConfigs: subscriptionConfigs,
     queryGQLString,
+    /**
+     * @TODO_REMOVE_QUERY_PARAMS_STRING
+     * 'queryParamsString' is just temporary until backend supports filter and sorting
+     * This is only use to compare previous and current filter and sorting params
+     * so that the updates will be re-rendered whenever filter or sorting params changes.
+     * */
+    queryParamsString,
     queryRecord,
   };
 }
@@ -747,9 +770,12 @@ export function convertQueryDefinitionToQueryInfo<
     TQueryDefinitionTarget
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
-  const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
-    opts
-  );
+  const {
+    queryGQLString,
+    subscriptionConfigs,
+    queryRecord,
+    queryParamsString,
+  } = getQueryInfo(opts);
   //call plugin function here that takes in the queryRecord
 
   return {
@@ -759,6 +785,7 @@ export function convertQueryDefinitionToQueryInfo<
       gql: gql(subscriptionConfig.gqlString),
     })),
     queryRecord,
+    queryParamsString,
   };
 }
 

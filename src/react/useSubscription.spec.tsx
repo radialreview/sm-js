@@ -12,6 +12,7 @@ import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
 import { MMGQLProvider, MMGQL, queryDefinition } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
+import { SortDirection } from '../types';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -346,6 +347,137 @@ test('updates data when paginating', async () => {
 
   await result.findByText('FL');
   await result.findByText('CA');
+});
+
+test('updates data when filtering', async () => {
+  const { mmGQL } = setupTests({
+    users: {
+      nodes: [
+        {
+          id: 'mock-user-id',
+          type: 'user',
+          version: '1',
+          archived: 'false',
+          address: '__object__',
+          address__dot__state: 'FL',
+          address__dot__apt: '__object__',
+          address__dot__apt__dot__floor: '1',
+          address__dot__apt__dot__number: '1',
+        },
+        {
+          id: 'mock-user-id2',
+          type: 'user',
+          version: '1',
+          archived: 'true',
+          address: '__object__',
+          address__dot__state: 'CA',
+          address__dot__apt: '__object__',
+          address__dot__apt__dot__floor: '1',
+          address__dot__apt__dot__number: '1',
+        },
+      ],
+    },
+  });
+
+  function MyComponent() {
+    const [archived, setArchived] = React.useState(false);
+    const { data } = useSubscription({
+      users: queryDefinition({
+        filter: { archived: { _contains: archived } },
+        def: generateUserNode(mmGQL),
+        map: ({ id, address, archived }) => ({
+          id,
+          archived,
+          address: address({
+            map: ({ state }) => ({
+              state,
+            }),
+          }),
+        }),
+      }),
+    });
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setArchived(true);
+      }, 200);
+    }, []); // eslint-disable-line
+
+    return <>{data.users.nodes[0].archived ? 'archived' : 'unarchived'}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <MMGQLProvider mmGQL={mmGQL}>
+        <MyComponent />
+      </MMGQLProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('unarchived');
+  await result.findByText('archived');
+});
+
+test('updates data when sorting', async () => {
+  const { mmGQL } = setupTests({
+    users: {
+      nodes: [
+        {
+          id: 'mock-user-id',
+          type: 'user',
+          version: '1',
+          firstName: 'A',
+        },
+        {
+          id: 'mock-user-id2',
+          type: 'user',
+          version: '1',
+          firstName: 'C',
+        },
+        {
+          id: 'mock-user-id3',
+          type: 'user',
+          version: '1',
+          firstName: 'B',
+        },
+      ],
+    },
+  });
+
+  function MyComponent() {
+    const [sorting, setSorting] = React.useState<SortDirection>('desc');
+    const { data } = useSubscription({
+      users: queryDefinition({
+        sort: {
+          firstName: sorting,
+        },
+        def: generateUserNode(mmGQL),
+        map: ({ id, firstName }) => ({
+          id,
+          firstName,
+        }),
+      }),
+    });
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setSorting('asc');
+      }, 200);
+    }, []); // eslint-disable-line
+
+    return <>{data.users.nodes.map(x => x.firstName).join(',')}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <MMGQLProvider mmGQL={mmGQL}>
+        <MyComponent />
+      </MMGQLProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('C,B,A');
+  await result.findByText('A,B,C');
 });
 
 test('"querying" is true until all queries in the query definition record resolve', async done => {
