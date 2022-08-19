@@ -16,6 +16,13 @@ export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQue
 }): {
     subscriptionConfigs: SubscriptionConfig[];
     queryGQLString: string;
+    /**
+     * @TODO_REMOVE_QUERY_PARAMS_STRING
+     * 'queryParamsString' is just temporary until backend supports filter and sorting
+     * This is only use to compare previous and current filter and sorting params
+     * so that the updates will be re-rendered whenever filter or sorting params changes.
+     * */
+    queryParamsString: string;
     queryRecord: QueryRecord;
 };
 /**
@@ -37,4 +44,5 @@ export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryD
         extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
     }[];
     queryRecord: QueryRecord;
+    queryParamsString: string;
 };
