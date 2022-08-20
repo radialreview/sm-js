@@ -1388,7 +1388,7 @@ function getFlattenedNodeFilterObject(filterObject) {
         result[i] = _extends({}, value, {
           _condition: value._condition || 'AND'
         });
-      } else {
+      } else if (value !== undefined) {
         result[i] = {
           _eq: value,
           _condition: 'AND'
@@ -1420,7 +1420,7 @@ function getFlattenedNodeSortObject(sortObject) {
     } else {
       if (isObject(value)) {
         result[i] = value;
-      } else {
+      } else if (value !== undefined) {
         var filter = {
           _direction: value
         };
