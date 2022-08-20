@@ -1,4 +1,4 @@
-import { isObject, set, update, isArray, orderBy, cloneDeep, sortBy } from 'lodash-es';
+import { isObject, set, isArray, update, orderBy, cloneDeep, sortBy } from 'lodash-es';
 import { gql, split, ApolloLink, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import React from 'react';
 import { WebSocketLink } from '@apollo/client/link/ws';
@@ -3350,7 +3350,7 @@ function getQueryInfo(opts) {
      * @TODO_REMOVE_QUERY_PARAMS_STRING
      * 'queryParamsString' is just temporary until backend supports filter and sorting
      * This is only use to compare previous and current filter and sorting params
-     * so that the updates will be re-rendered whenever filter or sorting params changes.
+     * so we can re-render the components after the filter or sorting changes.
      * */
     queryParamsString: queryParamsString,
     queryRecord: queryRecord
@@ -3917,6 +3917,7 @@ function applyClientSideSortToData(_ref2) {
 function applyClientSideSortAndFilterToData(queryRecord, data) {
   Object.keys(queryRecord).forEach(function (alias) {
     var queryRecordEntry = queryRecord[alias];
+    var containsArrayData = isArray(data[alias][NODES_PROPERTY_KEY]);
 
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
@@ -3939,13 +3940,15 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     var relational = queryRecordEntry.relational;
 
     if (relational != null) {
-      Object.keys(relational).forEach(function () {
+      if (containsArrayData) {
         if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
           data[alias][NODES_PROPERTY_KEY].forEach(function (item) {
             applyClientSideSortAndFilterToData(relational, item);
           });
         }
-      });
+      } else {
+        applyClientSideSortAndFilterToData(relational, data[alias]);
+      }
     }
   });
 }
