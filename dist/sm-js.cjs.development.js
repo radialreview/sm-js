@@ -1388,7 +1388,7 @@ function getFlattenedNodeFilterObject(filterObject) {
     } else {
       if (lodash.isObject(value)) {
         result[i] = value;
-      } else {
+      } else if (value !== undefined) {
         var filter = {
           _eq: value
         };
@@ -1420,7 +1420,7 @@ function getFlattenedNodeSortObject(sortObject) {
     } else {
       if (lodash.isObject(value)) {
         result[i] = value;
-      } else {
+      } else if (value !== undefined) {
         var filter = {
           _direction: value
         };
