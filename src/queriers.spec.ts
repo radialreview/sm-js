@@ -2062,6 +2062,50 @@ test(`query.filter can filter multiple relational data`, async () => {
   expect(data.user.otherTodos.nodes.length).toEqual(2);
 });
 
+test(`query.filter undefined filters should not be included`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John',
+          score: '10',
+        },
+        {
+          firstName: 'Mary',
+          score: '20',
+        },
+        {
+          firstName: 'Mary 2',
+          score: '21',
+        },
+        {
+          firstName: 'Joe',
+          score: '1',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        firstName: undefined,
+        score: { _eq: 1 },
+      },
+      map: ({ id, score, firstName }) => ({
+        id,
+        score,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['Joe']);
+  expect(data.users.nodes.length).toEqual(1);
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
