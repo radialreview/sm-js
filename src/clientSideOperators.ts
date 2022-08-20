@@ -239,6 +239,8 @@ export function applyClientSideSortAndFilterToData(
 ) {
   Object.keys(queryRecord).forEach(alias => {
     const queryRecordEntry = queryRecord[alias];
+    const containsArrayData = isArray(data[alias][NODES_PROPERTY_KEY]);
+
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
         queryRecordEntry,
@@ -256,16 +258,19 @@ export function applyClientSideSortAndFilterToData(
         alias,
       });
     }
+
     const relational = queryRecordEntry.relational;
 
     if (relational != null) {
-      Object.keys(relational).forEach(() => {
+      if (containsArrayData) {
         if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
           data[alias][NODES_PROPERTY_KEY].forEach((item: any) => {
             applyClientSideSortAndFilterToData(relational, item);
           });
         }
-      });
+      } else {
+        applyClientSideSortAndFilterToData(relational, data[alias]);
+      }
     }
   });
 }
