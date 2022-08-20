@@ -1923,6 +1923,145 @@ test(`query.sorting can sort relational data`, async () => {
   expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
 });
 
+test(`query.filter can filter relational data of a single node query`, async () => {
+  const { mmGQLInstance } = setupTest({
+    user: {
+      ...mockUserData,
+      todos: createMockDataItems({
+        sampleMockData: mockTodoData,
+        items: [
+          {
+            task: 'Test 1',
+            numberProp: '10',
+          },
+          {
+            task: 'Test 2',
+            numberProp: '20',
+          },
+          {
+            task: 'Test 3',
+            numberProp: '11',
+          },
+          {
+            task: 'Test 4',
+            numberProp: '220',
+          },
+        ],
+      }),
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    user: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      target: {
+        id: 'mock-user-id',
+      },
+      map: ({ id, archived, todos }) => ({
+        id,
+        archived,
+        todos: todos({
+          filter: {
+            numberProp: {
+              _eq: 20,
+            },
+          },
+          map: ({ task, numberProp }) => ({ task, numberProp }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.user.todos.nodes.map(x => x.task)).toEqual(['Test 2']);
+});
+
+test(`query.filter can filter multiple relational data`, async () => {
+  const { mmGQLInstance } = setupTest({
+    user: {
+      ...mockUserData,
+      todos: createMockDataItems({
+        sampleMockData: mockTodoData,
+        items: [
+          {
+            task: 'Test 1',
+            numberProp: '10',
+          },
+          {
+            task: 'Test 2',
+            numberProp: '20',
+          },
+          {
+            task: 'Test 3',
+            numberProp: '11',
+          },
+          {
+            task: 'Test 4',
+            numberProp: '220',
+          },
+        ],
+      }),
+      otherTodos: createMockDataItems({
+        sampleMockData: mockTodoData,
+        items: [
+          {
+            task: 'Test 1',
+            numberProp: '10',
+          },
+          {
+            task: 'Test 2',
+            numberProp: '20',
+          },
+          {
+            task: 'Test 3',
+            numberProp: '11',
+          },
+          {
+            task: 'Test 4',
+            numberProp: '220',
+          },
+        ],
+      }),
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    user: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      target: {
+        id: 'mock-user-id',
+      },
+      map: ({ id, archived, todos }) => ({
+        id,
+        archived,
+        todos: todos({
+          filter: {
+            numberProp: {
+              _eq: 20,
+            },
+          },
+          map: ({ task, numberProp }) => ({ task, numberProp }),
+        }),
+        otherTodos: todos({
+          filter: {
+            numberProp: {
+              _gt: 19,
+            },
+          },
+          map: ({ task, numberProp }) => ({ task, numberProp }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.user.todos.nodes.length).toEqual(1);
+  expect(data.user.todos.nodes.map(x => x.task)).toEqual(['Test 2']);
+  expect(data.user.otherTodos.nodes.map(x => x.task)).toEqual([
+    'Test 2',
+    'Test 4',
+  ]);
+  expect(data.user.otherTodos.nodes.length).toEqual(2);
+});
+
 test('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
