@@ -232,7 +232,7 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
           ...value,
           _condition: value._condition || 'AND',
         };
-      } else {
+      } else if (value !== undefined) {
         result[i] = {
           _eq: value,
           _condition: 'AND',
@@ -266,7 +266,7 @@ export function getFlattenedNodeSortObject<TNode extends INode>(
     } else {
       if (isObject(value)) {
         result[i] = value as SortObject;
-      } else {
+      } else if (value !== undefined) {
         const filter: SortObject = {
           _direction: value,
         };
