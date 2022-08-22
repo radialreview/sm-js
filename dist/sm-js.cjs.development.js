@@ -3845,13 +3845,22 @@ function checkFilter(_ref) {
   }
 }
 
-function checkRelationalItems(_ref2) {
-  var relationalItems = _ref2.relationalItems,
-      operator = _ref2.operator,
-      filterValue = _ref2.filterValue,
+function convertNullStringValuesToNull(_ref2) {
+  var item = _ref2.item,
       underscoreSeparatedPropName = _ref2.underscoreSeparatedPropName;
+  return item[underscoreSeparatedPropName] === NULL_TAG ? null : item[underscoreSeparatedPropName];
+}
+
+function checkRelationalItems(_ref3) {
+  var relationalItems = _ref3.relationalItems,
+      operator = _ref3.operator,
+      filterValue = _ref3.filterValue,
+      underscoreSeparatedPropName = _ref3.underscoreSeparatedPropName;
   return relationalItems.some(function (relationalItem) {
-    var relationalItemValue = relationalItem[underscoreSeparatedPropName] === NULL_TAG ? null : relationalItem[underscoreSeparatedPropName];
+    var relationalItemValue = convertNullStringValuesToNull({
+      item: relationalItem,
+      underscoreSeparatedPropName: underscoreSeparatedPropName
+    });
     return checkFilter({
       operator: operator,
       filterValue: filterValue,
@@ -3860,11 +3869,11 @@ function checkRelationalItems(_ref2) {
   });
 }
 
-function applyClientSideFilterToData(_ref3) {
-  var queryRecordEntry = _ref3.queryRecordEntry,
-      data = _ref3.data,
-      alias = _ref3.alias,
-      queryRecordEntryFilter = _ref3.filter;
+function applyClientSideFilterToData(_ref4) {
+  var queryRecordEntry = _ref4.queryRecordEntry,
+      data = _ref4.data,
+      alias = _ref4.alias,
+      queryRecordEntryFilter = _ref4.filter;
   var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
 
   if (filterObject && data[alias]) {
@@ -3893,7 +3902,9 @@ function applyClientSideFilterToData(_ref3) {
         operators: operators,
         condition: propertyFilter._condition,
         isRelational: isRelationalProperty,
-        relationalKey: possibleRelationalKey
+        relationalKey: possibleRelationalKey,
+        oneToOne: relational && 'oneToOne' in relational || undefined,
+        oneToMany: relational && 'oneToMany' in relational || undefined
       };
     });
 
@@ -3922,22 +3933,38 @@ function applyClientSideFilterToData(_ref3) {
           });
           var hasPassOrConditions = orConditions.some(function (filter) {
             if (filter.isRelational) {
-              var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
-              return filter.operators.some(function (_ref4) {
-                var operator = _ref4.operator,
-                    value = _ref4.value;
-                return checkRelationalItems({
-                  relationalItems: relationalItems,
-                  operator: operator,
-                  filterValue: value,
-                  underscoreSeparatedPropName: filter.underscoreSeparatedPropName
-                });
-              });
-            } else {
-              var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
               return filter.operators.some(function (_ref5) {
                 var operator = _ref5.operator,
                     value = _ref5.value;
+
+                if (filter.oneToOne === true) {
+                  var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                    item: item[filter.relationalKey],
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  }) : '';
+                  return checkFilter({
+                    operator: operator,
+                    filterValue: value,
+                    itemValue: itemValue
+                  });
+                } else {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                  return checkRelationalItems({
+                    relationalItems: relationalItems,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                }
+              });
+            } else {
+              var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                item: item,
+                underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+              }) : '';
+              return filter.operators.some(function (_ref6) {
+                var operator = _ref6.operator,
+                    value = _ref6.value;
                 return checkFilter({
                   operator: operator,
                   filterValue: value,
@@ -3948,22 +3975,35 @@ function applyClientSideFilterToData(_ref3) {
           }) || orConditions.length === 0;
           var hasPassAndConditions = andConditions.every(function (filter) {
             if (filter.isRelational) {
-              var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
-              return filter.operators.every(function (_ref6) {
-                var operator = _ref6.operator,
-                    value = _ref6.value;
-                return checkRelationalItems({
-                  relationalItems: relationalItems,
-                  operator: operator,
-                  filterValue: value,
-                  underscoreSeparatedPropName: filter.underscoreSeparatedPropName
-                });
-              });
-            } else {
-              var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
               return filter.operators.every(function (_ref7) {
                 var operator = _ref7.operator,
                     value = _ref7.value;
+
+                if (filter.oneToOne === true) {
+                  var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                    item: item[filter.relationalKey],
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  }) : '';
+                  return checkFilter({
+                    operator: operator,
+                    filterValue: value,
+                    itemValue: itemValue
+                  });
+                } else {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                  return checkRelationalItems({
+                    relationalItems: relationalItems,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                }
+              });
+            } else {
+              var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+              return filter.operators.every(function (_ref8) {
+                var operator = _ref8.operator,
+                    value = _ref8.value;
                 return checkFilter({
                   operator: operator,
                   filterValue: value,
@@ -3978,11 +4018,11 @@ function applyClientSideFilterToData(_ref3) {
     }
   }
 }
-function applyClientSideSortToData(_ref8) {
-  var queryRecordEntry = _ref8.queryRecordEntry,
-      data = _ref8.data,
-      alias = _ref8.alias,
-      queryRecordEntrySort = _ref8.sort;
+function applyClientSideSortToData(_ref9) {
+  var queryRecordEntry = _ref9.queryRecordEntry,
+      data = _ref9.data,
+      alias = _ref9.alias,
+      queryRecordEntrySort = _ref9.sort;
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {
