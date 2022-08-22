@@ -215,16 +215,6 @@ const stateNode: StateNode = mmGQL.def({
     bogus: '',
   };
 
-  const sampleQuery: ValidFilterForNode<UserNode> = {
-    address: {
-      state: {
-        _contains: 's',
-      },
-    },
-    todos: {
-      task: { _contains: 's' },
-    },
-  };
   const mapFnWithRelationalQueries: MapFnForNode<UserNode> = ({
     id,
     todos,
