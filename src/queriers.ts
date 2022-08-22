@@ -153,6 +153,8 @@ export function generateQuerier({
       nonNullishQueryDefinitions
     );
 
+    // PIOTR TODO: IF SLIMMING ENABLED PERFORM QUERIES SHOULD NOT BE CALLED AND JUST RETURN THE RESULTS.
+
     async function performQueries() {
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(

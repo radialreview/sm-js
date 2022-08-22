@@ -883,7 +883,7 @@ type ExtractNodeRelationalData<
 export type BaseQueryRecordEntry = {
   def: INode;
   properties: Array<string>;
-  relational?: Record<string, RelationalQueryRecordEntry>;
+  relational?: RelationalQueryRecord;
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
