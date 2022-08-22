@@ -71,6 +71,18 @@ function checkFilter({
   }
 }
 
+function convertNullStringValuesToNull({
+  item,
+  underscoreSeparatedPropName,
+}: {
+  item: any;
+  underscoreSeparatedPropName: string;
+}) {
+  return item[underscoreSeparatedPropName] === NULL_TAG
+    ? null
+    : item[underscoreSeparatedPropName];
+}
+
 function checkRelationalItems({
   relationalItems,
   operator,
@@ -83,10 +95,10 @@ function checkRelationalItems({
   filterValue: any;
 }) {
   return relationalItems.some(relationalItem => {
-    const relationalItemValue =
-      relationalItem[underscoreSeparatedPropName] === NULL_TAG
-        ? null
-        : relationalItem[underscoreSeparatedPropName];
+    const relationalItemValue = convertNullStringValuesToNull({
+      item: relationalItem,
+      underscoreSeparatedPropName,
+    });
 
     return checkFilter({
       operator: operator,
@@ -118,6 +130,8 @@ export function applyClientSideFilterToData({
       condition: FilterCondition;
       isRelational: boolean;
       relationalKey?: string;
+      oneToOne?: boolean;
+      oneToMany?: boolean;
     }>(dotSeparatedPropName => {
       const [possibleRelationalKey, ...relationalProperties] = String(
         dotSeparatedPropName
@@ -144,6 +158,7 @@ export function applyClientSideFilterToData({
         ? relational.properties.includes(underscoreSeparatedPropName) === false
         : queryRecordEntry.properties.includes(underscoreSeparatedPropName) ===
           false;
+
       return {
         dotSeparatedPropName,
         underscoreSeparatedPropName,
@@ -152,6 +167,8 @@ export function applyClientSideFilterToData({
         condition: propertyFilter._condition,
         isRelational: isRelationalProperty,
         relationalKey: possibleRelationalKey,
+        oneToOne: (relational && 'oneToOne' in relational) || undefined,
+        oneToMany: (relational && 'oneToMany' in relational) || undefined,
       };
     });
 
@@ -180,24 +197,42 @@ export function applyClientSideFilterToData({
           const hasPassOrConditions =
             orConditions.some(filter => {
               if (filter.isRelational) {
-                const relationalItems: Array<any> = filter.relationalKey
-                  ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
-                  : [];
+                return filter.operators.some(({ operator, value }) => {
+                  if (filter.oneToOne === true) {
+                    const itemValue = filter.relationalKey
+                      ? convertNullStringValuesToNull({
+                          item: item[filter.relationalKey],
+                          underscoreSeparatedPropName:
+                            filter.underscoreSeparatedPropName,
+                        })
+                      : '';
 
-                return filter.operators.some(({ operator, value }) =>
-                  checkRelationalItems({
-                    relationalItems,
-                    operator,
-                    filterValue: value,
-                    underscoreSeparatedPropName:
-                      filter.underscoreSeparatedPropName,
-                  })
-                );
+                    return checkFilter({
+                      operator,
+                      filterValue: value,
+                      itemValue,
+                    });
+                  } else {
+                    const relationalItems: Array<any> = filter.relationalKey
+                      ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
+                      : [];
+                    return checkRelationalItems({
+                      relationalItems,
+                      operator,
+                      filterValue: value,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    });
+                  }
+                });
               } else {
-                const itemValue =
-                  item[filter.underscoreSeparatedPropName] === NULL_TAG
-                    ? null
-                    : item[filter.underscoreSeparatedPropName];
+                const itemValue = filter.relationalKey
+                  ? convertNullStringValuesToNull({
+                      item,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    })
+                  : '';
                 return filter.operators.some(({ operator, value }) => {
                   return checkFilter({
                     operator,
@@ -211,19 +246,34 @@ export function applyClientSideFilterToData({
           const hasPassAndConditions =
             andConditions.every(filter => {
               if (filter.isRelational) {
-                const relationalItems: Array<any> = filter.relationalKey
-                  ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
-                  : [];
+                return filter.operators.every(({ operator, value }) => {
+                  if (filter.oneToOne === true) {
+                    const itemValue = filter.relationalKey
+                      ? convertNullStringValuesToNull({
+                          item: item[filter.relationalKey],
+                          underscoreSeparatedPropName:
+                            filter.underscoreSeparatedPropName,
+                        })
+                      : '';
 
-                return filter.operators.every(({ operator, value }) =>
-                  checkRelationalItems({
-                    relationalItems,
-                    operator,
-                    filterValue: value,
-                    underscoreSeparatedPropName:
-                      filter.underscoreSeparatedPropName,
-                  })
-                );
+                    return checkFilter({
+                      operator,
+                      filterValue: value,
+                      itemValue,
+                    });
+                  } else {
+                    const relationalItems: Array<any> = filter.relationalKey
+                      ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
+                      : [];
+                    return checkRelationalItems({
+                      relationalItems,
+                      operator,
+                      filterValue: value,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    });
+                  }
+                });
               } else {
                 const itemValue =
                   item[filter.underscoreSeparatedPropName] === NULL_TAG

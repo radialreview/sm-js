@@ -8,6 +8,7 @@ import {
   mockUserData,
   mockTodoData,
   convertNodesCollectionValuesToArray,
+  generateTodoNode,
 } from './specUtilities';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { MMGQL, queryDefinition } from '.';
@@ -2214,7 +2215,7 @@ test(`query.filter undefined filters should not be included`, async () => {
   expect(data.users.nodes.length).toEqual(1);
 });
 
-test(`query.filter can filter query with "AND" condition using the node's relational properties`, async () => {
+test(`query.filter can filter query with "AND" condition using the node's oneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -2296,7 +2297,7 @@ test(`query.filter can filter query with "AND" condition using the node's relati
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
 });
 
-test(`query.filter can filter query with "OR" condition using the node's relational properties`, async () => {
+test(`query.filter can filter query with "OR" condition using the node's oneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -2458,6 +2459,122 @@ test(`query.filter should throw an error if relational prop is not defined in th
   expect(result).toContain(
     `FilterPropertyNotDefinedInQueryException exception - The filter property 'todos.task' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function`
   );
+});
+
+test(`query.filter can filter query with "OR" condition using the node's oneToOne relational properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    todos: createMockDataItems({
+      sampleMockData: mockTodoData,
+      items: [
+        {
+          task: 'Task 2',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-1',
+            firstName: 'First Name 1',
+            archived: 'false',
+          },
+        },
+        {
+          task: 'Task 9',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-2',
+            firstName: 'First Name 2',
+            archived: 'false',
+          },
+        },
+        {
+          task: 'Task 1',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-3',
+            firstName: 'First Name 3',
+            archived: 'true',
+          },
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      filter: {
+        assignee: {
+          firstName: { _eq: 'First Name 2', _condition: 'OR' },
+          archived: { _eq: true, _condition: 'OR' },
+        },
+      },
+      map: ({ id, task, assignee }) => ({
+        id,
+        task,
+        assignee: assignee({
+          map: ({ firstName, archived }) => ({ firstName, archived }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual(['Task 9', 'Task 1']);
+});
+
+test(`query.filter can filter query with "AND" condition using the node's oneToOne relational properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    todos: createMockDataItems({
+      sampleMockData: mockTodoData,
+      items: [
+        {
+          task: 'Task 2',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-1',
+            firstName: 'First Name 1',
+            archived: 'false',
+          },
+        },
+        {
+          task: 'Task 9',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-2',
+            firstName: 'First Name 2',
+            archived: 'false',
+          },
+        },
+        {
+          task: 'Task 1',
+          assignee: {
+            ...mockUserData,
+            id: 'mock-assignee-3',
+            firstName: 'First Name 3',
+            archived: 'true',
+          },
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      filter: {
+        assignee: {
+          firstName: { _eq: 'First Name 2', _condition: 'AND' },
+          archived: { _eq: false, _condition: 'AND' },
+        },
+      },
+      map: ({ id, task, assignee }) => ({
+        id,
+        task,
+        assignee: assignee({
+          map: ({ firstName, archived }) => ({ firstName, archived }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual(['Task 9']);
 });
 
 test('sm.subscribe by default queries and subscribes to the data set', async done => {

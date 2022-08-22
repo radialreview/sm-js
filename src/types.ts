@@ -563,9 +563,9 @@ export type FilterOperator =
  * excluding properties which are arrays and records
  * and including properties which are nested in objects
  */
-export type ValidFilterForNode<TNode extends INode> = ValidFilterForNode2<TNode> | ExtractNodeRelationalDataFilters<TNode>
+export type ValidFilterForNode<TNode extends INode> = ExtractNodeFilterData<TNode> | ExtractNodeRelationalDataFilter<TNode>
 
-export type ValidFilterForNode2<TNode extends INode> = DeepPartial<{
+export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
   [
     TKey in keyof ExtractNodeData<TNode> as
       ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue>
@@ -935,13 +935,20 @@ export type ExtractNodeData<TNode extends INode> = TNode extends INode<
   ? TNodeData
   : never;
 
-export type ExtractNodeRelationalDataFilters<TNode extends INode> = TNode extends INode<
+export type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<
   any,
   any,
   any,
   infer TNodeRelationalData
 >
-  ? DeepPartial<{[Tkey in keyof TNodeRelationalData]: TNodeRelationalData[Tkey] extends IOneToManyQueryBuilder<infer TRelationalNode> ? TRelationalNode extends INode<any> ? ValidFilterForNode2<TRelationalNode> : never : never}>
+  ? DeepPartial<{[Tkey in keyof TNodeRelationalData]: 
+    TNodeRelationalData[Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> 
+      ? TOneToManyRelationalNode extends INode<any> 
+        ? ExtractNodeFilterData<TOneToManyRelationalNode> : never 
+    : TNodeRelationalData[Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> 
+      ? TOneToOneRelationalNode extends INode<any> 
+        ? ExtractNodeFilterData<TOneToOneRelationalNode> : never  
+    : never}>
   : never;
 
 type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<

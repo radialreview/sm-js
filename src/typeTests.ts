@@ -24,7 +24,7 @@ import {
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
-  ExtractNodeRelationalDataFilters,
+  ExtractNodeRelationalDataFilter,
 } from './types';
 
 /**
