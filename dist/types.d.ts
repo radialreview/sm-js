@@ -184,14 +184,10 @@ export declare type GetSortingDataTypeFromProperties<TProperties extends Record<
     [key in keyof TProperties]: TProperties[key] extends IData<infer TParsedValue, any, infer TBoxedValue> ? TBoxedValue extends Record<string, IData | DataDefaultFn> ? IsMaybe<TParsedValue> extends true ? Maybe<GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}>> : GetAllAvailableNodeDataTypeWithoutDefaultPropsForSorting<TBoxedValue, {}> : TParsedValue extends Array<infer TArrayItemType> ? IsMaybe<TParsedValue> extends true ? Maybe<Array<TArrayItemType>> : Array<TArrayItemType> : SortValue : TProperties[key] extends DataDefaultFn ? SortValue : never;
 };
 export declare type SortDirection = 'asc' | 'desc';
-<<<<<<< HEAD
 export declare type FilterCondition = 'OR' | 'AND';
 export declare type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValue> & {
     _condition?: FilterCondition;
 }>);
-=======
-export declare type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>;
->>>>>>> origin/mm-gql
 export declare type SortObject = {
     _direction: SortDirection;
     _priority?: number;
@@ -365,18 +361,11 @@ export declare type QueryDefinitionTarget = {
 } | {
     ids: Array<string>;
 };
-<<<<<<< HEAD
 export declare type FilterObjectForNode<TNode extends INode> = ValidFilterForNode<TNode>;
 export declare type QueryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
     def: TNode;
     map: TMapFn;
     filter?: FilterObjectForNode<TNode>;
-=======
-export declare type QueryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget> = {
-    def: TNode;
-    map: TMapFn;
-    filter?: ValidFilterForNode<TNode>;
->>>>>>> origin/mm-gql
     sort?: ValidSortForNode<TNode>;
     target?: TQueryDefinitionTarget;
     pagination?: IQueryPagination;
