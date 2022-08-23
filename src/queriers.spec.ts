@@ -1923,6 +1923,116 @@ test(`query.sorting can sort relational data`, async () => {
   expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
 });
 
+test(`query.filter can filter using "OR" condition`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: 'John',
+          score: '10',
+        },
+        {
+          firstName: 'Mary',
+          score: '20',
+        },
+        {
+          firstName: 'Mary 2',
+          score: '21',
+        },
+        {
+          firstName: 'Joe',
+          score: '1',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        firstName: {
+          _contains: 'j',
+          _condition: 'OR',
+        },
+        score: {
+          _eq: 20,
+          _condition: 'OR',
+        },
+      },
+      map: ({ id, score, firstName }) => ({
+        id,
+        firstName,
+        score,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(
+    expect.arrayContaining(['Joe', 'John', 'Mary'])
+  );
+});
+
+test(`query.filter can filter relational data using "OR" condition`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          todos: createMockDataItems({
+            sampleMockData: mockTodoData,
+            items: [
+              {
+                task: 'Joj',
+                numberProp: '10',
+              },
+              {
+                task: 'Todo 4',
+                numberProp: '20',
+              },
+              {
+                task: 'Jacob',
+                numberProp: '11',
+              },
+              {
+                task: 'Mark',
+                numberProp: '220',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ id, todos }) => ({
+        id,
+        todos: todos({
+          filter: {
+            task: {
+              _contains: 'j',
+              _condition: 'OR',
+            },
+            numberProp: {
+              _eq: 20,
+              _condition: 'OR',
+            },
+          },
+          map: ({ task, numberProp }) => ({ task, numberProp }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes[0].todos.nodes.map(x => x.task)).toEqual(
+    expect.arrayContaining(['Joj', 'Todo 4', 'Jacob'])
+  );
+});
+
 test(`query.filter can filter relational data of a single node query`, async () => {
   const { mmGQLInstance } = setupTest({
     user: {

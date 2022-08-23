@@ -301,7 +301,8 @@ export type GetSortingDataTypeFromProperties<TProperties extends Record<string, 
 
 
 export type SortDirection = 'asc' | 'desc'
-export type FilterValue<TValue> = TValue | Partial<Record<FilterOperator, TValue>>
+export type FilterCondition = 'OR' | 'AND'
+export type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValue> & {_condition?: FilterCondition}>)
 export type SortObject = {_direction: SortDirection, _priority?: number}
 export type SortValue = SortDirection | SortObject
 
@@ -608,6 +609,7 @@ export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
+export type FilterObjectForNode<TNode extends INode> = ValidFilterForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TNode extends INode,
@@ -616,7 +618,7 @@ export type QueryDefinition<
 > = { 
   def: TNode;
   map: TMapFn;
-  filter?: ValidFilterForNode<TNode>
+  filter?: FilterObjectForNode<TNode>
   sort?: ValidSortForNode<TNode>
   target?: TQueryDefinitionTarget
   pagination?: IQueryPagination

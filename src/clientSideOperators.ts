@@ -15,12 +15,61 @@ import {
   FilterValue,
   FilterOperator,
   QueryRecordEntry,
-  ValidFilterForNode,
   INode,
   SortDirection,
   ValidSortForNode,
   QueryRecord,
+  FilterObjectForNode,
+  FilterCondition,
 } from './types';
+
+function checkFilter({
+  operator,
+  itemValue,
+  filterValue,
+}: {
+  operator: FilterOperator;
+  filterValue: any;
+  itemValue: any;
+}) {
+  switch (operator) {
+    case '_contains': {
+      return (
+        String(itemValue)
+          .toLowerCase()
+          .indexOf(String(filterValue).toLowerCase()) !== -1
+      );
+    }
+    case '_ncontains': {
+      return (
+        String(itemValue)
+          .toLowerCase()
+          .indexOf(String(filterValue).toLowerCase()) === -1
+      );
+    }
+    case '_eq': {
+      return (
+        String(itemValue).toLowerCase() === String(filterValue).toLowerCase()
+      );
+    }
+    case '_neq':
+      return (
+        String(itemValue).toLowerCase() !== String(filterValue).toLowerCase()
+      );
+    case '_gt':
+      return itemValue > filterValue;
+    case '_gte':
+      return itemValue >= filterValue;
+    case '_lt':
+      return itemValue < filterValue;
+    case '_lte':
+      return itemValue <= filterValue;
+    default:
+      throw new FilterOperatorNotImplementedException({
+        operator: operator,
+      });
+  }
+}
 
 export function applyClientSideFilterToData({
   queryRecordEntry,
@@ -29,95 +78,93 @@ export function applyClientSideFilterToData({
   filter: queryRecordEntryFilter,
 }: {
   queryRecordEntry: QueryRecordEntry;
-  filter: ValidFilterForNode<INode>;
+  filter: FilterObjectForNode<INode>;
   data: any;
   alias: string;
 }) {
   const filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+
   if (filterObject && data[alias]) {
-    Object.keys(filterObject).forEach(filterPropertyName => {
-      const underscoreSeparatedPropertyPath = filterPropertyName.replaceAll(
+    const filterProperties = Object.keys(filterObject).map<{
+      dotSeparatedPropName: string;
+      underscoreSeparatedPropName: string;
+      propNotInQuery: boolean;
+      operators: Array<{ operator: FilterOperator; value: any }>;
+      condition: FilterCondition;
+    }>(dotSeparatedPropName => {
+      const propertyFilter: FilterValue<any> =
+        filterObject[dotSeparatedPropName];
+      const operators = (Object.keys(propertyFilter).filter(
+        x => x !== '_condition'
+      ) as Array<FilterOperator>).map<{ operator: FilterOperator; value: any }>(
+        operator => {
+          return { operator, value: propertyFilter[operator] };
+        }
+      );
+      const underscoreSeparatedPropName = dotSeparatedPropName.replaceAll(
         '.',
         OBJECT_PROPERTY_SEPARATOR
       );
 
-      const filterPropertyIsNotDefinedInTheQuery =
-        queryRecordEntry.properties.includes(
-          underscoreSeparatedPropertyPath
-        ) === false;
-
-      if (filterPropertyIsNotDefinedInTheQuery) {
-        throw new FilterPropertyNotDefinedInQueryException({
-          filterPropName: filterPropertyName,
-        });
-      }
-
-      if (filterPropertyName) {
-        update(data, `${alias}.${NODES_PROPERTY_KEY}`, currentValue => {
-          if (!isArray(currentValue)) {
-            return currentValue;
-          }
-          return currentValue.filter(item => {
-            const propertyFilter: FilterValue<any> =
-              filterObject[filterPropertyName];
-
-            // Handle null filtering since backend returns "__NULL__" string instead of null
-            const value =
-              item[underscoreSeparatedPropertyPath] === NULL_TAG
-                ? null
-                : item[underscoreSeparatedPropertyPath];
-
-            return (Object.keys(propertyFilter) as Array<FilterOperator>).every(
-              filterOperator => {
-                switch (filterOperator) {
-                  case '_contains': {
-                    return (
-                      String(value)
-                        .toLowerCase()
-                        .indexOf(
-                          String(propertyFilter[filterOperator]).toLowerCase()
-                        ) !== -1
-                    );
-                  }
-                  case '_ncontains': {
-                    return (
-                      String(value)
-                        .toLowerCase()
-                        .indexOf(
-                          String(propertyFilter[filterOperator]).toLowerCase()
-                        ) === -1
-                    );
-                  }
-                  case '_eq': {
-                    return (
-                      String(value).toLowerCase() ===
-                      String(propertyFilter[filterOperator]).toLowerCase()
-                    );
-                  }
-                  case '_neq':
-                    return (
-                      String(value).toLowerCase() !==
-                      String(propertyFilter[filterOperator]).toLowerCase()
-                    );
-                  case '_gt':
-                    return value > propertyFilter[filterOperator];
-                  case '_gte':
-                    return value >= propertyFilter[filterOperator];
-                  case '_lt':
-                    return value < propertyFilter[filterOperator];
-                  case '_lte':
-                    return value <= propertyFilter[filterOperator];
-                  default:
-                    throw new FilterOperatorNotImplementedException({
-                      operator: filterOperator,
-                    });
-                }
-              }
-            );
-          });
-        });
-      }
+      const propNotInQuery =
+        queryRecordEntry.properties.includes(underscoreSeparatedPropName) ===
+        false;
+      return {
+        dotSeparatedPropName,
+        underscoreSeparatedPropName,
+        propNotInQuery: propNotInQuery,
+        operators,
+        condition: propertyFilter._condition,
+      };
     });
+    if (filterProperties.length > 0) {
+      update(data, `${alias}.${NODES_PROPERTY_KEY}`, items => {
+        if (!isArray(items)) {
+          return items;
+        }
+
+        return items.filter(item => {
+          const propertyNotInQuery = filterProperties.find(
+            x => x.propNotInQuery
+          );
+          if (!!propertyNotInQuery) {
+            throw new FilterPropertyNotDefinedInQueryException({
+              filterPropName: propertyNotInQuery.dotSeparatedPropName,
+            });
+          }
+          const orConditions = filterProperties.filter(
+            x => x.condition === 'OR'
+          );
+          const andConditions = filterProperties.filter(
+            x => x.condition === 'AND'
+          );
+
+          const hasPassOrConditions =
+            orConditions.some(filter => {
+              const itemValue =
+                item[filter.underscoreSeparatedPropName] === NULL_TAG
+                  ? null
+                  : item[filter.underscoreSeparatedPropName];
+              return filter.operators.some(({ operator, value }) => {
+                return checkFilter({ operator, filterValue: value, itemValue });
+              });
+            }) || orConditions.length === 0;
+
+          const hasPassAndConditions =
+            andConditions.every(filter => {
+              const itemValue =
+                item[filter.underscoreSeparatedPropName] === NULL_TAG
+                  ? null
+                  : item[filter.underscoreSeparatedPropName];
+              return filter.operators.every(({ operator, value }) => {
+                return checkFilter({ operator, filterValue: value, itemValue });
+              });
+            }) || andConditions.length === 0;
+
+          return hasPassAndConditions && hasPassOrConditions;
+        });
+      });
+    }
   }
 }
 

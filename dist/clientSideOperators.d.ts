@@ -1,7 +1,7 @@
-import { QueryRecordEntry, ValidFilterForNode, INode, ValidSortForNode, QueryRecord } from './types';
+import { QueryRecordEntry, INode, ValidSortForNode, QueryRecord, FilterObjectForNode } from './types';
 export declare function applyClientSideFilterToData({ queryRecordEntry, data, alias, filter: queryRecordEntryFilter, }: {
     queryRecordEntry: QueryRecordEntry;
-    filter: ValidFilterForNode<INode>;
+    filter: FilterObjectForNode<INode>;
     data: any;
     alias: string;
 }): void;
