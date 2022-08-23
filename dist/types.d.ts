@@ -349,12 +349,8 @@ export declare type FilterOperator =
  * excluding properties which are arrays and records
  * and including properties which are nested in objects
  */
-<<<<<<< HEAD
 export declare type ValidFilterForNode<TNode extends INode> = ExtractNodeFilterData<TNode> | ExtractNodeRelationalDataFilter<TNode>;
 export declare type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
-=======
-export declare type ValidFilterForNode<TNode extends INode> = DeepPartial<{
->>>>>>> origin/mm-gql
     [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataParsedValueType, any, infer TBoxedValue> ? IsArray<TDataParsedValueType> extends true ? never : TBoxedValue extends undefined ? TKey : TBoxedValue extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode> ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
 export declare type ValidSortForNode<TNode extends INode> = DeepPartial<{
@@ -476,12 +472,9 @@ declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNode
 }>;
 declare type ExtractObjectValues<TObject extends Record<string, any>> = TObject extends Record<string, infer TValueType> ? TValueType : never;
 export declare type ExtractNodeData<TNode extends INode> = TNode extends INode<any, infer TNodeData> ? TNodeData : never;
-<<<<<<< HEAD
 export declare type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<any, any, any, infer TNodeRelationalData> ? DeepPartial<{
     [Tkey in keyof TNodeRelationalData]: TNodeRelationalData[Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeFilterData<TOneToManyRelationalNode> : never : TNodeRelationalData[Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeFilterData<TOneToOneRelationalNode> : never : never;
 }> : never;
-=======
->>>>>>> origin/mm-gql
 declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<any, any, infer TNodeComputedData> ? TNodeComputedData : never;
 declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<any, any, any, infer TNodeRelationalData> ? TNodeRelationalData : never;
 /**
