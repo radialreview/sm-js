@@ -598,6 +598,24 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
+export function getQueryGQLStringFromQueryRecord(opts: {
+  queryId: string;
+  queryRecord: QueryRecord;
+}) {
+  return (
+    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
+    Object.keys(opts.queryRecord)
+      .map(alias =>
+        getRootLevelQueryString({
+          alias,
+          ...opts.queryRecord[alias],
+        })
+      )
+      .join('\n    ') +
+    '\n}'
+  ).trim();
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,
@@ -609,18 +627,10 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLString = (
-    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
-    Object.keys(queryRecord)
-      .map(alias =>
-        getRootLevelQueryString({
-          alias,
-          ...queryRecord[alias],
-        })
-      )
-      .join('\n    ') +
-    '\n}'
-  ).trim();
+  const queryGQLString = getQueryGQLStringFromQueryRecord({
+    queryId: opts.queryId,
+    queryRecord,
+  });
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord

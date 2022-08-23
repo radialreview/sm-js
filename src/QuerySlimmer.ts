@@ -9,7 +9,10 @@ import {
   QueryOpts,
   IMMGQL,
 } from './types';
-import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import {
+  convertQueryDefinitionToQueryInfo,
+  getQueryGQLStringFromQueryRecord,
+} from './queryDefinitionAdapters';
 
 export interface IQuerySlimmerConfig {
   enableLogging: boolean;
