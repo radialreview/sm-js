@@ -1369,14 +1369,15 @@ function deepClone(obj) {
 
 function getFlattenedNodeFilterObject(filterObject) {
   var result = {};
+  var filterObject2 = filterObject;
 
   var _loop = function _loop(i) {
-    var value = filterObject[i];
+    var value = filterObject2[i];
     var valueIsNotAFilterCondition = FILTER_OPERATORS.every(function (condition) {
       return isObject(value) && !value.hasOwnProperty(condition);
     });
 
-    if (typeof filterObject[i] == 'object' && filterObject[i] !== null && valueIsNotAFilterCondition) {
+    if (typeof filterObject2[i] == 'object' && filterObject2[i] !== null && valueIsNotAFilterCondition) {
       var flatObject = getFlattenedNodeFilterObject(value);
 
       for (var x in flatObject) {
@@ -1397,7 +1398,7 @@ function getFlattenedNodeFilterObject(filterObject) {
     }
   };
 
-  for (var i in filterObject) {
+  for (var i in filterObject2) {
     _loop(i);
   }
 
@@ -3352,7 +3353,7 @@ function getQueryInfo(opts) {
      * @TODO_REMOVE_QUERY_PARAMS_STRING
      * 'queryParamsString' is just temporary until backend supports filter and sorting
      * This is only use to compare previous and current filter and sorting params
-     * so we can re-render the components after the filter or sorting changes.
+     * so that the updates will be re-rendered whenever filter or sorting params changes.
      * */
     queryParamsString: queryParamsString,
     queryRecord: queryRecord
@@ -3842,15 +3843,44 @@ function checkFilter(_ref) {
   }
 }
 
-function applyClientSideFilterToData(_ref2) {
-  var queryRecordEntry = _ref2.queryRecordEntry,
-      data = _ref2.data,
-      alias = _ref2.alias,
-      queryRecordEntryFilter = _ref2.filter;
+function convertNullStringValuesToNull(_ref2) {
+  var item = _ref2.item,
+      underscoreSeparatedPropName = _ref2.underscoreSeparatedPropName;
+  return item[underscoreSeparatedPropName] === NULL_TAG ? null : item[underscoreSeparatedPropName];
+}
+
+function checkRelationalItems(_ref3) {
+  var relationalItems = _ref3.relationalItems,
+      operator = _ref3.operator,
+      filterValue = _ref3.filterValue,
+      underscoreSeparatedPropName = _ref3.underscoreSeparatedPropName;
+  return relationalItems.some(function (relationalItem) {
+    var relationalItemValue = convertNullStringValuesToNull({
+      item: relationalItem,
+      underscoreSeparatedPropName: underscoreSeparatedPropName
+    });
+    return checkFilter({
+      operator: operator,
+      filterValue: filterValue,
+      itemValue: relationalItemValue
+    });
+  });
+}
+
+function applyClientSideFilterToData(_ref4) {
+  var queryRecordEntry = _ref4.queryRecordEntry,
+      data = _ref4.data,
+      alias = _ref4.alias,
+      queryRecordEntryFilter = _ref4.filter;
   var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
 
   if (filterObject && data[alias]) {
     var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
+      var _String$split = String(dotSeparatedPropName).split('.'),
+          possibleRelationalKey = _String$split[0],
+          relationalProperties = _String$split.slice(1);
+
+      var relational = possibleRelationalKey && queryRecordEntry.relational && queryRecordEntry.relational[possibleRelationalKey];
       var propertyFilter = filterObject[dotSeparatedPropName];
       var operators = Object.keys(propertyFilter).filter(function (x) {
         return x !== '_condition';
@@ -3860,14 +3890,19 @@ function applyClientSideFilterToData(_ref2) {
           value: propertyFilter[operator]
         };
       });
-      var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-      var propNotInQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
+      var isRelationalProperty = !!relational;
+      var underscoreSeparatedPropName = isRelationalProperty ? relationalProperties.join(OBJECT_PROPERTY_SEPARATOR) : dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      var propNotInQuery = isRelationalProperty ? relational.properties.includes(underscoreSeparatedPropName) === false : queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
       return {
         dotSeparatedPropName: dotSeparatedPropName,
         underscoreSeparatedPropName: underscoreSeparatedPropName,
         propNotInQuery: propNotInQuery,
         operators: operators,
-        condition: propertyFilter._condition
+        condition: propertyFilter._condition,
+        isRelational: isRelationalProperty,
+        relationalKey: possibleRelationalKey,
+        oneToOne: relational && 'oneToOne' in relational || undefined,
+        oneToMany: relational && 'oneToMany' in relational || undefined
       };
     });
 
@@ -3895,28 +3930,85 @@ function applyClientSideFilterToData(_ref2) {
             return x.condition === 'AND';
           });
           var hasPassOrConditions = orConditions.some(function (filter) {
-            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
-            return filter.operators.some(function (_ref3) {
-              var operator = _ref3.operator,
-                  value = _ref3.value;
-              return checkFilter({
-                operator: operator,
-                filterValue: value,
-                itemValue: itemValue
+            if (filter.isRelational) {
+              return filter.operators.some(function (_ref5) {
+                var operator = _ref5.operator,
+                    value = _ref5.value;
+
+                if (filter.oneToOne === true) {
+                  var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                    item: item[filter.relationalKey],
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  }) : '';
+                  return checkFilter({
+                    operator: operator,
+                    filterValue: value,
+                    itemValue: itemValue
+                  });
+                } else {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                  return checkRelationalItems({
+                    relationalItems: relationalItems,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                }
               });
-            });
+            } else {
+              var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                item: item,
+                underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+              }) : '';
+              return filter.operators.some(function (_ref6) {
+                var operator = _ref6.operator,
+                    value = _ref6.value;
+                return checkFilter({
+                  operator: operator,
+                  filterValue: value,
+                  itemValue: itemValue
+                });
+              });
+            }
           }) || orConditions.length === 0;
           var hasPassAndConditions = andConditions.every(function (filter) {
-            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
-            return filter.operators.every(function (_ref4) {
-              var operator = _ref4.operator,
-                  value = _ref4.value;
-              return checkFilter({
-                operator: operator,
-                filterValue: value,
-                itemValue: itemValue
+            if (filter.isRelational) {
+              return filter.operators.every(function (_ref7) {
+                var operator = _ref7.operator,
+                    value = _ref7.value;
+
+                if (filter.oneToOne === true) {
+                  var itemValue = filter.relationalKey ? convertNullStringValuesToNull({
+                    item: item[filter.relationalKey],
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  }) : '';
+                  return checkFilter({
+                    operator: operator,
+                    filterValue: value,
+                    itemValue: itemValue
+                  });
+                } else {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                  return checkRelationalItems({
+                    relationalItems: relationalItems,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                }
               });
-            });
+            } else {
+              var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+              return filter.operators.every(function (_ref8) {
+                var operator = _ref8.operator,
+                    value = _ref8.value;
+                return checkFilter({
+                  operator: operator,
+                  filterValue: value,
+                  itemValue: itemValue
+                });
+              });
+            }
           }) || andConditions.length === 0;
           return hasPassAndConditions && hasPassOrConditions;
         });
@@ -3924,11 +4016,11 @@ function applyClientSideFilterToData(_ref2) {
     }
   }
 }
-function applyClientSideSortToData(_ref5) {
-  var queryRecordEntry = _ref5.queryRecordEntry,
-      data = _ref5.data,
-      alias = _ref5.alias,
-      queryRecordEntrySort = _ref5.sort;
+function applyClientSideSortToData(_ref9) {
+  var queryRecordEntry = _ref9.queryRecordEntry,
+      data = _ref9.data,
+      alias = _ref9.alias,
+      queryRecordEntrySort = _ref9.sort;
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {

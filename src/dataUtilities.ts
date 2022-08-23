@@ -210,14 +210,15 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
     Partial<Record<FilterOperator, any>> & { _condition: FilterCondition }
   > = {};
 
-  for (const i in filterObject) {
-    const value = filterObject[i] as FilterValue<string>;
+  const filterObject2 = filterObject as any;
+  for (const i in filterObject2) {
+    const value = filterObject2[i] as FilterValue<string>;
     const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
       condition => isObject(value) && !value.hasOwnProperty(condition)
     );
     if (
-      typeof filterObject[i] == 'object' &&
-      filterObject[i] !== null &&
+      typeof filterObject2[i] == 'object' &&
+      filterObject2[i] !== null &&
       valueIsNotAFilterCondition
     ) {
       const flatObject = getFlattenedNodeFilterObject(value);
