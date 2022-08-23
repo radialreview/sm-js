@@ -82,7 +82,6 @@ export class QuerySlimmer {
     this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
-  // PIOTR TODO: UPDATE THIS TO FOLLOW NODE STRUCTURE OF RETURNED RESULTS
   public getDataForQueryFromQueriesByContext(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
@@ -101,7 +100,7 @@ export class QuerySlimmer {
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
 
       queryRecordEntry.properties.forEach(property => {
-        newQueryData[property] = cachedQueryData.results[property];
+        newQueryData[property] = { nodes: cachedQueryData.results[property] };
       });
 
       if (queryRecordEntry.relational !== undefined) {
@@ -327,7 +326,6 @@ export class QuerySlimmer {
     return queryRecordToReturn;
   }
 
-  // PIOTR TODO: UPDATE TESTS FOR SUB COUNT
   public getSlimmedQueryAgainstQueriesByContext(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
