@@ -20,7 +20,11 @@ export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQue
      * @TODO_REMOVE_QUERY_PARAMS_STRING
      * 'queryParamsString' is just temporary until backend supports filter and sorting
      * This is only use to compare previous and current filter and sorting params
+<<<<<<< HEAD
      * so that the updates will be re-rendered whenever filter or sorting params changes.
+=======
+     * so we can re-render the components after the filter or sorting changes.
+>>>>>>> origin/mm-gql
      * */
     queryParamsString: string;
     queryRecord: QueryRecord;

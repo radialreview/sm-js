@@ -1385,6 +1385,7 @@ function getFlattenedNodeFilterObject(filterObject) {
       }
     } else {
       if (isObject(value)) {
+<<<<<<< HEAD
         result[i] = _extends({}, value, {
           _condition: value._condition || 'AND'
         });
@@ -1392,6 +1393,12 @@ function getFlattenedNodeFilterObject(filterObject) {
         result[i] = {
           _eq: value,
           _condition: 'AND'
+=======
+        result[i] = value;
+      } else if (value !== undefined) {
+        var filter = {
+          _eq: value
+>>>>>>> origin/mm-gql
         };
       }
     }
@@ -3352,7 +3359,11 @@ function getQueryInfo(opts) {
      * @TODO_REMOVE_QUERY_PARAMS_STRING
      * 'queryParamsString' is just temporary until backend supports filter and sorting
      * This is only use to compare previous and current filter and sorting params
+<<<<<<< HEAD
      * so that the updates will be re-rendered whenever filter or sorting params changes.
+=======
+     * so we can re-render the components after the filter or sorting changes.
+>>>>>>> origin/mm-gql
      * */
     queryParamsString: queryParamsString,
     queryRecord: queryRecord
@@ -5464,6 +5475,7 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
 
         pushOperation(operation);
         return operation;
+<<<<<<< HEAD
       },
       createNodes: function createNodes$1(opts) {
         var operation = createNodes(opts);
@@ -5526,46 +5538,143 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
       },
       createEdge: function createEdge$1(opts) {
         var operation = createEdge(opts);
+=======
+      },
+      createNodes: function createNodes$1(opts) {
+        var operation = createNodes(opts);
 
         pushOperation(operation);
         return operation;
       },
+      updateNode: function updateNode$1(opts) {
+        var operation = updateNode(opts);
+
+        var _globalOperationHandl = globalOperationHandlers.onUpdateRequested({
+          id: opts.data.id,
+          payload: opts.data
+        }),
+            onUpdateSuccessful = _globalOperationHandl.onUpdateSuccessful,
+            onUpdateFailed = _globalOperationHandl.onUpdateFailed;
+
+        pushOperation(_extends({}, operation, {
+          onSuccess: function onSuccess(data) {
+            operation.onSuccess && operation.onSuccess(data);
+            onUpdateSuccessful();
+          },
+          onFail: function onFail() {
+            operation.onFail && operation.onFail();
+            onUpdateFailed();
+          }
+        }));
+        return operation;
+      },
+      updateNodes: function updateNodes$1(opts) {
+        var operation = updateNodes(opts);
+
+        var globalHandlers = opts.nodes.map(function (node) {
+          return globalOperationHandlers.onUpdateRequested({
+            id: node.data.id,
+            payload: node.data
+          });
+        });
+        pushOperation(_extends({}, operation, {
+          nodes: operation.nodes.map(function (node, nodeIdx) {
+            return _extends({}, node, {
+              onSuccess: function onSuccess(data) {
+                node.onSuccess && node.onSuccess(data);
+                globalHandlers[nodeIdx].onUpdateSuccessful();
+              },
+              onFail: function onFail() {
+                node.onFail && node.onFail();
+                globalHandlers[nodeIdx].onUpdateFailed();
+              }
+            });
+          })
+        }));
+        return operation;
+      },
+      dropNode: function dropNode$1(opts) {
+        var operation = dropNode(opts);
+>>>>>>> origin/mm-gql
+
+        pushOperation(operation);
+        return operation;
+      },
+<<<<<<< HEAD
       createEdges: function createEdges$1(opts) {
         var operation = createEdges(opts);
+=======
+      createEdge: function createEdge$1(opts) {
+        var operation = createEdge(opts);
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
       },
+<<<<<<< HEAD
       dropEdge: function dropEdge$1(opts) {
         var operation = dropEdge(opts);
+=======
+      createEdges: function createEdges$1(opts) {
+        var operation = createEdges(opts);
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
       },
+<<<<<<< HEAD
       dropEdges: function dropEdges$1(opts) {
         var operation = dropEdges(opts);
+=======
+      dropEdge: function dropEdge$1(opts) {
+        var operation = dropEdge(opts);
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
       },
+<<<<<<< HEAD
       updateEdge: function updateEdge$1(opts) {
         var operation = updateEdge(opts);
+=======
+      dropEdges: function dropEdges$1(opts) {
+        var operation = dropEdges(opts);
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
       },
+<<<<<<< HEAD
       updateEdges: function updateEdges$1(opts) {
         var operation = updateEdges(opts);
+=======
+      updateEdge: function updateEdge$1(opts) {
+        var operation = updateEdge(opts);
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
       },
+<<<<<<< HEAD
+      replaceEdge: function replaceEdge$1(opts) {
+        var operation = replaceEdge(opts);
+=======
+      updateEdges: function updateEdges$1(opts) {
+        var operation = updateEdges(opts);
+>>>>>>> origin/mm-gql
+
+        pushOperation(operation);
+        return operation;
+      },
+<<<<<<< HEAD
+=======
       replaceEdge: function replaceEdge$1(opts) {
         var operation = replaceEdge(opts);
 
         pushOperation(operation);
         return operation;
       },
+>>>>>>> origin/mm-gql
       replaceEdges: function replaceEdges$1(opts) {
         var operation = replaceEdges(opts);
 
