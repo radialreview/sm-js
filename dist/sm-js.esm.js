@@ -3353,7 +3353,11 @@ function getQueryInfo(opts) {
      * @TODO_REMOVE_QUERY_PARAMS_STRING
      * 'queryParamsString' is just temporary until backend supports filter and sorting
      * This is only use to compare previous and current filter and sorting params
+<<<<<<< HEAD
      * so that the updates will be re-rendered whenever filter or sorting params changes.
+=======
+     * so we can re-render the components after the filter or sorting changes.
+>>>>>>> origin/mm-gql
      * */
     queryParamsString: queryParamsString,
     queryRecord: queryRecord
@@ -3832,6 +3836,7 @@ function checkFilter(_ref) {
 
     case '_lt':
       return itemValue < filterValue;
+<<<<<<< HEAD
 
     case '_lte':
       return itemValue <= filterValue;
@@ -3917,6 +3922,59 @@ function applyClientSideFilterToData(_ref4) {
             return x.propNotInQuery;
           });
 
+=======
+
+    case '_lte':
+      return itemValue <= filterValue;
+
+    default:
+      throw new FilterOperatorNotImplementedException({
+        operator: operator
+      });
+  }
+}
+
+function applyClientSideFilterToData(_ref2) {
+  var queryRecordEntry = _ref2.queryRecordEntry,
+      data = _ref2.data,
+      alias = _ref2.alias,
+      queryRecordEntryFilter = _ref2.filter;
+  var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+
+  if (filterObject && data[alias]) {
+    var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
+      var propertyFilter = filterObject[dotSeparatedPropName];
+      var operators = Object.keys(propertyFilter).filter(function (x) {
+        return x !== '_condition';
+      }).map(function (operator) {
+        return {
+          operator: operator,
+          value: propertyFilter[operator]
+        };
+      });
+      var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      var propNotInQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
+      return {
+        dotSeparatedPropName: dotSeparatedPropName,
+        underscoreSeparatedPropName: underscoreSeparatedPropName,
+        propNotInQuery: propNotInQuery,
+        operators: operators,
+        condition: propertyFilter._condition
+      };
+    });
+
+    if (filterProperties.length > 0) {
+      update(data, alias + "." + NODES_PROPERTY_KEY, function (items) {
+        if (!isArray(items)) {
+          return items;
+        }
+
+        return items.filter(function (item) {
+          var propertyNotInQuery = filterProperties.find(function (x) {
+            return x.propNotInQuery;
+          });
+
+>>>>>>> origin/mm-gql
           if (!!propertyNotInQuery) {
             throw new FilterPropertyNotDefinedInQueryException({
               filterPropName: propertyNotInQuery.dotSeparatedPropName
@@ -3925,6 +3983,7 @@ function applyClientSideFilterToData(_ref4) {
 
           var orConditions = filterProperties.filter(function (x) {
             return x.condition === 'OR';
+<<<<<<< HEAD
           });
           var andConditions = filterProperties.filter(function (x) {
             return x.condition === 'AND';
@@ -4009,6 +4068,35 @@ function applyClientSideFilterToData(_ref4) {
                 });
               });
             }
+=======
+          });
+          var andConditions = filterProperties.filter(function (x) {
+            return x.condition === 'AND';
+          });
+          var hasPassOrConditions = orConditions.some(function (filter) {
+            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+            return filter.operators.some(function (_ref3) {
+              var operator = _ref3.operator,
+                  value = _ref3.value;
+              return checkFilter({
+                operator: operator,
+                filterValue: value,
+                itemValue: itemValue
+              });
+            });
+          }) || orConditions.length === 0;
+          var hasPassAndConditions = andConditions.every(function (filter) {
+            var itemValue = item[filter.underscoreSeparatedPropName] === NULL_TAG ? null : item[filter.underscoreSeparatedPropName];
+            return filter.operators.every(function (_ref4) {
+              var operator = _ref4.operator,
+                  value = _ref4.value;
+              return checkFilter({
+                operator: operator,
+                filterValue: value,
+                itemValue: itemValue
+              });
+            });
+>>>>>>> origin/mm-gql
           }) || andConditions.length === 0;
           return hasPassAndConditions && hasPassOrConditions;
         });
@@ -4016,11 +4104,19 @@ function applyClientSideFilterToData(_ref4) {
     }
   }
 }
+<<<<<<< HEAD
 function applyClientSideSortToData(_ref9) {
   var queryRecordEntry = _ref9.queryRecordEntry,
       data = _ref9.data,
       alias = _ref9.alias,
       queryRecordEntrySort = _ref9.sort;
+=======
+function applyClientSideSortToData(_ref5) {
+  var queryRecordEntry = _ref5.queryRecordEntry,
+      data = _ref5.data,
+      alias = _ref5.alias,
+      queryRecordEntrySort = _ref5.sort;
+>>>>>>> origin/mm-gql
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {
@@ -5613,11 +5709,34 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
       dropNode: function dropNode$1(opts) {
         var operation = dropNode(opts);
 
+<<<<<<< HEAD
         pushOperation(operation);
         return operation;
       },
       createEdge: function createEdge$1(opts) {
         var operation = createEdge(opts);
+=======
+function getPreexistingState(opts) {
+  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
+  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+    acc[key] = null;
+    return acc;
+  }, {});
+  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
+  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
+  return {
+    results: results,
+    error: error,
+    querying: querying
+  };
+}
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+>>>>>>> origin/mm-gql
 
         pushOperation(operation);
         return operation;
@@ -5890,6 +6009,7 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
         return _execute2.apply(this, arguments);
       }
 
+<<<<<<< HEAD
       function _execute2() {
         _execute2 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
           var allTokensMatch, allMutations, executionResults;
@@ -5902,6 +6022,15 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
                     var token = _ref7.token;
                     return token === transactions[0].token;
                   });
+=======
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo ||
+    /**
+     * @TODO_REMOVE_QUERY_PARAMS_STRING
+     * Remove this condition. Comparing 'queryParamsString' is just temporary unitl backend supports filter and sorting
+     * once that is ready comparing 'queryGQL' should be enough.
+     */
+    preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
+>>>>>>> origin/mm-gql
 
                   if (allTokensMatch) {
                     _context.next = 4;
@@ -6233,20 +6362,62 @@ function buildQueryDefinitionStateManager(opts) {
   function handleNewQueryDefitions(subOpts) {
     var _opts$context$ongoing;
 
+<<<<<<< HEAD
     var queryDefinitions = subOpts.queryDefinitions,
         parentSubscriptionId = subOpts.parentSubscriptionId,
         subscriptionSuffix = subOpts.subscriptionSuffix,
         suspend = subOpts.suspend;
     var subscriptionId = parentSubscriptionId + subscriptionSuffix;
     var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
+=======
+function createTransaction(mmGQLInstance, globalOperationHandlers) {
+  /**
+   * A transaction allows developers to build groups of mutations that execute with transactional integrity
+   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
+   *
+   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
+   */
+  return function transaction(callback, opts) {
+    var operationsByType = {
+      createNode: [],
+      createNodes: [],
+      updateNode: [],
+      updateNodes: [],
+      dropNode: [],
+      createEdge: [],
+      createEdges: [],
+      dropEdge: [],
+      dropEdges: [],
+      replaceEdge: [],
+      replaceEdges: [],
+      updateEdge: [],
+      updateEdges: []
+    };
+    /**
+     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
+     * The backend responds with each operation in the order they were sent up.
+     */
+>>>>>>> origin/mm-gql
 
     if (!preExistingContextForThisSubscription) {
       opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
     }
 
+<<<<<<< HEAD
     var newQueryInfo;
     var newQueryDefinitionsAreAllNull;
     var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
+=======
+    function pushOperation(operation) {
+      if (!operationsByType[operation.type]) {
+        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
+      }
+      /**
+       * createNodes/updateNodes creates multiple nodes in a single operation,
+       * therefore we need to track the position of these nodes instead of just the position of the operation itself
+       */
+>>>>>>> origin/mm-gql
 
     if (preExistingQueryInfo) {
       var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
@@ -6374,8 +6545,22 @@ function buildQueryDefinitionStateManager(opts) {
     }
   }
 
+<<<<<<< HEAD
   if (opts.data.error) throw opts.data.error;
   var suspendPromise;
+=======
+    function getAllMutations(operations) {
+      return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
+    }
+
+    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
+    var token = mmGQLInstance.getToken({
+      tokenName: tokenName
+    });
+    /**
+     * Group operations by their operation name, sorted by position if applicable
+     */
+>>>>>>> origin/mm-gql
 
   if (Object.keys(suspendDisabled).length) {
     try {
@@ -6459,6 +6644,7 @@ function getGQLCLient(gqlClientOpts) {
     return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
   }, wsLink, mutationBatchLink);
 
+<<<<<<< HEAD
   function getContextWithToken(opts) {
     return {
       headers: {
@@ -6466,6 +6652,16 @@ function getGQLCLient(gqlClientOpts) {
       }
     };
   }
+=======
+    function handleSuccessCallbacks(opts) {
+      var executionResult = opts.executionResult,
+          operationsByType = opts.operationsByType;
+      var operationsByOperationName = groupByOperationName(operationsByType);
+      /**
+       * Loop through the operations, map the operation to each result sent back from the backend,
+       * then pass the result into the callback if it exists
+       */
+>>>>>>> origin/mm-gql
 
   function authenticateSubscriptionDocument(opts) {
     var _opts$gql$loc;
@@ -6525,6 +6721,7 @@ function getGQLCLient(gqlClientOpts) {
       var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
         var _yield$baseClient$que, data;
 
+<<<<<<< HEAD
         return runtime_1.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -6540,6 +6737,13 @@ function getGQLCLient(gqlClientOpts) {
                     token: opts.token
                   }))
                 });
+=======
+      executeCallbacksWithData(executionResult);
+      /**
+       * For all other operations, just invoke the callback with no args.
+       * Transactions will guarantee that all operations have succeeded, so this is safe to do
+       */
+>>>>>>> origin/mm-gql
 
               case 2:
                 _yield$baseClient$que = _context.sent;
