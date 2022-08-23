@@ -16,6 +16,7 @@ import {
   SubscriptionCanceller,
   IGQLClient,
 } from './types';
+import { cloneDeep } from 'lodash';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
@@ -183,9 +184,17 @@ export function generateQuerier({
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            applyClientSideSortAndFilterToData(queryRecord, response);
+            // Make sure to clone the response
+            // before applying the filter and sorting
+            // so we don't mutate the original response
+            // and have inconsistent results when the filter and sorting changes.
+            const filteredAndSortedResponse = cloneDeep(response);
+            applyClientSideSortAndFilterToData(
+              queryRecord,
+              filteredAndSortedResponse
+            );
 
-            return response;
+            return filteredAndSortedResponse;
           }
         )
       );
@@ -303,13 +312,17 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       opts.onData({ results: { ...nullishResults } });
       return { data: { ...nullishResults }, unsub: () => {} } as ReturnType;
     }
-    const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
+    const {
+      queryGQL,
+      queryRecord,
+      queryParamsString,
+    } = convertQueryDefinitionToQueryInfo({
       queryDefinitions: nonNullishQueryDefinitions,
       queryId,
     });
 
     opts.onQueryInfoConstructed &&
-      opts.onQueryInfoConstructed({ queryGQL, queryId });
+      opts.onQueryInfoConstructed({ queryGQL, queryId, queryParamsString });
 
     function getError(error: any, stack?: any) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
