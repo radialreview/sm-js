@@ -20,10 +20,11 @@ export interface IFetchedQueryData {
   results: any | Array<any> | null;
 }
 
-export type IQueryDataByContextMap = Record<string, IFetchedQueryData>;
+export type TQueryDataByContextMap = Record<string, IFetchedQueryData>;
 
-export type IQueryRecordEntriesByContextMap = Record<string, QueryRecordEntry>;
+export type TInFlightQueriesByContextMap = Record<string, QueryRecord[]>;
 
+export type TQueryRecordByContextMap = Record<string, QueryRecord>;
 export class QuerySlimmer {
   constructor(mmGQLInstance: IMMGQL) {
     this.mmGQLInstance = mmGQLInstance;
@@ -31,8 +32,8 @@ export class QuerySlimmer {
 
   private mmGQLInstance: IMMGQL;
 
-  public queriesByContext: IQueryDataByContextMap = observable({});
-  public inFlightQueryRecords: Array<QueryRecord> = [];
+  public queriesByContext: TQueryDataByContextMap = observable({});
+  public inFlightQueryRecords: TInFlightQueriesByContextMap = {};
 
   public async query<
     TNode,
@@ -71,6 +72,16 @@ export class QuerySlimmer {
     }
   }
 
+  public onResultsReceived(opts: {
+    slimmedQuery: QueryRecord;
+    originalQuery: QueryRecord;
+    slimmedQueryResults: Record<string, any>;
+    subscriptionEstablished: boolean;
+  }) {
+    this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
+  }
+
+  // PIOTR TODO: UPDATE THIS TO FOLLOW NODE STRUCTURE OF RETURNED RESULTS
   public getDataForQueryFromQueriesByContext(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
@@ -123,7 +134,7 @@ export class QuerySlimmer {
     let newQuerySlimmed: QueryRecord = {};
 
     inFlightQueriesToSlimAgainst.forEach(
-      (inFlightQuery: IQueryRecordEntriesByContextMap) => {
+      (inFlightQuery: TInFlightQueriesByContextMap) => {
         const slimmedQuery = this.getSlimmedQueryAgainstInFlightQuery(
           newQuery,
           inFlightQuery
@@ -137,63 +148,57 @@ export class QuerySlimmer {
     return newQuerySlimmed;
   }
 
-  public onResultsReceived(opts: {
-    slimmedQuery: QueryRecord;
-    originalQuery: QueryRecord;
-    slimmedQueryResults: Record<string, any>;
-    subscriptionEstablished: boolean;
-  }) {
-    this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
-  }
-
   /**
-   * Returns a partial QueryRecord by context map of the given inFlightQuery containing entries that we are able to slim the new query against.
+   * Returns in flight QueryRecordEntries by context that can slim down a new query.
    * The new query should wait for an in flight query to slim against if:
    *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
+   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
    *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
    */
-  public getInFlightQueriesToSlimAgainst(
-    newQuery: IQueryRecordEntriesByContextMap
-  ) {
-    const inFlightQueriesToSlimAgainst: Array<IQueryRecordEntriesByContextMap> = [];
-
+  public getInFlightQueriesToSlimAgainst(newQuery: TQueryRecordByContextMap) {
+    const inFlightQueriesToSlimAgainst: TInFlightQueriesByContextMap = {};
     const newQueryCtxtKeys = Object.keys(newQuery);
 
-    this.inFlightQueryRecords.forEach(inFlightRecord => {
-      const inFlightQueryContextMap = this.getRootQueryRecordEntriesByContextMap(
-        inFlightRecord
-      );
-      const inFlightQueryCtxKeys = Object.keys(inFlightQueryContextMap);
-      const matchedCtxKeys = inFlightQueryCtxKeys.filter(inFlightCtxKey =>
-        newQueryCtxtKeys.includes(inFlightCtxKey)
+    newQueryCtxtKeys.forEach(newQueryCtxKey => {
+      const queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
+      const newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
+      const newQueryRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
+        newQueryRecordEntry
       );
 
-      if (matchedCtxKeys.length !== 0) {
-        const partialOfInFlightQueryWeCanSlimAgainst = matchedCtxKeys.reduce(
-          (recordToSlimAgainst, matchedCtxKey) => {
-            const newRecordEntry = newQuery[matchedCtxKey];
-            const inFlightRecordEntry = inFlightQueryContextMap[matchedCtxKey];
-            const newRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
-              newRecordEntry
-            );
-            const inFlightRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
-              inFlightRecordEntry
+      if (newQueryCtxKey in this.inFlightQueryRecords) {
+        const inFlightQueriesForCtxKey = this.inFlightQueryRecords[
+          newQueryCtxKey
+        ];
+
+        inFlightQueriesForCtxKey.forEach(inFlightQueryRecord => {
+          if (queryRecordBaseKey in inFlightQueryRecord) {
+            const inFlightQueryRecordEntry =
+              inFlightQueryRecord[queryRecordBaseKey];
+            const inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(
+              inFlightProp =>
+                newQueryRecordEntry.properties.includes(inFlightProp)
             );
 
-            if (inFlightRecordDepth <= newRecordDepth) {
-              recordToSlimAgainst[matchedCtxKey] = inFlightRecordEntry;
+            if (inFlightRecordHasSomePropsInNewQuery) {
+              const inFlightRecordEntryDepth = this.getRelationalDepthOfQueryRecordEntry(
+                inFlightQueryRecordEntry
+              );
+
+              if (inFlightRecordEntryDepth <= newQueryRecordDepth) {
+                if (newQueryCtxKey in inFlightQueriesToSlimAgainst) {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey].push(
+                    inFlightQueryRecord
+                  );
+                } else {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey] = [
+                    inFlightQueryRecord,
+                  ];
+                }
+              }
             }
-
-            return recordToSlimAgainst;
-          },
-          {} as IQueryRecordEntriesByContextMap
-        );
-
-        if (Object.keys(partialOfInFlightQueryWeCanSlimAgainst).length !== 0) {
-          inFlightQueriesToSlimAgainst.push(
-            partialOfInFlightQueryWeCanSlimAgainst
-          );
-        }
+          }
+        });
       }
     });
 
@@ -202,10 +207,12 @@ export class QuerySlimmer {
       : inFlightQueriesToSlimAgainst;
   }
 
-  // PIOTR TODO: LOOK TO COMBINE WITH getSlimmedQueryAgainstQueriesByContext AS LOGIC IS SIMILAR.
-  public getSlimmedQueryAgainstInFlightQuery(
+  public getSlimmedQueryAgainstInFlightQueries(
     newQuery: QueryRecord | RelationalQueryRecord,
-    inFlightQuery: IQueryRecordEntriesByContextMap | RelationalQueryRecord,
+    inFlightQueryRecordByContext: Record<
+      string,
+      QueryRecordEntry | RelationalQueryRecordEntry
+    >,
     parentContextKey?: string
   ) {
     const slimmedQueryRecord: QueryRecord = {};
@@ -222,7 +229,7 @@ export class QuerySlimmer {
         parentContextKey
       );
 
-      if (inFlightQuery[newQueryContextKey] === undefined) {
+      if (inFlightQueryRecordByContext[newQueryContextKey] === undefined) {
         // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
         if (isNewQueryARootQuery) {
           slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
@@ -231,11 +238,14 @@ export class QuerySlimmer {
         }
       } else {
         // If a newQueryContextKey is present we want to slim what we can from the in flight query.
-        const inFlightQueryRecordEntry = inFlightQuery[newQueryContextKey];
-        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
-          newQueryProps: newQueryRecordEntry.properties,
-          cachedQueryProps: inFlightQueryRecordEntry.properties,
-        });
+        const inFlightQueryRecordEntry =
+          inFlightQueryRecordByContext[newQueryContextKey];
+        const newRequestedProperties = this.getPropertiesNotCurrentlyBeingRequested(
+          {
+            newQueryProps: newQueryRecordEntry.properties,
+            inFlightProps: inFlightQueryRecordEntry.properties,
+          }
+        );
 
         // If there are no further child relational queries to deal with and there are properties being requested that are not cached
         // we can just return the new query with only the newly requested properties.
@@ -262,9 +272,12 @@ export class QuerySlimmer {
           newQueryRecordEntry.relational !== undefined &&
           inFlightQueryRecordEntry.relational !== undefined
         ) {
-          const slimmedNewRelationalQueryRecord = this.getSlimmedQueryAgainstInFlightQuery(
+          const inFlightRelationalQueryByContext = {
+            [newQueryContextKey]: inFlightQueryRecordEntry.relational,
+          };
+          const slimmedNewRelationalQueryRecord = this.getSlimmedQueryAgainstInFlightQueries(
             newQueryRecordEntry.relational,
-            inFlightQueryRecordEntry.relational,
+            inFlightRelationalQueryByContext,
             newQueryContextKey
           );
 
@@ -310,7 +323,7 @@ export class QuerySlimmer {
     return queryRecordToReturn;
   }
 
-  // TODO PIOTR: CHECK SUB COUNTS WHEN LOOKING AT CACHED PROPERTIES
+  // PIOTR TODO: UPDATE TESTS FOR SUB COUNT
   public getSlimmedQueryAgainstQueriesByContext(
     newQuery: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
@@ -347,7 +360,7 @@ export class QuerySlimmer {
         const cachedQuery = this.queriesByContext[newQueryContextKey];
         const newRequestedProperties = this.getPropertiesNotAlreadyCached({
           newQueryProps: newQueryRecordEntry.properties,
-          cachedQueryProps: Object.keys(cachedQuery.subscriptionsByProperty),
+          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty,
         });
 
         // If there are no further child relational queries to deal with and there are properties being requested that are not cached
@@ -535,10 +548,22 @@ export class QuerySlimmer {
 
   private getPropertiesNotAlreadyCached(opts: {
     newQueryProps: string[];
-    cachedQueryProps: string[];
+    cachedQuerySubsByProperty: IFetchedQueryData['subscriptionsByProperty'];
   }) {
     const newRequestedProperties = opts.newQueryProps.filter(
-      newQueryProperty => !opts.cachedQueryProps.includes(newQueryProperty)
+      newQueryProperty =>
+        newQueryProperty in opts.cachedQuerySubsByProperty &&
+        opts.cachedQuerySubsByProperty[newQueryProperty] !== 0
+    );
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+  }
+
+  private getPropertiesNotCurrentlyBeingRequested(opts: {
+    newQueryProps: string[];
+    inFlightProps: string[];
+  }) {
+    const newRequestedProperties = opts.newQueryProps.filter(
+      newQueryProperty => !opts.inFlightProps.includes(newQueryProperty)
     );
     return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
@@ -560,7 +585,7 @@ export class QuerySlimmer {
         entriesByContext[contextKey] = queryRecordEntry;
         return entriesByContext;
       },
-      {} as IQueryRecordEntriesByContextMap
+      {} as TRootQueryRecordEntriesByContextMap
     );
   }
 
