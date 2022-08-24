@@ -364,11 +364,6 @@ function buildQueryDefinitionStateManager<
           preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL)) ||
       (newQueryInfo &&
         (!preExistingQueryInfo ||
-          /**
-           * @TODO_REMOVE_QUERY_PARAMS_STRING
-           * Remove this condition. Comparing 'queryParamsString' is just temporary unitl backend supports filter and sorting
-           * once that is ready comparing 'queryGQL' should be enough.
-           */
           preExistingQueryInfo.queryParamsString !==
             newQueryInfo.queryParamsString));
 
