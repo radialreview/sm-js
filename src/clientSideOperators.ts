@@ -194,7 +194,57 @@ export function applyClientSideFilterToData({
             x => x.condition === 'AND'
           );
 
-          const hasPassOrConditions =
+          const hasPassedEveryANDConditions =
+            andConditions.every(filter => {
+              if (filter.isRelational) {
+                return filter.operators.every(({ operator, value }) => {
+                  if (filter.oneToOne === true) {
+                    const itemValue = filter.relationalKey
+                      ? convertNullStringValuesToNull({
+                          item: item[filter.relationalKey],
+                          underscoreSeparatedPropName:
+                            filter.underscoreSeparatedPropName,
+                        })
+                      : '';
+
+                    return checkFilter({
+                      operator,
+                      filterValue: value,
+                      itemValue,
+                    });
+                  } else {
+                    const relationalItems: Array<any> = filter.relationalKey
+                      ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
+                      : [];
+                    return checkRelationalItems({
+                      relationalItems,
+                      operator,
+                      filterValue: value,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    });
+                  }
+                });
+              } else {
+                const itemValue =
+                  item[filter.underscoreSeparatedPropName] === NULL_TAG
+                    ? null
+                    : item[filter.underscoreSeparatedPropName];
+                return filter.operators.every(({ operator, value }) => {
+                  return checkFilter({
+                    operator,
+                    filterValue: value,
+                    itemValue,
+                  });
+                });
+              }
+            }) || andConditions.length === 0;
+
+          if (!hasPassedEveryANDConditions) {
+            return false;
+          }
+
+          const hasPassedSomeORConditions =
             orConditions.some(filter => {
               if (filter.isRelational) {
                 return filter.operators.some(({ operator, value }) => {
@@ -243,53 +293,7 @@ export function applyClientSideFilterToData({
               }
             }) || orConditions.length === 0;
 
-          const hasPassAndConditions =
-            andConditions.every(filter => {
-              if (filter.isRelational) {
-                return filter.operators.every(({ operator, value }) => {
-                  if (filter.oneToOne === true) {
-                    const itemValue = filter.relationalKey
-                      ? convertNullStringValuesToNull({
-                          item: item[filter.relationalKey],
-                          underscoreSeparatedPropName:
-                            filter.underscoreSeparatedPropName,
-                        })
-                      : '';
-
-                    return checkFilter({
-                      operator,
-                      filterValue: value,
-                      itemValue,
-                    });
-                  } else {
-                    const relationalItems: Array<any> = filter.relationalKey
-                      ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
-                      : [];
-                    return checkRelationalItems({
-                      relationalItems,
-                      operator,
-                      filterValue: value,
-                      underscoreSeparatedPropName:
-                        filter.underscoreSeparatedPropName,
-                    });
-                  }
-                });
-              } else {
-                const itemValue =
-                  item[filter.underscoreSeparatedPropName] === NULL_TAG
-                    ? null
-                    : item[filter.underscoreSeparatedPropName];
-                return filter.operators.every(({ operator, value }) => {
-                  return checkFilter({
-                    operator,
-                    filterValue: value,
-                    itemValue,
-                  });
-                });
-              }
-            }) || andConditions.length === 0;
-
-          return hasPassAndConditions && hasPassOrConditions;
+          return hasPassedEveryANDConditions && hasPassedSomeORConditions;
         });
       });
     }
@@ -322,9 +326,15 @@ export function applyClientSideSortToData({
           OBJECT_PROPERTY_SEPARATOR
         );
         return {
-          sortFn: item =>
-            Number(item[underscoreSeparatedPropertyPath]) ||
-            item[underscoreSeparatedPropertyPath],
+          sortFn: item => {
+            const isValueNull =
+              item[underscoreSeparatedPropertyPath] === null ||
+              item[underscoreSeparatedPropertyPath] === NULL_TAG;
+            return isValueNull
+              ? -Infinity
+              : Number(item[underscoreSeparatedPropertyPath]) ||
+                  item[underscoreSeparatedPropertyPath];
+          },
           direction: sortObject[propertyPath]._direction || 'asc',
           underscoreSeparatedPropertyPath,
           propertyPath,
@@ -335,16 +345,16 @@ export function applyClientSideSortToData({
       'asc'
     );
 
-    const sortPropertiesNotDefinedInSorting = sorting.filter(
+    const sortPropertiesNotDefinedInQuery = sorting.filter(
       i =>
         queryRecordEntry.properties.includes(
           i.underscoreSeparatedPropertyPath
         ) === false
     );
 
-    if (sortPropertiesNotDefinedInSorting.length > 0) {
+    if (sortPropertiesNotDefinedInQuery.length > 0) {
       throw new SortPropertyNotDefinedInQueryException({
-        sortPropName: sortPropertiesNotDefinedInSorting[0].propertyPath,
+        sortPropName: sortPropertiesNotDefinedInQuery[0].propertyPath,
       });
     }
 
