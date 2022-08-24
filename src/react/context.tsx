@@ -12,7 +12,6 @@ export interface IContextSubscription {
   queryInfo?: {
     queryGQL: DocumentNode;
     queryId: string;
-    /** @TODO_REMOVE_QUERY_PARAMS_STRING */
     queryParamsString: string;
   } | null;
 

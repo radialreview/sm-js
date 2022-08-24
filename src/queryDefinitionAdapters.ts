@@ -743,12 +743,6 @@ export function getQueryInfo<
   return {
     subscriptionConfigs: subscriptionConfigs,
     queryGQLString,
-    /**
-     * @TODO_REMOVE_QUERY_PARAMS_STRING
-     * 'queryParamsString' is just temporary until backend supports filter and sorting
-     * This is only use to compare previous and current filter and sorting params
-     * so that the updates will be re-rendered whenever filter or sorting params changes.
-     * */
     queryParamsString,
     queryRecord,
   };

@@ -1922,6 +1922,82 @@ test(`query.sorting can sort relational data`, async () => {
   expect(data.users.nodes[0].todos.nodes[2].task).toBe('Todo 4');
 });
 
+test(`query.sorting should always sort null values last in ascending order`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+          optionalProp: 'Optional 5',
+        },
+        {
+          firstName: '5',
+          optionalProp: null,
+        },
+        {
+          firstName: '3',
+          optionalProp: 'Optional 1',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        optionalProp: 'asc',
+      },
+      map: ({ id, optionalProp, firstName }) => ({
+        id,
+        optionalProp,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['3', '1', '5']);
+});
+
+test(`query.sorting should always sort null values last in descending order`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          firstName: '1',
+          optionalProp: 'Optional 5',
+        },
+        {
+          firstName: '5',
+          optionalProp: NULL_TAG,
+        },
+        {
+          firstName: '3',
+          optionalProp: 'Optional 1',
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      sort: {
+        optionalProp: 'desc',
+      },
+      map: ({ id, optionalProp, firstName }) => ({
+        id,
+        optionalProp,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['1', '3', '5']);
+});
+
 test(`query.filter can filter using "OR" condition`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({

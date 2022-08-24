@@ -184,11 +184,12 @@ export function generateQuerier({
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            // Make sure to clone the response
-            // before applying the filter and sorting
-            // so we don't mutate the original response
-            // and have inconsistent results when the filter and sorting changes.
-            const filteredAndSortedResponse = cloneDeep(response);
+            // clone the object only if we are running the unit test
+            // to simulate that we are receiving new response
+            // to prevent mutating the object multiple times when filtering or sorting
+            // resulting into incorrect results in our specs
+            const filteredAndSortedResponse =
+              process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
             applyClientSideSortAndFilterToData(
               queryRecord,
               filteredAndSortedResponse
