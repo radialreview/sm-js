@@ -1,4 +1,5 @@
-import { observable } from 'mobx';
+import { gql } from '@apollo/client/core';
+import { observable, autorun } from 'mobx';
 
 import {
   QueryRecord,
@@ -8,24 +9,29 @@ import {
   QueryDefinitions,
   QueryOpts,
   IMMGQL,
+  IGQLClient,
 } from './types';
 import {
   convertQueryDefinitionToQueryInfo,
   getQueryGQLStringFromQueryRecord,
 } from './queryDefinitionAdapters';
 
-export interface IQuerySlimmerConfig {
-  enableLogging: boolean;
-}
-
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
   results: any | Array<any> | null;
 }
 
+export interface IInFlightQueryRecord {
+  queryId: string;
+  queryRecord: QueryRecord;
+}
+
 export type TQueryDataByContextMap = Record<string, IFetchedQueryData>;
 
-export type TInFlightQueriesByContextMap = Record<string, QueryRecord[]>;
+export type TInFlightQueriesByContextMap = Record<
+  string,
+  IInFlightQueryRecord[]
+>;
 
 export type TQueryRecordByContextMap = Record<string, QueryRecord>;
 
@@ -51,8 +57,8 @@ export class QuerySlimmer {
   >(opts: {
     queryId: string;
     queryDefinitions: TQueryDefinitions;
+    queryOpts?: QueryOpts<TQueryDefinitions>;
     tokenName: string;
-    opts?: QueryOpts<TQueryDefinitions>;
   }) {
     const { queryRecord } = convertQueryDefinitionToQueryInfo(opts);
     const newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(
@@ -64,16 +70,71 @@ export class QuerySlimmer {
     }
 
     const newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(
-      newQuerySlimmedByCache as QueryRecord
+      newQuerySlimmedByCache
     );
 
     if (newQuerySlimmedByInFlightQueries === null) {
-      // If null, no slimming against in flight queries was done. We can send a request for this query as is.
+      const queryGQLString = getQueryGQLStringFromQueryRecord({
+        queryId: opts.queryId,
+        queryRecord: newQuerySlimmedByCache,
+      });
+      const queryOpts: Parameters<IGQLClient['query']>[0] = {
+        gql: gql(queryGQLString),
+        token: opts.tokenName,
+      };
+      if (opts && opts.queryOpts && 'batchKey' in opts.queryOpts) {
+        queryOpts.batchKey = opts.queryOpts.batchKey;
+      }
+      const inFlightQuery = {
+        queryId: opts.queryId,
+        queryRecord: newQuerySlimmedByCache,
+      };
+      this.setInFlightQuery(inFlightQuery);
+      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
+      this.removeInFlightQuery(inFlightQuery);
+      this.populateQueriesByContext(newQuerySlimmedByCache, results);
+      return this.getDataForQueryFromQueriesByContext(queryRecord);
     } else {
       // Send a request for the slimmed query.
       // Wait for this request and all dependent slimmed queries to resolve.
       // Once all requests are done we stich back the full query and return the data.
     }
+  }
+
+  private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      inFlightQueryRecord.queryRecord
+    );
+    Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
+      if (queryRecordContextKey in this.inFlightQueryRecords) {
+        this.inFlightQueryRecords[queryRecordContextKey].push(
+          inFlightQueryRecord
+        );
+      } else {
+        this.inFlightQueryRecords[queryRecordContextKey] = [
+          inFlightQueryRecord,
+        ];
+      }
+    });
+  }
+
+  private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      inFlightQueryToRemove.queryRecord
+    );
+    Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
+      if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
+        this.inFlightQueryRecords[
+          queryToRemoveCtxKey
+        ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
+          inFlightRecord =>
+            inFlightRecord.queryId === inFlightQueryToRemove.queryId
+        );
+        if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+          delete this.inFlightQueryRecords[queryToRemoveCtxKey];
+        }
+      }
+    });
   }
 
   public onResultsReceived(opts: {
@@ -94,7 +155,7 @@ export class QuerySlimmer {
 
     newQueryKeys.forEach(newQueryKey => {
       const queryRecordEntry = newQuery[newQueryKey];
-      const contextKey = this.createContextKeyForQuery(
+      const contextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
       );
@@ -132,6 +193,7 @@ export class QuerySlimmer {
       return null;
     }
 
+    const queryIdsSlimmedAgainst: string[] = [];
     let newQuerySlimmed: QueryRecord = {};
 
     Object.keys(inFlightQueriesToSlimAgainst).forEach(
@@ -145,10 +207,11 @@ export class QuerySlimmer {
             inFlightQueryRecord => {
               const slimmed = this.getSlimmedQueryAgainstInFlightQuery(
                 newQueryRecordPieceSlimmed,
-                inFlightQueryRecord,
+                inFlightQueryRecord.queryRecord,
                 false
               );
               if (slimmed !== null) {
+                queryIdsSlimmedAgainst.push(inFlightQueryRecord.queryId);
                 newQueryRecordPieceSlimmed = slimmed;
               }
             }
@@ -162,7 +225,14 @@ export class QuerySlimmer {
       }
     );
 
-    return Object.keys(newQuerySlimmed).length === 0 ? null : newQuerySlimmed;
+    if (Object.keys(newQuerySlimmed).length === 0) {
+      return null;
+    } else {
+      return {
+        queryIdsSlimmedAgainst,
+        slimmedQueryRecord: newQuerySlimmed,
+      };
+    }
   }
 
   /**
@@ -189,9 +259,9 @@ export class QuerySlimmer {
         ];
 
         inFlightQueriesForCtxKey.forEach(inFlightQueryRecord => {
-          if (queryRecordBaseKey in inFlightQueryRecord) {
+          if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
             const inFlightQueryRecordEntry =
-              inFlightQueryRecord[queryRecordBaseKey];
+              inFlightQueryRecord.queryRecord[queryRecordBaseKey];
             const inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(
               inFlightProp =>
                 newQueryRecordEntry.properties.includes(inFlightProp)
@@ -226,7 +296,7 @@ export class QuerySlimmer {
 
   /**
    * Slims the new query against an in flight query.
-   * This function assumes both queries have already been matched by context.
+   * This function assumes queries have already been matched by context.
    */
   public getSlimmedQueryAgainstInFlightQuery(
     newQuery: QueryRecord | RelationalQueryRecord,
@@ -347,7 +417,7 @@ export class QuerySlimmer {
       const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
       const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
 
-      const newQueryContextKey = this.createContextKeyForQuery(
+      const newQueryContextKey = this.createContextKeyForQueryRecordEntry(
         newQueryRecordEntry,
         parentContextKey
       );
@@ -442,7 +512,7 @@ export class QuerySlimmer {
   ) {
     Object.keys(queryRecord).forEach(queryRecordKey => {
       const queryRecordEntry = queryRecord[queryRecordKey];
-      const currentQueryContextKey = this.createContextKeyForQuery(
+      const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
       );
@@ -499,7 +569,7 @@ export class QuerySlimmer {
   ) {
     Object.keys(queryRecord).forEach(alias => {
       const queryRecordEntry = queryRecord[alias];
-      const currentQueryContextKey = this.createContextKeyForQuery(
+      const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
       );
@@ -534,7 +604,7 @@ export class QuerySlimmer {
     });
   }
 
-  private createContextKeyForQuery(
+  private createContextKeyForQueryRecordEntry(
     queryRecordEntry: QueryRecordEntry,
     parentContextKey?: string
   ) {
@@ -587,7 +657,9 @@ export class QuerySlimmer {
     return Object.keys(queryRecord).reduce(
       (queryRecordsByContext, queryRecordKey) => {
         const queryRecordEntry = queryRecord[queryRecordKey];
-        const contextKey = this.createContextKeyForQuery(queryRecordEntry);
+        const contextKey = this.createContextKeyForQueryRecordEntry(
+          queryRecordEntry
+        );
         const queryRecordSlice: QueryRecord = {
           [queryRecordKey]: queryRecordEntry,
         };

@@ -719,7 +719,6 @@ export function convertQueryDefinitionToQueryInfo<
   const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
     opts
   );
-  //call plugin function here that takes in the queryRecord
 
   return {
     queryGQL: gql(queryGQLString),

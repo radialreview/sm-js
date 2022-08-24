@@ -55,9 +55,7 @@ export class MMGQL implements IMMGQL {
     this.DOProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
     this.QueryManager = createQueryManager(this);
-    this.QuerySlimmer = new QuerySlimmer({
-      enableLogging: config.enableQuerySlimmingLogging,
-    });
+    this.QuerySlimmer = new QuerySlimmer(this);
     this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested,
