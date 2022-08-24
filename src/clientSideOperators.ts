@@ -300,6 +300,40 @@ export function applyClientSideFilterToData({
   }
 }
 
+function getSortPosition(first: any, second: any, ascending: boolean) {
+  // equal items sort equally
+  if (first === second) {
+    return 0;
+  }
+
+  // nulls sort after anything else
+  if (first === null) {
+    return 1;
+  }
+  if (second === null) {
+    return -1;
+  }
+
+  // otherwise, if we're ascending, lowest sorts first
+  if (ascending) {
+    return first < second ? -1 : 1;
+  }
+
+  // if descending, highest sorts first
+  return first < second ? 1 : -1;
+}
+
+function getItemSortValue(item: any, underscoreSeparatedPropertyPath: string) {
+  const isValueNull =
+    item[underscoreSeparatedPropertyPath] === null ||
+    item[underscoreSeparatedPropertyPath] === NULL_TAG;
+  if (isValueNull) return null;
+  return (
+    Number(item[underscoreSeparatedPropertyPath]) ||
+    item[underscoreSeparatedPropertyPath]
+  );
+}
+
 export function applyClientSideSortToData({
   queryRecordEntry,
   data,
@@ -314,7 +348,6 @@ export function applyClientSideSortToData({
   const sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
   if (sortObject && data[alias]) {
     const sorting: Array<{
-      sortFn: (d: any) => any;
       priority?: number;
       direction: SortDirection;
       propertyPath: string;
@@ -325,17 +358,10 @@ export function applyClientSideSortToData({
           '.',
           OBJECT_PROPERTY_SEPARATOR
         );
+        const direction: SortDirection =
+          sortObject[propertyPath]._direction || 'asc';
         return {
-          sortFn: item => {
-            const isValueNull =
-              item[underscoreSeparatedPropertyPath] === null ||
-              item[underscoreSeparatedPropertyPath] === NULL_TAG;
-            return isValueNull
-              ? -Infinity
-              : Number(item[underscoreSeparatedPropertyPath]) ||
-                  item[underscoreSeparatedPropertyPath];
-          },
-          direction: sortObject[propertyPath]._direction || 'asc',
+          direction,
           underscoreSeparatedPropertyPath,
           propertyPath,
           priority: sortObject[propertyPath]._priority || (index + 1) * 10000,
@@ -358,14 +384,23 @@ export function applyClientSideSortToData({
       });
     }
 
-    update(data, `${alias}.${NODES_PROPERTY_KEY}`, currentValue => {
-      if (!isArray(currentValue)) {
-        return currentValue;
+    update(data, `${alias}.${NODES_PROPERTY_KEY}`, items => {
+      if (!isArray(items)) {
+        return items;
       }
-      return orderBy(
-        currentValue,
-        sorting.map(item => item.sortFn),
-        sorting.map(item => item.direction)
+
+      return items.sort((first, second) =>
+        sorting
+          .map(sort =>
+            getSortPosition(
+              getItemSortValue(first, sort.underscoreSeparatedPropertyPath),
+              getItemSortValue(second, sort.underscoreSeparatedPropertyPath),
+              sort.direction === 'asc'
+            )
+          )
+          .reduce((acc, current) => {
+            return acc || current;
+          }, undefined as never)
       );
     });
   }
