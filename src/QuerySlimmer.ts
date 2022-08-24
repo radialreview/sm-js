@@ -73,50 +73,24 @@ export class QuerySlimmer {
       newQuerySlimmedByCache
     );
 
+    // TODO PIOTR ADD:
+    // TIMEOUTS
+    // ERROR HANDLING (SEND ORIGINAL REQUEST)
     if (newQuerySlimmedByInFlightQueries === null) {
-      const queryGQLString = getQueryGQLStringFromQueryRecord({
+      await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByCache,
+        tokenName: opts.tokenName,
+        batchKey: opts.queryOpts?.batchKey,
       });
-      const queryOpts: Parameters<IGQLClient['query']>[0] = {
-        gql: gql(queryGQLString),
-        token: opts.tokenName,
-      };
-      if (opts && opts.queryOpts && 'batchKey' in opts.queryOpts) {
-        queryOpts.batchKey = opts.queryOpts.batchKey;
-      }
-      const inFlightQuery: IInFlightQueryRecord = {
-        queryId: opts.queryId,
-        queryRecord: newQuerySlimmedByCache,
-      };
-      this.setInFlightQuery(inFlightQuery);
-      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
-      this.removeInFlightQuery(inFlightQuery);
-      this.populateQueriesByContext(newQuerySlimmedByCache, results);
       return this.getDataForQueryFromQueriesByContext(queryRecord);
     } else {
-      const queryGQLString = getQueryGQLStringFromQueryRecord({
+      await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+        tokenName: opts.tokenName,
+        batchKey: opts.queryOpts?.batchKey,
       });
-      const queryOpts: Parameters<IGQLClient['query']>[0] = {
-        gql: gql(queryGQLString),
-        token: opts.tokenName,
-      };
-      if (opts && opts.queryOpts && 'batchKey' in opts.queryOpts) {
-        queryOpts.batchKey = opts.queryOpts.batchKey;
-      }
-      const inFlightQuery: IInFlightQueryRecord = {
-        queryId: opts.queryId,
-        queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-      };
-      this.setInFlightQuery(inFlightQuery);
-      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
-      this.removeInFlightQuery(inFlightQuery);
-      this.populateQueriesByContext(
-        newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-        results
-      );
 
       await when(
         () =>
@@ -129,79 +103,6 @@ export class QuerySlimmer {
 
       return this.getDataForQueryFromQueriesByContext(queryRecord);
     }
-  }
-
-  private areDependentQueriesStillInFlight(opts: {
-    queryIds: string[];
-    querySlimmedByInFlightQueries: QueryRecord;
-  }) {
-    let isStillWaitingOnInFlightQueries = false;
-
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      opts.querySlimmedByInFlightQueries
-    );
-
-    Object.keys(queryRecordsByContext).forEach(ctxKey => {
-      if (!isStillWaitingOnInFlightQueries) {
-        if (ctxKey in this.inFlightQueryRecords) {
-          const inFlightQueryHasDepedentId = this.inFlightQueryRecords[
-            ctxKey
-          ].some(inFlightQuery =>
-            opts.queryIds.includes(inFlightQuery.queryId)
-          );
-          if (inFlightQueryHasDepedentId) {
-            isStillWaitingOnInFlightQueries = true;
-          }
-        }
-      }
-    });
-
-    return isStillWaitingOnInFlightQueries;
-  }
-
-  private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      inFlightQueryRecord.queryRecord
-    );
-    Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
-      if (queryRecordContextKey in this.inFlightQueryRecords) {
-        this.inFlightQueryRecords[queryRecordContextKey].push(
-          inFlightQueryRecord
-        );
-      } else {
-        this.inFlightQueryRecords[queryRecordContextKey] = [
-          inFlightQueryRecord,
-        ];
-      }
-    });
-  }
-
-  private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      inFlightQueryToRemove.queryRecord
-    );
-    Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
-      if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
-        this.inFlightQueryRecords[
-          queryToRemoveCtxKey
-        ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
-          inFlightRecord =>
-            inFlightRecord.queryId === inFlightQueryToRemove.queryId
-        );
-        if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-          delete this.inFlightQueryRecords[queryToRemoveCtxKey];
-        }
-      }
-    });
-  }
-
-  public onResultsReceived(opts: {
-    slimmedQuery: QueryRecord;
-    originalQuery: QueryRecord;
-    slimmedQueryResults: Record<string, any>;
-    subscriptionEstablished: boolean;
-  }) {
-    this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
   }
 
   public getDataForQueryFromQueriesByContext(
@@ -564,6 +465,7 @@ export class QuerySlimmer {
     return queryRecordToReturn;
   }
 
+  // TODO PIOTR: WHEN TO CALL THIS?
   public onSubscriptionCancelled(
     queryRecord: QueryRecord,
     parentContextKey?: string
@@ -726,6 +628,104 @@ export class QuerySlimmer {
       },
       {} as TQueryRecordByContextMap
     );
+  }
+
+  private async sendQueryRequest(opts: {
+    queryId: string;
+    queryRecord: QueryRecord;
+    tokenName: string;
+    batchKey?: string | undefined;
+  }) {
+    const inFlightQuery: IInFlightQueryRecord = {
+      queryId: opts.queryId,
+      queryRecord: opts.queryRecord,
+    };
+    const queryGQLString = getQueryGQLStringFromQueryRecord({
+      queryId: opts.queryId,
+      queryRecord: opts.queryRecord,
+    });
+    const queryOpts: Parameters<IGQLClient['query']>[0] = {
+      gql: gql(queryGQLString),
+      token: opts.tokenName,
+    };
+
+    if ('batchKey' in opts && opts.batchKey !== undefined) {
+      queryOpts.batchKey = opts.batchKey;
+    }
+
+    try {
+      this.setInFlightQuery(inFlightQuery);
+      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
+      this.removeInFlightQuery(inFlightQuery);
+      this.populateQueriesByContext(opts.queryRecord, results);
+    } catch (e) {
+      // TODO PIOTR: LOGGING && ERROR HANDLING
+      this.removeInFlightQuery(inFlightQuery);
+    }
+  }
+
+  private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      inFlightQueryRecord.queryRecord
+    );
+    Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
+      if (queryRecordContextKey in this.inFlightQueryRecords) {
+        this.inFlightQueryRecords[queryRecordContextKey].push(
+          inFlightQueryRecord
+        );
+      } else {
+        this.inFlightQueryRecords[queryRecordContextKey] = [
+          inFlightQueryRecord,
+        ];
+      }
+    });
+  }
+
+  private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      inFlightQueryToRemove.queryRecord
+    );
+    Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
+      if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
+        this.inFlightQueryRecords[
+          queryToRemoveCtxKey
+        ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
+          inFlightRecord =>
+            inFlightRecord.queryId === inFlightQueryToRemove.queryId
+        );
+        if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+          delete this.inFlightQueryRecords[queryToRemoveCtxKey];
+        }
+      }
+    });
+  }
+
+  private areDependentQueriesStillInFlight(opts: {
+    queryIds: string[];
+    querySlimmedByInFlightQueries: QueryRecord;
+  }) {
+    let isStillWaitingOnInFlightQueries = false;
+
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      opts.querySlimmedByInFlightQueries
+    );
+
+    Object.keys(queryRecordsByContext).forEach(ctxKey => {
+      if (!isStillWaitingOnInFlightQueries) {
+        if (ctxKey in this.inFlightQueryRecords) {
+          const inFlightQueryHasDepedentId = this.inFlightQueryRecords[
+            ctxKey
+          ].some(inFlightQuery =>
+            opts.queryIds.includes(inFlightQuery.queryId)
+          );
+          if (inFlightQueryHasDepedentId) {
+            isStillWaitingOnInFlightQueries = true;
+          }
+        }
+      }
+    });
+
+    return isStillWaitingOnInFlightQueries;
   }
 
   private log(opts: {
