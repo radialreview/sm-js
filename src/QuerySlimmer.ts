@@ -92,6 +92,7 @@ export class QuerySlimmer {
         batchKey: opts.queryOpts?.batchKey,
       });
 
+      // PIOTR TODO: THIS RETURNS A PROMISE THAT CAN BE CANCELLED. CANCEL IT WHEN DOING ERROR/TIMEOUT HANDLING.
       await when(
         () =>
           !this.areDependentQueriesStillInFlight({
