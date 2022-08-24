@@ -184,9 +184,6 @@ export function generateQuerier({
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            if (process.env.NODE_ENV === 'test') {
-            }
-
             // clone the object only if we are running the unit test
             // to simulate that we are receiving different object per request
             // to prevent mutating the object multiple times when filtering or sorting
