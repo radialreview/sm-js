@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client/core';
-import { observable, autorun } from 'mobx';
+import { observable, when } from 'mobx';
 
 import {
   QueryRecord,
@@ -85,7 +85,7 @@ export class QuerySlimmer {
       if (opts && opts.queryOpts && 'batchKey' in opts.queryOpts) {
         queryOpts.batchKey = opts.queryOpts.batchKey;
       }
-      const inFlightQuery = {
+      const inFlightQuery: IInFlightQueryRecord = {
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByCache,
       };
@@ -95,10 +95,68 @@ export class QuerySlimmer {
       this.populateQueriesByContext(newQuerySlimmedByCache, results);
       return this.getDataForQueryFromQueriesByContext(queryRecord);
     } else {
-      // Send a request for the slimmed query.
-      // Wait for this request and all dependent slimmed queries to resolve.
-      // Once all requests are done we stich back the full query and return the data.
+      const queryGQLString = getQueryGQLStringFromQueryRecord({
+        queryId: opts.queryId,
+        queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+      });
+      const queryOpts: Parameters<IGQLClient['query']>[0] = {
+        gql: gql(queryGQLString),
+        token: opts.tokenName,
+      };
+      if (opts && opts.queryOpts && 'batchKey' in opts.queryOpts) {
+        queryOpts.batchKey = opts.queryOpts.batchKey;
+      }
+      const inFlightQuery: IInFlightQueryRecord = {
+        queryId: opts.queryId,
+        queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+      };
+      this.setInFlightQuery(inFlightQuery);
+      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
+      this.removeInFlightQuery(inFlightQuery);
+      this.populateQueriesByContext(
+        newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+        results
+      );
+
+      await when(
+        () =>
+          !this.areDependentQueriesStillInFlight({
+            queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
+            querySlimmedByInFlightQueries:
+              newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+          })
+      );
+
+      return this.getDataForQueryFromQueriesByContext(queryRecord);
     }
+  }
+
+  private areDependentQueriesStillInFlight(opts: {
+    queryIds: string[];
+    querySlimmedByInFlightQueries: QueryRecord;
+  }) {
+    let isStillWaitingOnInFlightQueries = false;
+
+    const queryRecordsByContext = this.getQueryRecordsByContextMap(
+      opts.querySlimmedByInFlightQueries
+    );
+
+    Object.keys(queryRecordsByContext).forEach(ctxKey => {
+      if (!isStillWaitingOnInFlightQueries) {
+        if (ctxKey in this.inFlightQueryRecords) {
+          const inFlightQueryHasDepedentId = this.inFlightQueryRecords[
+            ctxKey
+          ].some(inFlightQuery =>
+            opts.queryIds.includes(inFlightQuery.queryId)
+          );
+          if (inFlightQueryHasDepedentId) {
+            isStillWaitingOnInFlightQueries = true;
+          }
+        }
+      }
+    });
+
+    return isStillWaitingOnInFlightQueries;
   }
 
   private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
