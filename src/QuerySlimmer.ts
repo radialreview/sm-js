@@ -740,4 +740,14 @@ export class QuerySlimmer {
       );
     }
   }
+
+  // TODO PIOTR: DON'T THINK WE NEED THIS ANYMORE BUT CONFIRM ABOUT subscriptionEstablished
+  // public onResultsReceived(opts: {
+  //   slimmedQuery: QueryRecord;
+  //   originalQuery: QueryRecord;
+  //   slimmedQueryResults: Record<string, any>;
+  //   subscriptionEstablished: boolean;
+  // }) {
+  //   this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
+  // }
 }
