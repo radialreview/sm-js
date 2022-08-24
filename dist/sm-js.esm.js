@@ -4228,21 +4228,15 @@ function generateQuerier(_ref4) {
                                       response = _context.sent;
 
                                     case 11:
-                                      if (process.env.NODE_ENV === 'test') ; // clone the object only if we are running the unit test
-                                      // to simulate that we are receiving different object per request
-                                      // to prevent mutating the object multiple times when filtering or sorting
-                                      // resulting into incorrect results
-
-
                                       // clone the object only if we are running the unit test
-                                      // to simulate that we are receiving different object per request
+                                      // to simulate that we are receiving new response
                                       // to prevent mutating the object multiple times when filtering or sorting
-                                      // resulting into incorrect results
+                                      // resulting into incorrect results in our specs
                                       filteredAndSortedResponse = process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
                                       applyClientSideSortAndFilterToData(queryRecord, filteredAndSortedResponse);
                                       return _context.abrupt("return", filteredAndSortedResponse);
 
-                                    case 15:
+                                    case 14:
                                     case "end":
                                       return _context.stop();
                                   }

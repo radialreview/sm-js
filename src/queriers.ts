@@ -185,9 +185,9 @@ export function generateQuerier({
             }
 
             // clone the object only if we are running the unit test
-            // to simulate that we are receiving different object per request
+            // to simulate that we are receiving new response
             // to prevent mutating the object multiple times when filtering or sorting
-            // resulting into incorrect results
+            // resulting into incorrect results in our specs
             const filteredAndSortedResponse =
               process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
             applyClientSideSortAndFilterToData(
