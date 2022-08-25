@@ -45,12 +45,12 @@ type UserRelationalData = {
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = INode<
-  'user',
-  UserProperties,
-  { displayName: string },
-  UserRelationalData
->;
+export type UserNode = INode<{
+  TNodeType: 'user';
+  TNodeData: UserProperties;
+  TNodeComputedData: { displayName: string };
+  TNodeRelationalData: UserRelationalData;
+}>;
 
 // factory functions so that tests don't share DO repositories
 export function generateUserNode(
@@ -101,7 +101,12 @@ export type TodoRelationalData = {
   users: IOneToManyQueryBuilder<UserNode>;
 };
 
-export type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
+export type TodoNode = INode<{
+  TNodeType: 'todo';
+  TNodeData: TodoProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: TodoRelationalData;
+}>;
 
 export function generateTodoNode(
   mmGQLInstance: IMMGQL,
@@ -129,11 +134,14 @@ export function generateDOInstance<
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
+  computed?: NodeComputedFns<{
+    TNodeData: TNodeData & NodeDefaultProps;
+    TNodeComputedData: TNodeComputedData;
+  }>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   initialData: {
     id: string;
-    version: string;
+    version: number;
   } & Record<string, any>;
 }) {
   const mmGQL = new MMGQL(getDefaultConfig());
@@ -166,8 +174,7 @@ export function createMockQueryDefinitions(
   return {
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, todos, address }) => ({
-        id,
+      map: ({ todos, address }) => ({
         address: address({
           map: ({ state, apt }) => ({
             state,
@@ -180,10 +187,9 @@ export function createMockQueryDefinitions(
           }),
         }),
         todos: todos({
-          map: ({ id, assignee }) => ({
-            id,
+          map: ({ assignee }) => ({
             assignee: assignee({
-              map: ({ id, firstName }) => ({ id, firstName }),
+              map: ({ firstName }) => ({ firstName }),
             }),
           }),
         }),

@@ -188,8 +188,7 @@ test(`query.filter can filter 'number' prop using '_gte' operator`, async () => 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -222,8 +221,7 @@ test(`query.filter can filter 'number' prop using '_lte' operator`, async () => 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -256,8 +254,7 @@ test(`query.filter can filter 'number' prop using '_eq' operator`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -290,8 +287,7 @@ test(`query.filter can filter 'number' prop using '_neq' operator`, async () => 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -324,8 +320,7 @@ test(`query.filter can filter 'number' prop using '_gt' operator`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -358,8 +353,7 @@ test(`query.filter can filter 'number' prop using '_lt' operator`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
       filter: {
@@ -392,8 +386,7 @@ test(`query.filter can filter 'boolean' prop using '_eq' operator`, async () => 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score, archived }) => ({
-        id,
+      map: ({ score, archived }) => ({
         score,
         archived,
       }),
@@ -429,8 +422,7 @@ test(`query.filter can filter 'null' values with '_eq' operator`, async () => {
       await mmGQLInstance.query({
         users: queryDefinition({
           def: generateUserNode(mmGQLInstance),
-          map: ({ id, score, optionalProp }) => ({
-            id,
+          map: ({ score, optionalProp }) => ({
             score,
             optionalProp,
           }),
@@ -466,8 +458,7 @@ test(`query.filter can filter 'null' values with '_neq' operator`, async () => {
       await mmGQLInstance.query({
         users: queryDefinition({
           def: generateUserNode(mmGQLInstance),
-          map: ({ id, score, optionalProp }) => ({
-            id,
+          map: ({ score, optionalProp }) => ({
             score,
             optionalProp,
           }),
@@ -501,8 +492,7 @@ test(`query.filter can filter 'boolean' prop using '_neq' operator`, async () =>
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, archived }) => ({
-        id,
+      map: ({ archived }) => ({
         archived,
       }),
       filter: {
@@ -535,8 +525,7 @@ test(`query.filter can filter 'string' prop using '_eq' operator`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       filter: {
@@ -569,8 +558,7 @@ test(`query.filter can filter 'string' prop using '_contains' operator`, async (
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       filter: {
@@ -603,8 +591,7 @@ test(`query.filter can filter 'string' prop using '_ncontains' operator`, async 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       filter: {
@@ -637,8 +624,7 @@ test(`query.filter can filter 'string' prop using '_neq' operator`, async () => 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       filter: {
@@ -671,8 +657,7 @@ test(`query.filter supports old filter object format with '_eq' as default opera
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       filter: {
@@ -725,8 +710,7 @@ test(`query.filter can filter relational data`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score, todos }) => ({
-        id,
+      map: ({ score, todos }) => ({
         score,
         todos: todos({
           map: ({ task }) => ({ task }),
@@ -775,12 +759,10 @@ test(`query.filter can filter multilevel relational data`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score, todos }) => ({
-        id,
+      map: ({ score, todos }) => ({
         score,
         todos: todos({
-          map: ({ id, users }) => ({
-            id,
+          map: ({ users }) => ({
             users: users({
               map: ({ firstName }) => ({ firstName }),
               filter: {
@@ -819,8 +801,7 @@ test(`query.filter can filter nested object property`, async () => {
       await mmGQLInstance.query({
         users: queryDefinition({
           def: generateUserNode(mmGQLInstance),
-          map: ({ id, address }) => ({
-            id,
+          map: ({ address }) => ({
             address: address({
               map: ({ state }) => ({ state }),
             }),
@@ -858,8 +839,7 @@ test(`query.filter should throw an error if property being filtered is not defin
     .query({
       users: queryDefinition({
         def: generateUserNode(mmGQLInstance),
-        map: ({ id, address }) => ({
-          id,
+        map: ({ address }) => ({
           address: address({
             map: ({ state }) => ({ state }),
           }),
@@ -907,8 +887,7 @@ test(`query.pagination can paginate query with array results`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -944,8 +923,7 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are next pages t
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -979,8 +957,7 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1014,8 +991,7 @@ test(`query.pagination 'hasPreviousPage' is set to 'true' if there are previous 
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1049,8 +1025,7 @@ test(`query.pagination 'hasPreviousPage' is set to 'false' if there are no previ
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1090,8 +1065,7 @@ test(`query.pagination 'totalPages' should have the correct value.`, async () =>
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1131,8 +1105,7 @@ test(`query.pagination not defining pagination parameters should return all item
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
     }),
@@ -1171,8 +1144,7 @@ test(`query.pagination calling goToNextPage should go to next page and update th
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1220,8 +1192,7 @@ test(`query.pagination calling goToPreviousPage should go to previous page and u
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1271,8 +1242,7 @@ test(`query.pagination calling goToPage should go to the page defined and update
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1322,8 +1292,7 @@ test(`query.pagination calling goToPage should go to the page defined and update
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
       pagination: {
@@ -1372,8 +1341,7 @@ test(`query.pagination can paginate relational data`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, firstName, todos }) => ({
-        id,
+      map: ({ firstName, todos }) => ({
         firstName,
         todos: todos({
           map: ({ task }) => ({ task }),
@@ -1415,8 +1383,7 @@ test(`query.pagination goToPage should throw an error if page is less than 1 or 
         itemsPerPage: 2,
         page: 1,
       },
-      map: ({ id, firstName }) => ({
-        id,
+      map: ({ firstName }) => ({
         firstName,
       }),
     }),
@@ -1451,8 +1418,7 @@ test(`query.sorting can sort 'string' properties`, async () => {
       sort: {
         firstName: 'asc',
       },
-      map: ({ id, firstName, lastName, address }) => ({
-        id,
+      map: ({ firstName, lastName, address }) => ({
         firstName,
         lastName,
         address: address({
@@ -1491,8 +1457,7 @@ test(`query.sorting can sort 'string' properties descending`, async () => {
       sort: {
         firstName: 'desc',
       },
-      map: ({ id, firstName, lastName, address }) => ({
-        id,
+      map: ({ firstName, lastName, address }) => ({
         firstName,
         lastName,
         address: address({
@@ -1531,8 +1496,7 @@ test(`query.sorting can sort 'number' properties`, async () => {
       sort: {
         score: 'asc',
       },
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
     }),
@@ -1567,8 +1531,7 @@ test(`query.sorting can sort 'number' properties descending`, async () => {
       sort: {
         score: 'desc',
       },
-      map: ({ id, score }) => ({
-        id,
+      map: ({ score }) => ({
         score,
       }),
     }),
@@ -1603,8 +1566,7 @@ test(`query.sorting can sort 'boolean' properties`, async () => {
       sort: {
         archived: 'asc',
       },
-      map: ({ id, archived }) => ({
-        id,
+      map: ({ archived }) => ({
         archived,
       }),
     }),
@@ -1639,8 +1601,7 @@ test(`query.sorting can sort 'boolean' properties descending`, async () => {
       sort: {
         archived: 'desc',
       },
-      map: ({ id, archived }) => ({
-        id,
+      map: ({ archived }) => ({
         archived,
       }),
     }),
@@ -1677,8 +1638,7 @@ test(`query.sorting can sort 'object' properties`, async () => {
           state: 'asc',
         },
       },
-      map: ({ id, address }) => ({
-        id,
+      map: ({ address }) => ({
         address,
       }),
     }),
@@ -1715,8 +1675,7 @@ test(`query.sorting can sort 'object' properties decsending`, async () => {
           state: 'desc',
         },
       },
-      map: ({ id, address }) => ({
-        id,
+      map: ({ address }) => ({
         address,
       }),
     }),
@@ -1757,8 +1716,7 @@ test(`query.sorting can sort multiple properties`, async () => {
           state: 'desc',
         },
       },
-      map: ({ id, firstName, address }) => ({
-        id,
+      map: ({ firstName, address }) => ({
         firstName,
         address,
       }),
@@ -1812,8 +1770,7 @@ test(`query.sorting can prioritize sorting`, async () => {
         },
         lastName: { _direction: 'desc', _priority: 2 },
       },
-      map: ({ id, firstName, lastName, address }) => ({
-        id,
+      map: ({ firstName, lastName, address }) => ({
         firstName,
         lastName,
         address,
@@ -1857,8 +1814,7 @@ test(`query.sorting should throw an error if property being sorted is not define
     await mmGQLInstance.query({
       users: queryDefinition({
         def: generateUserNode(mmGQLInstance),
-        map: ({ id, score }) => ({
-          id,
+        map: ({ score }) => ({
           score,
           address: ({ state }) => ({ state }),
         }),
@@ -1904,8 +1860,7 @@ test(`query.sorting can sort relational data`, async () => {
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, score, todos }) => ({
-        id,
+      map: ({ score, todos }) => ({
         score,
         todos: todos({
           map: ({ task }) => ({ task }),
@@ -1949,8 +1904,7 @@ test(`query.sorting should always sort null values last in ascending order`, asy
       sort: {
         optionalProp: 'asc',
       },
-      map: ({ id, optionalProp, firstName }) => ({
-        id,
+      map: ({ optionalProp, firstName }) => ({
         optionalProp,
         firstName,
       }),
@@ -1987,8 +1941,7 @@ test(`query.sorting should always sort null values last in descending order`, as
       sort: {
         optionalProp: 'desc',
       },
-      map: ({ id, optionalProp, firstName }) => ({
-        id,
+      map: ({ optionalProp, firstName }) => ({
         optionalProp,
         firstName,
       }),
@@ -2036,8 +1989,7 @@ test(`query.filter can filter using "OR" condition`, async () => {
           _condition: 'OR',
         },
       },
-      map: ({ id, score, firstName }) => ({
-        id,
+      map: ({ score, firstName }) => ({
         firstName,
         score,
       }),
@@ -2084,8 +2036,7 @@ test(`query.filter can filter relational data using "OR" condition`, async () =>
   const { data } = await mmGQLInstance.query({
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, todos }) => ({
-        id,
+      map: ({ todos }) => ({
         todos: todos({
           filter: {
             task: {
@@ -2142,8 +2093,7 @@ test(`query.filter can filter relational data of a single node query`, async () 
       target: {
         id: 'mock-user-id',
       },
-      map: ({ id, archived, todos }) => ({
-        id,
+      map: ({ archived, todos }) => ({
         archived,
         todos: todos({
           filter: {
@@ -2215,8 +2165,7 @@ test(`query.filter can filter multiple relational data`, async () => {
       target: {
         id: 'mock-user-id',
       },
-      map: ({ id, archived, todos }) => ({
-        id,
+      map: ({ archived, todos }) => ({
         archived,
         todos: todos({
           filter: {
@@ -2279,8 +2228,7 @@ test(`query.filter undefined filters should not be included`, async () => {
         firstName: undefined,
         score: { _eq: 1 },
       },
-      map: ({ id, score, firstName }) => ({
-        id,
+      map: ({ score, firstName }) => ({
         score,
         firstName,
       }),
@@ -2360,8 +2308,7 @@ test(`query.filter can filter query with "AND" condition using the node's oneToM
           task: { _contains: 'Task 2', _condition: 'AND' },
         },
       },
-      map: ({ id, firstName, todos }) => ({
-        id,
+      map: ({ firstName, todos }) => ({
         firstName,
         todos: todos({
           map: ({ task }) => ({ task }),
@@ -2442,8 +2389,7 @@ test(`query.filter can filter query with "OR" condition using the node's oneToMa
           task: { _contains: 'Task 6', _condition: 'OR' },
         },
       },
-      map: ({ id, firstName, todos }) => ({
-        id,
+      map: ({ firstName, todos }) => ({
         firstName,
         todos: todos({
           map: ({ task }) => ({ task }),
@@ -2524,8 +2470,7 @@ test(`query.filter should throw an error if relational prop is not defined in th
             task: { _contains: 'Task 6' },
           },
         },
-        map: ({ id, firstName }) => ({
-          id,
+        map: ({ firstName }) => ({
           firstName,
         }),
       }),
@@ -2582,8 +2527,7 @@ test(`query.filter can filter query with "OR" condition using the node's oneToOn
           archived: { _eq: true, _condition: 'OR' },
         },
       },
-      map: ({ id, task, assignee }) => ({
-        id,
+      map: ({ task, assignee }) => ({
         task,
         assignee: assignee({
           map: ({ firstName, archived }) => ({ firstName, archived }),
@@ -2640,8 +2584,7 @@ test(`query.filter can filter query with "AND" condition using the node's oneToO
           archived: { _eq: false, _condition: 'AND' },
         },
       },
-      map: ({ id, task, assignee }) => ({
-        id,
+      map: ({ task, assignee }) => ({
         task,
         assignee: assignee({
           map: ({ firstName, archived }) => ({ firstName, archived }),

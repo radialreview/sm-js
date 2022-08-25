@@ -1,5 +1,4 @@
-import { Data } from '../dataTypes';
-import { DataDefaultFn } from '../types';
+import { DataDefaultFn, IData } from '../types';
 /**
  * Takes the json representation of a node's data and prepares it to be sent to SM
  *
@@ -10,7 +9,7 @@ import { DataDefaultFn } from '../types';
  */
 export declare function revisedConvertNodeDataToSMPersistedData(opts: {
     nodeData: Record<string, any>;
-    IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
+    IDataRecord: Record<string, IData<any> | DataDefaultFn>;
     generatingMockData: boolean;
     skipBooleanStringWrapping?: boolean;
 }): string;
@@ -41,13 +40,13 @@ export declare function revisedConvertNodeDataToSMPersistedData(opts: {
  */
 export declare function revisedPrepareObjectForBE(opts: {
     obj: Record<string, any>;
-    IDataRecordForKey: Data<any, any, any>;
+    IDataRecordForKey: IData<any>;
     generatingMockData: boolean;
     parentKey?: string;
     omitObjectIdentifier?: boolean;
 }): Record<string, any>;
 export declare function revisedPrepareForBE(opts: {
     obj: Record<string, any>;
-    IDataRecord: Record<string, Data<any, any, any> | DataDefaultFn>;
+    IDataRecord: Record<string, IData<any> | DataDefaultFn>;
     generatingMockData: boolean;
 }): Record<string, any>;

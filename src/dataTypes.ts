@@ -25,32 +25,34 @@ import {
 } from './types';
 
 export class Data<
-  TParsedValue,
-  TValue,
-  TBoxedValue extends
-    | IData
-    | DataDefaultFn
-    | Record<string, IData | DataDefaultFn>
-    | undefined
-> implements IData<TParsedValue, TValue, TBoxedValue> {
+  TDataArgs extends {
+    TParsedValue: any;
+    TValue: any;
+    TBoxedValue:
+      | IData
+      | DataDefaultFn
+      | Record<string, IData | DataDefaultFn>
+      | undefined;
+  }
+> implements IData<TDataArgs> {
   type: DATA_TYPES;
-  parser: (value: TValue) => TParsedValue;
-  boxedValue: TBoxedValue;
-  defaultValue: Maybe<TParsedValue>;
+  parser: (value: TDataArgs['TValue']) => TDataArgs['TParsedValue'];
+  boxedValue: TDataArgs['TBoxedValue'];
+  defaultValue: Maybe<TDataArgs['TParsedValue']>;
   isOptional: boolean;
-  acceptableValues?: Array<TParsedValue>;
+  acceptableValues?: Array<TDataArgs['TParsedValue']>;
 
   constructor(opts: {
     type: DATA_TYPES;
-    parser: (value: TValue) => TParsedValue;
-    boxedValue?: TBoxedValue;
-    defaultValue?: TParsedValue;
+    parser: (value: TDataArgs['TValue']) => TDataArgs['TParsedValue'];
+    boxedValue?: TDataArgs['TBoxedValue'];
+    defaultValue?: TDataArgs['TParsedValue'];
     isOptional: boolean;
-    acceptableValues?: Array<TParsedValue>;
+    acceptableValues?: Array<TDataArgs['TParsedValue']>;
   }) {
     this.type = opts.type;
     this.parser = opts.parser;
-    this.boxedValue = opts.boxedValue as TBoxedValue;
+    this.boxedValue = opts.boxedValue as TDataArgs['TBoxedValue'];
     this.defaultValue = opts.defaultValue ?? null;
     this.isOptional = opts.isOptional;
     this.acceptableValues = opts.acceptableValues;
@@ -62,26 +64,32 @@ export class Data<
  * 1) they convert strings from the backend into their real types (objects, strings, numbers, booleans)
  * 2) they serve as a way for TS to infer the data type of the node based on the data types used,
  */
-export const string = <TStringType extends string = string>(
-  defaultValue: TStringType
-) =>
-  new Data<TStringType, TStringType, undefined>({
+export const string = (
+  defaultValue: string
+): IData<{ TValue: string; TParsedValue: string; TBoxedValue: undefined }> =>
+  // TStringType, TStringType,  undefined}
+  new Data<{ TValue: string; TParsedValue: string; TBoxedValue: undefined }>({
     type: DATA_TYPES.string,
-    parser: value =>
-      value != null
-        ? ((String(value) as unknown) as TStringType)
-        : (value as TStringType),
+    parser: value => (value != null ? String(value) : value),
     defaultValue,
     isOptional: false,
   });
 
 string._default = string('');
 
-string.optional = new Data<Maybe<string>, Maybe<string>, undefined>({
+string.optional = new Data<{
+  TValue: Maybe<string>;
+  TParsedValue: Maybe<string>;
+  TBoxedValue: undefined;
+}>({
   type: DATA_TYPES.maybeString,
   parser: value => (value != null ? String(value) : value),
   isOptional: true,
-});
+}) as IData<{
+  TValue: Maybe<string>;
+  TParsedValue: Maybe<string>;
+  TBoxedValue: undefined;
+}>;
 
 export const stringEnum = <
   TEnumEntry extends string,
@@ -89,13 +97,15 @@ export const stringEnum = <
 >(
   enumValues: TEnumType
 ) => {
-  const dataType: Data<TEnumType[number], TEnumType[number], undefined> & {
-    optional?: Data<
-      Maybe<TEnumType[number]>,
-      Maybe<TEnumType[number]>,
-      undefined
-    >;
-  } = new Data<TEnumType[number], TEnumType[number], undefined>({
+  const dataType: IData<{
+    TValue: TEnumType[number];
+    TParsedValue: TEnumType[number];
+    TBoxedValue: undefined;
+  }> = new Data<{
+    TValue: TEnumType[number];
+    TParsedValue: TEnumType[number];
+    TBoxedValue: undefined;
+  }>({
     type: DATA_TYPES.stringEnum,
     parser: value =>
       value != null
@@ -106,31 +116,39 @@ export const stringEnum = <
     acceptableValues: enumValues,
   });
 
-  const optionalDataType = new Data<
-    Maybe<TEnumType[number]>,
-    Maybe<TEnumType[number]>,
-    undefined
-  >({
+  return dataType;
+};
+
+stringEnum.optional = <
+  TEnumEntry extends string,
+  TEnumType extends Array<TEnumEntry> = Array<TEnumEntry>
+>(
+  enumValues: TEnumType
+) => {
+  const dataType: IData<{
+    TValue: Maybe<TEnumType[number]>;
+    TParsedValue: Maybe<TEnumType[number]>;
+    TBoxedValue: undefined;
+  }> = new Data<{
+    TValue: Maybe<TEnumType[number]>;
+    TParsedValue: Maybe<TEnumType[number]>;
+    TBoxedValue: undefined;
+  }>({
     type: DATA_TYPES.maybeStringEnum,
     parser: value =>
-      value != null ? ((String(value) as unknown) as TEnumType[number]) : null,
+      value != null ? (String(value) as TEnumType[number]) : null,
+    defaultValue: enumValues[0],
     isOptional: true,
     acceptableValues: enumValues,
   });
 
-  dataType.optional = optionalDataType;
-
-  return dataType as Data<TEnumType[number], TEnumType[number], undefined> & {
-    optional: Data<
-      Maybe<TEnumType[number]>,
-      Maybe<TEnumType[number]>,
-      undefined
-    >;
-  };
+  return dataType;
 };
 
-export const number = (defaultValue: number): Data<number, string, undefined> =>
-  new Data<number, string, undefined>({
+export const number = (
+  defaultValue: number
+): IData<{ TValue: string; TParsedValue: number; TBoxedValue: undefined }> =>
+  new Data<{ TValue: string; TParsedValue: number; TBoxedValue: undefined }>({
     type: DATA_TYPES.number,
     parser: value => {
       const parsed = Number(value);
@@ -149,11 +167,15 @@ export const number = (defaultValue: number): Data<number, string, undefined> =>
     },
     defaultValue,
     isOptional: false,
-  }) as Data<number, string, undefined>;
+  });
 
 number._default = number(0);
 
-number.optional = new Data<Maybe<number>, Maybe<string>, undefined>({
+number.optional = new Data<{
+  TValue: Maybe<string>;
+  TParsedValue: Maybe<number>;
+  TBoxedValue: undefined;
+}>({
   type: DATA_TYPES.maybeNumber,
   parser: value => {
     if (value != null) {
@@ -162,7 +184,11 @@ number.optional = new Data<Maybe<number>, Maybe<string>, undefined>({
     return value;
   },
   isOptional: true,
-});
+}) as IData<{
+  TValue: Maybe<string>;
+  TParsedValue: Maybe<number>;
+  TBoxedValue: undefined;
+}>;
 
 export const boolean = <TDefaultValue extends boolean>(
   defaultValue?: TDefaultValue
@@ -170,10 +196,18 @@ export const boolean = <TDefaultValue extends boolean>(
   if (defaultValue === undefined) {
     return (new DataTypeExplicitDefaultException({
       dataType: DATA_TYPES.boolean,
-    }) as unknown) as IData<boolean, string | boolean, undefined>;
+    }) as unknown) as IData<{
+      TValue: string | boolean;
+      TParsedValue: boolean;
+      TBoxedValue: undefined;
+    }>;
   }
 
-  return new Data<boolean, string | boolean, undefined>({
+  return new Data<{
+    TValue: string | boolean;
+    TParsedValue: boolean;
+    TBoxedValue: undefined;
+  }>({
     type: DATA_TYPES.boolean,
     parser: value => {
       if (value === 'true' || value === true) {
@@ -191,46 +225,60 @@ export const boolean = <TDefaultValue extends boolean>(
     isOptional: false,
   }) as TDefaultValue extends undefined
     ? Error
-    : IData<boolean, string | boolean, undefined>;
+    : IData<{
+        TValue: string | boolean;
+        TParsedValue: boolean;
+        TBoxedValue: undefined;
+      }>;
 };
 // need this in order to trigger an error when a user doesn't provide a default
 boolean._default = boolean();
 
-boolean.optional = new Data<Maybe<boolean>, Maybe<string | boolean>, undefined>(
-  {
-    type: DATA_TYPES.maybeBoolean,
-    parser: value => {
-      if (value == null) return value;
+boolean.optional = new Data<{
+  TValue: Maybe<string | boolean>;
+  TParsedValue: Maybe<boolean>;
+  TBoxedValue: undefined;
+}>({
+  type: DATA_TYPES.maybeBoolean,
+  parser: value => {
+    if (value == null) return value;
 
-      if (value === 'true' || value === true) {
-        return true;
-      } else {
-        return false;
-      }
-    },
-    isOptional: true,
-  }
-);
+    if (value === 'true' || value === true) {
+      return true;
+    } else {
+      return false;
+    }
+  },
+  isOptional: true,
+}) as IData<{
+  TValue: Maybe<string | boolean>;
+  TParsedValue: Maybe<boolean>;
+  TBoxedValue: undefined;
+}>;
 
 type ObjectDataType = {
   <TBoxedValue extends Record<string, IData | DataDefaultFn>>(
     boxedValue: TBoxedValue
-  ): Data<
-    GetResultingDataTypeFromProperties<TBoxedValue>,
-    GetResultingDataTypeFromProperties<TBoxedValue>,
-    TBoxedValue
-  >;
+  ): IData<{
+    TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TBoxedValue: TBoxedValue;
+  }>;
   _default: any;
   optional: <TBoxedValue extends Record<string, IData | DataDefaultFn>>(
     boxedValue: TBoxedValue
-  ) => Data<
-    Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>,
-    Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>,
-    TBoxedValue
-  >;
+  ) => IData<{
+    TValue: Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>;
+    TParsedValue: Maybe<GetResultingDataTypeFromProperties<TBoxedValue>>;
+    TBoxedValue: TBoxedValue;
+  }>;
 };
 
-export const object: ObjectDataType = boxedValue =>
+export const object: ObjectDataType = <
+  TBoxedValue extends Record<string, IData | DataDefaultFn>
+>(
+  boxedValue: TBoxedValue
+) =>
   new Data({
     type: DATA_TYPES.object,
     /**
@@ -240,11 +288,21 @@ export const object: ObjectDataType = boxedValue =>
     parser: val => val,
     boxedValue,
     isOptional: false,
-  });
+  }) as IData<{
+    TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TBoxedValue: TBoxedValue;
+  }>;
 
 object._default = null;
 
-object.optional = boxedValue =>
+object.optional = <TBoxedValue extends Record<string, IData | DataDefaultFn>>(
+  boxedValue: TBoxedValue
+): IData<{
+  TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+  TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+  TBoxedValue: TBoxedValue;
+}> =>
   new Data({
     type: DATA_TYPES.maybeObject,
     /**
@@ -254,7 +312,11 @@ object.optional = boxedValue =>
     parser: val => val,
     boxedValue,
     isOptional: true,
-  });
+  }) as IData<{
+    TValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TParsedValue: GetResultingDataTypeFromProperties<TBoxedValue>;
+    TBoxedValue: TBoxedValue;
+  }>;
 
 export const record = <
   TKey extends string,
@@ -268,17 +330,21 @@ export const record = <
       ? ((boxedValue as any)._default as TBoxedValue)
       : (boxedValue as TBoxedValue);
 
-  return new Data<
-    Record<TKey, GetDataType<typeof parsedBoxedValue>>,
-    Record<TKey, GetDataType<typeof parsedBoxedValue>>,
-    TBoxedValue
-  >({
+  return new Data<{
+    TValue: Record<TKey, GetDataType<typeof parsedBoxedValue>>;
+    TParsedValue: Record<TKey, GetDataType<typeof parsedBoxedValue>>;
+    TBoxedValue: TBoxedValue;
+  }>({
     type: DATA_TYPES.record,
     parser: val => val,
     boxedValue: boxedValue as typeof parsedBoxedValue,
     isOptional: false,
     defaultValue: {} as Record<string, any>,
-  });
+  }) as IData<{
+    TValue: Record<TKey, GetDataType<typeof parsedBoxedValue>>;
+    TParsedValue: Record<TKey, GetDataType<typeof parsedBoxedValue>>;
+    TBoxedValue: TBoxedValue;
+  }>;
 };
 
 record.optional = <TBoxedValue extends IData | DataDefaultFn>(
@@ -290,17 +356,21 @@ record.optional = <TBoxedValue extends IData | DataDefaultFn>(
       ? ((boxedValue as any)._default as IData)
       : (boxedValue as IData);
 
-  return new Data<
-    Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>,
-    Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>,
-    typeof parsedBoxedValue
-  >({
+  return new Data<{
+    TValue: Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>;
+    TParsedValue: Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>;
+    TBoxedValue: typeof parsedBoxedValue;
+  }>({
     type: DATA_TYPES.maybeRecord,
     parser: val => val,
     boxedValue: parsedBoxedValue,
     isOptional: true,
     defaultValue: null,
-  });
+  }) as IData<{
+    TValue: Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>;
+    TParsedValue: Maybe<Record<string, GetDataType<typeof parsedBoxedValue>>>;
+    TBoxedValue: typeof parsedBoxedValue;
+  }>;
 };
 
 record._default = null as any;
@@ -315,29 +385,37 @@ export const array = <TBoxedValue extends IData | DataDefaultFn>(
       : (boxedValue as TBoxedValue);
 
   function array(defaultValue: Array<GetDataType<TBoxedValue>>) {
-    return new Data<
-      Array<GetDataType<TBoxedValue>>,
-      Array<GetDataType<TBoxedValue>>,
-      TBoxedValue
-    >({
+    return new Data<{
+      TValue: Array<GetDataType<TBoxedValue>>;
+      TParsedValue: Array<GetDataType<TBoxedValue>>;
+      TBoxedValue: TBoxedValue;
+    }>({
       type: DATA_TYPES.array,
       parser: value => value,
       boxedValue: parsedBoxedValue,
       defaultValue,
       isOptional: false,
-    });
+    }) as IData<{
+      TValue: Array<GetDataType<TBoxedValue>>;
+      TParsedValue: Array<GetDataType<TBoxedValue>>;
+      TBoxedValue: TBoxedValue;
+    }>;
   }
 
-  array.optional = new Data<
-    Maybe<Array<GetDataType<TBoxedValue>>>,
-    Maybe<Array<GetDataType<TBoxedValue>>>,
-    TBoxedValue
-  >({
+  array.optional = new Data<{
+    TValue: Maybe<Array<GetDataType<TBoxedValue>>>;
+    TParsedValue: Maybe<Array<GetDataType<TBoxedValue>>>;
+    TBoxedValue: TBoxedValue;
+  }>({
     type: DATA_TYPES.maybeArray,
     parser: value => value,
     boxedValue: parsedBoxedValue,
     isOptional: true,
-  });
+  }) as IData<{
+    TValue: Maybe<Array<GetDataType<TBoxedValue>>>;
+    TParsedValue: Maybe<Array<GetDataType<TBoxedValue>>>;
+    TBoxedValue: TBoxedValue;
+  }>;
 
   array._default = array([]);
 
@@ -410,14 +488,14 @@ export function queryDefinition<
   TNode extends INode,
   TMapFn extends MapFnForNode<TNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget,
-  TUseSubscriptionOpts extends UseSubscriptionQueryDefinitionOpts
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts
 >(
-  queryDefinition: UseSubscriptionQueryDefinition<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget,
-    TUseSubscriptionOpts
-  >
+  queryDefinition: UseSubscriptionQueryDefinition<{
+    TNode: TNode;
+    TMapFn: TMapFn;
+    TQueryDefinitionTarget: TQueryDefinitionTarget;
+    TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+  }>
 ) {
   return queryDefinition;
 }

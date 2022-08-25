@@ -65,18 +65,18 @@ type MeetingRelational = {
   attendees: IOneToManyQueryBuilder<UserNode>;
 };
 
-type MeetingNode = INode<
-  'meeting',
-  typeof meetingProperties,
-  {},
-  MeetingRelational
->;
+type MeetingNode = INode<{
+  TNodeType: 'meeting';
+  TNodeData: typeof meetingProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: MeetingRelational;
+}>;
 
-type TodoNode = INode<
-  'todo',
-  typeof todoProperties,
-  {},
-  {
+type TodoNode = INode<{
+  TNodeType: 'todo';
+  TNodeData: typeof todoProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {
     assignee: IOneToOneQueryBuilder<UserNode>;
     meeting: IOneToOneQueryBuilder<Maybe<MeetingNode>>;
     assigneeUnionNullable: IOneToOneQueryBuilder<
@@ -86,8 +86,8 @@ type TodoNode = INode<
       meetingGuest: MeetingGuestNode;
       orgUser: UserNode;
     }>;
-  }
->;
+  };
+}>;
 
 const todoNode: TodoNode = mmGQL.def({
   type: 'todo',
@@ -117,7 +117,7 @@ const userProperties = {
     }),
   }),
   fooBarEnum: stringEnum(['FOO', 'BAR']),
-  optionalBarBazEnum: stringEnum(['BAR', 'BAZ']).optional,
+  optionalBarBazEnum: stringEnum.optional(['BAR', 'BAZ']),
   recordEnum: record(stringEnum(['FOO', 'BAR'])),
   arrayOfString: array(string),
 };
@@ -126,15 +126,15 @@ const userRelational = {
   state: () => oneToOne(stateNode),
 };
 
-type UserNode = INode<
-  'user',
-  typeof userProperties,
-  { fullName: string; avatar: string },
-  {
+type UserNode = INode<{
+  TNodeType: 'user';
+  TNodeData: typeof userProperties;
+  TNodeComputedData: { fullName: string; avatar: string };
+  TNodeRelationalData: {
     todos: IOneToManyQueryBuilder<TodoNode>;
     state: IOneToOneQueryBuilder<StateNode>;
-  }
->;
+  };
+}>;
 
 const userNode: UserNode = mmGQL.def({
   type: 'user',
@@ -154,7 +154,12 @@ const meetingGuestProperties = {
   id: string,
   firstName: string,
 };
-type MeetingGuestNode = INode<'meeting-guest', typeof meetingGuestProperties>;
+type MeetingGuestNode = INode<{
+  TNodeType: 'meeting-guest';
+  TNodeData: typeof meetingGuestProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {};
+}>;
 const meetingGuestNode: MeetingGuestNode = mmGQL.def({
   type: 'meeting-guest' as 'meeting-guest',
   properties: meetingGuestProperties,
@@ -163,7 +168,12 @@ const meetingGuestNode: MeetingGuestNode = mmGQL.def({
 const stateNodeProperties = {
   name: string,
 };
-type StateNode = INode<'state', typeof stateNodeProperties>;
+type StateNode = INode<{
+  TNodeType: 'state';
+  TNodeData: typeof stateNodeProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: {};
+}>;
 const stateNode: StateNode = mmGQL.def({
   type: 'state',
   properties: stateNodeProperties,
@@ -273,6 +283,13 @@ const stateNode: StateNode = mmGQL.def({
     someFakeProp: '',
   };
   invalidPropAtRoot;
+
+  const invalidEnum: UserNodeData = {
+    ...validUserNodeData,
+    // @ts-expect-error
+    fooBarEnum: 'bogus',
+  };
+  invalidEnum;
 
   const invalidNestedProp: UserNodeData = {
     ...validUserNodeData,
@@ -628,7 +645,7 @@ const stateNode: StateNode = mmGQL.def({
     withRelationalUnion.data.todos.nodes[0].assigneeNullable;
   if (assigneeNullable && assigneeNullable.type === 'user') {
     assigneeNullable.id;
-    // to ensure the depth param in ExtractQueriedDataFromByReferenceQuery does not mess with depths greater than 1
+    // to ensure the depth param in ExtractQueriedDataFromOneToOneQuery does not mess with depths greater than 1
     assigneeNullable.todos.nodes[0].assigneeId;
     // @ts-expect-error no first name being queried for org user
     assigneeNullable.firstName;
@@ -678,9 +695,16 @@ const stateNode: StateNode = mmGQL.def({
   // because the return type of a MapFnForNode is assumed as a random partial of the data on a node
   // by only typing the arguments of the map function, TS then infers the return from the actual function instead of assuming a random partial
   const userMapFn = ({ firstName }: GetMapFnArgs<UserNode>) => ({ firstName });
-  type UserQueryDefinition = QueryDefinition<UserNode, typeof userMapFn, any>;
+  type UserQueryDefinition = QueryDefinition<{
+    TNode: UserNode;
+    TMapFn: typeof userMapFn;
+    TQueryDefinitionTarget: any;
+  }>;
   type UserData = GetResultingDataFromQueryDefinition<UserQueryDefinition>;
   const validUserData: UserData = {
+    id: 'xyz',
+    version: 1,
+    lastUpdatedBy: 'xyz',
     type: 'user',
     firstName: 'UserFirstName',
     fullName: 'Full name',
@@ -756,7 +780,7 @@ const stateNode: StateNode = mmGQL.def({
     type: 'test',
     properties: {
       someEnum: stringEnum(['t', 't2']),
-      someOptionalEnum: stringEnum(['t', 't2']).optional,
+      someOptionalEnum: stringEnum.optional(['t', 't2']),
     },
   });
 
@@ -781,7 +805,12 @@ const stateNode: StateNode = mmGQL.def({
       flagEnabled: boolean(false),
     }),
   };
-  type NodeType = INode<'some-type', typeof nodeProperties>;
+  type NodeType = INode<{
+    TNodeType: 'some-type';
+    TNodeData: typeof nodeProperties;
+    TNodeComputedData: {};
+    TNodeRelationalData: {};
+  }>;
 
   mmGQL.transaction(ctx => {
     ctx.createNode<NodeType>({

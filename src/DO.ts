@@ -28,7 +28,10 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
   >(node: {
     type: string;
     properties: TNodeData;
-    computed?: NodeComputedFns<TNodeData, TNodeComputedData>;
+    computed?: NodeComputedFns<{
+      TNodeData: TNodeData;
+      TNodeComputedData: TNodeComputedData;
+    }>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
   }): TDOClass {
     // silences the error "A class can only implement an object type or intersection of object types with statically known members."
@@ -129,8 +132,8 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
       private getDefaultData = (
         nodePropertiesOrData:
           | typeof node.properties
-          | Data<any, any, any>
-          | ((_default: any) => Data<any, any, any>)
+          | Data<any>
+          | ((_default: any) => Data<any>)
       ): Record<keyof TNodeData, any> => {
         if (nodePropertiesOrData instanceof Data) {
           if (this.isObjectType(nodePropertiesOrData.type)) {
@@ -361,7 +364,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
        */
       private initializeNodePropGetters() {
         Object.keys(node.properties).forEach(prop => {
-          if (PROPERTIES_QUERIED_FOR_ALL_NODES.includes(prop)) {
+          if (Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(prop)) {
             // do not create getters for any properties included in the node definition which are already being queried by sm-js regardless
             // since the code in this DO relies on setting those properties directly using this.version or this.lastUpdatedBy
             return;
@@ -465,7 +468,12 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
       private setRelationalProp(opts: {
         relationshipName: string;
         relationalQueryGetter: () => NodeRelationalQueryBuilder<
-          INode<any, TNodeData, TNodeComputedData, TNodeRelationalData>
+          INode<{
+            TNodeType: any;
+            TNodeData: TNodeData;
+            TNodeComputedData: TNodeComputedData;
+            TNodeRelationalData: TNodeRelationalData;
+          }>
         >;
       }) {
         Object.defineProperty(this, opts.relationshipName, {
@@ -476,7 +484,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         });
       }
 
-      private getData(prop: IData<any, any, any> | DataDefaultFn) {
+      private getData(prop: IData<any> | DataDefaultFn) {
         if (typeof prop === 'function') {
           return (prop as any)._default as IData;
         }

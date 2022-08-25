@@ -426,7 +426,7 @@ export function applyClientSideSortAndFilterToData(
     if (queryRecordEntry.sort) {
       applyClientSideSortToData({
         queryRecordEntry,
-        sort: queryRecordEntry.sort,
+        sort: queryRecordEntry.sort as ValidSortForNode<INode>,
         data: data,
         alias,
       });

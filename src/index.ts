@@ -61,18 +61,18 @@ export class MMGQL implements IMMGQL {
     TNodeComputedData extends Record<string, any> = {},
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}
   >(
-    def: NodeDefArgs<
-      TNodeType,
-      TNodeData,
-      TNodeComputedData,
-      TNodeRelationalData
-    >
-  ): INode<
-    TNodeType,
-    TNodeData & NodeDefaultProps,
-    TNodeComputedData,
-    TNodeRelationalData
-  > {
+    def: NodeDefArgs<{
+      TNodeType: TNodeType;
+      TNodeData: TNodeData;
+      TNodeComputedData: TNodeComputedData;
+      TNodeRelationalData: TNodeRelationalData;
+    }>
+  ): INode<{
+    TNodeType: TNodeType;
+    TNodeData: TNodeData;
+    TNodeComputedData: TNodeComputedData;
+    TNodeRelationalData: TNodeRelationalData;
+  }> {
     const propertyNames = Object.keys(def.properties);
     const defaultProp = propertyNames.find(x =>
       Object.keys(DEFAULT_NODE_PROPERTIES).includes(x)

@@ -36,11 +36,10 @@ test('queries users and measurables', async () => {
   const { data } = await client.query({
     users: queryDefinition({
       def: userDef,
-      map: ({ id, /*measurables,*/ firstName }) => ({
-        id,
+      map: ({ /*measurables,*/ firstName }) => ({
         firstName,
         // measurables: measurables({
-        //   map: ({ id, title }) => ({ id, title }),
+        //   map: ({ title }) => ({ title }),
         // }),
       }),
     }),

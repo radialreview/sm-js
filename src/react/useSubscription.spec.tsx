@@ -317,8 +317,7 @@ test('updates data when paginating', async () => {
           page: 1,
         },
         def: generateUserNode(mmGQL),
-        map: ({ id, address }) => ({
-          id,
+        map: ({ address }) => ({
           address: address({
             map: ({ state }) => ({
               state,
@@ -385,8 +384,7 @@ test('updates data when filtering', async () => {
       users: queryDefinition({
         filter: { archived: { _contains: archived } },
         def: generateUserNode(mmGQL),
-        map: ({ id, address, archived }) => ({
-          id,
+        map: ({ address, archived }) => ({
           archived,
           address: address({
             map: ({ state }) => ({
@@ -452,8 +450,7 @@ test('updates data when sorting', async () => {
           firstName: sorting,
         },
         def: generateUserNode(mmGQL),
-        map: ({ id, firstName }) => ({
-          id,
+        map: ({ firstName }) => ({
           firstName,
         }),
       }),

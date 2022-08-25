@@ -221,7 +221,9 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
       filterObject2[i] !== null &&
       valueIsNotAFilterCondition
     ) {
-      const flatObject = getFlattenedNodeFilterObject(value);
+      const flatObject = getFlattenedNodeFilterObject(
+        value as ValidFilterForNode<TNode>
+      );
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
 

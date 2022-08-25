@@ -381,14 +381,16 @@ var Data = function Data(opts) {
  */
 
 var string = function string(defaultValue) {
-  return new Data({
-    type: exports.DATA_TYPES.string,
-    parser: function parser(value) {
-      return value != null ? String(value) : value;
-    },
-    defaultValue: defaultValue,
-    isOptional: false
-  });
+  return (// TStringType, TStringType,  undefined}
+    new Data({
+      type: exports.DATA_TYPES.string,
+      parser: function parser(value) {
+        return value != null ? String(value) : value;
+      },
+      defaultValue: defaultValue,
+      isOptional: false
+    })
+  );
 };
 string._default = /*#__PURE__*/string('');
 string.optional = /*#__PURE__*/new Data({
@@ -408,17 +410,22 @@ var stringEnum = function stringEnum(enumValues) {
     isOptional: false,
     acceptableValues: enumValues
   });
-  var optionalDataType = new Data({
+  return dataType;
+};
+
+stringEnum.optional = function (enumValues) {
+  var dataType = new Data({
     type: exports.DATA_TYPES.maybeStringEnum,
     parser: function parser(value) {
       return value != null ? String(value) : null;
     },
+    defaultValue: enumValues[0],
     isOptional: true,
     acceptableValues: enumValues
   });
-  dataType.optional = optionalDataType;
   return dataType;
 };
+
 var number = function number(defaultValue) {
   return new Data({
     type: exports.DATA_TYPES.number,
@@ -608,18 +615,24 @@ function queryDefinition(queryDefinition) {
   return queryDefinition;
 }
 
-var PROPERTIES_QUERIED_FOR_ALL_NODES = ['id', 'version', 'lastUpdatedBy', 'type'];
+var PROPERTIES_QUERIED_FOR_ALL_NODES = {
+  id: string,
+  version: number,
+  lastUpdatedBy: string,
+  type: string
+};
 var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
-var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with smJS.def now has these properties auto added to their data.
+var DEFAULT_TOKEN_NAME = 'default'; // These properties are ensuring that every node definition built with mmGQL.def now has these properties auto added to their data.
 // They are not queried automatically and must be explicitly defined on the node definition, unless they also appear on PROPERTIES_QUERIED_FOR_ALL_NODES.
 
-var DEFAULT_NODE_PROPERTIES = {
-  id: string,
+var PROPERTIES_QUERIED_FOR_ALL_NODES_MINUS_TYPE = /*#__PURE__*/_objectWithoutPropertiesLoose(PROPERTIES_QUERIED_FOR_ALL_NODES, ["type"]); // adding "type" to the default node properties causes it to be mocked by the mock data generator which is not desirable
+
+
+var DEFAULT_NODE_PROPERTIES = /*#__PURE__*/_extends({}, PROPERTIES_QUERIED_FOR_ALL_NODES_MINUS_TYPE, {
   dateCreated: number,
   dateLastModified: number,
-  lastUpdatedBy: string,
   lastUpdatedClientTimestamp: number
-};
+});
 var FILTER_OPERATORS_MAP = {
   _gte: '_gte',
   _lte: '_lte',
@@ -1010,7 +1023,7 @@ function createDOFactory(mmGQLInstance) {
         var _this5 = this;
 
         Object.keys(node.properties).forEach(function (prop) {
-          if (PROPERTIES_QUERIED_FOR_ALL_NODES.includes(prop)) {
+          if (Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(prop)) {
             // do not create getters for any properties included in the node definition which are already being queried by sm-js regardless
             // since the code in this DO relies on setting those properties directly using this.version or this.lastUpdatedBy
             return;
@@ -1183,7 +1196,7 @@ function createDOProxyGenerator(mmGQLInstance) {
         // This gives better json stringify results
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
-        if (opts.allPropertiesQueried.includes(key) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+        if (opts.allPropertiesQueried.includes(key) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
           return _extends({}, Object.getOwnPropertyDescriptor(target, key), {
             enumerable: true
           });
@@ -1687,7 +1700,7 @@ function RepositoryFactory(opts) {
       return Object.keys(receivedData).reduce(function (parsed, key) {
         var _opts$def$properties$;
 
-        var isDataStoredOnAllNodes = PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key);
+        var isDataStoredOnAllNodes = Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key);
 
         if (isDataStoredOnAllNodes) {
           var _extends2;
@@ -2894,7 +2907,7 @@ function getQueriedProperties(opts) {
     var isData = !!opts.data[key];
     if (!isData) return acc; // we always query these properties, can ignore any explicit requests for it
 
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+    if (opts.isRootLevel && Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
       return acc;
     }
 
@@ -2917,13 +2930,13 @@ function getQueriedProperties(opts) {
     }
 
     return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+  }, opts.isRootLevel ? [].concat(Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)) : []);
 }
 
 function getAllNodeProperties(opts) {
   return Object.keys(opts.nodeProperties).reduce(function (acc, key) {
     // we are already querying these properties, can ignore any explicit requests for it
-    if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+    if (opts.isRootLevel && Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
       return acc;
     }
 
@@ -2943,7 +2956,7 @@ function getAllNodeProperties(opts) {
     }
 
     return [].concat(acc, [key]);
-  }, opts.isRootLevel ? [].concat(PROPERTIES_QUERIED_FOR_ALL_NODES) : []);
+  }, opts.isRootLevel ? [].concat(Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)) : []);
 }
 
 function getRelationalQueries(opts) {
@@ -3616,6 +3629,7 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeString:
       {
+        // 50/50 chance to get a value or null
         return getRandomItemFromArray([generateRandomString(), null]);
       }
 
@@ -3626,7 +3640,6 @@ function getMockValueForIData(data) {
 
     case exports.DATA_TYPES.maybeStringEnum:
       {
-        // 50/50 chance to get a value or null
         return getRandomItemFromArray([getRandomItemFromArray(data.acceptableValues), null]);
       }
 
@@ -5419,586 +5432,6 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
   return "{\n    " + mutationArgs.join('\n') + "\n  }";
 }
 
-var _templateObject$5, _templateObject2;
-function updateNodes(operation) {
-  return _extends({
-    type: 'updateNodes',
-    operationName: 'UpdateNodes'
-  }, operation);
-}
-function updateNode(operation) {
-  return _extends({
-    type: 'updateNode',
-    operationName: 'UpdateNodes'
-  }, operation);
-}
-
-function getPropertiesToNull(object) {
-  return Object.entries(object).reduce(function (acc, _ref) {
-    var key = _ref[0],
-        value = _ref[1];
-    if (value == null) acc.push(key);else if (!Array.isArray(value) && typeof value === 'object') {
-      acc.push.apply(acc, getPropertiesToNull(value).map(function (property) {
-        return "" + key + OBJECT_PROPERTY_SEPARATOR + property;
-      }));
-    }
-    return acc;
-  }, []);
-}
-
-function getMutationsFromTransactionUpdateOperations(operations) {
-  if (!operations.length) return [];
-  var allUpdateNodeOperations = operations.flatMap(function (operation) {
-    if (operation.type === 'updateNode') {
-      return operation.data;
-    } else if (operation.type === 'updateNodes') {
-      return operation.nodes.map(function (_ref2) {
-        var data = _ref2.data;
-        return data;
-      });
-    } else {
-      throw Error("Operation not recognized: \"" + operation + "\"");
-    }
-  });
-  var name = getMutationNameFromOperations(operations, 'UpdateNodes');
-  var dropPropertiesMutations = allUpdateNodeOperations.reduce(function (acc, updateNodeOperation) {
-    var propertiesToNull = getPropertiesToNull(updateNodeOperation);
-
-    if (propertiesToNull.length) {
-      acc.push(core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
-        return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
-      }).join(',')));
-    }
-
-    return acc;
-  }, []); // For now, returns a single mutation
-  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
-
-  return [core.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
-}
-
-function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
-  var dataToPersist = convertNodeDataToSMPersistedData(operation);
-  return "{\n      " + dataToPersist + "\n    }";
-}
-
-var _templateObject$6;
-function dropNode(operation) {
-  return _extends({
-    type: 'dropNode',
-    operationName: 'DropNode'
-  }, operation);
-}
-function getMutationsFromTransactionDropOperations(operations) {
-  if (!operations.length) return [];
-  var allDropNodeOperations = operations.map(function (operation) {
-    if (operation.type === 'dropNode') {
-      return operation;
-    } else {
-      throw Error("Operation not recognized: \"" + operation + "\"");
-    }
-  });
-  return allDropNodeOperations.map(function (operation) {
-    var name = getMutationNameFromOperations([operation], 'DropNode');
-    return core.gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
-  });
-}
-
-function createTransaction(mmGQLInstance, globalOperationHandlers) {
-  /**
-   * A transaction allows developers to build groups of mutations that execute with transactional integrity
-   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
-   *
-   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
-   */
-  return function transaction(callback, opts) {
-    var operationsByType = {
-      createNode: [],
-      createNodes: [],
-      updateNode: [],
-      updateNodes: [],
-      dropNode: [],
-      createEdge: [],
-      createEdges: [],
-      dropEdge: [],
-      dropEdges: [],
-      replaceEdge: [],
-      replaceEdges: [],
-      updateEdge: [],
-      updateEdges: []
-    };
-    /**
-     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
-     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
-     * The backend responds with each operation in the order they were sent up.
-     */
-
-    var createOperationsCount = 0;
-    var updateOperationsCount = 0;
-
-    function pushOperation(operation) {
-      if (!operationsByType[operation.type]) {
-        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
-      }
-      /**
-       * createNodes/updateNodes creates multiple nodes in a single operation,
-       * therefore we need to track the position of these nodes instead of just the position of the operation itself
-       */
-
-
-      if (operation.type === 'createNodes') {
-        createOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: createOperationsCount,
-          nodes: operation.nodes.map(function (node, idx) {
-            return _extends({}, node, {
-              position: idx === 0 ? createOperationsCount : createOperationsCount += 1
-            });
-          })
-        }));
-      } else if (operation.type === 'createNode') {
-        createOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: createOperationsCount
-        }));
-      } else if (operation.type === 'updateNodes') {
-        updateOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: updateOperationsCount,
-          nodes: operation.nodes.map(function (node, idx) {
-            return _extends({}, node, {
-              position: idx === 0 ? updateOperationsCount : updateOperationsCount += 1
-            });
-          })
-        }));
-      } else if (operation.type === 'updateNode') {
-        updateOperationsCount += 1;
-        operationsByType[operation.type].push(_extends({}, operation, {
-          position: updateOperationsCount
-        }));
-      } else {
-        operationsByType[operation.type].push(operation);
-      }
-    }
-
-    var context = {
-      createNode: function createNode$1(opts) {
-        var operation = createNode(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createNodes: function createNodes$1(opts) {
-        var operation = createNodes(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateNode: function updateNode$1(opts) {
-        var operation = updateNode(opts);
-
-        var _globalOperationHandl = globalOperationHandlers.onUpdateRequested({
-          id: opts.data.id,
-          payload: opts.data
-        }),
-            onUpdateSuccessful = _globalOperationHandl.onUpdateSuccessful,
-            onUpdateFailed = _globalOperationHandl.onUpdateFailed;
-
-        pushOperation(_extends({}, operation, {
-          onSuccess: function onSuccess(data) {
-            operation.onSuccess && operation.onSuccess(data);
-            onUpdateSuccessful();
-          },
-          onFail: function onFail() {
-            operation.onFail && operation.onFail();
-            onUpdateFailed();
-          }
-        }));
-        return operation;
-      },
-      updateNodes: function updateNodes$1(opts) {
-        var operation = updateNodes(opts);
-
-        var globalHandlers = opts.nodes.map(function (node) {
-          return globalOperationHandlers.onUpdateRequested({
-            id: node.data.id,
-            payload: node.data
-          });
-        });
-        pushOperation(_extends({}, operation, {
-          nodes: operation.nodes.map(function (node, nodeIdx) {
-            return _extends({}, node, {
-              onSuccess: function onSuccess(data) {
-                node.onSuccess && node.onSuccess(data);
-                globalHandlers[nodeIdx].onUpdateSuccessful();
-              },
-              onFail: function onFail() {
-                node.onFail && node.onFail();
-                globalHandlers[nodeIdx].onUpdateFailed();
-              }
-            });
-          })
-        }));
-        return operation;
-      },
-      dropNode: function dropNode$1(opts) {
-        var operation = dropNode(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createEdge: function createEdge$1(opts) {
-        var operation = createEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      createEdges: function createEdges$1(opts) {
-        var operation = createEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      dropEdge: function dropEdge$1(opts) {
-        var operation = dropEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      dropEdges: function dropEdges$1(opts) {
-        var operation = dropEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateEdge: function updateEdge$1(opts) {
-        var operation = updateEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      updateEdges: function updateEdges$1(opts) {
-        var operation = updateEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      replaceEdge: function replaceEdge$1(opts) {
-        var operation = replaceEdge(opts);
-
-        pushOperation(operation);
-        return operation;
-      },
-      replaceEdges: function replaceEdges$1(opts) {
-        var operation = replaceEdges(opts);
-
-        pushOperation(operation);
-        return operation;
-      }
-    };
-
-    function sortMutationsByTransactionPosition(operations) {
-      return lodash.sortBy(operations, function (operation) {
-        return operation.position;
-      });
-    }
-
-    function getAllMutations(operations) {
-      return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
-    }
-
-    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
-    var token = mmGQLInstance.getToken({
-      tokenName: tokenName
-    });
-    /**
-     * Group operations by their operation name, sorted by position if applicable
-     */
-
-    function groupByOperationName(operations) {
-      var result = Object.entries(operations).reduce(function (acc, _ref) {
-        var operations = _ref[1];
-        operations.forEach(function (operation) {
-          if (acc.hasOwnProperty(operation.operationName)) {
-            acc[operation.operationName] = [].concat(acc[operation.operationName], [operation]);
-          } else {
-            acc[operation.operationName] = [operation];
-          }
-        });
-        return acc;
-      }, {});
-      Object.entries(result).forEach(function (_ref2) {
-        var operationName = _ref2[0],
-            operations = _ref2[1];
-        result[operationName] = lodash.sortBy(operations, function (operation) {
-          return operation.position;
-        });
-      });
-      return result;
-    }
-
-    if (Array.isArray(callback)) {
-      return transactionGroup(callback);
-    }
-
-    var result = callback(context);
-
-    function handleErrorCallbacks(opts) {
-      var operationsByType = opts.operationsByType;
-      var operationsByOperationName = groupByOperationName(operationsByType);
-      Object.entries(operationsByOperationName).forEach(function (_ref3) {
-        var operationName = _ref3[0],
-            operations = _ref3[1];
-        operations.forEach(function (operation) {
-          // we only need to gather the data for node create/update operations
-          if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
-            // for createNodes, execute callback on each individual node rather than top-level operation
-            if (operation.hasOwnProperty('nodes')) {
-              operation.nodes.forEach(function (node) {
-                if (node.hasOwnProperty('onFail')) {
-                  node.onFail();
-                }
-              });
-            } else if (operation.hasOwnProperty('onFail')) {
-              operation.onFail();
-            }
-          }
-        });
-      });
-    }
-
-    function handleSuccessCallbacks(opts) {
-      var executionResult = opts.executionResult,
-          operationsByType = opts.operationsByType;
-      var operationsByOperationName = groupByOperationName(operationsByType);
-      /**
-       * Loop through the operations, map the operation to each result sent back from the backend,
-       * then pass the result into the callback if it exists
-       */
-
-      var executeCallbacksWithData = function executeCallbacksWithData(executionResult) {
-        executionResult.forEach(function (result) {
-          // if executionResult is 2d array
-          if (Array.isArray(result)) {
-            executeCallbacksWithData(result);
-          } else {
-            var resultData = result.data;
-            Object.entries(operationsByOperationName).forEach(function (_ref4) {
-              var operationName = _ref4[0],
-                  operations = _ref4[1];
-
-              if (resultData.hasOwnProperty(operationName)) {
-                operations.forEach(function (operation) {
-                  // we only need to gather the data for node create/update operations
-                  if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
-                    var groupedResult = resultData[operationName]; // for createNodes, execute callback on each individual node rather than top-level operation
-
-                    if (operation.hasOwnProperty('nodes')) {
-                      operation.nodes.forEach(function (node) {
-                        if (node.hasOwnProperty('onSuccess')) {
-                          var operationResult = groupedResult[node.position - 1];
-                          node.onSuccess(operationResult);
-                        }
-                      });
-                    } else if (operation.hasOwnProperty('onSuccess')) {
-                      var operationResult = groupedResult[operation.position - 1];
-                      operation.onSuccess(operationResult);
-                    }
-                  }
-                });
-              }
-            });
-          }
-        });
-      };
-
-      executeCallbacksWithData(executionResult);
-      /**
-       * For all other operations, just invoke the callback with no args.
-       * Transactions will guarantee that all operations have succeeded, so this is safe to do
-       */
-
-      Object.entries(operationsByOperationName).forEach(function (_ref5) {
-        var operationName = _ref5[0],
-            operations = _ref5[1];
-
-        if (operationName !== 'CreateNodes' && operationName !== 'UpdateNodes') {
-          operations.forEach(function (operation) {
-            if (operation.hasOwnProperty('onSuccess')) {
-              operation.onSuccess();
-            } else if (operation.hasOwnProperty('edges')) {
-              operation.edges.forEach(function (edgeOperation) {
-                if (edgeOperation.hasOwnProperty('onSuccess')) {
-                  edgeOperation.onSuccess();
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-
-    function execute() {
-      return _execute.apply(this, arguments);
-    }
-
-    function _execute() {
-      _execute = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-        var mutations, executionResult;
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.prev = 0;
-
-                if (!(typeof callback === 'function')) {
-                  _context2.next = 5;
-                  break;
-                }
-
-                if (!(result instanceof Promise)) {
-                  _context2.next = 5;
-                  break;
-                }
-
-                _context2.next = 5;
-                return result;
-
-              case 5:
-                mutations = getAllMutations(operationsByType);
-                _context2.next = 8;
-                return mmGQLInstance.gqlClient.mutate({
-                  mutations: mutations,
-                  token: token
-                });
-
-              case 8:
-                executionResult = _context2.sent;
-
-                if (executionResult) {
-                  handleSuccessCallbacks({
-                    executionResult: executionResult,
-                    operationsByType: operationsByType
-                  });
-                }
-
-                return _context2.abrupt("return", executionResult);
-
-              case 13:
-                _context2.prev = 13;
-                _context2.t0 = _context2["catch"](0);
-                handleErrorCallbacks({
-                  operationsByType: operationsByType
-                });
-                throw _context2.t0;
-
-              case 17:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2, null, [[0, 13]]);
-      }));
-      return _execute.apply(this, arguments);
-    }
-
-    return {
-      operations: operationsByType,
-      execute: execute,
-      callbackResult: result,
-      token: token
-    };
-
-    function transactionGroup(transactions) {
-      var asyncCallbacks = transactions.filter(function (tx) {
-        return tx.callbackResult instanceof Promise;
-      }).map(function (_ref6) {
-        var callbackResult = _ref6.callbackResult;
-        return callbackResult;
-      });
-
-      function execute() {
-        return _execute2.apply(this, arguments);
-      }
-
-      function _execute2() {
-        _execute2 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-          var allTokensMatch, allMutations, executionResults;
-          return runtime_1.wrap(function _callee$(_context) {
-            while (1) {
-              switch (_context.prev = _context.next) {
-                case 0:
-                  _context.prev = 0;
-                  allTokensMatch = transactions.every(function (_ref7) {
-                    var token = _ref7.token;
-                    return token === transactions[0].token;
-                  });
-
-                  if (allTokensMatch) {
-                    _context.next = 4;
-                    break;
-                  }
-
-                  throw new Error('transactionGroup - All grouped transactions must use the same authentication token.');
-
-                case 4:
-                  if (!asyncCallbacks.length) {
-                    _context.next = 7;
-                    break;
-                  }
-
-                  _context.next = 7;
-                  return Promise.all(asyncCallbacks);
-
-                case 7:
-                  allMutations = transactions.map(function (_ref8) {
-                    var operations = _ref8.operations;
-                    return mmGQLInstance.gqlClient.mutate({
-                      mutations: getAllMutations(operations),
-                      token: token
-                    });
-                  });
-                  _context.next = 10;
-                  return Promise.all(allMutations);
-
-                case 10:
-                  executionResults = _context.sent;
-
-                  if (executionResults) {
-                    executionResults.forEach(function (result, idx) {
-                      handleSuccessCallbacks({
-                        executionResult: result,
-                        operationsByType: transactions[idx].operations
-                      });
-                    });
-                  }
-
-                  return _context.abrupt("return", executionResults.flat());
-
-                case 15:
-                  _context.prev = 15;
-                  _context.t0 = _context["catch"](0);
-                  throw _context.t0;
-
-                case 18:
-                case "end":
-                  return _context.stop();
-              }
-            }
-          }, _callee, null, [[0, 15]]);
-        }));
-        return _execute2.apply(this, arguments);
-      }
-
-      return {
-        operations: operationsByType,
-        execute: execute,
-        token: token
-      };
-    }
-  };
-}
-
 var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({
   unsafe__silenceDuplicateSubIdErrors: false
@@ -6644,6 +6077,586 @@ function getDefaultConfig() {
       wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
     }),
     generateMockData: false
+  };
+}
+
+var _templateObject$5, _templateObject2;
+function updateNodes(operation) {
+  return _extends({
+    type: 'updateNodes',
+    operationName: 'UpdateNodes'
+  }, operation);
+}
+function updateNode(operation) {
+  return _extends({
+    type: 'updateNode',
+    operationName: 'UpdateNodes'
+  }, operation);
+}
+
+function getPropertiesToNull(object) {
+  return Object.entries(object).reduce(function (acc, _ref) {
+    var key = _ref[0],
+        value = _ref[1];
+    if (value == null) acc.push(key);else if (!Array.isArray(value) && typeof value === 'object') {
+      acc.push.apply(acc, getPropertiesToNull(value).map(function (property) {
+        return "" + key + OBJECT_PROPERTY_SEPARATOR + property;
+      }));
+    }
+    return acc;
+  }, []);
+}
+
+function getMutationsFromTransactionUpdateOperations(operations) {
+  if (!operations.length) return [];
+  var allUpdateNodeOperations = operations.flatMap(function (operation) {
+    if (operation.type === 'updateNode') {
+      return operation.data;
+    } else if (operation.type === 'updateNodes') {
+      return operation.nodes.map(function (_ref2) {
+        var data = _ref2.data;
+        return data;
+      });
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  var name = getMutationNameFromOperations(operations, 'UpdateNodes');
+  var dropPropertiesMutations = allUpdateNodeOperations.reduce(function (acc, updateNodeOperation) {
+    var propertiesToNull = getPropertiesToNull(updateNodeOperation);
+
+    if (propertiesToNull.length) {
+      acc.push(core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+        return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
+      }).join(',')));
+    }
+
+    return acc;
+  }, []); // For now, returns a single mutation
+  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
+
+  return [core.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+}
+
+function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
+  var dataToPersist = convertNodeDataToSMPersistedData(operation);
+  return "{\n      " + dataToPersist + "\n    }";
+}
+
+var _templateObject$6;
+function dropNode(operation) {
+  return _extends({
+    type: 'dropNode',
+    operationName: 'DropNode'
+  }, operation);
+}
+function getMutationsFromTransactionDropOperations(operations) {
+  if (!operations.length) return [];
+  var allDropNodeOperations = operations.map(function (operation) {
+    if (operation.type === 'dropNode') {
+      return operation;
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  return allDropNodeOperations.map(function (operation) {
+    var name = getMutationNameFromOperations([operation], 'DropNode');
+    return core.gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
+  });
+}
+
+function createTransaction(mmGQLInstance, globalOperationHandlers) {
+  /**
+   * A transaction allows developers to build groups of mutations that execute with transactional integrity
+   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
+   *
+   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
+   */
+  return function transaction(callback, opts) {
+    var operationsByType = {
+      createNode: [],
+      createNodes: [],
+      updateNode: [],
+      updateNodes: [],
+      dropNode: [],
+      createEdge: [],
+      createEdges: [],
+      dropEdge: [],
+      dropEdges: [],
+      replaceEdge: [],
+      replaceEdges: [],
+      updateEdge: [],
+      updateEdges: []
+    };
+    /**
+     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
+     * The backend responds with each operation in the order they were sent up.
+     */
+
+    var createOperationsCount = 0;
+    var updateOperationsCount = 0;
+
+    function pushOperation(operation) {
+      if (!operationsByType[operation.type]) {
+        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
+      }
+      /**
+       * createNodes/updateNodes creates multiple nodes in a single operation,
+       * therefore we need to track the position of these nodes instead of just the position of the operation itself
+       */
+
+
+      if (operation.type === 'createNodes') {
+        createOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: createOperationsCount,
+          nodes: operation.nodes.map(function (node, idx) {
+            return _extends({}, node, {
+              position: idx === 0 ? createOperationsCount : createOperationsCount += 1
+            });
+          })
+        }));
+      } else if (operation.type === 'createNode') {
+        createOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: createOperationsCount
+        }));
+      } else if (operation.type === 'updateNodes') {
+        updateOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: updateOperationsCount,
+          nodes: operation.nodes.map(function (node, idx) {
+            return _extends({}, node, {
+              position: idx === 0 ? updateOperationsCount : updateOperationsCount += 1
+            });
+          })
+        }));
+      } else if (operation.type === 'updateNode') {
+        updateOperationsCount += 1;
+        operationsByType[operation.type].push(_extends({}, operation, {
+          position: updateOperationsCount
+        }));
+      } else {
+        operationsByType[operation.type].push(operation);
+      }
+    }
+
+    var context = {
+      createNode: function createNode$1(opts) {
+        var operation = createNode(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createNodes: function createNodes$1(opts) {
+        var operation = createNodes(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateNode: function updateNode$1(opts) {
+        var operation = updateNode(opts);
+
+        var _globalOperationHandl = globalOperationHandlers.onUpdateRequested({
+          id: opts.data.id,
+          payload: opts.data
+        }),
+            onUpdateSuccessful = _globalOperationHandl.onUpdateSuccessful,
+            onUpdateFailed = _globalOperationHandl.onUpdateFailed;
+
+        pushOperation(_extends({}, operation, {
+          onSuccess: function onSuccess(data) {
+            operation.onSuccess && operation.onSuccess(data);
+            onUpdateSuccessful();
+          },
+          onFail: function onFail() {
+            operation.onFail && operation.onFail();
+            onUpdateFailed();
+          }
+        }));
+        return operation;
+      },
+      updateNodes: function updateNodes$1(opts) {
+        var operation = updateNodes(opts);
+
+        var globalHandlers = opts.nodes.map(function (node) {
+          return globalOperationHandlers.onUpdateRequested({
+            id: node.data.id,
+            payload: node.data
+          });
+        });
+        pushOperation(_extends({}, operation, {
+          nodes: operation.nodes.map(function (node, nodeIdx) {
+            return _extends({}, node, {
+              onSuccess: function onSuccess(data) {
+                node.onSuccess && node.onSuccess(data);
+                globalHandlers[nodeIdx].onUpdateSuccessful();
+              },
+              onFail: function onFail() {
+                node.onFail && node.onFail();
+                globalHandlers[nodeIdx].onUpdateFailed();
+              }
+            });
+          })
+        }));
+        return operation;
+      },
+      dropNode: function dropNode$1(opts) {
+        var operation = dropNode(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createEdge: function createEdge$1(opts) {
+        var operation = createEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      createEdges: function createEdges$1(opts) {
+        var operation = createEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdge: function dropEdge$1(opts) {
+        var operation = dropEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      dropEdges: function dropEdges$1(opts) {
+        var operation = dropEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdge: function updateEdge$1(opts) {
+        var operation = updateEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      updateEdges: function updateEdges$1(opts) {
+        var operation = updateEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdge: function replaceEdge$1(opts) {
+        var operation = replaceEdge(opts);
+
+        pushOperation(operation);
+        return operation;
+      },
+      replaceEdges: function replaceEdges$1(opts) {
+        var operation = replaceEdges(opts);
+
+        pushOperation(operation);
+        return operation;
+      }
+    };
+
+    function sortMutationsByTransactionPosition(operations) {
+      return lodash.sortBy(operations, function (operation) {
+        return operation.position;
+      });
+    }
+
+    function getAllMutations(operations) {
+      return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
+    }
+
+    var tokenName = (opts == null ? void 0 : opts.tokenName) || DEFAULT_TOKEN_NAME;
+    var token = mmGQLInstance.getToken({
+      tokenName: tokenName
+    });
+    /**
+     * Group operations by their operation name, sorted by position if applicable
+     */
+
+    function groupByOperationName(operations) {
+      var result = Object.entries(operations).reduce(function (acc, _ref) {
+        var operations = _ref[1];
+        operations.forEach(function (operation) {
+          if (acc.hasOwnProperty(operation.operationName)) {
+            acc[operation.operationName] = [].concat(acc[operation.operationName], [operation]);
+          } else {
+            acc[operation.operationName] = [operation];
+          }
+        });
+        return acc;
+      }, {});
+      Object.entries(result).forEach(function (_ref2) {
+        var operationName = _ref2[0],
+            operations = _ref2[1];
+        result[operationName] = lodash.sortBy(operations, function (operation) {
+          return operation.position;
+        });
+      });
+      return result;
+    }
+
+    if (Array.isArray(callback)) {
+      return transactionGroup(callback);
+    }
+
+    var result = callback(context);
+
+    function handleErrorCallbacks(opts) {
+      var operationsByType = opts.operationsByType;
+      var operationsByOperationName = groupByOperationName(operationsByType);
+      Object.entries(operationsByOperationName).forEach(function (_ref3) {
+        var operationName = _ref3[0],
+            operations = _ref3[1];
+        operations.forEach(function (operation) {
+          // we only need to gather the data for node create/update operations
+          if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
+            // for createNodes, execute callback on each individual node rather than top-level operation
+            if (operation.hasOwnProperty('nodes')) {
+              operation.nodes.forEach(function (node) {
+                if (node.hasOwnProperty('onFail')) {
+                  node.onFail();
+                }
+              });
+            } else if (operation.hasOwnProperty('onFail')) {
+              operation.onFail();
+            }
+          }
+        });
+      });
+    }
+
+    function handleSuccessCallbacks(opts) {
+      var executionResult = opts.executionResult,
+          operationsByType = opts.operationsByType;
+      var operationsByOperationName = groupByOperationName(operationsByType);
+      /**
+       * Loop through the operations, map the operation to each result sent back from the backend,
+       * then pass the result into the callback if it exists
+       */
+
+      var executeCallbacksWithData = function executeCallbacksWithData(executionResult) {
+        executionResult.forEach(function (result) {
+          // if executionResult is 2d array
+          if (Array.isArray(result)) {
+            executeCallbacksWithData(result);
+          } else {
+            var resultData = result.data;
+            Object.entries(operationsByOperationName).forEach(function (_ref4) {
+              var operationName = _ref4[0],
+                  operations = _ref4[1];
+
+              if (resultData.hasOwnProperty(operationName)) {
+                operations.forEach(function (operation) {
+                  // we only need to gather the data for node create/update operations
+                  if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
+                    var groupedResult = resultData[operationName]; // for createNodes, execute callback on each individual node rather than top-level operation
+
+                    if (operation.hasOwnProperty('nodes')) {
+                      operation.nodes.forEach(function (node) {
+                        if (node.hasOwnProperty('onSuccess')) {
+                          var operationResult = groupedResult[node.position - 1];
+                          node.onSuccess(operationResult);
+                        }
+                      });
+                    } else if (operation.hasOwnProperty('onSuccess')) {
+                      var operationResult = groupedResult[operation.position - 1];
+                      operation.onSuccess(operationResult);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      };
+
+      executeCallbacksWithData(executionResult);
+      /**
+       * For all other operations, just invoke the callback with no args.
+       * Transactions will guarantee that all operations have succeeded, so this is safe to do
+       */
+
+      Object.entries(operationsByOperationName).forEach(function (_ref5) {
+        var operationName = _ref5[0],
+            operations = _ref5[1];
+
+        if (operationName !== 'CreateNodes' && operationName !== 'UpdateNodes') {
+          operations.forEach(function (operation) {
+            if (operation.hasOwnProperty('onSuccess')) {
+              operation.onSuccess();
+            } else if (operation.hasOwnProperty('edges')) {
+              operation.edges.forEach(function (edgeOperation) {
+                if (edgeOperation.hasOwnProperty('onSuccess')) {
+                  edgeOperation.onSuccess();
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    function execute() {
+      return _execute.apply(this, arguments);
+    }
+
+    function _execute() {
+      _execute = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+        var mutations, executionResult;
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.prev = 0;
+
+                if (!(typeof callback === 'function')) {
+                  _context2.next = 5;
+                  break;
+                }
+
+                if (!(result instanceof Promise)) {
+                  _context2.next = 5;
+                  break;
+                }
+
+                _context2.next = 5;
+                return result;
+
+              case 5:
+                mutations = getAllMutations(operationsByType);
+                _context2.next = 8;
+                return mmGQLInstance.gqlClient.mutate({
+                  mutations: mutations,
+                  token: token
+                });
+
+              case 8:
+                executionResult = _context2.sent;
+
+                if (executionResult) {
+                  handleSuccessCallbacks({
+                    executionResult: executionResult,
+                    operationsByType: operationsByType
+                  });
+                }
+
+                return _context2.abrupt("return", executionResult);
+
+              case 13:
+                _context2.prev = 13;
+                _context2.t0 = _context2["catch"](0);
+                handleErrorCallbacks({
+                  operationsByType: operationsByType
+                });
+                throw _context2.t0;
+
+              case 17:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, null, [[0, 13]]);
+      }));
+      return _execute.apply(this, arguments);
+    }
+
+    return {
+      operations: operationsByType,
+      execute: execute,
+      callbackResult: result,
+      token: token
+    };
+
+    function transactionGroup(transactions) {
+      var asyncCallbacks = transactions.filter(function (tx) {
+        return tx.callbackResult instanceof Promise;
+      }).map(function (_ref6) {
+        var callbackResult = _ref6.callbackResult;
+        return callbackResult;
+      });
+
+      function execute() {
+        return _execute2.apply(this, arguments);
+      }
+
+      function _execute2() {
+        _execute2 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+          var allTokensMatch, allMutations, executionResults;
+          return runtime_1.wrap(function _callee$(_context) {
+            while (1) {
+              switch (_context.prev = _context.next) {
+                case 0:
+                  _context.prev = 0;
+                  allTokensMatch = transactions.every(function (_ref7) {
+                    var token = _ref7.token;
+                    return token === transactions[0].token;
+                  });
+
+                  if (allTokensMatch) {
+                    _context.next = 4;
+                    break;
+                  }
+
+                  throw new Error('transactionGroup - All grouped transactions must use the same authentication token.');
+
+                case 4:
+                  if (!asyncCallbacks.length) {
+                    _context.next = 7;
+                    break;
+                  }
+
+                  _context.next = 7;
+                  return Promise.all(asyncCallbacks);
+
+                case 7:
+                  allMutations = transactions.map(function (_ref8) {
+                    var operations = _ref8.operations;
+                    return mmGQLInstance.gqlClient.mutate({
+                      mutations: getAllMutations(operations),
+                      token: token
+                    });
+                  });
+                  _context.next = 10;
+                  return Promise.all(allMutations);
+
+                case 10:
+                  executionResults = _context.sent;
+
+                  if (executionResults) {
+                    executionResults.forEach(function (result, idx) {
+                      handleSuccessCallbacks({
+                        executionResult: result,
+                        operationsByType: transactions[idx].operations
+                      });
+                    });
+                  }
+
+                  return _context.abrupt("return", executionResults.flat());
+
+                case 15:
+                  _context.prev = 15;
+                  _context.t0 = _context["catch"](0);
+                  throw _context.t0;
+
+                case 18:
+                case "end":
+                  return _context.stop();
+              }
+            }
+          }, _callee, null, [[0, 15]]);
+        }));
+        return _execute2.apply(this, arguments);
+      }
+
+      return {
+        operations: operationsByType,
+        execute: execute,
+        token: token
+      };
+    }
   };
 }
 
