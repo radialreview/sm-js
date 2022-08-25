@@ -4,6 +4,7 @@ import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
 } from './queryDefinitionAdapters';
+import mmGQL from './react/demo-app/src/mmGQL';
 import {
   IMMGQL,
   IQueryManager,
@@ -383,12 +384,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       message: Record<string, any>;
       subscriptionConfig: SubscriptionConfig;
     }> = [];
-    function initSubs() {
-      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-        nonNullishQueryDefinitions
-      );
+    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+      nonNullishQueryDefinitions
+    );
+    const queryDefinitionsSplitByTokenEntries = Object.entries(
+      queryDefinitionsSplitByToken
+    );
 
-      Object.entries(queryDefinitionsSplitByToken).forEach(
+    function initSubs() {
+      queryDefinitionsSplitByTokenEntries.forEach(
         ([tokenName, queryDefinitions]) => {
           const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
@@ -444,6 +448,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
     function unsub() {
       subscriptionCancellers.forEach(cancel => cancel());
+      queryDefinitionsSplitByTokenEntries.forEach(
+        ([tokenName, queryDefinitions]) => {
+          const { queryRecord } = convertQueryDefinitionToQueryInfo({
+            queryDefinitions,
+            queryId: queryId + '_' + tokenName,
+          });
+          mmGQLInstance.QuerySlimmer.onSubscriptionCancelled(queryRecord);
+        }
+      );
     }
 
     try {
