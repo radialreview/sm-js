@@ -19,7 +19,7 @@ interface IGetGQLClientOpts {
   wsUrl: string;
 }
 
-const ENABLE_LOGGING = false;
+const ENABLE_LOGGING = true;
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   const wsLink = new WebSocketLink({
@@ -161,7 +161,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: IGQLClient = {
     query: async opts => {
-      const { data } = await baseClient.query({
+      const response = await baseClient.query({
         query: opts.gql,
         context: {
           // allow turning off batching by specifying a null or undefined batchKey
@@ -172,9 +172,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       });
 
       ENABLE_LOGGING &&
-        console.log('query data', JSON.stringify(data, null, 2));
+        console.log('gql query response', JSON.stringify(response, null, 2));
 
-      return data;
+      return response.data;
     },
     subscribe: opts => {
       const subscription = baseClient

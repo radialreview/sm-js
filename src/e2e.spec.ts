@@ -1,47 +1,46 @@
 import { getDefaultConfig } from './config';
 import { MMGQL } from './index';
-import { oneToMany, queryDefinition, string } from './dataTypes';
+import { queryDefinition, string } from './dataTypes';
 import { DEFAULT_TOKEN_NAME } from './consts';
+import { gql } from '@apollo/client';
 
-const client = new MMGQL(getDefaultConfig());
+test('queries users', async () => {
+  const client = new MMGQL(getDefaultConfig());
 
-const measurableDef = client.def({
-  type: 'measurable',
-  properties: {
-    title: string,
-  },
-});
+  const userDef = client.def({
+    type: 'user',
+    properties: {
+      firstName: string,
+    },
+  });
 
-const userDef = client.def({
-  type: 'user',
-  properties: {
-    firstName: string,
-  },
-  relational: {
-    measurables: () => oneToMany(measurableDef),
-  },
-});
+  const authResponse = await client.gqlClient.mutate({
+    mutations: [
+      gql`
+        mutation authenticate {
+          authenticate(
+            username: "christopher.f+bloomdev@winterinternational.io"
+            password: "Traction123$"
+          ) {
+            id
+            token
+          }
+        }
+      `,
+    ],
+    token: DEFAULT_TOKEN_NAME,
+  });
 
-client.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'test' });
+  const token = authResponse[0].data.authenticate.token;
 
-// test('makes a query', async () => {
-//   const { data } = await client.query({
-//     measurables: measurableDef,
-//   });
+  client.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
 
-//   console.log('data', data);
-// });
-
-test('queries users and measurables', async () => {
   const { data } = await client.query({
     users: queryDefinition({
       def: userDef,
-      map: ({ id, /*measurables,*/ firstName }) => ({
+      map: ({ id, firstName }) => ({
         id,
         firstName,
-        // measurables: measurables({
-        //   map: ({ id, title }) => ({ id, title }),
-        // }),
       }),
     }),
   });
