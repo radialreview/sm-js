@@ -529,14 +529,6 @@ export class QuerySlimmer {
             cachedQuerySubsByProperty[property] = propertySubCount - 1;
           }
         });
-
-        const doesRecordStillHaveSubscriptions = Object.values(
-          cachedQuerySubsByProperty
-        ).some(numberOfSubs => numberOfSubs !== 0);
-
-        if (!doesRecordStillHaveSubscriptions) {
-          delete this.queriesByContext[currentQueryContextKey];
-        }
       }
     });
   }
