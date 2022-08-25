@@ -3,6 +3,7 @@ import {
   getMockQueryRecord,
   mockQueryResultExpectations,
   getMockConfig,
+  convertNodesCollectionValuesToArray,
 } from './specUtilities';
 
 import { MMGQL } from '.';
@@ -18,5 +19,7 @@ test('QueryManager handles a query result and returns the expected data', () => 
     queryId: 'MockQueryId',
   });
 
-  expect(queryManager.getResults()).toEqual(mockQueryResultExpectations);
+  expect(queryManager.getResults()).toEqual(
+    convertNodesCollectionValuesToArray(mockQueryResultExpectations)
+  );
 });

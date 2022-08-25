@@ -361,7 +361,11 @@ function buildQueryDefinitionStateManager<
       newQueryDefinitionsAreAllNull ||
       (newQueryInfo &&
         (!preExistingQueryInfo ||
-          preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL));
+          preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL)) ||
+      (newQueryInfo &&
+        (!preExistingQueryInfo ||
+          preExistingQueryInfo.queryParamsString !==
+            newQueryInfo.queryParamsString));
 
     if (
       preExistingContextForThisSubscription &&
@@ -391,6 +395,15 @@ function buildQueryDefinitionStateManager<
     const suspendPromise = opts.context.mmGQLInstance
       .subscribe(queryDefinitions, {
         batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+        // Make sure to re-render the component on paginate
+        onPaginate: () => {
+          const contextForThisParentSub =
+            opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+          contextForThisParentSub.onResults &&
+            contextForThisParentSub.onResults({
+              ...contextForThisParentSub.results,
+            });
+        },
         onData: ({ results: newResults }) => {
           const contextforThisSub =
             opts.context.ongoingSubscriptionRecord[subscriptionId];

@@ -25,7 +25,8 @@ import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-
+import { getFlattenedNodeFilterObject } from './dataUtilities';
+import { set as lodashSet } from 'lodash';
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -339,6 +340,27 @@ function getRelationalQueries(opts: {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             oneToMany: true;
           }).oneToMany = true;
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.filter
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter =
+              relationalQuery.queryBuilderOpts.filter;
+          }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.pagination
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).pagination =
+              relationalQuery.queryBuilderOpts.pagination;
+          }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.sort
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).sort =
+              relationalQuery.queryBuilderOpts.sort;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
@@ -446,8 +468,14 @@ export function getQueryRecordFromQueryDefinition<
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
-      (queryRecordEntry as QueryRecordEntry & { filter: any }).filter =
-        queryDefinition.filter;
+      (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
+    }
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      (queryRecordEntry as QueryRecordEntry).pagination =
+        queryDefinition.pagination;
+    }
+    if ('sort' in queryDefinition && queryDefinition.sort != null) {
+      (queryRecordEntry as QueryRecordEntry).sort = queryDefinition.sort;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
@@ -462,7 +490,20 @@ function getIdsString(ids: Array<string>) {
 export function getKeyValueFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
-  const convertedToDotFormat = prepareObjectForBE(filter, {
+  const flattenedFilters = getFlattenedNodeFilterObject(filter);
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  // Adding '{} || ' temporarily disable all server filters
+  // Remove those line once backend filters are ready
+  const filtersWithEqualCondition = Object.keys({} || flattenedFilters)
+    .filter(x => {
+      return flattenedFilters[x]._eq !== undefined;
+    })
+    .reduce((acc, current) => {
+      lodashSet(acc, current, flattenedFilters[current]._eq);
+      return acc;
+    }, {} as ValidFilterForNode<TNode>);
+
+  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
     omitObjectIdentifier: true,
   });
   return `{${Object.entries(convertedToDotFormat).reduce(
@@ -610,6 +651,19 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
+function getQueryRecordSortAndFilterValues(record: QueryRecord) {
+  return Object.keys(record).reduce((acc, alias) => {
+    acc.push(record[alias].filter);
+    acc.push(record[alias].sort);
+    const relational = record[alias].relational;
+    if (relational) {
+      acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
+    }
+
+    return acc;
+  }, [] as any[]);
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,
@@ -621,6 +675,9 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
+  const queryParamsString = JSON.stringify(
+    getQueryRecordSortAndFilterValues(queryRecord)
+  );
   const queryGQLString = (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(queryRecord)
@@ -698,6 +755,7 @@ export function getQueryInfo<
   return {
     subscriptionConfigs: subscriptionConfigs,
     queryGQLString,
+    queryParamsString,
     queryRecord,
   };
 }
@@ -718,9 +776,13 @@ export function convertQueryDefinitionToQueryInfo<
     TQueryDefinitionTarget
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
-  const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
-    opts
-  );
+  const {
+    queryGQLString,
+    subscriptionConfigs,
+    queryRecord,
+    queryParamsString,
+  } = getQueryInfo(opts);
+  //call plugin function here that takes in the queryRecord
 
   return {
     queryGQL: gql(queryGQLString),
@@ -729,6 +791,7 @@ export function convertQueryDefinitionToQueryInfo<
       gql: gql(subscriptionConfig.gqlString),
     })),
     queryRecord,
+    queryParamsString,
   };
 }
 

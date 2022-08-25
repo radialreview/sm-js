@@ -2,6 +2,7 @@
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
 // this is done automatically by data fetchers, smQuery and smSubscribe
+import { FilterOperator } from './types';
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
 export class NotUpToDateException extends Error {
   public propName: string;
@@ -26,6 +27,21 @@ export class NotUpToDateInComputedException extends Error {
     );
   }
 }
+
+export class FilterPropertyNotDefinedInQueryException extends Error {
+  constructor(opts: { filterPropName: string }) {
+    super(
+      `FilterPropertyNotDefinedInQueryException exception - The filter property '${opts.filterPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+    );
+  }
+}
+export class SortPropertyNotDefinedInQueryException extends Error {
+  constructor(opts: { sortPropName: string }) {
+    super(
+      `SortPropertyNotDefinedInQueryException exception - The sort property '${opts.sortPropName}' is not defined in the 'map' function of the queryDefinition. Add that property to the queryDefinition 'map' function.`
+    );
+  }
+}
 export class ImpliedNodePropertyException extends Error {
   constructor(opts: { propName: string }) {
     super(
@@ -38,6 +54,13 @@ export class NotCachedException extends Error {
   constructor(opts: { nodeType: string; id: string }) {
     super(
       `NotCached exception - Attempted to get the node with the type "${opts.nodeType}" and id "${opts.id}" but it was not cached.`
+    );
+  }
+}
+export class NodesCollectionPageOutOfBoundsException extends Error {
+  constructor(opts: { page: number }) {
+    super(
+      `NodesCollectionPageOutOfBoundsException - page '${opts.page}' does not exist.`
     );
   }
 }
@@ -99,6 +122,14 @@ export class UnexpectedQueryResultException extends Error {
   }) {
     super(`UnexpectedQueryResult exception - unexpected query result received`);
     this.exception = exception;
+  }
+}
+
+export class FilterOperatorNotImplementedException extends Error {
+  constructor(exeption: { operator: FilterOperator }) {
+    super(
+      `FilterOperatorNotImplementedException - '${exeption.operator}' operator not implemented.`
+    );
   }
 }
 

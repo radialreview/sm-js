@@ -302,11 +302,11 @@ const stateNode: StateNode = mmGQL.def({
   invalidNestedProp;
 
   const filter1: ValidFilterForNode<UserNode> = {
-    firstName: 'some first name',
+    firstName: { _contains: 's' },
   };
   filter1;
   const filter2: ValidFilterForNode<UserNode> = {
-    address: { state: 'some state' },
+    address: { state: { _contains: 's' }, nestedInAddress: {} },
   };
   filter2;
   const filter3: ValidFilterForNode<UserNode> = {
@@ -320,15 +320,15 @@ const stateNode: StateNode = mmGQL.def({
   };
   filter4;
   const filter5: ValidFilterForNode<UserNode> = {
-    bool: true,
+    bool: { _eq: true },
   };
   filter5;
   const filter6: ValidFilterForNode<UserNode> = {
-    maybeBool: null,
+    maybeBool: { _eq: null },
   };
   filter6;
   const filter7: ValidFilterForNode<UserNode> = {
-    maybeStr: null,
+    maybeStr: { _eq: null },
   };
   filter7;
 })();
@@ -407,13 +407,13 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  targetOmmissionResults.data.users[0].id as string;
+  targetOmmissionResults.data.users.nodes[0].id as string;
   // @ts-expect-error invalid type
-  targetOmmissionResults.data.users[0].id as number;
+  targetOmmissionResults.data.users.nodes[0].id as number;
   // @ts-expect-error not queried
-  targetOmmissionResults.data.users[0].notqueried as number;
+  targetOmmissionResults.data.users.nodes[0].notqueried as number;
   // @ts-expect-error not queried
-  targetOmmissionResults.data.users[0].firstName as string;
+  targetOmmissionResults.data.users.nodes[0].firstName as string;
 
   // def and map and a filter defined in this query
   // but no specific ids or "under" provided
@@ -435,16 +435,18 @@ const stateNode: StateNode = mmGQL.def({
       def: userNode,
       map: userData => ({ id: userData.id }),
       filter: {
-        firstName: 'Meida',
+        firstName: {
+          _eq: 'Meida',
+        },
       },
     }),
   });
 
-  validTargetWithFilters.data.users[0].id as string;
+  validTargetWithFilters.data.users.nodes[0].id as string;
   // @ts-expect-error invalid type
-  validTargetWithFilters.data.users[0].id as number;
+  validTargetWithFilters.data.users.nodes[0].id as number;
   // @ts-expect-error not queried
-  validTargetWithFilters.data.users[0].notqueried as number;
+  validTargetWithFilters.data.users.nodes[0].notqueried as number;
 
   const withRelationalResults = await mmGQL.query({
     users: queryDefinition({
@@ -470,20 +472,23 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withRelationalResults.data.users[0].id as string;
+  withRelationalResults.data.users.nodes[0].id as string;
   // @ts-expect-error not queried
-  withRelationalResults.data.users[0].firstName as string;
-  withRelationalResults.data.users[0].todos[0].id as string;
-  withRelationalResults.data.users[0].todos[0].dueDate as number;
+  withRelationalResults.data.users.nodes[0].firstName as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].id as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].dueDate as number;
   // @ts-expect-error not queried
-  withRelationalResults.data.users[0].todos[0].task as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].task as string;
 
-  withRelationalResults.data.users[0].todos[0].assignee.firstName as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].assignee
+    .firstName as string;
 
   // @ts-expect-error meeting should be nullable
-  withRelationalResults.data.users[0].todos[0].meeting.name as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].meeting
+    .name as string;
 
-  withRelationalResults.data.users[0].todos[0].meeting?.name as string;
+  withRelationalResults.data.users.nodes[0].todos.nodes[0].meeting
+    ?.name as string;
 
   const withOnlyRelationalResults = await mmGQL.query({
     users: queryDefinition({
@@ -501,10 +506,10 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
   // @ts-expect-error not queried
-  withOnlyRelationalResults.data.users[0].firstName as string;
-  withOnlyRelationalResults.data.users[0].todos[0].id as string;
+  withOnlyRelationalResults.data.users.nodes[0].firstName as string;
+  withOnlyRelationalResults.data.users.nodes[0].todos.nodes[0].id as string;
   // @ts-expect-error not queried
-  withOnlyRelationalResults.data.users[0].todos[0].bogus as string;
+  withOnlyRelationalResults.data.users.nodes[0].todos.nodes[0].bogus as string;
 
   const withPartialObject = await mmGQL.query({
     users: queryDefinition({
@@ -517,9 +522,9 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withPartialObject.data.users[0].address.state as string;
+  withPartialObject.data.users.nodes[0].address.state as string;
   // @ts-expect-error
-  withPartialObject.data.users[0].address.bogus as string;
+  withPartialObject.data.users.nodes[0].address.bogus as string;
 
   const byId = await mmGQL.query({
     user: queryDefinition({
@@ -565,7 +570,7 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withMapFnFromObjectOmitted.data.users[0].address.state as string;
+  withMapFnFromObjectOmitted.data.users.nodes[0].address.state as string;
 
   const withRelationalMapFnReturningAllData = await mmGQL.query({
     users: queryDefinition({
@@ -578,9 +583,11 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withRelationalMapFnReturningAllData.data.users[0].todos[0].id as string;
+  const todos =
+    withRelationalMapFnReturningAllData.data.users.nodes[0].todos.nodes;
+  todos[0].id as string;
   // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
-  withRelationalMapFnReturningAllData.data.users[0].todos[0].assignee.id;
+  todos[0].assignee.id;
 
   const mockNode = mmGQL.def({
     type: 'test',
@@ -597,9 +604,9 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  withExplicitTypesOmitted.data.mock[0].t as string;
+  withExplicitTypesOmitted.data.mock.nodes[0].t as string;
   // @ts-expect-error
-  withExplicitTypesOmitted.data.mock[0].foo as string;
+  withExplicitTypesOmitted.data.mock.nodes[0].foo as string;
 
   const withRelationalUnion = await mmGQL.query({
     todos: queryDefinition({
@@ -634,11 +641,12 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  const assigneeNullable = withRelationalUnion.data.todos[0].assigneeNullable;
+  const assigneeNullable =
+    withRelationalUnion.data.todos.nodes[0].assigneeNullable;
   if (assigneeNullable && assigneeNullable.type === 'user') {
     assigneeNullable.id;
     // to ensure the depth param in ExtractQueriedDataFromOneToOneQuery does not mess with depths greater than 1
-    assigneeNullable.todos[0].assigneeId;
+    assigneeNullable.todos.nodes[0].assigneeId;
     // @ts-expect-error no first name being queried for org user
     assigneeNullable.firstName;
     assigneeNullable.address as { state: string };
@@ -650,17 +658,17 @@ const stateNode: StateNode = mmGQL.def({
   }
 
   // @ts-expect-error no null check
-  withRelationalUnion.data.todos[0].assigneeNullable.id;
+  withRelationalUnion.data.todos.nodes[0].assigneeNullable.id;
   // @ts-expect-error no type check/type guard
-  withRelationalUnion.data.todos[0].assigneeNullable?.firstName;
+  withRelationalUnion.data.todos.nodes[0].assigneeNullable?.firstName;
   // common properties don't need type guards
-  withRelationalUnion.data.todos[0].assigneeNullable?.id as string;
-  withRelationalUnion.data.todos[0].assigneeNullable?.type as
+  withRelationalUnion.data.todos.nodes[0].assigneeNullable?.id as string;
+  withRelationalUnion.data.todos.nodes[0].assigneeNullable?.type as
     | 'meeting-guest'
     | 'user';
 
   // no need for a null check if the reference does not return a maybe type
-  withRelationalUnion.data.todos[0].assigneeNonNullable.id;
+  withRelationalUnion.data.todos.nodes[0].assigneeNonNullable.id;
 
   const withReferenceArray = await mmGQL.query({
     meeting: queryDefinition({
@@ -675,10 +683,10 @@ const stateNode: StateNode = mmGQL.def({
   });
 
   // @ts-expect-error attendees is an array
-  withReferenceArray.data.meeting.attendees.firstName;
-  withReferenceArray.data.meeting.attendees[0].firstName;
+  withReferenceArray.data.meeting.attendees.nodes.firstName;
+  withReferenceArray.data.meeting.attendees.nodes[0].firstName;
   // @ts-expect-error not a valid prop on each attendee
-  withReferenceArray.data.meeting.attendees[0].bogus;
+  withReferenceArray.data.meeting.attendees.nodes[0].bogus;
 
   // Validates that "GetResultingDataFromQueryDefinition" works
   // For this type inference to work, it's important that the return of the map function is inferred by TS completely

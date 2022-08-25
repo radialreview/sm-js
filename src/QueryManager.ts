@@ -1,3 +1,4 @@
+import { OnPaginateCallback, NodesCollection } from './nodesCollection';
 import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
 import { DataParsingException } from './exceptions';
 import {
@@ -9,6 +10,7 @@ import {
   BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
   QueryRecordEntry,
+  IQueryPagination,
 } from './types';
 
 type QueryManagerState = Record<
@@ -20,6 +22,7 @@ type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
   idsOrIdInCurrentResult: string | Array<string> | null;
   proxyCache: QueryManagerProxyCache;
+  pagination?: IQueryPagination;
 };
 
 type QueryManagerProxyCache = Record<
@@ -31,6 +34,8 @@ type QueryManagerProxyCacheEntry = {
   proxy: IDOProxy;
   relationalState: Maybe<QueryManagerState>;
 }; // the proxy for that DO and relational state from the query results/latest subscription message
+
+type QueryManagerOpts = { onPaginate?: OnPaginateCallback };
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
   /**
@@ -47,9 +52,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
   return class QueryManager implements IQueryManager {
     public state: QueryManagerState = {};
     public queryRecord: QueryRecord;
+    public opts: QueryManagerOpts | undefined;
 
-    constructor(queryRecord: QueryRecord) {
+    constructor(queryRecord: QueryRecord, opts?: QueryManagerOpts) {
       this.queryRecord = queryRecord;
+      this.opts = opts;
     }
 
     public onQueryResult(opts: { queryResult: any; queryId: string }) {
@@ -105,13 +112,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const acc = Object.keys(state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
-
         const resultsAlias = this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          resultsAcc[resultsAlias] = idsOrId.map(
-            id => stateForThisAlias.proxyCache[id].proxy
-          );
+          const ids = idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy);
+          resultsAcc[resultsAlias] = new NodesCollection({
+            items: ids,
+            itemsPerPage:
+              stateForThisAlias.pagination?.itemsPerPage || ids.length,
+            page: stateForThisAlias.pagination?.page || 1,
+            onPaginate: this.opts?.onPaginate,
+          });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] =
             stateForThisAlias.proxyCache[idsOrId].proxy;
@@ -279,16 +290,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       ): QueryManagerProxyCacheEntry => {
         const relationalState = buildRelationalStateForNode(node);
         const nodeRepository = queryRecord[queryAlias].def.repository;
+        const relationalQueries = relational
+          ? this.getApplicableRelationalQueries({
+              relationalQueries: relational,
+              nodeData: node,
+            })
+          : null;
 
         const proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
-          relationalQueries: relational
-            ? this.getApplicableRelationalQueries({
-                relationalQueries: relational,
-                nodeData: node,
-              })
-            : null,
+          relationalQueries: relationalQueries,
           queryId: opts.queryId,
           relationalResults: !relationalState
             ? null
@@ -333,6 +345,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
+            pagination: queryRecord[opts.queryAlias].pagination,
           };
         }
       } else {

@@ -1,4 +1,14 @@
 import { isArray, isObject } from 'lodash';
+import { FILTER_OPERATORS } from './consts';
+import {
+  FilterCondition,
+  FilterOperator,
+  FilterValue,
+  INode,
+  SortObject,
+  ValidFilterForNode,
+  ValidSortForNode,
+} from './types';
 
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
@@ -163,4 +173,109 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
     }
   }
   return valuesByKeyPath;
+}
+
+/**
+ * Returns flattened keys of the filter object
+ *
+ * ```
+ * getFlattenedNodeFilterObject({
+ *  settings: {
+ *    time: {_lte: Date.now()},
+ *    nested: {
+ *      prop: {_contains: "text"}
+ *    }
+ *  },
+ *  firstName: {_eq: 'John'}
+ * })
+ * ```
+ *
+ * Returns
+ *
+ * ```
+ * {
+ *  "settings.time": {_lte: Date.now()},
+ *  "settings.nested.prop": {_contains: "text"},
+ *  "firstName": {_eq: 'John'}
+ * }
+ * ```
+ * @param filterObject : ;
+ * @returns
+ */
+export function getFlattenedNodeFilterObject<TNode extends INode>(
+  filterObject: ValidFilterForNode<TNode>
+) {
+  const result: Record<
+    string,
+    Partial<Record<FilterOperator, any>> & { _condition: FilterCondition }
+  > = {};
+
+  const filterObject2 = filterObject as any;
+  for (const i in filterObject2) {
+    const value = filterObject2[i] as FilterValue<string>;
+    const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
+      condition => isObject(value) && !value.hasOwnProperty(condition)
+    );
+    if (
+      typeof filterObject2[i] == 'object' &&
+      filterObject2[i] !== null &&
+      valueIsNotAFilterCondition
+    ) {
+      const flatObject = getFlattenedNodeFilterObject(
+        value as ValidFilterForNode<TNode>
+      );
+      for (const x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      if (isObject(value)) {
+        result[i] = {
+          ...value,
+          _condition: value._condition || 'AND',
+        };
+      } else if (value !== undefined) {
+        result[i] = {
+          _eq: value,
+          _condition: 'AND',
+        };
+      }
+    }
+  }
+  return result;
+}
+
+export function getFlattenedNodeSortObject<TNode extends INode>(
+  sortObject: ValidSortForNode<TNode>
+) {
+  const result: Record<string, SortObject> = {};
+
+  for (const i in sortObject) {
+    const value = sortObject[i] as any;
+    const valueIsNotASortObject =
+      isObject(value) && !Object.keys(value).includes('_direction');
+    if (
+      typeof sortObject[i] == 'object' &&
+      sortObject[i] !== null &&
+      valueIsNotASortObject
+    ) {
+      const flatObject = getFlattenedNodeSortObject(value);
+      for (const x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        result[i + '.' + x] = flatObject[x];
+      }
+    } else {
+      if (isObject(value)) {
+        result[i] = value as SortObject;
+      } else if (value !== undefined) {
+        const filter: SortObject = {
+          _direction: value,
+        };
+        result[i] = filter;
+      }
+    }
+  }
+  return result;
 }

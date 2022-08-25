@@ -20,6 +20,8 @@ import {
   RELATIONAL_TYPES,
   UseSubscriptionQueryDefinitionOpts,
   UseSubscriptionQueryDefinition,
+  ValidFilterForNode,
+  ValidSortForNode,
 } from './types';
 
 export class Data<
@@ -457,7 +459,11 @@ export const oneToMany = <
   return (<
     TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord
-    > & { _relationshipName: string }
+    > & {
+      _relationshipName: string;
+      filter?: ValidFilterForNode<INode>;
+      sort?: ValidSortForNode<INode>;
+    }
   >(
     queryBuilderOpts: TQueryBuilderOpts
   ) => {
@@ -465,6 +471,7 @@ export const oneToMany = <
       def,
       _relationshipName: queryBuilderOpts._relationshipName,
       _relational: RELATIONAL_TYPES.oneToMany,
+      filter: queryBuilderOpts.filter,
       queryBuilderOpts,
     };
   }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
