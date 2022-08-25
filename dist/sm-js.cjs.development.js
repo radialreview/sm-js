@@ -5945,8 +5945,7 @@ function getGQLCLient(gqlClientOpts) {
   var gqlClient = {
     query: function () {
       var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _yield$baseClient$que, data;
-
+        var response;
         return runtime_1.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -5964,11 +5963,11 @@ function getGQLCLient(gqlClientOpts) {
                 });
 
               case 2:
-                _yield$baseClient$que = _context.sent;
-                data = _yield$baseClient$que.data;
-                return _context.abrupt("return", data);
+                response = _context.sent;
+                 console.log('gql query response', JSON.stringify(response, null, 2));
+                return _context.abrupt("return", response.data);
 
-              case 6:
+              case 5:
               case "end":
                 return _context.stop();
             }
@@ -5987,6 +5986,7 @@ function getGQLCLient(gqlClientOpts) {
         query: authenticateSubscriptionDocument(opts)
       }).subscribe({
         next: function next(message) {
+           console.log('subscription message', JSON.stringify(message, null, 2));
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
         },
         error: opts.onError
@@ -6001,6 +6001,11 @@ function getGQLCLient(gqlClientOpts) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
+                 console.log('mutations', opts.mutations.map(function (mutation) {
+                  var _mutation$loc;
+
+                  return (_mutation$loc = mutation.loc) == null ? void 0 : _mutation$loc.source.body;
+                }));
                 _context2.next = 3;
                 return Promise.all(opts.mutations.map(function (mutation) {
                   return baseClient.mutate({
@@ -6037,8 +6042,8 @@ function getGQLCLient(gqlClientOpts) {
 function getDefaultConfig() {
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+      httpUrl: 'http://dev.bloomgrowth.com/graphql/',
+      wsUrl: 'ws://dev.bloomgrowth.com/graphql/'
     }),
     generateMockData: false
   };
