@@ -35,6 +35,8 @@ export type TInFlightQueriesByContextMap = Record<
 
 export type TQueryRecordByContextMap = Record<string, QueryRecord>;
 
+const IN_FLIGHT_TIMEOUT_MS = 1000;
+
 export class QuerySlimmer {
   constructor(mmGQLInstance: IMMGQL) {
     this.mmGQLInstance = mmGQLInstance;
@@ -80,9 +82,6 @@ export class QuerySlimmer {
       newQuerySlimmedByCache
     );
 
-    // TODO PIOTR ADD:
-    // TIMEOUTS
-    // ERROR HANDLING (SEND ORIGINAL REQUEST)
     if (newQuerySlimmedByInFlightQueries === null) {
       await this.sendQueryRequest({
         queryId: opts.queryId,
@@ -113,14 +112,22 @@ export class QuerySlimmer {
         batchKey: opts.queryOpts?.batchKey,
       });
 
-      // PIOTR TODO: THIS RETURNS A PROMISE THAT CAN BE CANCELLED. CANCEL IT WHEN DOING ERROR/TIMEOUT HANDLING.
       await when(
         () =>
           !this.areDependentQueriesStillInFlight({
             queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
             querySlimmedByInFlightQueries:
               newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-          })
+          }),
+        {
+          timeout: IN_FLIGHT_TIMEOUT_MS,
+          onError: (error: any) => {
+            throw new Error(
+              `QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES`,
+              error
+            );
+          },
+        }
       );
 
       const data = this.getDataForQueryFromQueriesByContext(queryRecord);
