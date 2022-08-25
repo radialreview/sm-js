@@ -42,8 +42,8 @@ export class QuerySlimmer {
 
   private mmGQLInstance: IMMGQL;
 
-  public queriesByContext: TQueryDataByContextMap = observable({});
-  public inFlightQueryRecords: TInFlightQueriesByContextMap = {};
+  public queriesByContext: TQueryDataByContextMap = {};
+  public inFlightQueryRecords: TInFlightQueriesByContextMap = observable({});
 
   public async query<
     TNode,
@@ -66,7 +66,14 @@ export class QuerySlimmer {
     );
 
     if (newQuerySlimmedByCache === null) {
-      return this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      this.log(
+        `QUERYSLIMMER: NEW QUERY FULLY CACHED`,
+        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `CACHE: ${JSON.stringify(this.queriesByContext)}`,
+        `DATA RETURNED: ${JSON.stringify(data)}`
+      );
+      return data;
     }
 
     const newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(
@@ -83,8 +90,22 @@ export class QuerySlimmer {
         tokenName: opts.tokenName,
         batchKey: opts.queryOpts?.batchKey,
       });
-      return this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      this.log(
+        `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE`,
+        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `SLIMMED QUERY: ${JSON.stringify(newQuerySlimmedByCache)}`,
+        `CACHE: ${JSON.stringify(this.queriesByContext)}`,
+        `DATA RETURNED: ${JSON.stringify(data)}`
+      );
+      return data;
     } else {
+      this.log(
+        `QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST`,
+        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `IN-FLIGHT QUERIES: ${JSON.stringify(this.inFlightQueryRecords)}`,
+        `CACHE: ${JSON.stringify(this.queriesByContext)}`
+      );
       await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
@@ -102,7 +123,17 @@ export class QuerySlimmer {
           })
       );
 
-      return this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      this.log(
+        `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES`,
+        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `SLIMMED QUERY: ${JSON.stringify(
+          newQuerySlimmedByInFlightQueries.slimmedQueryRecord
+        )}`,
+        `CACHE: ${JSON.stringify(this.queriesByContext)}`,
+        `DATA RETURNED: ${JSON.stringify(data)}`
+      );
+      return data;
     }
   }
 
@@ -450,20 +481,15 @@ export class QuerySlimmer {
       }
     });
 
-    const queryRecordToReturn =
-      Object.keys(
-        isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord
-      ).length > 0
-        ? isNewQueryARootQuery
-          ? slimmedQueryRecord
-          : slimmedRelationalQueryRecord
-        : null;
-
     if (isNewQueryARootQuery) {
-      this.log({ originalQuery: newQuery, slimmedQuery: queryRecordToReturn });
+      return Object.keys(slimmedQueryRecord).length === 0
+        ? null
+        : slimmedQueryRecord;
+    } else {
+      return Object.keys(slimmedRelationalQueryRecord).length === 0
+        ? null
+        : slimmedRelationalQueryRecord;
     }
-
-    return queryRecordToReturn;
   }
 
   // TODO PIOTR: WHEN TO CALL THIS?
@@ -729,26 +755,9 @@ export class QuerySlimmer {
     return isStillWaitingOnInFlightQueries;
   }
 
-  private log(opts: {
-    originalQuery: QueryRecord | RelationalQueryRecord;
-    slimmedQuery: QueryRecord | RelationalQueryRecord | null;
-  }) {
+  private log(message?: any, ...optionalParams: any[]) {
     if (this.mmGQLInstance.enableQuerySlimmingLogging) {
-      console.log(
-        `QuerySlimmer`,
-        `Received Query: ${JSON.stringify(opts.originalQuery)}`,
-        `Slimmed Exectued Query: ${JSON.stringify(opts.slimmedQuery)}`
-      );
+      console.log(message, ...optionalParams);
     }
   }
-
-  // TODO PIOTR: DON'T THINK WE NEED THIS ANYMORE BUT CONFIRM ABOUT subscriptionEstablished
-  // public onResultsReceived(opts: {
-  //   slimmedQuery: QueryRecord;
-  //   originalQuery: QueryRecord;
-  //   slimmedQueryResults: Record<string, any>;
-  //   subscriptionEstablished: boolean;
-  // }) {
-  //   this.populateQueriesByContext(opts.slimmedQuery, opts.slimmedQueryResults);
-  // }
 }
