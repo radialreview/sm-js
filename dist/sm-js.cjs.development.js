@@ -5,12 +5,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var lodash = require('lodash');
+var Chance = _interopDefault(require('chance'));
 var core = require('@apollo/client/core');
 var React = _interopDefault(require('react'));
 var ws = require('@apollo/client/link/ws');
 var http = require('@apollo/client/link/http');
 var batchHttp = require('@apollo/client/link/batch-http');
 var utilities = require('@apollo/client/utilities');
+var client = require('@apollo/client');
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
@@ -1354,6 +1356,84 @@ function deepClone(obj) {
     return outputObject;
   }
 } // clear an object (and nested objects)
+// by deleting all of its props
+
+function clearObject(opts) {
+  Object.keys(opts.object).forEach(function (objectProp) {
+    if (typeof opts.object[objectProp] === 'object') {
+      clearObject({
+        object: opts.object[objectProp]
+      });
+    } else {
+      delete opts.object[objectProp];
+    }
+  });
+} // extend an object by mutating its props in place
+// based on the values received in "extension"
+
+function extend(opts) {
+  var handledExtensionProps = []; // first loop over every key in the object to extend and
+  // 1) if opts.deleteKeysNotInExtension, delete properties not in the extension object, whilst avoiding deleting nested objects within the object we're extending
+  //    - clear those objects by deleting all properties instead
+  // 2) copy properties that did get included in the extension value to the object being extended, whilst avoiding altering the reference to a nested object
+  //    - extend those nested objects by calling this function recursively instead
+
+  Object.keys(opts.object).forEach(function (objectProp) {
+    var extensionValue = opts.extension[objectProp];
+
+    if (extensionValue === undefined) {
+      if (!opts.deleteKeysNotInExtension) return;
+
+      if (opts.object[objectProp] != null && typeof opts.object[objectProp] === 'object') {
+        clearObject({
+          object: opts.object[objectProp]
+        });
+      } else {
+        delete opts.object[objectProp];
+      }
+    } else {
+      handledExtensionProps.push(objectProp);
+
+      if (extensionValue != null && typeof extensionValue === 'object' && !Array.isArray(extensionValue)) {
+        if (opts.extendNestedObjects) {
+          opts.object[objectProp] = opts.object[objectProp] || {};
+          extend({
+            object: opts.object[objectProp] || {},
+            extension: extensionValue,
+            deleteKeysNotInExtension: opts.deleteKeysNotInExtension,
+            extendNestedObjects: true
+          });
+        } else {
+          opts.object[objectProp] = extensionValue;
+        }
+      } else {
+        opts.object[objectProp] = extensionValue;
+      }
+    }
+  }); // then loop over every key in the extension that hasn't yet been handled in the loop above
+
+  Object.keys(opts.extension).filter(function (key) {
+    return !handledExtensionProps.includes(key);
+  }).forEach(function (extensionProp) {
+    var extensionValue = opts.extension[extensionProp];
+
+    if (extensionValue != null && typeof extensionValue === 'object' && !Array.isArray(extensionValue)) {
+      if (opts.extendNestedObjects) {
+        opts.object[extensionProp] = opts.object[extensionProp] || {};
+        extend({
+          object: opts.object[extensionProp],
+          extension: extensionValue,
+          deleteKeysNotInExtension: opts.deleteKeysNotInExtension,
+          extendNestedObjects: true
+        });
+      } else {
+        opts.object[extensionProp] = extensionValue;
+      }
+    } else {
+      opts.object[extensionProp] = extensionValue;
+    }
+  });
+}
 /**
  * Returns flattened keys of the filter object
  *
@@ -2638,18 +2718,14 @@ try {
 }
 });
 
-var Chance = /*#__PURE__*/require('chance');
-
+var chance = /*#__PURE__*/new Chance();
 function generateRandomString() {
-  var chance = new Chance();
   return chance.word();
 }
 function generateRandomBoolean() {
-  var chance = new Chance();
   return chance.bool();
 }
 function generateRandomNumber(min, max) {
-  var chance = new Chance();
   return chance.integer({
     min: min,
     max: max
@@ -3734,6 +3810,15 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     type: opts.queryRecord.def.type,
     version: '1'
   }, getMockValuesForIDataRecord(nodePropertiesToMock));
+
+  if (queryRecord.def.generateMockData) {
+    extend({
+      object: mockedValues,
+      extension: queryRecord.def.generateMockData(),
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false
+    });
+  }
 
   var valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: mockedValues,
@@ -6692,6 +6777,10 @@ var MMGQL = /*#__PURE__*/function () {
   var _proto = MMGQL.prototype;
 
   _proto.def = function def(_def) {
+    if (_def.type.includes('-') || _def.type.includes('.')) {
+      throw new Error('Node types cannot include hyphens or dots');
+    }
+
     var propertyNames = Object.keys(_def.properties);
     var defaultProp = propertyNames.find(function (x) {
       return Object.keys(DEFAULT_NODE_PROPERTIES).includes(x);
@@ -6720,7 +6809,8 @@ var MMGQL = /*#__PURE__*/function () {
       type: _def.type,
       data: properties,
       computed: _def.computed,
-      relational: _def.relational
+      relational: _def.relational,
+      generateMockData: _def.generateMockData
     };
   };
 
@@ -6743,6 +6833,12 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
+Object.defineProperty(exports, 'gql', {
+  enumerable: true,
+  get: function () {
+    return client.gql;
+  }
+});
 exports.DEFAULT_NODE_PROPERTIES = DEFAULT_NODE_PROPERTIES;
 exports.DEFAULT_TOKEN_NAME = DEFAULT_TOKEN_NAME;
 exports.Data = Data;
@@ -6759,6 +6855,10 @@ exports.RELATIONAL_UNION_QUERY_SEPARATOR = RELATIONAL_UNION_QUERY_SEPARATOR;
 exports.UnsafeNoDuplicateSubIdErrorProvider = UnsafeNoDuplicateSubIdErrorProvider;
 exports.array = array;
 exports.boolean = _boolean;
+exports.chance = chance;
+exports.generateRandomBoolean = generateRandomBoolean;
+exports.generateRandomNumber = generateRandomNumber;
+exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;
 exports.getGQLCLient = getGQLCLient;
 exports.number = number;
