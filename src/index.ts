@@ -24,6 +24,8 @@ export * from './react';
 export * from './config';
 export * from './gqlClient';
 export * from './consts';
+export * from './generateMockDataUtilities';
+export { gql } from '@apollo/client';
 
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
