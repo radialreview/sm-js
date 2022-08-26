@@ -147,6 +147,7 @@ export declare type NodeDefArgs<TDefArgs extends {
         TNodeComputedData: TDefArgs["TNodeComputedData"];
     }>;
     relational?: NodeRelationalFns<TDefArgs["TNodeRelationalData"]>;
+    generateMockData?: () => DeepPartial<GetResultingDataTypeFromProperties<TDefArgs["TNodeData"]>>;
 };
 /**
  * The interface implemented by each data type (like data.string, data.boolean)
@@ -318,6 +319,7 @@ export interface INode<TNodeArgs extends {
     type: TNodeArgs['TNodeType'];
     repository: INodeRepository;
     do: new (data?: Record<string, any>) => TNodeDO;
+    generateMockData?: () => DeepPartial<GetResultingDataTypeFromProperties<TNodeArgs["TNodeData"]>>;
 }
 /**
  * These inform the library how to query for data that is related to the node type we're building.
@@ -513,10 +515,10 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
 } ? GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TNode>;
     TNodeComputedData: ExtractNodeComputedData<TNode>;
-}> : Array<GetAllAvailableNodeDataType<{
+}> : NodesCollection<GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TNode>;
     TNodeComputedData: ExtractNodeComputedData<TNode>;
-}>> : never : never : TQueryDefinition extends INode ? Array<GetAllAvailableNodeDataType<{
+}>> : never : never : TQueryDefinition extends INode ? NodesCollection<GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TQueryDefinition>;
     TNodeComputedData: ExtractNodeComputedData<TQueryDefinition>;
 }>> : never;
