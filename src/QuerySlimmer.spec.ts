@@ -31,14 +31,14 @@ function setupTests() {
   });
 
   return {
-    QuerySlimmer: new QuerySlimmer({ enableLogging: false }),
+    QuerySlimmer: new QuerySlimmer(mmGQL),
     userNode,
     meetingNode,
     todoNode,
   };
 }
 
-describe('onResultsReceived', () => {
+describe('populateQueriesByContext', () => {
   test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
     const { QuerySlimmer, userNode } = setupTests();
 
@@ -48,27 +48,22 @@ describe('onResultsReceived', () => {
         properties: ['firstName', 'lastName'],
       },
     };
-    const users = [
-      {
-        id: 'id-1',
-        type: userNode.type,
-        firstName: 'Aidan',
-        lastName: 'Goodman',
-      },
-    ];
+    const mockResults = {
+      users: [
+        {
+          id: 'id-1',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+        },
+      ],
+    };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockQueryRecord,
-      originalQuery: mockQueryRecord,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: users,
+      results: mockResults.users,
     });
   });
 
@@ -82,25 +77,20 @@ describe('onResultsReceived', () => {
         properties: ['firstName', 'lastName'],
       },
     };
-    const user = {
-      id: 'id-2',
-      type: userNode.type,
-      firstName: 'Aidan',
-      lastName: 'Goodman',
+    const mockResults = {
+      user: {
+        id: 'id-2',
+        type: userNode.type,
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+      },
     };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockQueryRecord,
-      originalQuery: mockQueryRecord,
-      slimmedQueryResults: {
-        user,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['user({"id":"id-2"})']).toEqual({
       subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: user,
+      results: mockResults.user,
     });
   });
 
@@ -114,35 +104,30 @@ describe('onResultsReceived', () => {
         ids: ['id-3', 'id-4'],
       },
     };
-    const users = [
-      {
-        id: 'id-3',
-        type: userNode.type,
-        firstName: 'Aidan',
-        lastName: 'Goodman',
-      },
-      {
-        id: 'id-4',
-        type: userNode.type,
-        firstName: 'Piotr',
-        lastName: 'Bogun',
-      },
-    ];
+    const mockResults = {
+      users: [
+        {
+          id: 'id-3',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+        },
+        {
+          id: 'id-4',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+        },
+      ],
+    };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockQueryRecord,
-      originalQuery: mockQueryRecord,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(
       QuerySlimmer.queriesByContext['users({"ids":["id-3","id-4"]})']
     ).toEqual({
       subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: users,
+      results: mockResults.users,
     });
   });
 
@@ -163,42 +148,37 @@ describe('onResultsReceived', () => {
         },
       },
     };
-    const users = [
-      {
-        id: 'id-3',
-        type: userNode.type,
-        firstName: 'Aidan',
-        lastName: 'Goodman',
-        todos: [{ task: 'test-1', id: 'id-1', type: todoNode.type }],
-      },
-      {
-        id: 'id-4',
-        type: userNode.type,
-        firstName: 'Piotr',
-        lastName: 'Bogun',
-        todos: [{ task: 'test-2', id: 'id-2', type: todoNode.type }],
-      },
-    ];
+    const mockResults = {
+      users: [
+        {
+          id: 'id-3',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+          todos: [{ task: 'test-1', id: 'id-1', type: todoNode.type }],
+        },
+        {
+          id: 'id-4',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+          todos: [{ task: 'test-2', id: 'id-2', type: todoNode.type }],
+        },
+      ],
+    };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockQueryRecord,
-      originalQuery: mockQueryRecord,
-      slimmedQueryResults: {
-        users,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: users,
+      results: mockResults.users,
     });
 
     expect(
       QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
     ).toEqual({
       subscriptionsByProperty: { task: 1 },
-      results: users.map(user => user.todos),
+      results: mockResults.users.map(user => user.todos),
     });
   });
 });
@@ -237,35 +217,29 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
           properties: ['id', 'task'],
         },
       };
-      const mockUsersData = [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-        },
-      ];
-      const mockTodosData = [
-        {
-          id: '0',
-          type: todoNode.type,
-          task: 'Eat a banana',
-        },
-      ];
+      const mockResults = {
+        users: [
+          {
+            id: '0',
+            type: userNode.type,
+            firstName: 'Banana',
+            lastName: 'Man',
+          },
+        ],
+        todos: [
+          {
+            id: '0',
+            type: todoNode.type,
+            task: 'Eat a banana',
+          },
+        ],
+      };
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
       ).toEqual(mockQueryRecord);
 
-      QuerySlimmer.onResultsReceived({
-        slimmedQuery: mockQueryRecord,
-        originalQuery: mockQueryRecord,
-        slimmedQueryResults: {
-          users: mockUsersData,
-          todos: mockTodosData,
-        },
-        subscriptionEstablished: true,
-      });
+      QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
@@ -289,29 +263,31 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
           properties: ['task'],
         },
       };
-      const mockCachedUsersData = [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-        },
-      ];
-      const mockCachedMeetingsData = [
-        {
-          id: '0',
-          type: meetingNode.type,
-          name: 'Banana Meeting',
-          archived: false,
-        },
-      ];
-      const mockCachedTodosData = [
-        {
-          id: '0',
-          type: todoNode.type,
-          task: 'Eat a banana',
-        },
-      ];
+      const mockCachedResults = {
+        users: [
+          {
+            id: '0',
+            type: userNode.type,
+            firstName: 'Banana',
+            lastName: 'Man',
+          },
+        ],
+        meetings: [
+          {
+            id: '0',
+            type: meetingNode.type,
+            name: 'Banana Meeting',
+            archived: false,
+          },
+        ],
+        todos: [
+          {
+            id: '0',
+            type: todoNode.type,
+            task: 'Eat a banana',
+          },
+        ],
+      };
 
       const mockNewQueryRecord: QueryRecord = {
         users: {
@@ -343,16 +319,10 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
       ).toEqual(mockNewQueryRecord);
 
-      QuerySlimmer.onResultsReceived({
-        slimmedQuery: mockCachedQueryRecord,
-        originalQuery: mockCachedQueryRecord,
-        slimmedQueryResults: {
-          users: mockCachedUsersData,
-          meetings: mockCachedMeetingsData,
-          todos: mockCachedTodosData,
-        },
-        subscriptionEstablished: true,
-      });
+      QuerySlimmer.populateQueriesByContext(
+        mockCachedQueryRecord,
+        mockCachedResults
+      );
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
@@ -386,37 +356,35 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
           },
         },
       };
-      const mockCachedQueryData = [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-          meetings: [
-            {
-              id: '0',
-              name: 'Banana Meeting',
-              archived: false,
-              todos: [
-                {
-                  id: '0',
-                  type: todoNode.type,
-                  task: 'Eat a banana',
-                },
-              ],
-            },
-          ],
-        },
-      ];
+      const mockCachedQueryData = {
+        users: [
+          {
+            id: '0',
+            type: userNode.type,
+            firstName: 'Banana',
+            lastName: 'Man',
+            meetings: [
+              {
+                id: '0',
+                name: 'Banana Meeting',
+                archived: false,
+                todos: [
+                  {
+                    id: '0',
+                    type: todoNode.type,
+                    task: 'Eat a banana',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
 
-      QuerySlimmer.onResultsReceived({
-        slimmedQuery: mockCachedQuery,
-        originalQuery: mockCachedQuery,
-        slimmedQueryResults: {
-          users: mockCachedQueryData,
-        },
-        subscriptionEstablished: true,
-      });
+      QuerySlimmer.populateQueriesByContext(
+        mockCachedQuery,
+        mockCachedQueryData
+      );
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockCachedQuery)
@@ -448,27 +416,29 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
           },
         },
       };
-      const mockCachedQueryData = [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-          meetings: [
-            {
-              id: '0',
-              name: 'Banana Meeting',
-              todos: [
-                {
-                  id: '0',
-                  type: todoNode.type,
-                  task: 'Eat a banana',
-                },
-              ],
-            },
-          ],
-        },
-      ];
+      const mockCachedQueryData = {
+        users: [
+          {
+            id: '0',
+            type: userNode.type,
+            firstName: 'Banana',
+            lastName: 'Man',
+            meetings: [
+              {
+                id: '0',
+                name: 'Banana Meeting',
+                todos: [
+                  {
+                    id: '0',
+                    type: todoNode.type,
+                    task: 'Eat a banana',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
 
       const mockNewQuery: QueryRecord = {
         users: {
@@ -515,14 +485,10 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      QuerySlimmer.onResultsReceived({
-        slimmedQuery: mockCachedQuery,
-        originalQuery: mockCachedQuery,
-        slimmedQueryResults: {
-          users: mockCachedQueryData,
-        },
-        subscriptionEstablished: true,
-      });
+      QuerySlimmer.populateQueriesByContext(
+        mockCachedQuery,
+        mockCachedQueryData
+      );
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
@@ -554,36 +520,38 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
           },
         },
       };
-      const mockCachedQueryData = [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-          meetings: [
-            {
-              id: '0',
-              name: 'Banana Meeting',
-              archived: false,
-              todos: [{ id: '0', task: 'Eat a banana' }],
-            },
-          ],
-        },
-        {
-          id: '1',
-          type: userNode.type,
-          firstName: 'Apple',
-          lastName: 'Woman',
-          meetings: [
-            {
-              id: '1',
-              name: 'Apple Meeting',
-              archived: false,
-              todos: [{ task: 'Eat an apple' }],
-            },
-          ],
-        },
-      ];
+      const mockCachedQueryData = {
+        users: [
+          {
+            id: '0',
+            type: userNode.type,
+            firstName: 'Banana',
+            lastName: 'Man',
+            meetings: [
+              {
+                id: '0',
+                name: 'Banana Meeting',
+                archived: false,
+                todos: [{ id: '0', task: 'Eat a banana' }],
+              },
+            ],
+          },
+          {
+            id: '1',
+            type: userNode.type,
+            firstName: 'Apple',
+            lastName: 'Woman',
+            meetings: [
+              {
+                id: '1',
+                name: 'Apple Meeting',
+                archived: false,
+                todos: [{ task: 'Eat an apple' }],
+              },
+            ],
+          },
+        ],
+      };
 
       const mockNewQuery: QueryRecord = {
         users: {
@@ -630,14 +598,10 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      QuerySlimmer.onResultsReceived({
-        slimmedQuery: mockCachedQuery,
-        originalQuery: mockCachedQuery,
-        slimmedQueryResults: {
-          users: mockCachedQueryData,
-        },
-        subscriptionEstablished: true,
-      });
+      QuerySlimmer.populateQueriesByContext(
+        mockCachedQuery,
+        mockCachedQueryData
+      );
 
       expect(
         QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
@@ -672,29 +636,31 @@ describe('onSubscriptionCancelled', () => {
         },
       },
     };
-    const mockCachedQueryData = [
-      {
-        id: '0',
-        type: userNode.type,
-        firstName: 'Banana',
-        lastName: 'Man',
-        meetings: [
-          {
-            id: '0',
-            name: 'Banana Meeting',
-            archived: false,
-            todos: [
-              {
-                id: '0',
-                type: todoNode.type,
-                task: 'Eat a banana',
-                done: false,
-              },
-            ],
-          },
-        ],
-      },
-    ];
+    const mockCachedQueryData = {
+      users: [
+        {
+          id: '0',
+          type: userNode.type,
+          firstName: 'Banana',
+          lastName: 'Man',
+          meetings: [
+            {
+              id: '0',
+              name: 'Banana Meeting',
+              archived: false,
+              todos: [
+                {
+                  id: '0',
+                  type: todoNode.type,
+                  task: 'Eat a banana',
+                  done: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
 
     const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
     const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
@@ -723,14 +689,7 @@ describe('onSubscriptionCancelled', () => {
       },
     };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockCachedQuery,
-      originalQuery: mockCachedQuery,
-      slimmedQueryResults: {
-        users: mockCachedQueryData,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockCachedQuery, mockCachedQueryData);
 
     expect(
       QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
@@ -804,29 +763,31 @@ describe('onSubscriptionCancelled', () => {
         },
       },
     };
-    const mockCachedQueryData = [
-      {
-        id: '0',
-        type: userNode.type,
-        firstName: 'Banana',
-        lastName: 'Man',
-        meetings: [
-          {
-            id: '0',
-            name: 'Banana Meeting',
-            archived: false,
-            todos: [
-              {
-                id: '0',
-                type: todoNode.type,
-                task: 'Eat a banana',
-                done: false,
-              },
-            ],
-          },
-        ],
-      },
-    ];
+    const mockCachedQueryData = {
+      users: [
+        {
+          id: '0',
+          type: userNode.type,
+          firstName: 'Banana',
+          lastName: 'Man',
+          meetings: [
+            {
+              id: '0',
+              name: 'Banana Meeting',
+              archived: false,
+              todos: [
+                {
+                  id: '0',
+                  type: todoNode.type,
+                  task: 'Eat a banana',
+                  done: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
 
     const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
     const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
@@ -855,14 +816,7 @@ describe('onSubscriptionCancelled', () => {
       },
     };
 
-    QuerySlimmer.onResultsReceived({
-      slimmedQuery: mockCachedQuery,
-      originalQuery: mockCachedQuery,
-      slimmedQueryResults: {
-        users: mockCachedQueryData,
-      },
-      subscriptionEstablished: true,
-    });
+    QuerySlimmer.populateQueriesByContext(mockCachedQuery, mockCachedQueryData);
 
     expect(
       QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]

@@ -500,7 +500,6 @@ export class QuerySlimmer {
     }
   }
 
-  // TODO PIOTR: WHEN TO CALL THIS?
   public onSubscriptionCancelled(
     queryRecord: QueryRecord,
     parentContextKey?: string
@@ -549,7 +548,7 @@ export class QuerySlimmer {
     return relationalDepth;
   }
 
-  private populateQueriesByContext(
+  public populateQueriesByContext(
     queryRecord: QueryRecord,
     results: Record<string, any>,
     parentContextKey?: string
@@ -686,8 +685,13 @@ export class QuerySlimmer {
       this.removeInFlightQuery(inFlightQuery);
       this.populateQueriesByContext(opts.queryRecord, results);
     } catch (e) {
-      // TODO PIOTR: LOGGING && ERROR HANDLING
       this.removeInFlightQuery(inFlightQuery);
+      throw new Error(
+        `QuerySlimmer: Error sending request for query: ${JSON.stringify(
+          opts.queryRecord
+        )}`,
+        e as any
+      );
     }
   }
 
