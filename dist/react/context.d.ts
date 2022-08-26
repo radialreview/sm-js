@@ -12,6 +12,7 @@ export interface IContextSubscription {
     queryInfo?: {
         queryGQL: DocumentNode;
         queryId: string;
+        queryParamsString: string;
     } | null;
     lastQueryTimestamp?: number;
 }

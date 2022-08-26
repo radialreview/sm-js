@@ -6,8 +6,6 @@ import {
   ImpliedNodePropertyException,
 } from './exceptions';
 import {
-  DeepPartial,
-  GetAllAvailableNodeDataType,
   IData,
   Maybe,
   NodeComputedFns,
@@ -15,6 +13,7 @@ import {
   DataDefaultFn,
 } from './types';
 import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -22,7 +21,7 @@ describe('DOProxyGenerator', () => {
     const doProxy = generateDOProxy({
       properties: {},
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       allPropertiesQueried: ['id'],
@@ -36,7 +35,7 @@ describe('DOProxyGenerator', () => {
       generateDOProxy({
         properties: {},
         initialData: {
-          version: '1',
+          version: 1,
           id: `mockId${idx}`,
         },
       })
@@ -45,7 +44,7 @@ describe('DOProxyGenerator', () => {
     const doProxy = generateDOProxy({
       properties: {},
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       relationalResults: {
@@ -65,7 +64,7 @@ describe('DOProxyGenerator', () => {
     const doProxy = generateDOProxy({
       properties: {},
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       allPropertiesQueried: [],
@@ -83,7 +82,7 @@ describe('DOProxyGenerator', () => {
         }),
       },
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       allPropertiesQueried: [
@@ -106,7 +105,7 @@ describe('DOProxyGenerator', () => {
         }),
       },
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       computed: {
@@ -134,7 +133,7 @@ describe('DOProxyGenerator', () => {
           lastUpdatedClientTimestamp: data.number,
         },
         initialData: {
-          version: '1',
+          version: 1,
           id: 'mockId',
         },
       })
@@ -151,7 +150,7 @@ describe('DOProxyGenerator', () => {
         }),
       },
       initialData: {
-        version: '1',
+        version: 1,
         id: 'mockId',
       },
       computed: {
@@ -163,10 +162,9 @@ describe('DOProxyGenerator', () => {
         },
       },
       allPropertiesQueried: [
+        ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
         'object',
         `object${OBJECT_PROPERTY_SEPARATOR}nestedString`,
-        'id',
-        'lastUpdatedBy',
       ],
     });
 
@@ -189,11 +187,14 @@ function generateDOProxy<
   TNodeData extends Record<string, IData | DataDefaultFn>
 >(opts: {
   properties: TNodeData;
-  initialData: DeepPartial<GetAllAvailableNodeDataType<TNodeData, {}>> & {
+  initialData: {
     id: string;
-    version: string;
-  };
-  computed?: NodeComputedFns<TNodeData, Record<string, any>>;
+    version: number;
+  } & Record<string, any>;
+  computed?: NodeComputedFns<{
+    TNodeData: TNodeData;
+    TNodeComputedData: Record<string, any>;
+  }>;
   allPropertiesQueried?: Array<string>;
   relationalResults?: Record<string, any>;
   relationalQueries?: Maybe<Record<string, RelationalQueryRecordEntry>>;

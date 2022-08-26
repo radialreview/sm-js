@@ -25,6 +25,8 @@ export * from './react';
 export * from './config';
 export * from './gqlClient';
 export * from './consts';
+export * from './generateMockDataUtilities';
+export { gql } from '@apollo/client';
 
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
@@ -68,18 +70,22 @@ export class MMGQL implements IMMGQL {
     TNodeComputedData extends Record<string, any> = {},
     TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}
   >(
-    def: NodeDefArgs<
-      TNodeType,
-      TNodeData,
-      TNodeComputedData,
-      TNodeRelationalData
-    >
-  ): INode<
-    TNodeType,
-    TNodeData & NodeDefaultProps,
-    TNodeComputedData,
-    TNodeRelationalData
-  > {
+    def: NodeDefArgs<{
+      TNodeType: TNodeType;
+      TNodeData: TNodeData;
+      TNodeComputedData: TNodeComputedData;
+      TNodeRelationalData: TNodeRelationalData;
+    }>
+  ): INode<{
+    TNodeType: TNodeType;
+    TNodeData: TNodeData;
+    TNodeComputedData: TNodeComputedData;
+    TNodeRelationalData: TNodeRelationalData;
+  }> {
+    if (def.type.includes('-') || def.type.includes('.')) {
+      throw new Error('Node types cannot include hyphens or dots');
+    }
+
     const propertyNames = Object.keys(def.properties);
     const defaultProp = propertyNames.find(x =>
       Object.keys(DEFAULT_NODE_PROPERTIES).includes(x)
@@ -107,6 +113,7 @@ export class MMGQL implements IMMGQL {
       data: properties,
       computed: def.computed,
       relational: def.relational,
+      generateMockData: def.generateMockData,
     };
   }
 

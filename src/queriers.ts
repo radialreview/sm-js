@@ -1,10 +1,11 @@
+import { cloneDeep } from 'lodash';
+
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
 } from './queryDefinitionAdapters';
-import mmGQL from './react/demo-app/src/mmGQL';
 import {
   IMMGQL,
   IQueryManager,
@@ -17,6 +18,7 @@ import {
   SubscriptionCanceller,
   IGQLClient,
 } from './types';
+import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
 
@@ -157,37 +159,50 @@ export function generateQuerier({
     async function performQueries() {
       const allResults = await Promise.all(
         Object.entries(queryDefinitionsSplitByToken).map(
-          ([tokenName, queryDefinitions]) => {
+          async ([tokenName, queryDefinitions]) => {
+            let response;
+            const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
+              {
+                queryDefinitions: queryDefinitions,
+                queryId: queryId + '_' + tokenName,
+              }
+            );
+
             if (mmGQLInstance.generateMockData) {
-              return generateMockNodeDataFromQueryDefinitions({
+              response = generateMockNodeDataFromQueryDefinitions({
                 queryDefinitions,
                 queryId,
               });
-            }
-
-            if (mmGQLInstance.enableQuerySlimming) {
-              return mmGQLInstance.QuerySlimmer.query({
+            } else if (mmGQLInstance.enableQuerySlimming) {
+              response = await mmGQLInstance.QuerySlimmer.query({
                 queryId: `${queryId}_${tokenName}`,
                 queryDefinitions,
                 tokenName,
                 queryOpts: opts,
               });
+            } else {
+              const queryOpts: Parameters<IGQLClient['query']>[0] = {
+                gql: queryGQL,
+                token: getToken(tokenName),
+              };
+              if (opts && 'batchKey' in opts) {
+                queryOpts.batchKey = opts.batchKey;
+              }
+              response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            const { queryGQL } = convertQueryDefinitionToQueryInfo({
-              queryDefinitions: queryDefinitions,
-              queryId: queryId + '_' + tokenName,
-            });
+            // clone the object only if we are running the unit test
+            // to simulate that we are receiving new response
+            // to prevent mutating the object multiple times when filtering or sorting
+            // resulting into incorrect results in our specs
+            const filteredAndSortedResponse =
+              process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+            applyClientSideSortAndFilterToData(
+              queryRecord,
+              filteredAndSortedResponse
+            );
 
-            const queryOpts: Parameters<IGQLClient['query']>[0] = {
-              gql: queryGQL,
-              token: getToken(tokenName),
-            };
-            if (opts && 'batchKey' in opts) {
-              queryOpts.batchKey = opts.batchKey;
-            }
-
-            return mmGQLInstance.gqlClient.query(queryOpts);
+            return filteredAndSortedResponse;
           }
         )
       );
@@ -305,13 +320,17 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       opts.onData({ results: { ...nullishResults } });
       return { data: { ...nullishResults }, unsub: () => {} } as ReturnType;
     }
-    const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
+    const {
+      queryGQL,
+      queryRecord,
+      queryParamsString,
+    } = convertQueryDefinitionToQueryInfo({
       queryDefinitions: nonNullishQueryDefinitions,
       queryId,
     });
 
     opts.onQueryInfoConstructed &&
-      opts.onQueryInfoConstructed({ queryGQL, queryId });
+      opts.onQueryInfoConstructed({ queryGQL, queryId, queryParamsString });
 
     function getError(error: any, stack?: any) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
@@ -324,7 +343,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       return error;
     }
 
-    const queryManager = new mmGQLInstance.QueryManager(queryRecord);
+    const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
+      onPaginate: opts.onPaginate,
+    });
 
     function updateQueryManagerWithSubscriptionMessage(data: {
       message: Record<string, any>;

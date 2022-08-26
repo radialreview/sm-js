@@ -1,3 +1,4 @@
+import { extend } from './dataUtilities';
 import { UnreachableCaseError } from './exceptions';
 import {
   generateRandomBoolean,
@@ -5,7 +6,6 @@ import {
   generateRandomString,
 } from './generateMockDataUtilities';
 import { getQueryRecordFromQueryDefinition } from './queryDefinitionAdapters';
-import { Data } from './dataTypes';
 import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
@@ -31,13 +31,13 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
       return generateRandomString();
     }
     case DATA_TYPES.maybeString: {
+      // 50/50 chance to get a value or null
       return getRandomItemFromArray([generateRandomString(), null]);
     }
     case DATA_TYPES.stringEnum: {
       return getRandomItemFromArray(data.acceptableValues as Array<any>);
     }
     case DATA_TYPES.maybeStringEnum: {
-      // 50/50 chance to get a value or null
       return getRandomItemFromArray([
         getRandomItemFromArray(data.acceptableValues as Array<any>),
         null,
@@ -106,7 +106,7 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
 }
 
 export function getMockValuesForIDataRecord(
-  record: Record<string, Data<any, any, any> | DataDefaultFn>
+  record: Record<string, IData | DataDefaultFn>
 ) {
   return Object.entries(record).reduce((acc, [key, value]) => {
     if (typeof value === 'function') {
@@ -129,16 +129,25 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
     .reduce((acc, item) => {
       acc[item] = (queryRecord.def.data as Record<
         string,
-        Data<any, any, any> | DataDefaultFn
+        IData | DataDefaultFn
       >)[item];
       return acc;
-    }, {} as Record<string, Data<any, any, any> | DataDefaultFn>);
+    }, {} as Record<string, IData | DataDefaultFn>);
 
   const mockedValues = {
     type: opts.queryRecord.def.type,
     version: '1',
     ...getMockValuesForIDataRecord(nodePropertiesToMock),
   };
+
+  if (queryRecord.def.generateMockData) {
+    extend({
+      object: mockedValues,
+      extension: queryRecord.def.generateMockData(),
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false,
+    });
+  }
 
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: mockedValues,

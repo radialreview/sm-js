@@ -16,6 +16,7 @@ export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQue
 }): {
     subscriptionConfigs: SubscriptionConfig[];
     queryGQLString: string;
+    queryParamsString: string;
     queryRecord: QueryRecord;
 };
 /**
@@ -37,4 +38,5 @@ export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryD
         extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
     }[];
     queryRecord: QueryRecord;
+    queryParamsString: string;
 };

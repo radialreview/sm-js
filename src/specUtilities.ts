@@ -2,6 +2,7 @@ import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
+import { isObject } from 'lodash';
 import {
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
@@ -16,10 +17,15 @@ import {
   QueryDefinitionTarget,
   NodeDefaultProps,
 } from './types';
+import { NULL_TAG } from './dataConversions';
+import { NodesCollection } from './nodesCollection';
 
 const userProperties = {
   firstName: data.string,
   lastName: data.string('joe'),
+  score: data.number,
+  archived: data.boolean(false),
+  optionalProp: data.string.optional,
   address: data.object({
     streetName: data.string,
     zipCode: data.string,
@@ -39,13 +45,12 @@ type UserRelationalData = {
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
 // https://github.com/microsoft/TypeScript/issues/35546
-export type UserNode = INode<
-  'user',
-  UserProperties,
-  { displayName: string },
-  UserRelationalData,
-  {}
->;
+export type UserNode = INode<{
+  TNodeType: 'user';
+  TNodeData: UserProperties;
+  TNodeComputedData: { displayName: string };
+  TNodeRelationalData: UserRelationalData;
+}>;
 
 // factory functions so that tests don't share DO repositories
 export function generateUserNode(
@@ -86,15 +91,22 @@ const todoProperties = {
   dataSetIds: data.array(data.string),
   comments: data.array(data.string.optional).optional,
   record: data.record(data.string),
+  numberProp: data.number,
 };
 
 export type TodoProperties = typeof todoProperties;
 
 export type TodoRelationalData = {
   assignee: IOneToOneQueryBuilder<UserNode>;
+  users: IOneToManyQueryBuilder<UserNode>;
 };
 
-export type TodoNode = INode<'todo', TodoProperties, {}, TodoRelationalData>;
+export type TodoNode = INode<{
+  TNodeType: 'todo';
+  TNodeData: TodoProperties;
+  TNodeComputedData: {};
+  TNodeRelationalData: TodoRelationalData;
+}>;
 
 export function generateTodoNode(
   mmGQLInstance: IMMGQL,
@@ -105,6 +117,7 @@ export function generateTodoNode(
     properties: todoProperties,
     relational: {
       assignee: () => data.oneToOne<UserNode>(userNode),
+      users: () => data.oneToMany<UserNode>(userNode),
     },
   }) as TodoNode;
 
@@ -121,11 +134,14 @@ export function generateDOInstance<
   TNodeRelationalData extends NodeRelationalQueryBuilderRecord
 >(opts: {
   properties: TNodeData;
-  computed?: NodeComputedFns<TNodeData & NodeDefaultProps, TNodeComputedData>;
+  computed?: NodeComputedFns<{
+    TNodeData: TNodeData & NodeDefaultProps;
+    TNodeComputedData: TNodeComputedData;
+  }>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   initialData: {
     id: string;
-    version: string;
+    version: number;
   } & Record<string, any>;
 }) {
   const mmGQL = new MMGQL(getDefaultConfig());
@@ -158,8 +174,7 @@ export function createMockQueryDefinitions(
   return {
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
-      map: ({ id, todos, address }) => ({
-        id,
+      map: ({ todos, address }) => ({
         address: address({
           map: ({ state, apt }) => ({
             state,
@@ -172,10 +187,9 @@ export function createMockQueryDefinitions(
           }),
         }),
         todos: todos({
-          map: ({ id, assignee }) => ({
-            id,
+          map: ({ assignee }) => ({
             assignee: assignee({
-              map: ({ id, firstName }) => ({ id, firstName }),
+              map: ({ firstName }) => ({ firstName }),
             }),
           }),
         }),
@@ -188,6 +202,52 @@ export function createMockQueryDefinitions(
     }),
   };
 }
+
+export const mockTodoData = {
+  version: '1',
+  id: 'mock-todo-id',
+  type: 'todo',
+  task: 'My Todo',
+  numberProp: 10,
+  users: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+    {
+      id: 'mock-user-id-2',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'John',
+    },
+  ],
+  assignee: [
+    {
+      id: 'mock-user-id',
+      type: 'tt-user',
+      version: '1',
+      firstName: 'Paul',
+    },
+  ],
+};
+
+export const mockUserData = {
+  id: 'mock-user-id',
+  type: 'user',
+  version: '1',
+  address: '__object__',
+  address__dot__state: 'FL',
+  address__dot__apt: '__object__',
+  address__dot__apt__dot__floor: '1',
+  address__dot__apt__dot__number: '1',
+  firstName: 'Paul',
+  optionalProp: NULL_TAG,
+  score: 12,
+  archived: false,
+  todos: [mockTodoData],
+};
 
 export const mockQueryDataReturn = {
   users: {
@@ -298,10 +358,14 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
   };
 }
 
-export function getMockConfig(opts?: { generateMockData: boolean }): Config {
+export function getMockConfig(opts?: {
+  generateMockData: boolean;
+  mockData?: any;
+}): Config {
   return {
     gqlClient: {
-      query: () => new Promise(res => res(mockQueryDataReturn)),
+      query: () =>
+        new Promise(res => res(opts?.mockData ?? mockQueryDataReturn)),
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
@@ -353,4 +417,25 @@ export function autoIndentGQL(gqlString: string): string {
       }${line}`;
     })
     .join('\n');
+}
+
+export function convertNodesCollectionValuesToArray<
+  T extends Record<string, any>
+>(obj: T) {
+  return Object.keys(obj).reduce((acc, key) => {
+    if (Array.isArray(acc[key])) {
+      const arrayValue = new NodesCollection({
+        items: acc[key].map((item: any) => {
+          return isObject(item)
+            ? convertNodesCollectionValuesToArray(item)
+            : item;
+        }),
+        itemsPerPage: 1,
+        page: 1,
+      });
+      acc[key] = arrayValue;
+    }
+
+    return acc;
+  }, obj as Record<string, any>);
 }

@@ -25,7 +25,8 @@ import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-
+import { getFlattenedNodeFilterObject } from './dataUtilities';
+import { set as lodashSet } from 'lodash';
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -55,7 +56,7 @@ function getRelationalQueryBuildersFromRelationalFns(
 }
 
 function getMapFnReturn(opts: {
-  mapFn: MapFn<any, any, any>;
+  mapFn: MapFn<any>;
   properties: Record<string, IData>;
   relational?: NodeRelationalFns<any>;
 }) {
@@ -71,13 +72,13 @@ function getMapFnReturn(opts: {
       data.type === DATA_TYPES.object ||
       data.type === DATA_TYPES.maybeObject
     ) {
-      mapFnOpts[key] = (opts: { map: MapFn<any, any, any> }) => opts.map;
+      mapFnOpts[key] = (opts: { map: MapFn<any> }) => opts.map;
     }
   });
 
   return opts.mapFn(mapFnOpts) as Record<
     string,
-    IData | MapFn<any, any, any> | NodeRelationalQuery<INode>
+    IData | MapFn<any> | NodeRelationalQuery<INode>
   >;
 }
 
@@ -85,7 +86,10 @@ function getQueriedProperties(opts: {
   queryId: string;
   mapFn: (data: Record<string, any>) => Record<string, any>;
   data: Record<string, any>;
-  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  computed?: NodeComputedFns<{
+    TNodeData: Record<string, any>;
+    TNodeComputedData: Record<string, any>;
+  }>;
   relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
   // this optional arg is only true the first time this fn is called
   // and is used to ensure we also query nested data that was stored in the old format (stringified json)
@@ -122,7 +126,10 @@ function getQueriedProperties(opts: {
       if (!isData) return acc;
 
       // we always query these properties, can ignore any explicit requests for it
-      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      if (
+        opts.isRootLevel &&
+        Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+      ) {
         return acc;
       }
 
@@ -140,7 +147,7 @@ function getQueriedProperties(opts: {
             queryId: opts.queryId,
             mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
-              : () => null) as MapFn<any, any, any>,
+              : () => null) as MapFn<any>,
             data: (data.boxedValue as unknown) as Record<string, IData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -151,7 +158,7 @@ function getQueriedProperties(opts: {
       return [...acc, key];
     },
     opts.isRootLevel
-      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      ? [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)]
       : ([] as Array<string>)
   );
 }
@@ -163,7 +170,10 @@ function getAllNodeProperties(opts: {
   return Object.keys(opts.nodeProperties).reduce(
     (acc, key) => {
       // we are already querying these properties, can ignore any explicit requests for it
-      if (opts.isRootLevel && PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)) {
+      if (
+        opts.isRootLevel &&
+        Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+      ) {
         return acc;
       }
 
@@ -188,7 +198,7 @@ function getAllNodeProperties(opts: {
       return [...acc, key];
     },
     opts.isRootLevel
-      ? [...PROPERTIES_QUERIED_FOR_ALL_NODES]
+      ? [...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES)]
       : ([] as Array<string>)
   );
 }
@@ -197,7 +207,10 @@ function getRelationalQueries(opts: {
   queryId: string;
   mapFn: (data: Record<string, any>) => Record<string, any>;
   data: Record<string, any>;
-  computed?: NodeComputedFns<Record<string, any>, Record<string, any>>;
+  computed?: NodeComputedFns<{
+    TNodeData: Record<string, any>;
+    TNodeComputedData: Record<string, any>;
+  }>;
   relational?: NodeRelationalFns<NodeRelationalQueryBuilderRecord>;
 }): Record<string, RelationalQueryRecordEntry> | undefined {
   const mapFnReturn = getMapFnReturn({
@@ -327,6 +340,27 @@ function getRelationalQueries(opts: {
           (relationalQueryRecord as RelationalQueryRecordEntry & {
             oneToMany: true;
           }).oneToMany = true;
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.filter
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter =
+              relationalQuery.queryBuilderOpts.filter;
+          }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.pagination
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).pagination =
+              relationalQuery.queryBuilderOpts.pagination;
+          }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.sort
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).sort =
+              relationalQuery.queryBuilderOpts.sort;
+          }
         } else {
           throw Error(`relationalType "${relationalType}" is not valid.`);
         }
@@ -357,7 +391,7 @@ export function getQueryRecordFromQueryDefinition<
   const queryRecord: QueryRecord = {};
 
   Object.keys(opts.queryDefinitions).forEach(queryDefinitionsAlias => {
-    const queryDefinition: QueryDefinition<any, any, any> | INode | null =
+    const queryDefinition: QueryDefinition<any> | INode | null =
       opts.queryDefinitions[queryDefinitionsAlias];
 
     let queriedProps;
@@ -434,8 +468,14 @@ export function getQueryRecordFromQueryDefinition<
     }
 
     if ('filter' in queryDefinition && queryDefinition.filter != null) {
-      (queryRecordEntry as QueryRecordEntry & { filter: any }).filter =
-        queryDefinition.filter;
+      (queryRecordEntry as QueryRecordEntry).filter = queryDefinition.filter;
+    }
+    if ('pagination' in queryDefinition && queryDefinition.pagination != null) {
+      (queryRecordEntry as QueryRecordEntry).pagination =
+        queryDefinition.pagination;
+    }
+    if ('sort' in queryDefinition && queryDefinition.sort != null) {
+      (queryRecordEntry as QueryRecordEntry).sort = queryDefinition.sort;
     }
 
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
@@ -450,7 +490,20 @@ function getIdsString(ids: Array<string>) {
 export function getKeyValueFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
-  const convertedToDotFormat = prepareObjectForBE(filter, {
+  const flattenedFilters = getFlattenedNodeFilterObject(filter);
+  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
+  // Adding '{} || ' temporarily disable all server filters
+  // Remove those line once backend filters are ready
+  const filtersWithEqualCondition = Object.keys({} || flattenedFilters)
+    .filter(x => {
+      return flattenedFilters[x]._eq !== undefined;
+    })
+    .reduce((acc, current) => {
+      lodashSet(acc, current, flattenedFilters[current]._eq);
+      return acc;
+    }, {} as ValidFilterForNode<TNode>);
+
+  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
     omitObjectIdentifier: true,
   });
   return `{${Object.entries(convertedToDotFormat).reduce(
@@ -616,6 +669,19 @@ export function getQueryGQLStringFromQueryRecord(opts: {
   ).trim();
 }
 
+function getQueryRecordSortAndFilterValues(record: QueryRecord) {
+  return Object.keys(record).reduce((acc, alias) => {
+    acc.push(record[alias].filter);
+    acc.push(record[alias].sort);
+    const relational = record[alias].relational;
+    if (relational) {
+      acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
+    }
+
+    return acc;
+  }, [] as any[]);
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,
@@ -631,6 +697,9 @@ export function getQueryInfo<
     queryId: opts.queryId,
     queryRecord,
   });
+  const queryParamsString = JSON.stringify(
+    getQueryRecordSortAndFilterValues(queryRecord)
+  );
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord
@@ -696,6 +765,7 @@ export function getQueryInfo<
   return {
     subscriptionConfigs: subscriptionConfigs,
     queryGQLString,
+    queryParamsString,
     queryRecord,
   };
 }
@@ -716,9 +786,13 @@ export function convertQueryDefinitionToQueryInfo<
     TQueryDefinitionTarget
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
-  const { queryGQLString, subscriptionConfigs, queryRecord } = getQueryInfo(
-    opts
-  );
+  const {
+    queryGQLString,
+    subscriptionConfigs,
+    queryRecord,
+    queryParamsString,
+  } = getQueryInfo(opts);
+  //call plugin function here that takes in the queryRecord
 
   return {
     queryGQL: gql(queryGQLString),
@@ -727,6 +801,7 @@ export function convertQueryDefinitionToQueryInfo<
       gql: gql(subscriptionConfig.gqlString),
     })),
     queryRecord,
+    queryParamsString,
   };
 }
 

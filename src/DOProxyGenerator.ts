@@ -51,7 +51,12 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
     TNodeComputedData extends Record<string, any>,
     TRelationalResults extends Record<string, Array<IDOProxy> | IDOProxy>
   >(opts: {
-    node: INode<TNodeType, TNodeData, TNodeComputedData>;
+    node: INode<{
+      TNodeType: TNodeType;
+      TNodeData: TNodeData;
+      TNodeComputedData: TNodeComputedData;
+      TNodeRelationalData: any;
+    }>;
     queryId: string;
     do: NodeDO;
     // The DOProxy protects the dev from reading a property that we haven't actually queried from the backend
@@ -94,7 +99,7 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
           opts.allPropertiesQueried.includes(key) ||
           (opts.relationalQueries &&
             Object.keys(opts.relationalQueries).includes(key)) ||
-          PROPERTIES_QUERIED_FOR_ALL_NODES.includes(key)
+          Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
         ) {
           return {
             ...Object.getOwnPropertyDescriptor(target, key),

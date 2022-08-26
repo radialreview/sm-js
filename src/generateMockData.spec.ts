@@ -62,8 +62,8 @@ test('it correctly generates multiple mock nodes when no id target is specified'
     }),
   });
 
-  expect(Array.isArray(data.mock)).toBeTruthy();
-  data.mock.forEach(test => {
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  data.mock.nodes.forEach(test => {
     expect(typeof test.id === 'string').toBeTruthy();
   });
 });
@@ -105,7 +105,7 @@ test('it correctly generates mock data for non optional properties on nodes', as
     }),
   });
 
-  data.mock.forEach(mockNode => {
+  data.mock.nodes.forEach(mockNode => {
     expect(typeof mockNode.stringProp === 'string').toBeTruthy();
     expect(typeof mockNode.stringEnumProp === 'string').toBeTruthy();
     expect(
@@ -147,7 +147,7 @@ test('it correctly generates mock data for optional properties on nodes', async 
 
   const mockNodeProperties = {
     stringProp: string.optional,
-    stringEnumProp: stringEnum(['foo', 'bar']).optional,
+    stringEnumProp: stringEnum.optional(['foo', 'bar']),
     numberProp: number.optional,
     booleanProp: boolean.optional,
     recordProp: record.optional(string.optional),
@@ -342,6 +342,59 @@ test('it correctly generates mock data for optional properties on nodes', async 
 });
 
 /**
+ * Specific mocked values tests
+ */
+test('it correctly generates mock data when a gen mock data fn is added to the node definition', async () => {
+  const { mmGQLInstance } = setupTest({
+    generateMockData: true,
+  });
+
+  const nodeWithSpecificMockData = mmGQLInstance.def({
+    type: 'mockNodeType',
+    properties: {
+      testString: string,
+      testNumber: number,
+      testObject: object({
+        nestedNumber: number,
+        nestedNonSpecifiedNumber: number,
+      }),
+    },
+    generateMockData: () => {
+      return {
+        testString: 'some string',
+        testNumber: 1,
+        testObject: {
+          nestedNumber: 2,
+        },
+      };
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    mockNodes: queryDefinition({
+      def: nodeWithSpecificMockData,
+      map: ({ testString, testNumber, testObject }) => ({
+        testString,
+        testNumber,
+        testObject: testObject({
+          map: testObjectData => ({
+            nestedNumber: testObjectData.nestedNumber,
+            nestedNonSpecifiedNumber: testObjectData.nestedNonSpecifiedNumber,
+          }),
+        }),
+      }),
+    }),
+  });
+
+  data.mockNodes.nodes.forEach(node => {
+    expect(node.testString).toBe('some string');
+    expect(node.testNumber).toBe(1);
+    expect(node.testObject.nestedNumber).toBe(2);
+    expect(typeof node.testObject.nestedNonSpecifiedNumber).toBe('number');
+  });
+});
+
+/**
  * Relational tests
  */
 test('it correctly generates mock data for oneToOne relational queries', async () => {
@@ -409,8 +462,8 @@ test('it correctly generates mock data for oneToMany relational queries', async 
     }),
   });
 
-  expect(Array.isArray(data.parent.children)).toBeTruthy();
-  data.parent.children.forEach(child => {
+  expect(Array.isArray(data.parent.children.nodes)).toBeTruthy();
+  data.parent.children.nodes.forEach(child => {
     expect(typeof child.testProp === 'string').toBeTruthy();
   });
 });
