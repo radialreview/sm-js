@@ -737,218 +737,99 @@ describe('onSubscriptionCancelled', () => {
       done: 1,
     });
   });
+});
 
-  test(`when a query subscription is cancelled and all the properties have subscription counts of 0, the individual QueryRecord should be deleted from the cache`, () => {
-    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+describe('getRelationalDepthOfQueryRecordEntry', () => {
+  test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
+    const { QuerySlimmer, userNode } = setupTests();
 
-    const mockCachedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-      },
+    const mockQueryRecordEntry: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
     };
-    const mockCachedQueryData = {
-      users: [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-          meetings: [
-            {
-              id: '0',
-              name: 'Banana Meeting',
-              archived: false,
-              todos: [
-                {
-                  id: '0',
-                  type: todoNode.type,
-                  task: 'Eat a banana',
-                  done: false,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+    const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry
+    );
 
-    const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
-    const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
-    const mockCachedQueryTodosContextKey = `${mockCachedQueryMeetingsContextKey}.todos(NO_PARAMS)`;
-
-    const mockUnsubbedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-      },
-    };
-
-    QuerySlimmer.populateQueriesByContext(mockCachedQuery, mockCachedQueryData);
-
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      firstName: 1,
-      lastName: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      name: 1,
-      archived: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      task: 1,
-      done: 1,
-    });
-
-    QuerySlimmer.onSubscriptionCancelled(mockUnsubbedQuery);
-
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
-    ).toBeUndefined();
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      name: 1,
-      archived: 0,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
-    ).toBeUndefined();
+    expect(actualValue).toBe(0);
   });
 
-  describe('getRelationalDepthOfQueryRecordEntry', () => {
-    test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
-      const { QuerySlimmer, userNode } = setupTests();
+  test('should return number of relational queries nested in a QueryRecordEntry', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-      const mockQueryRecordEntry: QueryRecordEntry = {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-      };
-      const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-        mockQueryRecordEntry
-      );
-
-      expect(actualValue).toBe(0);
-    });
-
-    test('should return number of relational queries nested in a QueryRecordEntry', () => {
-      const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
-
-      const mockQueryRecordEntry1: QueryRecordEntry = {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-          },
+    const mockQueryRecordEntry1: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
         },
-      };
-      const mockQueryRecordEntry2: QueryRecordEntry = {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
+      },
+    };
+    const mockQueryRecordEntry2: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
+          relational: {
+            todos: {
+              _relationshipName: 'todos',
+              def: todoNode,
+              properties: ['task', 'done'],
+              oneToMany: true,
             },
           },
         },
-      };
-      const mockQueryRecordEntry3: QueryRecordEntry = {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
+      },
+    };
+    const mockQueryRecordEntry3: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
+          relational: {
+            todos: {
+              _relationshipName: 'todos',
+              def: todoNode,
+              properties: ['task', 'done'],
+              oneToMany: true,
             },
           },
-          todos: {
-            _relationshipName: 'todos',
-            def: todoNode,
-            properties: ['task', 'done'],
-            oneToMany: true,
-            relational: {
-              users: {
-                _relationshipName: 'users',
-                def: userNode,
-                properties: ['firstName', 'lastName'],
-                oneToMany: true,
-                relational: {
-                  meetings: {
-                    _relationshipName: 'meetings',
-                    def: meetingNode,
-                    properties: ['name', 'archived'],
-                    oneToMany: true,
-                    relational: {
-                      todos: {
-                        _relationshipName: 'todos',
-                        def: todoNode,
-                        properties: ['task', 'done'],
-                        oneToMany: true,
-                      },
+        },
+        todos: {
+          _relationshipName: 'todos',
+          def: todoNode,
+          properties: ['task', 'done'],
+          oneToMany: true,
+          relational: {
+            users: {
+              _relationshipName: 'users',
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+              oneToMany: true,
+              relational: {
+                meetings: {
+                  _relationshipName: 'meetings',
+                  def: meetingNode,
+                  properties: ['name', 'archived'],
+                  oneToMany: true,
+                  relational: {
+                    todos: {
+                      _relationshipName: 'todos',
+                      def: todoNode,
+                      properties: ['task', 'done'],
+                      oneToMany: true,
                     },
                   },
                 },
@@ -956,21 +837,21 @@ describe('onSubscriptionCancelled', () => {
             },
           },
         },
-      };
+      },
+    };
 
-      const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-        mockQueryRecordEntry1
-      );
-      const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-        mockQueryRecordEntry2
-      );
-      const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-        mockQueryRecordEntry3
-      );
+    const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry1
+    );
+    const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry2
+    );
+    const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry3
+    );
 
-      expect(actualValue1).toBe(1);
-      expect(actualValue2).toBe(2);
-      expect(actualValue3).toBe(5);
-    });
+    expect(actualValue1).toBe(1);
+    expect(actualValue2).toBe(2);
+    expect(actualValue3).toBe(5);
   });
 });

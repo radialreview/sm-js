@@ -432,10 +432,12 @@ export class QuerySlimmer {
         // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
         // by the new query are already cached.
         const cachedQuery = this.queriesByContext[newQueryContextKey];
-        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
-          newQueryProps: newQueryRecordEntry.properties,
-          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty,
-        });
+        const newRequestedProperties = this.getPropertiesNotCurrentlyBeingRequested(
+          {
+            newQueryProps: newQueryRecordEntry.properties,
+            inFlightProps: Object.keys(cachedQuery.subscriptionsByProperty),
+          }
+        );
 
         // If there are no further child relational queries to deal with and there are properties being requested that are not cached
         // we can just return the new query with only the newly requested properties.
@@ -605,18 +607,6 @@ export class QuerySlimmer {
       queryRecordEntry
     );
     return `${parentContextKeyPrefix}${currentQueryTypeProperty}(${currentQueryStringifiedParams})`;
-  }
-
-  private getPropertiesNotAlreadyCached(opts: {
-    newQueryProps: string[];
-    cachedQuerySubsByProperty: IFetchedQueryData['subscriptionsByProperty'];
-  }) {
-    const newRequestedProperties = opts.newQueryProps.filter(
-      newQueryProperty =>
-        newQueryProperty in opts.cachedQuerySubsByProperty &&
-        opts.cachedQuerySubsByProperty[newQueryProperty] !== 0
-    );
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 
   private getPropertiesNotCurrentlyBeingRequested(opts: {
