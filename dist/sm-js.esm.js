@@ -1,10 +1,12 @@
 import { isObject, set, isArray, update, orderBy, cloneDeep, sortBy } from 'lodash-es';
+import Chance from 'chance';
 import { gql, split, ApolloLink, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import React from 'react';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
+export { gql } from '@apollo/client';
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
@@ -2714,18 +2716,14 @@ try {
 }
 });
 
-var Chance = /*#__PURE__*/require('chance');
-
+var chance = /*#__PURE__*/new Chance();
 function generateRandomString() {
-  var chance = new Chance();
   return chance.word();
 }
 function generateRandomBoolean() {
-  var chance = new Chance();
   return chance.bool();
 }
 function generateRandomNumber(min, max) {
-  var chance = new Chance();
   return chance.integer({
     min: min,
     max: max
@@ -6833,5 +6831,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, FILTER_OPERATORS, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, FILTER_OPERATORS, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

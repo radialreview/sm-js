@@ -5,12 +5,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var lodash = require('lodash');
+var Chance = _interopDefault(require('chance'));
 var core = require('@apollo/client/core');
 var React = _interopDefault(require('react'));
 var ws = require('@apollo/client/link/ws');
 var http = require('@apollo/client/link/http');
 var batchHttp = require('@apollo/client/link/batch-http');
 var utilities = require('@apollo/client/utilities');
+var client = require('@apollo/client');
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
@@ -2716,18 +2718,14 @@ try {
 }
 });
 
-var Chance = /*#__PURE__*/require('chance');
-
+var chance = /*#__PURE__*/new Chance();
 function generateRandomString() {
-  var chance = new Chance();
   return chance.word();
 }
 function generateRandomBoolean() {
-  var chance = new Chance();
   return chance.bool();
 }
 function generateRandomNumber(min, max) {
-  var chance = new Chance();
   return chance.integer({
     min: min,
     max: max
@@ -6835,6 +6833,12 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
+Object.defineProperty(exports, 'gql', {
+  enumerable: true,
+  get: function () {
+    return client.gql;
+  }
+});
 exports.DEFAULT_NODE_PROPERTIES = DEFAULT_NODE_PROPERTIES;
 exports.DEFAULT_TOKEN_NAME = DEFAULT_TOKEN_NAME;
 exports.Data = Data;
@@ -6851,6 +6855,10 @@ exports.RELATIONAL_UNION_QUERY_SEPARATOR = RELATIONAL_UNION_QUERY_SEPARATOR;
 exports.UnsafeNoDuplicateSubIdErrorProvider = UnsafeNoDuplicateSubIdErrorProvider;
 exports.array = array;
 exports.boolean = _boolean;
+exports.chance = chance;
+exports.generateRandomBoolean = generateRandomBoolean;
+exports.generateRandomNumber = generateRandomNumber;
+exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;
 exports.getGQLCLient = getGQLCLient;
 exports.number = number;
