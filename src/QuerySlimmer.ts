@@ -432,12 +432,10 @@ export class QuerySlimmer {
         // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
         // by the new query are already cached.
         const cachedQuery = this.queriesByContext[newQueryContextKey];
-        const newRequestedProperties = this.getPropertiesNotCurrentlyBeingRequested(
-          {
-            newQueryProps: newQueryRecordEntry.properties,
-            inFlightProps: Object.keys(cachedQuery.subscriptionsByProperty),
-          }
-        );
+        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty,
+        });
 
         // If there are no further child relational queries to deal with and there are properties being requested that are not cached
         // we can just return the new query with only the newly requested properties.
@@ -491,15 +489,11 @@ export class QuerySlimmer {
       }
     });
 
-    if (isNewQueryARootQuery) {
-      return Object.keys(slimmedQueryRecord).length === 0
-        ? null
-        : slimmedQueryRecord;
-    } else {
-      return Object.keys(slimmedRelationalQueryRecord).length === 0
-        ? null
-        : slimmedRelationalQueryRecord;
-    }
+    const objectToReturn = isNewQueryARootQuery
+      ? slimmedQueryRecord
+      : slimmedRelationalQueryRecord;
+
+    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
   }
 
   public onSubscriptionCancelled(
@@ -607,6 +601,21 @@ export class QuerySlimmer {
       queryRecordEntry
     );
     return `${parentContextKeyPrefix}${currentQueryTypeProperty}(${currentQueryStringifiedParams})`;
+  }
+
+  private getPropertiesNotAlreadyCached(opts: {
+    newQueryProps: string[];
+    cachedQuerySubsByProperty: IFetchedQueryData['subscriptionsByProperty'];
+  }) {
+    const newRequestedProperties = opts.newQueryProps.filter(
+      newQueryProperty => {
+        if (newQueryProperty in opts.cachedQuerySubsByProperty) {
+          return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
+        }
+        return true;
+      }
+    );
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 
   private getPropertiesNotCurrentlyBeingRequested(opts: {

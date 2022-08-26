@@ -246,6 +246,47 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
       ).toEqual(null);
     });
 
+    test('it should not slim properties that are cached but have no live subscriptions', () => {
+      const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+      QuerySlimmer.queriesByContext = {
+        'users(NO_PARAMS)': {
+          subscriptionsByProperty: { firstName: 1, lastName: 0 },
+          results: [],
+        },
+        'todos(NO_PARAMS)': {
+          subscriptionsByProperty: { id: 0, task: 1 },
+          results: [],
+        },
+      };
+
+      const mockQueryRecord: QueryRecord = {
+        users: {
+          def: userNode,
+          properties: ['firstName', 'lastName'],
+        },
+        todos: {
+          def: todoNode,
+          properties: ['id', 'task'],
+        },
+      };
+
+      const expectedSlimmedQuery: QueryRecord = {
+        users: {
+          def: userNode,
+          properties: ['lastName'],
+        },
+        todos: {
+          def: todoNode,
+          properties: ['id'],
+        },
+      };
+
+      expect(
+        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
+      ).toEqual(expectedSlimmedQuery);
+    });
+
     test('it should return a slimmed query record where query record entries are returned with only non cached properties', () => {
       const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
@@ -609,6 +650,9 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
     });
   });
 });
+
+// PIOTR
+// describe('getSlimmedQueryAgainstInFlightQuery', () => {});
 
 describe('onSubscriptionCancelled', () => {
   test(`when a query subscription is cancelled the subcription counts for the query's properties should be decremented`, () => {
