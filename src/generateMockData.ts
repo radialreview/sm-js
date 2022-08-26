@@ -1,3 +1,4 @@
+import { extend } from './dataUtilities';
 import { UnreachableCaseError } from './exceptions';
 import {
   generateRandomBoolean,
@@ -138,6 +139,15 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
     version: '1',
     ...getMockValuesForIDataRecord(nodePropertiesToMock),
   };
+
+  if (queryRecord.def.generateMockData) {
+    extend({
+      object: mockedValues,
+      extension: queryRecord.def.generateMockData(),
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false,
+    });
+  }
 
   const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
     obj: mockedValues,
