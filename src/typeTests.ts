@@ -355,22 +355,25 @@ const stateNode: StateNode = mmGQL.def({
   const shorthandQueryResults = await mmGQL.query({
     users: userNode,
   });
-  shorthandQueryResults.data.users[0].id as string;
+  shorthandQueryResults.data.users.nodes[0].id as string;
 
   const withFooAndBar = { FOO: 1, BAR: 2 };
-  withFooAndBar[shorthandQueryResults.data.users[0].fooBarEnum];
+  withFooAndBar[shorthandQueryResults.data.users.nodes[0].fooBarEnum];
   const withFooOnly = { FOO: 1 };
   // @ts-expect-error property 'BAR' is in the enum `fooBarEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].fooBarEnum];
 
-  withFooAndBar[shorthandQueryResults.data.users[0].recordEnum['some-key']];
+  withFooAndBar[
+    shorthandQueryResults.data.users.nodes[0].recordEnum['some-key']
+  ];
 
   // @ts-expect-error property 'BAR' is in the enum used in the boxed value of the record `recordEnum` but "BAR" was omitted from the object above
   withFooOnly[shorthandQueryResults.data.users[0].recordEnum['some-key']];
 
   const withBarAndBaz = { BAR: 1, BAZ: 2 };
   const withBarOnly = { BAR: 1 };
-  const optionalEnum = shorthandQueryResults.data.users[0].optionalBarBazEnum;
+  const optionalEnum =
+    shorthandQueryResults.data.users.nodes[0].optionalBarBazEnum;
   // @ts-expect-error no null check
   withBarAndBaz[optionalEnum];
   if (optionalEnum) {
@@ -387,7 +390,7 @@ const stateNode: StateNode = mmGQL.def({
   shorthandQueryResults.data.users[0].nonqueried as number;
 
   // computed data test
-  shorthandQueryResults.data.users[0].fullName as string;
+  shorthandQueryResults.data.users.nodes[0].fullName as string;
   // @ts-expect-error invalid type
   shorthandQueryResults.data.users[0].fullName as number;
 
@@ -740,12 +743,12 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  useSubscriptionsData.data.users[0].avatar;
+  useSubscriptionsData.data.users.nodes[0].avatar;
   // @ts-expect-error when not suspended, results may be null
   useSubscriptionsData.data.usersNotSuspended[0].avatar;
   // good with null check
   useSubscriptionsData.data.usersNotSuspended
-    ? useSubscriptionsData.data.usersNotSuspended[0].avatar
+    ? useSubscriptionsData.data.usersNotSuspended.nodes[0].avatar
     : null;
 
   // @ts-expect-error basic sanity check
@@ -772,7 +775,7 @@ const stateNode: StateNode = mmGQL.def({
   // @ts-expect-error no null check
   withNull.data.results[0].address;
   withNull.data.results
-    ? (withNull.data.results[0].address.state as string)
+    ? (withNull.data.results.nodes[0].address.state as string)
     : null;
 
   // ENUM TESTS
@@ -790,11 +793,11 @@ const stateNode: StateNode = mmGQL.def({
 
   const validEnumEntryRecord = { t: '', t2: '' };
 
-  validEnumEntryRecord[enumData.data.nodes[0].someEnum];
+  validEnumEntryRecord[enumData.data.nodes.nodes[0].someEnum];
   // @ts-expect-error returns a maybe type, needs null check first
   validEnumEntryRecord[enumData.data.nodes[0].someOptionalEnum];
-  if (enumData.data.nodes[0].someOptionalEnum) {
-    validEnumEntryRecord[enumData.data.nodes[0].someOptionalEnum];
+  if (enumData.data.nodes.nodes[0].someOptionalEnum) {
+    validEnumEntryRecord[enumData.data.nodes.nodes[0].someOptionalEnum];
   }
 })();
 

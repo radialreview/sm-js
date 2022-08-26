@@ -105,7 +105,7 @@ function setupTests() {
   const optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
   const mmGQL = new MMGQL(getMockConfig());
   const nodeDef = mmGQL.def({
-    type: 'mock-node',
+    type: 'mocknode',
     properties: {
       name: string,
       settings: object({

@@ -183,7 +183,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       TNodeRelationalData: {};
     }>;
     type MeetingGuestNode = INode<{
-      TNodeType: 'meeting-guest';
+      TNodeType: 'meetingGuest';
       TNodeData: typeof meetingGuestProperties;
       TNodeComputedData: {};
       TNodeRelationalData: {};
@@ -193,7 +193,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       properties: userProperties,
     });
     const meetingGuestNode: MeetingGuestNode = mmGQLInstance.def({
-      type: 'meeting-guest',
+      type: 'meetingGuest',
       properties: meetingGuestProperties,
     });
 
@@ -345,7 +345,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       queryDefinitions: {
         mockNodes: queryDefinition({
           def: mmGQLInstance.def({
-            type: 'mock-node-type',
+            type: 'mockNodeType',
             properties: {
               obj: object({
                 nested: object({
