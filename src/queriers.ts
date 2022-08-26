@@ -360,6 +360,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
         operation = data.subscriptionConfig.extractOperationFromSubscriptionMessage(
           data.message
         );
+        // TODO: https://tractiontools.atlassian.net/browse/TTD-377
         queryManager.onSubscriptionMessage({
           node,
           operation,

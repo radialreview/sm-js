@@ -37,6 +37,7 @@ export type TQueryRecordByContextMap = Record<string, QueryRecord>;
 
 const IN_FLIGHT_TIMEOUT_MS = 1000;
 
+// TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 export class QuerySlimmer {
   constructor(mmGQLInstance: IMMGQL) {
     this.mmGQLInstance = mmGQLInstance;
