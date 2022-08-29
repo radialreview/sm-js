@@ -1874,8 +1874,10 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
     };
 };
 export declare function getMockConfig(opts?: {
-    generateMockData: boolean;
     mockData?: any;
+    generateMockData?: boolean;
+    enableQuerySlimming?: boolean;
+    enableQuerySlimmingLogging?: boolean;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
 export declare function convertNodesCollectionValuesToArray<T extends Record<string, any>>(obj: T): Record<string, any>;

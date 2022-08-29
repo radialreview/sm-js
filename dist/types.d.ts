@@ -5,6 +5,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './QueryManager';
 import { createTransaction } from './transaction/transaction';
+import { QuerySlimmer } from './QuerySlimmer';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
@@ -35,6 +36,8 @@ export declare type Config = {
     gqlClient: IGQLClient;
     plugins?: Array<Plugin>;
     generateMockData: boolean;
+    enableQuerySlimming: boolean;
+    enableQuerySlimmingLogging: boolean;
 };
 export interface IGQLClient {
     query(opts: {
@@ -119,9 +122,12 @@ export interface IMMGQL {
     gqlClient: IGQLClient;
     plugins: Array<Plugin> | undefined;
     generateMockData: boolean | undefined;
+    enableQuerySlimming: boolean | undefined;
+    enableQuerySlimmingLogging: boolean | undefined;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
+    QuerySlimmer: QuerySlimmer;
     def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<{
         TNodeType: TNodeType;
         TNodeData: TNodeData;
@@ -638,10 +644,10 @@ declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INod
 export declare type BaseQueryRecordEntry = {
     def: INode;
     properties: Array<string>;
+    relational?: RelationalQueryRecord;
     filter?: ValidFilterForNode<INode>;
     sort?: ValidFilterForNode<INode>;
     pagination?: IQueryPagination;
-    relational?: Record<string, RelationalQueryRecordEntry>;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
     pagination?: IQueryPagination;

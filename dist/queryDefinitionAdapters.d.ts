@@ -10,6 +10,10 @@ export declare type SubscriptionConfig = {
     extractNodeFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
     extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
 };
+export declare function getQueryGQLStringFromQueryRecord(opts: {
+    queryId: string;
+    queryRecord: QueryRecord;
+}): string;
 export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryDefinitions: TQueryDefinitions;
     queryId: string;
