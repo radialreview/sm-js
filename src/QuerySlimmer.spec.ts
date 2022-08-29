@@ -651,8 +651,98 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
   });
 });
 
-// PIOTR
-// describe('getSlimmedQueryAgainstInFlightQuery', () => {});
+describe('getSlimmedQueryAgainstInFlightQuery', () => {
+  test('should slim the new query against an in flight query that have already been matched by context', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+    const newQueryMock: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName', 'email'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['name', 'archived'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['task', 'done'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+      todos: {
+        def: todoNode,
+        properties: ['task', 'done'],
+      },
+    };
+    const inFlightQueryMock: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['firstName', 'lastName'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['name'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['done'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+      todos: {
+        def: todoNode,
+        properties: ['task'],
+      },
+    };
+    const expectedSlimmedQuery: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['email'],
+        relational: {
+          meetings: {
+            _relationshipName: 'meetings',
+            def: meetingNode,
+            properties: ['archived'],
+            oneToMany: true,
+            relational: {
+              todos: {
+                _relationshipName: 'todos',
+                def: todoNode,
+                properties: ['task'],
+                oneToMany: true,
+              },
+            },
+          },
+        },
+      },
+      todos: {
+        def: todoNode,
+        properties: ['done'],
+      },
+    };
+
+    expect(
+      QuerySlimmer.getSlimmedQueryAgainstInFlightQuery(
+        newQueryMock,
+        inFlightQueryMock,
+        false
+      )
+    ).toEqual(expectedSlimmedQuery);
+  });
+});
 
 describe('onSubscriptionCancelled', () => {
   test(`when a query subscription is cancelled the subcription counts for the query's properties should be decremented`, () => {

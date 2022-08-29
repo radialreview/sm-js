@@ -310,12 +310,12 @@ export class QuerySlimmer {
       const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
       const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
 
-      if (newQueryKey in inFlightQuery) {
+      if (inFlightQuery[newQueryKey] === undefined) {
         // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
         if (isRelationalQueryRecord) {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        } else {
           slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        } else {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
         }
       } else {
         // If a newQueryContextKey is present we want to slim what we can from the in flight query.
@@ -334,13 +334,13 @@ export class QuerySlimmer {
           newQueryRecordEntry.relational === undefined
         ) {
           if (isRelationalQueryRecord) {
-            slimmedQueryRecord[newQueryKey] = {
-              ...newRootRecordEntry,
+            slimmedRelationalQueryRecord[newQueryKey] = {
+              ...newRelationalRecordEntry,
               properties: newRequestedProperties,
             };
           } else {
-            slimmedRelationalQueryRecord[newQueryKey] = {
-              ...newRelationalRecordEntry,
+            slimmedQueryRecord[newQueryKey] = {
+              ...newRootRecordEntry,
               properties: newRequestedProperties,
             };
           }
@@ -363,16 +363,16 @@ export class QuerySlimmer {
           // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
           if (slimmedNewRelationalQueryRecord !== null) {
             if (isRelationalQueryRecord) {
-              slimmedQueryRecord[newQueryKey] = {
-                ...newRootRecordEntry,
+              slimmedRelationalQueryRecord[newQueryKey] = {
+                ...newRelationalRecordEntry,
                 properties: newRequestedProperties ?? [],
                 relational: {
                   ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
                 },
               };
             } else {
-              slimmedRelationalQueryRecord[newQueryKey] = {
-                ...newRelationalRecordEntry,
+              slimmedQueryRecord[newQueryKey] = {
+                ...newRootRecordEntry,
                 properties: newRequestedProperties ?? [],
                 relational: {
                   ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
@@ -384,18 +384,13 @@ export class QuerySlimmer {
       }
     });
 
-    const queryRecordToReturn =
-      Object.keys(
-        isRelationalQueryRecord
-          ? slimmedQueryRecord
-          : slimmedRelationalQueryRecord
-      ).length > 0
-        ? isRelationalQueryRecord
-          ? slimmedQueryRecord
-          : slimmedRelationalQueryRecord
-        : null;
+    const queryRecordToReturn = isRelationalQueryRecord
+      ? slimmedRelationalQueryRecord
+      : slimmedQueryRecord;
 
-    return queryRecordToReturn;
+    return Object.keys(queryRecordToReturn).length === 0
+      ? null
+      : queryRecordToReturn;
   }
 
   public getSlimmedQueryAgainstQueriesByContext(
