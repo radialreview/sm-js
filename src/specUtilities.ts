@@ -359,8 +359,10 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
 }
 
 export function getMockConfig(opts?: {
-  generateMockData: boolean;
   mockData?: any;
+  generateMockData?: boolean;
+  enableQuerySlimming?: boolean;
+  enableQuerySlimmingLogging?: boolean;
 }): Config {
   return {
     gqlClient: {
@@ -370,6 +372,8 @@ export function getMockConfig(opts?: {
       mutate: () => new Promise(res => res([])),
     },
     generateMockData: !!opts?.generateMockData,
+    enableQuerySlimming: opts?.enableQuerySlimming ?? false,
+    enableQuerySlimmingLogging: opts?.enableQuerySlimmingLogging ?? false,
   };
 }
 

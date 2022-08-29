@@ -1,3 +1,5 @@
+import { cloneDeep } from 'lodash';
+
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
 import {
@@ -16,7 +18,6 @@ import {
   SubscriptionCanceller,
   IGQLClient,
 } from './types';
-import { cloneDeep } from 'lodash';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
@@ -172,6 +173,13 @@ export function generateQuerier({
                 queryDefinitions,
                 queryId,
               });
+            } else if (mmGQLInstance.enableQuerySlimming) {
+              response = await mmGQLInstance.QuerySlimmer.query({
+                queryId: `${queryId}_${tokenName}`,
+                queryDefinitions,
+                tokenName,
+                queryOpts: opts,
+              });
             } else {
               const queryOpts: Parameters<IGQLClient['query']>[0] = {
                 gql: queryGQL,
@@ -180,7 +188,6 @@ export function generateQuerier({
               if (opts && 'batchKey' in opts) {
                 queryOpts.batchKey = opts.batchKey;
               }
-
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
@@ -353,6 +360,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
         operation = data.subscriptionConfig.extractOperationFromSubscriptionMessage(
           data.message
         );
+        // TODO: https://tractiontools.atlassian.net/browse/TTD-377
         queryManager.onSubscriptionMessage({
           node,
           operation,
@@ -398,12 +406,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       message: Record<string, any>;
       subscriptionConfig: SubscriptionConfig;
     }> = [];
-    function initSubs() {
-      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-        nonNullishQueryDefinitions
-      );
+    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+      nonNullishQueryDefinitions
+    );
+    const queryDefinitionsSplitByTokenEntries = Object.entries(
+      queryDefinitionsSplitByToken
+    );
 
-      Object.entries(queryDefinitionsSplitByToken).forEach(
+    function initSubs() {
+      queryDefinitionsSplitByTokenEntries.forEach(
         ([tokenName, queryDefinitions]) => {
           const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
@@ -459,6 +470,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
     function unsub() {
       subscriptionCancellers.forEach(cancel => cancel());
+      queryDefinitionsSplitByTokenEntries.forEach(
+        ([tokenName, queryDefinitions]) => {
+          const { queryRecord } = convertQueryDefinitionToQueryInfo({
+            queryDefinitions,
+            queryId: queryId + '_' + tokenName,
+          });
+          mmGQLInstance.QuerySlimmer.onSubscriptionCancelled(queryRecord);
+        }
+      );
     }
 
     try {

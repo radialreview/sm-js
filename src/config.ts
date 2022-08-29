@@ -10,5 +10,7 @@ export function getDefaultConfig(): Config {
         'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
     }),
     generateMockData: false,
+    enableQuerySlimming: false,
+    enableQuerySlimmingLogging: false,
   };
 }

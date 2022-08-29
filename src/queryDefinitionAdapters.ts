@@ -651,6 +651,24 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
+export function getQueryGQLStringFromQueryRecord(opts: {
+  queryId: string;
+  queryRecord: QueryRecord;
+}) {
+  return (
+    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
+    Object.keys(opts.queryRecord)
+      .map(alias =>
+        getRootLevelQueryString({
+          alias,
+          ...opts.queryRecord[alias],
+        })
+      )
+      .join('\n    ') +
+    '\n}'
+  ).trim();
+}
+
 function getQueryRecordSortAndFilterValues(record: QueryRecord) {
   return Object.keys(record).reduce((acc, alias) => {
     acc.push(record[alias].filter);
@@ -675,21 +693,13 @@ export function getQueryInfo<
   >
 >(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
+  const queryGQLString = getQueryGQLStringFromQueryRecord({
+    queryId: opts.queryId,
+    queryRecord,
+  });
   const queryParamsString = JSON.stringify(
     getQueryRecordSortAndFilterValues(queryRecord)
   );
-  const queryGQLString = (
-    `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
-    Object.keys(queryRecord)
-      .map(alias =>
-        getRootLevelQueryString({
-          alias,
-          ...queryRecord[alias],
-        })
-      )
-      .join('\n    ') +
-    '\n}'
-  ).trim();
 
   const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
     queryRecord

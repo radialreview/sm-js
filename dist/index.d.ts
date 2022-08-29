@@ -10,10 +10,13 @@ export { gql } from '@apollo/client';
 export declare class MMGQL implements IMMGQL {
     gqlClient: IMMGQL['gqlClient'];
     generateMockData: IMMGQL['generateMockData'];
+    enableQuerySlimming: IMMGQL['enableQuerySlimming'];
+    enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
     plugins: IMMGQL['plugins'];
     query: IMMGQL['query'];
     subscribe: IMMGQL['subscribe'];
     QueryManager: IMMGQL['QueryManager'];
+    QuerySlimmer: IMMGQL['QuerySlimmer'];
     transaction: IMMGQL['transaction'];
     tokens: Record<string, string>;
     DOFactory: IMMGQL['DOFactory'];

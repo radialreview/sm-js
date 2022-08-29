@@ -7,6 +7,7 @@ import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './QueryManager';
 import { createTransaction } from './transaction/transaction';
+import { QuerySlimmer } from './QuerySlimmer';
 import {
   IMMGQL,
   Config,
@@ -30,10 +31,13 @@ export { gql } from '@apollo/client';
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
   public generateMockData: IMMGQL['generateMockData'];
+  public enableQuerySlimming: IMMGQL['enableQuerySlimming'];
+  public enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
   public plugins: IMMGQL['plugins'];
   public query: IMMGQL['query'];
   public subscribe: IMMGQL['subscribe'];
   public QueryManager: IMMGQL['QueryManager'];
+  public QuerySlimmer: IMMGQL['QuerySlimmer'];
   public transaction: IMMGQL['transaction'];
   public tokens: Record<string, string> = {};
   public DOFactory: IMMGQL['DOFactory'];
@@ -45,12 +49,15 @@ export class MMGQL implements IMMGQL {
   constructor(config: Config) {
     this.gqlClient = config.gqlClient;
     this.generateMockData = config.generateMockData;
+    this.enableQuerySlimming = config.enableQuerySlimming;
+    this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
     this.plugins = config.plugins;
     this.query = generateQuerier({ mmGQLInstance: this });
     this.subscribe = generateSubscriber(this);
     this.DOProxyGenerator = createDOProxyGenerator(this);
     this.DOFactory = createDOFactory(this);
     this.QueryManager = createQueryManager(this);
+    this.QuerySlimmer = new QuerySlimmer(this);
     this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested,
