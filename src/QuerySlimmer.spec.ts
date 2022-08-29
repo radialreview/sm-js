@@ -1,6 +1,10 @@
 import { MMGQL, QueryRecord, QueryRecordEntry } from '.';
 import { string, boolean } from './dataTypes';
-import { QuerySlimmer } from './QuerySlimmer';
+import {
+  QuerySlimmer,
+  TInFlightQueriesByContextMap,
+  TQueryRecordByContextMap,
+} from './QuerySlimmer';
 import { getMockConfig } from './specUtilities';
 
 function setupTests() {
@@ -180,6 +184,204 @@ describe('populateQueriesByContext', () => {
       subscriptionsByProperty: { task: 1 },
       results: mockResults.users.map(user => user.todos),
     });
+  });
+});
+
+describe('getInFlightQueriesToSlimAgainst', () => {
+  test('it should return in flight queries that match by root level context keys and are requesting at least one of the same properties', () => {
+    const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+    const newQueryMock: TQueryRecordByContextMap = {
+      [`users(NO_PARAMS)`]: {
+        users: {
+          def: userNode,
+          properties: ['firstName', 'email'],
+        },
+      },
+      [`todos(NO_PARAMS)`]: {
+        todos: {
+          def: todoNode,
+          properties: ['task', 'done'],
+        },
+      },
+    };
+    const inFlightQueriesMock: TInFlightQueriesByContextMap = {
+      [`users(NO_PARAMS)`]: [
+        {
+          queryId: '1',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName'],
+            },
+          },
+        },
+        {
+          queryId: '2',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['lastName'],
+            },
+          },
+        },
+      ],
+      [`todos(NO_PARAMS)`]: [
+        {
+          queryId: '3',
+          queryRecord: {
+            todos: {
+              def: todoNode,
+              properties: ['task'],
+            },
+          },
+        },
+      ],
+    };
+    const expectedReturnValue: TInFlightQueriesByContextMap = {
+      [`users(NO_PARAMS)`]: [
+        {
+          queryId: '1',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName'],
+            },
+          },
+        },
+      ],
+      [`todos(NO_PARAMS)`]: [
+        {
+          queryId: '3',
+          queryRecord: {
+            todos: {
+              def: todoNode,
+              properties: ['task'],
+            },
+          },
+        },
+      ],
+    };
+
+    QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
+
+    expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
+      expectedReturnValue
+    );
+  });
+
+  test('it should only return in flight queries that have a relational depth that is less than or equal to that of the new query', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+    const newQueryMock: TQueryRecordByContextMap = {
+      [`users(NO_PARAMS)`]: {
+        users: {
+          def: userNode,
+          properties: ['firstName', 'email'],
+          relational: {
+            meetings: {
+              _relationshipName: 'meetings',
+              def: meetingNode,
+              properties: ['name', 'archived', 'isAgendaInitialized'],
+              oneToMany: true,
+            },
+          },
+        },
+      },
+    };
+
+    const inFlightQueriesMock: TInFlightQueriesByContextMap = {
+      [`users(NO_PARAMS)`]: [
+        {
+          queryId: '1',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+            },
+          },
+        },
+        {
+          queryId: '2',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+              relational: {
+                meetings: {
+                  _relationshipName: 'meetings',
+                  def: meetingNode,
+                  properties: ['name', 'archived'],
+                  oneToMany: true,
+                },
+              },
+            },
+          },
+        },
+        {
+          queryId: '3',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName', 'email'],
+              relational: {
+                meetings: {
+                  _relationshipName: 'meetings',
+                  def: meetingNode,
+                  properties: ['name', 'archived'],
+                  oneToMany: true,
+                  relational: {
+                    todos: {
+                      _relationshipName: 'todos',
+                      def: todoNode,
+                      properties: ['task', 'done'],
+                      oneToMany: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const expectedReturnValue: TInFlightQueriesByContextMap = {
+      [`users(NO_PARAMS)`]: [
+        {
+          queryId: '1',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+            },
+          },
+        },
+        {
+          queryId: '2',
+          queryRecord: {
+            users: {
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+              relational: {
+                meetings: {
+                  _relationshipName: 'meetings',
+                  def: meetingNode,
+                  properties: ['name', 'archived'],
+                  oneToMany: true,
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
+
+    expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
+      expectedReturnValue
+    );
   });
 });
 
