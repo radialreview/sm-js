@@ -754,9 +754,9 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   ? TQueryDefinition extends { def: infer TNode }
     ? TNode extends INode
       ? TQueryDefinition extends { target?: { id: string } }
-        ? GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }>
+        ? GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }> & DataExpectedOnAllNodeResults<TNode>
         : NodesCollection<
-          GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }> 
+          GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }>  & DataExpectedOnAllNodeResults<TNode>
         >
       : never
     : never
@@ -764,8 +764,11 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   ? /**
      * shorthand syntax used, only a node definition was provided
      */
-  NodesCollection<
-      GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TQueryDefinition>, TNodeComputedData: ExtractNodeComputedData<TQueryDefinition> }>
+    NodesCollection<
+      GetAllAvailableNodeDataType<{
+        TNodeData: ExtractNodeData<TQueryDefinition>,
+        TNodeComputedData: ExtractNodeComputedData<TQueryDefinition>
+      }> & DataExpectedOnAllNodeResults<TQueryDefinition>
     >
   : never;
 
@@ -804,21 +807,25 @@ export type MapFn<
 export type GetMapFnArgs<
   TNode extends INode,
 > = TNode extends INode<infer TNodeArgs>
-  ? {
-    [key in keyof TNodeArgs['TNodeData']]: 
-      TNodeArgs['TNodeData'][key] extends IData<{TParsedValue: Maybe<Array<any>>, TValue: any, TBoxedValue: any}>
-        ? TNodeArgs['TNodeData'][key]
-        : TNodeArgs['TNodeData'][key] extends IData<infer TDataArgs>
-          ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn>
-            // allows querying a partial of an object within a node
-            ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:{},  TNodeRelationalData: {} }>>(opts: {
-                map: TMapFn;
-              }) => TMapFn
-            : TNodeArgs['TNodeData'][key]
-          : TNodeArgs['TNodeData'][key]
-    } &
+  ? GetMapFnArgsFromProperties<TNodeArgs['TNodeData']> &
       TNodeArgs['TNodeRelationalData']
+      & GetMapFnArgsFromProperties<NodeDefaultProps>
   : never;
+
+type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
+  [key in keyof TProperties]: 
+    TProperties[key] extends IData<{TParsedValue: Maybe<Array<any>>, TValue: any, TBoxedValue: any}>
+      ? TProperties[key]
+      : TProperties[key] extends IData<infer TDataArgs>
+        ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn>
+          // allows querying a partial of an object within a node
+          ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:{},  TNodeRelationalData: {} }>>(opts: {
+              map: TMapFn;
+            }) => TMapFn
+          : TProperties[key]
+        : TProperties[key]
+  }
+
 
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
@@ -852,10 +859,13 @@ type RequestedData<
 export type ExtractQueriedDataFromMapFn<
   TMapFn extends MapFnForNode<TNode>,
   TNode extends INode
-> = { type: TNode['type'] }
-  & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes>
+> = DataExpectedOnAllNodeResults<TNode>
   & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>
-  & ExtractNodeComputedData<TNode>;
+
+type DataExpectedOnAllNodeResults<TNode extends INode> =
+  { type: TNode['type'] }
+  & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes>
+  & ExtractNodeComputedData<TNode>
 
 // From the return of a map fn, get the type of data that will be returned by that portion of the query, aka the expected response from the API
 type ExtractQueriedDataFromMapFnReturn<

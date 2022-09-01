@@ -799,6 +799,77 @@ const stateNode: StateNode = mmGQL.def({
   if (enumData.data.nodes.nodes[0].someOptionalEnum) {
     validEnumEntryRecord[enumData.data.nodes.nodes[0].someOptionalEnum];
   }
+
+  // DEFAULT PROP TESTS
+  const node2 = mmGQL.def({
+    type: 'test',
+    properties: {},
+  });
+
+  // shorthand syntax should query all expected properties
+  const { data: resultDataShortHandSyntax } = await mmGQL.query({
+    node2s: node2,
+  });
+
+  resultDataShortHandSyntax.node2s.nodes[0].id as string;
+  resultDataShortHandSyntax.node2s.nodes[0].version as number;
+  resultDataShortHandSyntax.node2s.nodes[0].type as 'test';
+  resultDataShortHandSyntax.node2s.nodes[0].lastUpdatedBy as string;
+  resultDataShortHandSyntax.node2s.nodes[0].dateCreated as number;
+  resultDataShortHandSyntax.node2s.nodes[0].dateLastModified as number;
+  resultDataShortHandSyntax.node2s.nodes[0]
+    .lastUpdatedClientTimestamp as number;
+
+  const { data: resultDataUndefinedMapFn } = await mmGQL.query({
+    node2s: queryDefinition({
+      def: node2,
+      map: undefined,
+    }),
+  });
+
+  resultDataUndefinedMapFn.node2s.nodes[0].id as string;
+  resultDataUndefinedMapFn.node2s.nodes[0].version as number;
+  resultDataUndefinedMapFn.node2s.nodes[0].type as 'test';
+  resultDataUndefinedMapFn.node2s.nodes[0].lastUpdatedBy as string;
+  resultDataUndefinedMapFn.node2s.nodes[0].dateCreated as number;
+  resultDataUndefinedMapFn.node2s.nodes[0].dateLastModified as number;
+  resultDataUndefinedMapFn.node2s.nodes[0].lastUpdatedClientTimestamp as number;
+
+  const { data: resultDataTargetAndMapFn } = await mmGQL.query({
+    node2: queryDefinition({
+      def: node2,
+      map: ({ lastUpdatedClientTimestamp, dateCreated, dateLastModified }) => ({
+        lastUpdatedClientTimestamp,
+        dateCreated,
+        dateLastModified,
+      }),
+      target: { id: 'string' },
+    }),
+  });
+
+  resultDataTargetAndMapFn.node2.id as string;
+  resultDataTargetAndMapFn.node2.version as number;
+  resultDataTargetAndMapFn.node2.type as 'test';
+  resultDataTargetAndMapFn.node2.lastUpdatedBy as string;
+  resultDataTargetAndMapFn.node2.dateCreated as number;
+  resultDataTargetAndMapFn.node2.dateLastModified as number;
+  resultDataTargetAndMapFn.node2.lastUpdatedClientTimestamp as number;
+
+  const { data: resultDataTargetUndefinedMapFn } = await mmGQL.query({
+    node2: queryDefinition({
+      def: node2,
+      map: undefined,
+      target: { id: 'string' },
+    }),
+  });
+
+  resultDataTargetUndefinedMapFn.node2.id as string;
+  resultDataTargetUndefinedMapFn.node2.version as number;
+  resultDataTargetUndefinedMapFn.node2.type as 'test';
+  resultDataTargetUndefinedMapFn.node2.lastUpdatedBy as string;
+  resultDataTargetUndefinedMapFn.node2.dateCreated as number;
+  resultDataTargetUndefinedMapFn.node2.dateLastModified as number;
+  resultDataTargetUndefinedMapFn.node2.lastUpdatedClientTimestamp as number;
 })();
 
 (async function ResultingDevExperienceWriteTests() {
