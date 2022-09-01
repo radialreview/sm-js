@@ -1086,7 +1086,110 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
             }>>(opts: {
                 map: TMapFn;
             }) => TMapFn;
-        } & UserRelationalData) => {
+        } & UserRelationalData & {
+            dateCreated: {
+                (defaultValue: number): IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<number>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            dateLastModified: {
+                (defaultValue: number): IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<number>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            lastUpdatedClientTimestamp: {
+                (defaultValue: number): IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<number>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            id: {
+                (defaultValue: string): IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            version: {
+                (defaultValue: number): IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: number;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<number>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+            lastUpdatedBy: {
+                (defaultValue: string): IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                _default: IData<{
+                    TValue: string;
+                    TParsedValue: string;
+                    TBoxedValue: undefined;
+                }>;
+                optional: IData<{
+                    TValue: import("./types").Maybe<string>;
+                    TParsedValue: import("./types").Maybe<string>;
+                    TBoxedValue: undefined;
+                }>;
+            };
+        }) => {
             address: ({ state, apt }: {
                 streetName: {
                     (defaultValue: string): IData<{
@@ -1181,6 +1284,109 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                 }>>(opts: {
                     map: TMapFn_1;
                 }) => TMapFn_1;
+            } & {
+                dateCreated: {
+                    (defaultValue: number): IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<number>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                dateLastModified: {
+                    (defaultValue: number): IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<number>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                lastUpdatedClientTimestamp: {
+                    (defaultValue: number): IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<number>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                id: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                version: {
+                    (defaultValue: number): IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: number;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<number>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
+                lastUpdatedBy: {
+                    (defaultValue: string): IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    _default: IData<{
+                        TValue: string;
+                        TParsedValue: string;
+                        TBoxedValue: undefined;
+                    }>;
+                    optional: IData<{
+                        TValue: import("./types").Maybe<string>;
+                        TParsedValue: import("./types").Maybe<string>;
+                        TBoxedValue: undefined;
+                    }>;
+                };
             }) => {
                 state: {
                     (defaultValue: string): IData<{
@@ -1231,6 +1437,109 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         optional: IData<{
                             TValue: import("./types").Maybe<string>;
                             TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                } & {
+                    dateCreated: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    dateLastModified: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    lastUpdatedClientTimestamp: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    id: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    version: {
+                        (defaultValue: number): IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: number;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<number>;
+                            TBoxedValue: undefined;
+                        }>;
+                    };
+                    lastUpdatedBy: {
+                        (defaultValue: string): IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        _default: IData<{
+                            TValue: string;
+                            TParsedValue: string;
+                            TBoxedValue: undefined;
+                        }>;
+                        optional: IData<{
+                            TValue: import("./types").Maybe<string>;
+                            TParsedValue: import("./types").Maybe<string>;
                             TBoxedValue: undefined;
                         }>;
                     };
@@ -1476,7 +1785,110 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                 TBoxedValue: undefined;
                             }>;
                         };
-                    } & TodoRelationalData) => {
+                    } & TodoRelationalData & {
+                        dateCreated: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        dateLastModified: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        lastUpdatedClientTimestamp: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        id: {
+                            (defaultValue: string): IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<string>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        version: {
+                            (defaultValue: number): IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: number;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<number>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                        lastUpdatedBy: {
+                            (defaultValue: string): IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            _default: IData<{
+                                TValue: string;
+                                TParsedValue: string;
+                                TBoxedValue: undefined;
+                            }>;
+                            optional: IData<{
+                                TValue: import("./types").Maybe<string>;
+                                TParsedValue: import("./types").Maybe<string>;
+                                TBoxedValue: undefined;
+                            }>;
+                        };
+                    }) => {
                         assignee: import("./types").IOneToOneQuery<{
                             TTargetNodeOrTargetNodeRecord: UserNode;
                             TQueryBuilderOpts: {
@@ -1699,7 +2111,110 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     }>>(opts: {
                                         map: TMapFn;
                                     }) => TMapFn;
-                                } & UserRelationalData) => {
+                                } & UserRelationalData & {
+                                    dateCreated: {
+                                        (defaultValue: number): IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<number>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                    dateLastModified: {
+                                        (defaultValue: number): IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<number>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                    lastUpdatedClientTimestamp: {
+                                        (defaultValue: number): IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<number>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                    id: {
+                                        (defaultValue: string): IData<{
+                                            TValue: string;
+                                            TParsedValue: string;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: string;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<string>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                    version: {
+                                        (defaultValue: number): IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: number;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<number>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                    lastUpdatedBy: {
+                                        (defaultValue: string): IData<{
+                                            TValue: string;
+                                            TParsedValue: string;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        _default: IData<{
+                                            TValue: string;
+                                            TParsedValue: string;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                        optional: IData<{
+                                            TValue: import("./types").Maybe<string>;
+                                            TParsedValue: import("./types").Maybe<string>;
+                                            TBoxedValue: undefined;
+                                        }>;
+                                    };
+                                }) => {
                                     firstName: {
                                         (defaultValue: string): IData<{
                                             TValue: string;
