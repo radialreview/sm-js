@@ -824,7 +824,7 @@ type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataD
             }) => TMapFn
           : TProperties[key]
         : TProperties[key]
-  }
+}
 
 
 // The accepted type for a map fn return
