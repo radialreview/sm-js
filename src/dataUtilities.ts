@@ -247,12 +247,13 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
 }
 
 export function getFlattenedNodeSortObject<TNode extends INode>(
-  sortObject: ValidSortForNode<TNode>
+  sorting: ValidSortForNode<TNode>
 ) {
   const result: Record<string, SortObject> = {};
 
-  for (const i in sortObject) {
-    const value = sortObject[i] as any;
+  for (const i in sorting) {
+    const sortObject = sorting as Record<string, any>;
+    const value = sortObject[i];
     const valueIsNotASortObject =
       isObject(value) && !Object.keys(value).includes('_direction');
     if (

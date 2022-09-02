@@ -240,7 +240,7 @@ export declare type SortObject = {
 };
 export declare type SortValue = SortDirection | SortObject;
 export declare type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"]> : never;
-export declare type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never;
+export declare type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never;
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
  * For data resulting from property definitions only, use GetResultingDataTypeFromProperties
@@ -442,11 +442,12 @@ export declare type FilterOperator =
  * and including properties which are nested in objects
  */
 export declare type ValidFilterForNode<TNode extends INode> = ExtractNodeFilterData<TNode> | ExtractNodeRelationalDataFilter<TNode>;
+export declare type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>;
 export declare type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode> ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
-export declare type ValidSortForNode<TNode extends INode> = DeepPartial<{
-    [TKey in keyof ExtractNodeData<TNode> as ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeData<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode> ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey] : never;
+export declare type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
+    [TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode> ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
 export declare type QueryDefinitionTarget = {
     id: string;
@@ -455,6 +456,7 @@ export declare type QueryDefinitionTarget = {
     ids: Array<string>;
 };
 export declare type FilterObjectForNode<TNode extends INode> = ValidFilterForNode<TNode>;
+export declare type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode>;
 export declare type QueryDefinition<TQueryDefinitionArgs extends {
     TNode: INode;
     TMapFn: MapFnForNode<TQueryDefinitionArgs["TNode"]> | undefined;
@@ -463,7 +465,7 @@ export declare type QueryDefinition<TQueryDefinitionArgs extends {
     def: TQueryDefinitionArgs["TNode"];
     map: TQueryDefinitionArgs["TMapFn"];
     filter?: FilterObjectForNode<TQueryDefinitionArgs["TNode"]>;
-    sort?: ValidSortForNode<TQueryDefinitionArgs["TNode"]>;
+    sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>;
     target?: TQueryDefinitionArgs["TQueryDefinitionTarget"];
     pagination?: IQueryPagination;
     tokenName?: string;
@@ -605,8 +607,12 @@ declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNode
 }>;
 declare type ExtractObjectValues<TObject extends Record<string, any>> = TObject extends Record<string, infer TValueType> ? TValueType : never;
 export declare type ExtractNodeData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeData"] : never;
+export declare type ExtractNodeDataWithDefaultProperties<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeData"] & NodeDefaultProps : never;
 export declare type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? DeepPartial<{
     [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeFilterData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeFilterData<TOneToOneRelationalNode> : never : never;
+}> : never;
+export declare type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? DeepPartial<{
+    [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToOneRelationalNode> : never : never;
 }> : never;
 declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeComputedData"] : never;
 declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeRelationalData"] : never;
