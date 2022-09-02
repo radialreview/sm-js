@@ -7456,16 +7456,17 @@ var MMGQL = /*#__PURE__*/function () {
     }
 
     var properties = this.addDefaultNodeProperties(_def.properties);
-    var DOClass = this.DOFactory(_extends({}, _def, {
+
+    var defWithDefaultProperties = _extends({}, _def, {
       properties: properties
-    }));
+    });
+
+    var DOClass = this.DOFactory(defWithDefaultProperties);
     return {
       _isNodeDef: true,
       "do": DOClass,
       repository: RepositoryFactory({
-        def: _extends({}, _def, {
-          properties: properties
-        }),
+        def: defWithDefaultProperties,
         DOClass: DOClass,
         onDOConstructed: this.optimisticUpdatesOrchestrator.onDOConstructed,
         onDODeleted: this.optimisticUpdatesOrchestrator.onDODeleted,
