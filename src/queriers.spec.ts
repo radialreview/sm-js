@@ -1951,7 +1951,7 @@ test(`query.sorting should always sort null values last in descending order`, as
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['1', '3', '5']);
 });
 
-test.only(`query.sorting can sort 'oneToOne' relational data`, async () => {
+test(`query.sorting can sort 'oneToOne' relational data`, async () => {
   const { mmGQLInstance } = setupTest({
     todos: createMockDataItems({
       sampleMockData: mockTodoData,
@@ -1995,6 +1995,78 @@ test.only(`query.sorting can sort 'oneToOne' relational data`, async () => {
       map: ({ task, assignee }) => ({
         task,
         assignee: assignee({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual([
+    'Todo 1',
+    'Todo 3',
+    'Todo 5',
+  ]);
+});
+
+test(`query.sorting can sort 'oneToMany' relational data`, async () => {
+  const { mmGQLInstance } = setupTest({
+    todos: createMockDataItems({
+      sampleMockData: mockTodoData,
+      items: [
+        {
+          task: 'Todo 1',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'A',
+              },
+              {
+                firstName: 'Z',
+              },
+              {
+                firstName: 'D',
+              },
+            ],
+          }),
+        },
+        {
+          task: 'Todo 5',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'Assignee 1',
+              },
+            ],
+          }),
+        },
+        {
+          task: 'Todo 3',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'Assignee 5',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      sort: {
+        users: {
+          firstName: 'desc',
+        },
+      },
+      map: ({ task, users }) => ({
+        task,
+        users: users({
           map: ({ firstName }) => ({ firstName }),
         }),
       }),

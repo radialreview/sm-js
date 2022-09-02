@@ -300,7 +300,11 @@ export function applyClientSideFilterToData({
   }
 }
 
-function getSortPosition(first: any, second: any, ascending: boolean) {
+function getSortPosition(
+  first: string | number,
+  second: string | number,
+  ascending: boolean
+) {
   // equal items sort equally
   if (first === second) {
     return 0;
@@ -321,6 +325,35 @@ function getSortPosition(first: any, second: any, ascending: boolean) {
 
   // if descending, highest sorts first
   return first < second ? 1 : -1;
+}
+
+function getNodeSortPropertyValue(opts: {
+  node: any;
+  direction: SortDirection;
+  oneToMany?: boolean;
+  isRelational: boolean;
+  relationalKey?: string;
+  underscoreSeparatedPropName: string;
+}) {
+  return opts.isRelational && opts.relationalKey
+    ? opts.oneToMany
+      ? ((opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || []) as Array<
+          any
+        >)
+          .sort((a, b) => {
+            return getSortPosition(
+              getItemSortValue(a, opts.underscoreSeparatedPropName),
+              getItemSortValue(b, opts.underscoreSeparatedPropName),
+              opts.direction === 'asc'
+            );
+          })
+          .map(x => x[opts.underscoreSeparatedPropName])
+          .join('')
+      : getItemSortValue(
+          opts.node[opts.relationalKey],
+          opts.underscoreSeparatedPropName
+        )
+    : getItemSortValue(opts.node, opts.underscoreSeparatedPropName);
 }
 
 function getItemSortValue(item: any, underscoreSeparatedPropertyPath: string) {
@@ -410,29 +443,33 @@ export function applyClientSideSortToData({
         return items;
       }
 
-      return items.sort((first, second) =>
-        sorting
-          .map(sort =>
-            getSortPosition(
-              getItemSortValue(
-                sort.isRelational && sort.relationalKey
-                  ? first[sort.relationalKey]
-                  : first,
-                sort.underscoreSeparatedPropName
-              ),
-              getItemSortValue(
-                sort.isRelational && sort.relationalKey
-                  ? second[sort.relationalKey]
-                  : second,
-                sort.underscoreSeparatedPropName
-              ),
+      return items.sort((first, second) => {
+        return sorting
+          .map(sort => {
+            return getSortPosition(
+              getNodeSortPropertyValue({
+                node: first,
+                direction: sort.direction,
+                isRelational: sort.isRelational,
+                oneToMany: sort.oneToMany,
+                underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+                relationalKey: sort.relationalKey,
+              }),
+              getNodeSortPropertyValue({
+                node: second,
+                direction: sort.direction,
+                isRelational: sort.isRelational,
+                oneToMany: sort.oneToMany,
+                underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+                relationalKey: sort.relationalKey,
+              }),
               sort.direction === 'asc'
-            )
-          )
+            );
+          })
           .reduce((acc, current) => {
             return acc || current;
-          }, undefined as never)
-      );
+          }, undefined as never);
+      });
     });
   }
 }
