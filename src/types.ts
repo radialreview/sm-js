@@ -318,7 +318,7 @@ export type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValu
 export type SortObject = {_direction: SortDirection, _priority?: number}
 export type SortValue = SortDirection | SortObject
 
-export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"]> : never
+export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
 export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
 
 /**
@@ -603,8 +603,8 @@ export type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> |
 
 export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
   [
-    TKey in keyof ExtractNodeData<TNode> as
-      ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs>
+    TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as
+      ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs>
         ? IsArray<TDataArgs["TParsedValue"]> extends true
           ? never
           : TDataArgs["TBoxedValue"] extends undefined 
@@ -612,8 +612,8 @@ export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
             : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
               ? TKey
               : never
-        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
-          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
+        : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true
             ? never
             : TKey
           : TKey  
