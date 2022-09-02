@@ -102,7 +102,10 @@ export class MMGQL implements IMMGQL {
       _isNodeDef: true,
       do: DOClass,
       repository: RepositoryFactory({
-        def,
+        def: {
+          ...def,
+          properties,
+        },
         DOClass,
         onDOConstructed: this.optimisticUpdatesOrchestrator.onDOConstructed,
         onDODeleted: this.optimisticUpdatesOrchestrator.onDODeleted,
