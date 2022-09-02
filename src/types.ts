@@ -319,7 +319,7 @@ export type SortObject = {_direction: SortDirection, _priority?: number}
 export type SortValue = SortDirection | SortObject
 
 export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"]> : never
-export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never
+export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -624,8 +624,8 @@ export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
 
 export type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
   [
-    TKey in keyof ExtractNodeData<TNode> as
-      ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs>
+    TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as
+      ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs>
         ? IsArray<TDataArgs["TParsedValue"]> extends true
           ? never
           : TDataArgs["TBoxedValue"] extends undefined 
@@ -633,8 +633,8 @@ export type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
             : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
               ? TKey
               : never
-        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
-          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
+        : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true
             ? never
             : TKey
           : TKey  
@@ -1019,6 +1019,11 @@ export type ExtractNodeData<TNode extends INode> = TNode extends INode<
   infer TNodeArgs
 >
   ? TNodeArgs["TNodeData"]
+  : never;
+export type ExtractNodeDataWithDefaultProperties<TNode extends INode> = TNode extends INode<
+  infer TNodeArgs
+>
+  ? TNodeArgs["TNodeData"] & NodeDefaultProps
   : never;
 
 export type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<infer TNodeArgs>
