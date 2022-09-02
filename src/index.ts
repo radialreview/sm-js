@@ -96,13 +96,14 @@ export class MMGQL implements IMMGQL {
       });
     }
     const properties = this.addDefaultNodeProperties(def.properties);
-    const DOClass = this.DOFactory({ ...def, properties });
+    const defWithDefaultProperties = { ...def, properties };
+    const DOClass = this.DOFactory(defWithDefaultProperties);
 
     return {
       _isNodeDef: true,
       do: DOClass,
       repository: RepositoryFactory({
-        def,
+        def: defWithDefaultProperties,
         DOClass,
         onDOConstructed: this.optimisticUpdatesOrchestrator.onDOConstructed,
         onDODeleted: this.optimisticUpdatesOrchestrator.onDODeleted,
