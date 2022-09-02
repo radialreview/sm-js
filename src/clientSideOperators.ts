@@ -347,24 +347,48 @@ export function applyClientSideSortToData({
 }) {
   const sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
   if (sortObject && data[alias]) {
-    const sorting: Array<{
-      priority?: number;
-      direction: SortDirection;
-      propertyPath: string;
-      underscoreSeparatedPropertyPath: string;
-    }> = orderBy(
-      Object.keys(sortObject).map((propertyPath, index) => {
-        const underscoreSeparatedPropertyPath = propertyPath.replaceAll(
-          '.',
-          OBJECT_PROPERTY_SEPARATOR
-        );
-        const direction: SortDirection =
-          sortObject[propertyPath]._direction || 'asc';
+    const sorting = orderBy(
+      Object.keys(sortObject).map<{
+        dotSeparatedPropName: string;
+        underscoreSeparatedPropName: string;
+        propNotInQuery: boolean;
+        isRelational: boolean;
+        relationalKey?: string;
+        oneToOne?: boolean;
+        oneToMany?: boolean;
+        priority?: number;
+        direction: SortDirection;
+      }>((dotSeparatedPropName, index) => {
+        const [possibleRelationalKey, ...relationalProperties] = String(
+          dotSeparatedPropName
+        ).split('.');
+        const relational =
+          possibleRelationalKey &&
+          queryRecordEntry.relational &&
+          queryRecordEntry.relational[possibleRelationalKey];
+        const isRelational = !!relational;
+        const underscoreSeparatedPropName = isRelational
+          ? relationalProperties.join(OBJECT_PROPERTY_SEPARATOR)
+          : dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+
+        const propNotInQuery = isRelational
+          ? relational.properties.includes(underscoreSeparatedPropName) ===
+            false
+          : queryRecordEntry.properties.includes(
+              underscoreSeparatedPropName
+            ) === false;
+
         return {
-          direction,
-          underscoreSeparatedPropertyPath,
-          propertyPath,
-          priority: sortObject[propertyPath]._priority || (index + 1) * 10000,
+          dotSeparatedPropName,
+          underscoreSeparatedPropName,
+          propNotInQuery,
+          isRelational,
+          relationalKey: possibleRelationalKey,
+          oneToOne: (relational && 'oneToOne' in relational) || undefined,
+          oneToMany: (relational && 'oneToMany' in relational) || undefined,
+          priority:
+            sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
+          direction: sortObject[dotSeparatedPropName]._direction || 'asc',
         };
       }),
       x => x.priority,
@@ -372,15 +396,12 @@ export function applyClientSideSortToData({
     );
 
     const sortPropertiesNotDefinedInQuery = sorting.filter(
-      i =>
-        queryRecordEntry.properties.includes(
-          i.underscoreSeparatedPropertyPath
-        ) === false
+      i => i.propNotInQuery
     );
 
     if (sortPropertiesNotDefinedInQuery.length > 0) {
       throw new SortPropertyNotDefinedInQueryException({
-        sortPropName: sortPropertiesNotDefinedInQuery[0].propertyPath,
+        sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName,
       });
     }
 
@@ -393,8 +414,18 @@ export function applyClientSideSortToData({
         sorting
           .map(sort =>
             getSortPosition(
-              getItemSortValue(first, sort.underscoreSeparatedPropertyPath),
-              getItemSortValue(second, sort.underscoreSeparatedPropertyPath),
+              getItemSortValue(
+                sort.isRelational && sort.relationalKey
+                  ? first[sort.relationalKey]
+                  : first,
+                sort.underscoreSeparatedPropName
+              ),
+              getItemSortValue(
+                sort.isRelational && sort.relationalKey
+                  ? second[sort.relationalKey]
+                  : second,
+                sort.underscoreSeparatedPropName
+              ),
               sort.direction === 'asc'
             )
           )
