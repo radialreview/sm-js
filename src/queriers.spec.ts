@@ -1951,6 +1951,135 @@ test(`query.sorting should always sort null values last in descending order`, as
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['1', '3', '5']);
 });
 
+test(`query.sorting can sort 'oneToOne' relational data`, async () => {
+  const { mmGQLInstance } = setupTest({
+    todos: createMockDataItems({
+      sampleMockData: mockTodoData,
+      items: [
+        {
+          task: 'Todo 1',
+          assignee: {
+            ...mockUserData,
+            id: '1',
+            firstName: 'Assignee 3',
+          },
+        },
+        {
+          task: 'Todo 5',
+          assignee: {
+            ...mockUserData,
+            id: '3',
+            firstName: 'Assignee 1',
+          },
+        },
+        {
+          task: 'Todo 3',
+          assignee: {
+            ...mockUserData,
+            id: '2',
+            firstName: 'Assignee 2',
+          },
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      sort: {
+        assignee: {
+          firstName: 'desc',
+        },
+      },
+      map: ({ task, assignee }) => ({
+        task,
+        assignee: assignee({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual([
+    'Todo 1',
+    'Todo 3',
+    'Todo 5',
+  ]);
+});
+
+test(`query.sorting can sort 'oneToMany' relational data`, async () => {
+  const { mmGQLInstance } = setupTest({
+    todos: createMockDataItems({
+      sampleMockData: mockTodoData,
+      items: [
+        {
+          task: 'Todo 1',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'A',
+              },
+              {
+                firstName: 'Z',
+              },
+              {
+                firstName: 'D',
+              },
+            ],
+          }),
+        },
+        {
+          task: 'Todo 5',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'Assignee 1',
+              },
+            ],
+          }),
+        },
+        {
+          task: 'Todo 3',
+          users: createMockDataItems({
+            sampleMockData: mockUserData,
+            items: [
+              {
+                firstName: 'Assignee 5',
+              },
+            ],
+          }),
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      sort: {
+        users: {
+          firstName: 'desc',
+        },
+      },
+      map: ({ task, users }) => ({
+        task,
+        users: users({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual([
+    'Todo 1',
+    'Todo 3',
+    'Todo 5',
+  ]);
+});
+
 test(`query.filter can filter using "OR" condition`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({

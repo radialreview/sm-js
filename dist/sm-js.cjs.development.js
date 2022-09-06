@@ -1500,10 +1500,11 @@ function getFlattenedNodeFilterObject(filterObject) {
 
   return result;
 }
-function getFlattenedNodeSortObject(sortObject) {
+function getFlattenedNodeSortObject(sorting) {
   var result = {};
 
-  for (var i in sortObject) {
+  for (var i in sorting) {
+    var sortObject = sorting;
     var value = sortObject[i];
     var valueIsNotASortObject = lodash.isObject(value) && !Object.keys(value).includes('_direction');
 
@@ -4147,6 +4148,14 @@ function getSortPosition(first, second, ascending) {
   return first < second ? 1 : -1;
 }
 
+function getNodeSortPropertyValue(opts) {
+  return opts.isRelational && opts.relationalKey ? opts.oneToMany ? (opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || []).sort(function (a, b) {
+    return getSortPosition(getItemSortValue(a, opts.underscoreSeparatedPropName), getItemSortValue(b, opts.underscoreSeparatedPropName), opts.direction === 'asc');
+  }).map(function (x) {
+    return x[opts.underscoreSeparatedPropName];
+  }).join('') : getItemSortValue(opts.node[opts.relationalKey], opts.underscoreSeparatedPropName) : getItemSortValue(opts.node, opts.underscoreSeparatedPropName);
+}
+
 function getItemSortValue(item, underscoreSeparatedPropertyPath) {
   var isValueNull = item[underscoreSeparatedPropertyPath] === null || item[underscoreSeparatedPropertyPath] === NULL_TAG;
   if (isValueNull) return null;
@@ -4161,25 +4170,36 @@ function applyClientSideSortToData(_ref9) {
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {
-    var sorting = lodash.orderBy(Object.keys(sortObject).map(function (propertyPath, index) {
-      var underscoreSeparatedPropertyPath = propertyPath.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
-      var direction = sortObject[propertyPath]._direction || 'asc';
+    var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
+      var _String$split2 = String(dotSeparatedPropName).split('.'),
+          possibleRelationalKey = _String$split2[0],
+          relationalProperties = _String$split2.slice(1);
+
+      var relational = possibleRelationalKey && queryRecordEntry.relational && queryRecordEntry.relational[possibleRelationalKey];
+      var isRelational = !!relational;
+      var underscoreSeparatedPropName = isRelational ? relationalProperties.join(OBJECT_PROPERTY_SEPARATOR) : dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+      var propNotInQuery = isRelational ? relational.properties.includes(underscoreSeparatedPropName) === false : queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
       return {
-        direction: direction,
-        underscoreSeparatedPropertyPath: underscoreSeparatedPropertyPath,
-        propertyPath: propertyPath,
-        priority: sortObject[propertyPath]._priority || (index + 1) * 10000
+        dotSeparatedPropName: dotSeparatedPropName,
+        underscoreSeparatedPropName: underscoreSeparatedPropName,
+        propNotInQuery: propNotInQuery,
+        isRelational: isRelational,
+        relationalKey: possibleRelationalKey,
+        oneToOne: relational && 'oneToOne' in relational || undefined,
+        oneToMany: relational && 'oneToMany' in relational || undefined,
+        priority: sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
+        direction: sortObject[dotSeparatedPropName]._direction || 'asc'
       };
     }), function (x) {
       return x.priority;
     }, 'asc');
     var sortPropertiesNotDefinedInQuery = sorting.filter(function (i) {
-      return queryRecordEntry.properties.includes(i.underscoreSeparatedPropertyPath) === false;
+      return i.propNotInQuery;
     });
 
     if (sortPropertiesNotDefinedInQuery.length > 0) {
       throw new SortPropertyNotDefinedInQueryException({
-        sortPropName: sortPropertiesNotDefinedInQuery[0].propertyPath
+        sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName
       });
     }
 
@@ -4190,7 +4210,21 @@ function applyClientSideSortToData(_ref9) {
 
       return items.sort(function (first, second) {
         return sorting.map(function (sort) {
-          return getSortPosition(getItemSortValue(first, sort.underscoreSeparatedPropertyPath), getItemSortValue(second, sort.underscoreSeparatedPropertyPath), sort.direction === 'asc');
+          return getSortPosition(getNodeSortPropertyValue({
+            node: first,
+            direction: sort.direction,
+            isRelational: sort.isRelational,
+            oneToMany: sort.oneToMany,
+            underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+            relationalKey: sort.relationalKey
+          }), getNodeSortPropertyValue({
+            node: second,
+            direction: sort.direction,
+            isRelational: sort.isRelational,
+            oneToMany: sort.oneToMany,
+            underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+            relationalKey: sort.relationalKey
+          }), sort.direction === 'asc');
         }).reduce(function (acc, current) {
           return acc || current;
         }, undefined);

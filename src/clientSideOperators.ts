@@ -300,7 +300,11 @@ export function applyClientSideFilterToData({
   }
 }
 
-function getSortPosition(first: any, second: any, ascending: boolean) {
+function getSortPosition(
+  first: string | number,
+  second: string | number,
+  ascending: boolean
+) {
   // equal items sort equally
   if (first === second) {
     return 0;
@@ -321,6 +325,35 @@ function getSortPosition(first: any, second: any, ascending: boolean) {
 
   // if descending, highest sorts first
   return first < second ? 1 : -1;
+}
+
+function getNodeSortPropertyValue(opts: {
+  node: any;
+  direction: SortDirection;
+  oneToMany?: boolean;
+  isRelational: boolean;
+  relationalKey?: string;
+  underscoreSeparatedPropName: string;
+}) {
+  return opts.isRelational && opts.relationalKey
+    ? opts.oneToMany
+      ? ((opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || []) as Array<
+          any
+        >)
+          .sort((a, b) => {
+            return getSortPosition(
+              getItemSortValue(a, opts.underscoreSeparatedPropName),
+              getItemSortValue(b, opts.underscoreSeparatedPropName),
+              opts.direction === 'asc'
+            );
+          })
+          .map(x => x[opts.underscoreSeparatedPropName])
+          .join('')
+      : getItemSortValue(
+          opts.node[opts.relationalKey],
+          opts.underscoreSeparatedPropName
+        )
+    : getItemSortValue(opts.node, opts.underscoreSeparatedPropName);
 }
 
 function getItemSortValue(item: any, underscoreSeparatedPropertyPath: string) {
@@ -347,24 +380,48 @@ export function applyClientSideSortToData({
 }) {
   const sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
   if (sortObject && data[alias]) {
-    const sorting: Array<{
-      priority?: number;
-      direction: SortDirection;
-      propertyPath: string;
-      underscoreSeparatedPropertyPath: string;
-    }> = orderBy(
-      Object.keys(sortObject).map((propertyPath, index) => {
-        const underscoreSeparatedPropertyPath = propertyPath.replaceAll(
-          '.',
-          OBJECT_PROPERTY_SEPARATOR
-        );
-        const direction: SortDirection =
-          sortObject[propertyPath]._direction || 'asc';
+    const sorting = orderBy(
+      Object.keys(sortObject).map<{
+        dotSeparatedPropName: string;
+        underscoreSeparatedPropName: string;
+        propNotInQuery: boolean;
+        isRelational: boolean;
+        relationalKey?: string;
+        oneToOne?: boolean;
+        oneToMany?: boolean;
+        priority?: number;
+        direction: SortDirection;
+      }>((dotSeparatedPropName, index) => {
+        const [possibleRelationalKey, ...relationalProperties] = String(
+          dotSeparatedPropName
+        ).split('.');
+        const relational =
+          possibleRelationalKey &&
+          queryRecordEntry.relational &&
+          queryRecordEntry.relational[possibleRelationalKey];
+        const isRelational = !!relational;
+        const underscoreSeparatedPropName = isRelational
+          ? relationalProperties.join(OBJECT_PROPERTY_SEPARATOR)
+          : dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+
+        const propNotInQuery = isRelational
+          ? relational.properties.includes(underscoreSeparatedPropName) ===
+            false
+          : queryRecordEntry.properties.includes(
+              underscoreSeparatedPropName
+            ) === false;
+
         return {
-          direction,
-          underscoreSeparatedPropertyPath,
-          propertyPath,
-          priority: sortObject[propertyPath]._priority || (index + 1) * 10000,
+          dotSeparatedPropName,
+          underscoreSeparatedPropName,
+          propNotInQuery,
+          isRelational,
+          relationalKey: possibleRelationalKey,
+          oneToOne: (relational && 'oneToOne' in relational) || undefined,
+          oneToMany: (relational && 'oneToMany' in relational) || undefined,
+          priority:
+            sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
+          direction: sortObject[dotSeparatedPropName]._direction || 'asc',
         };
       }),
       x => x.priority,
@@ -372,15 +429,12 @@ export function applyClientSideSortToData({
     );
 
     const sortPropertiesNotDefinedInQuery = sorting.filter(
-      i =>
-        queryRecordEntry.properties.includes(
-          i.underscoreSeparatedPropertyPath
-        ) === false
+      i => i.propNotInQuery
     );
 
     if (sortPropertiesNotDefinedInQuery.length > 0) {
       throw new SortPropertyNotDefinedInQueryException({
-        sortPropName: sortPropertiesNotDefinedInQuery[0].propertyPath,
+        sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName,
       });
     }
 
@@ -389,19 +443,33 @@ export function applyClientSideSortToData({
         return items;
       }
 
-      return items.sort((first, second) =>
-        sorting
-          .map(sort =>
-            getSortPosition(
-              getItemSortValue(first, sort.underscoreSeparatedPropertyPath),
-              getItemSortValue(second, sort.underscoreSeparatedPropertyPath),
+      return items.sort((first, second) => {
+        return sorting
+          .map(sort => {
+            return getSortPosition(
+              getNodeSortPropertyValue({
+                node: first,
+                direction: sort.direction,
+                isRelational: sort.isRelational,
+                oneToMany: sort.oneToMany,
+                underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+                relationalKey: sort.relationalKey,
+              }),
+              getNodeSortPropertyValue({
+                node: second,
+                direction: sort.direction,
+                isRelational: sort.isRelational,
+                oneToMany: sort.oneToMany,
+                underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+                relationalKey: sort.relationalKey,
+              }),
               sort.direction === 'asc'
-            )
-          )
+            );
+          })
           .reduce((acc, current) => {
             return acc || current;
-          }, undefined as never)
-      );
+          }, undefined as never);
+      });
     });
   }
 }

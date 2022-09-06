@@ -70,4 +70,4 @@ export declare function getFlattenedObjectKeys(obj: Record<string, any>): string
 export declare function getFlattenedNodeFilterObject<TNode extends INode>(filterObject: ValidFilterForNode<TNode>): Record<string, Partial<Record<FilterOperator, any>> & {
     _condition: FilterCondition;
 }>;
-export declare function getFlattenedNodeSortObject<TNode extends INode>(sortObject: ValidSortForNode<TNode>): Record<string, SortObject>;
+export declare function getFlattenedNodeSortObject<TNode extends INode>(sorting: ValidSortForNode<TNode>): Record<string, SortObject>;

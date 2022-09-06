@@ -318,8 +318,8 @@ export type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValu
 export type SortObject = {_direction: SortDirection, _priority?: number}
 export type SortValue = SortDirection | SortObject
 
-export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"]> : never
-export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never
+export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
+export type GetSortingDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetSortingDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
 
 /**
  * Utility to extract the expected data type of a node based on its' properties and computed data
@@ -599,11 +599,12 @@ export type FilterOperator =
  * and including properties which are nested in objects
  */
 export type ValidFilterForNode<TNode extends INode> = ExtractNodeFilterData<TNode> | ExtractNodeRelationalDataFilter<TNode>
+export type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>
 
 export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
   [
-    TKey in keyof ExtractNodeData<TNode> as
-      ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs>
+    TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as
+      ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs>
         ? IsArray<TDataArgs["TParsedValue"]> extends true
           ? never
           : TDataArgs["TBoxedValue"] extends undefined 
@@ -611,8 +612,8 @@ export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
             : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
               ? TKey
               : never
-        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
-          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
+        : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true
             ? never
             : TKey
           : TKey  
@@ -621,10 +622,10 @@ export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
     : never
 }> 
 
-export type ValidSortForNode<TNode extends INode> = DeepPartial<{
+export type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
   [
-    TKey in keyof ExtractNodeData<TNode> as
-      ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs>
+    TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as
+      ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs>
         ? IsArray<TDataArgs["TParsedValue"]> extends true
           ? never
           : TDataArgs["TBoxedValue"] extends undefined 
@@ -632,21 +633,22 @@ export type ValidSortForNode<TNode extends INode> = DeepPartial<{
             : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
               ? TKey
               : never
-        : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
-          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
+        : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn
+          ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true
             ? never
             : TKey
           : TKey  
   ]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode>
     ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey]
     : never
-}>
+}> 
 
 export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
 export type FilterObjectForNode<TNode extends INode> = ValidFilterForNode<TNode> 
+export type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
   TQueryDefinitionArgs extends {
@@ -658,7 +660,7 @@ export type QueryDefinition<
   def: TQueryDefinitionArgs["TNode"];
   map: TQueryDefinitionArgs["TMapFn"];
   filter?: FilterObjectForNode<TQueryDefinitionArgs["TNode"]>
-  sort?: ValidSortForNode<TQueryDefinitionArgs["TNode"]>
+  sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>
   target?: TQueryDefinitionArgs["TQueryDefinitionTarget"]
   pagination?: IQueryPagination
   tokenName?: string
@@ -997,6 +999,11 @@ export type ExtractNodeData<TNode extends INode> = TNode extends INode<
 >
   ? TNodeArgs["TNodeData"]
   : never;
+export type ExtractNodeDataWithDefaultProperties<TNode extends INode> = TNode extends INode<
+  infer TNodeArgs
+>
+  ? TNodeArgs["TNodeData"] & NodeDefaultProps
+  : never;
 
 export type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<infer TNodeArgs>
   ? DeepPartial<{[Tkey in keyof TNodeArgs['TNodeRelationalData']]: 
@@ -1006,6 +1013,16 @@ export type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends
     : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> 
       ? TOneToOneRelationalNode extends INode<any> 
         ? ExtractNodeFilterData<TOneToOneRelationalNode> : never  
+    : never}>
+  : never;
+export type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends INode<infer TNodeArgs>
+  ? DeepPartial<{[Tkey in keyof TNodeArgs['TNodeRelationalData']]: 
+    TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> 
+      ? TOneToManyRelationalNode extends INode<any> 
+        ? ExtractNodeSortData<TOneToManyRelationalNode> : never 
+    : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> 
+      ? TOneToOneRelationalNode extends INode<any> 
+        ? ExtractNodeSortData<TOneToOneRelationalNode> : never  
     : never}>
   : never;
 
