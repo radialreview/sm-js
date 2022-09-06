@@ -611,6 +611,40 @@ const stateNode: StateNode = mmGQL.def({
   // @ts-expect-error
   withExplicitTypesOmitted.data.mock.nodes[0].foo as string;
 
+  const mockNodeWiuthExplicitTypes = mmGQL.def_typed<
+    INode<{
+      TNodeType: 'test';
+      TNodeData: { t: typeof string };
+      TNodeComputedData: {
+        a: string;
+        b: string;
+      };
+      TNodeRelationalData: {};
+    }>
+  >({
+    type: 'test',
+    properties: {
+      t: string,
+    },
+    computed: {
+      a: ({ t }) => t,
+      // test that computed properties can use other computed properties
+      b: ({ a }) => a,
+    },
+  });
+
+  // This mock node is all inferred, without the use of explicit types
+  const withWithExplicitTypes = await mmGQL.query({
+    mock: queryDefinition({
+      def: mockNodeWiuthExplicitTypes,
+      map: ({ t }) => ({ t }),
+    }),
+  });
+
+  withWithExplicitTypes.data.mock.nodes[0].t as string;
+  // @ts-expect-error
+  withWithExplicitTypes.data.mock.nodes[0].foo as string;
+
   const withRelationalUnion = await mmGQL.query({
     todos: queryDefinition({
       def: todoNode,
