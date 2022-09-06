@@ -7515,7 +7515,7 @@ var MMGQL = /*#__PURE__*/function () {
   //
   ;
 
-  _proto.def_typed = function def_typed(def) {
+  _proto.defTyped = function defTyped(def) {
     return this.def(def);
   };
 
