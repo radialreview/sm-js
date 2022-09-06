@@ -643,27 +643,6 @@ export type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
     : never
 }> 
 
-// export type ValidSortForNode<TNode extends INode> = DeepPartial<{
-//   [
-//     TKey in keyof ExtractNodeData<TNode> as
-//       ExtractNodeData<TNode>[TKey] extends IData<infer TDataArgs>
-//         ? IsArray<TDataArgs["TParsedValue"]> extends true
-//           ? never
-//           : TDataArgs["TBoxedValue"] extends undefined 
-//             ? TKey
-//             : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn>
-//               ? TKey
-//               : never
-//         : ExtractNodeData<TNode>[TKey] extends DataDefaultFn
-//           ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeData<TNode>[TKey]>> extends true
-//             ? never
-//             : TKey
-//           : TKey  
-//   ]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode>
-//     ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey]
-//     : never
-// }>
-
 export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
