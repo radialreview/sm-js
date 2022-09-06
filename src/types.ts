@@ -171,7 +171,7 @@ export interface IMMGQL {
     TNodeRelationalData: TNodeRelationalData;
   }>;
 
-  def_typed<
+  defTyped<
     TNode extends INode
   >(def: TNode extends INode<infer TNodeArgs> ? NodeDefArgs<TNodeArgs> : never): TNode
 }

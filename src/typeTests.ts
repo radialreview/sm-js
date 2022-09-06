@@ -611,7 +611,7 @@ const stateNode: StateNode = mmGQL.def({
   // @ts-expect-error
   withExplicitTypesOmitted.data.mock.nodes[0].foo as string;
 
-  const mockNodeWiuthExplicitTypes = mmGQL.def_typed<
+  const mockNodeWiuthExplicitTypes = mmGQL.defTyped<
     INode<{
       TNodeType: 'test';
       TNodeData: { t: typeof string };
