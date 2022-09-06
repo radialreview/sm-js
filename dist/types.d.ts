@@ -139,6 +139,7 @@ export interface IMMGQL {
         TNodeComputedData: TNodeComputedData;
         TNodeRelationalData: TNodeRelationalData;
     }>;
+    defTyped<TNode extends INode>(def: TNode extends INode<infer TNodeArgs> ? NodeDefArgs<TNodeArgs> : never): TNode;
 }
 export declare type NodeDefArgs<TDefArgs extends {
     TNodeType: string;

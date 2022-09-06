@@ -118,6 +118,15 @@ export class MMGQL implements IMMGQL {
     };
   }
 
+  // This is simply an easier to consume version of the "def" function above
+  // if explicit types are needed
+  //
+  public defTyped<TNode extends INode>(
+    def: TNode extends INode<infer TNodeArgs> ? NodeDefArgs<TNodeArgs> : never
+  ): TNode {
+    return this.def(def) as TNode;
+  }
+
   public getToken(opts: { tokenName: string }): string {
     return this.tokens[opts.tokenName];
   }

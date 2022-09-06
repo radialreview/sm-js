@@ -34,6 +34,7 @@ export declare class MMGQL implements IMMGQL {
         TNodeComputedData: TNodeComputedData;
         TNodeRelationalData: TNodeRelationalData;
     }>;
+    defTyped<TNode extends INode>(def: TNode extends INode<infer TNodeArgs> ? NodeDefArgs<TNodeArgs> : never): TNode;
     getToken(opts: {
         tokenName: string;
     }): string;
