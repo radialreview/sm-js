@@ -677,7 +677,7 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  it('supports "an" filters', () => {
+  it('supports "and" filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
@@ -686,14 +686,14 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: { _condition: 'or', eq: 'get it done' } },
+            filter: { task: { _condition: 'and', eq: 'get it done' } },
           }),
         },
         useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
+        todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}]}) {
           nodes {
             id,
             version,
