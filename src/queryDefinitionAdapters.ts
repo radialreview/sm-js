@@ -19,14 +19,15 @@ import {
   QueryDefinition,
   DataDefaultFn,
   IOneToOneQueryBuilderOpts,
+  EStringFilterOperator,
+  FilterCondition,
+  ENumberFilterOperator,
 } from './types';
-import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-import { getFlattenedNodeFilterObject } from './dataUtilities';
-import { set as lodashSet } from 'lodash';
+
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -487,45 +488,107 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
+function wrapInQuotesIfString(value: any) {
+  if (typeof value === 'string') return `"${value}"`;
+  return value;
+}
+
 export function getKeyValueFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
-  const flattenedFilters = getFlattenedNodeFilterObject(filter);
-  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  // Adding '{} || ' temporarily disable all server filters
-  // Remove those line once backend filters are ready
-  const filtersWithEqualCondition = Object.keys({} || flattenedFilters)
-    .filter(x => {
-      return flattenedFilters[x]._eq !== undefined;
-    })
-    .reduce((acc, current) => {
-      lodashSet(acc, current, flattenedFilters[current]._eq);
-      return acc;
-    }, {} as ValidFilterForNode<TNode>);
+  type FilterForBE = {
+    key: keyof ValidFilterForNode<TNode>;
+    operator: EStringFilterOperator | ENumberFilterOperator;
+    value: any;
+  };
+  const readyForBE = Object.keys(filter).reduce(
+    (acc, current) => {
+      const key = current as keyof ValidFilterForNode<TNode>;
+      let filterForBE: FilterForBE;
+      if (
+        filter[key] === null ||
+        typeof filter[key] === 'string' ||
+        typeof filter[key] === 'number' ||
+        typeof filter[key] === 'boolean'
+      ) {
+        filterForBE = {
+          key,
+          operator: EStringFilterOperator.eq,
+          value: filter[key],
+        };
+      } else {
+        const { _condition, ...rest } = filter[key];
+        const keys = Object.keys(rest);
+        if (keys.length !== 1) {
+          throw Error('Expected 1 property on this filter object');
+        }
+        const operator = (keys[0] as unknown) as
+          | EStringFilterOperator
+          | ENumberFilterOperator;
+        const value = rest[operator as keyof typeof rest];
 
-  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
-    omitObjectIdentifier: true,
-  });
-  return `{${Object.entries(convertedToDotFormat).reduce(
-    (acc, [key, value], idx, entries) => {
-      acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
-      if (idx < entries.length - 1) {
-        acc += `, `;
+        filterForBE = {
+          key,
+          operator,
+          value,
+        };
       }
+
+      const condition: FilterCondition = filter[key]?._condition || 'and';
+
+      const conditionArray = acc[condition] || [];
+      conditionArray.push(filterForBE);
+
+      acc[condition] = conditionArray;
+
+      return acc;
+    },
+    {} as {
+      and?: Array<FilterForBE>;
+      or?: Array<FilterForBE>;
+    }
+  );
+
+  if (readyForBE.and?.length === 0) {
+    delete readyForBE.and;
+  }
+
+  if (readyForBE.or?.length === 0) {
+    delete readyForBE.or;
+  }
+
+  return `${Object.entries(readyForBE).reduce(
+    (acc, [condition, filters], index) => {
+      if (index > 0) acc += ', ';
+
+      const stringifiedFilters = filters.reduce((acc, filter, index) => {
+        if (index > 0) acc += ', ';
+        acc += `{${filter.key}: {${filter.operator}: ${wrapInQuotesIfString(
+          filter.value
+        )}}}`;
+
+        return acc;
+      }, '');
+
+      acc += `{${condition}: [${stringifiedFilters}]}`;
+
       return acc;
     },
     ''
-  )}}`;
+  )}`;
 }
 
 function getGetNodeOptions<TNode extends INode>(opts: {
   def: TNode;
   filter?: ValidFilterForNode<TNode>;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
+  if (!opts.useServerSidePaginationFilteringSorting) return '';
+
   const options: Array<string> = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
+    options.push(`where: ${getKeyValueFilterString(opts.filter)}`);
   }
 
   return options.join(', ');
@@ -595,15 +658,17 @@ function getRelationalQueryString(opts: {
   }, '');
 }
 
-function getOperationFromQueryRecordEntry(queryRecordEntry: QueryRecordEntry) {
-  const nodeType = queryRecordEntry.def.type;
+function getOperationFromQueryRecordEntry(
+  opts: { useServerSidePaginationFilteringSorting: boolean } & QueryRecordEntry
+) {
+  const nodeType = opts.def.type;
   let operation: string;
-  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
-    operation = `${nodeType}s(ids: ${getIdsString(queryRecordEntry.ids)})`;
-  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
-    operation = `${nodeType}(id: "${queryRecordEntry.id}")`;
+  if ('ids' in opts && opts.ids != null) {
+    operation = `${nodeType}s(ids: ${getIdsString(opts.ids)})`;
+  } else if ('id' in opts && opts.id != null) {
+    operation = `${nodeType}(id: "${opts.id}")`;
   } else {
-    const options = getGetNodeOptions(queryRecordEntry);
+    const options = getGetNodeOptions(opts);
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   }
 
@@ -619,6 +684,7 @@ function wrapInNodes(opts: { propertiesString: string; nestLevel: number }) {
 function getRootLevelQueryString(
   opts: {
     alias: string;
+    useServerSidePaginationFilteringSorting: boolean;
   } & QueryRecordEntry
 ) {
   const operation = getOperationFromQueryRecordEntry(opts);
@@ -654,14 +720,17 @@ export type SubscriptionConfig = {
 export function getQueryGQLStringFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   return (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
       .map(alias =>
         getRootLevelQueryString({
-          alias,
           ...opts.queryRecord[alias],
+          alias,
+          useServerSidePaginationFilteringSorting:
+            opts.useServerSidePaginationFilteringSorting,
         })
       )
       .join('\n    ') +
@@ -691,11 +760,17 @@ export function getQueryInfo<
     TMapFn,
     TQueryDefinitionTarget
   >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+>(opts: {
+  queryDefinitions: TQueryDefinitions;
+  queryId: string;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
   const queryGQLString = getQueryGQLStringFromQueryRecord({
     queryId: opts.queryId,
     queryRecord,
+    useServerSidePaginationFilteringSorting:
+      opts.useServerSidePaginationFilteringSorting,
   });
   const queryParamsString = JSON.stringify(
     getQueryRecordSortAndFilterValues(queryRecord)
@@ -709,7 +784,11 @@ export function getQueryInfo<
     });
     const queryRecordEntry = queryRecord[alias];
 
-    const operation = getOperationFromQueryRecordEntry(queryRecordEntry);
+    const operation = getOperationFromQueryRecordEntry({
+      ...queryRecordEntry,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
 
     const gqlStrings = [
       `
@@ -785,7 +864,11 @@ export function convertQueryDefinitionToQueryInfo<
     TMapFn,
     TQueryDefinitionTarget
   >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+>(opts: {
+  queryDefinitions: TQueryDefinitions;
+  queryId: string;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
   const {
     queryGQLString,
     subscriptionConfigs,

@@ -17,6 +17,7 @@ import {
   SubscriptionMeta,
   SubscriptionCanceller,
   IGQLClient,
+  EPaginationFilteringSortingInstance,
 } from './types';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
@@ -165,6 +166,9 @@ export function generateQuerier({
               {
                 queryDefinitions: queryDefinitions,
                 queryId: queryId + '_' + tokenName,
+                useServerSidePaginationFilteringSorting:
+                  mmGQLInstance.paginationFilteringSortingInstance ===
+                  EPaginationFilteringSortingInstance.SERVER,
               }
             );
 
@@ -177,6 +181,9 @@ export function generateQuerier({
               response = await mmGQLInstance.QuerySlimmer.query({
                 queryId: `${queryId}_${tokenName}`,
                 queryDefinitions,
+                useServerSidePaginationFilteringSorting:
+                  mmGQLInstance.paginationFilteringSortingInstance ===
+                  EPaginationFilteringSortingInstance.SERVER,
                 tokenName,
                 queryOpts: opts,
               });
@@ -191,18 +198,27 @@ export function generateQuerier({
               response = await mmGQLInstance.gqlClient.query(queryOpts);
             }
 
-            // clone the object only if we are running the unit test
-            // to simulate that we are receiving new response
-            // to prevent mutating the object multiple times when filtering or sorting
-            // resulting into incorrect results in our specs
-            const filteredAndSortedResponse =
-              process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
-            applyClientSideSortAndFilterToData(
-              queryRecord,
-              filteredAndSortedResponse
-            );
+            if (
+              mmGQLInstance.paginationFilteringSortingInstance ===
+              EPaginationFilteringSortingInstance.CLIENT
+            ) {
+              // clone the object only if we are running the unit test
+              // to simulate that we are receiving new response
+              // to prevent mutating the object multiple times when filtering or sorting
+              // resulting into incorrect results in our specs
+              const filteredAndSortedResponse =
+                process.env.NODE_ENV === 'test'
+                  ? cloneDeep(response)
+                  : response;
+              applyClientSideSortAndFilterToData(
+                queryRecord,
+                filteredAndSortedResponse
+              );
 
-            return filteredAndSortedResponse;
+              return filteredAndSortedResponse;
+            }
+
+            return response;
           }
         )
       );
@@ -235,6 +251,9 @@ export function generateQuerier({
           convertQueryDefinitionToQueryInfo({
             queryDefinitions: nonNullishQueryDefinitions,
             queryId,
+            useServerSidePaginationFilteringSorting:
+              mmGQLInstance.paginationFilteringSortingInstance ===
+              EPaginationFilteringSortingInstance.SERVER,
           }).queryRecord
         );
       try {
@@ -327,6 +346,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     } = convertQueryDefinitionToQueryInfo({
       queryDefinitions: nonNullishQueryDefinitions,
       queryId,
+      useServerSidePaginationFilteringSorting:
+        mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
     });
 
     opts.onQueryInfoConstructed &&
@@ -419,6 +441,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
           const { subscriptionConfigs } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
             queryId: queryId + '_' + tokenName,
+            useServerSidePaginationFilteringSorting:
+              mmGQLInstance.paginationFilteringSortingInstance ===
+              EPaginationFilteringSortingInstance.SERVER,
           });
 
           subscriptionCancellers.push(
@@ -475,6 +500,9 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
           const { queryRecord } = convertQueryDefinitionToQueryInfo({
             queryDefinitions,
             queryId: queryId + '_' + tokenName,
+            useServerSidePaginationFilteringSorting:
+              mmGQLInstance.paginationFilteringSortingInstance ===
+              EPaginationFilteringSortingInstance.SERVER,
           });
           mmGQLInstance.QuerySlimmer.onSubscriptionCancelled(queryRecord);
         }

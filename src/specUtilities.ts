@@ -16,6 +16,7 @@ import {
   Config,
   QueryDefinitionTarget,
   NodeDefaultProps,
+  EPaginationFilteringSortingInstance,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 import { NodesCollection } from './nodesCollection';
@@ -315,6 +316,7 @@ export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const { queryRecord } = convertQueryDefinitionToQueryInfo({
     queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
+    useServerSidePaginationFilteringSorting: true,
   });
 
   return queryRecord;
@@ -363,6 +365,7 @@ export function getMockConfig(opts?: {
   generateMockData?: boolean;
   enableQuerySlimming?: boolean;
   enableQuerySlimmingLogging?: boolean;
+  paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
 }): Config {
   return {
     gqlClient: {
@@ -374,6 +377,9 @@ export function getMockConfig(opts?: {
     generateMockData: !!opts?.generateMockData,
     enableQuerySlimming: opts?.enableQuerySlimming ?? false,
     enableQuerySlimmingLogging: opts?.enableQuerySlimmingLogging ?? false,
+    paginationFilteringSortingInstance:
+      opts?.paginationFilteringSortingInstance ??
+      EPaginationFilteringSortingInstance.SERVER,
   };
 }
 

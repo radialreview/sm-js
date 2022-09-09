@@ -1,5 +1,5 @@
 import { getGQLCLient } from './gqlClient';
-import { Config } from './types';
+import { Config, EPaginationFilteringSortingInstance } from './types';
 
 export function getDefaultConfig(): Config {
   return {
@@ -12,5 +12,7 @@ export function getDefaultConfig(): Config {
     generateMockData: false,
     enableQuerySlimming: false,
     enableQuerySlimmingLogging: false,
+    paginationFilteringSortingInstance:
+      EPaginationFilteringSortingInstance.SERVER,
   };
 }

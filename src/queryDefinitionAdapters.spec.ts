@@ -380,6 +380,7 @@ describe('getQueryInfo.queryGQLString', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -424,6 +425,7 @@ describe('getQueryInfo.queryGQLString', () => {
           users: createMockQueryDefinitions(mmGQLInstance).users,
           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -495,6 +497,7 @@ describe('getQueryInfo.queryGQLString', () => {
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
           useIds: true,
         }),
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -538,6 +541,7 @@ describe('getQueryInfo.queryGQLString', () => {
         queryDefinitions: {
           todos: generateTodoNode(mmGQLInstance),
         },
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -580,6 +584,7 @@ describe('getQueryInfo.queryGQLString', () => {
             map: undefined,
           },
         },
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
@@ -611,8 +616,7 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  it.skip('supports filters', () => {
+  it('supports strict equality filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
       getQueryInfo({
@@ -621,13 +625,19 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: 'get it done', done: false, meetingId: null },
+            filter: {
+              task: 'get it done',
+              done: false,
+              meetingId: null,
+              dateCreated: 1,
+            },
           }),
         },
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(filter: {task: \\"get it done\\", done: \\"false\\", meetingId: null}) {
+        todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}, {done: {eq: false}}, {meetingId: {eq: null}}, {dateCreated: {eq: 1}}]}) {
           nodes {
             id,
             version,
@@ -639,10 +649,8 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
-  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  it.skip('supports filters for nested properties', () => {
+  it('supports "or" filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
-
     expect(
       getQueryInfo({
         queryId: 'MyTestQuery',
@@ -650,15 +658,42 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: {
-              settings: { nestedSettings: { nestedNestedMaybe: 'mock value' } },
-            },
+            filter: { task: { _condition: 'or', eq: 'get it done' } },
           }),
         },
+        useServerSidePaginationFilteringSorting: true,
       }).queryGQLString
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(filter: {settings__dot__nestedSettings__dot__nestedNestedMaybe: \\"mock value\\"}) {
+        todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
+          nodes {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+        }
+      }"
+    `);
+  });
+
+  it('supports "an" filters', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(mmGQLInstance),
+            map: (() => ({})) as MapFnForNode<TodoNode>,
+            filter: { task: { _condition: 'or', eq: 'get it done' } },
+          }),
+        },
+        useServerSidePaginationFilteringSorting: true,
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+        todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
           nodes {
             id,
             version,
@@ -680,6 +715,7 @@ describe('getQueryInfo.queryGQLString', () => {
             users: createMockQueryDefinitions(mmGQLInstance).users,
             otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
           },
+          useServerSidePaginationFilteringSorting: true,
         }).queryGQLString
       )
     ).not.toThrow();
@@ -693,6 +729,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
       getQueryInfo({
         queryId: 'MyTestQuery',
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
+        useServerSidePaginationFilteringSorting: true,
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -740,6 +777,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
           users: createMockQueryDefinitions(mmGQLInstance).users,
           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
+        useServerSidePaginationFilteringSorting: true,
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -817,6 +855,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
           useIds: true,
         }),
+        useServerSidePaginationFilteringSorting: true,
       }).subscriptionConfigs.map(config => config.gqlString)
     ).toMatchInlineSnapshot(`
       Array [
@@ -864,6 +903,7 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
           users: createMockQueryDefinitions(mmGQLInstance).users,
           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
         },
+        useServerSidePaginationFilteringSorting: true,
       }).subscriptionConfigs.map(config => gql(config.gqlString))
     ).not.toThrow();
   });

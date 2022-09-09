@@ -8,6 +8,7 @@ import {
   UseSubscriptionQueryDefinitions,
   UseSubscriptionQueryDefinitionOpts,
   SubscriptionMeta,
+  EPaginationFilteringSortingInstance,
 } from '../types';
 
 import {
@@ -88,6 +89,9 @@ export function useSubscription<
       },
       silenceDuplicateSubIdErrors:
         loggingContext.unsafe__silenceDuplicateSubIdErrors,
+      useServerSidePaginationFilteringSorting:
+        context.mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
     });
   } catch (e) {
     qdError = e;
@@ -231,6 +235,7 @@ function buildQueryDefinitionStateManager<
     onError(error: any): void;
     setQuerying(querying: boolean): void;
   };
+  useServerSidePaginationFilteringSorting: boolean;
   silenceDuplicateSubIdErrors: boolean;
 }): UseSubscriptionReturn<TQueryDefinitions> & {
   onHookMount(): void;
@@ -348,6 +353,8 @@ function buildQueryDefinitionStateManager<
         newQueryInfo = convertQueryDefinitionToQueryInfo({
           queryDefinitions: nonNullishQueryDefinitions,
           queryId: preExistingQueryInfo.queryId,
+          useServerSidePaginationFilteringSorting:
+            opts.useServerSidePaginationFilteringSorting,
         });
       } else {
         newQueryDefinitionsAreAllNull = true;

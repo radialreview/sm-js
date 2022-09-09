@@ -60,6 +60,7 @@ export class QuerySlimmer {
   >(opts: {
     queryId: string;
     queryDefinitions: TQueryDefinitions;
+    useServerSidePaginationFilteringSorting: boolean;
     queryOpts?: QueryOpts<TQueryDefinitions>;
     tokenName: string;
   }) {
@@ -87,6 +88,8 @@ export class QuerySlimmer {
       await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByCache,
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
         batchKey: opts.queryOpts?.batchKey,
       });
@@ -109,6 +112,8 @@ export class QuerySlimmer {
       await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
         batchKey: opts.queryOpts?.batchKey,
       });
@@ -654,6 +659,7 @@ export class QuerySlimmer {
     queryId: string;
     queryRecord: QueryRecord;
     tokenName: string;
+    useServerSidePaginationFilteringSorting: boolean;
     batchKey?: string | undefined;
   }) {
     const inFlightQuery: IInFlightQueryRecord = {
@@ -663,6 +669,8 @@ export class QuerySlimmer {
     const queryGQLString = getQueryGQLStringFromQueryRecord({
       queryId: opts.queryId,
       queryRecord: opts.queryRecord,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
     });
     const queryOpts: Parameters<IGQLClient['query']>[0] = {
       gql: gql(queryGQLString),

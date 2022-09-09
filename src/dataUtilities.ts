@@ -2,7 +2,7 @@ import { isArray, isObject } from 'lodash';
 import { FILTER_OPERATORS } from './consts';
 import {
   FilterCondition,
-  FilterOperator,
+  EStringFilterOperator,
   FilterValue,
   INode,
   SortObject,
@@ -207,7 +207,9 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
 ) {
   const result: Record<
     string,
-    Partial<Record<FilterOperator, any>> & { _condition: FilterCondition }
+    Partial<Record<EStringFilterOperator, any>> & {
+      _condition: FilterCondition;
+    }
   > = {};
 
   const filterObject2 = filterObject as any;
@@ -233,12 +235,12 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
       if (isObject(value)) {
         result[i] = {
           ...value,
-          _condition: value._condition || 'AND',
+          _condition: value._condition || 'and',
         };
       } else if (value !== undefined) {
         result[i] = {
-          _eq: value,
-          _condition: 'AND',
+          [EStringFilterOperator.eq]: value,
+          _condition: 'and',
         };
       }
     }

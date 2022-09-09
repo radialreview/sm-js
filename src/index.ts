@@ -17,6 +17,7 @@ import {
   NodeDefArgs,
   INode,
   NodeDefaultProps,
+  EPaginationFilteringSortingInstance,
 } from './types';
 
 export * from './types';
@@ -33,6 +34,7 @@ export class MMGQL implements IMMGQL {
   public generateMockData: IMMGQL['generateMockData'];
   public enableQuerySlimming: IMMGQL['enableQuerySlimming'];
   public enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
+  public paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
   public plugins: IMMGQL['plugins'];
   public query: IMMGQL['query'];
   public subscribe: IMMGQL['subscribe'];
@@ -51,6 +53,8 @@ export class MMGQL implements IMMGQL {
     this.generateMockData = config.generateMockData;
     this.enableQuerySlimming = config.enableQuerySlimming;
     this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
+    this.paginationFilteringSortingInstance =
+      config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
     this.query = generateQuerier({ mmGQLInstance: this });
     this.subscribe = generateSubscriber(this);
@@ -62,6 +66,16 @@ export class MMGQL implements IMMGQL {
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested,
     });
+
+    if (
+      config.generateMockData &&
+      config.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER
+    ) {
+      throw Error(
+        `mmGQL was told to generate mock data and use "SERVER" pagination/filtering/sorting. Switch paginationFilteringSortingInstance to "CLIENT"`
+      );
+    }
   }
 
   public def<
