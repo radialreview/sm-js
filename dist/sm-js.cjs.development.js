@@ -3118,7 +3118,7 @@ function wrapInQuotesIfString(value) {
   return value;
 }
 
-function getKeyValueFilterString(filter) {
+function getBEFilterString(filter) {
   var _readyForBE$and, _readyForBE$or;
 
   var readyForBE = Object.keys(filter).reduce(function (acc, current) {
@@ -3181,12 +3181,48 @@ function getKeyValueFilterString(filter) {
   }, '');
 }
 
+function getBEOrderArrayString(sort) {
+  return Object.keys(sort).reduce(function (acc, key, sortIndex, sortKeys) {
+    var direction;
+    var priority;
+    var sortValue = sort[key];
+
+    if (typeof sortValue === 'string') {
+      if (sortValue === 'asc') {
+        direction = 'ASC';
+      } else {
+        direction = 'DESC';
+      } // ensure that items which were not given priority
+      // are placed at the end of the array
+      // in the order in which they were received
+
+
+      priority = sortKeys.length + sortIndex;
+    } else {
+      var sortObject = sortValue;
+      direction = sortObject._direction === 'asc' ? 'ASC' : 'DESC';
+      priority = sortObject._priority != null ? sortObject._priority : sortKeys.length + sortIndex;
+    }
+
+    acc[priority] = "{" + key + ": " + direction + "}";
+    return acc;
+  }, []) // because we use priority to index sort objects
+  // we must filter out any indicies we left empty
+  .filter(function (item) {
+    return item != null;
+  }).join(', ');
+}
+
 function getGetNodeOptions(opts) {
   if (!opts.useServerSidePaginationFilteringSorting) return '';
   var options = [];
 
-  if (opts.filter !== null && opts.filter !== undefined) {
-    options.push("where: " + getKeyValueFilterString(opts.filter));
+  if (opts.filter != null) {
+    options.push("where: " + getBEFilterString(opts.filter));
+  }
+
+  if (opts.sort != null) {
+    options.push("order: [" + getBEOrderArrayString(opts.sort) + "]");
   }
 
   return options.join(', ');
