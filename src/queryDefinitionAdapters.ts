@@ -22,6 +22,8 @@ import {
   EStringFilterOperator,
   FilterCondition,
   ENumberFilterOperator,
+  ValidSortForNode,
+  SortObject,
 } from './types';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
@@ -493,7 +495,7 @@ function wrapInQuotesIfString(value: any) {
   return value;
 }
 
-export function getKeyValueFilterString<TNode extends INode>(
+export function getBEFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
   type FilterForBE = {
@@ -578,17 +580,61 @@ export function getKeyValueFilterString<TNode extends INode>(
   )}`;
 }
 
+function getBEOrderArrayString<TNode extends INode>(
+  sort: ValidSortForNode<TNode>
+) {
+  return (
+    Object.keys(sort)
+      .reduce((acc, key, sortIndex, sortKeys) => {
+        let direction: 'ASC' | 'DESC';
+        let priority: number;
+        const sortValue = sort[key as keyof ValidSortForNode<TNode>];
+        if (typeof sortValue === 'string') {
+          if (sortValue === 'asc') {
+            direction = 'ASC';
+          } else {
+            direction = 'DESC';
+          }
+
+          // ensure that items which were not given priority
+          // are placed at the end of the array
+          // in the order in which they were received
+          priority = sortKeys.length + sortIndex;
+        } else {
+          const sortObject = sortValue as SortObject;
+          direction = sortObject._direction === 'asc' ? 'ASC' : 'DESC';
+          priority =
+            sortObject._priority != null
+              ? sortObject._priority
+              : sortKeys.length + sortIndex;
+        }
+
+        acc[priority] = `{${key}: ${direction}}`;
+        return acc;
+      }, [] as Array<string>)
+      // because we use priority to index sort objects
+      // we must filter out any indicies we left empty
+      .filter(item => item != null)
+      .join(', ')
+  );
+}
+
 function getGetNodeOptions<TNode extends INode>(opts: {
   def: TNode;
   filter?: ValidFilterForNode<TNode>;
+  sort?: ValidSortForNode<TNode>;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
   if (!opts.useServerSidePaginationFilteringSorting) return '';
 
   const options: Array<string> = [];
 
-  if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(`where: ${getKeyValueFilterString(opts.filter)}`);
+  if (opts.filter != null) {
+    options.push(`where: ${getBEFilterString(opts.filter)}`);
+  }
+
+  if (opts.sort != null) {
+    options.push(`order: [${getBEOrderArrayString(opts.sort)}]`);
   }
 
   return options.join(', ');

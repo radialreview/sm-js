@@ -705,6 +705,93 @@ describe('getQueryInfo.queryGQLString', () => {
     `);
   });
 
+  it('supports sorting short hand syntax', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(mmGQLInstance),
+            map: (() => ({})) as MapFnForNode<TodoNode>,
+            sort: { task: 'asc' },
+          }),
+        },
+        useServerSidePaginationFilteringSorting: true,
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+        todos: todos(order: [{task: ASC}]) {
+          nodes {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+        }
+      }"
+    `);
+  });
+
+  it('supports sorting long hand syntax', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(mmGQLInstance),
+            map: (() => ({})) as MapFnForNode<TodoNode>,
+            sort: { task: { _direction: 'asc' } },
+          }),
+        },
+        useServerSidePaginationFilteringSorting: true,
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+        todos: todos(order: [{task: ASC}]) {
+          nodes {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+        }
+      }"
+    `);
+  });
+
+  it('supports sorting with priority', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getQueryInfo({
+        queryId: 'MyTestQuery',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: generateTodoNode(mmGQLInstance),
+            map: (() => ({})) as MapFnForNode<TodoNode>,
+            sort: {
+              task: { _direction: 'asc' },
+              numberProp: { _direction: 'asc', _priority: 1 },
+            },
+          }),
+        },
+        useServerSidePaginationFilteringSorting: true,
+      }).queryGQLString
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+        todos: todos(order: [{numberProp: ASC}, {task: ASC}]) {
+          nodes {
+            id,
+            version,
+            lastUpdatedBy,
+            type
+          }
+        }
+      }"
+    `);
+  });
+
   it('returns a valid gql string', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(() =>
