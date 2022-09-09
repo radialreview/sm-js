@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance } from './types';
 declare const userProperties: {
     firstName: {
         (defaultValue: string): IData<{
@@ -2393,6 +2393,7 @@ export declare function getMockConfig(opts?: {
     generateMockData?: boolean;
     enableQuerySlimming?: boolean;
     enableQuerySlimmingLogging?: boolean;
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
 export declare function convertNodesCollectionValuesToArray<T extends Record<string, any>>(obj: T): Record<string, any>;

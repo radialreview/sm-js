@@ -12,6 +12,7 @@ export declare class MMGQL implements IMMGQL {
     generateMockData: IMMGQL['generateMockData'];
     enableQuerySlimming: IMMGQL['enableQuerySlimming'];
     enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
+    paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
     plugins: IMMGQL['plugins'];
     query: IMMGQL['query'];
     subscribe: IMMGQL['subscribe'];

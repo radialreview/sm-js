@@ -38,6 +38,7 @@ export declare type Config = {
     generateMockData: boolean;
     enableQuerySlimming: boolean;
     enableQuerySlimmingLogging: boolean;
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
 };
 export interface IGQLClient {
     query(opts: {
@@ -107,6 +108,10 @@ export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
     error: any;
 };
+export declare enum EPaginationFilteringSortingInstance {
+    'SERVER' = 0,
+    'CLIENT' = 1
+}
 export interface IMMGQL {
     getToken(opts: {
         tokenName: string;
@@ -124,6 +129,7 @@ export interface IMMGQL {
     generateMockData: boolean | undefined;
     enableQuerySlimming: boolean | undefined;
     enableQuerySlimmingLogging: boolean | undefined;
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
@@ -231,8 +237,8 @@ export declare type GetSortingDataTypeFromProperties<TProperties extends Record<
 };
 export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? GetResultingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never;
 export declare type SortDirection = 'asc' | 'desc';
-export declare type FilterCondition = 'OR' | 'AND';
-export declare type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValue> & {
+export declare type FilterCondition = 'or' | 'and';
+export declare type FilterValue<TValue extends string | number> = TValue | (Partial<Record<TValue extends string ? EStringFilterOperator : ENumberFilterOperator, TValue> & {
     _condition?: FilterCondition;
 }>);
 export declare type SortObject = {
@@ -420,23 +426,30 @@ export interface INodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
-export declare type FilterOperator = 
-/** greater than or equal */
-'_gte' | 
-/** less than or equal */
-'_lte' | 
-/** equal */
-'_eq' | 
-/** greater than */
-'_gt' | 
-/** less than */
-'_lt' | 
-/** not equal */
-'_neq' | 
-/** contains */
-'_contains' | 
-/** does not contain */
-'_ncontains';
+export declare enum EStringFilterOperator {
+    /** equal */
+    'eq' = "eq",
+    /** not equal */
+    'neq' = "neq",
+    'contains' = "contains",
+    'ncontains' = "ncontains",
+    'startsWith' = "startsWith",
+    'nstartsWith' = "nstartsWith",
+    'endsWith' = "endsWith",
+    'nendsWith' = "nendsWith"
+}
+export declare enum ENumberFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq",
+    'gt' = "gt",
+    'ngt' = "ngt",
+    'gte' = "gte",
+    'ngte' = "ngte",
+    'lt' = "lt",
+    'nlt' = "nlt",
+    'lte' = "lte",
+    'nlte' = "nlte"
+}
 /**
  * Returns the valid filter for a node
  * excluding properties which are arrays and records

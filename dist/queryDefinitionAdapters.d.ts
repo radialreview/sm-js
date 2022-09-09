@@ -13,10 +13,12 @@ export declare type SubscriptionConfig = {
 export declare function getQueryGQLStringFromQueryRecord(opts: {
     queryId: string;
     queryRecord: QueryRecord;
+    useServerSidePaginationFilteringSorting: boolean;
 }): string;
 export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryDefinitions: TQueryDefinitions;
     queryId: string;
+    useServerSidePaginationFilteringSorting: boolean;
 }): {
     subscriptionConfigs: SubscriptionConfig[];
     queryGQLString: string;
@@ -32,6 +34,7 @@ export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQue
 export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryDefinitions: TQueryDefinitions;
     queryId: string;
+    useServerSidePaginationFilteringSorting: boolean;
 }): {
     queryGQL: import("graphql/language/ast").DocumentNode;
     subscriptionConfigs: {

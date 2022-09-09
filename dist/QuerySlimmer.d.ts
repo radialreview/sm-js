@@ -18,6 +18,7 @@ export declare class QuerySlimmer {
     query<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
         queryId: string;
         queryDefinitions: TQueryDefinitions;
+        useServerSidePaginationFilteringSorting: boolean;
         queryOpts?: QueryOpts<TQueryDefinitions>;
         tokenName: string;
     }): Promise<Record<string, any>>;

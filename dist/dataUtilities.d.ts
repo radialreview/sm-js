@@ -1,4 +1,4 @@
-import { FilterCondition, FilterOperator, INode, SortObject, ValidFilterForNode, ValidSortForNode } from './types';
+import { FilterCondition, EStringFilterOperator, INode, SortObject, ValidFilterForNode, ValidSortForNode } from './types';
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
  */
@@ -67,7 +67,7 @@ export declare function getFlattenedObjectKeys(obj: Record<string, any>): string
  * @param filterObject : ;
  * @returns
  */
-export declare function getFlattenedNodeFilterObject<TNode extends INode>(filterObject: ValidFilterForNode<TNode>): Record<string, Partial<Record<FilterOperator, any>> & {
+export declare function getFlattenedNodeFilterObject<TNode extends INode>(filterObject: ValidFilterForNode<TNode>): Record<string, Partial<Record<EStringFilterOperator, any>> & {
     _condition: FilterCondition;
 }>;
 export declare function getFlattenedNodeSortObject<TNode extends INode>(sorting: ValidSortForNode<TNode>): Record<string, SortObject>;

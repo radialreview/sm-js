@@ -1,4 +1,4 @@
-import { isObject, set, isArray, update, orderBy, cloneDeep, sortBy } from 'lodash-es';
+import { isObject, isArray, update, orderBy, cloneDeep, sortBy } from 'lodash-es';
 import Chance from 'chance';
 import { gql, split, ApolloLink, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import { observable, when } from 'mobx';
@@ -333,6 +333,13 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   return UnreachableCaseError;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
 
+var EPaginationFilteringSortingInstance;
+
+(function (EPaginationFilteringSortingInstance) {
+  EPaginationFilteringSortingInstance[EPaginationFilteringSortingInstance["SERVER"] = 0] = "SERVER";
+  EPaginationFilteringSortingInstance[EPaginationFilteringSortingInstance["CLIENT"] = 1] = "CLIENT";
+})(EPaginationFilteringSortingInstance || (EPaginationFilteringSortingInstance = {}));
+
 var DATA_TYPES;
 
 (function (DATA_TYPES) {
@@ -358,6 +365,37 @@ var RELATIONAL_TYPES;
   RELATIONAL_TYPES["oneToOne"] = "oTO";
   RELATIONAL_TYPES["oneToMany"] = "otM";
 })(RELATIONAL_TYPES || (RELATIONAL_TYPES = {}));
+
+var EStringFilterOperator;
+
+(function (EStringFilterOperator) {
+  /** equal */
+  EStringFilterOperator["eq"] = "eq";
+  /** not equal */
+
+  EStringFilterOperator["neq"] = "neq";
+  EStringFilterOperator["contains"] = "contains";
+  EStringFilterOperator["ncontains"] = "ncontains";
+  EStringFilterOperator["startsWith"] = "startsWith";
+  EStringFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringFilterOperator["endsWith"] = "endsWith";
+  EStringFilterOperator["nendsWith"] = "nendsWith";
+})(EStringFilterOperator || (EStringFilterOperator = {}));
+
+var ENumberFilterOperator;
+
+(function (ENumberFilterOperator) {
+  ENumberFilterOperator["eq"] = "eq";
+  ENumberFilterOperator["neq"] = "neq";
+  ENumberFilterOperator["gt"] = "gt";
+  ENumberFilterOperator["ngt"] = "ngt";
+  ENumberFilterOperator["gte"] = "gte";
+  ENumberFilterOperator["ngte"] = "ngte";
+  ENumberFilterOperator["lt"] = "lt";
+  ENumberFilterOperator["nlt"] = "nlt";
+  ENumberFilterOperator["lte"] = "lte";
+  ENumberFilterOperator["nlte"] = "nlte";
+})(ENumberFilterOperator || (ENumberFilterOperator = {}));
 
 var Data = function Data(opts) {
   var _opts$defaultValue;
@@ -1481,13 +1519,12 @@ function getFlattenedNodeFilterObject(filterObject) {
     } else {
       if (isObject(value)) {
         result[i] = _extends({}, value, {
-          _condition: value._condition || 'AND'
+          _condition: value._condition || 'and'
         });
       } else if (value !== undefined) {
-        result[i] = {
-          _eq: value,
-          _condition: 'AND'
-        };
+        var _result$i;
+
+        result[i] = (_result$i = {}, _result$i[EStringFilterOperator.eq] = value, _result$i._condition = 'and', _result$i);
       }
     }
   };
@@ -2732,185 +2769,7 @@ function generateRandomNumber(min, max) {
   });
 }
 
-var _excluded = ["to"],
-    _excluded2 = ["from"];
-var JSON_TAG$1 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = prepareForBE(nodeData);
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-}
-
-function escapeText(text) {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-}
-/**
- * Takes an object node value and flattens it to be sent to SM
- *
- * @param obj an object with arbitrary data
- * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
- * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
- *  used to construct filters since there we don't care what the parent property is set to
- * @returns a flat object where the keys are of "key__dot__value" syntax
- *
- * For example:
- * ```typescript
- * const obj = {settings: {schedule: {day: 'Monday'} } }
- *  const result = prepareValueForBE(obj)
- * ```
- * The result will be:
- *  ```typescript
- *  {
- * settings: '__object__',
- * settings__dot__schedule: '__object__',
- * settings__dot__schedule__dot__day: 'Monday',
- * }
- * ```
- */
-
-
-function prepareObjectForBE(obj, opts) {
-  return Object.entries(obj).reduce(function (acc, _ref2) {
-    var key = _ref2[0],
-        val = _ref2[1];
-    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
-
-    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
-      if (!opts || !opts.omitObjectIdentifier) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
-      }
-
-      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
-        var key = _ref3[0],
-            val = _ref3[1];
-        return _extends({}, acc, convertPropertyToBE(_extends({
-          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
-          value: val
-        }, opts)));
-      }, {}));
-    } else {
-      acc = _extends({}, acc, convertPropertyToBE(_extends({
-        key: preparedKey,
-        value: val
-      }, opts)));
-    }
-
-    return acc;
-  }, {});
-}
-
-function convertPropertyToBE(opts) {
-  if (opts.value === null) {
-    var _ref4;
-
-    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
-  } else if (Array.isArray(opts.value)) {
-    var _ref5;
-
-    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref5;
-  } else if (typeof opts.value === 'object') {
-    var _prepareObjectForBE;
-
-    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
-      omitObjectIdentifier: opts.omitObjectIdentifier
-    });
-  } else if (typeof opts.value === 'string') {
-    var _ref6;
-
-    return _ref6 = {}, _ref6[opts.key] = escapeText(opts.value), _ref6;
-  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-    var _ref8;
-
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      var _ref7;
-
-      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
-    }
-
-    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
-  } else {
-    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-  }
-}
-
-function convertEdgeDirectionNames(edgeItem) {
-  if (edgeItem.hasOwnProperty('to')) {
-    var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
-
-    return _extends({}, restOfEdgeItem, {
-      targetId: to
-    });
-  } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
-
-    return _extends({}, _restOfEdgeItem, {
-      sourceId: edgeItem.from
-    });
-  }
-
-  throw new Error('convertEdgeDirectionNames - received invalid data');
-}
-
-function prepareForBE(obj) {
-  return Object.entries(obj).reduce(function (acc, _ref9) {
-    var key = _ref9[0],
-        value = _ref9[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, convertPropertyToBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-}
-
+var _excluded = ["_condition"];
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -3258,38 +3117,80 @@ function getIdsString(ids) {
   }).join(',') + "]";
 }
 
+function wrapInQuotesIfString(value) {
+  if (typeof value === 'string') return "\"" + value + "\"";
+  return value;
+}
+
 function getKeyValueFilterString(filter) {
-  var flattenedFilters = getFlattenedNodeFilterObject(filter); // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  // Adding '{} || ' temporarily disable all server filters
-  // Remove those line once backend filters are ready
+  var _readyForBE$and, _readyForBE$or;
 
-  var filtersWithEqualCondition = Object.keys({} || flattenedFilters).filter(function (x) {
-    return flattenedFilters[x]._eq !== undefined;
-  }).reduce(function (acc, current) {
-    set(acc, current, flattenedFilters[current]._eq);
-    return acc;
-  }, {});
-  var convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
-    omitObjectIdentifier: true
-  });
-  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
-    var key = _ref[0],
-        value = _ref[1];
-    acc += key + ": " + (value == null ? null : "\"" + String(value) + "\"");
+  var readyForBE = Object.keys(filter).reduce(function (acc, current) {
+    var _filter$key2;
 
-    if (idx < entries.length - 1) {
-      acc += ", ";
+    var key = current;
+    var filterForBE;
+
+    if (filter[key] === null || typeof filter[key] === 'string' || typeof filter[key] === 'number' || typeof filter[key] === 'boolean') {
+      filterForBE = {
+        key: key,
+        operator: EStringFilterOperator.eq,
+        value: filter[key]
+      };
+    } else {
+      var _filter$key = filter[key],
+          rest = _objectWithoutPropertiesLoose(_filter$key, _excluded);
+
+      var keys = Object.keys(rest);
+
+      if (keys.length !== 1) {
+        throw Error('Expected 1 property on this filter object');
+      }
+
+      var operator = keys[0];
+      var value = rest[operator];
+      filterForBE = {
+        key: key,
+        operator: operator,
+        value: value
+      };
     }
 
+    var condition = ((_filter$key2 = filter[key]) == null ? void 0 : _filter$key2._condition) || 'and';
+    var conditionArray = acc[condition] || [];
+    conditionArray.push(filterForBE);
+    acc[condition] = conditionArray;
     return acc;
-  }, '') + "}";
+  }, {});
+
+  if (((_readyForBE$and = readyForBE.and) == null ? void 0 : _readyForBE$and.length) === 0) {
+    delete readyForBE.and;
+  }
+
+  if (((_readyForBE$or = readyForBE.or) == null ? void 0 : _readyForBE$or.length) === 0) {
+    delete readyForBE.or;
+  }
+
+  return "" + Object.entries(readyForBE).reduce(function (acc, _ref, index) {
+    var condition = _ref[0],
+        filters = _ref[1];
+    if (index > 0) acc += ', ';
+    var stringifiedFilters = filters.reduce(function (acc, filter, index) {
+      if (index > 0) acc += ', ';
+      acc += "{" + filter.key + ": {" + filter.operator + ": " + wrapInQuotesIfString(filter.value) + "}}";
+      return acc;
+    }, '');
+    acc += "{" + condition + ": [" + stringifiedFilters + "]}";
+    return acc;
+  }, '');
 }
 
 function getGetNodeOptions(opts) {
+  if (!opts.useServerSidePaginationFilteringSorting) return '';
   var options = [];
 
   if (opts.filter !== null && opts.filter !== undefined) {
-    options.push("filter: " + getKeyValueFilterString(opts.filter));
+    options.push("where: " + getKeyValueFilterString(opts.filter));
   }
 
   return options.join(', ');
@@ -3335,16 +3236,16 @@ function getRelationalQueryString(opts) {
   }, '');
 }
 
-function getOperationFromQueryRecordEntry(queryRecordEntry) {
-  var nodeType = queryRecordEntry.def.type;
+function getOperationFromQueryRecordEntry(opts) {
+  var nodeType = opts.def.type;
   var operation;
 
-  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
-    operation = nodeType + "s(ids: " + getIdsString(queryRecordEntry.ids) + ")";
-  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
-    operation = nodeType + "(id: \"" + queryRecordEntry.id + "\")";
+  if ('ids' in opts && opts.ids != null) {
+    operation = nodeType + "s(ids: " + getIdsString(opts.ids) + ")";
+  } else if ('id' in opts && opts.id != null) {
+    operation = nodeType + "(id: \"" + opts.id + "\")";
   } else {
-    var options = getGetNodeOptions(queryRecordEntry);
+    var options = getGetNodeOptions(opts);
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   }
 
@@ -3373,9 +3274,10 @@ function getQueryGQLStringFromQueryRecord(opts) {
   return ("query " + getSanitizedQueryId({
     queryId: opts.queryId
   }) + " {\n" + Object.keys(opts.queryRecord).map(function (alias) {
-    return getRootLevelQueryString(_extends({
-      alias: alias
-    }, opts.queryRecord[alias]));
+    return getRootLevelQueryString(_extends({}, opts.queryRecord[alias], {
+      alias: alias,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    }));
   }).join('\n    ') + '\n}').trim();
 }
 
@@ -3397,7 +3299,8 @@ function getQueryInfo(opts) {
   var queryRecord = getQueryRecordFromQueryDefinition(opts);
   var queryGQLString = getQueryGQLStringFromQueryRecord({
     queryId: opts.queryId,
-    queryRecord: queryRecord
+    queryRecord: queryRecord,
+    useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
   });
   var queryParamsString = JSON.stringify(getQueryRecordSortAndFilterValues(queryRecord));
   var subscriptionConfigs = Object.keys(queryRecord).reduce(function (subscriptionConfigsAcc, alias) {
@@ -3405,7 +3308,9 @@ function getQueryInfo(opts) {
       queryId: opts.queryId + '_' + alias
     });
     var queryRecordEntry = queryRecord[alias];
-    var operation = getOperationFromQueryRecordEntry(queryRecordEntry);
+    var operation = getOperationFromQueryRecordEntry(_extends({}, queryRecordEntry, {
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    }));
     var gqlStrings = [("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
       queryRecordEntry: queryRecordEntry,
       nestLevel: 5
@@ -3482,8 +3387,8 @@ function getSanitizedQueryId(opts) {
 }
 
 var _excluded$1 = ["to"],
-    _excluded2$1 = ["from"];
-var JSON_TAG$2 = '__JSON__';
+    _excluded2 = ["from"];
+var JSON_TAG$1 = '__JSON__';
 /**
  * Takes the json representation of a node's data and prepares it to be sent to SM
  *
@@ -3521,7 +3426,7 @@ function revisedConvertNodeDataToSMPersistedData(opts) {
   return stringified;
 }
 
-function escapeText$1(text) {
+function escapeText(text) {
   return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 /**
@@ -3598,12 +3503,12 @@ function revisedConvertPropertyToBE(opts) {
   } else if (Array.isArray(value)) {
     var _ref5;
 
-    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref5;
+    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$1 + (generatingMockData ? JSON.stringify(value) : escapeText(JSON.stringify(value))), _ref5;
   } else if (typeof value === 'object') {
     if (IDataRecordForKey.type === DATA_TYPES.record || IDataRecordForKey.type === DATA_TYPES.maybeRecord) {
       var _ref6;
 
-      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref6;
+      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$1 + (generatingMockData ? JSON.stringify(value) : escapeText(JSON.stringify(value))), _ref6;
     } else {
       var _obj;
 
@@ -3617,7 +3522,7 @@ function revisedConvertPropertyToBE(opts) {
   } else if (typeof value === 'string') {
     var _ref7;
 
-    return _ref7 = {}, _ref7[key] = escapeText$1(value), _ref7;
+    return _ref7 = {}, _ref7[key] = escapeText(value), _ref7;
   } else if (typeof value === 'boolean' || typeof value === 'number') {
     var _ref9;
 
@@ -3642,7 +3547,7 @@ function revisedConvertEdgeDirectionNames(edgeItem) {
       targetId: to
     });
   } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
 
     return _extends({}, _restOfEdgeItem, {
       sourceId: edgeItem.from
@@ -4336,7 +4241,8 @@ function generateQuerier(_ref4) {
                                       tokenName = _ref5[0], queryDefinitions = _ref5[1];
                                       _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
                                         queryDefinitions: queryDefinitions,
-                                        queryId: queryId + '_' + tokenName
+                                        queryId: queryId + '_' + tokenName,
+                                        useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
                                       }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
 
                                       if (!mmGQLInstance.generateMockData) {
@@ -4361,6 +4267,7 @@ function generateQuerier(_ref4) {
                                       return mmGQLInstance.QuerySlimmer.query({
                                         queryId: queryId + "_" + tokenName,
                                         queryDefinitions: queryDefinitions,
+                                        useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER,
                                         tokenName: tokenName,
                                         queryOpts: opts
                                       });
@@ -4387,6 +4294,11 @@ function generateQuerier(_ref4) {
                                       response = _context.sent;
 
                                     case 17:
+                                      if (!(mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.CLIENT)) {
+                                        _context.next = 21;
+                                        break;
+                                      }
+
                                       // clone the object only if we are running the unit test
                                       // to simulate that we are receiving new response
                                       // to prevent mutating the object multiple times when filtering or sorting
@@ -4395,7 +4307,10 @@ function generateQuerier(_ref4) {
                                       applyClientSideSortAndFilterToData(queryRecord, filteredAndSortedResponse);
                                       return _context.abrupt("return", filteredAndSortedResponse);
 
-                                    case 20:
+                                    case 21:
+                                      return _context.abrupt("return", response);
+
+                                    case 22:
                                     case "end":
                                       return _context.stop();
                                   }
@@ -4474,7 +4389,8 @@ function generateQuerier(_ref4) {
               results = _context3.sent;
               qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
-                queryId: queryId
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
               }).queryRecord);
               _context3.prev = 17;
               qM.onQueryResult({
@@ -4567,7 +4483,8 @@ function generateSubscriber(mmGQLInstance) {
 
                   var _convertQueryDefiniti4 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName
+                    queryId: queryId + '_' + tokenName,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
                   }),
                       queryRecord = _convertQueryDefiniti4.queryRecord;
 
@@ -4582,7 +4499,8 @@ function generateSubscriber(mmGQLInstance) {
 
                   var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName
+                    queryId: queryId + '_' + tokenName,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
                   }),
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
@@ -4691,7 +4609,8 @@ function generateSubscriber(mmGQLInstance) {
             case 12:
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
-                queryId: queryId
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
               }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, queryParamsString = _convertQueryDefiniti2.queryParamsString;
               opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
                 queryGQL: queryGQL,
@@ -5548,6 +5467,185 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   return gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
+var _excluded$2 = ["to"],
+    _excluded2$1 = ["from"];
+var JSON_TAG$2 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText$1(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE(obj, opts) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, convertPropertyToBE(_extends({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }, opts)));
+      }, {}));
+    } else {
+      acc = _extends({}, acc, convertPropertyToBE(_extends({
+        key: preparedKey,
+        value: val
+      }, opts)));
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
+  } else if (Array.isArray(opts.value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$2 + escapeText$1(JSON.stringify(opts.value)), _ref5;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
+      omitObjectIdentifier: opts.omitObjectIdentifier
+    });
+  } else if (typeof opts.value === 'string') {
+    var _ref6;
+
+    return _ref6 = {}, _ref6[opts.key] = escapeText$1(opts.value), _ref6;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref8;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref7;
+
+      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
+    }
+
+    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$2);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref9) {
+    var key = _ref9[0],
+        value = _ref9[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
+}
+
 var _templateObject$4;
 function createNodes(operation) {
   return _extends({
@@ -5636,6 +5734,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               return this.sendQueryRequest({
                 queryId: opts.queryId,
                 queryRecord: newQuerySlimmedByCache,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting,
                 tokenName: opts.tokenName,
                 batchKey: (_opts$queryOpts = opts.queryOpts) == null ? void 0 : _opts$queryOpts.batchKey
               });
@@ -5651,6 +5750,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               return this.sendQueryRequest({
                 queryId: opts.queryId,
                 queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting,
                 tokenName: opts.tokenName,
                 batchKey: (_opts$queryOpts2 = opts.queryOpts) == null ? void 0 : _opts$queryOpts2.batchKey
               });
@@ -6094,7 +6194,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
               };
               queryGQLString = getQueryGQLStringFromQueryRecord({
                 queryId: opts.queryId,
-                queryRecord: opts.queryRecord
+                queryRecord: opts.queryRecord,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
               });
               queryOpts = {
                 gql: gql(queryGQLString),
@@ -6337,7 +6438,8 @@ function useSubscription(queryDefinitions, opts) {
         onError: setError,
         setQuerying: setQuerying
       },
-      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors,
+      useServerSidePaginationFilteringSorting: context.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
     });
   } catch (e) {
     qdError = e;
@@ -6490,7 +6592,8 @@ function buildQueryDefinitionStateManager(opts) {
       if (Object.keys(nonNullishQueryDefinitions).length) {
         newQueryInfo = convertQueryDefinitionToQueryInfo({
           queryDefinitions: nonNullishQueryDefinitions,
-          queryId: preExistingQueryInfo.queryId
+          queryId: preExistingQueryInfo.queryId,
+          useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
         });
       } else {
         newQueryDefinitionsAreAllNull = true;
@@ -6850,7 +6953,8 @@ function getDefaultConfig() {
     }),
     generateMockData: false,
     enableQuerySlimming: false,
-    enableQuerySlimmingLogging: false
+    enableQuerySlimmingLogging: false,
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance.SERVER
   };
 }
 
@@ -7440,6 +7544,7 @@ var MMGQL = /*#__PURE__*/function () {
     this.generateMockData = void 0;
     this.enableQuerySlimming = void 0;
     this.enableQuerySlimmingLogging = void 0;
+    this.paginationFilteringSortingInstance = void 0;
     this.plugins = void 0;
     this.query = void 0;
     this.subscribe = void 0;
@@ -7454,6 +7559,7 @@ var MMGQL = /*#__PURE__*/function () {
     this.generateMockData = config.generateMockData;
     this.enableQuerySlimming = config.enableQuerySlimming;
     this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
+    this.paginationFilteringSortingInstance = config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
     this.query = generateQuerier({
       mmGQLInstance: this
@@ -7467,6 +7573,10 @@ var MMGQL = /*#__PURE__*/function () {
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested
     });
+
+    if (config.generateMockData && config.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER) {
+      throw Error("mmGQL was told to generate mock data and use \"SERVER\" pagination/filtering/sorting. Switch paginationFilteringSortingInstance to \"CLIENT\"");
+    }
   }
 
   var _proto = MMGQL.prototype;
@@ -7538,5 +7648,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, FILTER_OPERATORS, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, FILTER_OPERATORS, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map
