@@ -440,8 +440,11 @@ export function convertNodesCollectionValuesToArray<
             ? convertNodesCollectionValuesToArray(item)
             : item;
         }),
-        itemsPerPage: 1,
-        page: 1,
+        onLoadMoreResults: () => {},
+        pagingInfoFromResults: {
+          hasNextPage: true,
+          endCursor: 'xyz',
+        },
       });
       acc[key] = arrayValue;
     }

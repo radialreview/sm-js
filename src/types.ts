@@ -1,4 +1,4 @@
-import { OnPaginateCallback, NodesCollection } from './nodesCollection';
+import { OnLoadMoreResultsCallback, NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -77,7 +77,6 @@ export interface IQueryManager {
     queryId: string;
     subscriptionAlias: string;
   }): void;
-  getResults: () => Record<string, any>;
 }
 
 export type QueryReturn<
@@ -123,7 +122,7 @@ export type SubscriptionOpts<
     queryId: string;
     queryParamsString: string;
   }) => void;
-  onPaginate?: OnPaginateCallback
+  onLoadMoreResults?: OnLoadMoreResultsCallback
   skipInitialQuery?: boolean;
   queryId?: string;
   batchKey?: string;
@@ -325,8 +324,25 @@ export type GetResultingDataTypeFromNodeDefinition<TNode extends INode> =
 
 export type SortDirection = 'asc' | 'desc'
 export type FilterCondition = 'or' | 'and'
-export type FilterValue<TValue extends string | number> = TValue | (Partial<Record<TValue extends string ? EStringFilterOperator : ENumberFilterOperator, TValue> & {_condition?: FilterCondition}>)
-export type SortObject = {_direction: SortDirection, _priority?: number}
+export type FilterValue<TValue extends string | number | boolean> =
+  // strict equality check
+  TValue |
+  (
+    Partial<
+      Record<
+        TValue extends Maybe<string>
+          ? EStringFilterOperator
+          : TValue extends Maybe<number> 
+            ? ENumberFilterOperator
+            : TValue extends Maybe<boolean>
+              ? EBooleanFilterOperator
+                : never,
+        TValue
+      > & {condition?: FilterCondition}
+    >
+  )
+
+export type SortObject = {direction: SortDirection, priority?: number}
 export type SortValue = SortDirection | SortObject
 
 export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never
@@ -564,7 +580,6 @@ export enum RELATIONAL_TYPES {
 
 export interface IQueryPagination {
   itemsPerPage: number
-  page: number
 }
 
 export type NodeRelationalQueryBuilderRecord = Record<
@@ -611,6 +626,13 @@ export enum ENumberFilterOperator {
   'lte' = 'lte',
   'nlte' = 'nlte'
 }
+
+export enum EBooleanFilterOperator {
+  eq = 'eq',
+  neq = 'neq'
+}
+
+export type FilterOperator = EStringFilterOperator | ENumberFilterOperator | EBooleanFilterOperator
 
 /**
  * Returns the valid filter for a node

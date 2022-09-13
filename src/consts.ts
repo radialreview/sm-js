@@ -1,5 +1,4 @@
 import { string, number } from './dataTypes';
-import { FilterOperator } from './types';
 
 // These are the properties that are essential for mm-gql to function and are queried automatically with each query.
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = {
@@ -26,20 +25,5 @@ export const DEFAULT_NODE_PROPERTIES = {
   dateLastModified: number,
   lastUpdatedClientTimestamp: number,
 };
-
-const FILTER_OPERATORS_MAP: Record<FilterOperator, FilterOperator> = {
-  _gte: '_gte',
-  _lte: '_lte',
-  _eq: '_eq',
-  _gt: '_gt',
-  _lt: '_lt',
-  _neq: '_neq',
-  _contains: '_contains',
-  _ncontains: '_ncontains',
-};
-
-export const FILTER_OPERATORS: Array<FilterOperator> = Object.values(
-  FILTER_OPERATORS_MAP
-);
 
 export const NODES_PROPERTY_KEY = 'nodes';

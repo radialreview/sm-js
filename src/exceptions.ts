@@ -57,13 +57,6 @@ export class NotCachedException extends Error {
     );
   }
 }
-export class NodesCollectionPageOutOfBoundsException extends Error {
-  constructor(opts: { page: number }) {
-    super(
-      `NodesCollectionPageOutOfBoundsException - page '${opts.page}' does not exist.`
-    );
-  }
-}
 
 export class DataTypeException extends Error {
   constructor(opts: { dataType: string; value: any }) {

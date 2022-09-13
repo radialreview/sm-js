@@ -1,4 +1,4 @@
-import { OnPaginateCallback, NodesCollection } from './nodesCollection';
+import { NodesCollection, PagingInfoFromResults } from './nodesCollection';
 import { RELATIONAL_UNION_QUERY_SEPARATOR } from './consts';
 import { DataParsingException } from './exceptions';
 import {
@@ -11,6 +11,8 @@ import {
   RelationalQueryRecordEntry,
   QueryRecordEntry,
   IQueryPagination,
+  QueryDataReturn,
+  QueryDefinitions,
 } from './types';
 
 type QueryManagerState = Record<
@@ -23,6 +25,7 @@ type QueryManagerStateEntry = {
   idsOrIdInCurrentResult: string | Array<string> | null;
   proxyCache: QueryManagerProxyCache;
   pagination?: IQueryPagination;
+  pagingInfoFromResults?: PagingInfoFromResults;
 };
 
 type QueryManagerProxyCache = Record<
@@ -35,7 +38,23 @@ type QueryManagerProxyCacheEntry = {
   relationalState: Maybe<QueryManagerState>;
 }; // the proxy for that DO and relational state from the query results/latest subscription message
 
-type QueryManagerOpts = { onPaginate?: OnPaginateCallback };
+type QueryManagerOpts = {
+  // an object which will be mutated when a "loadMoreResults" function is called
+  // on a node collection
+  resultsObject: Object;
+  // A callback that is executed when the resultsObject above is mutated
+  onResultsUpdated(): void;
+  performQuery: <
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget,
+    TQueryDefinitions extends QueryDefinitions<
+      TNode,
+      TMapFn,
+      TQueryDefinitionTarget
+    >
+  >() => Promise<QueryDataReturn<TQueryDefinitions>>;
+};
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
   /**
@@ -52,9 +71,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
   return class QueryManager implements IQueryManager {
     public state: QueryManagerState = {};
     public queryRecord: QueryRecord;
-    public opts: QueryManagerOpts | undefined;
+    public opts: QueryManagerOpts;
 
-    constructor(queryRecord: QueryRecord, opts?: QueryManagerOpts) {
+    constructor(queryRecord: QueryRecord, opts: QueryManagerOpts) {
       this.queryRecord = queryRecord;
       this.opts = opts;
     }
@@ -69,6 +88,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         ...opts,
         queryRecord: this.queryRecord,
       });
+
+      Object.assign(
+        this.opts.resultsObject,
+        this.getResultsFromState(this.state)
+      );
     }
 
     public onSubscriptionMessage(opts: {
@@ -95,33 +119,47 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
 
       this.updateProxiesAndStateFromSubscriptionMessage(opts);
+
+      Object.assign(
+        this.opts.resultsObject,
+        this.getResultsFromState(this.state)
+      );
     }
 
     /**
-     * Returns the current results based on received query results and subscription messages
+     * Is used to build the root level results for the query, and also to build the relational results
+     * used by each proxy, which is why "state" is a param here
+     *
+     * alias path is required such that when "loadMore" is executed on a node collection
+     * this query manager can perform a new query with the minimal query record necessary
+     * and extend the result set with the new results
      */
-    getResults() {
-      return this.getResultsFromState(this.state);
-    }
-
-    /**
-     * Is used to build the overall results for the query, and also to build the relational results used by each proxy
-     * which is why "state" is a param here
-     */
-    public getResultsFromState(state: QueryManagerState): Record<string, any> {
-      const acc = Object.keys(state).reduce((resultsAcc, queryAlias) => {
+    public getResultsFromState(
+      state: QueryManagerState,
+      aliasPath?: Array<string>
+    ): Record<string, any> {
+      return Object.keys(state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
         const resultsAlias = this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
+          if (!stateForThisAlias.pagingInfoFromResults) {
+            throw Error(
+              `No paging info for results found for the alias ${queryAlias}`
+            );
+          }
+
           const ids = idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy);
           resultsAcc[resultsAlias] = new NodesCollection({
             items: ids,
-            itemsPerPage:
-              stateForThisAlias.pagination?.itemsPerPage || ids.length,
-            page: stateForThisAlias.pagination?.page || 1,
-            onPaginate: this.opts?.onPaginate,
+            pagingInfoFromResults: stateForThisAlias.pagingInfoFromResults,
+            onLoadMoreResults: () =>
+              this.onLoadMoreResults({
+                aliasPath: (aliasPath || []).concat([resultsAlias]),
+                previousEndCursor:
+                  stateForThisAlias.pagingInfoFromResults.endCursor,
+              }),
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] =
@@ -132,8 +170,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         return resultsAcc;
       }, {} as Record<string, any>);
-
-      return acc;
     }
 
     /**
@@ -655,5 +691,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         ? opts.dataForThisAlias
         : opts.dataForThisAlias.nodes;
     }
+
+    public async onLoadMoreResults(opts: {
+      aliasPath: Array<string>;
+      previousEndCursor: string;
+    }) {}
   };
 }

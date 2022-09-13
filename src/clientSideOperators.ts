@@ -33,36 +33,36 @@ function checkFilter({
   itemValue: any;
 }) {
   switch (operator) {
-    case '_contains': {
+    case 'contains': {
       return (
         String(itemValue)
           .toLowerCase()
           .indexOf(String(filterValue).toLowerCase()) !== -1
       );
     }
-    case '_ncontains': {
+    case 'ncontains': {
       return (
         String(itemValue)
           .toLowerCase()
           .indexOf(String(filterValue).toLowerCase()) === -1
       );
     }
-    case '_eq': {
+    case 'eq': {
       return (
         String(itemValue).toLowerCase() === String(filterValue).toLowerCase()
       );
     }
-    case '_neq':
+    case 'neq':
       return (
         String(itemValue).toLowerCase() !== String(filterValue).toLowerCase()
       );
-    case '_gt':
+    case 'gt':
       return itemValue > filterValue;
-    case '_gte':
+    case 'gte':
       return itemValue >= filterValue;
-    case '_lt':
+    case 'lt':
       return itemValue < filterValue;
-    case '_lte':
+    case 'lte':
       return itemValue <= filterValue;
     default:
       throw new FilterOperatorNotImplementedException({
@@ -188,10 +188,10 @@ export function applyClientSideFilterToData({
             });
           }
           const orConditions = filterProperties.filter(
-            x => x.condition === 'OR'
+            x => x.condition === 'or'
           );
           const andConditions = filterProperties.filter(
-            x => x.condition === 'AND'
+            x => x.condition === 'and'
           );
 
           const hasPassedEveryANDConditions =
@@ -420,8 +420,8 @@ export function applyClientSideSortToData({
           oneToOne: (relational && 'oneToOne' in relational) || undefined,
           oneToMany: (relational && 'oneToMany' in relational) || undefined,
           priority:
-            sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
-          direction: sortObject[dotSeparatedPropName]._direction || 'asc',
+            sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+          direction: sortObject[dotSeparatedPropName].direction || 'asc',
         };
       }),
       x => x.priority,

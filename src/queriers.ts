@@ -23,81 +23,6 @@ import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
 
-function splitQueryDefinitionsByToken<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(queryDefinitions: TQueryDefinitions): Record<string, TQueryDefinitions> {
-  return Object.entries(queryDefinitions).reduce(
-    (split, [alias, queryDefinition]) => {
-      const tokenName =
-        queryDefinition &&
-        'tokenName' in queryDefinition &&
-        queryDefinition.tokenName != null
-          ? queryDefinition.tokenName
-          : DEFAULT_TOKEN_NAME;
-
-      split[tokenName] = split[tokenName] || {};
-      split[tokenName][
-        alias as keyof TQueryDefinitions
-      ] = queryDefinition as TQueryDefinitions[string];
-
-      return split;
-    },
-    {} as Record<string, TQueryDefinitions>
-  );
-}
-
-export function removeNullishQueryDefinitions<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(queryDefinitions: TQueryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(
-    (acc, [alias, queryDefinition]) => {
-      if (!queryDefinition) return acc;
-      acc[
-        alias as keyof TQueryDefinitions
-      ] = queryDefinition as TQueryDefinitions[string];
-      return acc;
-    },
-    {} as TQueryDefinitions
-  );
-}
-
-function getNullishResults<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(queryDefinitions: TQueryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(
-    (acc, [key, queryDefinition]) => {
-      if (queryDefinition == null)
-        acc[key as keyof TQueryDefinitions] = null as QueryDataReturn<
-          TQueryDefinitions
-        >[keyof TQueryDefinitions];
-
-      return acc;
-    },
-    {} as QueryDataReturn<TQueryDefinitions>
-  );
-}
-
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
  * Which ensures that the socket messages are applied to the correct base set of results
@@ -136,126 +61,51 @@ export function generateQuerier({
       return error;
     }
 
-    function getToken(tokenName: string) {
-      const token = mmGQLInstance.getToken({ tokenName });
-
-      if (!token) {
-        throw new Error(
-          `No token registered with the name "${tokenName}".\n` +
-            'Please register this token prior to using it with setToken({ tokenName, token })) '
-        );
-      }
-
-      return token;
-    }
-
     const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
       queryDefinitions
     );
     const nullishResults = getNullishResults(queryDefinitions);
-    const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-      nonNullishQueryDefinitions
-    );
-
-    async function performQueries() {
-      const allResults = await Promise.all(
-        Object.entries(queryDefinitionsSplitByToken).map(
-          async ([tokenName, queryDefinitions]) => {
-            let response;
-            const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
-              {
-                queryDefinitions: queryDefinitions,
-                queryId: queryId + '_' + tokenName,
-                useServerSidePaginationFilteringSorting:
-                  mmGQLInstance.paginationFilteringSortingInstance ===
-                  EPaginationFilteringSortingInstance.SERVER,
-              }
-            );
-
-            if (mmGQLInstance.generateMockData) {
-              response = generateMockNodeDataFromQueryDefinitions({
-                queryDefinitions,
-                queryId,
-              });
-            } else if (mmGQLInstance.enableQuerySlimming) {
-              response = await mmGQLInstance.QuerySlimmer.query({
-                queryId: `${queryId}_${tokenName}`,
-                queryDefinitions,
-                useServerSidePaginationFilteringSorting:
-                  mmGQLInstance.paginationFilteringSortingInstance ===
-                  EPaginationFilteringSortingInstance.SERVER,
-                tokenName,
-                queryOpts: opts,
-              });
-            } else {
-              const queryOpts: Parameters<IGQLClient['query']>[0] = {
-                gql: queryGQL,
-                token: getToken(tokenName),
-              };
-              if (opts && 'batchKey' in opts) {
-                queryOpts.batchKey = opts.batchKey;
-              }
-              response = await mmGQLInstance.gqlClient.query(queryOpts);
-            }
-
-            if (
-              mmGQLInstance.paginationFilteringSortingInstance ===
-              EPaginationFilteringSortingInstance.CLIENT
-            ) {
-              // clone the object only if we are running the unit test
-              // to simulate that we are receiving new response
-              // to prevent mutating the object multiple times when filtering or sorting
-              // resulting into incorrect results in our specs
-              const filteredAndSortedResponse =
-                process.env.NODE_ENV === 'test'
-                  ? cloneDeep(response)
-                  : response;
-              applyClientSideSortAndFilterToData(
-                queryRecord,
-                filteredAndSortedResponse
-              );
-
-              return filteredAndSortedResponse;
-            }
-
-            return response;
-          }
-        )
-      );
-
-      return allResults.reduce(
-        (acc, resultsForToken) => {
-          return {
-            ...acc,
-            ...resultsForToken,
-          };
-        },
-        { ...nullishResults }
-      );
-    }
 
     try {
       if (!Object.keys(nonNullishQueryDefinitions).length) {
-        opts?.onData && opts.onData({ results: { ...nullishResults } });
+        const results = { ...nullishResults } as QueryDataReturn<
+          TQueryDefinitions
+        >;
+        opts?.onData && opts.onData({ results });
 
         return {
-          data: { ...nullishResults },
+          data: results,
           error: undefined,
         };
       }
-      const results = await performQueries();
+
+      const dataToReturn = { ...nullishResults } as QueryDataReturn<
+        TQueryDefinitions
+      >;
+
+      const results = await performQueries({
+        mmGQLInstance,
+        queryDefinitions,
+        batchKey: opts?.batchKey,
+        queryId,
+      });
+
+      const queryRecord = convertQueryDefinitionToQueryInfo({
+        queryDefinitions: nonNullishQueryDefinitions,
+        queryId,
+        useServerSidePaginationFilteringSorting:
+          mmGQLInstance.paginationFilteringSortingInstance ===
+          EPaginationFilteringSortingInstance.SERVER,
+      }).queryRecord;
 
       const qM =
         queryManager ||
-        new mmGQLInstance.QueryManager(
-          convertQueryDefinitionToQueryInfo({
-            queryDefinitions: nonNullishQueryDefinitions,
-            queryId,
-            useServerSidePaginationFilteringSorting:
-              mmGQLInstance.paginationFilteringSortingInstance ===
-              EPaginationFilteringSortingInstance.SERVER,
-          }).queryRecord
-        );
+        new mmGQLInstance.QueryManager(queryRecord, {
+          resultsObject: dataToReturn,
+          onResultsUpdated: () => {
+            opts?.onData && opts.onData({ results: dataToReturn });
+          },
+        });
       try {
         qM.onQueryResult({
           queryId,
@@ -269,21 +119,17 @@ export function generateQuerier({
 
         if (opts?.onError) {
           opts.onError(error);
-          return { data: {} as QueryDataReturn<TQueryDefinitions>, error };
+          return {
+            data: dataToReturn as QueryDataReturn<TQueryDefinitions>,
+            error,
+          };
         } else {
           throw error;
         }
       }
 
-      const qmResults = qM.getResults() as QueryDataReturn<TQueryDefinitions>;
-
-      opts?.onData &&
-        opts.onData({ results: { ...nullishResults, ...qmResults } });
-
       return {
-        data: { ...nullishResults, ...qmResults } as QueryDataReturn<
-          TQueryDefinitions
-        >,
+        data: dataToReturn,
         error: undefined,
       };
     } catch (e) {
@@ -335,9 +181,13 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     );
     const nullishResults = getNullishResults(queryDefinitions);
 
+    const dataToReturn = { ...nullishResults } as QueryDataReturn<
+      TQueryDefinitions
+    >;
+
     if (!Object.keys(nonNullishQueryDefinitions).length) {
-      opts.onData({ results: { ...nullishResults } });
-      return { data: { ...nullishResults }, unsub: () => {} } as ReturnType;
+      opts.onData({ results: dataToReturn });
+      return { data: dataToReturn, unsub: () => {} } as ReturnType;
     }
     const {
       queryGQL,
@@ -365,8 +215,26 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       return error;
     }
 
+    // need to pass the info page from the results from this specific root/relational alias
+    // to the query builder, such that it applies the correct pagination param on that root/relational alias
+    // q: should the query manager perform the query? This would avoid having to pass data around in callbacks
+    //    instead the query manager would build the minimal queryRecord needed to
+    //    perform the new query for the next set of results and would append them to the results object?
+
+    //    Another option would be for the query manager to expect a callback function (as it does now)
+    //    which is called with a query record for that minimal query, and this fn needs to perform the query
+    //    and return the result of that query.
+
+    // Requirements
+    //    - loadMoreResults should append the new list of results to the previous list
+    //    - ensure that the correct token is used in the query for the next set of results
+    //       if a "query" fn is passed to the queryManager
+
     const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
-      onPaginate: opts.onPaginate,
+      resultsObject: dataToReturn,
+      onResultsUpdated: () => {
+        opts.onData({ results: dataToReturn });
+      },
     });
 
     function updateQueryManagerWithSubscriptionMessage(data: {
@@ -461,16 +329,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
                     message,
                     subscriptionConfig,
                   });
-
-                  // @TODO When called with skipInitialQuery, results should be null
-                  // and we should simply expose a "delta" from the message
-                  // probably don't need a query manager in that case either.
-                  opts.onData({
-                    results: {
-                      ...nullishResults,
-                      ...queryManager.getResults(),
-                    } as QueryDataReturn<TQueryDefinitions>,
-                  });
                 },
                 onError: e => {
                   // Can never throw here. The dev consuming this would have no way of catching it
@@ -522,7 +380,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
       if (opts?.onError) {
         opts.onError(error);
-        return { data: {}, unsub, error } as ReturnType;
+        return { data: dataToReturn, unsub, error } as ReturnType;
       } else {
         throw error;
       }
@@ -549,7 +407,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
         if (opts?.onError) {
           opts.onError(error);
-          return { data: {}, unsub, error } as ReturnType;
+          return { data: dataToReturn, unsub, error } as ReturnType;
         } else {
           throw error;
         }
@@ -561,17 +419,196 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
         messageQueue.length = 0;
       }
 
-      const qmResults = queryManager.getResults() as QueryDataReturn<
-        TQueryDefinitions
-      >;
-
-      opts.onData({ results: { ...nullishResults, ...qmResults } });
+      opts.onData({ results: dataToReturn });
 
       return {
-        data: { ...nullishResults, ...qmResults },
+        data: dataToReturn,
         unsub,
         error: null,
       } as ReturnType;
     }
   };
+}
+
+function splitQueryDefinitionsByToken<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions): Record<string, TQueryDefinitions> {
+  return Object.entries(queryDefinitions).reduce(
+    (split, [alias, queryDefinition]) => {
+      const tokenName =
+        queryDefinition &&
+        'tokenName' in queryDefinition &&
+        queryDefinition.tokenName != null
+          ? queryDefinition.tokenName
+          : DEFAULT_TOKEN_NAME;
+
+      split[tokenName] = split[tokenName] || {};
+      split[tokenName][
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
+
+      return split;
+    },
+    {} as Record<string, TQueryDefinitions>
+  );
+}
+
+export function removeNullishQueryDefinitions<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [alias, queryDefinition]) => {
+      if (!queryDefinition) return acc;
+      acc[
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
+      return acc;
+    },
+    {} as TQueryDefinitions
+  );
+}
+
+function getNullishResults<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [key, queryDefinition]) => {
+      if (queryDefinition == null)
+        acc[key as keyof TQueryDefinitions] = null as QueryDataReturn<
+          TQueryDefinitions
+        >[keyof TQueryDefinitions];
+
+      return acc;
+    },
+    {} as QueryDataReturn<TQueryDefinitions>
+  );
+}
+
+async function performQueries<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(opts: {
+  queryDefinitions: TQueryDefinitions;
+  mmGQLInstance: IMMGQL;
+  queryId: string;
+  batchKey?: string;
+}) {
+  const nullishResults = getNullishResults(opts.queryDefinitions);
+  const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
+    opts.queryDefinitions
+  );
+  const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+    nonNullishQueryDefinitions
+  );
+
+  function getToken(tokenName: string) {
+    const token = opts.mmGQLInstance.getToken({ tokenName });
+
+    if (!token) {
+      throw new Error(
+        `No token registered with the name "${tokenName}".\n` +
+          'Please register this token prior to using it with setToken({ tokenName, token })) '
+      );
+    }
+
+    return token;
+  }
+
+  const allResults = await Promise.all(
+    Object.entries(queryDefinitionsSplitByToken).map(
+      async ([tokenName, queryDefinitions]) => {
+        let response;
+        const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: queryDefinitions,
+          queryId: opts.queryId + '_' + tokenName,
+          useServerSidePaginationFilteringSorting:
+            opts.mmGQLInstance.paginationFilteringSortingInstance ===
+            EPaginationFilteringSortingInstance.SERVER,
+        });
+
+        if (opts.mmGQLInstance.generateMockData) {
+          response = generateMockNodeDataFromQueryDefinitions({
+            queryDefinitions,
+            queryId: opts.queryId,
+          });
+        } else if (opts.mmGQLInstance.enableQuerySlimming) {
+          response = await opts.mmGQLInstance.QuerySlimmer.query({
+            queryId: `${opts.queryId}_${tokenName}`,
+            queryDefinitions,
+            useServerSidePaginationFilteringSorting:
+              opts.mmGQLInstance.paginationFilteringSortingInstance ===
+              EPaginationFilteringSortingInstance.SERVER,
+            tokenName,
+            queryOpts: opts,
+          });
+        } else {
+          const queryOpts: Parameters<IGQLClient['query']>[0] = {
+            gql: queryGQL,
+            token: getToken(tokenName),
+          };
+          if (opts && 'batchKey' in opts) {
+            queryOpts.batchKey = opts.batchKey;
+          }
+          response = await opts.mmGQLInstance.gqlClient.query(queryOpts);
+        }
+
+        if (
+          opts.mmGQLInstance.paginationFilteringSortingInstance ===
+          EPaginationFilteringSortingInstance.CLIENT
+        ) {
+          // clone the object only if we are running the unit test
+          // to simulate that we are receiving new response
+          // to prevent mutating the object multiple times when filtering or sorting
+          // resulting into incorrect results in our specs
+          const filteredAndSortedResponse =
+            process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+          applyClientSideSortAndFilterToData(
+            queryRecord,
+            filteredAndSortedResponse
+          );
+
+          return filteredAndSortedResponse;
+        }
+
+        return response;
+      }
+    )
+  );
+
+  return allResults.reduce(
+    (acc, resultsForToken) => {
+      return {
+        ...acc,
+        ...resultsForToken,
+      };
+    },
+    { ...nullishResults }
+  );
 }

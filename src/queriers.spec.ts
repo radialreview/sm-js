@@ -14,6 +14,7 @@ import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { MMGQL, queryDefinition } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { NULL_TAG } from './dataConversions';
+import { EPaginationFilteringSortingInstance } from './types';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -32,6 +33,7 @@ test('query uses the gql client, passing in the expected params', async done => 
   const expectedGQLBody = convertQueryDefinitionToQueryInfo({
     queryDefinitions,
     queryId: queryId + '_default', // the token being used
+    useServerSidePaginationFilteringSorting: true,
   }).queryGQL.loc?.source.body;
 
   const mockQuery = jest.fn(async opts => {
@@ -167,7 +169,7 @@ function createMockDataItems<T>(opts: {
   };
 }
 
-test(`query.filter can filter 'number' prop using '_gte' operator`, async () => {
+test(`query.filter can filter 'number' prop using 'gte' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -192,7 +194,7 @@ test(`query.filter can filter 'number' prop using '_gte' operator`, async () => 
         score,
       }),
       filter: {
-        score: { _gte: 20 },
+        score: { gte: 20 },
       },
     }),
   });
@@ -200,7 +202,7 @@ test(`query.filter can filter 'number' prop using '_gte' operator`, async () => 
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'number' prop using '_lte' operator`, async () => {
+test(`query.filter can filter 'number' prop using 'lte' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -225,7 +227,7 @@ test(`query.filter can filter 'number' prop using '_lte' operator`, async () => 
         score,
       }),
       filter: {
-        score: { _lte: 20 },
+        score: { lte: 20 },
       },
     }),
   });
@@ -233,7 +235,7 @@ test(`query.filter can filter 'number' prop using '_lte' operator`, async () => 
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'number' prop using '_eq' operator`, async () => {
+test(`query.filter can filter 'number' prop using 'eq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -258,7 +260,7 @@ test(`query.filter can filter 'number' prop using '_eq' operator`, async () => {
         score,
       }),
       filter: {
-        score: { _eq: 10 },
+        score: { eq: 10 },
       },
     }),
   });
@@ -266,40 +268,7 @@ test(`query.filter can filter 'number' prop using '_eq' operator`, async () => {
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'number' prop using '_neq' operator`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          score: 10,
-        },
-        {
-          score: 20,
-        },
-        {
-          score: 30,
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ score }) => ({
-        score,
-      }),
-      filter: {
-        score: { _neq: 10 },
-      },
-    }),
-  });
-
-  expect(data.users.nodes.length).toBe(2);
-});
-
-test(`query.filter can filter 'number' prop using '_gt' operator`, async () => {
+test(`query.filter can filter 'number' prop using 'neq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -324,7 +293,7 @@ test(`query.filter can filter 'number' prop using '_gt' operator`, async () => {
         score,
       }),
       filter: {
-        score: { _gt: 10 },
+        score: { neq: 10 },
       },
     }),
   });
@@ -332,7 +301,7 @@ test(`query.filter can filter 'number' prop using '_gt' operator`, async () => {
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'number' prop using '_lt' operator`, async () => {
+test(`query.filter can filter 'number' prop using 'gt' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -357,7 +326,40 @@ test(`query.filter can filter 'number' prop using '_lt' operator`, async () => {
         score,
       }),
       filter: {
-        score: { _lt: 20 },
+        score: { gt: 10 },
+      },
+    }),
+  });
+
+  expect(data.users.nodes.length).toBe(2);
+});
+
+test(`query.filter can filter 'number' prop using 'lt' operator`, async () => {
+  const { mmGQLInstance } = setupTest({
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
+        {
+          score: 10,
+        },
+        {
+          score: 20,
+        },
+        {
+          score: 30,
+        },
+      ],
+    }),
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ score }) => ({
+        score,
+      }),
+      filter: {
+        score: { lt: 20 },
       },
     }),
   });
@@ -365,7 +367,7 @@ test(`query.filter can filter 'number' prop using '_lt' operator`, async () => {
   expect(data.users.nodes.length).toBe(1);
 });
 
-test(`query.filter can filter 'boolean' prop using '_eq' operator`, async () => {
+test(`query.filter can filter 'boolean' prop using 'eq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -391,7 +393,7 @@ test(`query.filter can filter 'boolean' prop using '_eq' operator`, async () => 
         archived,
       }),
       filter: {
-        archived: { _eq: true },
+        archived: { eq: true },
       },
     }),
   });
@@ -399,7 +401,7 @@ test(`query.filter can filter 'boolean' prop using '_eq' operator`, async () => 
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'null' values with '_eq' operator`, async () => {
+test(`query.filter can filter 'null' values with 'eq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -427,7 +429,7 @@ test(`query.filter can filter 'null' values with '_eq' operator`, async () => {
             optionalProp,
           }),
           filter: {
-            optionalProp: { _eq: null },
+            optionalProp: { eq: null },
           },
         }),
       })
@@ -435,7 +437,7 @@ test(`query.filter can filter 'null' values with '_eq' operator`, async () => {
   ).toBe(2);
 });
 
-test(`query.filter can filter 'null' values with '_neq' operator`, async () => {
+test(`query.filter can filter 'null' values with 'neq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -463,7 +465,7 @@ test(`query.filter can filter 'null' values with '_neq' operator`, async () => {
             optionalProp,
           }),
           filter: {
-            optionalProp: { _neq: null },
+            optionalProp: { neq: null },
           },
         }),
       })
@@ -471,7 +473,7 @@ test(`query.filter can filter 'null' values with '_neq' operator`, async () => {
   ).toBe(1);
 });
 
-test(`query.filter can filter 'boolean' prop using '_neq' operator`, async () => {
+test(`query.filter can filter 'boolean' prop using 'neq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -496,7 +498,7 @@ test(`query.filter can filter 'boolean' prop using '_neq' operator`, async () =>
         archived,
       }),
       filter: {
-        archived: { _neq: false },
+        archived: { neq: false },
       },
     }),
   });
@@ -504,7 +506,7 @@ test(`query.filter can filter 'boolean' prop using '_neq' operator`, async () =>
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'string' prop using '_eq' operator`, async () => {
+test(`query.filter can filter 'string' prop using 'eq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -529,7 +531,7 @@ test(`query.filter can filter 'string' prop using '_eq' operator`, async () => {
         firstName,
       }),
       filter: {
-        firstName: { _eq: 'John' },
+        firstName: { eq: 'John' },
       },
     }),
   });
@@ -537,7 +539,7 @@ test(`query.filter can filter 'string' prop using '_eq' operator`, async () => {
   expect(data.users.nodes.length).toBe(1);
 });
 
-test(`query.filter can filter 'string' prop using '_contains' operator`, async () => {
+test(`query.filter can filter 'string' prop using 'contains' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -562,7 +564,7 @@ test(`query.filter can filter 'string' prop using '_contains' operator`, async (
         firstName,
       }),
       filter: {
-        firstName: { _contains: 'John' },
+        firstName: { contains: 'John' },
       },
     }),
   });
@@ -570,7 +572,7 @@ test(`query.filter can filter 'string' prop using '_contains' operator`, async (
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter 'string' prop using '_ncontains' operator`, async () => {
+test(`query.filter can filter 'string' prop using 'ncontains' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -595,7 +597,7 @@ test(`query.filter can filter 'string' prop using '_ncontains' operator`, async 
         firstName,
       }),
       filter: {
-        firstName: { _ncontains: 'John' },
+        firstName: { ncontains: 'John' },
       },
     }),
   });
@@ -603,7 +605,7 @@ test(`query.filter can filter 'string' prop using '_ncontains' operator`, async 
   expect(data.users.nodes.length).toBe(1);
 });
 
-test(`query.filter can filter 'string' prop using '_neq' operator`, async () => {
+test(`query.filter can filter 'string' prop using 'neq' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -628,7 +630,7 @@ test(`query.filter can filter 'string' prop using '_neq' operator`, async () => 
         firstName,
       }),
       filter: {
-        firstName: { _neq: 'John' },
+        firstName: { neq: 'John' },
       },
     }),
   });
@@ -636,7 +638,7 @@ test(`query.filter can filter 'string' prop using '_neq' operator`, async () => 
   expect(data.users.nodes.length).toBe(1);
 });
 
-test(`query.filter supports old filter object format with '_eq' as default operator`, async () => {
+test(`query.filter supports old filter object format with 'eq' as default operator`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -715,7 +717,7 @@ test(`query.filter can filter relational data`, async () => {
         todos: todos({
           map: ({ task }) => ({ task }),
           filter: {
-            task: { _contains: 'my todo' },
+            task: { contains: 'my todo' },
           },
         }),
       }),
@@ -766,7 +768,7 @@ test(`query.filter can filter multilevel relational data`, async () => {
             users: users({
               map: ({ firstName }) => ({ firstName }),
               filter: {
-                firstName: { _contains: 'john' },
+                firstName: { contains: 'john' },
               },
             }),
           }),
@@ -808,7 +810,7 @@ test(`query.filter can filter nested object property`, async () => {
           }),
           filter: {
             address: {
-              state: { _eq: 'FL' },
+              state: { eq: 'FL' },
             },
           },
         }),
@@ -845,8 +847,8 @@ test(`query.filter should throw an error if property being filtered is not defin
           }),
         }),
         filter: {
-          score: { _gte: 20 },
-          address: { state: { _eq: 'test' } },
+          score: { gte: 20 },
+          address: { state: { eq: 'test' } },
         },
       }),
     })
@@ -970,114 +972,6 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
   expect(data.users.hasNextPage).toBe(false);
 });
 
-test(`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 2,
-      },
-    }),
-  });
-
-  expect(data.users.hasPreviousPage).toBe(true);
-});
-
-test(`query.pagination 'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 1,
-      },
-    }),
-  });
-
-  expect(data.users.hasPreviousPage).toBe(false);
-});
-
-test(`query.pagination 'totalPages' should have the correct value.`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-        {
-          firstName: '4',
-        },
-        {
-          firstName: '5',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 1,
-      },
-    }),
-  });
-
-  expect(data.users.totalPages).toBe(3);
-});
-
 test(`query.pagination not defining pagination parameters should return all items`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
@@ -1112,12 +1006,10 @@ test(`query.pagination not defining pagination parameters should return all item
   });
 
   expect(data.users.nodes.length).toBe(5);
-  expect(data.users.totalPages).toBe(1);
   expect(data.users.hasNextPage).toBe(false);
-  expect(data.users.hasPreviousPage).toBe(false);
 });
 
-test(`query.pagination calling goToNextPage should go to next page and update the current page`, async () => {
+test(`query.pagination calling load more results should load more results and update the data returned by the query`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -1157,162 +1049,10 @@ test(`query.pagination calling goToNextPage should go to next page and update th
   expect(data.users.nodes.length).toBe(2);
   expect(data.users.nodes[0].firstName).toBe('1');
   expect(data.users.nodes[1].firstName).toBe('2');
-  expect(data.users.page).toBe(1);
-  data.users.goToNextPage();
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('3');
-  expect(data.users.nodes[1].firstName).toBe('4');
-  expect(data.users.page).toBe(2);
-});
-
-test(`query.pagination calling goToPreviousPage should go to previous page and update the current page`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-        {
-          firstName: '4',
-        },
-        {
-          firstName: '5',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 2,
-      },
-    }),
-  });
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('3');
-  expect(data.users.nodes[1].firstName).toBe('4');
-  expect(data.users.page).toBe(2);
-
-  data.users.goToPreviousPage();
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('1');
-  expect(data.users.nodes[1].firstName).toBe('2');
-  expect(data.users.page).toBe(1);
-});
-
-test(`query.pagination calling goToPage should go to the page defined and update the current page`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-        {
-          firstName: '4',
-        },
-        {
-          firstName: '5',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 2,
-      },
-    }),
-  });
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('3');
-  expect(data.users.nodes[1].firstName).toBe('4');
-  expect(data.users.page).toBe(2);
-
-  data.users.goToPage(1);
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('1');
-  expect(data.users.nodes[1].firstName).toBe('2');
-  expect(data.users.page).toBe(1);
-});
-
-test(`query.pagination calling goToPage should go to the page defined and update the current page`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-        {
-          firstName: '4',
-        },
-        {
-          firstName: '5',
-        },
-      ],
-    }),
-  });
-
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-        page: 2,
-      },
-    }),
-  });
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('3');
-  expect(data.users.nodes[1].firstName).toBe('4');
-  expect(data.users.page).toBe(2);
-
-  data.users.goToPage(1);
-
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('1');
-  expect(data.users.nodes[1].firstName).toBe('2');
-  expect(data.users.page).toBe(1);
+  await data.users.loadMoreResults();
+  expect(data.users.nodes.length).toBe(4);
+  expect(data.users.nodes[2].firstName).toBe('3');
+  expect(data.users.nodes[3].firstName).toBe('4');
 });
 
 test(`query.pagination can paginate relational data`, async () => {
@@ -1356,12 +1096,12 @@ test(`query.pagination can paginate relational data`, async () => {
 
   expect(data.users.nodes[0].todos.nodes.length).toBe(1);
   expect(data.users.nodes[0].todos.nodes[0].task).toBe('1');
-  data.users.nodes[0].todos.goToNextPage();
-  expect(data.users.nodes[0].todos.nodes.length).toBe(1);
-  expect(data.users.nodes[0].todos.nodes[0].task).toBe('2');
+  await data.users.nodes[0].todos.loadMoreResults();
+  expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+  expect(data.users.nodes[0].todos.nodes[1].task).toBe('2');
 });
 
-test(`query.pagination goToPage should throw an error if page is less than 1 or greater than the totalPages`, async () => {
+test(`query.pagination loadMoreResults should throw an error if there is no next page`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -1389,9 +1129,11 @@ test(`query.pagination goToPage should throw an error if page is less than 1 or 
     }),
   });
 
-  expect(() => data.users.goToPage(2)).toThrowError(
-    `NodesCollectionPageOutOfBoundsException - page '2' does not exist.`
-  );
+  try {
+    await data.users.loadMoreResults();
+  } catch (e) {
+    expect(e).toBeInstanceOf(NodesCollectionPageOutOfBoundsException);
+  }
 });
 
 test(`query.sorting can sort 'string' properties`, async () => {
@@ -1764,11 +1506,11 @@ test(`query.sorting can prioritize sorting`, async () => {
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
       sort: {
-        firstName: { _direction: 'asc', _priority: 3 },
+        firstName: { direction: 'asc', priority: 3 },
         address: {
-          state: { _direction: 'asc', _priority: 1 },
+          state: { direction: 'asc', priority: 1 },
         },
-        lastName: { _direction: 'desc', _priority: 2 },
+        lastName: { direction: 'desc', priority: 2 },
       },
       map: ({ firstName, lastName, address }) => ({
         firstName,
@@ -2110,12 +1852,12 @@ test(`query.filter can filter using "OR" condition`, async () => {
       def: generateUserNode(mmGQLInstance),
       filter: {
         firstName: {
-          _contains: 'j',
-          _condition: 'OR',
+          contains: 'j',
+          condition: 'or',
         },
         score: {
-          _eq: 20,
-          _condition: 'OR',
+          eq: 20,
+          condition: 'or',
         },
       },
       map: ({ score, firstName }) => ({
@@ -2169,12 +1911,12 @@ test(`query.filter can filter relational data using "OR" condition`, async () =>
         todos: todos({
           filter: {
             task: {
-              _contains: 'j',
-              _condition: 'OR',
+              contains: 'j',
+              condition: 'or',
             },
             numberProp: {
-              _eq: 20,
-              _condition: 'OR',
+              eq: 20,
+              condition: 'or',
             },
           },
           map: ({ task, numberProp }) => ({ task, numberProp }),
@@ -2227,7 +1969,7 @@ test(`query.filter can filter relational data of a single node query`, async () 
         todos: todos({
           filter: {
             numberProp: {
-              _eq: 20,
+              eq: 20,
             },
           },
           map: ({ task, numberProp }) => ({ task, numberProp }),
@@ -2299,7 +2041,7 @@ test(`query.filter can filter multiple relational data`, async () => {
         todos: todos({
           filter: {
             numberProp: {
-              _eq: 20,
+              eq: 20,
             },
           },
           map: ({ task, numberProp }) => ({ task, numberProp }),
@@ -2307,7 +2049,7 @@ test(`query.filter can filter multiple relational data`, async () => {
         otherTodos: todos({
           filter: {
             numberProp: {
-              _gt: 19,
+              gt: 19,
             },
           },
           map: ({ task, numberProp }) => ({ task, numberProp }),
@@ -2355,7 +2097,7 @@ test(`query.filter undefined filters should not be included`, async () => {
       def: generateUserNode(mmGQLInstance),
       filter: {
         firstName: undefined,
-        score: { _eq: 1 },
+        score: { eq: 1 },
       },
       map: ({ score, firstName }) => ({
         score,
@@ -2432,9 +2174,9 @@ test(`query.filter can filter query with "AND" condition using the node's oneToM
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
       filter: {
-        firstName: { _eq: 'User 3', _condition: 'AND' },
+        firstName: { eq: 'User 3', condition: 'and' },
         todos: {
-          task: { _contains: 'Task 2', _condition: 'AND' },
+          task: { contains: 'Task 2', condition: 'and' },
         },
       },
       map: ({ firstName, todos }) => ({
@@ -2513,9 +2255,9 @@ test(`query.filter can filter query with "OR" condition using the node's oneToMa
     users: queryDefinition({
       def: generateUserNode(mmGQLInstance),
       filter: {
-        firstName: { _eq: 'User 3', _condition: 'OR' },
+        firstName: { eq: 'User 3', condition: 'or' },
         todos: {
-          task: { _contains: 'Task 6', _condition: 'OR' },
+          task: { contains: 'Task 6', condition: 'or' },
         },
       },
       map: ({ firstName, todos }) => ({
@@ -2596,7 +2338,7 @@ test(`query.filter should throw an error if relational prop is not defined in th
         def: generateUserNode(mmGQLInstance),
         filter: {
           todos: {
-            task: { _contains: 'Task 6' },
+            task: { contains: 'Task 6' },
           },
         },
         map: ({ firstName }) => ({
@@ -2652,8 +2394,8 @@ test(`query.filter can filter query with "OR" condition using the node's oneToOn
       def: generateTodoNode(mmGQLInstance),
       filter: {
         assignee: {
-          firstName: { _eq: 'First Name 2', _condition: 'OR' },
-          archived: { _eq: true, _condition: 'OR' },
+          firstName: { eq: 'First Name 2', condition: 'or' },
+          archived: { eq: true, condition: 'or' },
         },
       },
       map: ({ task, assignee }) => ({
@@ -2709,8 +2451,8 @@ test(`query.filter can filter query with "AND" condition using the node's oneToO
       def: generateTodoNode(mmGQLInstance),
       filter: {
         assignee: {
-          firstName: { _eq: 'First Name 2', _condition: 'AND' },
-          archived: { _eq: false, _condition: 'AND' },
+          firstName: { eq: 'First Name 2', condition: 'and' },
+          archived: { eq: false, condition: 'and' },
         },
       },
       map: ({ task, assignee }) => ({
@@ -3068,7 +2810,12 @@ test('subscribe throws an error when the user specifies a token which has not be
 
 function setupTest(mockData?: any) {
   const mmGQLInstance = new MMGQL(
-    getMockConfig({ mockData: mockData, generateMockData: false })
+    getMockConfig({
+      mockData: mockData,
+      generateMockData: false,
+      paginationFilteringSortingInstance:
+        EPaginationFilteringSortingInstance.SERVER,
+    })
   );
   mmGQLInstance.setToken({
     tokenName: DEFAULT_TOKEN_NAME,

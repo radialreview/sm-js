@@ -559,7 +559,7 @@ export function getBEFilterString<TNode extends INode>(
     delete readyForBE.or;
   }
 
-  return `${Object.entries(readyForBE).reduce(
+  return Object.entries(readyForBE).reduce(
     (acc, [condition, filters], index) => {
       if (index > 0) acc += ', ';
 
@@ -577,7 +577,7 @@ export function getBEFilterString<TNode extends INode>(
       return acc;
     },
     ''
-  )}`;
+  );
 }
 
 function getBEOrderArrayString<TNode extends INode>(
@@ -590,23 +590,18 @@ function getBEOrderArrayString<TNode extends INode>(
         let priority: number;
         const sortValue = sort[key as keyof ValidSortForNode<TNode>];
         if (typeof sortValue === 'string') {
-          if (sortValue === 'asc') {
-            direction = 'ASC';
-          } else {
-            direction = 'DESC';
-          }
-
           // ensure that items which were not given priority
           // are placed at the end of the array
           // in the order in which they were received
           priority = sortKeys.length + sortIndex;
+          direction = sortValue === 'asc' ? 'ASC' : 'DESC';
         } else {
           const sortObject = sortValue as SortObject;
-          direction = sortObject._direction === 'asc' ? 'ASC' : 'DESC';
           priority =
-            sortObject._priority != null
-              ? sortObject._priority
+            sortObject.priority != null
+              ? sortObject.priority
               : sortKeys.length + sortIndex;
+          direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
         }
 
         acc[priority] = `{${key}: ${direction}}`;

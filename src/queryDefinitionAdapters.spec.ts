@@ -658,7 +658,7 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: { _condition: 'or', eq: 'get it done' } },
+            filter: { task: { condition: 'or', eq: 'get it done' } },
           }),
         },
         useServerSidePaginationFilteringSorting: true,
@@ -686,7 +686,7 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: { _condition: 'and', eq: 'get it done' } },
+            filter: { task: { condition: 'and', eq: 'get it done' } },
           }),
         },
         useServerSidePaginationFilteringSorting: true,
@@ -742,7 +742,7 @@ describe('getQueryInfo.queryGQLString', () => {
           todos: queryDefinition({
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
-            sort: { task: { _direction: 'asc' } },
+            sort: { task: { direction: 'asc' } },
           }),
         },
         useServerSidePaginationFilteringSorting: true,
@@ -771,8 +771,8 @@ describe('getQueryInfo.queryGQLString', () => {
             def: generateTodoNode(mmGQLInstance),
             map: (() => ({})) as MapFnForNode<TodoNode>,
             sort: {
-              task: { _direction: 'asc' },
-              numberProp: { _direction: 'asc', _priority: 1 },
+              task: { direction: 'asc' },
+              numberProp: { direction: 'asc', priority: 1 },
             },
           }),
         },

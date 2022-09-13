@@ -1,81 +1,37 @@
-import { NodesCollectionPageOutOfBoundsException } from './exceptions';
+export type PagingInfoFromResults = {
+  hasNextPage: boolean;
+  endCursor: string;
+};
 
-function getPageResults<T>(opts: {
-  items: T[];
-  page: number;
-  itemsPerPage: number;
-}) {
-  const startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
-  return Array.from(opts.items || []).slice(
-    startIndex,
-    startIndex + opts.itemsPerPage
-  );
-}
-
-export type OnPaginateCallback = (opts: {
-  page: number;
-  itemsPerPage: number;
-}) => void;
+export type OnLoadMoreResultsCallback = () => Promise<void>;
 
 interface NodesCollectionOpts<T> {
-  onPaginate?: OnPaginateCallback;
-  itemsPerPage: number;
-  page: number;
+  onLoadMoreResults: OnLoadMoreResultsCallback;
   items: T[];
+  pagingInfoFromResults: PagingInfoFromResults;
 }
+
 export class NodesCollection<T> {
-  public itemsPerPage: number;
-  public page: number;
-  private onPaginate?: OnPaginateCallback;
+  private onLoadMoreResults: OnLoadMoreResultsCallback;
   private items: T[];
+  private pagingInfoFromResults: PagingInfoFromResults;
 
   constructor(opts: NodesCollectionOpts<T>) {
-    this.itemsPerPage = opts.itemsPerPage;
-    this.page = opts.page;
     this.items = opts.items;
-    this.onPaginate = opts.onPaginate;
+
+    this.pagingInfoFromResults = opts.pagingInfoFromResults;
+    this.onLoadMoreResults = opts.onLoadMoreResults;
   }
 
   public get nodes() {
-    return getPageResults({
-      items: this.items,
-      page: this.page,
-      itemsPerPage: this.itemsPerPage,
-    });
-  }
-
-  public get totalPages() {
-    return Math.ceil((this.items || []).length / this.itemsPerPage);
-  }
-
-  public goToPage(page: number) {
-    if (page < 1 || page > this.totalPages) {
-      throw new NodesCollectionPageOutOfBoundsException({ page });
-    }
-    this.page = page;
-    this.onPaginate &&
-      this.onPaginate({ page, itemsPerPage: this.itemsPerPage });
+    return this.items;
   }
 
   public get hasNextPage() {
-    return this.totalPages > this.page;
+    return this.pagingInfoFromResults.hasNextPage;
   }
 
-  public get hasPreviousPage() {
-    return this.page > 1;
-  }
-
-  public goToNextPage() {
-    if (!this.hasNextPage) {
-      return;
-    }
-    this.goToPage(this.page + 1);
-  }
-
-  public goToPreviousPage() {
-    if (!this.hasPreviousPage) {
-      return;
-    }
-    this.goToPage(this.page - 1);
+  public async loadMore() {
+    return this.onLoadMoreResults();
   }
 }
