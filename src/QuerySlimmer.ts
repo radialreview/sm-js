@@ -48,32 +48,22 @@ export class QuerySlimmer {
   public queriesByContext: TQueryDataByContextMap = {};
   public inFlightQueryRecords: TInFlightQueriesByContextMap = observable({});
 
-  public async query<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget,
-    TQueryDefinitions extends QueryDefinitions<
-      TNode,
-      TMapFn,
-      TQueryDefinitionTarget
-    >
-  >(opts: {
+  public async query(opts: {
+    queryRecord: QueryRecord;
     queryId: string;
-    queryDefinitions: TQueryDefinitions;
     useServerSidePaginationFilteringSorting: boolean;
-    queryOpts?: QueryOpts<TQueryDefinitions>;
     tokenName: string;
+    batchKey?: string;
   }) {
-    const { queryRecord } = convertQueryDefinitionToQueryInfo(opts);
     const newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(
-      queryRecord
+      opts.queryRecord
     );
 
     if (newQuerySlimmedByCache === null) {
-      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       this.log(
         `QUERYSLIMMER: NEW QUERY FULLY CACHED`,
-        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord)}`,
         `CACHE: ${JSON.stringify(this.queriesByContext)}`,
         `DATA RETURNED: ${JSON.stringify(data)}`
       );
@@ -91,12 +81,12 @@ export class QuerySlimmer {
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
-        batchKey: opts.queryOpts?.batchKey,
+        batchKey: opts.batchKey,
       });
-      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       this.log(
         `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE`,
-        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord)}`,
         `SLIMMED QUERY: ${JSON.stringify(newQuerySlimmedByCache)}`,
         `CACHE: ${JSON.stringify(this.queriesByContext)}`,
         `DATA RETURNED: ${JSON.stringify(data)}`
@@ -105,7 +95,7 @@ export class QuerySlimmer {
     } else {
       this.log(
         `QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST`,
-        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord)}`,
         `IN-FLIGHT QUERIES: ${JSON.stringify(this.inFlightQueryRecords)}`,
         `CACHE: ${JSON.stringify(this.queriesByContext)}`
       );
@@ -115,7 +105,7 @@ export class QuerySlimmer {
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
-        batchKey: opts.queryOpts?.batchKey,
+        batchKey: opts.batchKey,
       });
 
       await when(
@@ -136,10 +126,10 @@ export class QuerySlimmer {
         }
       );
 
-      const data = this.getDataForQueryFromQueriesByContext(queryRecord);
+      const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       this.log(
         `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES`,
-        `ORIGINAL QUERY: ${JSON.stringify(queryRecord)}`,
+        `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord)}`,
         `SLIMMED QUERY: ${JSON.stringify(
           newQuerySlimmedByInFlightQueries.slimmedQueryRecord
         )}`,

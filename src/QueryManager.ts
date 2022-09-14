@@ -13,7 +13,9 @@ import {
   IQueryPagination,
   QueryDataReturn,
   QueryDefinitions,
+  DocumentNode,
 } from './types';
+import { getQueryGQLStringFromQueryRecord } from './queryDefinitionAdapters';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results
@@ -44,16 +46,11 @@ type QueryManagerOpts = {
   resultsObject: Object;
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
-  performQuery: <
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget,
-    TQueryDefinitions extends QueryDefinitions<
-      TNode,
-      TMapFn,
-      TQueryDefinitionTarget
-    >
-  >() => Promise<QueryDataReturn<TQueryDefinitions>>;
+  performQuery(opts: {
+    queryRecord: QueryRecord;
+    queryGQL: DocumentNode;
+    tokenName: string;
+  }): Promise<any>;
 };
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
@@ -141,10 +138,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return Object.keys(state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
+        const pagingInfoFromResults = stateForThisAlias.pagingInfoFromResults;
         const resultsAlias = this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          if (!stateForThisAlias.pagingInfoFromResults) {
+          if (!pagingInfoFromResults) {
             throw Error(
               `No paging info for results found for the alias ${queryAlias}`
             );
@@ -153,12 +151,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           const ids = idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy);
           resultsAcc[resultsAlias] = new NodesCollection({
             items: ids,
-            pagingInfoFromResults: stateForThisAlias.pagingInfoFromResults,
+            pagingInfoFromResults,
             onLoadMoreResults: () =>
               this.onLoadMoreResults({
                 aliasPath: (aliasPath || []).concat([resultsAlias]),
-                previousEndCursor:
-                  stateForThisAlias.pagingInfoFromResults.endCursor,
+                previousEndCursor: pagingInfoFromResults.endCursor,
               }),
           });
         } else if (idsOrId) {
@@ -695,6 +692,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onLoadMoreResults(opts: {
       aliasPath: Array<string>;
       previousEndCursor: string;
-    }) {}
+    }) {
+      const newMinimalQueryRecordForMoreResults = null;
+
+      const newResults = await this.opts.performQuery({
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        queryGQL: getQueryGQLStringFromQueryRecord(
+          newMinimalQueryRecordForMoreResults
+        ),
+      });
+    }
   };
 }

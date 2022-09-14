@@ -158,17 +158,18 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
   return valuesForNodeDataPreparedForBE;
 }
 
-function generateMockNodeDataForAllQueryRecords(opts: {
-  queryRecords: QueryRecord;
+export function generateMockNodeDataForQueryRecord(opts: {
+  queryRecord: QueryRecord;
 }) {
-  const { queryRecords } = opts;
+  const { queryRecord } = opts;
   const mockedNodeData: Record<string, any> = {};
 
-  Object.keys(queryRecords).forEach(queryRecordAlias => {
-    const queryRecord: QueryRecordEntry | RelationalQueryRecordEntry =
-      queryRecords[queryRecordAlias];
+  Object.keys(queryRecord).forEach(queryRecordAlias => {
+    const queryRecordForThisAlias:
+      | QueryRecordEntry
+      | RelationalQueryRecordEntry = queryRecord[queryRecordAlias];
     const returnValueShouldBeAnArray =
-      !!queryRecord.id === false && !('oneToOne' in queryRecord);
+      !!queryRecordForThisAlias.id === false && !('oneToOne' in queryRecord);
 
     let mockedNodeDataReturnValues;
     let relationalMockNodeProperties: Record<string, any> = {};
@@ -180,16 +181,14 @@ function generateMockNodeDataForAllQueryRecords(opts: {
       for (let i = 0; i < numOfResultsToGenerate; i++) {
         const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
           {
-            queryRecord,
+            queryRecord: queryRecordForThisAlias,
           }
         );
 
-        if (queryRecord.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords(
-            {
-              queryRecords: queryRecord.relational,
-            }
-          );
+        if (queryRecordForThisAlias.relational) {
+          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+            queryRecord: queryRecordForThisAlias.relational,
+          });
         }
         arrayOfMockNodeValues.push({
           ...mockNodeDataForQueryRecord,
@@ -201,13 +200,13 @@ function generateMockNodeDataForAllQueryRecords(opts: {
     } else {
       const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
         {
-          queryRecord,
+          queryRecord: queryRecordForThisAlias,
         }
       );
 
       if (queryRecord.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
-          queryRecords: queryRecord.relational,
+        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+          queryRecord: queryRecordForThisAlias.relational as QueryRecord,
         });
       }
 
@@ -221,28 +220,6 @@ function generateMockNodeDataForAllQueryRecords(opts: {
   });
 
   return mockedNodeData;
-}
-
-export function generateMockNodeDataFromQueryDefinitions<
-  TSMNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TSMNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
-  const { queryDefinitions, queryId } = opts;
-
-  const queryRecords = getQueryRecordFromQueryDefinition({
-    queryDefinitions: queryDefinitions,
-    queryId: queryId,
-  });
-
-  return generateMockNodeDataForAllQueryRecords({
-    queryRecords,
-  });
 }
 
 function getRandomItemFromArray(array: Array<any>) {

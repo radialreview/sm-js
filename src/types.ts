@@ -1122,6 +1122,7 @@ export type BaseQueryRecordEntry = {
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
+  tokenName: string
   pagination?: IQueryPagination
   ids?: Array<string> 
   id?: string

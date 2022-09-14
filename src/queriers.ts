@@ -1,7 +1,7 @@
 import { cloneDeep } from 'lodash';
 
 import { DEFAULT_TOKEN_NAME } from './consts';
-import { generateMockNodeDataFromQueryDefinitions } from './generateMockData';
+import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
@@ -18,8 +18,10 @@ import {
   SubscriptionCanceller,
   IGQLClient,
   EPaginationFilteringSortingInstance,
+  QueryRecord,
 } from './types';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
+import { DocumentNode } from 'graphql';
 
 let queryIdx = 0;
 
@@ -83,24 +85,64 @@ export function generateQuerier({
         TQueryDefinitions
       >;
 
-      const results = await performQueries({
-        mmGQLInstance,
-        queryDefinitions,
-        batchKey: opts?.batchKey,
-        queryId,
-      });
+      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+        nonNullishQueryDefinitions
+      );
 
-      const queryRecord = convertQueryDefinitionToQueryInfo({
-        queryDefinitions: nonNullishQueryDefinitions,
+      const { queryRecord, queryGQL } = convertQueryDefinitionToQueryInfo({
+        queryDefinitions,
         queryId,
         useServerSidePaginationFilteringSorting:
           mmGQLInstance.paginationFilteringSortingInstance ===
           EPaginationFilteringSortingInstance.SERVER,
-      }).queryRecord;
+      });
+
+      const resultsForEachTokenUsed = await Promise.all(
+        Object.entries(queryDefinitionsSplitByToken).map(
+          ([tokenName, queryDefinitionsForThisToken]) => {
+            return performQueries({
+              mmGQLInstance,
+              queryGQL,
+              queryRecord: Object.entries(queryRecord).reduce(
+                (acc, [alias, queryRecordEntry]) => {
+                  if (queryDefinitionsForThisToken[alias]) {
+                    acc[alias] = queryRecordEntry;
+                  }
+
+                  return acc;
+                },
+                {} as QueryRecord
+              ),
+              tokenName,
+              queryId,
+              batchKey: opts?.batchKey,
+            });
+          }
+        )
+      );
+
+      const allResults = resultsForEachTokenUsed.reduce(
+        (acc, resultsForToken) => {
+          return {
+            ...acc,
+            ...resultsForToken,
+          };
+        },
+        {}
+      );
 
       const qM =
         queryManager ||
         new mmGQLInstance.QueryManager(queryRecord, {
+          performQuery: ({ queryRecord, queryGQL, tokenName }) =>
+            performQueries({
+              mmGQLInstance,
+              queryRecord,
+              queryId,
+              tokenName,
+              queryGQL,
+              batchKey: opts?.batchKey,
+            }),
           resultsObject: dataToReturn,
           onResultsUpdated: () => {
             opts?.onData && opts.onData({ results: dataToReturn });
@@ -109,7 +151,7 @@ export function generateQuerier({
       try {
         qM.onQueryResult({
           queryId,
-          queryResult: results,
+          queryResult: allResults,
         });
       } catch (e) {
         const error = getError(
@@ -232,6 +274,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
     const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
       resultsObject: dataToReturn,
+      performQuery: ({ queryRecord, queryGQL, tokenName }) =>
+        performQueries({
+          mmGQLInstance,
+          queryRecord,
+          queryId,
+          tokenName,
+          queryGQL,
+          batchKey: opts?.batchKey,
+        }),
       onResultsUpdated: () => {
         opts.onData({ results: dataToReturn });
       },
@@ -505,29 +556,14 @@ function getNullishResults<
   );
 }
 
-async function performQueries<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: {
-  queryDefinitions: TQueryDefinitions;
+async function performQueries(opts: {
+  queryRecord: QueryRecord;
+  queryGQL: DocumentNode;
   mmGQLInstance: IMMGQL;
   queryId: string;
+  tokenName: string;
   batchKey?: string;
 }) {
-  const nullishResults = getNullishResults(opts.queryDefinitions);
-  const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
-    opts.queryDefinitions
-  );
-  const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-    nonNullishQueryDefinitions
-  );
-
   function getToken(tokenName: string) {
     const token = opts.mmGQLInstance.getToken({ tokenName });
 
@@ -541,74 +577,50 @@ async function performQueries<
     return token;
   }
 
-  const allResults = await Promise.all(
-    Object.entries(queryDefinitionsSplitByToken).map(
-      async ([tokenName, queryDefinitions]) => {
-        let response;
-        const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo({
-          queryDefinitions: queryDefinitions,
-          queryId: opts.queryId + '_' + tokenName,
-          useServerSidePaginationFilteringSorting:
-            opts.mmGQLInstance.paginationFilteringSortingInstance ===
-            EPaginationFilteringSortingInstance.SERVER,
-        });
+  let response;
 
-        if (opts.mmGQLInstance.generateMockData) {
-          response = generateMockNodeDataFromQueryDefinitions({
-            queryDefinitions,
-            queryId: opts.queryId,
-          });
-        } else if (opts.mmGQLInstance.enableQuerySlimming) {
-          response = await opts.mmGQLInstance.QuerySlimmer.query({
-            queryId: `${opts.queryId}_${tokenName}`,
-            queryDefinitions,
-            useServerSidePaginationFilteringSorting:
-              opts.mmGQLInstance.paginationFilteringSortingInstance ===
-              EPaginationFilteringSortingInstance.SERVER,
-            tokenName,
-            queryOpts: opts,
-          });
-        } else {
-          const queryOpts: Parameters<IGQLClient['query']>[0] = {
-            gql: queryGQL,
-            token: getToken(tokenName),
-          };
-          if (opts && 'batchKey' in opts) {
-            queryOpts.batchKey = opts.batchKey;
-          }
-          response = await opts.mmGQLInstance.gqlClient.query(queryOpts);
-        }
+  if (opts.mmGQLInstance.generateMockData) {
+    response = generateMockNodeDataForQueryRecord({
+      queryRecord: opts.queryRecord,
+    });
+  } else if (opts.mmGQLInstance.enableQuerySlimming) {
+    response = await opts.mmGQLInstance.QuerySlimmer.query({
+      queryId: opts.queryId,
+      queryRecord: opts.queryRecord,
+      useServerSidePaginationFilteringSorting:
+        opts.mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
+      tokenName: opts.tokenName,
+      batchKey: opts.batchKey,
+    });
+  } else {
+    const queryOpts: Parameters<IGQLClient['query']>[0] = {
+      gql: opts.queryGQL,
+      token: getToken(opts.tokenName),
+    };
+    if (opts && 'batchKey' in opts) {
+      queryOpts.batchKey = opts.batchKey;
+    }
+    response = await opts.mmGQLInstance.gqlClient.query(queryOpts);
+  }
 
-        if (
-          opts.mmGQLInstance.paginationFilteringSortingInstance ===
-          EPaginationFilteringSortingInstance.CLIENT
-        ) {
-          // clone the object only if we are running the unit test
-          // to simulate that we are receiving new response
-          // to prevent mutating the object multiple times when filtering or sorting
-          // resulting into incorrect results in our specs
-          const filteredAndSortedResponse =
-            process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
-          applyClientSideSortAndFilterToData(
-            queryRecord,
-            filteredAndSortedResponse
-          );
+  if (
+    opts.mmGQLInstance.paginationFilteringSortingInstance ===
+    EPaginationFilteringSortingInstance.CLIENT
+  ) {
+    // clone the object only if we are running the unit test
+    // to simulate that we are receiving new response
+    // to prevent mutating the object multiple times when filtering or sorting
+    // resulting into incorrect results in our specs
+    const filteredAndSortedResponse =
+      process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+    applyClientSideSortAndFilterToData(
+      opts.queryRecord,
+      filteredAndSortedResponse
+    );
 
-          return filteredAndSortedResponse;
-        }
+    return filteredAndSortedResponse;
+  }
 
-        return response;
-      }
-    )
-  );
-
-  return allResults.reduce(
-    (acc, resultsForToken) => {
-      return {
-        ...acc,
-        ...resultsForToken,
-      };
-    },
-    { ...nullishResults }
-  );
+  return response;
 }
