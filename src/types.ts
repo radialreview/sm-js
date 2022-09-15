@@ -579,7 +579,8 @@ export enum RELATIONAL_TYPES {
 }
 
 export interface IQueryPagination {
-  itemsPerPage: number
+  itemsPerPage?: number
+  startCursor?: string
 }
 
 export type NodeRelationalQueryBuilderRecord = Record<
@@ -1122,7 +1123,7 @@ export type BaseQueryRecordEntry = {
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
-  tokenName: string
+  tokenName: Maybe<string>
   pagination?: IQueryPagination
   ids?: Array<string> 
   id?: string

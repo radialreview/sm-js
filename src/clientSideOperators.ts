@@ -21,6 +21,8 @@ import {
   QueryRecord,
   FilterObjectForNode,
   FilterCondition,
+  RelationalQueryRecord,
+  RelationalQueryRecordEntry,
 } from './types';
 
 function checkFilter({
@@ -114,7 +116,7 @@ export function applyClientSideFilterToData({
   alias,
   filter: queryRecordEntryFilter,
 }: {
-  queryRecordEntry: QueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   filter: FilterObjectForNode<INode>;
   data: any;
   alias: string;
@@ -373,7 +375,7 @@ export function applyClientSideSortToData({
   alias,
   sort: queryRecordEntrySort,
 }: {
-  queryRecordEntry: QueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   sort: ValidSortForNode<INode>;
   data: any;
   alias: string;
@@ -475,7 +477,7 @@ export function applyClientSideSortToData({
 }
 
 export function applyClientSideSortAndFilterToData(
-  queryRecord: QueryRecord,
+  queryRecord: QueryRecord | RelationalQueryRecord,
   data: any
 ) {
   Object.keys(queryRecord).forEach(alias => {

@@ -1,4 +1,4 @@
-export type PagingInfoFromResults = {
+export type PageInfoFromResults = {
   hasNextPage: boolean;
   endCursor: string;
 };
@@ -8,18 +8,18 @@ export type OnLoadMoreResultsCallback = () => Promise<void>;
 interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
   items: T[];
-  pagingInfoFromResults: PagingInfoFromResults;
+  pageInfoFromResults: PageInfoFromResults;
 }
 
 export class NodesCollection<T> {
   private onLoadMoreResults: OnLoadMoreResultsCallback;
   private items: T[];
-  private pagingInfoFromResults: PagingInfoFromResults;
+  private pageInfoFromResults: PageInfoFromResults;
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.items = opts.items;
 
-    this.pagingInfoFromResults = opts.pagingInfoFromResults;
+    this.pageInfoFromResults = opts.pageInfoFromResults;
     this.onLoadMoreResults = opts.onLoadMoreResults;
   }
 
@@ -28,7 +28,7 @@ export class NodesCollection<T> {
   }
 
   public get hasNextPage() {
-    return this.pagingInfoFromResults.hasNextPage;
+    return this.pageInfoFromResults.hasNextPage;
   }
 
   public async loadMore() {

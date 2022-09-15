@@ -440,8 +440,8 @@ export function convertNodesCollectionValuesToArray<
             ? convertNodesCollectionValuesToArray(item)
             : item;
         }),
-        onLoadMoreResults: () => {},
-        pagingInfoFromResults: {
+        onLoadMoreResults: async () => {},
+        pageInfoFromResults: {
           hasNextPage: true,
           endCursor: 'xyz',
         },

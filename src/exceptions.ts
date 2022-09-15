@@ -58,6 +58,12 @@ export class NotCachedException extends Error {
   }
 }
 
+export class NodesCollectionPageOutOfBoundsException extends Error {
+  constructor() {
+    super(`NodesCollectionPageOutOfBoundsException - no more results to load.`);
+  }
+}
+
 export class DataTypeException extends Error {
   constructor(opts: { dataType: string; value: any }) {
     super(

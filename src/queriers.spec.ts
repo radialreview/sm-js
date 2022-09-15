@@ -15,6 +15,7 @@ import { MMGQL, queryDefinition } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { NULL_TAG } from './dataConversions';
 import { EPaginationFilteringSortingInstance } from './types';
+import { NodesCollectionPageOutOfBoundsException } from './exceptions';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -894,7 +895,6 @@ test(`query.pagination can paginate query with array results`, async () => {
       }),
       pagination: {
         itemsPerPage: 2,
-        page: 2,
       },
     }),
   });
@@ -930,7 +930,6 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are next pages t
       }),
       pagination: {
         itemsPerPage: 2,
-        page: 1,
       },
     }),
   });
@@ -964,7 +963,6 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
       }),
       pagination: {
         itemsPerPage: 2,
-        page: 2,
       },
     }),
   });
@@ -1041,7 +1039,6 @@ test(`query.pagination calling load more results should load more results and up
       }),
       pagination: {
         itemsPerPage: 2,
-        page: 1,
       },
     }),
   });
@@ -1049,7 +1046,7 @@ test(`query.pagination calling load more results should load more results and up
   expect(data.users.nodes.length).toBe(2);
   expect(data.users.nodes[0].firstName).toBe('1');
   expect(data.users.nodes[1].firstName).toBe('2');
-  await data.users.loadMoreResults();
+  await data.users.loadMore();
   expect(data.users.nodes.length).toBe(4);
   expect(data.users.nodes[2].firstName).toBe('3');
   expect(data.users.nodes[3].firstName).toBe('4');
@@ -1096,12 +1093,12 @@ test(`query.pagination can paginate relational data`, async () => {
 
   expect(data.users.nodes[0].todos.nodes.length).toBe(1);
   expect(data.users.nodes[0].todos.nodes[0].task).toBe('1');
-  await data.users.nodes[0].todos.loadMoreResults();
+  await data.users.nodes[0].todos.loadMore();
   expect(data.users.nodes[0].todos.nodes.length).toBe(2);
   expect(data.users.nodes[0].todos.nodes[1].task).toBe('2');
 });
 
-test(`query.pagination loadMoreResults should throw an error if there is no next page`, async () => {
+test(`query.pagination loadMore should throw an error if there is no next page`, async () => {
   const { mmGQLInstance } = setupTest({
     users: createMockDataItems({
       sampleMockData: mockUserData,
@@ -1121,7 +1118,6 @@ test(`query.pagination loadMoreResults should throw an error if there is no next
       def: generateUserNode(mmGQLInstance),
       pagination: {
         itemsPerPage: 2,
-        page: 1,
       },
       map: ({ firstName }) => ({
         firstName,
@@ -1130,7 +1126,7 @@ test(`query.pagination loadMoreResults should throw an error if there is no next
   });
 
   try {
-    await data.users.loadMoreResults();
+    await data.users.loadMore();
   } catch (e) {
     expect(e).toBeInstanceOf(NodesCollectionPageOutOfBoundsException);
   }

@@ -27,3 +27,4 @@ export const DEFAULT_NODE_PROPERTIES = {
 };
 
 export const NODES_PROPERTY_KEY = 'nodes';
+export const PAGE_INFO_PROPERTY_KEY = 'pageInfo';

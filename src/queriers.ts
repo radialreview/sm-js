@@ -19,6 +19,7 @@ import {
   IGQLClient,
   EPaginationFilteringSortingInstance,
   QueryRecord,
+  Maybe,
 } from './types';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 import { DocumentNode } from 'graphql';
@@ -147,6 +148,10 @@ export function generateQuerier({
           onResultsUpdated: () => {
             opts?.onData && opts.onData({ results: dataToReturn });
           },
+          queryId,
+          useServerSidePaginationFilteringSorting:
+            mmGQLInstance.paginationFilteringSortingInstance ===
+            EPaginationFilteringSortingInstance.SERVER,
         });
       try {
         qM.onQueryResult({
@@ -286,6 +291,10 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       onResultsUpdated: () => {
         opts.onData({ results: dataToReturn });
       },
+      queryId,
+      useServerSidePaginationFilteringSorting:
+        mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
     });
 
     function updateQueryManagerWithSubscriptionMessage(data: {
@@ -442,14 +451,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     } else {
       const query = generateQuerier({ mmGQLInstance, queryManager });
       try {
-        const queryOpts: Parameters<typeof query>[1] = {
-          queryId: opts.queryId,
-        };
-        if (opts && 'batchKey' in opts) {
-          queryOpts.batchKey = opts.batchKey;
-        }
+        const params: Parameters<typeof query> = [
+          queryDefinitions,
+          {
+            queryId: opts.queryId,
+            batchKey: opts.batchKey,
+          },
+        ];
         // this query method will post its results to the queryManager declared above
-        await query(queryDefinitions, queryOpts);
+        await query(...params);
       } catch (e) {
         const error = getError(
           new Error(`Error querying initial data set`),
@@ -475,7 +485,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       return {
         data: dataToReturn,
         unsub,
-        error: null,
+        error: undefined,
       } as ReturnType;
     }
   };
@@ -561,7 +571,7 @@ async function performQueries(opts: {
   queryGQL: DocumentNode;
   mmGQLInstance: IMMGQL;
   queryId: string;
-  tokenName: string;
+  tokenName: Maybe<string>;
   batchKey?: string;
 }) {
   function getToken(tokenName: string) {
@@ -590,18 +600,18 @@ async function performQueries(opts: {
       useServerSidePaginationFilteringSorting:
         opts.mmGQLInstance.paginationFilteringSortingInstance ===
         EPaginationFilteringSortingInstance.SERVER,
-      tokenName: opts.tokenName,
+      tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
       batchKey: opts.batchKey,
     });
   } else {
-    const queryOpts: Parameters<IGQLClient['query']>[0] = {
-      gql: opts.queryGQL,
-      token: getToken(opts.tokenName),
-    };
-    if (opts && 'batchKey' in opts) {
-      queryOpts.batchKey = opts.batchKey;
-    }
-    response = await opts.mmGQLInstance.gqlClient.query(queryOpts);
+    const params: Parameters<IGQLClient['query']> = [
+      {
+        gql: opts.queryGQL,
+        token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
+        batchKey: opts.batchKey,
+      },
+    ];
+    response = await opts.mmGQLInstance.gqlClient.query(...params);
   }
 
   if (

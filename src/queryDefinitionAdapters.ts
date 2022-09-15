@@ -24,6 +24,7 @@ import {
   ENumberFilterOperator,
   ValidSortForNode,
   SortObject,
+  RelationalQueryRecord,
 } from './types';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
@@ -401,6 +402,7 @@ export function getQueryRecordFromQueryDefinition<
     let nodeDef;
     let relational;
     let allowNullResult;
+    let tokenName;
     if (!queryDefinition) {
       return;
     } else if ('_isNodeDef' in queryDefinition) {
@@ -413,6 +415,7 @@ export function getQueryRecordFromQueryDefinition<
     } else {
       nodeDef = queryDefinition.def;
       allowNullResult = queryDefinition.target?.allowNullResult;
+      tokenName = queryDefinition.tokenName;
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
@@ -442,6 +445,7 @@ export function getQueryRecordFromQueryDefinition<
       properties: queriedProps,
       relational,
       allowNullResult,
+      tokenName,
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -779,7 +783,9 @@ export function getQueryGQLStringFromQueryRecord(opts: {
   ).trim();
 }
 
-function getQueryRecordSortAndFilterValues(record: QueryRecord) {
+function getQueryRecordSortAndFilterValues(
+  record: QueryRecord | RelationalQueryRecord
+) {
   return Object.keys(record).reduce((acc, alias) => {
     acc.push(record[alias].filter);
     acc.push(record[alias].sort);

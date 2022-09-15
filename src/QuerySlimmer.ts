@@ -6,15 +6,10 @@ import {
   QueryRecordEntry,
   RelationalQueryRecord,
   RelationalQueryRecordEntry,
-  QueryDefinitions,
-  QueryOpts,
   IMMGQL,
   IGQLClient,
 } from './types';
-import {
-  convertQueryDefinitionToQueryInfo,
-  getQueryGQLStringFromQueryRecord,
-} from './queryDefinitionAdapters';
+import { getQueryGQLStringFromQueryRecord } from './queryDefinitionAdapters';
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
@@ -23,7 +18,7 @@ export interface IFetchedQueryData {
 
 export interface IInFlightQueryRecord {
   queryId: string;
-  queryRecord: QueryRecord;
+  queryRecord: QueryRecord | RelationalQueryRecord;
 }
 
 export type TQueryDataByContextMap = Record<string, IFetchedQueryData>;
@@ -33,7 +28,10 @@ export type TInFlightQueriesByContextMap = Record<
   IInFlightQueryRecord[]
 >;
 
-export type TQueryRecordByContextMap = Record<string, QueryRecord>;
+export type TQueryRecordByContextMap = Record<
+  string,
+  QueryRecord | RelationalQueryRecord
+>;
 
 const IN_FLIGHT_TIMEOUT_MS = 1000;
 
@@ -57,7 +55,7 @@ export class QuerySlimmer {
   }) {
     const newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(
       opts.queryRecord
-    );
+    ) as QueryRecord | null;
 
     if (newQuerySlimmedByCache === null) {
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
@@ -177,7 +175,9 @@ export class QuerySlimmer {
     return queryData;
   }
 
-  public slimNewQueryAgainstInFlightQueries(newQuery: QueryRecord) {
+  public slimNewQueryAgainstInFlightQueries(
+    newQuery: QueryRecord | RelationalQueryRecord
+  ) {
     const newQueryByContextMap = this.getQueryRecordsByContextMap(newQuery);
     const inFlightQueriesToSlimAgainst = this.getInFlightQueriesToSlimAgainst(
       newQueryByContextMap
@@ -188,12 +188,14 @@ export class QuerySlimmer {
     }
 
     const queryIdsSlimmedAgainst: string[] = [];
-    let newQuerySlimmed: QueryRecord = {};
+    let newQuerySlimmed = {};
 
     Object.keys(inFlightQueriesToSlimAgainst).forEach(
       inFlightQueryContextKey => {
         if (inFlightQueryContextKey in newQueryByContextMap) {
-          let newQueryRecordPieceSlimmed: QueryRecord = {
+          let newQueryRecordPieceSlimmed:
+            | QueryRecord
+            | RelationalQueryRecord = {
             ...newQueryByContextMap[inFlightQueryContextKey],
           };
 
@@ -487,7 +489,7 @@ export class QuerySlimmer {
   }
 
   public onSubscriptionCancelled(
-    queryRecord: QueryRecord,
+    queryRecord: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
   ) {
     Object.keys(queryRecord).forEach(queryRecordKey => {
@@ -535,7 +537,7 @@ export class QuerySlimmer {
   }
 
   public populateQueriesByContext(
-    queryRecord: QueryRecord,
+    queryRecord: QueryRecord | RelationalQueryRecord,
     results: Record<string, any>,
     parentContextKey?: string
   ) {
@@ -577,10 +579,11 @@ export class QuerySlimmer {
   }
 
   private createContextKeyForQueryRecordEntry(
-    queryRecordEntry: QueryRecordEntry,
+    queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry,
     parentContextKey?: string
   ) {
-    const doesQueryHaveIdProperty = !!queryRecordEntry.id;
+    const doesQueryHaveIdProperty =
+      !('id' in queryRecordEntry) || !!queryRecordEntry.id;
     const parentContextKeyPrefix = !!parentContextKey
       ? `${parentContextKey}.`
       : '';
@@ -618,26 +621,33 @@ export class QuerySlimmer {
     return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 
-  private stringifyQueryParams(entry: QueryRecordEntry) {
+  private stringifyQueryParams(
+    entry: QueryRecordEntry | RelationalQueryRecordEntry
+  ) {
     // https://tractiontools.atlassian.net/browse/TTD-315
     // Handle filter/pagination/sorting query params
-    const params = { ids: entry.ids, id: entry.id };
+    const params = {
+      ids: 'ids' in entry ? entry.ids : undefined,
+      id: 'id' in entry ? entry.id : undefined,
+    };
     if (!Object.values(params).some(value => value != null)) {
       return 'NO_PARAMS';
     }
     return JSON.stringify(params);
   }
 
-  private getQueryRecordsByContextMap(queryRecord: QueryRecord) {
+  private getQueryRecordsByContextMap(
+    queryRecord: QueryRecord | RelationalQueryRecord
+  ) {
     return Object.keys(queryRecord).reduce(
       (queryRecordsByContext, queryRecordKey) => {
         const queryRecordEntry = queryRecord[queryRecordKey];
         const contextKey = this.createContextKeyForQueryRecordEntry(
           queryRecordEntry
         );
-        const queryRecordSlice: QueryRecord = {
+        const queryRecordSlice = {
           [queryRecordKey]: queryRecordEntry,
-        };
+        } as QueryRecord | RelationalQueryRecord;
         queryRecordsByContext[contextKey] = queryRecordSlice;
         return queryRecordsByContext;
       },
