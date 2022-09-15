@@ -20,6 +20,7 @@ import {
 } from './types';
 import { getQueryGQLStringFromQueryRecord } from './queryDefinitionAdapters';
 import { gql } from '@apollo/client';
+import { extend } from './dataUtilities';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results
@@ -30,7 +31,7 @@ type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
   idsOrIdInCurrentResult: string | Array<string> | null;
   proxyCache: QueryManagerProxyCache;
-  pageInfoFromResults?: PageInfoFromResults;
+  pageInfoFromResults: Maybe<PageInfoFromResults>;
 };
 
 type QueryManagerProxyCache = Record<
@@ -91,10 +92,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         queryRecord: this.queryRecord,
       });
 
-      Object.assign(
-        this.opts.resultsObject,
-        this.getResultsFromState({ state: this.state, aliasPath: [] })
-      );
+      extend({
+        object: this.opts.resultsObject,
+        extension: this.getResultsFromState({
+          state: this.state,
+          aliasPath: [],
+        }),
+        extendNestedObjects: false,
+        deleteKeysNotInExtension: false,
+      });
     }
 
     public onSubscriptionMessage(opts: {
@@ -374,6 +380,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             return {
               idsOrIdInCurrentResult: null,
               proxyCache: {},
+              pageInfoFromResults: opts.pageInfoFromResults,
             };
           }
 
@@ -384,6 +391,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
+            pageInfoFromResults: opts.pageInfoFromResults,
           };
         } else {
           return {
@@ -393,6 +401,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
+            pageInfoFromResults: opts.pageInfoFromResults,
           };
         }
       } else {
@@ -403,6 +412,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               nodeData
             ),
           },
+          pageInfoFromResults: opts.pageInfoFromResults,
         };
       }
     }
@@ -584,6 +594,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                           .idsOrIdInCurrentResult as Array<string>),
                         node.id,
                       ],
+                      // @TODO will we get pageInfo in subscription messages?
+                      pageInfoFromResults: null,
                     };
                   } else {
                     const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
@@ -611,6 +623,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                           .idsOrIdInCurrentResult as Array<string>),
                         node.id,
                       ],
+                      // @TODO will we get pageInfo in subscription messages?
+                      pageInfoFromResults: null,
                     };
                   }
                 });

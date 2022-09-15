@@ -158,6 +158,7 @@ export function generateQuerier({
           queryId,
           queryResult: allResults,
         });
+        opts?.onData && opts.onData({ results: dataToReturn });
       } catch (e) {
         const error = getError(
           new Error(`Error applying query results`),

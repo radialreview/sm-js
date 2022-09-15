@@ -2,7 +2,7 @@ import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
-import { isObject } from 'lodash';
+
 import {
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
@@ -19,7 +19,8 @@ import {
   EPaginationFilteringSortingInstance,
 } from './types';
 import { NULL_TAG } from './dataConversions';
-import { NodesCollection } from './nodesCollection';
+import { NodesCollection, PageInfoFromResults } from './nodesCollection';
+import { isObject } from 'lodash';
 
 const userProperties = {
   firstName: data.string,
@@ -250,6 +251,11 @@ export const mockUserData = {
   todos: [mockTodoData],
 };
 
+const pageInfo: PageInfoFromResults = {
+  hasNextPage: false,
+  endCursor: 'xyz',
+};
+
 export const mockQueryDataReturn = {
   users: {
     nodes: [
@@ -276,40 +282,44 @@ export const mockQueryDataReturn = {
               },
             },
           ],
+          pageInfo,
         },
       },
     ],
+    pageInfo,
   },
 };
 
 const expectedAssignee = {
-  id: 'mock-user-id',
+  version: 1,
   type: 'user',
+  id: 'mock-user-id',
+  firstName: 'Joe',
   displayName: 'User display name',
   lastUpdatedBy: undefined,
-  firstName: 'Joe',
-  version: 1,
 };
 const expectedTodo = {
-  id: 'mock-todo-id',
+  version: 1,
   type: 'todo',
+  id: 'mock-todo-id',
   assignee: expectedAssignee,
   lastUpdatedBy: undefined,
-  version: 1,
 };
 const expectedUsers = [
   {
-    id: 'mock-user-id',
+    version: 1,
     type: 'user',
+    id: 'mock-user-id',
+    address: { state: 'FL', apt: { number: 1, floor: 1 } },
     displayName: 'User display name',
     lastUpdatedBy: undefined,
-    address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
-    version: 1,
   },
 ];
 
-export const mockQueryResultExpectations = { users: expectedUsers };
+export const mockQueryResultExpectations = convertNodesCollectionValuesToArray({
+  users: expectedUsers,
+});
 
 export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
@@ -440,11 +450,11 @@ export function convertNodesCollectionValuesToArray<
             ? convertNodesCollectionValuesToArray(item)
             : item;
         }),
-        onLoadMoreResults: async () => {},
         pageInfoFromResults: {
-          hasNextPage: true,
+          hasNextPage: false,
           endCursor: 'xyz',
         },
+        onLoadMoreResults: async () => {},
       });
       acc[key] = arrayValue;
     }

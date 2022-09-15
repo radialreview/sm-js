@@ -11,6 +11,7 @@ import {
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
 } from './exceptions';
+
 import {
   FilterValue,
   FilterOperator,
@@ -121,7 +122,10 @@ export function applyClientSideFilterToData({
   data: any;
   alias: string;
 }) {
-  const filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+  const filterObject = getFlattenedNodeFilterObject({
+    filterObject: queryRecordEntryFilter,
+    nodeDataForThisProp: queryRecordEntry.def.data[alias],
+  });
 
   if (filterObject && data[alias]) {
     const filterProperties = Object.keys(filterObject).map<{

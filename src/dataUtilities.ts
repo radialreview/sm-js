@@ -1,5 +1,4 @@
 import { isArray, isObject } from 'lodash';
-import { FILTER_OPERATORS } from './consts';
 import {
   FilterCondition,
   EStringFilterOperator,
@@ -8,6 +7,10 @@ import {
   SortObject,
   ValidFilterForNode,
   ValidSortForNode,
+  DataDefaultFn,
+  IData,
+  FilterOperator,
+  DATA_TYPES,
 } from './types';
 
 /**
@@ -202,30 +205,39 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
  * @param filterObject : ;
  * @returns
  */
-export function getFlattenedNodeFilterObject<TNode extends INode>(
-  filterObject: ValidFilterForNode<TNode>
-) {
+export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
+  filterObject: ValidFilterForNode<TNode>;
+  nodeDataForThisProp: IData | DataDefaultFn;
+}) {
   const result: Record<
     string,
-    Partial<Record<EStringFilterOperator, any>> & {
-      _condition: FilterCondition;
+    Partial<Record<FilterOperator, any>> & {
+      condition: FilterCondition;
     }
   > = {};
 
-  const filterObject2 = filterObject as any;
+  const filterObject2 = opts.filterObject as any;
   for (const i in filterObject2) {
     const value = filterObject2[i] as FilterValue<string>;
-    const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
-      condition => isObject(value) && !value.hasOwnProperty(condition)
-    );
+    const dataIsObjectType =
+      (opts.nodeDataForThisProp as IData).type === DATA_TYPES.object ||
+      (opts.nodeDataForThisProp as IData).type === DATA_TYPES.maybeObject;
+    const boxedData = (opts.nodeDataForThisProp as IData).boxedValue;
+    const boxedProps = Object.keys(boxedData);
+    const valueIsNotAFilterCondition =
+      isObject(value) &&
+      dataIsObjectType &&
+      Object.keys(value).some(key => boxedProps.includes(key));
+
     if (
       typeof filterObject2[i] == 'object' &&
       filterObject2[i] !== null &&
       valueIsNotAFilterCondition
     ) {
-      const flatObject = getFlattenedNodeFilterObject(
-        value as ValidFilterForNode<TNode>
-      );
+      const flatObject = getFlattenedNodeFilterObject({
+        filterObject: value as ValidFilterForNode<TNode>,
+        nodeDataForThisProp: (opts.nodeDataForThisProp as IData).boxedValue[i],
+      });
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
 
@@ -235,12 +247,14 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(
       if (isObject(value)) {
         result[i] = {
           ...value,
-          _condition: value._condition || 'and',
+          condition: value.condition || 'and',
         };
       } else if (value !== undefined) {
         result[i] = {
           [EStringFilterOperator.eq]: value,
-          _condition: 'and',
+          condition: 'and',
+        } as Partial<Record<FilterOperator, any>> & {
+          condition: FilterCondition;
         };
       }
     }
@@ -274,7 +288,7 @@ export function getFlattenedNodeSortObject<TNode extends INode>(
         result[i] = value as SortObject;
       } else if (value !== undefined) {
         const filter: SortObject = {
-          _direction: value,
+          direction: value,
         };
         result[i] = filter;
       }

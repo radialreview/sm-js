@@ -338,7 +338,7 @@ export type FilterValue<TValue extends string | number | boolean> =
               ? EBooleanFilterOperator
                 : never,
         TValue
-      > & {condition?: FilterCondition}
+      > & { condition?: FilterCondition }
     >
   )
 
@@ -603,10 +603,8 @@ export interface INodeRepository {
 }
 
 export enum EStringFilterOperator {
-  /** equal */
-  'eq' = 'eq',
-  /** not equal */
-  'neq' = 'neq',
+  'eq' = 'eq', // equal
+  'neq' = 'neq', // not equal
   'contains' = 'contains',
   'ncontains' = 'ncontains',
   'startsWith' = 'startsWith',
@@ -616,8 +614,8 @@ export enum EStringFilterOperator {
 }
 
 export enum ENumberFilterOperator {
-  'eq' = 'eq',
-  'neq' = 'neq',
+  'eq' = 'eq', // equal
+  'neq' = 'neq', // not equal
   'gt' = 'gt',
   'ngt' = 'ngt',
   'gte' = 'gte',
@@ -629,8 +627,8 @@ export enum ENumberFilterOperator {
 }
 
 export enum EBooleanFilterOperator {
-  eq = 'eq',
-  neq = 'neq'
+  'eq' = 'eq', // equal
+  'neq' = 'neq' // not equal
 }
 
 export type FilterOperator = EStringFilterOperator | ENumberFilterOperator | EBooleanFilterOperator
