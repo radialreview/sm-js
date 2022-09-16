@@ -20,7 +20,6 @@ import {
   SortDirection,
   ValidSortForNode,
   QueryRecord,
-  FilterObjectForNode,
   FilterCondition,
   RelationalQueryRecord,
   RelationalQueryRecordEntry,
@@ -115,16 +114,13 @@ export function applyClientSideFilterToData({
   queryRecordEntry,
   data,
   alias,
-  filter: queryRecordEntryFilter,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  filter: FilterObjectForNode<INode>;
   data: any;
   alias: string;
 }) {
   const filterObject = getFlattenedNodeFilterObject({
-    filterObject: queryRecordEntryFilter,
-    nodeData: queryRecordEntry.def.data,
+    queryRecordEntry,
   });
 
   if (filterObject && data[alias]) {
@@ -491,8 +487,7 @@ export function applyClientSideSortAndFilterToData(
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
         queryRecordEntry,
-        filter: queryRecordEntry.filter,
-        data: data,
+        data,
         alias,
       });
     }
@@ -501,7 +496,7 @@ export function applyClientSideSortAndFilterToData(
       applyClientSideSortToData({
         queryRecordEntry,
         sort: queryRecordEntry.sort as ValidSortForNode<INode>,
-        data: data,
+        data,
         alias,
       });
     }

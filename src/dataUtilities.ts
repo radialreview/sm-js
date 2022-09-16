@@ -1,16 +1,19 @@
 import { isArray, isObject } from 'lodash';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+
 import {
   FilterCondition,
   EStringFilterOperator,
   FilterValue,
   INode,
   SortObject,
-  ValidFilterForNode,
   ValidSortForNode,
-  DataDefaultFn,
-  IData,
   FilterOperator,
+  QueryRecordEntry,
+  RelationalQueryRecordEntry,
   DATA_TYPES,
+  IData,
+  RelationalQueryRecord,
 } from './types';
 
 /**
@@ -205,9 +208,8 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
  * @param filterObject : ;
  * @returns
  */
-export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
-  filterObject: ValidFilterForNode<TNode>;
-  nodeData: Record<string, IData | DataDefaultFn>;
+export function getFlattenedNodeFilterObject(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const result: Record<
     string,
@@ -216,44 +218,67 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
     }
   > = {};
 
-  const filterObject2 = opts.filterObject as any;
-  for (const i in filterObject2) {
-    const value = filterObject2[i] as FilterValue<string>;
-    const dataIsObjectType =
-      (opts.nodeData[i] as IData)?.type === DATA_TYPES.object ||
-      (opts.nodeData[i] as IData)?.type === DATA_TYPES.maybeObject;
-    const boxedData = dataIsObjectType
-      ? (opts.nodeData[i] as IData)?.boxedValue
-      : null;
-    const boxedProps = boxedData ? Object.keys(boxedData) : [];
-    const valueIsNotAFilterCondition =
-      isObject(value) &&
-      dataIsObjectType &&
-      Object.keys(value).some(key => boxedProps.includes(key));
+  const filterObject = opts.queryRecordEntry.filter;
+
+  if (!filterObject) return result;
+
+  const queriedRelations = opts.queryRecordEntry.relational;
+  const nodeData = opts.queryRecordEntry.def.data;
+
+  for (const filteredProperty in filterObject) {
+    const filterValue = filterObject[filteredProperty] as FilterValue<string>;
+
+    const isObjectInNodeData =
+      nodeData[filteredProperty] &&
+      ((nodeData[filteredProperty] as IData).type === DATA_TYPES.object ||
+        (nodeData[filteredProperty] as IData).type === DATA_TYPES.maybeObject);
+    const isAQueriedRelationalProp = queriedRelations
+      ? queriedRelations[filteredProperty] != null
+      : false;
+
+    const filterIsTargettingNestedObjectOrRelationalData =
+      isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
 
     if (
-      typeof filterObject2[i] == 'object' &&
-      filterObject2[i] !== null &&
-      valueIsNotAFilterCondition
+      typeof filterValue == 'object' &&
+      filterValue !== null &&
+      filterIsTargettingNestedObjectOrRelationalData
     ) {
+      const queryRecordEntry = {
+        ...opts.queryRecordEntry,
+        def: isObjectInNodeData
+          ? opts.queryRecordEntry.def
+          : (queriedRelations as RelationalQueryRecord)[filteredProperty].def,
+        properties: isObjectInNodeData
+          ? opts.queryRecordEntry.properties
+              .filter(prop => prop.startsWith(filteredProperty))
+              .map(prop => {
+                const [_, ...remainingPath] = prop.split(
+                  OBJECT_PROPERTY_SEPARATOR
+                );
+                return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+              })
+          : (queriedRelations as RelationalQueryRecord)[filteredProperty]
+              .properties,
+        filter: filterValue,
+      };
+
       const flatObject = getFlattenedNodeFilterObject({
-        filterObject: value as ValidFilterForNode<TNode>,
-        nodeData: boxedData,
+        queryRecordEntry,
       });
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
-
-        result[i + '.' + x] = flatObject[x];
+        result[filteredProperty + '.' + x] = flatObject[x];
       }
     } else {
-      if (isObject(value)) {
-        result[i] = {
-          ...value,
-          condition: value.condition || 'and',
+      if (isObject(filterValue)) {
+        result[filteredProperty] = {
+          ...filterValue,
+          condition: filterValue.condition || 'and',
         };
-      } else if (value !== undefined) {
-        result[i] = {
-          [EStringFilterOperator.eq]: value,
+      } else if (filterValue !== undefined) {
+        result[filteredProperty] = {
+          [EStringFilterOperator.eq]: filterValue,
           condition: 'and',
         } as Partial<Record<FilterOperator, any>> & {
           condition: FilterCondition;

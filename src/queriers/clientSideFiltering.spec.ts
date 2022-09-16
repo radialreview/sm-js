@@ -759,6 +759,139 @@ test(`query.filter can filter nested object property`, async () => {
   ).toBe(2);
 });
 
+test(`query.filter undefined filters should not be included`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: 'John',
+            score: '10',
+          },
+          {
+            firstName: 'Mary',
+            score: '20',
+          },
+          {
+            firstName: 'Mary 2',
+            score: '21',
+          },
+          {
+            firstName: 'Joe',
+            score: '1',
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        firstName: undefined,
+        score: { eq: 1 },
+      },
+      map: ({ score, firstName }) => ({
+        score,
+        firstName,
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['Joe']);
+  expect(data.users.nodes.length).toEqual(1);
+});
+
+test(`query.filter can filter query with "AND" condition using the node's oneToMany relational properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: 'User 1',
+            todos: createMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 1',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 3',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 2',
+            todos: createMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 4',
+                },
+                {
+                  task: 'Task 5',
+                },
+                {
+                  task: 'Task 6',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 3',
+            todos: createMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 7',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 9',
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        todos: {
+          task: { contains: 'Task 9' },
+        },
+      },
+      map: ({ firstName, todos }) => ({
+        firstName,
+        todos: todos({
+          map: ({ task }) => ({ task }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
+});
+
 test(`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {

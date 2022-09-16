@@ -245,6 +245,29 @@ exports[`query.filter can filter nested object property 1`] = `
 }"
 `;
 
+exports[`query.filter can filter query with "AND" condition using the node's oneToMany relational properties 1`] = `
+"query query19 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter relational data 1`] = `
 "query query15 {
  users: users {
@@ -269,7 +292,7 @@ exports[`query.filter can filter relational data 1`] = `
 `;
 
 exports[`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function 1`] = `
-"query query18 {
+"query query20 {
  users: users {
    nodes {
      id,
@@ -291,6 +314,21 @@ exports[`query.filter supports old filter object format with 'eq' as default ope
      version,
      lastUpdatedBy,
      type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.filter undefined filters should not be included 1`] = `
+"query query18 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
      firstName
    }
  }
