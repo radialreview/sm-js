@@ -523,7 +523,7 @@ export function getBEFilterString<TNode extends INode>(
           value: filter[key],
         };
       } else {
-        const { _condition, ...rest } = filter[key];
+        const { condition, ...rest } = filter[key];
         const keys = Object.keys(rest);
         if (keys.length !== 1) {
           throw Error('Expected 1 property on this filter object');
@@ -540,7 +540,7 @@ export function getBEFilterString<TNode extends INode>(
         };
       }
 
-      const condition: FilterCondition = filter[key]?._condition || 'and';
+      const condition: FilterCondition = filter[key]?.condition || 'and';
 
       const conditionArray = acc[condition] || [];
       conditionArray.push(filterForBE);

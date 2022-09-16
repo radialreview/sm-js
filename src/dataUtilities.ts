@@ -207,7 +207,7 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
  */
 export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
   filterObject: ValidFilterForNode<TNode>;
-  nodeDataForThisProp: IData | DataDefaultFn;
+  nodeData: Record<string, IData | DataDefaultFn>;
 }) {
   const result: Record<
     string,
@@ -220,10 +220,12 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
   for (const i in filterObject2) {
     const value = filterObject2[i] as FilterValue<string>;
     const dataIsObjectType =
-      (opts.nodeDataForThisProp as IData).type === DATA_TYPES.object ||
-      (opts.nodeDataForThisProp as IData).type === DATA_TYPES.maybeObject;
-    const boxedData = (opts.nodeDataForThisProp as IData).boxedValue;
-    const boxedProps = Object.keys(boxedData);
+      (opts.nodeData[i] as IData)?.type === DATA_TYPES.object ||
+      (opts.nodeData[i] as IData)?.type === DATA_TYPES.maybeObject;
+    const boxedData = dataIsObjectType
+      ? (opts.nodeData[i] as IData)?.boxedValue
+      : null;
+    const boxedProps = boxedData ? Object.keys(boxedData) : [];
     const valueIsNotAFilterCondition =
       isObject(value) &&
       dataIsObjectType &&
@@ -236,7 +238,7 @@ export function getFlattenedNodeFilterObject<TNode extends INode>(opts: {
     ) {
       const flatObject = getFlattenedNodeFilterObject({
         filterObject: value as ValidFilterForNode<TNode>,
-        nodeDataForThisProp: (opts.nodeDataForThisProp as IData).boxedValue[i],
+        nodeData: boxedData,
       });
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;

@@ -8,14 +8,14 @@ import {
   mockUserData,
   mockTodoData,
   generateTodoNode,
-} from './specUtilities';
-import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
-import { MMGQL, queryDefinition } from '.';
-import { DEFAULT_TOKEN_NAME } from './consts';
-import { NULL_TAG } from './dataConversions';
-import { EPaginationFilteringSortingInstance } from './types';
-import { NodesCollectionPageOutOfBoundsException } from './exceptions';
-import { PageInfoFromResults } from './nodesCollection';
+} from '../specUtilities';
+import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { MMGQL, queryDefinition } from '..';
+import { DEFAULT_TOKEN_NAME } from '../consts';
+import { NULL_TAG } from '../dataConversions';
+import { EPaginationFilteringSortingInstance } from '../types';
+import { NodesCollectionPageOutOfBoundsException } from '../exceptions';
+import { PageInfoFromResults } from '../nodesCollection';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -158,26 +158,6 @@ test('query can query data using multiple tokens, by making parallel requests', 
     })
   );
 });
-
-function createMockDataItems<T>(opts: {
-  sampleMockData: T & { id: string };
-  items: Array<Partial<any>>;
-  pageInfo?: PageInfoFromResults;
-}) {
-  const pageInfo: PageInfoFromResults = opts.pageInfo || {
-    hasNextPage: true,
-    endCursor: 'xyz',
-  };
-
-  return {
-    nodes: opts.items.map((mockItem, index) => ({
-      ...opts.sampleMockData,
-      ...mockItem,
-      id: opts.sampleMockData.id + index,
-    })),
-    pageInfo,
-  };
-}
 
 // test(`query.filter can filter 'number' prop using 'gte' operator`, async () => {
 //   const { mmGQLInstance } = setupTest({
@@ -1015,53 +995,52 @@ test(`query.pagination not defining pagination parameters should return all item
   });
 
   expect(data.users.nodes.length).toBe(5);
-  expect(data.users.hasNextPage).toBe(false);
 });
 
-test(`query.pagination calling load more results should load more results and update the data returned by the query`, async () => {
-  const { mmGQLInstance } = setupTest({
-    users: createMockDataItems({
-      sampleMockData: mockUserData,
-      items: [
-        {
-          firstName: '1',
-        },
-        {
-          firstName: '2',
-        },
-        {
-          firstName: '3',
-        },
-        {
-          firstName: '4',
-        },
-        {
-          firstName: '5',
-        },
-      ],
-    }),
-  });
+// test(`query.pagination calling load more results should load more results and update the data returned by the query`, async () => {
+//   const { mmGQLInstance } = setupTest({
+//     users: createMockDataItems({
+//       sampleMockData: mockUserData,
+//       items: [
+//         {
+//           firstName: '1',
+//         },
+//         {
+//           firstName: '2',
+//         },
+//         {
+//           firstName: '3',
+//         },
+//         {
+//           firstName: '4',
+//         },
+//         {
+//           firstName: '5',
+//         },
+//       ],
+//     }),
+//   });
 
-  const { data } = await mmGQLInstance.query({
-    users: queryDefinition({
-      def: generateUserNode(mmGQLInstance),
-      map: ({ firstName }) => ({
-        firstName,
-      }),
-      pagination: {
-        itemsPerPage: 2,
-      },
-    }),
-  });
+//   const { data } = await mmGQLInstance.query({
+//     users: queryDefinition({
+//       def: generateUserNode(mmGQLInstance),
+//       map: ({ firstName }) => ({
+//         firstName,
+//       }),
+//       pagination: {
+//         itemsPerPage: 2,
+//       },
+//     }),
+//   });
 
-  expect(data.users.nodes.length).toBe(2);
-  expect(data.users.nodes[0].firstName).toBe('1');
-  expect(data.users.nodes[1].firstName).toBe('2');
-  await data.users.loadMore();
-  expect(data.users.nodes.length).toBe(4);
-  expect(data.users.nodes[2].firstName).toBe('3');
-  expect(data.users.nodes[3].firstName).toBe('4');
-});
+//   expect(data.users.nodes.length).toBe(2);
+//   expect(data.users.nodes[0].firstName).toBe('1');
+//   expect(data.users.nodes[1].firstName).toBe('2');
+//   await data.users.loadMore();
+//   expect(data.users.nodes.length).toBe(4);
+//   expect(data.users.nodes[2].firstName).toBe('3');
+//   expect(data.users.nodes[3].firstName).toBe('4');
+// });
 
 test(`query.pagination can paginate relational data`, async () => {
   const { mmGQLInstance } = setupTest({

@@ -342,7 +342,7 @@ export type FilterValue<TValue extends string | number | boolean> =
     >
   )
 
-export type SortObject = {direction: SortDirection, priority?: number}
+export type SortObject = { direction: SortDirection, priority?: number }
 export type SortValue = SortDirection | SortObject
 
 export type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never

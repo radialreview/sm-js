@@ -124,11 +124,11 @@ export function applyClientSideFilterToData({
 }) {
   const filterObject = getFlattenedNodeFilterObject({
     filterObject: queryRecordEntryFilter,
-    nodeDataForThisProp: queryRecordEntry.def.data[alias],
+    nodeData: queryRecordEntry.def.data,
   });
 
   if (filterObject && data[alias]) {
-    const filterProperties = Object.keys(filterObject).map<{
+    const filterProperties: Array<{
       dotSeparatedPropName: string;
       underscoreSeparatedPropName: string;
       propNotInQuery: boolean;
@@ -138,7 +138,7 @@ export function applyClientSideFilterToData({
       relationalKey?: string;
       oneToOne?: boolean;
       oneToMany?: boolean;
-    }>(dotSeparatedPropName => {
+    }> = Object.keys(filterObject).map(dotSeparatedPropName => {
       const [possibleRelationalKey, ...relationalProperties] = String(
         dotSeparatedPropName
       ).split('.');
@@ -149,7 +149,7 @@ export function applyClientSideFilterToData({
       const propertyFilter: FilterValue<any> =
         filterObject[dotSeparatedPropName];
       const operators = (Object.keys(propertyFilter).filter(
-        x => x !== '_condition'
+        x => x !== 'condition'
       ) as Array<FilterOperator>).map<{ operator: FilterOperator; value: any }>(
         operator => {
           return { operator, value: propertyFilter[operator] };
@@ -170,7 +170,7 @@ export function applyClientSideFilterToData({
         underscoreSeparatedPropName,
         propNotInQuery: propNotInQuery,
         operators,
-        condition: propertyFilter._condition,
+        condition: propertyFilter.condition,
         isRelational: isRelationalProperty,
         relationalKey: possibleRelationalKey,
         oneToOne: (relational && 'oneToOne' in relational) || undefined,

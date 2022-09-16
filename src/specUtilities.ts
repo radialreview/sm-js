@@ -462,3 +462,23 @@ export function convertNodesCollectionValuesToArray<
     return acc;
   }, obj as Record<string, any>);
 }
+
+export function createMockDataItems<T>(opts: {
+  sampleMockData: T & { id: string };
+  items: Array<Partial<any>>;
+  pageInfo?: PageInfoFromResults;
+}) {
+  const pageInfo: PageInfoFromResults = opts.pageInfo || {
+    hasNextPage: true,
+    endCursor: 'xyz',
+  };
+
+  return {
+    nodes: opts.items.map((mockItem, index) => ({
+      ...opts.sampleMockData,
+      ...mockItem,
+      id: opts.sampleMockData.id + index,
+    })),
+    pageInfo,
+  };
+}
