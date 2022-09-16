@@ -230,6 +230,38 @@ exports[`query.filter can filter multilevel relational data 1`] = `
 }"
 `;
 
+exports[`query.filter can filter multiple relational data 1`] = `
+"query query28 {
+ user: user(id: \\"mock-user-id\\") {
+   id,
+   version,
+   lastUpdatedBy,
+   type,
+   archived,
+   todos: todos {
+     nodes {
+       id,
+       version,
+       lastUpdatedBy,
+       type,
+       task,
+       numberProp
+     }
+   }
+   otherTodos: todos {
+     nodes {
+       id,
+       version,
+       lastUpdatedBy,
+       type,
+       task,
+       numberProp
+     }
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter nested object property 1`] = `
 "query query17 {
  users: users {
@@ -246,7 +278,7 @@ exports[`query.filter can filter nested object property 1`] = `
 `;
 
 exports[`query.filter can filter query with "AND" condition using the node's oneToMany relational properties 1`] = `
-"query query19 {
+"query query20 {
  users: users {
    nodes {
      id,
@@ -262,6 +294,73 @@ exports[`query.filter can filter query with "AND" condition using the node's one
          type,
          task
        }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "AND" condition using the node's oneToOne relational properties 1`] = `
+"query query24 {
+ todos: todos {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     task,
+     assignee: assignee {
+       id,
+       version,
+       lastUpdatedBy,
+       type,
+       firstName,
+       archived
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "OR" condition using the node's oneToMany relational properties 1`] = `
+"query query21 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "OR" condition using the node's oneToOne relational properties 1`] = `
+"query query23 {
+ todos: todos {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     task,
+     assignee: assignee {
+       id,
+       version,
+       lastUpdatedBy,
+       type,
+       firstName,
+       archived
      }
    }
  }
@@ -291,8 +390,68 @@ exports[`query.filter can filter relational data 1`] = `
 }"
 `;
 
+exports[`query.filter can filter relational data of a single node query 1`] = `
+"query query27 {
+ user: user(id: \\"mock-user-id\\") {
+   id,
+   version,
+   lastUpdatedBy,
+   type,
+   archived,
+   todos: todos {
+     nodes {
+       id,
+       version,
+       lastUpdatedBy,
+       type,
+       task,
+       numberProp
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter relational data using "OR" condition 1`] = `
+"query query26 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task,
+         numberProp
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter using "OR" condition 1`] = `
+"query query25 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     score
+   }
+ }
+}"
+`;
+
 exports[`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function 1`] = `
-"query query20 {
+"query query19 {
  users: users {
    nodes {
      id,
@@ -301,6 +460,28 @@ exports[`query.filter should throw an error if property being filtered is not de
      type,
      address,
      address__dot__state
+   }
+ }
+}"
+`;
+
+exports[`query.filter should throw an error if relational prop is not defined in the map function when filtering by relational data 1`] = `
+"query query22 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type
+       }
+     }
    }
  }
 }"

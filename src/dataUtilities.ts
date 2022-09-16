@@ -266,10 +266,9 @@ export function getFlattenedNodeFilterObject(opts: {
       const flatObject = getFlattenedNodeFilterObject({
         queryRecordEntry,
       });
-      for (const x in flatObject) {
-        if (!flatObject.hasOwnProperty(x)) continue;
-        result[filteredProperty + '.' + x] = flatObject[x];
-      }
+      Object.keys(flatObject).forEach(key => {
+        result[filteredProperty + '.' + key] = flatObject[key];
+      });
     } else {
       if (isObject(filterValue)) {
         result[filteredProperty] = {
