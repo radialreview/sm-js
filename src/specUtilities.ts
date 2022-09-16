@@ -1,3 +1,5 @@
+import { isObject } from 'lodash';
+
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
@@ -17,10 +19,10 @@ import {
   QueryDefinitionTarget,
   NodeDefaultProps,
   EPaginationFilteringSortingInstance,
+  DocumentNode,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
-import { isObject } from 'lodash';
 
 const userProperties = {
   firstName: data.string,
@@ -376,11 +378,14 @@ export function getMockConfig(opts?: {
   enableQuerySlimming?: boolean;
   enableQuerySlimmingLogging?: boolean;
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
+  onQueryPerformed?: (query: DocumentNode) => void;
 }): Config {
   return {
     gqlClient: {
-      query: () =>
-        new Promise(res => res(opts?.mockData ?? mockQueryDataReturn)),
+      query: ({ gql }) => {
+        opts?.onQueryPerformed && opts.onQueryPerformed(gql);
+        return new Promise(res => res(opts?.mockData ?? mockQueryDataReturn));
+      },
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
@@ -437,6 +442,12 @@ export function autoIndentGQL(gqlString: string): string {
       }${line}`;
     })
     .join('\n');
+}
+
+export function getPrettyPrintedGQL(documentNode: DocumentNode) {
+  const source = documentNode.loc?.source.body;
+  if (!source) throw Error('No source on the document node');
+  return autoIndentGQL(source);
 }
 
 export function convertNodesCollectionValuesToArray<

@@ -1,0 +1,298 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query.filter can filter 'boolean' prop using 'eq' operator 1`] = `
+"query query6 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
+     archived
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'boolean' prop using 'neq' operator 1`] = `
+"query query9 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     archived
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'null' values with 'eq' operator 1`] = `
+"query query7 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
+     optionalProp
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'null' values with 'neq' operator 1`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
+     optionalProp
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'eq' operator 1`] = `
+"query query2 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
+"query query4 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'gte' operator 1`] = `
+"query query0 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'lt' operator 1`] = `
+"query query5 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'lte' operator 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
+"query query3 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'contains' operator 1`] = `
+"query query11 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'eq' operator 1`] = `
+"query query10 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'ncontains' operator 1`] = `
+"query query12 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
+"query query13 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter multilevel relational data 1`] = `
+"query query16 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         users: users {
+           nodes {
+             id,
+             version,
+             lastUpdatedBy,
+             type,
+             firstName
+           }
+         }
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter nested object property 1`] = `
+"query query17 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     address,
+     address__dot__state
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter relational data 1`] = `
+"query query15 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     score,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function 1`] = `
+"query query18 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     address,
+     address__dot__state
+   }
+ }
+}"
+`;
+
+exports[`query.filter supports old filter object format with 'eq' as default operator 1`] = `
+"query query14 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
