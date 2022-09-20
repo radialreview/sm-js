@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query.pagination query gql matches the expectation when querying relational data and specifying an items per page param 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos(first: 1) {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.pagination query gql matches the expectation when specifying an items per page param 1`] = `
+"query query0 {
+ users: users(first: 2) {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;

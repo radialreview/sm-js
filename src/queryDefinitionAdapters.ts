@@ -618,22 +618,38 @@ function getBEOrderArrayString<TNode extends INode>(
   );
 }
 
-function getGetNodeOptions<TNode extends INode>(opts: {
-  def: TNode;
-  filter?: ValidFilterForNode<TNode>;
-  sort?: ValidSortForNode<TNode>;
+function getGetNodeOptions(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
   if (!opts.useServerSidePaginationFilteringSorting) return '';
 
   const options: Array<string> = [];
 
-  if (opts.filter != null) {
-    options.push(`where: ${getBEFilterString(opts.filter)}`);
+  if (opts.queryRecordEntry.filter != null) {
+    options.push(`where: ${getBEFilterString(opts.queryRecordEntry.filter)}`);
   }
 
-  if (opts.sort != null) {
-    options.push(`order: [${getBEOrderArrayString(opts.sort)}]`);
+  if (opts.queryRecordEntry.sort != null) {
+    options.push(
+      `order: [${getBEOrderArrayString(opts.queryRecordEntry.sort)}]`
+    );
+  }
+
+  if (opts.queryRecordEntry.pagination != null) {
+    if (opts.queryRecordEntry.pagination.endCursor) {
+      options.push(`before: ${opts.queryRecordEntry.pagination.endCursor}`);
+    }
+    if (opts.queryRecordEntry.pagination.startCursor) {
+      options.push(`after: ${opts.queryRecordEntry.pagination.startCursor}`);
+    }
+    if (opts.queryRecordEntry.pagination.itemsPerPage) {
+      options.push(
+        `${opts.queryRecordEntry.pagination.endCursor ? 'last' : 'first'}: ${
+          opts.queryRecordEntry.pagination.itemsPerPage
+        }`
+      );
+    }
   }
 
   return options.join(', ');
@@ -646,6 +662,7 @@ function getSpaces(numberOfSpaces: number) {
 function getQueryPropertiesString(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nestLevel: number;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   let propsString = `${getSpaces(opts.nestLevel * 2)}`;
   propsString += opts.queryRecordEntry.properties.join(
@@ -658,6 +675,8 @@ function getQueryPropertiesString(opts: {
       getRelationalQueryString({
         relationalQueryRecord: opts.queryRecordEntry.relational,
         nestLevel: opts.nestLevel,
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
       });
   }
 
@@ -667,6 +686,7 @@ function getQueryPropertiesString(opts: {
 function getRelationalQueryString(opts: {
   relationalQueryRecord: Record<string, RelationalQueryRecordEntry>;
   nestLevel: number;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   return Object.keys(opts.relationalQueryRecord).reduce((acc, alias) => {
     const relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
@@ -681,7 +701,13 @@ function getRelationalQueryString(opts: {
       );
     }
 
-    const operation = `${relationalQueryRecordEntry._relationshipName}`;
+    const resolver = `${relationalQueryRecordEntry._relationshipName}`;
+    const options = getGetNodeOptions({
+      queryRecordEntry: relationalQueryRecordEntry,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
+    const operation = `${resolver}${options !== '' ? `(${options})` : ''}`;
 
     return (
       acc +
@@ -691,12 +717,16 @@ function getRelationalQueryString(opts: {
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: relationalQueryRecordEntry,
               nestLevel: opts.nestLevel + 2,
+              useServerSidePaginationFilteringSorting:
+                opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: opts.nestLevel + 1,
           })
         : getQueryPropertiesString({
             queryRecordEntry: relationalQueryRecordEntry,
             nestLevel: opts.nestLevel + 1,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
           })) +
       `\n${getSpaces(opts.nestLevel * 2)}}`
     );
@@ -713,7 +743,11 @@ function getOperationFromQueryRecordEntry(
   } else if ('id' in opts && opts.id != null) {
     operation = `${nodeType}(id: "${opts.id}")`;
   } else {
-    const options = getGetNodeOptions(opts);
+    const options = getGetNodeOptions({
+      queryRecordEntry: opts,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   }
 
@@ -742,10 +776,17 @@ function getRootLevelQueryString(
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: opts,
               nestLevel: 3,
+              useServerSidePaginationFilteringSorting:
+                opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: 2,
           })
-        : getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 2 })
+        : getQueryPropertiesString({
+            queryRecordEntry: opts,
+            nestLevel: 2,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
+          })
     }` +
     `\n  }`
   );
@@ -851,7 +892,12 @@ export function getQueryInfo<
     subscription ${subscriptionName} {
       ${alias}: ${operation} {
         node {
-          ${getQueryPropertiesString({ queryRecordEntry, nestLevel: 5 })}
+          ${getQueryPropertiesString({
+            queryRecordEntry,
+            nestLevel: 5,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
+          })}
         }
         operation { action, path }
       }
