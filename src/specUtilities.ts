@@ -501,11 +501,13 @@ export function convertNodesCollectionValuesToArray<
 export function createMockDataItems<T>(opts: {
   sampleMockData: T & { id: string };
   items: Array<Partial<any>>;
-  pageInfo?: PageInfoFromResults;
+  pageInfo?: Partial<PageInfoFromResults>;
 }) {
-  const pageInfo: PageInfoFromResults = opts.pageInfo || {
-    ...mockPageInfo,
-  };
+  const pageInfo: PageInfoFromResults = opts.pageInfo
+    ? { ...mockPageInfo, ...opts.pageInfo }
+    : {
+        ...mockPageInfo,
+      };
 
   return {
     nodes: opts.items.map((mockItem, index) => ({

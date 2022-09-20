@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate 1`] = `
-"query query1 {
+exports[`query.pagination 'hasNextPage' is set to 'false' if there are no next pages to paginate. 1`] = `
+"query query2 {
  users: users {
    nodes {
      id,
@@ -14,8 +14,8 @@ exports[`query.pagination 'hasNextPage' is set to 'false' if there are next page
 }"
 `;
 
-exports[`query.pagination 'hasNextPage' is set to 'false' if there are no next pages to paginate. 1`] = `
-"query query2 {
+exports[`query.pagination 'hasNextPage' is set to 'true' if there are next pages to paginate 1`] = `
+"query query1 {
  users: users {
    nodes {
      id,
@@ -43,6 +43,20 @@ exports[`query.pagination 'hasPreviousPage' is set to 'false' if there are no pr
 `;
 
 exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate 1`] = `
+"query query3 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate 2`] = `
 "query query3 {
  users: users {
    nodes {
@@ -99,6 +113,34 @@ exports[`query.pagination calling goToNextPage should go to next page and update
 `;
 
 exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 1`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 2`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 3`] = `
 "query query8 {
  users: users {
    nodes {

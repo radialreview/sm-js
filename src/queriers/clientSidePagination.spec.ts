@@ -64,7 +64,7 @@ test(`query.pagination can paginate query with array results`, async () => {
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate`, async () => {
+test(`query.pagination 'hasNextPage' is set to 'true' if there are next pages to paginate`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
@@ -80,6 +80,9 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are next pages t
             firstName: '3',
           },
         ],
+        pageInfo: {
+          hasNextPage: true,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -118,6 +121,9 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
             firstName: '3',
           },
         ],
+        pageInfo: {
+          hasNextPage: false,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -132,7 +138,7 @@ test(`query.pagination 'hasNextPage' is set to 'false' if there are no next page
         firstName,
       }),
       pagination: {
-        itemsPerPage: 2,
+        itemsPerPage: 3,
       },
     }),
   });
@@ -156,6 +162,9 @@ test(`query.pagination 'hasPreviousPage' is set to 'true' if there are previous 
             firstName: '3',
           },
         ],
+        pageInfo: {
+          hasNextPage: true,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -175,6 +184,7 @@ test(`query.pagination 'hasPreviousPage' is set to 'true' if there are previous 
     }),
   });
 
+  await data.users.goToNextPage();
   expect(data.users.hasPreviousPage).toBe(true);
 });
 
@@ -238,6 +248,9 @@ test(`query.pagination 'totalPages' should have the correct value.`, async () =>
             firstName: '5',
           },
         ],
+        pageInfo: {
+          totalPages: 3,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -282,6 +295,10 @@ test(`query.pagination not defining pagination parameters should return all item
             firstName: '5',
           },
         ],
+        pageInfo: {
+          totalPages: 1,
+          hasNextPage: false,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -397,12 +414,13 @@ test(`query.pagination calling goToPreviousPage should go to previous page and u
     }),
   });
 
+  await data.users.goToNextPage();
   expect(data.users.nodes.length).toBe(2);
   expect(data.users.nodes[0].firstName).toBe('3');
   expect(data.users.nodes[1].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 
-  data.users.goToPreviousPage();
+  await data.users.goToPreviousPage();
 
   expect(data.users.nodes.length).toBe(2);
   expect(data.users.nodes[0].firstName).toBe('1');
