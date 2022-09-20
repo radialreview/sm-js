@@ -59,8 +59,8 @@ export class NotCachedException extends Error {
 }
 
 export class NodesCollectionPageOutOfBoundsException extends Error {
-  constructor() {
-    super(`NodesCollectionPageOutOfBoundsException - no more results to load.`);
+  constructor(message: string) {
+    super(`NodesCollectionPageOutOfBoundsException - ${message}`);
   }
 }
 

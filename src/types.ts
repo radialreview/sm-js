@@ -580,7 +580,13 @@ export enum RELATIONAL_TYPES {
 
 export interface IQueryPagination {
   itemsPerPage?: number
+  // not supported atm
+  // startPage?: number
+  // only startCursor or endCursor can be set
+  // if startCursor is set, returns the first N results from that cursor
+  // if endCursor ir set, returns the first N results up to that cursor
   startCursor?: string
+  endCursor?: string
 }
 
 export type NodeRelationalQueryBuilderRecord = Record<

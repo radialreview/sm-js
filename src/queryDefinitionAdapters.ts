@@ -798,6 +798,15 @@ function getQueryRecordSortAndFilterValues(
   }, [] as any[]);
 }
 
+export function queryRecordEntryReturnsArrayOfData(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  return (
+    (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
+    !('oneToOne' in opts.queryRecordEntry)
+  );
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,

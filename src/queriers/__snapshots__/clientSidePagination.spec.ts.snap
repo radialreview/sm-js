@@ -1,0 +1,150 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query.pagination 'hasNextPage' is set to 'false' if there are next pages to paginate 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination 'hasNextPage' is set to 'false' if there are no next pages to paginate. 1`] = `
+"query query2 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination 'hasPreviousPage' is set to 'false' if there are no previous pages to paginate. 1`] = `
+"query query4 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate 1`] = `
+"query query3 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination 'totalPages' should have the correct value. 1`] = `
+"query query5 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination calling goToNextPage should go to next page and update the current page 1`] = `
+"query query7 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 1`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination can paginate query with array results 1`] = `
+"query query0 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
+exports[`query.pagination can paginate relational data 1`] = `
+"query query9 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.pagination not defining pagination parameters should return all items 1`] = `
+"query query6 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;

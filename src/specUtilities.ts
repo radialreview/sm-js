@@ -253,9 +253,11 @@ export const mockUserData = {
   todos: [mockTodoData],
 };
 
-const pageInfo: PageInfoFromResults = {
+const mockPageInfo: PageInfoFromResults = {
   hasNextPage: false,
   endCursor: 'xyz',
+  startCursor: 'zyx',
+  totalPages: 2,
 };
 
 export const mockQueryDataReturn = {
@@ -284,11 +286,11 @@ export const mockQueryDataReturn = {
               },
             },
           ],
-          pageInfo,
+          pageInfo: { ...mockPageInfo },
         },
       },
     ],
-    pageInfo,
+    pageInfo: { ...mockPageInfo },
   },
 };
 
@@ -462,10 +464,21 @@ export function convertNodesCollectionValuesToArray<
             : item;
         }),
         pageInfoFromResults: {
-          hasNextPage: false,
-          endCursor: 'xyz',
+          ...mockPageInfo,
         },
-        onLoadMoreResults: async () => {},
+        clientSidePageInfo: {
+          lastQueriedPage: 1,
+          pageSize: 5,
+        },
+        onLoadMoreResults: async () => ({
+          ...mockPageInfo,
+        }),
+        onGoToNextPage: async () => ({
+          ...mockPageInfo,
+        }),
+        onGoToPreviousPage: async () => ({
+          ...mockPageInfo,
+        }),
       });
       acc[key] = arrayValue;
     }
@@ -480,8 +493,7 @@ export function createMockDataItems<T>(opts: {
   pageInfo?: PageInfoFromResults;
 }) {
   const pageInfo: PageInfoFromResults = opts.pageInfo || {
-    hasNextPage: true,
-    endCursor: 'xyz',
+    ...mockPageInfo,
   };
 
   return {

@@ -5,6 +5,7 @@ import {
   generateRandomNumber,
   generateRandomString,
 } from './generateMockDataUtilities';
+import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
 import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
@@ -167,10 +168,9 @@ export function generateMockNodeDataForQueryRecord(opts: {
     const queryRecordForThisAlias:
       | QueryRecordEntry
       | RelationalQueryRecordEntry = queryRecord[queryRecordAlias];
-    const returnValueShouldBeAnArray =
-      'id' in queryRecordForThisAlias &&
-      queryRecordForThisAlias.id != null &&
-      !('oneToOne' in queryRecord);
+    const returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
+      queryRecordEntry: queryRecordForThisAlias,
+    });
 
     let mockedNodeDataReturnValues;
     let relationalMockNodeProperties: Record<string, any> = {};
