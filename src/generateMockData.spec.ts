@@ -358,6 +358,9 @@ test('it correctly generates mock data when a gen mock data fn is added to the n
         nestedNumber: number,
         nestedNonSpecifiedNumber: number,
       }),
+      // this is testing that an object added to generateMockData but NOT included in the query will not error out and be filtered from
+      // queryRecord.def.generateMockData()
+      testObjectMockedButNotIncludedInQuery: object.optional({ stuff: number }),
     },
     generateMockData: () => {
       return {
@@ -366,6 +369,7 @@ test('it correctly generates mock data when a gen mock data fn is added to the n
         testObject: {
           nestedNumber: 2,
         },
+        testObjectMockedButNotIncludedInQuery: { stuff: 3 },
       };
     },
   });
