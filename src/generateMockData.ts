@@ -141,9 +141,24 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
   };
 
   if (queryRecord.def.generateMockData) {
+    const queryRecordMockData = queryRecord.def.generateMockData();
+    const mockDataPropertiesToAddToExtension = Object.keys(
+      queryRecordMockData
+    ).reduce(
+      (acc, item) => {
+        if (queryRecord.properties.includes(item)) {
+          acc[item] = queryRecordMockData[item];
+        }
+        return acc;
+      },
+      {} as Partial<{
+        [x: string]: any;
+      }>
+    );
+
     extend({
       object: mockedValues,
-      extension: queryRecord.def.generateMockData(),
+      extension: mockDataPropertiesToAddToExtension,
       extendNestedObjects: true,
       deleteKeysNotInExtension: false,
     });
