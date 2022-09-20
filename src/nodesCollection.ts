@@ -23,6 +23,7 @@ export interface NodesCollectionOpts<T> {
   items: T[];
   pageInfoFromResults: PageInfoFromResults;
   clientSidePageInfo: ClientSidePageInfo;
+  useServerSidePaginationFilteringSorting: boolean;
 }
 
 export class NodesCollection<T> {
@@ -32,19 +33,27 @@ export class NodesCollection<T> {
   private items: T[];
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
+  private useServerSidePaginationFilteringSorting: boolean;
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.items = opts.items;
 
     this.pageInfoFromResults = opts.pageInfoFromResults;
     this.clientSidePageInfo = opts.clientSidePageInfo;
+    this.useServerSidePaginationFilteringSorting =
+      opts.useServerSidePaginationFilteringSorting;
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
   }
 
   public get nodes() {
-    return this.items;
+    if (this.useServerSidePaginationFilteringSorting) return this.items;
+    return getPageResults({
+      items: this.items,
+      page: this.page,
+      itemsPerPage: this.clientSidePageInfo.pageSize,
+    });
   }
 
   public get hasNextPage() {
@@ -89,4 +98,16 @@ export class NodesCollection<T> {
   public async goToPage(_: number) {
     throw new Error('Not implemented');
   }
+}
+
+function getPageResults<T>(opts: {
+  items: T[];
+  page: number;
+  itemsPerPage: number;
+}) {
+  const startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
+  return Array.from(opts.items || []).slice(
+    startIndex,
+    startIndex + opts.itemsPerPage
+  );
 }

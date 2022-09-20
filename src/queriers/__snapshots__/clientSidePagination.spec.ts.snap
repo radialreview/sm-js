@@ -84,6 +84,20 @@ exports[`query.pagination calling goToNextPage should go to next page and update
 }"
 `;
 
+exports[`query.pagination calling goToNextPage should go to next page and update the current page 2`] = `
+"query query7 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName
+   }
+ }
+}"
+`;
+
 exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 1`] = `
 "query query8 {
  users: users {
@@ -113,6 +127,29 @@ exports[`query.pagination can paginate query with array results 1`] = `
 `;
 
 exports[`query.pagination can paginate relational data 1`] = `
+"query query9 {
+ users: users {
+   nodes {
+     id,
+     version,
+     lastUpdatedBy,
+     type,
+     firstName,
+     todos: todos {
+       nodes {
+         id,
+         version,
+         lastUpdatedBy,
+         type,
+         task
+       }
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.pagination can paginate relational data 2`] = `
 "query query9 {
  users: users {
    nodes {

@@ -321,9 +321,14 @@ const expectedUsers = [
   },
 ];
 
-export const mockQueryResultExpectations = convertNodesCollectionValuesToArray({
-  users: expectedUsers,
-});
+export const getMockQueryResultExpectations = (opts: {
+  useServerSidePaginationFilteringSorting: boolean;
+}) =>
+  convertNodesCollectionValuesToArray({
+    obj: { users: expectedUsers },
+    useServerSidePaginationFilteringSorting:
+      opts.useServerSidePaginationFilteringSorting,
+  });
 
 export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
@@ -454,13 +459,17 @@ export function getPrettyPrintedGQL(documentNode: DocumentNode) {
 
 export function convertNodesCollectionValuesToArray<
   T extends Record<string, any>
->(obj: T) {
-  return Object.keys(obj).reduce((acc, key) => {
+>(opts: { obj: T; useServerSidePaginationFilteringSorting: boolean }) {
+  return Object.keys(opts.obj).reduce((acc, key) => {
     if (Array.isArray(acc[key])) {
       const arrayValue = new NodesCollection({
         items: acc[key].map((item: any) => {
           return isObject(item)
-            ? convertNodesCollectionValuesToArray(item)
+            ? convertNodesCollectionValuesToArray({
+                obj: item,
+                useServerSidePaginationFilteringSorting:
+                  opts.useServerSidePaginationFilteringSorting,
+              })
             : item;
         }),
         pageInfoFromResults: {
@@ -479,12 +488,14 @@ export function convertNodesCollectionValuesToArray<
         onGoToPreviousPage: async () => ({
           ...mockPageInfo,
         }),
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
       });
       acc[key] = arrayValue;
     }
 
     return acc;
-  }, obj as Record<string, any>);
+  }, opts.obj as Record<string, any>);
 }
 
 export function createMockDataItems<T>(opts: {

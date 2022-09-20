@@ -177,10 +177,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             );
           }
 
-          const ids = idsOrId.map(id => stateForThisAlias.proxyCache[id].proxy);
+          const items = idsOrId.map(
+            id => stateForThisAlias.proxyCache[id].proxy
+          );
           const aliasPath = [...opts.aliasPath, resultsAlias];
           resultsAcc[resultsAlias] = new NodesCollection({
-            items: ids,
+            items,
             clientSidePageInfo,
             pageInfoFromResults,
             onLoadMoreResults: () =>
@@ -198,6 +200,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 aliasPath,
                 previousStartCursor: pageInfoFromResults.startCursor,
               }),
+            useServerSidePaginationFilteringSorting: this.opts
+              .useServerSidePaginationFilteringSorting,
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] =
