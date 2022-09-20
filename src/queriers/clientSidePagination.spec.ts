@@ -366,10 +366,62 @@ test(`query.pagination calling goToNextPage should go to next page and update th
   expect(data.users.nodes[0].firstName).toBe('1');
   expect(data.users.nodes[1].firstName).toBe('2');
   expect(data.users.page).toBe(1);
-  await data.users.loadMore();
+  await data.users.goToNextPage();
   expect(data.users.nodes.length).toBe(2);
   expect(data.users.nodes[0].firstName).toBe('3');
   expect(data.users.nodes[1].firstName).toBe('4');
+  expect(data.users.page).toBe(2);
+});
+
+test(`query.pagination calling loadMore should load the next page of results update the current page`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: '1',
+          },
+          {
+            firstName: '2',
+          },
+          {
+            firstName: '3',
+          },
+          {
+            firstName: '4',
+          },
+          {
+            firstName: '5',
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(data.users.nodes.length).toBe(2);
+  expect(data.users.nodes[0].firstName).toBe('1');
+  expect(data.users.nodes[1].firstName).toBe('2');
+  expect(data.users.page).toBe(1);
+  await data.users.loadMore();
+  expect(data.users.nodes.length).toBe(4);
+  expect(data.users.nodes[2].firstName).toBe('3');
+  expect(data.users.nodes[3].firstName).toBe('4');
   expect(data.users.page).toBe(2);
 });
 

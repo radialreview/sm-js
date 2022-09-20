@@ -39,6 +39,10 @@ export class NodesCollection<T> {
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
   private useServerSidePaginationFilteringSorting: boolean;
+  // when "loadMore" is used, we display more than 1 page
+  // however, nothing in our code needs to know about this other than the "nodes"
+  // getter below, which must return multiple pages of results when loadMore is executed
+  private pagesBeingDisplayed: Array<number>;
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.items = opts.items;
@@ -47,6 +51,7 @@ export class NodesCollection<T> {
     this.clientSidePageInfo = opts.clientSidePageInfo;
     this.useServerSidePaginationFilteringSorting =
       opts.useServerSidePaginationFilteringSorting;
+    this.pagesBeingDisplayed = [opts.clientSidePageInfo.lastQueriedPage];
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
@@ -58,7 +63,7 @@ export class NodesCollection<T> {
     // be cached in this class' state
     return getPageResults({
       items: this.items,
-      page: this.page,
+      pages: this.pagesBeingDisplayed,
       itemsPerPage: this.clientSidePageInfo.pageSize,
     });
   }
@@ -86,6 +91,10 @@ export class NodesCollection<T> {
       );
     }
     this.clientSidePageInfo.lastQueriedPage++;
+    this.pagesBeingDisplayed = [
+      ...this.pagesBeingDisplayed,
+      this.clientSidePageInfo.lastQueriedPage,
+    ];
 
     const newPageInfoFromResults = await this.onLoadMoreResults();
     if (newPageInfoFromResults)
@@ -102,6 +111,8 @@ export class NodesCollection<T> {
       );
     }
     this.clientSidePageInfo.lastQueriedPage++;
+    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+
     const newPageInfoFromResults = await this.onGoToNextPage();
     if (newPageInfoFromResults)
       this.pageInfoFromResults = newPageInfoFromResults;
@@ -117,6 +128,8 @@ export class NodesCollection<T> {
       );
     }
     this.clientSidePageInfo.lastQueriedPage--;
+    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+
     const newPageInfoFromResults = await this.onGoToPreviousPage();
     if (newPageInfoFromResults)
       this.pageInfoFromResults = newPageInfoFromResults;
@@ -149,12 +162,14 @@ export class NodesCollection<T> {
 
 function getPageResults<T>(opts: {
   items: T[];
-  page: number;
+  pages: Array<number>;
   itemsPerPage: number;
 }) {
-  const startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
-  return Array.from(opts.items || []).slice(
-    startIndex,
-    startIndex + opts.itemsPerPage
-  );
+  const inChunks = chunkArray(opts.items, opts.itemsPerPage);
+  return opts.pages.map(pageNumber => inChunks[pageNumber - 1]).flat();
 }
+
+export const chunkArray = <T>(arr: T[], size: number): T[][] =>
+  arr.length > size
+    ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)]
+    : [arr];

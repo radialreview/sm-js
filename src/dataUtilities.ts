@@ -297,7 +297,7 @@ export function getFlattenedNodeSortObject<TNode extends INode>(
     const sortObject = sorting as Record<string, any>;
     const value = sortObject[i];
     const valueIsNotASortObject =
-      isObject(value) && !Object.keys(value).includes('_direction');
+      isObject(value) && !Object.keys(value).includes('direction');
     if (
       typeof sortObject[i] == 'object' &&
       sortObject[i] !== null &&

@@ -56,20 +56,6 @@ exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previo
 }"
 `;
 
-exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previous pages to paginate 2`] = `
-"query query3 {
- users: users {
-   nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
-     firstName
-   }
- }
-}"
-`;
-
 exports[`query.pagination 'totalPages' should have the correct value. 1`] = `
 "query query5 {
  users: users {
@@ -98,22 +84,8 @@ exports[`query.pagination calling goToNextPage should go to next page and update
 }"
 `;
 
-exports[`query.pagination calling goToNextPage should go to next page and update the current page 2`] = `
-"query query7 {
- users: users {
-   nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
-     firstName
-   }
- }
-}"
-`;
-
 exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 1`] = `
-"query query8 {
+"query query9 {
  users: users {
    nodes {
      id,
@@ -126,21 +98,7 @@ exports[`query.pagination calling goToPreviousPage should go to previous page an
 }"
 `;
 
-exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 2`] = `
-"query query8 {
- users: users {
-   nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
-     firstName
-   }
- }
-}"
-`;
-
-exports[`query.pagination calling goToPreviousPage should go to previous page and update the current page 3`] = `
+exports[`query.pagination calling loadMore should load the next page of results update the current page 1`] = `
 "query query8 {
  users: users {
    nodes {
@@ -169,30 +127,7 @@ exports[`query.pagination can paginate query with array results 1`] = `
 `;
 
 exports[`query.pagination can paginate relational data 1`] = `
-"query query9 {
- users: users {
-   nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
-     firstName,
-     todos: todos {
-       nodes {
-         id,
-         version,
-         lastUpdatedBy,
-         type,
-         task
-       }
-     }
-   }
- }
-}"
-`;
-
-exports[`query.pagination can paginate relational data 2`] = `
-"query query9 {
+"query query10 {
  users: users {
    nodes {
      id,
