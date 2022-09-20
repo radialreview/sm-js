@@ -802,7 +802,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onLoadMoreResults(opts: {
       previousEndCursor: string;
       aliasPath: Array<string>;
-    }): Promise<PageInfoFromResults> {
+    }): Promise<Maybe<PageInfoFromResults>> {
+      if (!this.opts.useServerSidePaginationFilteringSorting) {
+        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+        this.opts.onResultsUpdated();
+        return null;
+      }
+
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults(
         {
           preExistingQueryRecord: this.queryRecord,
@@ -826,7 +832,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         tokenName,
       });
 
-      // @TODO concat results
+      // @TODO concat results, mutate results object
+      // call the onResultsUpdated
       console.log('new results', newResults);
 
       // @TODO update paging state for this alias
@@ -843,7 +850,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onGoToNextPage(opts: {
       previousEndCursor: string;
       aliasPath: Array<string>;
-    }): Promise<PageInfoFromResults> {
+    }): Promise<Maybe<PageInfoFromResults>> {
+      if (!this.opts.useServerSidePaginationFilteringSorting) {
+        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+        this.opts.onResultsUpdated();
+        return null;
+      }
+
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults(
         {
           preExistingQueryRecord: this.queryRecord,
@@ -884,7 +897,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onGoToPreviousPage(opts: {
       previousStartCursor: string;
       aliasPath: Array<string>;
-    }): Promise<PageInfoFromResults> {
+    }): Promise<Maybe<PageInfoFromResults>> {
+      if (!this.opts.useServerSidePaginationFilteringSorting) {
+        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+        this.opts.onResultsUpdated();
+        return null;
+      }
+
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage(
         {
           preExistingQueryRecord: this.queryRecord,

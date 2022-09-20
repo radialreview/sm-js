@@ -1,21 +1,15 @@
 import {
   createMockQueryDefinitions,
   mockQueryDataReturn,
-  mockQueryResultExpectations,
+  getMockQueryResultExpectations,
   getMockSubscriptionMessage,
   getMockConfig,
-  generateUserNode,
-  mockUserData,
-  mockTodoData,
-  generateTodoNode,
 } from '../specUtilities';
 import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
-import { MMGQL, queryDefinition } from '..';
+import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { NULL_TAG } from '../dataConversions';
+
 import { EPaginationFilteringSortingInstance } from '../types';
-import { NodesCollectionPageOutOfBoundsException } from '../exceptions';
-import { PageInfoFromResults } from '../nodesCollection';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -56,7 +50,11 @@ test('query returns the correct data', async () => {
   const { data } = await mmGQLInstance.query(queryDefinitions);
 
   expect(JSON.stringify(data)).toEqual(
-    JSON.stringify(mockQueryResultExpectations)
+    JSON.stringify(
+      getMockQueryResultExpectations({
+        useServerSidePaginationFilteringSorting: true,
+      })
+    )
   );
 });
 
@@ -66,7 +64,11 @@ test('query calls "onData" with the result of the query', done => {
   mmGQLInstance.query(queryDefinitions, {
     onData: ({ results }) => {
       expect(JSON.stringify(results)).toEqual(
-        JSON.stringify(mockQueryResultExpectations)
+        JSON.stringify(
+          getMockQueryResultExpectations({
+            useServerSidePaginationFilteringSorting: true,
+          })
+        )
       );
       done();
     },
@@ -209,7 +211,11 @@ test('subscribe returns the expected data', async done => {
     },
   });
 
-  expect(data).toEqual(mockQueryResultExpectations);
+  expect(data).toEqual(
+    getMockQueryResultExpectations({
+      useServerSidePaginationFilteringSorting: true,
+    })
+  );
   done();
 });
 
@@ -355,7 +361,11 @@ test.skip('subscribe handles a case where a subscription message comes in before
   mmGQLInstance.gqlClient.subscribe = mockSubscribe;
 
   const onData = jest.fn(({ results }) => {
-    expect(results).toEqual(mockQueryResultExpectations);
+    expect(results).toEqual(
+      getMockQueryResultExpectations({
+        useServerSidePaginationFilteringSorting: true,
+      })
+    );
   });
   await mmGQLInstance.subscribe(queryDefinitions, {
     onData: onData,

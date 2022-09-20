@@ -1,4 +1,5 @@
 import { NodesCollectionPageOutOfBoundsException } from './exceptions';
+import { Maybe } from './types';
 
 export type PageInfoFromResults = {
   totalPages: number;
@@ -12,9 +13,13 @@ export type ClientSidePageInfo = {
   pageSize: number;
 };
 
-export type OnLoadMoreResultsCallback = () => Promise<PageInfoFromResults>;
-export type OnGoToNextPageCallback = () => Promise<PageInfoFromResults>;
-export type OnGoToPreviousPageCallback = () => Promise<PageInfoFromResults>;
+export type OnLoadMoreResultsCallback = () => Promise<
+  Maybe<PageInfoFromResults>
+>;
+export type OnGoToNextPageCallback = () => Promise<Maybe<PageInfoFromResults>>;
+export type OnGoToPreviousPageCallback = () => Promise<
+  Maybe<PageInfoFromResults>
+>;
 
 export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
@@ -49,6 +54,8 @@ export class NodesCollection<T> {
 
   public get nodes() {
     if (this.useServerSidePaginationFilteringSorting) return this.items;
+    // this is because when doing client side pagination, all the items in this collection are expected to already
+    // be cached in this class' state
     return getPageResults({
       items: this.items,
       page: this.page,
@@ -73,30 +80,70 @@ export class NodesCollection<T> {
   }
 
   public async loadMore() {
+    if (!this.hasNextPage) {
+      throw new NodesCollectionPageOutOfBoundsException(
+        'No more results available - check results.hasNextPage before calling loadMore'
+      );
+    }
     this.clientSidePageInfo.lastQueriedPage++;
+
     const newPageInfoFromResults = await this.onLoadMoreResults();
-    this.pageInfoFromResults = newPageInfoFromResults;
+    if (newPageInfoFromResults)
+      this.pageInfoFromResults = newPageInfoFromResults;
+    else if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
   }
 
   public async goToNextPage() {
+    if (!this.hasNextPage) {
+      throw new NodesCollectionPageOutOfBoundsException(
+        'No next page available - check results.hasNextPage before calling goToNextPage'
+      );
+    }
     this.clientSidePageInfo.lastQueriedPage++;
     const newPageInfoFromResults = await this.onGoToNextPage();
-    this.pageInfoFromResults = newPageInfoFromResults;
+    if (newPageInfoFromResults)
+      this.pageInfoFromResults = newPageInfoFromResults;
+    else if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
   }
 
   public async goToPreviousPage() {
     if (!this.hasPreviousPage) {
       throw new NodesCollectionPageOutOfBoundsException(
-        'No previous page available'
+        'No previous page available - check results.hasPreviousPage before calling goToPreviousPage'
       );
     }
     this.clientSidePageInfo.lastQueriedPage--;
     const newPageInfoFromResults = await this.onGoToPreviousPage();
-    this.pageInfoFromResults = newPageInfoFromResults;
+    if (newPageInfoFromResults)
+      this.pageInfoFromResults = newPageInfoFromResults;
+    else if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
   }
 
   public async goToPage(_: number) {
     throw new Error('Not implemented');
+  }
+
+  // as the name implies, only runs when client side pagination is executed
+  // otherwise the onLoadMoreResults, onGoToNextPage, onGoToPreviousPage are expected to return the new page info
+  // this is because when doing client side pagination, all the items in this collection are expected to already
+  // be cached in this class' state
+  private setNewClientSidePageInfoAfterClientSidePaginationRequest() {
+    this.pageInfoFromResults = {
+      totalPages: this.pageInfoFromResults.totalPages,
+      hasNextPage:
+        this.clientSidePageInfo.lastQueriedPage >=
+        this.pageInfoFromResults.totalPages
+          ? false
+          : true,
+      endCursor: this.pageInfoFromResults.endCursor,
+      startCursor: this.pageInfoFromResults.startCursor,
+    };
   }
 }
 

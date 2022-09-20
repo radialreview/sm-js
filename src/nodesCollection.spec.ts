@@ -38,6 +38,7 @@ const mockNodesCollectionConstructorArgs: NodesCollectionOpts<typeof items[numbe
     endCursor: 'xyz',
     startCursor: 'zyx',
   }),
+  useServerSidePaginationFilteringSorting: false,
 };
 
 describe('NodesCollection', () => {
