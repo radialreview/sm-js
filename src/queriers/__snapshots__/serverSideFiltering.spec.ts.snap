@@ -1,0 +1,56 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query gql matches the expectation when specifying a filter param 1`] = `
+"query query0 {
+ users: users(where: {and: [{firstName: {eq: \\"John\\"}}]}) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying a filter param for a relational property 1`] = `
+"query query1 {
+ users: users(where: {and: [{todos: {task: \\"get it done\\"}}]}) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+   }
+ }
+}"
+`;

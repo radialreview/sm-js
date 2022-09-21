@@ -10,7 +10,7 @@ import {
   PAGE_INFO_PROPERTY_KEY,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from './consts';
-import { DataParsingException } from './exceptions';
+import { DataParsingException, UnreachableCaseError } from './exceptions';
 import {
   IDOProxy,
   Maybe,
@@ -819,7 +819,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newResults = await this.opts.performQuery({
+      const newData = await this.opts.performQuery({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -832,19 +832,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         tokenName,
       });
 
-      // @TODO concat results, mutate results object
-      // call the onResultsUpdated
-      console.log('new results', newResults);
+      this.handlePagingEventData({
+        aliasPath: opts.aliasPath,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        newData,
+        event: 'LOAD_MORE',
+      });
 
-      // @TODO update paging state for this alias
-
-      // @TODO return real stuff
-      return {
-        totalPages: 2,
-        hasNextPage: true,
-        startCursor: 'avasv',
-        endCursor: 'ojdo',
-      };
+      return this.getPageInfoFromResponseForAlias({
+        aliasPath: opts.aliasPath,
+        response: newData,
+      });
     }
 
     public async onGoToNextPage(opts: {
@@ -852,7 +850,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       aliasPath: Array<string>;
     }): Promise<Maybe<PageInfoFromResults>> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
-        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+        // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
         this.opts.onResultsUpdated();
         return null;
       }
@@ -867,7 +865,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newResults = await this.opts.performQuery({
+      const newData = await this.opts.performQuery({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -880,18 +878,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         tokenName,
       });
 
-      // @TODO set new results
-      console.log('new results', newResults);
+      this.handlePagingEventData({
+        aliasPath: opts.aliasPath,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        newData,
+        event: 'GO_TO_NEXT',
+      });
 
-      // @TODO update paging state for this alias, client and results side
-
-      // @TODO return real stuffs
-      return {
-        totalPages: 2,
-        hasNextPage: true,
-        startCursor: 'avasv',
-        endCursor: 'ojdo',
-      };
+      return this.getPageInfoFromResponseForAlias({
+        aliasPath: opts.aliasPath,
+        response: newData,
+      });
     }
 
     public async onGoToPreviousPage(opts: {
@@ -899,7 +896,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       aliasPath: Array<string>;
     }): Promise<Maybe<PageInfoFromResults>> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
-        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+        // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
         this.opts.onResultsUpdated();
         return null;
       }
@@ -914,7 +911,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newResults = await this.opts.performQuery({
+      const newData = await this.opts.performQuery({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -927,18 +924,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         tokenName,
       });
 
-      // @TODO set new results
-      console.log('new results', newResults);
+      this.handlePagingEventData({
+        aliasPath: opts.aliasPath,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        newData,
+        event: 'GO_TO_PREVIOUS',
+      });
 
-      // @TODO update paging state for this alias, client and results side
-
-      // @TODO return real stuffs
-      return {
-        totalPages: 2,
-        hasNextPage: true,
-        startCursor: 'avasv',
-        endCursor: 'ojdo',
-      };
+      // @TODO does it actually need to return paging info?
+      // I believe new node collections are being generated when we load more results
+      return this.getPageInfoFromResponseForAlias({
+        aliasPath: opts.aliasPath,
+        response: newData,
+      });
     }
 
     public getTokenNameForAliasPath(aliasPath: Array<string>): string {
@@ -959,6 +957,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return this.queryRecord[aliasPath[0]].tokenName || DEFAULT_TOKEN_NAME;
     }
 
+    /**
+     * Builds a new query record which contains the smallest query possible
+     * to get the data for a given aliasPath, with some new pagination params
+     *
+     * An alias path may look something like ['users'] if we're loading more results on a QueryRecordEntry (root level)
+     * or something like ['users', 'todos'] if we're loading more results on a RelationalQueryRecordEntry
+     */
     public getMinimalQueryRecordWithUpdatedPaginationParams(opts: {
       aliasPath: Array<string>;
       preExistingQueryRecord: QueryRecord | RelationalQueryRecord;
@@ -1006,6 +1011,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         preExistingQueryRecord: opts.preExistingQueryRecord,
         newPaginationParams: {
           startCursor: opts.previousEndCursor,
+          endCursor: undefined,
         },
       });
     }
@@ -1019,9 +1025,103 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         aliasPath: opts.aliasPath,
         preExistingQueryRecord: opts.preExistingQueryRecord,
         newPaginationParams: {
-          startCursor: opts.previousStartCursor,
+          endCursor: opts.previousStartCursor,
+          startCursor: undefined,
         },
       });
+    }
+
+    public handlePagingEventData(opts: {
+      aliasPath: Array<string>;
+      newData: Record<string, any>;
+      queryRecord: QueryRecord;
+      event: 'LOAD_MORE' | 'GO_TO_NEXT' | 'GO_TO_PREVIOUS';
+    }) {
+      this.notifyRepositories({
+        data: opts.newData,
+        queryRecord: opts.queryRecord,
+      });
+      const newState = this.getNewStateFromQueryResult({
+        queryResult: opts.newData,
+        queryRecord: opts.queryRecord,
+      });
+
+      this.extendStateObject({
+        aliasPath: opts.aliasPath,
+        state: this.state,
+        newState,
+        mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
+      });
+
+      extend({
+        object: this.opts.resultsObject,
+        extension: this.getResultsFromState({
+          state: this.state,
+          aliasPath: [],
+        }),
+        extendNestedObjects: false,
+        deleteKeysNotInExtension: false,
+      });
+
+      this.opts.onResultsUpdated();
+    }
+
+    public getPageInfoFromResponseForAlias(opts: {
+      aliasPath: Array<string>;
+      response: Record<string, any>;
+    }): Maybe<PageInfoFromResults> {
+      const [firstAlias, ...remainingPath] = opts.aliasPath;
+
+      if (remainingPath.length === 0) {
+        return this.getPageInfoFromResponse({
+          dataForThisAlias: opts.response[firstAlias],
+        });
+      }
+
+      throw Error('Recursive logic not implemented');
+    }
+
+    public extendStateObject(opts: {
+      aliasPath: Array<string>;
+      state: QueryManagerState;
+      newState: QueryManagerState;
+      mergeStrategy: 'CONCAT' | 'REPLACE';
+    }) {
+      const [firstAlias, ...remainingPath] = opts.aliasPath;
+
+      const existingStateForFirstAlias = opts.state[firstAlias];
+      const newStateForFirstAlias = opts.newState[firstAlias];
+      if (!existingStateForFirstAlias || !newStateForFirstAlias)
+        throw Error(
+          `Expected new and existing state for the alias ${firstAlias}`
+        );
+
+      if (remainingPath.length === 0) {
+        existingStateForFirstAlias.pageInfoFromResults =
+          newStateForFirstAlias.pageInfoFromResults;
+        existingStateForFirstAlias.clientSidePageInfo =
+          newStateForFirstAlias.clientSidePageInfo;
+        existingStateForFirstAlias.proxyCache = {
+          ...existingStateForFirstAlias.proxyCache,
+          ...newStateForFirstAlias.proxyCache,
+        };
+
+        if (opts.mergeStrategy === 'CONCAT') {
+          existingStateForFirstAlias.idsOrIdInCurrentResult = [
+            ...(existingStateForFirstAlias.idsOrIdInCurrentResult as Array<
+              string
+            >),
+            ...(newStateForFirstAlias.idsOrIdInCurrentResult as Array<string>),
+          ];
+        } else if (opts.mergeStrategy === 'REPLACE') {
+          existingStateForFirstAlias.idsOrIdInCurrentResult =
+            newStateForFirstAlias.idsOrIdInCurrentResult;
+        } else {
+          throw new UnreachableCaseError(opts.mergeStrategy);
+        }
+      } else {
+        throw Error('Recursive logic not implemented');
+      }
     }
   };
 }

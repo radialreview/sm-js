@@ -4,6 +4,7 @@ import { Maybe } from './types';
 export type PageInfoFromResults = {
   totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
   endCursor: string;
   startCursor: string;
 };
@@ -73,7 +74,11 @@ export class NodesCollection<T> {
   }
 
   public get hasPreviousPage() {
-    return this.clientSidePageInfo.lastQueriedPage > 1;
+    if (this.useServerSidePaginationFilteringSorting) {
+      return this.pageInfoFromResults.hasPreviousPage;
+    } else {
+      return this.clientSidePageInfo.lastQueriedPage > 1;
+    }
   }
 
   public get totalPages() {
@@ -150,10 +155,9 @@ export class NodesCollection<T> {
     this.pageInfoFromResults = {
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage:
-        this.clientSidePageInfo.lastQueriedPage >=
-        this.pageInfoFromResults.totalPages
-          ? false
-          : true,
+        this.pageInfoFromResults.totalPages >
+        this.clientSidePageInfo.lastQueriedPage,
+      hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
       endCursor: this.pageInfoFromResults.endCursor,
       startCursor: this.pageInfoFromResults.startCursor,
     };

@@ -638,10 +638,10 @@ function getGetNodeOptions(opts: {
 
   if (opts.queryRecordEntry.pagination != null) {
     if (opts.queryRecordEntry.pagination.endCursor) {
-      options.push(`before: ${opts.queryRecordEntry.pagination.endCursor}`);
+      options.push(`before: "${opts.queryRecordEntry.pagination.endCursor}"`);
     }
     if (opts.queryRecordEntry.pagination.startCursor) {
-      options.push(`after: ${opts.queryRecordEntry.pagination.startCursor}`);
+      options.push(`after: "${opts.queryRecordEntry.pagination.startCursor}"`);
     }
     if (opts.queryRecordEntry.pagination.itemsPerPage) {
       options.push(
@@ -666,18 +666,16 @@ function getQueryPropertiesString(opts: {
 }) {
   let propsString = `${getSpaces(opts.nestLevel * 2)}`;
   propsString += opts.queryRecordEntry.properties.join(
-    `,\n${getSpaces(opts.nestLevel * 2)}`
+    `\n${getSpaces(opts.nestLevel * 2)}`
   );
 
   if (opts.queryRecordEntry.relational) {
-    propsString +=
-      (propsString !== '' ? ',' : '') +
-      getRelationalQueryString({
-        relationalQueryRecord: opts.queryRecordEntry.relational,
-        nestLevel: opts.nestLevel,
-        useServerSidePaginationFilteringSorting:
-          opts.useServerSidePaginationFilteringSorting,
-      });
+    propsString += getRelationalQueryString({
+      relationalQueryRecord: opts.queryRecordEntry.relational,
+      nestLevel: opts.nestLevel,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
   }
 
   return propsString;
@@ -713,7 +711,7 @@ function getRelationalQueryString(opts: {
       acc +
       `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {\n` +
       ('oneToMany' in relationalQueryRecordEntry
-        ? wrapInNodes({
+        ? getNodesCollectionQuery({
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: relationalQueryRecordEntry,
               nestLevel: opts.nestLevel + 2,
@@ -754,10 +752,31 @@ function getOperationFromQueryRecordEntry(
   return operation;
 }
 
-function wrapInNodes(opts: { propertiesString: string; nestLevel: number }) {
-  return `${getSpaces(opts.nestLevel * 2)}nodes {\n${
-    opts.propertiesString
-  }\n${getSpaces(opts.nestLevel * 2)}}`;
+// queries a collection of nodes by wrapping the properties queried with "nodes"
+// and also includes other necessary paging information in the query
+function getNodesCollectionQuery(opts: {
+  propertiesString: string;
+  nestLevel: number;
+}) {
+  const closeFragment = `${getSpaces(opts.nestLevel * 2)}}`;
+  const openNodesFragment = `${getSpaces(opts.nestLevel * 2)}nodes {\n`;
+  const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
+
+  const totalCountFragment = `\n${getSpaces(opts.nestLevel * 2)}totalCount`;
+
+  const openPageInfoFragment = `\n${getSpaces(opts.nestLevel * 2)}pageInfo {\n`;
+  const pageInfoProps = [
+    'endCursor',
+    'startCursor',
+    'hasNextPage',
+    'hasPreviousPage',
+  ];
+  const pageInfoProperties = pageInfoProps
+    .map(prop => `${getSpaces((opts.nestLevel + 1) * 2)}${prop}`)
+    .join(`\n`);
+  const pageInfoFragment = `${openPageInfoFragment}${pageInfoProperties}\n${closeFragment}`;
+
+  return `${nodesFragment}${totalCountFragment}${pageInfoFragment}`;
 }
 
 function getRootLevelQueryString(
@@ -772,7 +791,7 @@ function getRootLevelQueryString(
     `  ${opts.alias}: ${operation} {\n` +
     `${
       opts.id == null
-        ? wrapInNodes({
+        ? getNodesCollectionQuery({
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: opts,
               nestLevel: 3,

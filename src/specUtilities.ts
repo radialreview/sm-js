@@ -381,17 +381,29 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
 
 export function getMockConfig(opts?: {
   mockData?: any;
+  getMockData?: () => any;
   generateMockData?: boolean;
   enableQuerySlimming?: boolean;
   enableQuerySlimmingLogging?: boolean;
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
   onQueryPerformed?: (query: DocumentNode) => void;
 }): Config {
+  if (opts?.mockData && opts?.getMockData) {
+    throw Error('Pick one');
+  }
+
   return {
     gqlClient: {
       query: ({ gql }) => {
+        let response = mockQueryDataReturn;
+        if (opts?.getMockData) {
+          response = opts.getMockData();
+        } else if (opts?.mockData) {
+          response = opts.mockData;
+        }
+
         opts?.onQueryPerformed && opts.onQueryPerformed(gql);
-        return new Promise(res => res(opts?.mockData ?? mockQueryDataReturn));
+        return new Promise(res => res(response));
       },
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
@@ -502,6 +514,7 @@ export function createMockDataItems<T>(opts: {
   sampleMockData: T & { id: string };
   items: Array<Partial<any>>;
   pageInfo?: Partial<PageInfoFromResults>;
+  totalCount?: number;
 }) {
   const pageInfo: PageInfoFromResults = opts.pageInfo
     ? { ...mockPageInfo, ...opts.pageInfo }
@@ -512,8 +525,8 @@ export function createMockDataItems<T>(opts: {
   return {
     nodes: opts.items.map((mockItem, index) => ({
       ...opts.sampleMockData,
-      ...mockItem,
       id: opts.sampleMockData.id + index,
+      ...mockItem,
     })),
     pageInfo,
   };
