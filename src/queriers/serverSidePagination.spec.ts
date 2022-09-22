@@ -284,7 +284,7 @@ test(`calling loadMore on a piece of relational results causes the expected quer
   await data.users.nodes[0].todos.nodes[0].users.loadMore();
 });
 
-test.only(`calling loadMore on a piece of relational results appends the new results to the previous results`, async () => {
+test(`calling loadMore on a piece of relational results appends the new results to the previous results`, async () => {
   let queriesPerformed = 0;
   function getMockData() {
     return {
@@ -375,11 +375,13 @@ test.only(`calling loadMore on a piece of relational results appends the new res
     }),
   });
 
+  // 1 level deep loadMore
   await data.users.nodes[0].todos.loadMore();
-  console.log('data', data.users.nodes[0].todos.nodes);
   expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+
+  // 2 levels deep loadMore
   await data.users.nodes[0].todos.nodes[0].users.loadMore();
-  // ensure the todos array lenght is still 2
+  // ensure the todos array length is still 2, and that the above loadMore call did not change it
   expect(data.users.nodes[0].todos.nodes.length).toBe(2);
   expect(data.users.nodes[0].todos.nodes[0].users.nodes.length).toBe(2);
 });

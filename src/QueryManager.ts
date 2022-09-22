@@ -154,7 +154,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
      */
     public getResultsFromState(opts: {
       state: QueryManagerState;
-      aliasPath: Array<string>;
+      aliasPath?: Array<string>;
     }): Record<string, any> {
       return Object.keys(opts.state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = opts.state[queryAlias];
@@ -180,7 +180,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           const items = idsOrId.map(
             id => stateForThisAlias.proxyCache[id].proxy
           );
-          const aliasPath = [...opts.aliasPath, resultsAlias];
+          const aliasPath = [...(opts.aliasPath || []), resultsAlias];
           resultsAcc[resultsAlias] = new NodesCollection({
             items,
             clientSidePageInfo,
@@ -1110,8 +1110,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         queryRecord: opts.queryRecord,
       });
 
-      // console.log('state', JSON.stringify(this.state, null, 2));
-      // console.log('new state', JSON.stringify(newState, null, 2));
       this.extendStateObject({
         aliasPath: opts.aliasPath,
         state: this.state,
@@ -1119,12 +1117,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
       });
 
-      console.log('end state', JSON.stringify(this.state, null, 2));
       extend({
         object: this.opts.resultsObject,
         extension: this.getResultsFromState({
           state: this.state,
-          aliasPath: [],
         }),
         extendNestedObjects: false,
         deleteKeysNotInExtension: false,
@@ -1140,7 +1136,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       mergeStrategy: 'CONCAT' | 'REPLACE';
       parentProxy?: IDOProxy;
     }) {
-      console.log('alias path', opts.aliasPath);
       const [firstAlias, ...remainingPath] = opts.aliasPath;
 
       const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
@@ -1212,7 +1207,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           state: existingRelationalStateForThisProxy,
           newState: newRelationalStateForThisProxy,
           mergeStrategy: opts.mergeStrategy,
-          parentProxy: newStateForFirstAlias.proxyCache[id].proxy,
+          parentProxy: existingStateForFirstAlias.proxyCache[id].proxy,
         });
       }
     }
@@ -1229,9 +1224,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     /**
      * Removes the id from the alias if it exists
-     * Example input: 'user[12msad-249js-25285]'
-     * Example output: 'user'
-     * @param alias
+     * @example input: 'user[12msad-249js-25285]'
+     * @example output: 'user'
      */
     public removeIdFromAlias(alias: string) {
       return alias.replace(/\[.*\]$/, '');
@@ -1239,8 +1233,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     /**
      * Returns the id from the alias if it exists
-     * Example input: 'user[12msad-249js-25285]'
-     * Example output: '12msad-249js-25285'
+     * @example input: 'user[12msad-249js-25285]'
+     * @example output: '12msad-249js-25285'
      */
     public getIdFromAlias(alias: string) {
       const id = alias.match(/\[(.*)\]$/);
