@@ -253,7 +253,7 @@ export function getFlattenedNodeFilterObject(opts: {
           ? opts.queryRecordEntry.properties
               .filter(prop => prop.startsWith(filteredProperty))
               .map(prop => {
-                const [_, ...remainingPath] = prop.split(
+                const [, ...remainingPath] = prop.split(
                   OBJECT_PROPERTY_SEPARATOR
                 );
                 return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);

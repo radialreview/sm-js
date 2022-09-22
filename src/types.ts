@@ -324,19 +324,19 @@ export type GetResultingDataTypeFromNodeDefinition<TNode extends INode> =
 
 export type SortDirection = 'asc' | 'desc'
 export type FilterCondition = 'or' | 'and'
-export type FilterValue<TValue extends string | number | boolean> =
+export type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>> =
   // strict equality check
   TValue |
   (
     Partial<
       Record<
-        TValue extends Maybe<string>
-          ? EStringFilterOperator
-          : TValue extends Maybe<number> 
-            ? ENumberFilterOperator
-            : TValue extends Maybe<boolean>
-              ? EBooleanFilterOperator
-                : never,
+        TValue extends boolean
+          ? EBooleanFilterOperator
+          : TValue extends string
+            ? EStringFilterOperator
+              : TValue extends number
+              ? ENumberFilterOperator
+              : never,            
         TValue
       > & { condition?: FilterCondition }
     >
