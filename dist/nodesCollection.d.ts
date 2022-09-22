@@ -1,4 +1,3 @@
-import { Maybe } from './types';
 export declare type PageInfoFromResults = {
     totalPages: number;
     hasNextPage: boolean;
@@ -10,9 +9,9 @@ export declare type ClientSidePageInfo = {
     lastQueriedPage: number;
     pageSize: number;
 };
-export declare type OnLoadMoreResultsCallback = () => Promise<Maybe<PageInfoFromResults>>;
-export declare type OnGoToNextPageCallback = () => Promise<Maybe<PageInfoFromResults>>;
-export declare type OnGoToPreviousPageCallback = () => Promise<Maybe<PageInfoFromResults>>;
+export declare type OnLoadMoreResultsCallback = () => Promise<void>;
+export declare type OnGoToNextPageCallback = () => Promise<void>;
+export declare type OnGoToPreviousPageCallback = () => Promise<void>;
 export interface NodesCollectionOpts<T> {
     onLoadMoreResults: OnLoadMoreResultsCallback;
     onGoToNextPage: OnGoToNextPageCallback;

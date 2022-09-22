@@ -121,15 +121,15 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         onLoadMoreResults(opts: {
             previousEndCursor: string;
             aliasPath: Array<string>;
-        }): Promise<Maybe<PageInfoFromResults>>;
+        }): Promise<void>;
         onGoToNextPage(opts: {
             previousEndCursor: string;
             aliasPath: Array<string>;
-        }): Promise<Maybe<PageInfoFromResults>>;
+        }): Promise<void>;
         onGoToPreviousPage(opts: {
             previousStartCursor: string;
             aliasPath: Array<string>;
-        }): Promise<Maybe<PageInfoFromResults>>;
+        }): Promise<void>;
         getTokenNameForAliasPath(aliasPath: Array<string>): string;
         /**
          * Builds a new query record which contains the smallest query possible

@@ -4898,7 +4898,6 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.loadMore = /*#__PURE__*/function () {
     var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-      var newPageInfoFromResults;
       return runtime_1.wrap(function _callee$(_context) {
         while (1) {
           switch (_context.prev = _context.next) {
@@ -4917,12 +4916,11 @@ var NodesCollection = /*#__PURE__*/function () {
               return this.onLoadMoreResults();
 
             case 6:
-              newPageInfoFromResults = _context.sent;
-              if (newPageInfoFromResults) this.pageInfoFromResults = newPageInfoFromResults;else if (!this.useServerSidePaginationFilteringSorting) {
+              if (!this.useServerSidePaginationFilteringSorting) {
                 this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
               }
 
-            case 8:
+            case 7:
             case "end":
               return _context.stop();
           }
@@ -4939,7 +4937,6 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.goToNextPage = /*#__PURE__*/function () {
     var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-      var newPageInfoFromResults;
       return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
           switch (_context2.prev = _context2.next) {
@@ -4958,12 +4955,11 @@ var NodesCollection = /*#__PURE__*/function () {
               return this.onGoToNextPage();
 
             case 6:
-              newPageInfoFromResults = _context2.sent;
-              if (newPageInfoFromResults) this.pageInfoFromResults = newPageInfoFromResults;else if (!this.useServerSidePaginationFilteringSorting) {
+              if (!this.useServerSidePaginationFilteringSorting) {
                 this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
               }
 
-            case 8:
+            case 7:
             case "end":
               return _context2.stop();
           }
@@ -4980,7 +4976,6 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.goToPreviousPage = /*#__PURE__*/function () {
     var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
-      var newPageInfoFromResults;
       return runtime_1.wrap(function _callee3$(_context3) {
         while (1) {
           switch (_context3.prev = _context3.next) {
@@ -4999,12 +4994,11 @@ var NodesCollection = /*#__PURE__*/function () {
               return this.onGoToPreviousPage();
 
             case 6:
-              newPageInfoFromResults = _context3.sent;
-              if (newPageInfoFromResults) this.pageInfoFromResults = newPageInfoFromResults;else if (!this.useServerSidePaginationFilteringSorting) {
+              if (!this.useServerSidePaginationFilteringSorting) {
                 this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
               }
 
-            case 8:
+            case 7:
             case "end":
               return _context3.stop();
           }
@@ -5737,7 +5731,7 @@ function createQueryManager(mmGQLInstance) {
 
                 // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
                 this.opts.onResultsUpdated();
-                return _context.abrupt("return", null);
+                return _context.abrupt("return");
 
               case 3:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
@@ -5765,12 +5759,8 @@ function createQueryManager(mmGQLInstance) {
                   newData: newData,
                   event: 'LOAD_MORE'
                 });
-                return _context.abrupt("return", this.getPageInfoFromResponseForAlias({
-                  aliasPath: opts.aliasPath,
-                  response: newData
-                }));
 
-              case 10:
+              case 9:
               case "end":
                 return _context.stop();
             }
@@ -5799,7 +5789,7 @@ function createQueryManager(mmGQLInstance) {
 
                 // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
                 this.opts.onResultsUpdated();
-                return _context2.abrupt("return", null);
+                return _context2.abrupt("return");
 
               case 3:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
@@ -5827,12 +5817,8 @@ function createQueryManager(mmGQLInstance) {
                   newData: newData,
                   event: 'GO_TO_NEXT'
                 });
-                return _context2.abrupt("return", this.getPageInfoFromResponseForAlias({
-                  aliasPath: opts.aliasPath,
-                  response: newData
-                }));
 
-              case 10:
+              case 9:
               case "end":
                 return _context2.stop();
             }
@@ -5861,7 +5847,7 @@ function createQueryManager(mmGQLInstance) {
 
                 // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
                 this.opts.onResultsUpdated();
-                return _context3.abrupt("return", null);
+                return _context3.abrupt("return");
 
               case 3:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
@@ -5888,15 +5874,9 @@ function createQueryManager(mmGQLInstance) {
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   newData: newData,
                   event: 'GO_TO_PREVIOUS'
-                }); // @TODO does it actually need to return paging info?
-                // I believe new node collections are being generated when we load more results
+                });
 
-                return _context3.abrupt("return", this.getPageInfoFromResponseForAlias({
-                  aliasPath: opts.aliasPath,
-                  response: newData
-                }));
-
-              case 10:
+              case 9:
               case "end":
                 return _context3.stop();
             }
