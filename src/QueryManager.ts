@@ -1095,6 +1095,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       this.extendStateObject({
         aliasPath: opts.aliasPath,
+        originalAliasPath: opts.aliasPath,
         state: this.state,
         newState,
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
@@ -1114,6 +1115,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     public extendStateObject(opts: {
       aliasPath: Array<string>;
+      originalAliasPath: Array<string>;
       state: QueryManagerState;
       newState: QueryManagerState;
       mergeStrategy: 'CONCAT' | 'REPLACE';
@@ -1165,8 +1167,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             state: {
               [firstAliasWithoutId]: existingStateForFirstAlias,
             },
-            // @TODO does this aliasPath need to be the original alias path, and not the remaining from the recursion call?
-            aliasPath: opts.aliasPath,
+            aliasPath: opts.originalAliasPath,
           })
         );
       } else {
@@ -1187,6 +1188,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         this.extendStateObject({
           aliasPath: remainingPath,
+          originalAliasPath: opts.originalAliasPath,
           state: existingRelationalStateForThisProxy,
           newState: newRelationalStateForThisProxy,
           mergeStrategy: opts.mergeStrategy,
