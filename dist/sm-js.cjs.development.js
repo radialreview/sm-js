@@ -5959,6 +5959,7 @@ function createQueryManager(mmGQLInstance) {
       });
       this.extendStateObject({
         aliasPath: opts.aliasPath,
+        originalAliasPath: opts.aliasPath,
         state: this.state,
         newState: newState,
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE'
@@ -6005,8 +6006,7 @@ function createQueryManager(mmGQLInstance) {
 
         (_opts$parentProxy = opts.parentProxy) == null ? void 0 : _opts$parentProxy.updateRelationalResults(this.getResultsFromState({
           state: (_state = {}, _state[firstAliasWithoutId] = existingStateForFirstAlias, _state),
-          // @TODO does this aliasPath need to be the original alias path, and not the remaining from the recursion call?
-          aliasPath: opts.aliasPath
+          aliasPath: opts.originalAliasPath
         }));
       } else {
         var id = this.getIdFromAlias(firstAlias);
@@ -6017,6 +6017,7 @@ function createQueryManager(mmGQLInstance) {
         if (!newRelationalStateForThisProxy) throw Error("Expected new relational state for the alias " + firstAlias + " and the id " + id);
         this.extendStateObject({
           aliasPath: remainingPath,
+          originalAliasPath: opts.originalAliasPath,
           state: existingRelationalStateForThisProxy,
           newState: newRelationalStateForThisProxy,
           mergeStrategy: opts.mergeStrategy,

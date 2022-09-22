@@ -161,6 +161,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): void;
         extendStateObject(opts: {
             aliasPath: Array<string>;
+            originalAliasPath: Array<string>;
             state: QueryManagerState;
             newState: QueryManagerState;
             mergeStrategy: 'CONCAT' | 'REPLACE';
