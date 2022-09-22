@@ -1,0 +1,81 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query gql matches the expectation when specifying a sort param for a relational property 1`] = `
+"query query1 {
+ users: users(order: [{todos: DESC}]) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying a sort params with priority 1`] = `
+"query query2 {
+ users: users(order: [{firstName: ASC}, {lastName: DESC}]) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     lastName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying a sorting param 1`] = `
+"query query0 {
+ users: users(order: [{firstName: ASC}]) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;

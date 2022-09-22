@@ -4,11 +4,18 @@ exports[`query.pagination 'hasNextPage' is set to 'false' if there are no next p
 "query query2 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -18,11 +25,18 @@ exports[`query.pagination 'hasNextPage' is set to 'true' if there are next pages
 "query query1 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -32,11 +46,18 @@ exports[`query.pagination 'hasPreviousPage' is set to 'false' if there are no pr
 "query query4 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -46,11 +67,18 @@ exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previo
 "query query3 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -60,11 +88,18 @@ exports[`query.pagination 'totalPages' should have the correct value. 1`] = `
 "query query5 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -74,11 +109,18 @@ exports[`query.pagination calling goToNextPage should go to next page and update
 "query query7 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -88,11 +130,18 @@ exports[`query.pagination calling goToPreviousPage should go to previous page an
 "query query9 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -102,11 +151,18 @@ exports[`query.pagination calling loadMore should load the next page of results 
 "query query8 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -116,11 +172,18 @@ exports[`query.pagination can paginate query with array results 1`] = `
 "query query0 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -130,20 +193,34 @@ exports[`query.pagination can paginate relational data 1`] = `
 "query query10 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
-     firstName,
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
      todos: todos {
        nodes {
-         id,
-         version,
-         lastUpdatedBy,
-         type,
+         id
+         version
+         lastUpdatedBy
+         type
          task
        }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
      }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -153,11 +230,18 @@ exports[`query.pagination not defining pagination parameters should return all i
 "query query6 {
  users: users {
    nodes {
-     id,
-     version,
-     lastUpdatedBy,
-     type,
+     id
+     version
+     lastUpdatedBy
+     type
      firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
    }
  }
 }"

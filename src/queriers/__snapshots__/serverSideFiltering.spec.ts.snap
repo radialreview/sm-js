@@ -15,6 +15,7 @@ exports[`query gql matches the expectation when specifying a filter param 1`] = 
      endCursor
      startCursor
      hasNextPage
+     hasPreviousPage
    }
  }
 }"
@@ -42,6 +43,7 @@ exports[`query gql matches the expectation when specifying a filter param for a 
          endCursor
          startCursor
          hasNextPage
+         hasPreviousPage
        }
      }
    }
@@ -50,6 +52,7 @@ exports[`query gql matches the expectation when specifying a filter param for a 
      endCursor
      startCursor
      hasNextPage
+     hasPreviousPage
    }
  }
 }"
