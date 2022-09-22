@@ -216,7 +216,7 @@ test(`calling loadMore results appends the new results to the previous results`,
   expect(data.users.nodes[1].firstName).toBe('User 2');
 });
 
-test.only(`calling loadMore on a piece of relational results causes the expected query to be executed`, async () => {
+test(`calling loadMore on a piece of relational results causes the expected query to be executed`, async () => {
   let queriesPerformed = 0;
   const { mmGQLInstance } = setupTest({
     mockData: {
@@ -227,9 +227,19 @@ test.only(`calling loadMore on a piece of relational results causes the expected
             firstName: 'John',
             todos: createMockDataItems({
               sampleMockData: mockTodoData,
-              items: [],
+              items: [
+                {
+                  users: createMockDataItems({
+                    sampleMockData: mockUserData,
+                    items: [],
+                    pageInfo: {
+                      endCursor: 'mock-end-cursor-for-users',
+                    },
+                  }),
+                },
+              ],
               pageInfo: {
-                endCursor: 'mock-end-cursor',
+                endCursor: 'mock-end-cursor-for-todos',
               },
             }),
           },
@@ -238,7 +248,7 @@ test.only(`calling loadMore on a piece of relational results causes the expected
     },
     onQueryPerformed: query => {
       queriesPerformed++;
-      if (queriesPerformed === 2) {
+      if (queriesPerformed === 2 || queriesPerformed === 3) {
         expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
       }
     },
@@ -250,7 +260,15 @@ test.only(`calling loadMore on a piece of relational results causes the expected
       map: ({ firstName, todos }) => ({
         firstName,
         todos: todos({
-          map: ({ task }) => ({ task }),
+          map: ({ task, users }) => ({
+            task,
+            users: users({
+              map: ({ firstName }) => ({ firstName }),
+              pagination: {
+                itemsPerPage: 1,
+              },
+            }),
+          }),
           pagination: {
             itemsPerPage: 1,
           },
@@ -263,6 +281,107 @@ test.only(`calling loadMore on a piece of relational results causes the expected
   });
 
   await data.users.nodes[0].todos.loadMore();
+  await data.users.nodes[0].todos.nodes[0].users.loadMore();
+});
+
+test.only(`calling loadMore on a piece of relational results appends the new results to the previous results`, async () => {
+  let queriesPerformed = 0;
+  function getMockData() {
+    return {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: 'John',
+            todos: createMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 1',
+                  users: createMockDataItems({
+                    sampleMockData: mockUserData,
+                    items: [
+                      {
+                        firstName: 'Jane',
+                      },
+                    ],
+                    pageInfo: {
+                      endCursor: 'mock-end-cursor-for-users',
+                    },
+                  }),
+                },
+              ],
+              pageInfo: {
+                endCursor: 'mock-end-cursor-for-todos',
+              },
+            }),
+          },
+        ],
+      }),
+    };
+  }
+
+  const { mmGQLInstance } = setupTest({
+    getMockData: () => {
+      if (queriesPerformed === 0) {
+        const mockData = getMockData();
+        return mockData;
+      }
+      if (queriesPerformed === 1) {
+        const mockData = getMockData();
+        const firstTodo = (mockData.users.nodes[0].todos as any).nodes[0];
+        firstTodo.task = 'Task 2';
+        firstTodo.id = 'mock-todo-id1';
+        return mockData;
+      }
+      if (queriesPerformed === 2) {
+        const mockData = getMockData();
+        const firstUserInFirstTodo = (mockData.users.nodes[0].todos as any)
+          .nodes[0].users.nodes[0];
+        firstUserInFirstTodo.firstName = 'Steve';
+        firstUserInFirstTodo.id = 'mock-user-id1';
+        return mockData;
+      }
+      throw Error('Unexpected query');
+    },
+    onQueryPerformed: () => {
+      queriesPerformed++;
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName, todos }) => ({
+        firstName,
+        todos: todos({
+          map: ({ task, users }) => ({
+            task,
+            users: users({
+              map: ({ firstName }) => ({ firstName }),
+              pagination: {
+                itemsPerPage: 1,
+              },
+            }),
+          }),
+          pagination: {
+            itemsPerPage: 1,
+          },
+        }),
+      }),
+      pagination: {
+        itemsPerPage: 1,
+      },
+    }),
+  });
+
+  await data.users.nodes[0].todos.loadMore();
+  console.log('data', data.users.nodes[0].todos.nodes);
+  expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+  await data.users.nodes[0].todos.nodes[0].users.loadMore();
+  // ensure the todos array lenght is still 2
+  expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+  expect(data.users.nodes[0].todos.nodes[0].users.nodes.length).toBe(2);
 });
 
 test(`calling goToNextPage causes the expected query to be executed`, async () => {

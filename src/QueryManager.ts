@@ -353,6 +353,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               dataForThisAlias: node[relationalAlias],
             });
             if (!relationalDataForThisAlias) return relationalStateAcc;
+            const aliasPath = this.addIdToLastEntryInAliasPath({
+              aliasPath: opts.aliasPath,
+              id: node.id,
+            });
 
             const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
@@ -364,7 +368,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               }),
               queryAlias: relationalAlias,
               queryRecord: (relational as unknown) as QueryRecord,
-              aliasPath: [...opts.aliasPath, relationalAlias],
+              aliasPath: [...aliasPath, relationalAlias],
             });
             if (!cacheEntry) return relationalStateAcc;
 
@@ -377,22 +381,24 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         );
       };
 
-      const buildProxyCacheEntryForNode = (
-        node: Record<string, any>,
-        index: Maybe<number>
-      ): QueryManagerProxyCacheEntry => {
-        const relationalState = buildRelationalStateForNode(node);
+      const buildProxyCacheEntryForNode = (buildCacheEntryOpts: {
+        node: Record<string, any>;
+      }): QueryManagerProxyCacheEntry => {
+        const relationalState = buildRelationalStateForNode(
+          buildCacheEntryOpts.node
+        );
         const nodeRepository = queryRecord[queryAlias].def.repository;
         const relationalQueries = relational
           ? this.getApplicableRelationalQueries({
               relationalQueries: relational,
-              nodeData: node,
+              nodeData: buildCacheEntryOpts.node,
             })
           : null;
 
-        if (index != null)
-          opts.aliasPath[opts.aliasPath.length - 1] =
-            opts.aliasPath[opts.aliasPath.length - 1] + `[${index}]`;
+        const aliasPath = this.addIdToLastEntryInAliasPath({
+          aliasPath: opts.aliasPath,
+          id: buildCacheEntryOpts.node.id,
+        });
 
         const proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
@@ -403,9 +409,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             ? null
             : this.getResultsFromState({
                 state: relationalState,
-                aliasPath: opts.aliasPath,
+                aliasPath,
               }),
-          do: nodeRepository.byId(node.id),
+          do: nodeRepository.byId(buildCacheEntryOpts.node.id),
         });
 
         return {
@@ -433,8 +439,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
-            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node, index) => {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node, index);
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
 
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
@@ -444,8 +452,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         } else {
           return {
             idsOrIdInCurrentResult: opts.nodeData.map(node => node.id),
-            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node, index) => {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node, index);
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
 
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
@@ -457,10 +467,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return {
           idsOrIdInCurrentResult: opts.nodeData.id,
           proxyCache: {
-            [(nodeData as { id: string }).id]: buildProxyCacheEntryForNode(
-              nodeData,
-              null
-            ),
+            [(nodeData as { id: string }).id]: buildProxyCacheEntryForNode({
+              node: nodeData,
+            }),
           },
           pageInfoFromResults: opts.pageInfoFromResults,
           clientSidePageInfo: opts.clientSidePageInfo,
@@ -788,6 +797,53 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return opts.dataForThisAlias[PAGE_INFO_PROPERTY_KEY] || null;
     }
 
+    public getPageInfoFromResponseForAlias(opts: {
+      aliasPath: Array<string>;
+      response: Record<string, any>;
+    }): Maybe<PageInfoFromResults> {
+      const [firstAlias, ...remainingPath] = opts.aliasPath;
+
+      const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
+      const idFromFirstAlias = this.getIdFromAlias(firstAlias);
+      if (remainingPath.length === 0) {
+        if (idFromFirstAlias != null) {
+          const isArrayOfData = Array.isArray(
+            opts.response[firstAliasWithoutId]
+              ? opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]
+              : false
+          );
+          if (!isArrayOfData)
+            throw Error(
+              'Expected array of data when an id is found in the alias'
+            );
+
+          const dataForThisAlias = opts.response[firstAliasWithoutId][
+            NODES_PROPERTY_KEY
+          ].find((item: any) => item.id === idFromFirstAlias);
+          if (!dataForThisAlias)
+            throw Error(
+              'Expected data for this alias when an id is found in the alias'
+            );
+
+          return this.getPageInfoFromResponse({
+            dataForThisAlias,
+          });
+        }
+
+        return this.getPageInfoFromResponse({
+          dataForThisAlias: opts.response[firstAliasWithoutId],
+        });
+      }
+
+      const dataForThisAlias = opts.response[firstAliasWithoutId][
+        NODES_PROPERTY_KEY
+      ].find((item: any) => item.id === idFromFirstAlias);
+      return this.getPageInfoFromResponseForAlias({
+        aliasPath: remainingPath,
+        response: dataForThisAlias,
+      });
+    }
+
     public getClientSidePageInfo(opts: {
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     }): Maybe<ClientSidePageInfo> {
@@ -949,10 +1005,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       if (aliasPath.length === 0)
         throw new Error('Alias path must contain at least 1 entry');
 
-      const firstAliasWithoutIndex = this.removeIndexFromAlias(aliasPath[0]);
-      if (!this.queryRecord[firstAliasWithoutIndex])
+      const firstAliasWithoutId = this.removeIdFromAlias(aliasPath[0]);
+      if (!this.queryRecord[firstAliasWithoutId])
         throw Error(
-          `The key ${firstAliasWithoutIndex} was not found in the queryRecord\n${JSON.stringify(
+          `The key ${firstAliasWithoutId} was not found in the queryRecord\n${JSON.stringify(
             this.queryRecord,
             null,
             2
@@ -960,7 +1016,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         );
 
       return (
-        this.queryRecord[firstAliasWithoutIndex].tokenName || DEFAULT_TOKEN_NAME
+        this.queryRecord[firstAliasWithoutId].tokenName || DEFAULT_TOKEN_NAME
       );
     }
 
@@ -979,16 +1035,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const [firstAlias, ...remainingPath] = opts.aliasPath;
 
       const newQueryRecord: QueryRecord | RelationalQueryRecord = {};
-      const firstAliasWithoutIndex = this.removeIndexFromAlias(firstAlias);
+      const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
 
       const preExistingQueryRecordEntryForFirstAlias =
-        opts.preExistingQueryRecord[firstAliasWithoutIndex];
+        opts.preExistingQueryRecord[firstAliasWithoutId];
       if (!preExistingQueryRecordEntryForFirstAlias)
         throw new Error(
-          `No preexisting query record entry for the alias ${firstAliasWithoutIndex}`
+          `No preexisting query record entry for the alias ${firstAliasWithoutId}`
         );
       if (!remainingPath.length) {
-        newQueryRecord[firstAliasWithoutIndex] = {
+        newQueryRecord[firstAliasWithoutId] = {
           ...preExistingQueryRecordEntryForFirstAlias,
           pagination: {
             ...preExistingQueryRecordEntryForFirstAlias.pagination,
@@ -996,7 +1052,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           },
         };
       } else {
-        newQueryRecord[firstAliasWithoutIndex] = {
+        newQueryRecord[firstAliasWithoutId] = {
           ...preExistingQueryRecordEntryForFirstAlias,
           relational: this.getMinimalQueryRecordWithUpdatedPaginationParams({
             aliasPath: remainingPath,
@@ -1054,6 +1110,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         queryRecord: opts.queryRecord,
       });
 
+      // console.log('state', JSON.stringify(this.state, null, 2));
+      // console.log('new state', JSON.stringify(newState, null, 2));
       this.extendStateObject({
         aliasPath: opts.aliasPath,
         state: this.state,
@@ -1061,6 +1119,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
       });
 
+      console.log('end state', JSON.stringify(this.state, null, 2));
       extend({
         object: this.opts.resultsObject,
         extension: this.getResultsFromState({
@@ -1074,35 +1133,22 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.opts.onResultsUpdated();
     }
 
-    public getPageInfoFromResponseForAlias(opts: {
-      aliasPath: Array<string>;
-      response: Record<string, any>;
-    }): Maybe<PageInfoFromResults> {
-      const [firstAlias, ...remainingPath] = opts.aliasPath;
-
-      if (remainingPath.length === 0) {
-        return this.getPageInfoFromResponse({
-          dataForThisAlias: opts.response[firstAlias],
-        });
-      }
-
-      throw Error('Recursive logic not implemented');
-    }
-
     public extendStateObject(opts: {
       aliasPath: Array<string>;
       state: QueryManagerState;
       newState: QueryManagerState;
       mergeStrategy: 'CONCAT' | 'REPLACE';
+      parentProxy?: IDOProxy;
     }) {
+      console.log('alias path', opts.aliasPath);
       const [firstAlias, ...remainingPath] = opts.aliasPath;
 
-      const firstAliasWithoutIndex = this.removeIndexFromAlias(firstAlias);
-      const existingStateForFirstAlias = opts.state[firstAliasWithoutIndex];
-      const newStateForFirstAlias = opts.newState[firstAliasWithoutIndex];
+      const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
+      const existingStateForFirstAlias = opts.state[firstAliasWithoutId];
+      const newStateForFirstAlias = opts.newState[firstAliasWithoutId];
       if (!existingStateForFirstAlias || !newStateForFirstAlias)
         throw Error(
-          `Expected new and existing state for the alias ${firstAliasWithoutIndex}`
+          `Expected new and existing state for the alias ${firstAliasWithoutId}`
         );
 
       if (remainingPath.length === 0) {
@@ -1116,11 +1162,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         };
 
         if (opts.mergeStrategy === 'CONCAT') {
+          if (
+            !Array.isArray(existingStateForFirstAlias.idsOrIdInCurrentResult) ||
+            !Array.isArray(newStateForFirstAlias.idsOrIdInCurrentResult)
+          ) {
+            throw Error(
+              'Expected both existing and new state "idsOrIdInCurrentResult" to be arrays'
+            );
+          }
+
           existingStateForFirstAlias.idsOrIdInCurrentResult = [
-            ...(existingStateForFirstAlias.idsOrIdInCurrentResult as Array<
-              string
-            >),
-            ...(newStateForFirstAlias.idsOrIdInCurrentResult as Array<string>),
+            ...existingStateForFirstAlias.idsOrIdInCurrentResult,
+            ...newStateForFirstAlias.idsOrIdInCurrentResult,
           ];
         } else if (opts.mergeStrategy === 'REPLACE') {
           existingStateForFirstAlias.idsOrIdInCurrentResult =
@@ -1128,18 +1181,71 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         } else {
           throw new UnreachableCaseError(opts.mergeStrategy);
         }
+
+        opts.parentProxy?.updateRelationalResults(
+          this.getResultsFromState({
+            state: {
+              [firstAliasWithoutId]: existingStateForFirstAlias,
+            },
+            // @TODO does this aliasPath need to be the original alias path, and not the remaining from the recursion call?
+            aliasPath: opts.aliasPath,
+          })
+        );
       } else {
-        throw Error('Recursive logic not implemented');
+        const id = this.getIdFromAlias(firstAlias);
+        if (!id) throw Error(`Expected an id for the alias ${firstAlias}`);
+        const existingRelationalStateForThisProxy =
+          existingStateForFirstAlias.proxyCache[id].relationalState;
+        if (!existingRelationalStateForThisProxy)
+          throw Error(
+            `Expected existing relational state for the alias ${firstAlias} and the id ${id}`
+          );
+        const newRelationalStateForThisProxy =
+          newStateForFirstAlias.proxyCache[id].relationalState;
+        if (!newRelationalStateForThisProxy)
+          throw Error(
+            `Expected new relational state for the alias ${firstAlias} and the id ${id}`
+          );
+
+        this.extendStateObject({
+          aliasPath: remainingPath,
+          state: existingRelationalStateForThisProxy,
+          newState: newRelationalStateForThisProxy,
+          mergeStrategy: opts.mergeStrategy,
+          parentProxy: newStateForFirstAlias.proxyCache[id].proxy,
+        });
       }
     }
 
-    public removeIndexFromAlias(alias: string) {
-      // ends with [number]
-      const endsWithIndexNotation = new RegExp(/(.*)\[(\d+)\]$/);
-      if (endsWithIndexNotation.test(alias)) {
-        return alias.replace(endsWithIndexNotation, '$1');
-      }
-      return alias;
+    public addIdToLastEntryInAliasPath(opts: {
+      aliasPath: Array<string>;
+      id: string;
+    }) {
+      const aliasPath = [...opts.aliasPath];
+      aliasPath[aliasPath.length - 1] =
+        aliasPath[aliasPath.length - 1] + `[${opts.id}]`;
+      return aliasPath;
+    }
+
+    /**
+     * Removes the id from the alias if it exists
+     * Example input: 'user[12msad-249js-25285]'
+     * Example output: 'user'
+     * @param alias
+     */
+    public removeIdFromAlias(alias: string) {
+      return alias.replace(/\[.*\]$/, '');
+    }
+
+    /**
+     * Returns the id from the alias if it exists
+     * Example input: 'user[12msad-249js-25285]'
+     * Example output: '12msad-249js-25285'
+     */
+    public getIdFromAlias(alias: string) {
+      const id = alias.match(/\[(.*)\]$/);
+      if (!id) return undefined;
+      return id[1];
     }
   };
 }

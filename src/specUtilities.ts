@@ -254,10 +254,11 @@ export const mockUserData = {
 };
 
 const mockPageInfo: PageInfoFromResults = {
+  hasPreviousPage: true,
   hasNextPage: true,
   endCursor: 'xyz',
   startCursor: 'zyx',
-  totalPages: 2,
+  totalPages: 3,
 };
 
 export const mockQueryDataReturn = {

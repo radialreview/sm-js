@@ -56,13 +56,84 @@ query query0 {
      lastUpdatedBy
      type
      firstName
-     todos: todos(after: \\"mock-end-cursor\\", first: 1) {
+     todos: todos(after: \\"mock-end-cursor-for-todos\\", first: 1) {
        nodes {
          id
          version
          lastUpdatedBy
          type
          task
+         users: users(first: 1) {
+           nodes {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
+           }
+         }
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`calling loadMore on a piece of relational results causes the expected query to be executed 2`] = `
+"
+query query0 {
+ users: users(first: 1) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos(first: 1) {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+         users: users(after: \\"mock-end-cursor-for-users\\", first: 1) {
+           nodes {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
+           }
+         }
        }
        totalCount
        pageInfo {
