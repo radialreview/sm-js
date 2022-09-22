@@ -3813,10 +3813,25 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     version: '1'
   }, getMockValuesForIDataRecord(nodePropertiesToMock));
 
+<<<<<<< HEAD
   if (queryRecordEntry.def.generateMockData) {
     extend({
       object: mockedValues,
       extension: queryRecordEntry.def.generateMockData(),
+=======
+  if (queryRecord.def.generateMockData) {
+    var queryRecordMockData = queryRecord.def.generateMockData();
+    var mockDataPropertiesToAddToExtension = Object.keys(queryRecordMockData).reduce(function (acc, item) {
+      if (queryRecord.properties.includes(item)) {
+        acc[item] = queryRecordMockData[item];
+      }
+
+      return acc;
+    }, {});
+    extend({
+      object: mockedValues,
+      extension: mockDataPropertiesToAddToExtension,
+>>>>>>> origin/mm-gql
       extendNestedObjects: true,
       deleteKeysNotInExtension: false
     });
@@ -6468,6 +6483,7 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
   return "{\n    " + mutationArgs.join('\n') + "\n  }";
 }
 
+<<<<<<< HEAD
 var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 
 var QuerySlimmer = /*#__PURE__*/function () {
@@ -6560,1184 +6576,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
         }
       }, _callee, this);
     }));
-
-    function query(_x) {
-      return _query.apply(this, arguments);
-    }
-
-    return query;
-  }();
-
-  _proto.getDataForQueryFromQueriesByContext = function getDataForQueryFromQueriesByContext(newQuery, parentContextKey) {
-    var _this2 = this;
-
-    var queryData = {};
-    var newQueryKeys = Object.keys(newQuery);
-    newQueryKeys.forEach(function (newQueryKey) {
-      var queryRecordEntry = newQuery[newQueryKey];
-
-      var contextKey = _this2.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      var cachedQueryData = _this2.queriesByContext[contextKey];
-      var newQueryData = {};
-      var newQueryRelationalData = {};
-      queryRecordEntry.properties.forEach(function (property) {
-        newQueryData[property] = {
-          nodes: cachedQueryData.results[property]
-        };
-      });
-
-      if (queryRecordEntry.relational !== undefined) {
-        newQueryRelationalData = _this2.getDataForQueryFromQueriesByContext(queryRecordEntry.relational, contextKey);
-      }
-
-      queryData[newQueryKey] = _extends({}, newQueryData, newQueryRelationalData);
-    });
-    return queryData;
-  };
-
-  _proto.slimNewQueryAgainstInFlightQueries = function slimNewQueryAgainstInFlightQueries(newQuery) {
-    var _this3 = this;
-
-    var newQueryByContextMap = this.getQueryRecordsByContextMap(newQuery);
-    var inFlightQueriesToSlimAgainst = this.getInFlightQueriesToSlimAgainst(newQueryByContextMap);
-
-    if (inFlightQueriesToSlimAgainst === null) {
-      return null;
-    }
-
-    var queryIdsSlimmedAgainst = [];
-    var newQuerySlimmed = {};
-    Object.keys(inFlightQueriesToSlimAgainst).forEach(function (inFlightQueryContextKey) {
-      if (inFlightQueryContextKey in newQueryByContextMap) {
-        var newQueryRecordPieceSlimmed = _extends({}, newQueryByContextMap[inFlightQueryContextKey]);
-
-        inFlightQueriesToSlimAgainst[inFlightQueryContextKey].forEach(function (inFlightQueryRecord) {
-          var slimmed = _this3.getSlimmedQueryAgainstInFlightQuery(newQueryRecordPieceSlimmed, inFlightQueryRecord.queryRecord, false);
-
-          if (slimmed !== null) {
-            queryIdsSlimmedAgainst.push(inFlightQueryRecord.queryId);
-            newQueryRecordPieceSlimmed = slimmed;
-          }
-        });
-        newQuerySlimmed = _extends({}, newQuerySlimmed, newQueryRecordPieceSlimmed);
-      }
-    });
-
-    if (Object.keys(newQuerySlimmed).length === 0) {
-      return null;
-    } else {
-      return {
-        queryIdsSlimmedAgainst: queryIdsSlimmedAgainst,
-        slimmedQueryRecord: newQuerySlimmed
-      };
-    }
-  }
-  /**
-   * Returns in flight QueryRecordEntries by context that can slim down a new query.
-   * The new query should wait for an in flight query to slim against if:
-   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
-   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
-   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
-   */
-  ;
-
-  _proto.getInFlightQueriesToSlimAgainst = function getInFlightQueriesToSlimAgainst(newQuery) {
-    var _this4 = this;
-
-    var inFlightQueriesToSlimAgainst = {};
-    var newQueryCtxtKeys = Object.keys(newQuery);
-    newQueryCtxtKeys.forEach(function (newQueryCtxKey) {
-      var queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
-      var newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
-
-      var newQueryRecordDepth = _this4.getRelationalDepthOfQueryRecordEntry(newQueryRecordEntry);
-
-      if (newQueryCtxKey in _this4.inFlightQueryRecords) {
-        var inFlightQueriesForCtxKey = _this4.inFlightQueryRecords[newQueryCtxKey];
-        inFlightQueriesForCtxKey.forEach(function (inFlightQueryRecord) {
-          if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
-            var inFlightQueryRecordEntry = inFlightQueryRecord.queryRecord[queryRecordBaseKey];
-            var inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(function (inFlightProp) {
-              return newQueryRecordEntry.properties.includes(inFlightProp);
-            });
-
-            if (inFlightRecordHasSomePropsInNewQuery) {
-              var inFlightRecordEntryDepth = _this4.getRelationalDepthOfQueryRecordEntry(inFlightQueryRecordEntry);
-
-              if (inFlightRecordEntryDepth <= newQueryRecordDepth) {
-                if (newQueryCtxKey in inFlightQueriesToSlimAgainst) {
-                  inFlightQueriesToSlimAgainst[newQueryCtxKey].push(inFlightQueryRecord);
-                } else {
-                  inFlightQueriesToSlimAgainst[newQueryCtxKey] = [inFlightQueryRecord];
-                }
-              }
-            }
-          }
-        });
-      }
-    });
-    return Object.keys(inFlightQueriesToSlimAgainst).length === 0 ? null : inFlightQueriesToSlimAgainst;
-  }
-  /**
-   * Slims the new query against an in flight query.
-   * This function assumes queries have already been matched by context.
-   */
-  ;
-
-  _proto.getSlimmedQueryAgainstInFlightQuery = function getSlimmedQueryAgainstInFlightQuery(newQuery, inFlightQuery, isRelationalQueryRecord) {
-    var _this5 = this;
-
-    var slimmedQueryRecord = {};
-    var slimmedRelationalQueryRecord = {};
-    Object.keys(newQuery).forEach(function (newQueryKey) {
-      var newQueryRecordEntry = newQuery[newQueryKey];
-      var newRootRecordEntry = newQueryRecordEntry;
-      var newRelationalRecordEntry = newQueryRecordEntry;
-
-      if (inFlightQuery[newQueryKey] === undefined) {
-        // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
-        if (isRelationalQueryRecord) {
-          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
-        } else {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        }
-      } else {
-        // If a newQueryContextKey is present we want to slim what we can from the in flight query.
-        var inFlightQueryRecordEntry = inFlightQuery[newQueryKey];
-
-        var newRequestedProperties = _this5.getPropertiesNotCurrentlyBeingRequested({
-          newQueryProps: newQueryRecordEntry.properties,
-          inFlightProps: inFlightQueryRecordEntry.properties
-        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
-        // we can just return the new query with only the newly requested properties.
-
-
-        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
-          if (isRelationalQueryRecord) {
-            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-              properties: newRequestedProperties
-            });
-          } else {
-            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-              properties: newRequestedProperties
-            });
-          }
-        } // If both queries contain relational queries we need to try slimming against those as well.
-        // If there are child relational queries we still need to handle those even if the parent query is requesting properties that are already in flight.
-
-
-        if (newQueryRecordEntry.relational !== undefined && inFlightQueryRecordEntry.relational !== undefined) {
-          var slimmedNewRelationalQueryRecord = _this5.getSlimmedQueryAgainstInFlightQuery(newQueryRecordEntry.relational, inFlightQueryRecordEntry.relational, true); // If there are any properties being requested in the child relational query
-          // we will still need to return the query record even if the parent is requesting properties that are already in flight.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
-
-
-          if (slimmedNewRelationalQueryRecord !== null) {
-            if (isRelationalQueryRecord) {
-              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            } else {
-              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            }
-          }
-        }
-      }
-    });
-    var queryRecordToReturn = isRelationalQueryRecord ? slimmedRelationalQueryRecord : slimmedQueryRecord;
-    return Object.keys(queryRecordToReturn).length === 0 ? null : queryRecordToReturn;
-  };
-
-  _proto.getSlimmedQueryAgainstQueriesByContext = function getSlimmedQueryAgainstQueriesByContext(newQuery, parentContextKey) {
-    var _this6 = this;
-
-    // The query record could be a root query (not relational), or a child relational query.
-    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
-    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
-    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
-    // We know we are dealing with a relational query when parentContextKey is NOT undefined
-    var slimmedQueryRecord = {};
-    var slimmedRelationalQueryRecord = {};
-    var isNewQueryARootQuery = parentContextKey === undefined;
-    Object.keys(newQuery).forEach(function (newQueryKey) {
-      var newQueryRecordEntry = newQuery[newQueryKey];
-      var newRootRecordEntry = newQueryRecordEntry;
-      var newRelationalRecordEntry = newQueryRecordEntry;
-
-      var newQueryContextKey = _this6.createContextKeyForQueryRecordEntry(newQueryRecordEntry, parentContextKey);
-
-      if (_this6.queriesByContext[newQueryContextKey] === undefined) {
-        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
-        if (isNewQueryARootQuery) {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        } else {
-          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
-        }
-      } else {
-        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
-        // by the new query are already cached.
-        var cachedQuery = _this6.queriesByContext[newQueryContextKey];
-
-        var newRequestedProperties = _this6.getPropertiesNotAlreadyCached({
-          newQueryProps: newQueryRecordEntry.properties,
-          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty
-        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
-        // we can just return the new query with only the newly requested properties.
-
-
-        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
-          if (isNewQueryARootQuery) {
-            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-              properties: newRequestedProperties
-            });
-          } else {
-            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-              properties: newRequestedProperties
-            });
-          }
-        } // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
-
-
-        if (newQueryRecordEntry.relational !== undefined) {
-          var slimmedNewRelationalQueryRecord = _this6.getSlimmedQueryAgainstQueriesByContext(newQueryRecordEntry.relational, newQueryContextKey); // If there are any non-cached properties being requested in the child relational query
-          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
-
-
-          if (slimmedNewRelationalQueryRecord !== null) {
-            if (isNewQueryARootQuery) {
-              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            } else {
-              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            }
-          }
-        }
-      }
-    });
-    var objectToReturn = isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord;
-    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
-  };
-
-  _proto.onSubscriptionCancelled = function onSubscriptionCancelled(queryRecord, parentContextKey) {
-    var _this7 = this;
-
-    Object.keys(queryRecord).forEach(function (queryRecordKey) {
-      var queryRecordEntry = queryRecord[queryRecordKey];
-
-      var currentQueryContextKey = _this7.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      if (queryRecordEntry.relational !== undefined) {
-        _this7.onSubscriptionCancelled(queryRecordEntry.relational, currentQueryContextKey);
-      }
-
-      if (currentQueryContextKey in _this7.queriesByContext) {
-        var cachedQuerySubsByProperty = _this7.queriesByContext[currentQueryContextKey].subscriptionsByProperty;
-        queryRecordEntry.properties.forEach(function (property) {
-          var propertySubCount = cachedQuerySubsByProperty[property];
-
-          if (propertySubCount >= 1) {
-            cachedQuerySubsByProperty[property] = propertySubCount - 1;
-          }
-        });
-      }
-    });
-  };
-
-  _proto.getRelationalDepthOfQueryRecordEntry = function getRelationalDepthOfQueryRecordEntry(queryRecordEntry) {
-    var _this8 = this;
-
-    var relationalDepth = 0;
-
-    if (queryRecordEntry.relational !== undefined) {
-      relationalDepth += 1;
-      Object.values(queryRecordEntry.relational).forEach(function (relationalEntry) {
-        relationalDepth += _this8.getRelationalDepthOfQueryRecordEntry(relationalEntry);
-      });
-    }
-
-    return relationalDepth;
-  };
-
-  _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
-    var _this9 = this;
-
-    Object.keys(queryRecord).forEach(function (alias) {
-      var _this9$queriesByConte;
-
-      var queryRecordEntry = queryRecord[alias];
-
-      var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      _this9.queriesByContext[currentQueryContextKey] = {
-        subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
-          previous[current] = previous[current] ? previous[current] + 1 : 1;
-          return previous;
-        }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
-        results: results[alias]
-      };
-
-      if (queryRecordEntry.relational) {
-        var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
-          // do array vs object check here before map in case there's only a single id
-          previous[current] = results[alias].map(function (user) {
-            return user[current];
-          });
-          return previous;
-        }, {});
-
-        _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
-      }
-    });
-  };
-
-  _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
-    var doesQueryHaveIdProperty = 'id' in queryRecordEntry && !!queryRecordEntry.id;
-    var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
-    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
-    var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
-    return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
-  };
-
-  _proto.getPropertiesNotAlreadyCached = function getPropertiesNotAlreadyCached(opts) {
-    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
-      if (newQueryProperty in opts.cachedQuerySubsByProperty) {
-        return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
-      }
-
-      return true;
-    });
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
-  };
-
-  _proto.getPropertiesNotCurrentlyBeingRequested = function getPropertiesNotCurrentlyBeingRequested(opts) {
-    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
-      return !opts.inFlightProps.includes(newQueryProperty);
-    });
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
-  };
-
-  _proto.stringifyQueryParams = function stringifyQueryParams(entry) {
-    // https://tractiontools.atlassian.net/browse/TTD-315
-    // Handle filter/pagination/sorting query params
-    var params = {
-      ids: 'ids' in entry ? entry.ids : undefined,
-      id: 'id' in entry ? entry.id : undefined
-    };
-
-    if (!Object.values(params).some(function (value) {
-      return value != null;
-    })) {
-      return 'NO_PARAMS';
-    }
-
-    return JSON.stringify(params);
-  };
-
-  _proto.getQueryRecordsByContextMap = function getQueryRecordsByContextMap(queryRecord) {
-    var _this10 = this;
-
-    return Object.keys(queryRecord).reduce(function (queryRecordsByContext, queryRecordKey) {
-      var _queryRecordSlice;
-
-      var queryRecordEntry = queryRecord[queryRecordKey];
-
-      var contextKey = _this10.createContextKeyForQueryRecordEntry(queryRecordEntry);
-
-      var queryRecordSlice = (_queryRecordSlice = {}, _queryRecordSlice[queryRecordKey] = queryRecordEntry, _queryRecordSlice);
-      queryRecordsByContext[contextKey] = queryRecordSlice;
-      return queryRecordsByContext;
-    }, {});
-  };
-
-  _proto.sendQueryRequest = /*#__PURE__*/function () {
-    var _sendQueryRequest = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-      var inFlightQuery, queryGQLString, queryOpts, results;
-      return runtime_1.wrap(function _callee2$(_context2) {
-        while (1) {
-          switch (_context2.prev = _context2.next) {
-            case 0:
-              inFlightQuery = {
-                queryId: opts.queryId,
-                queryRecord: opts.queryRecord
-              };
-              queryGQLString = getQueryGQLStringFromQueryRecord({
-                queryId: opts.queryId,
-                queryRecord: opts.queryRecord,
-                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
-              });
-              queryOpts = {
-                gql: gql(queryGQLString),
-                token: opts.tokenName
-              };
-
-              if ('batchKey' in opts && opts.batchKey !== undefined) {
-                queryOpts.batchKey = opts.batchKey;
-              }
-
-              _context2.prev = 4;
-              this.setInFlightQuery(inFlightQuery);
-              _context2.next = 8;
-              return this.mmGQLInstance.gqlClient.query(queryOpts);
-
-            case 8:
-              results = _context2.sent;
-              this.removeInFlightQuery(inFlightQuery);
-              this.populateQueriesByContext(opts.queryRecord, results);
-              _context2.next = 17;
-              break;
-
-            case 13:
-              _context2.prev = 13;
-              _context2.t0 = _context2["catch"](4);
-              this.removeInFlightQuery(inFlightQuery);
-              throw new Error("QuerySlimmer: Error sending request for query: " + JSON.stringify(opts.queryRecord), _context2.t0);
-
-            case 17:
-            case "end":
-              return _context2.stop();
-          }
-        }
-      }, _callee2, this, [[4, 13]]);
-    }));
-
-    function sendQueryRequest(_x2) {
-      return _sendQueryRequest.apply(this, arguments);
-    }
-
-    return sendQueryRequest;
-  }();
-
-  _proto.setInFlightQuery = function setInFlightQuery(inFlightQueryRecord) {
-    var _this11 = this;
-
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
-      if (queryRecordContextKey in _this11.inFlightQueryRecords) {
-        _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
-      } else {
-        _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
-      }
-    });
-  };
-
-  _proto.removeInFlightQuery = function removeInFlightQuery(inFlightQueryToRemove) {
-    var _this12 = this;
-
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
-      if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
-        _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
-          return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
-        });
-
-        if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-          delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
-        }
-      }
-    });
-  };
-
-  _proto.areDependentQueriesStillInFlight = function areDependentQueriesStillInFlight(opts) {
-    var _this13 = this;
-
-    var isStillWaitingOnInFlightQueries = false;
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(opts.querySlimmedByInFlightQueries);
-    Object.keys(queryRecordsByContext).forEach(function (ctxKey) {
-      if (!isStillWaitingOnInFlightQueries) {
-        if (ctxKey in _this13.inFlightQueryRecords) {
-          var inFlightQueryHasDepedentId = _this13.inFlightQueryRecords[ctxKey].some(function (inFlightQuery) {
-            return opts.queryIds.includes(inFlightQuery.queryId);
-          });
-
-          if (inFlightQueryHasDepedentId) {
-            isStillWaitingOnInFlightQueries = true;
-          }
-        }
-      }
-    });
-    return isStillWaitingOnInFlightQueries;
-  };
-
-  _proto.log = function log(message) {
-    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
-      var _console;
-
-      for (var _len = arguments.length, optionalParams = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        optionalParams[_key - 1] = arguments[_key];
-      }
-
-      (_console = console).log.apply(_console, [message].concat(optionalParams));
-    }
-  };
-
-  return QuerySlimmer;
-}();
-
-var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
-var LoggingContext = /*#__PURE__*/React.createContext({
-  unsafe__silenceDuplicateSubIdErrors: false
-}); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
-// where the same subscription id may be used momentarily before the fallback route unmounts
-
-var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
-  return React.createElement(LoggingContext.Provider, {
-    value: {
-      unsafe__silenceDuplicateSubIdErrors: true
-    }
-  }, props.children);
-};
-var MMGQLProvider = function MMGQLProvider(props) {
-  var existingContext = React.useContext(MMGQLContext);
-
-  if (existingContext) {
-    throw Error('Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.');
-  }
-
-  var ongoingSubscriptionRecord = React.useRef({});
-  var cleanupTimeoutRecord = React.useRef({});
-  var mountedHooksBySubId = React.useRef({});
-  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
-    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
-  }, []);
-  var scheduleCleanup = React.useCallback(function (subscriptionId) {
-    function cleanup() {
-      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
-
-      if (existingContextSubscription) {
-        existingContextSubscription.unsub && existingContextSubscription.unsub();
-        delete ongoingSubscriptionRecord.current[subscriptionId];
-      }
-    }
-
-    if (props.subscriptionTTLMs != null) {
-      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
-    } else {
-      cleanup();
-    }
-  }, [props.subscriptionTTLMs]);
-  var cancelCleanup = React.useCallback(function (subscriptionId) {
-    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
-    delete cleanupTimeoutRecord.current[subscriptionId];
-  }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
-  // using a useSubscription hook are mounted at the same time
-  // since useSubscription uses the first line of the error stack to construct a unique sub id
-  // fixes https://tractiontools.atlassian.net/browse/MM-404
-
-  var onHookMount = React.useCallback(function (subscriptionId, _ref) {
-    var silenceDuplicateSubIdErrors = _ref.silenceDuplicateSubIdErrors;
-
-    if (mountedHooksBySubId.current[subscriptionId] && !silenceDuplicateSubIdErrors) {
-      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
-    }
-
-    mountedHooksBySubId.current[subscriptionId] = true;
-  }, []);
-  var onHookUnmount = React.useCallback(function (subscriptionId) {
-    delete mountedHooksBySubId.current[subscriptionId];
-  }, []);
-  return React.createElement(MMGQLContext.Provider, {
-    value: {
-      mmGQLInstance: props.mmGQL,
-      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
-      updateSubscriptionInfo: updateSubscriptionInfo,
-      scheduleCleanup: scheduleCleanup,
-      cancelCleanup: cancelCleanup,
-      onHookMount: onHookMount,
-      onHookUnmount: onHookUnmount
-    }
-  }, props.children);
-};
-
-function useSubscription(queryDefinitions, opts) {
-  var context = React.useContext(MMGQLContext);
-
-  if (!context) {
-    throw Error('You must wrap your app with an MMGQLProvider before using useSubscription.');
-  }
-
-  var obj = {
-    stack: ''
-  };
-  Error.captureStackTrace(obj, useSubscription);
-
-  if (obj.stack === '') {
-    // Should be supported in all browsers, but better safe than sorry
-    throw Error('Error.captureStackTrace not supported');
-  }
-
-  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
-  var preExistingState = getPreexistingState({
-    subscriptionId: subscriptionId,
-    context: context,
-    queryDefinitions: queryDefinitions
-  });
-
-  var _React$useState = React.useState(preExistingState.results),
-      results = _React$useState[0],
-      setResults = _React$useState[1];
-
-  var _React$useState2 = React.useState(preExistingState.error),
-      error = _React$useState2[0],
-      setError = _React$useState2[1];
-
-  var _React$useState3 = React.useState(preExistingState.querying),
-      querying = _React$useState3[0],
-      setQuerying = _React$useState3[1];
-
-  var loggingContext = React.useContext(LoggingContext);
-  var qdStateManager = null;
-  var qdError = null;
-
-  try {
-    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
-    // we catch that promise here and re-throw it further down, so that we can manage cleanup
-    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
-    qdStateManager = buildQueryDefinitionStateManager({
-      context: context,
-      subscriptionId: subscriptionId,
-      queryDefinitions: queryDefinitions,
-      data: {
-        results: results,
-        error: error,
-        querying: querying
-      },
-      handlers: {
-        onResults: setResults,
-        onError: setError,
-        setQuerying: setQuerying
-      },
-      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors,
-      useServerSidePaginationFilteringSorting: context.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
-    });
-  } catch (e) {
-    qdError = e;
-    qdStateManager = null;
-  }
-
-  React.useEffect(function () {
-    var _qdStateManager;
-
-    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.onHookMount();
-    return function () {
-      var _qdStateManager2;
-
-      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.onHookUnmount();
-    }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
-    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
-    // to memoize all of their query definitions, which seems overkill
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, subscriptionId]);
-  if (error || qdError) throw error || qdError;
-  return qdStateManager;
-}
-
-function getPreexistingState(opts) {
-  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
-  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
-    acc[key] = null;
-    return acc;
-  }, {});
-  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
-  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
-  return {
-    results: results,
-    error: error,
-    querying: querying
-  };
-}
-/**
- * useSubscription accepts query definitions that optionally disable suspense rendering
- * to facilitate that, this method splits all query definitions into 2 groups
- * @param queryDefinitions
- * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
- */
-
-
-function splitQueryDefinitions(queryDefinitions) {
-  var _Object$entries$reduc;
-
-  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
-    var _queryDefinition$useS;
-
-    var alias = _ref[0],
-        queryDefinition = _ref[1];
-    var suspend = queryDefinition && 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
-    split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
-    return split;
-  }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
-}
-
-var subscriptionIds = {
-  suspendEnabled: 'suspendEnabled',
-  suspendDisabled: 'suspendDisabled'
-};
-
-function buildQueryDefinitionStateManager(opts) {
-  // When a subscription is initialized, the state of the subscription is split
-  // suspended subscriptions and non suspended subscriptions are initialized separately,
-  // so that rendering can continue as soon as possible.
-  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
-  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
-  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
-  var parentSubscriptionId = opts.subscriptionId;
-  var preExistingContextForThisParentSubscription = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-
-  if (!preExistingContextForThisParentSubscription) {
-    opts.context.ongoingSubscriptionRecord[parentSubscriptionId] = {};
-  }
-
-  function onHookMount() {
-    opts.context.onHookMount(parentSubscriptionId, {
-      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
-    });
-    opts.context.cancelCleanup(parentSubscriptionId);
-    allSubscriptionIds.forEach(function (subId) {
-      return opts.context.cancelCleanup(subId);
-    });
-  }
-
-  function onHookUnmount() {
-    opts.context.onHookUnmount(parentSubscriptionId);
-    opts.context.scheduleCleanup(parentSubscriptionId);
-    allSubscriptionIds.forEach(function (subId) {
-      return opts.context.scheduleCleanup(subId);
-    });
-  } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
-  // state of the component rendered before the fallback occured.
-  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
-  // and call that in "onData" instead.
-
-
-  opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-    onResults: opts.handlers.onResults,
-    onError: opts.handlers.onError,
-    setQuerying: opts.handlers.setQuerying
-  });
-
-  var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
-      suspendDisabled = _splitQueryDefinition.suspendDisabled,
-      suspendEnabled = _splitQueryDefinition.suspendEnabled;
-
-  var allSubscriptionIds = Object.values(subscriptionIds).map(function (subscriptionId) {
-    return parentSubscriptionId + subscriptionId;
-  });
-
-  function getAllSubscriptionStates() {
-    return allSubscriptionIds.map(function (subscriptionId) {
-      return opts.context.ongoingSubscriptionRecord[subscriptionId];
-    });
-  } // From the received queried definitions
-  // and a static parentSubscriptionId+subscriptionSuffix identifier
-  // initializes subscriptions and updates the useSubscription state on the hook
-  // Also maintains a copy of that state at the context level, such that the component rendering the hook
-  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
-  //
-  // returns a promise if there's an unresolved request and "suspend" is set to true
-
-
-  function handleNewQueryDefitions(subOpts) {
-    var _opts$context$ongoing;
-
-    var queryDefinitions = subOpts.queryDefinitions,
-        parentSubscriptionId = subOpts.parentSubscriptionId,
-        subscriptionSuffix = subOpts.subscriptionSuffix,
-        suspend = subOpts.suspend;
-    var subscriptionId = parentSubscriptionId + subscriptionSuffix;
-    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
-
-    if (!preExistingContextForThisSubscription) {
-      opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
-    }
-
-    var newQueryInfo;
-    var newQueryDefinitionsAreAllNull;
-    var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
-
-    if (preExistingQueryInfo) {
-      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
-
-      if (Object.keys(nonNullishQueryDefinitions).length) {
-        newQueryInfo = convertQueryDefinitionToQueryInfo({
-          queryDefinitions: nonNullishQueryDefinitions,
-          queryId: preExistingQueryInfo.queryId,
-          useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
-        });
-      } else {
-        newQueryDefinitionsAreAllNull = true;
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          queryInfo: null
-        });
-      }
-    }
-
-    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
-
-    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
-      return preExistingContextForThisSubscription.suspendPromise;
-    }
-
-    if (queryDefinitionHasBeenUpdated) {
-      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
-    }
-
-    var queryTimestamp = new Date().valueOf();
-    opts.context.updateSubscriptionInfo(subscriptionId, {
-      querying: true,
-      lastQueryTimestamp: queryTimestamp
-    });
-    opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-      querying: true
-    });
-    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
-    setQuerying && setQuerying(true);
-    opts.handlers.setQuerying(true);
-    var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
-      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
-      // Make sure to re-render the component on paginate
-      onPaginate: function onPaginate() {
-        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
-      },
-      onData: function onData(_ref2) {
-        var newResults = _ref2.results;
-        var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
-        var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
-
-        if (thisQueryIsMostRecent) {
-          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
-          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-            results: _extends({}, contextForThisParentSub.results, newResults)
-          });
-        }
-      },
-      onError: function onError(error) {
-        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
-        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-          error: error
-        });
-      },
-      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          unsub: function unsub() {
-            return subscriptionCanceller();
-          }
-        });
-        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-          unsub: function unsub() {
-            getAllSubscriptionStates().forEach(function (subscriptionState) {
-              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
-            });
-          }
-        });
-      },
-      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          queryInfo: queryInfo
-        });
-      }
-    })["finally"](function () {
-      var contextForThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
-      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
-
-      if (thisQueryIsMostRecent) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          suspendPromise: undefined,
-          querying: false
-        }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
-
-        var allQueriesHaveResolved = !getAllSubscriptionStates().some(function (state) {
-          return state && state.querying;
-        });
-
-        if (allQueriesHaveResolved) {
-          var _opts$context$ongoing2;
-
-          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-            querying: false
-          });
-
-          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
-
-          _setQuerying && _setQuerying(false);
-          opts.handlers.setQuerying(false);
-        }
-      }
-    });
-
-    if (!preExistingContextForThisSubscription && suspend) {
-      opts.context.updateSubscriptionInfo(subscriptionId, {
-        suspendPromise: suspendPromise
-      });
-      return suspendPromise;
-    }
-  }
-
-  if (opts.data.error) throw opts.data.error;
-  var suspendPromise;
-
-  if (Object.keys(suspendDisabled).length) {
-    try {
-      handleNewQueryDefitions({
-        queryDefinitions: suspendDisabled,
-        parentSubscriptionId: parentSubscriptionId,
-        subscriptionSuffix: subscriptionIds.suspendDisabled,
-        suspend: false
-      });
-    } catch (e) {
-      opts.handlers.onError(e);
-      throw e;
-    }
-  }
-
-  if (Object.keys(suspendEnabled).length) {
-    try {
-      suspendPromise = handleNewQueryDefitions({
-        queryDefinitions: suspendEnabled,
-        parentSubscriptionId: parentSubscriptionId,
-        subscriptionSuffix: subscriptionIds.suspendEnabled,
-        suspend: true
-      });
-    } catch (e) {
-      opts.handlers.onError(e);
-      throw e;
-    }
-  }
-
-  if (suspendPromise) throw suspendPromise;
-  return {
-    data: opts.data.results,
-    error: opts.data.error,
-    querying: opts.data.querying,
-    onHookUnmount: onHookUnmount,
-    onHookMount: onHookMount
-  };
-}
-
-require('isomorphic-fetch');
-function getGQLCLient(gqlClientOpts) {
-  var wsLink = new WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true
-    }
-  });
-  var nonBatchedLink = new HttpLink({
-    uri: gqlClientOpts.httpUrl
-  });
-  var queryBatchLink = split(function (operation) {
-    return operation.getContext().batchKey;
-  }, new BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    batchMax: 50,
-    batchInterval: 50,
-    batchKey: function batchKey(operation) {
-      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
-      // are batched separately
-
-      return JSON.stringify({
-        batchKey: context.batchKey,
-        headers: context.headers,
-        credentials: context.credentials
-      });
-    }
-  }), nonBatchedLink);
-  var mutationBatchLink = split(function (operation) {
-    return operation.getContext().batchedMutation;
-  }, new BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    // no batch max for explicitly batched mutations
-    // to ensure transactional integrity
-    batchMax: Number.MAX_SAFE_INTEGER,
-    batchInterval: 0
-  }), queryBatchLink);
-  var requestLink = split( // split based on operation type
-  function (_ref) {
-    var query = _ref.query;
-    var definition = getMainDefinition(query);
-    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
-  }, wsLink, mutationBatchLink);
-
-  function getContextWithToken(opts) {
-    return {
-      headers: {
-        Authorization: "Bearer " + opts.token
-      }
-    };
-  }
-
-  function authenticateSubscriptionDocument(opts) {
-    var _opts$gql$loc;
-
-    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
-
-    if (!documentBody) {
-      throw new Error('No documentBody found');
-    }
-
-    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
-
-    if (operationsThatRequireToken.some(function (operation) {
-      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
-    })) {
-      var documentBodyWithAuthTokensInjected = documentBody;
-      operationsThatRequireToken.forEach(function (operation) {
-        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
-      });
-      return gql(documentBodyWithAuthTokensInjected);
-    }
-
-    return opts.gql;
-  }
-
-  var authLink = new ApolloLink(function (operation, forward) {
-    return new Observable(function (observer) {
-      var handle;
-      Promise.resolve(operation).then(function () {
-        handle = forward(operation).subscribe({
-          next: observer.next.bind(observer),
-          error: observer.error.bind(observer),
-          complete: observer.complete.bind(observer)
-        });
-      })["catch"](observer.error.bind(observer));
-      return function () {
-        if (handle) handle.unsubscribe();
-      };
-    });
-  });
-  var baseClient = new ApolloClient({
-    link: ApolloLink.from([authLink, requestLink]),
-    cache: new InMemoryCache(),
-    defaultOptions: {
-      watchQuery: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'ignore'
-      },
-      query: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }
-    }
-  });
-  var gqlClient = {
-    query: function () {
-      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _yield$baseClient$que, data;
-
-        return runtime_1.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                _context.next = 2;
-                return baseClient.query({
-                  query: opts.gql,
-                  context: _extends({
-                    // allow turning off batching by specifying a null or undefined batchKey
-                    // but by default, batch all requests into the same request batch
-                    batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
-                  }, getContextWithToken({
-                    token: opts.token
-                  }))
-                });
-
-              case 2:
-                _yield$baseClient$que = _context.sent;
-                data = _yield$baseClient$que.data;
-                return _context.abrupt("return", data);
-
-              case 6:
-              case "end":
-                return _context.stop();
-            }
-          }
-        }, _callee);
-      }));
-
-      function query(_x) {
-        return _query.apply(this, arguments);
-      }
-
-      return query;
-    }(),
-    subscribe: function subscribe(opts) {
-      var subscription = baseClient.subscribe({
-        query: authenticateSubscriptionDocument(opts)
-      }).subscribe({
-        next: function next(message) {
-          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
-        },
-        error: opts.onError
-      });
-      return function () {
-        return subscription.unsubscribe();
-      };
-    },
-    mutate: function () {
-      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.next = 3;
-                return Promise.all(opts.mutations.map(function (mutation) {
-                  return baseClient.mutate({
-                    mutation: mutation,
-                    context: _extends({
-                      batchedMutation: true
-                    }, getContextWithToken({
-                      token: opts.token
-                    }))
-                  });
-                }));
-
-              case 3:
-                return _context2.abrupt("return", _context2.sent);
-
-              case 4:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2);
-      }));
-
-      function mutate(_x2) {
-        return _mutate.apply(this, arguments);
-      }
-
-      return mutate;
-    }()
-  };
-  return gqlClient;
-}
-
-function getDefaultConfig() {
-  return {
-    gqlClient: getGQLCLient({
-      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
-    }),
-    generateMockData: false,
-    enableQuerySlimming: false,
-    enableQuerySlimmingLogging: false,
-    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance.SERVER
-  };
-}
-
-var _templateObject$6, _templateObject2$1;
+=======
+var _templateObject$5, _templateObject2;
 function updateNodes(operation) {
   return _extends({
     type: 'updateNodes',
@@ -7783,7 +6623,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
     var propertiesToNull = getPropertiesToNull(updateNodeOperation);
 
     if (propertiesToNull.length) {
-      acc.push(gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+      acc.push(gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
         return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
       }).join(',')));
     }
@@ -7792,7 +6632,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
   }, []); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [gql(_templateObject2$1 || (_templateObject2$1 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+  return [gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
 }
 
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
@@ -7800,7 +6640,7 @@ function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
   return "{\n      " + dataToPersist + "\n    }";
 }
 
-var _templateObject$7;
+var _templateObject$6;
 function dropNode(operation) {
   return _extends({
     type: 'dropNode',
@@ -7818,7 +6658,7 @@ function getMutationsFromTransactionDropOperations(operations) {
   });
   return allDropNodeOperations.map(function (operation) {
     var name = getMutationNameFromOperations([operation], 'DropNode');
-    return gql(_templateObject$7 || (_templateObject$7 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
+    return gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
   });
 }
 
@@ -7863,6 +6703,7 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
        * therefore we need to track the position of these nodes instead of just the position of the operation itself
        */
 
+>>>>>>> origin/mm-gql
 
       if (operation.type === 'createNodes') {
         createOperationsCount += 1;
@@ -8020,6 +6861,18 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
         return operation.position;
       });
     }
+<<<<<<< HEAD
+  }
+  /**
+   * Returns in flight QueryRecordEntries by context that can slim down a new query.
+   * The new query should wait for an in flight query to slim against if:
+   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
+   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
+   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
+   */
+  ;
+=======
+>>>>>>> origin/mm-gql
 
     function getAllMutations(operations) {
       return [].concat(getMutationsFromTransactionCreateOperations(sortMutationsByTransactionPosition([].concat(operations.createNode, operations.createNodes))), getMutationsFromTransactionUpdateOperations(sortMutationsByTransactionPosition([].concat(operations.updateNode, operations.updateNodes))), getMutationsFromTransactionDropOperations([].concat(operations.dropNode)), getMutationsFromEdgeCreateOperations([].concat(operations.createEdge, operations.createEdges)), getMutationsFromEdgeDropOperations([].concat(operations.dropEdge, operations.dropEdges)), getMutationsFromEdgeReplaceOperations([].concat(operations.replaceEdge, operations.replaceEdges)), getMutationsFromEdgeUpdateOperations([].concat(operations.updateEdge, operations.updateEdges)));
@@ -8082,8 +6935,23 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
             }
           }
         });
+<<<<<<< HEAD
+      }
+    });
+    return Object.keys(inFlightQueriesToSlimAgainst).length === 0 ? null : inFlightQueriesToSlimAgainst;
+  }
+  /**
+   * Slims the new query against an in flight query.
+   * This function assumes queries have already been matched by context.
+   */
+  ;
+
+  _proto.getSlimmedQueryAgainstInFlightQuery = function getSlimmedQueryAgainstInFlightQuery(newQuery, inFlightQuery, isRelationalQueryRecord) {
+    var _this5 = this;
+=======
       });
     }
+>>>>>>> origin/mm-gql
 
     function handleSuccessCallbacks(opts) {
       var executionResult = opts.executionResult,
@@ -8308,12 +7176,1530 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
         return _execute2.apply(this, arguments);
       }
 
+<<<<<<< HEAD
+  _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
+    var doesQueryHaveIdProperty = 'id' in queryRecordEntry && !!queryRecordEntry.id;
+    var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
+    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
+    var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
+    return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
+=======
       return {
         operations: operationsByType,
         execute: execute,
         token: token
       };
     }
+>>>>>>> origin/mm-gql
+  };
+}
+
+var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
+
+var QuerySlimmer = /*#__PURE__*/function () {
+  function QuerySlimmer(mmGQLInstance) {
+    this.mmGQLInstance = void 0;
+    this.queriesByContext = {};
+    this.inFlightQueryRecords = observable({});
+    this.mmGQLInstance = mmGQLInstance;
+  }
+
+<<<<<<< HEAD
+  _proto.stringifyQueryParams = function stringifyQueryParams(entry) {
+    // https://tractiontools.atlassian.net/browse/TTD-315
+    // Handle filter/pagination/sorting query params
+    var params = {
+      ids: 'ids' in entry ? entry.ids : undefined,
+      id: 'id' in entry ? entry.id : undefined
+    };
+=======
+  var _proto = QuerySlimmer.prototype;
+>>>>>>> origin/mm-gql
+
+  _proto.query = /*#__PURE__*/function () {
+    var _query = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+      var _this = this;
+
+      var _convertQueryDefiniti, queryRecord, newQuerySlimmedByCache, data, newQuerySlimmedByInFlightQueries, _opts$queryOpts, _data, _opts$queryOpts2, _data2;
+
+      return runtime_1.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo(opts), queryRecord = _convertQueryDefiniti.queryRecord;
+              newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(queryRecord);
+
+              if (!(newQuerySlimmedByCache === null)) {
+                _context.next = 6;
+                break;
+              }
+
+              data = this.getDataForQueryFromQueriesByContext(queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY FULLY CACHED", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(data));
+              return _context.abrupt("return", data);
+
+            case 6:
+              newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(newQuerySlimmedByCache);
+
+              if (!(newQuerySlimmedByInFlightQueries === null)) {
+                _context.next = 15;
+                break;
+              }
+
+              _context.next = 10;
+              return this.sendQueryRequest({
+                queryId: opts.queryId,
+<<<<<<< HEAD
+                queryRecord: opts.queryRecord,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+=======
+                queryRecord: newQuerySlimmedByCache,
+                tokenName: opts.tokenName,
+                batchKey: (_opts$queryOpts = opts.queryOpts) == null ? void 0 : _opts$queryOpts.batchKey
+>>>>>>> origin/mm-gql
+              });
+
+            case 10:
+              _data = this.getDataForQueryFromQueriesByContext(queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByCache), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data));
+              return _context.abrupt("return", _data);
+
+            case 15:
+              this.log("QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "IN-FLIGHT QUERIES: " + JSON.stringify(this.inFlightQueryRecords), "CACHE: " + JSON.stringify(this.queriesByContext));
+              _context.next = 18;
+              return this.sendQueryRequest({
+                queryId: opts.queryId,
+                queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+                tokenName: opts.tokenName,
+                batchKey: (_opts$queryOpts2 = opts.queryOpts) == null ? void 0 : _opts$queryOpts2.batchKey
+              });
+
+            case 18:
+              _context.next = 20;
+              return when(function () {
+                return !_this.areDependentQueriesStillInFlight({
+                  queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
+                  querySlimmedByInFlightQueries: newQuerySlimmedByInFlightQueries.slimmedQueryRecord
+                });
+              }, {
+                timeout: IN_FLIGHT_TIMEOUT_MS,
+                onError: function onError(error) {
+                  throw new Error("QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES", error);
+                }
+              });
+
+            case 20:
+              _data2 = this.getDataForQueryFromQueriesByContext(queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data2));
+              return _context.abrupt("return", _data2);
+
+            case 23:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee, this);
+    }));
+
+    function query(_x) {
+      return _query.apply(this, arguments);
+    }
+
+    return query;
+  }();
+
+  _proto.getDataForQueryFromQueriesByContext = function getDataForQueryFromQueriesByContext(newQuery, parentContextKey) {
+    var _this2 = this;
+
+    var queryData = {};
+    var newQueryKeys = Object.keys(newQuery);
+    newQueryKeys.forEach(function (newQueryKey) {
+      var queryRecordEntry = newQuery[newQueryKey];
+
+      var contextKey = _this2.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      var cachedQueryData = _this2.queriesByContext[contextKey];
+      var newQueryData = {};
+      var newQueryRelationalData = {};
+      queryRecordEntry.properties.forEach(function (property) {
+        newQueryData[property] = {
+          nodes: cachedQueryData.results[property]
+        };
+      });
+
+      if (queryRecordEntry.relational !== undefined) {
+        newQueryRelationalData = _this2.getDataForQueryFromQueriesByContext(queryRecordEntry.relational, contextKey);
+      }
+
+      queryData[newQueryKey] = _extends({}, newQueryData, newQueryRelationalData);
+    });
+    return queryData;
+  };
+
+  _proto.slimNewQueryAgainstInFlightQueries = function slimNewQueryAgainstInFlightQueries(newQuery) {
+    var _this3 = this;
+
+    var newQueryByContextMap = this.getQueryRecordsByContextMap(newQuery);
+    var inFlightQueriesToSlimAgainst = this.getInFlightQueriesToSlimAgainst(newQueryByContextMap);
+
+    if (inFlightQueriesToSlimAgainst === null) {
+      return null;
+    }
+
+    var queryIdsSlimmedAgainst = [];
+    var newQuerySlimmed = {};
+    Object.keys(inFlightQueriesToSlimAgainst).forEach(function (inFlightQueryContextKey) {
+      if (inFlightQueryContextKey in newQueryByContextMap) {
+        var newQueryRecordPieceSlimmed = _extends({}, newQueryByContextMap[inFlightQueryContextKey]);
+
+        inFlightQueriesToSlimAgainst[inFlightQueryContextKey].forEach(function (inFlightQueryRecord) {
+          var slimmed = _this3.getSlimmedQueryAgainstInFlightQuery(newQueryRecordPieceSlimmed, inFlightQueryRecord.queryRecord, false);
+
+          if (slimmed !== null) {
+            queryIdsSlimmedAgainst.push(inFlightQueryRecord.queryId);
+            newQueryRecordPieceSlimmed = slimmed;
+          }
+        });
+        newQuerySlimmed = _extends({}, newQuerySlimmed, newQueryRecordPieceSlimmed);
+      }
+    });
+
+    if (Object.keys(newQuerySlimmed).length === 0) {
+      return null;
+    } else {
+      return {
+        queryIdsSlimmedAgainst: queryIdsSlimmedAgainst,
+        slimmedQueryRecord: newQuerySlimmed
+      };
+    }
+  }
+  /**
+   * Returns in flight QueryRecordEntries by context that can slim down a new query.
+   * The new query should wait for an in flight query to slim against if:
+   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
+   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
+   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
+   */
+  ;
+
+  _proto.getInFlightQueriesToSlimAgainst = function getInFlightQueriesToSlimAgainst(newQuery) {
+    var _this4 = this;
+
+    var inFlightQueriesToSlimAgainst = {};
+    var newQueryCtxtKeys = Object.keys(newQuery);
+    newQueryCtxtKeys.forEach(function (newQueryCtxKey) {
+      var queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
+      var newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
+
+      var newQueryRecordDepth = _this4.getRelationalDepthOfQueryRecordEntry(newQueryRecordEntry);
+
+      if (newQueryCtxKey in _this4.inFlightQueryRecords) {
+        var inFlightQueriesForCtxKey = _this4.inFlightQueryRecords[newQueryCtxKey];
+        inFlightQueriesForCtxKey.forEach(function (inFlightQueryRecord) {
+          if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
+            var inFlightQueryRecordEntry = inFlightQueryRecord.queryRecord[queryRecordBaseKey];
+            var inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(function (inFlightProp) {
+              return newQueryRecordEntry.properties.includes(inFlightProp);
+            });
+
+            if (inFlightRecordHasSomePropsInNewQuery) {
+              var inFlightRecordEntryDepth = _this4.getRelationalDepthOfQueryRecordEntry(inFlightQueryRecordEntry);
+
+              if (inFlightRecordEntryDepth <= newQueryRecordDepth) {
+                if (newQueryCtxKey in inFlightQueriesToSlimAgainst) {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey].push(inFlightQueryRecord);
+                } else {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey] = [inFlightQueryRecord];
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+    return Object.keys(inFlightQueriesToSlimAgainst).length === 0 ? null : inFlightQueriesToSlimAgainst;
+  }
+  /**
+   * Slims the new query against an in flight query.
+   * This function assumes queries have already been matched by context.
+   */
+  ;
+
+  _proto.getSlimmedQueryAgainstInFlightQuery = function getSlimmedQueryAgainstInFlightQuery(newQuery, inFlightQuery, isRelationalQueryRecord) {
+    var _this5 = this;
+
+    var slimmedQueryRecord = {};
+    var slimmedRelationalQueryRecord = {};
+    Object.keys(newQuery).forEach(function (newQueryKey) {
+      var newQueryRecordEntry = newQuery[newQueryKey];
+      var newRootRecordEntry = newQueryRecordEntry;
+      var newRelationalRecordEntry = newQueryRecordEntry;
+
+      if (inFlightQuery[newQueryKey] === undefined) {
+        // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
+        if (isRelationalQueryRecord) {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        } else {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        }
+      } else {
+        // If a newQueryContextKey is present we want to slim what we can from the in flight query.
+        var inFlightQueryRecordEntry = inFlightQuery[newQueryKey];
+
+        var newRequestedProperties = _this5.getPropertiesNotCurrentlyBeingRequested({
+          newQueryProps: newQueryRecordEntry.properties,
+          inFlightProps: inFlightQueryRecordEntry.properties
+        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+
+
+<<<<<<< HEAD
+  try {
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
+    // we catch that promise here and re-throw it further down, so that we can manage cleanup
+    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
+    qdStateManager = buildQueryDefinitionStateManager({
+      context: context,
+      subscriptionId: subscriptionId,
+      queryDefinitions: queryDefinitions,
+      data: {
+        results: results,
+        error: error,
+        querying: querying
+      },
+      handlers: {
+        onResults: setResults,
+        onError: setError,
+        setQuerying: setQuerying
+      },
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors,
+      useServerSidePaginationFilteringSorting: context.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
+    });
+  } catch (e) {
+    qdError = e;
+    qdStateManager = null;
+  }
+=======
+        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
+          if (isRelationalQueryRecord) {
+            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+              properties: newRequestedProperties
+            });
+          } else {
+            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+              properties: newRequestedProperties
+            });
+          }
+        } // If both queries contain relational queries we need to try slimming against those as well.
+        // If there are child relational queries we still need to handle those even if the parent query is requesting properties that are already in flight.
+>>>>>>> origin/mm-gql
+
+
+        if (newQueryRecordEntry.relational !== undefined && inFlightQueryRecordEntry.relational !== undefined) {
+          var slimmedNewRelationalQueryRecord = _this5.getSlimmedQueryAgainstInFlightQuery(newQueryRecordEntry.relational, inFlightQueryRecordEntry.relational, true); // If there are any properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is requesting properties that are already in flight.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+
+
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isRelationalQueryRecord) {
+              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            } else {
+              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            }
+          }
+        }
+      }
+    });
+    var queryRecordToReturn = isRelationalQueryRecord ? slimmedRelationalQueryRecord : slimmedQueryRecord;
+    return Object.keys(queryRecordToReturn).length === 0 ? null : queryRecordToReturn;
+  };
+<<<<<<< HEAD
+}
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+=======
+>>>>>>> origin/mm-gql
+
+  _proto.getSlimmedQueryAgainstQueriesByContext = function getSlimmedQueryAgainstQueriesByContext(newQuery, parentContextKey) {
+    var _this6 = this;
+
+    // The query record could be a root query (not relational), or a child relational query.
+    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
+    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
+    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
+    // We know we are dealing with a relational query when parentContextKey is NOT undefined
+    var slimmedQueryRecord = {};
+    var slimmedRelationalQueryRecord = {};
+    var isNewQueryARootQuery = parentContextKey === undefined;
+    Object.keys(newQuery).forEach(function (newQueryKey) {
+      var newQueryRecordEntry = newQuery[newQueryKey];
+      var newRootRecordEntry = newQueryRecordEntry;
+      var newRelationalRecordEntry = newQueryRecordEntry;
+
+      var newQueryContextKey = _this6.createContextKeyForQueryRecordEntry(newQueryRecordEntry, parentContextKey);
+
+      if (_this6.queriesByContext[newQueryContextKey] === undefined) {
+        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
+        if (isNewQueryARootQuery) {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        } else {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        }
+      } else {
+        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
+        // by the new query are already cached.
+        var cachedQuery = _this6.queriesByContext[newQueryContextKey];
+
+        var newRequestedProperties = _this6.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty
+        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+
+
+        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
+          if (isNewQueryARootQuery) {
+            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+              properties: newRequestedProperties
+            });
+          } else {
+            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+              properties: newRequestedProperties
+            });
+          }
+        } // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
+
+
+        if (newQueryRecordEntry.relational !== undefined) {
+          var slimmedNewRelationalQueryRecord = _this6.getSlimmedQueryAgainstQueriesByContext(newQueryRecordEntry.relational, newQueryContextKey); // If there are any non-cached properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+
+
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isNewQueryARootQuery) {
+              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            } else {
+              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            }
+          }
+        }
+      }
+    });
+    var objectToReturn = isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord;
+    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
+  };
+
+  _proto.onSubscriptionCancelled = function onSubscriptionCancelled(queryRecord, parentContextKey) {
+    var _this7 = this;
+
+    Object.keys(queryRecord).forEach(function (queryRecordKey) {
+      var queryRecordEntry = queryRecord[queryRecordKey];
+
+      var currentQueryContextKey = _this7.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      if (queryRecordEntry.relational !== undefined) {
+        _this7.onSubscriptionCancelled(queryRecordEntry.relational, currentQueryContextKey);
+      }
+
+      if (currentQueryContextKey in _this7.queriesByContext) {
+        var cachedQuerySubsByProperty = _this7.queriesByContext[currentQueryContextKey].subscriptionsByProperty;
+        queryRecordEntry.properties.forEach(function (property) {
+          var propertySubCount = cachedQuerySubsByProperty[property];
+
+          if (propertySubCount >= 1) {
+            cachedQuerySubsByProperty[property] = propertySubCount - 1;
+          }
+        });
+      }
+    });
+  };
+
+  _proto.getRelationalDepthOfQueryRecordEntry = function getRelationalDepthOfQueryRecordEntry(queryRecordEntry) {
+    var _this8 = this;
+
+    var relationalDepth = 0;
+
+<<<<<<< HEAD
+    if (preExistingQueryInfo) {
+      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
+
+      if (Object.keys(nonNullishQueryDefinitions).length) {
+        newQueryInfo = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: nonNullishQueryDefinitions,
+          queryId: preExistingQueryInfo.queryId,
+          useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+        });
+      } else {
+        newQueryDefinitionsAreAllNull = true;
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: null
+        });
+      }
+    }
+
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
+
+    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
+      return preExistingContextForThisSubscription.suspendPromise;
+=======
+    if (queryRecordEntry.relational !== undefined) {
+      relationalDepth += 1;
+      Object.values(queryRecordEntry.relational).forEach(function (relationalEntry) {
+        relationalDepth += _this8.getRelationalDepthOfQueryRecordEntry(relationalEntry);
+      });
+>>>>>>> origin/mm-gql
+    }
+
+    return relationalDepth;
+  };
+
+  _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
+    var _this9 = this;
+
+    Object.keys(queryRecord).forEach(function (alias) {
+      var _this9$queriesByConte;
+
+      var queryRecordEntry = queryRecord[alias];
+
+      var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      _this9.queriesByContext[currentQueryContextKey] = {
+        subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
+          previous[current] = previous[current] ? previous[current] + 1 : 1;
+          return previous;
+        }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
+        results: results[alias]
+      };
+
+      if (queryRecordEntry.relational) {
+        var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
+          // do array vs object check here before map in case there's only a single id
+          previous[current] = results[alias].map(function (user) {
+            return user[current];
+          });
+          return previous;
+        }, {});
+
+        _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
+      }
+    });
+  };
+
+  _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
+    var doesQueryHaveIdProperty = !!queryRecordEntry.id;
+    var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
+    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
+    var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
+    return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
+  };
+
+  _proto.getPropertiesNotAlreadyCached = function getPropertiesNotAlreadyCached(opts) {
+    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
+      if (newQueryProperty in opts.cachedQuerySubsByProperty) {
+        return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
+      }
+
+      return true;
+    });
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+  };
+
+  _proto.getPropertiesNotCurrentlyBeingRequested = function getPropertiesNotCurrentlyBeingRequested(opts) {
+    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
+      return !opts.inFlightProps.includes(newQueryProperty);
+    });
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+  };
+
+  _proto.stringifyQueryParams = function stringifyQueryParams(entry) {
+    // https://tractiontools.atlassian.net/browse/TTD-315
+    // Handle filter/pagination/sorting query params
+    var params = {
+      ids: entry.ids,
+      id: entry.id
+    };
+
+    if (!Object.values(params).some(function (value) {
+      return value != null;
+    })) {
+      return 'NO_PARAMS';
+    }
+
+    return JSON.stringify(params);
+  };
+
+  _proto.getQueryRecordsByContextMap = function getQueryRecordsByContextMap(queryRecord) {
+    var _this10 = this;
+
+    return Object.keys(queryRecord).reduce(function (queryRecordsByContext, queryRecordKey) {
+      var _queryRecordSlice;
+
+      var queryRecordEntry = queryRecord[queryRecordKey];
+
+      var contextKey = _this10.createContextKeyForQueryRecordEntry(queryRecordEntry);
+
+      var queryRecordSlice = (_queryRecordSlice = {}, _queryRecordSlice[queryRecordKey] = queryRecordEntry, _queryRecordSlice);
+      queryRecordsByContext[contextKey] = queryRecordSlice;
+      return queryRecordsByContext;
+    }, {});
+  };
+
+  _proto.sendQueryRequest = /*#__PURE__*/function () {
+    var _sendQueryRequest = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+      var inFlightQuery, queryGQLString, queryOpts, results;
+      return runtime_1.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              inFlightQuery = {
+                queryId: opts.queryId,
+                queryRecord: opts.queryRecord
+              };
+              queryGQLString = getQueryGQLStringFromQueryRecord({
+                queryId: opts.queryId,
+                queryRecord: opts.queryRecord
+              });
+              queryOpts = {
+                gql: gql(queryGQLString),
+                token: opts.tokenName
+              };
+
+              if ('batchKey' in opts && opts.batchKey !== undefined) {
+                queryOpts.batchKey = opts.batchKey;
+              }
+
+              _context2.prev = 4;
+              this.setInFlightQuery(inFlightQuery);
+              _context2.next = 8;
+              return this.mmGQLInstance.gqlClient.query(queryOpts);
+
+            case 8:
+              results = _context2.sent;
+              this.removeInFlightQuery(inFlightQuery);
+              this.populateQueriesByContext(opts.queryRecord, results);
+              _context2.next = 17;
+              break;
+
+            case 13:
+              _context2.prev = 13;
+              _context2.t0 = _context2["catch"](4);
+              this.removeInFlightQuery(inFlightQuery);
+              throw new Error("QuerySlimmer: Error sending request for query: " + JSON.stringify(opts.queryRecord), _context2.t0);
+
+            case 17:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2, this, [[4, 13]]);
+    }));
+
+    function sendQueryRequest(_x2) {
+      return _sendQueryRequest.apply(this, arguments);
+    }
+
+    return sendQueryRequest;
+  }();
+
+  _proto.setInFlightQuery = function setInFlightQuery(inFlightQueryRecord) {
+    var _this11 = this;
+
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
+    Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
+      if (queryRecordContextKey in _this11.inFlightQueryRecords) {
+        _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
+      } else {
+        _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
+      }
+    });
+  };
+
+  _proto.removeInFlightQuery = function removeInFlightQuery(inFlightQueryToRemove) {
+    var _this12 = this;
+
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
+    Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
+      if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
+        _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
+          return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
+        });
+
+        if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+          delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
+        }
+      }
+    });
+  };
+
+  _proto.areDependentQueriesStillInFlight = function areDependentQueriesStillInFlight(opts) {
+    var _this13 = this;
+
+    var isStillWaitingOnInFlightQueries = false;
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(opts.querySlimmedByInFlightQueries);
+    Object.keys(queryRecordsByContext).forEach(function (ctxKey) {
+      if (!isStillWaitingOnInFlightQueries) {
+        if (ctxKey in _this13.inFlightQueryRecords) {
+          var inFlightQueryHasDepedentId = _this13.inFlightQueryRecords[ctxKey].some(function (inFlightQuery) {
+            return opts.queryIds.includes(inFlightQuery.queryId);
+          });
+
+          if (inFlightQueryHasDepedentId) {
+            isStillWaitingOnInFlightQueries = true;
+          }
+        }
+      }
+    });
+    return isStillWaitingOnInFlightQueries;
+  };
+
+  _proto.log = function log(message) {
+    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
+      var _console;
+
+      for (var _len = arguments.length, optionalParams = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        optionalParams[_key - 1] = arguments[_key];
+      }
+
+      (_console = console).log.apply(_console, [message].concat(optionalParams));
+    }
+  };
+
+<<<<<<< HEAD
+function getDefaultConfig() {
+  return {
+    gqlClient: getGQLCLient({
+      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+    }),
+    generateMockData: false,
+    enableQuerySlimming: false,
+    enableQuerySlimmingLogging: false,
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance.SERVER
+  };
+}
+
+var _templateObject$6, _templateObject2$1;
+function updateNodes(operation) {
+  return _extends({
+    type: 'updateNodes',
+    operationName: 'UpdateNodes'
+  }, operation);
+}
+function updateNode(operation) {
+  return _extends({
+    type: 'updateNode',
+    operationName: 'UpdateNodes'
+  }, operation);
+}
+=======
+  return QuerySlimmer;
+}();
+
+var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
+var LoggingContext = /*#__PURE__*/React.createContext({
+  unsafe__silenceDuplicateSubIdErrors: false
+}); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
+// where the same subscription id may be used momentarily before the fallback route unmounts
+>>>>>>> origin/mm-gql
+
+var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
+  return React.createElement(LoggingContext.Provider, {
+    value: {
+      unsafe__silenceDuplicateSubIdErrors: true
+    }
+  }, props.children);
+};
+var MMGQLProvider = function MMGQLProvider(props) {
+  var existingContext = React.useContext(MMGQLContext);
+
+  if (existingContext) {
+    throw Error('Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.');
+  }
+
+  var ongoingSubscriptionRecord = React.useRef({});
+  var cleanupTimeoutRecord = React.useRef({});
+  var mountedHooksBySubId = React.useRef({});
+  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
+    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
+  }, []);
+  var scheduleCleanup = React.useCallback(function (subscriptionId) {
+    function cleanup() {
+      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
+
+      if (existingContextSubscription) {
+        existingContextSubscription.unsub && existingContextSubscription.unsub();
+        delete ongoingSubscriptionRecord.current[subscriptionId];
+      }
+    }
+
+<<<<<<< HEAD
+    if (propertiesToNull.length) {
+      acc.push(gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+        return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
+      }).join(',')));
+=======
+    if (props.subscriptionTTLMs != null) {
+      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
+    } else {
+      cleanup();
+>>>>>>> origin/mm-gql
+    }
+  }, [props.subscriptionTTLMs]);
+  var cancelCleanup = React.useCallback(function (subscriptionId) {
+    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
+    delete cleanupTimeoutRecord.current[subscriptionId];
+  }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
+  // using a useSubscription hook are mounted at the same time
+  // since useSubscription uses the first line of the error stack to construct a unique sub id
+  // fixes https://tractiontools.atlassian.net/browse/MM-404
+
+<<<<<<< HEAD
+    return acc;
+  }, []); // For now, returns a single mutation
+  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
+
+  return [gql(_templateObject2$1 || (_templateObject2$1 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+}
+=======
+  var onHookMount = React.useCallback(function (subscriptionId, _ref) {
+    var silenceDuplicateSubIdErrors = _ref.silenceDuplicateSubIdErrors;
+>>>>>>> origin/mm-gql
+
+    if (mountedHooksBySubId.current[subscriptionId] && !silenceDuplicateSubIdErrors) {
+      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
+    }
+
+<<<<<<< HEAD
+var _templateObject$7;
+function dropNode(operation) {
+  return _extends({
+    type: 'dropNode',
+    operationName: 'DropNode'
+  }, operation);
+}
+function getMutationsFromTransactionDropOperations(operations) {
+  if (!operations.length) return [];
+  var allDropNodeOperations = operations.map(function (operation) {
+    if (operation.type === 'dropNode') {
+      return operation;
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  return allDropNodeOperations.map(function (operation) {
+    var name = getMutationNameFromOperations([operation], 'DropNode');
+    return gql(_templateObject$7 || (_templateObject$7 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
+  });
+}
+
+function createTransaction(mmGQLInstance, globalOperationHandlers) {
+  /**
+   * A transaction allows developers to build groups of mutations that execute with transactional integrity
+   *   this means if one mutation fails, others are cancelled and any graph state changes are rolled back.
+   *
+   * The callback function can return a promise if the transaction requires some data fetching to build its list of operations.
+   */
+  return function transaction(callback, opts) {
+    var operationsByType = {
+      createNode: [],
+      createNodes: [],
+      updateNode: [],
+      updateNodes: [],
+      dropNode: [],
+      createEdge: [],
+      createEdges: [],
+      dropEdge: [],
+      dropEdges: [],
+      replaceEdge: [],
+      replaceEdges: [],
+      updateEdge: [],
+      updateEdges: []
+    };
+    /**
+     * Keeps track of the number of operations performed in this transaction (for operations that we need to provide callback data for).
+     * This is used to store each operation's order in the transaction so that we can map it to the response we get back from the backend.
+     * The backend responds with each operation in the order they were sent up.
+     */
+=======
+    mountedHooksBySubId.current[subscriptionId] = true;
+  }, []);
+  var onHookUnmount = React.useCallback(function (subscriptionId) {
+    delete mountedHooksBySubId.current[subscriptionId];
+  }, []);
+  return React.createElement(MMGQLContext.Provider, {
+    value: {
+      mmGQLInstance: props.mmGQL,
+      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
+      updateSubscriptionInfo: updateSubscriptionInfo,
+      scheduleCleanup: scheduleCleanup,
+      cancelCleanup: cancelCleanup,
+      onHookMount: onHookMount,
+      onHookUnmount: onHookUnmount
+    }
+  }, props.children);
+};
+
+function useSubscription(queryDefinitions, opts) {
+  var context = React.useContext(MMGQLContext);
+>>>>>>> origin/mm-gql
+
+  if (!context) {
+    throw Error('You must wrap your app with an MMGQLProvider before using useSubscription.');
+  }
+
+<<<<<<< HEAD
+    function pushOperation(operation) {
+      if (!operationsByType[operation.type]) {
+        throw Error("No operationsByType array initialized for \"" + operation.type + "\"");
+      }
+      /**
+       * createNodes/updateNodes creates multiple nodes in a single operation,
+       * therefore we need to track the position of these nodes instead of just the position of the operation itself
+       */
+=======
+  var obj = {
+    stack: ''
+  };
+  Error.captureStackTrace(obj, useSubscription);
+>>>>>>> origin/mm-gql
+
+  if (obj.stack === '') {
+    // Should be supported in all browsers, but better safe than sorry
+    throw Error('Error.captureStackTrace not supported');
+  }
+
+  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
+  var preExistingState = getPreexistingState({
+    subscriptionId: subscriptionId,
+    context: context,
+    queryDefinitions: queryDefinitions
+  });
+
+  var _React$useState = React.useState(preExistingState.results),
+      results = _React$useState[0],
+      setResults = _React$useState[1];
+
+  var _React$useState2 = React.useState(preExistingState.error),
+      error = _React$useState2[0],
+      setError = _React$useState2[1];
+
+  var _React$useState3 = React.useState(preExistingState.querying),
+      querying = _React$useState3[0],
+      setQuerying = _React$useState3[1];
+
+  var loggingContext = React.useContext(LoggingContext);
+  var qdStateManager = null;
+  var qdError = null;
+
+  try {
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
+    // we catch that promise here and re-throw it further down, so that we can manage cleanup
+    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
+    qdStateManager = buildQueryDefinitionStateManager({
+      context: context,
+      subscriptionId: subscriptionId,
+      queryDefinitions: queryDefinitions,
+      data: {
+        results: results,
+        error: error,
+        querying: querying
+      },
+      handlers: {
+        onResults: setResults,
+        onError: setError,
+        setQuerying: setQuerying
+      },
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors
+    });
+  } catch (e) {
+    qdError = e;
+    qdStateManager = null;
+  }
+
+  React.useEffect(function () {
+    var _qdStateManager;
+
+    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.onHookMount();
+    return function () {
+      var _qdStateManager2;
+
+      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.onHookUnmount();
+    }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
+    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
+    // to memoize all of their query definitions, which seems overkill
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context, subscriptionId]);
+  if (error || qdError) throw error || qdError;
+  return qdStateManager;
+}
+
+function getPreexistingState(opts) {
+  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
+  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+    acc[key] = null;
+    return acc;
+  }, {});
+  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
+  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
+  return {
+    results: results,
+    error: error,
+    querying: querying
+  };
+}
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+
+
+function splitQueryDefinitions(queryDefinitions) {
+  var _Object$entries$reduc;
+
+  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
+    var _queryDefinition$useS;
+
+    var alias = _ref[0],
+        queryDefinition = _ref[1];
+    var suspend = queryDefinition && 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
+    split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
+    return split;
+  }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
+}
+
+var subscriptionIds = {
+  suspendEnabled: 'suspendEnabled',
+  suspendDisabled: 'suspendDisabled'
+};
+
+function buildQueryDefinitionStateManager(opts) {
+  // When a subscription is initialized, the state of the subscription is split
+  // suspended subscriptions and non suspended subscriptions are initialized separately,
+  // so that rendering can continue as soon as possible.
+  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
+  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
+  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
+  var parentSubscriptionId = opts.subscriptionId;
+  var preExistingContextForThisParentSubscription = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+
+  if (!preExistingContextForThisParentSubscription) {
+    opts.context.ongoingSubscriptionRecord[parentSubscriptionId] = {};
+  }
+
+  function onHookMount() {
+    opts.context.onHookMount(parentSubscriptionId, {
+      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
+    });
+    opts.context.cancelCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.context.cancelCleanup(subId);
+    });
+  }
+
+  function onHookUnmount() {
+    opts.context.onHookUnmount(parentSubscriptionId);
+    opts.context.scheduleCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.context.scheduleCleanup(subId);
+    });
+  } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
+  // state of the component rendered before the fallback occured.
+  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
+  // and call that in "onData" instead.
+
+
+  opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+    onResults: opts.handlers.onResults,
+    onError: opts.handlers.onError,
+    setQuerying: opts.handlers.setQuerying
+  });
+
+  var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
+      suspendDisabled = _splitQueryDefinition.suspendDisabled,
+      suspendEnabled = _splitQueryDefinition.suspendEnabled;
+
+  var allSubscriptionIds = Object.values(subscriptionIds).map(function (subscriptionId) {
+    return parentSubscriptionId + subscriptionId;
+  });
+
+  function getAllSubscriptionStates() {
+    return allSubscriptionIds.map(function (subscriptionId) {
+      return opts.context.ongoingSubscriptionRecord[subscriptionId];
+    });
+  } // From the received queried definitions
+  // and a static parentSubscriptionId+subscriptionSuffix identifier
+  // initializes subscriptions and updates the useSubscription state on the hook
+  // Also maintains a copy of that state at the context level, such that the component rendering the hook
+  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
+  //
+  // returns a promise if there's an unresolved request and "suspend" is set to true
+
+
+  function handleNewQueryDefitions(subOpts) {
+    var _opts$context$ongoing;
+
+    var queryDefinitions = subOpts.queryDefinitions,
+        parentSubscriptionId = subOpts.parentSubscriptionId,
+        subscriptionSuffix = subOpts.subscriptionSuffix,
+        suspend = subOpts.suspend;
+    var subscriptionId = parentSubscriptionId + subscriptionSuffix;
+    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
+
+    if (!preExistingContextForThisSubscription) {
+      opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
+    }
+
+    var newQueryInfo;
+    var newQueryDefinitionsAreAllNull;
+    var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
+
+    if (preExistingQueryInfo) {
+      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
+
+      if (Object.keys(nonNullishQueryDefinitions).length) {
+        newQueryInfo = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: nonNullishQueryDefinitions,
+          queryId: preExistingQueryInfo.queryId
+        });
+      } else {
+        newQueryDefinitionsAreAllNull = true;
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: null
+        });
+      }
+    }
+
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
+
+    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
+      return preExistingContextForThisSubscription.suspendPromise;
+    }
+
+    if (queryDefinitionHasBeenUpdated) {
+      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
+    }
+
+    var queryTimestamp = new Date().valueOf();
+    opts.context.updateSubscriptionInfo(subscriptionId, {
+      querying: true,
+      lastQueryTimestamp: queryTimestamp
+    });
+    opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+      querying: true
+    });
+    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
+    setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
+    var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
+      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+      // Make sure to re-render the component on paginate
+      onPaginate: function onPaginate() {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
+      },
+      onData: function onData(_ref2) {
+        var newResults = _ref2.results;
+        var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
+        var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
+
+        if (thisQueryIsMostRecent) {
+          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
+          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+            results: _extends({}, contextForThisParentSub.results, newResults)
+          });
+        }
+      },
+      onError: function onError(error) {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
+        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+          error: error
+        });
+      },
+      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          unsub: function unsub() {
+            return subscriptionCanceller();
+          }
+        });
+        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+          unsub: function unsub() {
+            getAllSubscriptionStates().forEach(function (subscriptionState) {
+              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
+            });
+          }
+        });
+      },
+      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: queryInfo
+        });
+      }
+    })["finally"](function () {
+      var contextForThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
+      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
+
+      if (thisQueryIsMostRecent) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          suspendPromise: undefined,
+          querying: false
+        }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
+
+        var allQueriesHaveResolved = !getAllSubscriptionStates().some(function (state) {
+          return state && state.querying;
+        });
+
+        if (allQueriesHaveResolved) {
+          var _opts$context$ongoing2;
+
+          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+            querying: false
+          });
+
+          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
+
+          _setQuerying && _setQuerying(false);
+          opts.handlers.setQuerying(false);
+        }
+      }
+    });
+<<<<<<< HEAD
+    /**
+     * Group operations by their operation name, sorted by position if applicable
+     */
+=======
+>>>>>>> origin/mm-gql
+
+    if (!preExistingContextForThisSubscription && suspend) {
+      opts.context.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise: suspendPromise
+      });
+      return suspendPromise;
+    }
+  }
+
+  if (opts.data.error) throw opts.data.error;
+  var suspendPromise;
+
+  if (Object.keys(suspendDisabled).length) {
+    try {
+      handleNewQueryDefitions({
+        queryDefinitions: suspendDisabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendDisabled,
+        suspend: false
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+      throw e;
+    }
+  }
+
+<<<<<<< HEAD
+    function handleSuccessCallbacks(opts) {
+      var executionResult = opts.executionResult,
+          operationsByType = opts.operationsByType;
+      var operationsByOperationName = groupByOperationName(operationsByType);
+      /**
+       * Loop through the operations, map the operation to each result sent back from the backend,
+       * then pass the result into the callback if it exists
+       */
+
+      var executeCallbacksWithData = function executeCallbacksWithData(executionResult) {
+        executionResult.forEach(function (result) {
+          // if executionResult is 2d array
+          if (Array.isArray(result)) {
+            executeCallbacksWithData(result);
+          } else {
+            var resultData = result.data;
+            Object.entries(operationsByOperationName).forEach(function (_ref4) {
+              var operationName = _ref4[0],
+                  operations = _ref4[1];
+
+              if (resultData.hasOwnProperty(operationName)) {
+                operations.forEach(function (operation) {
+                  // we only need to gather the data for node create/update operations
+                  if (operationName === 'CreateNodes' || operationName === 'UpdateNodes') {
+                    var groupedResult = resultData[operationName]; // for createNodes, execute callback on each individual node rather than top-level operation
+
+                    if (operation.hasOwnProperty('nodes')) {
+                      operation.nodes.forEach(function (node) {
+                        if (node.hasOwnProperty('onSuccess')) {
+                          var operationResult = groupedResult[node.position - 1];
+                          node.onSuccess(operationResult);
+                        }
+                      });
+                    } else if (operation.hasOwnProperty('onSuccess')) {
+                      var operationResult = groupedResult[operation.position - 1];
+                      operation.onSuccess(operationResult);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      };
+
+      executeCallbacksWithData(executionResult);
+      /**
+       * For all other operations, just invoke the callback with no args.
+       * Transactions will guarantee that all operations have succeeded, so this is safe to do
+       */
+=======
+  if (Object.keys(suspendEnabled).length) {
+    try {
+      suspendPromise = handleNewQueryDefitions({
+        queryDefinitions: suspendEnabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendEnabled,
+        suspend: true
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+      throw e;
+    }
+  }
+>>>>>>> origin/mm-gql
+
+  if (suspendPromise) throw suspendPromise;
+  return {
+    data: opts.data.results,
+    error: opts.data.error,
+    querying: opts.data.querying,
+    onHookUnmount: onHookUnmount,
+    onHookMount: onHookMount
+  };
+}
+
+require('isomorphic-fetch');
+function getGQLCLient(gqlClientOpts) {
+  var wsLink = new WebSocketLink({
+    uri: gqlClientOpts.wsUrl,
+    options: {
+      reconnect: true
+    }
+  });
+  var nonBatchedLink = new HttpLink({
+    uri: gqlClientOpts.httpUrl
+  });
+  var queryBatchLink = split(function (operation) {
+    return operation.getContext().batchKey;
+  }, new BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    batchMax: 50,
+    batchInterval: 50,
+    batchKey: function batchKey(operation) {
+      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
+      // are batched separately
+
+      return JSON.stringify({
+        batchKey: context.batchKey,
+        headers: context.headers,
+        credentials: context.credentials
+      });
+    }
+  }), nonBatchedLink);
+  var mutationBatchLink = split(function (operation) {
+    return operation.getContext().batchedMutation;
+  }, new BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    // no batch max for explicitly batched mutations
+    // to ensure transactional integrity
+    batchMax: Number.MAX_SAFE_INTEGER,
+    batchInterval: 0
+  }), queryBatchLink);
+  var requestLink = split( // split based on operation type
+  function (_ref) {
+    var query = _ref.query;
+    var definition = getMainDefinition(query);
+    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
+  }, wsLink, mutationBatchLink);
+
+  function getContextWithToken(opts) {
+    return {
+      headers: {
+        Authorization: "Bearer " + opts.token
+      }
+    };
+  }
+
+  function authenticateSubscriptionDocument(opts) {
+    var _opts$gql$loc;
+
+    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
+
+    if (!documentBody) {
+      throw new Error('No documentBody found');
+    }
+
+    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
+
+    if (operationsThatRequireToken.some(function (operation) {
+      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
+    })) {
+      var documentBodyWithAuthTokensInjected = documentBody;
+      operationsThatRequireToken.forEach(function (operation) {
+        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
+      });
+      return gql(documentBodyWithAuthTokensInjected);
+    }
+
+    return opts.gql;
+  }
+
+  var authLink = new ApolloLink(function (operation, forward) {
+    return new Observable(function (observer) {
+      var handle;
+      Promise.resolve(operation).then(function () {
+        handle = forward(operation).subscribe({
+          next: observer.next.bind(observer),
+          error: observer.error.bind(observer),
+          complete: observer.complete.bind(observer)
+        });
+      })["catch"](observer.error.bind(observer));
+      return function () {
+        if (handle) handle.unsubscribe();
+      };
+    });
+  });
+  var baseClient = new ApolloClient({
+    link: ApolloLink.from([authLink, requestLink]),
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'ignore'
+      },
+      query: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
+      }
+    }
+  });
+  var gqlClient = {
+    query: function () {
+      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+        var _yield$baseClient$que, data;
+
+        return runtime_1.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return baseClient.query({
+                  query: opts.gql,
+                  context: _extends({
+                    // allow turning off batching by specifying a null or undefined batchKey
+                    // but by default, batch all requests into the same request batch
+                    batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
+                  }, getContextWithToken({
+                    token: opts.token
+                  }))
+                });
+
+              case 2:
+                _yield$baseClient$que = _context.sent;
+                data = _yield$baseClient$que.data;
+                return _context.abrupt("return", data);
+
+              case 6:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      function query(_x) {
+        return _query.apply(this, arguments);
+      }
+
+      return query;
+    }(),
+    subscribe: function subscribe(opts) {
+      var subscription = baseClient.subscribe({
+        query: authenticateSubscriptionDocument(opts)
+      }).subscribe({
+        next: function next(message) {
+          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
+        },
+        error: opts.onError
+      });
+      return function () {
+        return subscription.unsubscribe();
+      };
+    },
+    mutate: function () {
+      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.next = 3;
+                return Promise.all(opts.mutations.map(function (mutation) {
+                  return baseClient.mutate({
+                    mutation: mutation,
+                    context: _extends({
+                      batchedMutation: true
+                    }, getContextWithToken({
+                      token: opts.token
+                    }))
+                  });
+                }));
+
+              case 3:
+                return _context2.abrupt("return", _context2.sent);
+
+              case 4:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }));
+
+      function mutate(_x2) {
+        return _mutate.apply(this, arguments);
+      }
+
+      return mutate;
+    }()
+  };
+  return gqlClient;
+}
+
+function getDefaultConfig() {
+  return {
+    gqlClient: getGQLCLient({
+      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+    }),
+    generateMockData: false,
+    enableQuerySlimming: false,
+    enableQuerySlimmingLogging: false
   };
 }
 
