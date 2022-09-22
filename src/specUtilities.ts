@@ -496,15 +496,9 @@ export function convertNodesCollectionValuesToArray<
           lastQueriedPage: 1,
           pageSize: 10,
         },
-        onLoadMoreResults: async () => ({
-          ...mockPageInfo,
-        }),
-        onGoToNextPage: async () => ({
-          ...mockPageInfo,
-        }),
-        onGoToPreviousPage: async () => ({
-          ...mockPageInfo,
-        }),
+        onLoadMoreResults: async () => {},
+        onGoToNextPage: async () => {},
+        onGoToPreviousPage: async () => {},
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
       });

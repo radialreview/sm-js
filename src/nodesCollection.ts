@@ -1,5 +1,4 @@
 import { NodesCollectionPageOutOfBoundsException } from './exceptions';
-import { Maybe } from './types';
 
 export type PageInfoFromResults = {
   totalPages: number;
@@ -14,13 +13,9 @@ export type ClientSidePageInfo = {
   pageSize: number;
 };
 
-export type OnLoadMoreResultsCallback = () => Promise<
-  Maybe<PageInfoFromResults>
->;
-export type OnGoToNextPageCallback = () => Promise<Maybe<PageInfoFromResults>>;
-export type OnGoToPreviousPageCallback = () => Promise<
-  Maybe<PageInfoFromResults>
->;
+export type OnLoadMoreResultsCallback = () => Promise<void>;
+export type OnGoToNextPageCallback = () => Promise<void>;
+export type OnGoToPreviousPageCallback = () => Promise<void>;
 
 export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
@@ -101,10 +96,9 @@ export class NodesCollection<T> {
       this.clientSidePageInfo.lastQueriedPage,
     ];
 
-    const newPageInfoFromResults = await this.onLoadMoreResults();
-    if (newPageInfoFromResults)
-      this.pageInfoFromResults = newPageInfoFromResults;
-    else if (!this.useServerSidePaginationFilteringSorting) {
+    await this.onLoadMoreResults();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
   }
@@ -118,10 +112,9 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage++;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    const newPageInfoFromResults = await this.onGoToNextPage();
-    if (newPageInfoFromResults)
-      this.pageInfoFromResults = newPageInfoFromResults;
-    else if (!this.useServerSidePaginationFilteringSorting) {
+    await this.onGoToNextPage();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
   }
@@ -135,10 +128,9 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage--;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    const newPageInfoFromResults = await this.onGoToPreviousPage();
-    if (newPageInfoFromResults)
-      this.pageInfoFromResults = newPageInfoFromResults;
-    else if (!this.useServerSidePaginationFilteringSorting) {
+    await this.onGoToPreviousPage();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
   }

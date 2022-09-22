@@ -25,7 +25,7 @@ test('QueryManager handles a query result and returns the expected data', () => 
     queryResult: mockQueryDataReturn,
   });
 
-  expect(JSON.stringify(resultsObject)).toEqual(
+  expect(resultsObject).toEqual(
     JSON.stringify(
       getMockQueryResultExpectations({
         useServerSidePaginationFilteringSorting: true,

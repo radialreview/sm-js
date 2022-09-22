@@ -864,11 +864,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onLoadMoreResults(opts: {
       previousEndCursor: string;
       aliasPath: Array<string>;
-    }): Promise<Maybe<PageInfoFromResults>> {
+    }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
         this.opts.onResultsUpdated();
-        return null;
+        return;
       }
 
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults(
@@ -900,21 +900,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         newData,
         event: 'LOAD_MORE',
       });
-
-      return this.getPageInfoFromResponseForAlias({
-        aliasPath: opts.aliasPath,
-        response: newData,
-      });
     }
 
     public async onGoToNextPage(opts: {
       previousEndCursor: string;
       aliasPath: Array<string>;
-    }): Promise<Maybe<PageInfoFromResults>> {
+    }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
         this.opts.onResultsUpdated();
-        return null;
+        return;
       }
 
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults(
@@ -946,21 +941,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         newData,
         event: 'GO_TO_NEXT',
       });
-
-      return this.getPageInfoFromResponseForAlias({
-        aliasPath: opts.aliasPath,
-        response: newData,
-      });
     }
 
     public async onGoToPreviousPage(opts: {
       previousStartCursor: string;
       aliasPath: Array<string>;
-    }): Promise<Maybe<PageInfoFromResults>> {
+    }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
         this.opts.onResultsUpdated();
-        return null;
+        return;
       }
 
       const newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage(
@@ -991,13 +981,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         queryRecord: newMinimalQueryRecordForMoreResults,
         newData,
         event: 'GO_TO_PREVIOUS',
-      });
-
-      // @TODO does it actually need to return paging info?
-      // I believe new node collections are being generated when we load more results
-      return this.getPageInfoFromResponseForAlias({
-        aliasPath: opts.aliasPath,
-        response: newData,
       });
     }
 
