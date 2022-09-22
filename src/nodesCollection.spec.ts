@@ -8,11 +8,12 @@ const items = [
   { firstName: 'User 5' },
 ];
 
-const mockNodesCollectionConstructorArgs: NodesCollectionOpts<typeof items[number]> = {
+const getMockNodesCollectionConstructorArgs = (): NodesCollectionOpts<typeof items[number]> => ({
   items,
   pageInfoFromResults: {
     totalPages: 5,
     hasNextPage: true,
+    hasPreviousPage: true,
     endCursor: 'xyz',
     startCursor: 'zyx',
   },
@@ -23,65 +24,68 @@ const mockNodesCollectionConstructorArgs: NodesCollectionOpts<typeof items[numbe
   onGoToNextPage: async () => ({
     totalPages: 5,
     hasNextPage: true,
+    hasPreviousPage: true,
     endCursor: 'xyz',
     startCursor: 'zyx',
   }),
   onGoToPreviousPage: async () => ({
     totalPages: 5,
     hasNextPage: true,
+    hasPreviousPage: true,
     endCursor: 'xyz',
     startCursor: 'zyx',
   }),
   onLoadMoreResults: async () => ({
     totalPages: 5,
     hasNextPage: true,
+    hasPreviousPage: true,
     endCursor: 'xyz',
     startCursor: 'zyx',
   }),
   useServerSidePaginationFilteringSorting: false,
-};
+});
 
 describe('NodesCollection', () => {
   test(`can paginate to next pages`, async () => {
     const arrayWithPagination = new NodesCollection(
-      mockNodesCollectionConstructorArgs
+      getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.nodes).toEqual([items[0]]);
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.nodes).toEqual([items[1]]);
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.nodes).toEqual([items[2]]);
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.nodes).toEqual([items[3]]);
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.nodes).toEqual([items[4]]);
   });
 
   test(`can paginate to previous pages`, async () => {
     const arrayWithPagination = new NodesCollection(
-      mockNodesCollectionConstructorArgs
+      getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.nodes).toEqual([items[0]]);
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.nodes).toEqual([items[1]]);
-    arrayWithPagination.goToPreviousPage();
+    await arrayWithPagination.goToPreviousPage();
     expect(arrayWithPagination.nodes).toEqual([items[0]]);
   });
 
   test(`'totalPages' should return total pages base on 'itemsPerPage' and 'items' length`, async () => {
     const arrayWithPagination = new NodesCollection(
-      mockNodesCollectionConstructorArgs
+      getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.totalPages).toEqual(
-      mockNodesCollectionConstructorArgs.pageInfoFromResults.totalPages
+      getMockNodesCollectionConstructorArgs().pageInfoFromResults.totalPages
     );
   });
 
   test(`'hasNextPage' is set to 'true' if there are next pages to paginate`, async () => {
     const arrayWithPagination = new NodesCollection({
-      ...mockNodesCollectionConstructorArgs,
+      ...getMockNodesCollectionConstructorArgs(),
       pageInfoFromResults: {
-        ...mockNodesCollectionConstructorArgs.pageInfoFromResults,
+        ...getMockNodesCollectionConstructorArgs().pageInfoFromResults,
         hasNextPage: true,
       },
     });
@@ -90,9 +94,9 @@ describe('NodesCollection', () => {
 
   test(`'hasNextPage' is set to 'false' if there are no next pages to paginate.`, async () => {
     const arrayWithPagination = new NodesCollection({
-      ...mockNodesCollectionConstructorArgs,
+      ...getMockNodesCollectionConstructorArgs(),
       pageInfoFromResults: {
-        ...mockNodesCollectionConstructorArgs.pageInfoFromResults,
+        ...getMockNodesCollectionConstructorArgs().pageInfoFromResults,
         hasNextPage: false,
       },
     });
@@ -101,15 +105,15 @@ describe('NodesCollection', () => {
 
   test(`'hasPreviousPage' is set to 'true' if there are previous pages to paginate`, async () => {
     const arrayWithPagination = new NodesCollection(
-      mockNodesCollectionConstructorArgs
+      getMockNodesCollectionConstructorArgs()
     );
-    arrayWithPagination.goToNextPage();
+    await arrayWithPagination.goToNextPage();
     expect(arrayWithPagination.hasPreviousPage).toBe(true);
   });
 
   test(`'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
     const arrayWithPagination = new NodesCollection(
-      mockNodesCollectionConstructorArgs
+      getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.hasPreviousPage).toBe(false);
   });

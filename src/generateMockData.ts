@@ -1,3 +1,8 @@
+import {
+  NODES_PROPERTY_KEY,
+  PAGE_INFO_PROPERTY_KEY,
+  TOTAL_COUNT_PROPERTY_KEY,
+} from './consts';
 import { extend } from './dataUtilities';
 import { UnreachableCaseError } from './exceptions';
 import {
@@ -5,6 +10,7 @@ import {
   generateRandomNumber,
   generateRandomString,
 } from './generateMockDataUtilities';
+import { PageInfoFromResults } from './nodesCollection';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
 import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
 
@@ -119,15 +125,15 @@ export function getMockValuesForIDataRecord(
 }
 
 function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
-  queryRecord: QueryRecordEntry | RelationalQueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
-  const queryRecord = opts.queryRecord;
-  const nodePropertiesToMock = Object.keys(queryRecord.def.data)
+  const queryRecordEntry = opts.queryRecordEntry;
+  const nodePropertiesToMock = Object.keys(queryRecordEntry.def.data)
     .filter(nodeProperty => {
-      return queryRecord.properties.includes(nodeProperty);
+      return queryRecordEntry.properties.includes(nodeProperty);
     })
     .reduce((acc, item) => {
-      acc[item] = (queryRecord.def.data as Record<
+      acc[item] = (queryRecordEntry.def.data as Record<
         string,
         IData | DataDefaultFn
       >)[item];
@@ -135,15 +141,15 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
     }, {} as Record<string, IData | DataDefaultFn>);
 
   const mockedValues = {
-    type: opts.queryRecord.def.type,
+    type: opts.queryRecordEntry.def.type,
     version: '1',
     ...getMockValuesForIDataRecord(nodePropertiesToMock),
   };
 
-  if (queryRecord.def.generateMockData) {
+  if (queryRecordEntry.def.generateMockData) {
     extend({
       object: mockedValues,
-      extension: queryRecord.def.generateMockData(),
+      extension: queryRecordEntry.def.generateMockData(),
       extendNestedObjects: true,
       deleteKeysNotInExtension: false,
     });
@@ -165,11 +171,11 @@ export function generateMockNodeDataForQueryRecord(opts: {
   const mockedNodeData: Record<string, any> = {};
 
   Object.keys(queryRecord).forEach(queryRecordAlias => {
-    const queryRecordForThisAlias:
+    const queryRecordEntryForThisAlias:
       | QueryRecordEntry
       | RelationalQueryRecordEntry = queryRecord[queryRecordAlias];
     const returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
-      queryRecordEntry: queryRecordForThisAlias,
+      queryRecordEntry: queryRecordEntryForThisAlias,
     });
 
     let mockedNodeDataReturnValues;
@@ -182,13 +188,13 @@ export function generateMockNodeDataForQueryRecord(opts: {
       for (let i = 0; i < numOfResultsToGenerate; i++) {
         const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
           {
-            queryRecord: queryRecordForThisAlias,
+            queryRecordEntry: queryRecordEntryForThisAlias,
           }
         );
 
-        if (queryRecordForThisAlias.relational) {
+        if (queryRecordEntryForThisAlias.relational) {
           relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-            queryRecord: queryRecordForThisAlias.relational,
+            queryRecord: queryRecordEntryForThisAlias.relational,
           });
         }
         arrayOfMockNodeValues.push({
@@ -197,17 +203,26 @@ export function generateMockNodeDataForQueryRecord(opts: {
         });
       }
 
-      mockedNodeDataReturnValues = { nodes: arrayOfMockNodeValues };
+      mockedNodeDataReturnValues = {
+        [NODES_PROPERTY_KEY]: arrayOfMockNodeValues,
+        [TOTAL_COUNT_PROPERTY_KEY]: arrayOfMockNodeValues.length,
+        [PAGE_INFO_PROPERTY_KEY]: {
+          endCursor: 'xyz',
+          startCursor: 'yzx',
+          hasPreviousPage: false,
+          hasNextPage: true,
+        } as PageInfoFromResults,
+      };
     } else {
       const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
         {
-          queryRecord: queryRecordForThisAlias,
+          queryRecordEntry: queryRecordEntryForThisAlias,
         }
       );
 
-      if (queryRecord.relational) {
+      if (queryRecordEntryForThisAlias.relational) {
         relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: queryRecordForThisAlias.relational as RelationalQueryRecord,
+          queryRecord: queryRecordEntryForThisAlias.relational as RelationalQueryRecord,
         });
       }
 

@@ -262,37 +262,41 @@ const mockPageInfo: PageInfoFromResults = {
 };
 
 export const mockQueryDataReturn = {
-  users: {
-    nodes: [
+  users: createMockDataItems({
+    sampleMockData: {
+      id: 'mock-user-id',
+      type: 'user',
+      version: '1',
+      address: '__object__',
+      address__dot__state: 'FL',
+      address__dot__apt: '__object__',
+      address__dot__apt__dot__floor: '1',
+      address__dot__apt__dot__number: '1',
+      todos: createMockDataItems({
+        sampleMockData: {
+          version: '1',
+          id: 'mock-todo-id',
+          type: 'todo',
+          assignee: {
+            id: 'mock-user-id',
+            type: 'user',
+            version: '1',
+            firstName: 'Joe',
+          },
+        },
+        items: [
+          {
+            id: 'mock-todo-id',
+          },
+        ],
+      }),
+    },
+    items: [
       {
         id: 'mock-user-id',
-        type: 'user',
-        version: '1',
-        address: '__object__',
-        address__dot__state: 'FL',
-        address__dot__apt: '__object__',
-        address__dot__apt__dot__floor: '1',
-        address__dot__apt__dot__number: '1',
-        todos: {
-          nodes: [
-            {
-              version: '1',
-              id: 'mock-todo-id',
-              type: 'todo',
-              assignee: {
-                id: 'mock-user-id',
-                type: 'user',
-                version: '1',
-                firstName: 'Joe',
-              },
-            },
-          ],
-          pageInfo: { ...mockPageInfo },
-        },
       },
     ],
-    pageInfo: { ...mockPageInfo },
-  },
+  }),
 };
 
 const expectedAssignee = {
@@ -386,7 +390,7 @@ export function getMockConfig(opts?: {
   generateMockData?: boolean;
   enableQuerySlimming?: boolean;
   enableQuerySlimmingLogging?: boolean;
-  paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
+  paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
   onQueryPerformed?: (query: DocumentNode) => void;
 }): Config {
   if (opts?.mockData && opts?.getMockData) {
@@ -490,7 +494,7 @@ export function convertNodesCollectionValuesToArray<
         },
         clientSidePageInfo: {
           lastQueriedPage: 1,
-          pageSize: 5,
+          pageSize: 10,
         },
         onLoadMoreResults: async () => ({
           ...mockPageInfo,
@@ -529,6 +533,7 @@ export function createMockDataItems<T>(opts: {
       id: opts.sampleMockData.id + index,
       ...mockItem,
     })),
+    totalCount: opts.totalCount ?? opts.items.length,
     pageInfo,
   };
 }

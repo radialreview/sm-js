@@ -11,6 +11,7 @@ import {
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
 } from './exceptions';
+import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
 
 import {
   FilterValue,
@@ -482,7 +483,6 @@ export function applyClientSideSortAndFilterToData(
 ) {
   Object.keys(queryRecord).forEach(alias => {
     const queryRecordEntry = queryRecord[alias];
-    const containsArrayData = isArray(data[alias][NODES_PROPERTY_KEY]);
 
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
@@ -504,6 +504,9 @@ export function applyClientSideSortAndFilterToData(
     const relational = queryRecordEntry.relational;
 
     if (relational != null) {
+      const containsArrayData = queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry,
+      });
       if (containsArrayData) {
         if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
           data[alias][NODES_PROPERTY_KEY].forEach((item: any) => {

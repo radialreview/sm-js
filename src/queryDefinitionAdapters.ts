@@ -27,8 +27,10 @@ import {
   RelationalQueryRecord,
 } from './types';
 import {
+  PAGE_INFO_PROPERTY_KEY,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
+  TOTAL_COUNT_PROPERTY_KEY,
 } from './consts';
 
 /**
@@ -762,9 +764,13 @@ function getNodesCollectionQuery(opts: {
   const openNodesFragment = `${getSpaces(opts.nestLevel * 2)}nodes {\n`;
   const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
 
-  const totalCountFragment = `\n${getSpaces(opts.nestLevel * 2)}totalCount`;
+  const totalCountFragment = `\n${getSpaces(
+    opts.nestLevel * 2
+  )}${TOTAL_COUNT_PROPERTY_KEY}`;
 
-  const openPageInfoFragment = `\n${getSpaces(opts.nestLevel * 2)}pageInfo {\n`;
+  const openPageInfoFragment = `\n${getSpaces(
+    opts.nestLevel * 2
+  )}${PAGE_INFO_PROPERTY_KEY} {\n`;
   const pageInfoProps = [
     'endCursor',
     'startCursor',

@@ -386,30 +386,44 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         users: users {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            address,
-            address__dot__state,
-            address__dot__apt,
-            address__dot__apt__dot__floor,
-            address__dot__apt__dot__number,
+            id
+            version
+            lastUpdatedBy
+            type
+            address
+            address__dot__state
+            address__dot__apt
+            address__dot__apt__dot__floor
+            address__dot__apt__dot__number
             todos: todos {
               nodes {
-                id,
-                version,
-                lastUpdatedBy,
-                type,
+                id
+                version
+                lastUpdatedBy
+                type
                 assignee: assignee {
-                  id,
-                  version,
-                  lastUpdatedBy,
-                  type,
+                  id
+                  version
+                  lastUpdatedBy
+                  type
                   firstName
                 }
               }
+              totalCount
+              pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+                hasPreviousPage
+              }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -431,58 +445,86 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         users: users {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            address,
-            address__dot__state,
-            address__dot__apt,
-            address__dot__apt__dot__floor,
-            address__dot__apt__dot__number,
+            id
+            version
+            lastUpdatedBy
+            type
+            address
+            address__dot__state
+            address__dot__apt
+            address__dot__apt__dot__floor
+            address__dot__apt__dot__number
             todos: todos {
               nodes {
-                id,
-                version,
-                lastUpdatedBy,
-                type,
+                id
+                version
+                lastUpdatedBy
+                type
                 assignee: assignee {
-                  id,
-                  version,
-                  lastUpdatedBy,
-                  type,
+                  id
+                  version
+                  lastUpdatedBy
+                  type
                   firstName
                 }
               }
+              totalCount
+              pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+                hasPreviousPage
+              }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
             otherAlias: users {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            address,
-            address__dot__state,
-            address__dot__apt,
-            address__dot__apt__dot__floor,
-            address__dot__apt__dot__number,
+            id
+            version
+            lastUpdatedBy
+            type
+            address
+            address__dot__state
+            address__dot__apt
+            address__dot__apt__dot__floor
+            address__dot__apt__dot__number
             todos: todos {
               nodes {
-                id,
-                version,
-                lastUpdatedBy,
-                type,
+                id
+                version
+                lastUpdatedBy
+                type
                 assignee: assignee {
-                  id,
-                  version,
-                  lastUpdatedBy,
-                  type,
+                  id
+                  version
+                  lastUpdatedBy
+                  type
                   firstName
                 }
               }
+              totalCount
+              pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+                hasPreviousPage
+              }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -503,30 +545,44 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         users: users(ids: [\\"mock-id\\"]) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            address,
-            address__dot__state,
-            address__dot__apt,
-            address__dot__apt__dot__floor,
-            address__dot__apt__dot__number,
+            id
+            version
+            lastUpdatedBy
+            type
+            address
+            address__dot__state
+            address__dot__apt
+            address__dot__apt__dot__floor
+            address__dot__apt__dot__number
             todos: todos {
               nodes {
-                id,
-                version,
-                lastUpdatedBy,
-                type,
+                id
+                version
+                lastUpdatedBy
+                type
                 assignee: assignee {
-                  id,
-                  version,
-                  lastUpdatedBy,
-                  type,
+                  id
+                  version
+                  lastUpdatedBy
+                  type
                   firstName
                 }
               }
+              totalCount
+              pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+                hasPreviousPage
+              }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -547,26 +603,33 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            task,
-            done,
-            assigneeId,
-            meetingId,
-            settings,
-            settings__dot__archiveAfterMeeting,
-            settings__dot__nestedSettings,
-            settings__dot__nestedSettings__dot__nestedNestedMaybe,
-            settings__dot__nestedRecord,
-            dataSetIds,
-            comments,
-            record,
-            numberProp,
-            dateCreated,
-            dateLastModified,
+            id
+            version
+            lastUpdatedBy
+            type
+            task
+            done
+            assigneeId
+            meetingId
+            settings
+            settings__dot__archiveAfterMeeting
+            settings__dot__nestedSettings
+            settings__dot__nestedSettings__dot__nestedNestedMaybe
+            settings__dot__nestedRecord
+            dataSetIds
+            comments
+            record
+            numberProp
+            dateCreated
+            dateLastModified
             lastUpdatedClientTimestamp
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -590,26 +653,33 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
-            type,
-            task,
-            done,
-            assigneeId,
-            meetingId,
-            settings,
-            settings__dot__archiveAfterMeeting,
-            settings__dot__nestedSettings,
-            settings__dot__nestedSettings__dot__nestedNestedMaybe,
-            settings__dot__nestedRecord,
-            dataSetIds,
-            comments,
-            record,
-            numberProp,
-            dateCreated,
-            dateLastModified,
+            id
+            version
+            lastUpdatedBy
+            type
+            task
+            done
+            assigneeId
+            meetingId
+            settings
+            settings__dot__archiveAfterMeeting
+            settings__dot__nestedSettings
+            settings__dot__nestedSettings__dot__nestedNestedMaybe
+            settings__dot__nestedRecord
+            dataSetIds
+            comments
+            record
+            numberProp
+            dateCreated
+            dateLastModified
             lastUpdatedClientTimestamp
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -639,10 +709,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}, {done: {eq: false}}, {meetingId: {eq: null}}, {dateCreated: {eq: 1}}]}) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -667,10 +744,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -695,10 +779,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}]}) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -723,10 +814,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(order: [{task: ASC}]) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -751,10 +849,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(order: [{task: ASC}]) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -782,10 +887,17 @@ describe('getQueryInfo.queryGQLString', () => {
       "query MyTestQuery {
         todos: todos(order: [{numberProp: ASC}, {task: ASC}]) {
           nodes {
-            id,
-            version,
-            lastUpdatedBy,
+            id
+            version
+            lastUpdatedBy
             type
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            startCursor
+            hasNextPage
+            hasPreviousPage
           }
         }
       }"
@@ -823,28 +935,35 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
         "subscription MyTestQuery_users {
             users: users {
               node {
-                          id,
-                version,
-                lastUpdatedBy,
-                type,
-                address,
-                address__dot__state,
-                address__dot__apt,
-                address__dot__apt__dot__floor,
-                address__dot__apt__dot__number,
+                          id
+                version
+                lastUpdatedBy
+                type
+                address
+                address__dot__state
+                address__dot__apt
+                address__dot__apt__dot__floor
+                address__dot__apt__dot__number
                 todos: todos {
                   nodes {
-                    id,
-                    version,
-                    lastUpdatedBy,
-                    type,
+                    id
+                    version
+                    lastUpdatedBy
+                    type
                     assignee: assignee {
-                      id,
-                      version,
-                      lastUpdatedBy,
-                      type,
+                      id
+                      version
+                      lastUpdatedBy
+                      type
                       firstName
                     }
+                  }
+                  totalCount
+                  pageInfo {
+                    endCursor
+                    startCursor
+                    hasNextPage
+                    hasPreviousPage
                   }
                 }
               }
@@ -871,28 +990,35 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
         "subscription MyTestQuery_users {
             users: users {
               node {
-                          id,
-                version,
-                lastUpdatedBy,
-                type,
-                address,
-                address__dot__state,
-                address__dot__apt,
-                address__dot__apt__dot__floor,
-                address__dot__apt__dot__number,
+                          id
+                version
+                lastUpdatedBy
+                type
+                address
+                address__dot__state
+                address__dot__apt
+                address__dot__apt__dot__floor
+                address__dot__apt__dot__number
                 todos: todos {
                   nodes {
-                    id,
-                    version,
-                    lastUpdatedBy,
-                    type,
+                    id
+                    version
+                    lastUpdatedBy
+                    type
                     assignee: assignee {
-                      id,
-                      version,
-                      lastUpdatedBy,
-                      type,
+                      id
+                      version
+                      lastUpdatedBy
+                      type
                       firstName
                     }
+                  }
+                  totalCount
+                  pageInfo {
+                    endCursor
+                    startCursor
+                    hasNextPage
+                    hasPreviousPage
                   }
                 }
               }
@@ -902,28 +1028,35 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
         "subscription MyTestQuery_otherAlias {
             otherAlias: users {
               node {
-                          id,
-                version,
-                lastUpdatedBy,
-                type,
-                address,
-                address__dot__state,
-                address__dot__apt,
-                address__dot__apt__dot__floor,
-                address__dot__apt__dot__number,
+                          id
+                version
+                lastUpdatedBy
+                type
+                address
+                address__dot__state
+                address__dot__apt
+                address__dot__apt__dot__floor
+                address__dot__apt__dot__number
                 todos: todos {
                   nodes {
-                    id,
-                    version,
-                    lastUpdatedBy,
-                    type,
+                    id
+                    version
+                    lastUpdatedBy
+                    type
                     assignee: assignee {
-                      id,
-                      version,
-                      lastUpdatedBy,
-                      type,
+                      id
+                      version
+                      lastUpdatedBy
+                      type
                       firstName
                     }
+                  }
+                  totalCount
+                  pageInfo {
+                    endCursor
+                    startCursor
+                    hasNextPage
+                    hasPreviousPage
                   }
                 }
               }
@@ -949,28 +1082,35 @@ describe('getQueryInfo.subscriptionGQLStrings', () => {
         "subscription MyTestQuery_users {
             users: users(ids: [\\"mock-id\\"]) {
               node {
-                          id,
-                version,
-                lastUpdatedBy,
-                type,
-                address,
-                address__dot__state,
-                address__dot__apt,
-                address__dot__apt__dot__floor,
-                address__dot__apt__dot__number,
+                          id
+                version
+                lastUpdatedBy
+                type
+                address
+                address__dot__state
+                address__dot__apt
+                address__dot__apt__dot__floor
+                address__dot__apt__dot__number
                 todos: todos {
                   nodes {
-                    id,
-                    version,
-                    lastUpdatedBy,
-                    type,
+                    id
+                    version
+                    lastUpdatedBy
+                    type
                     assignee: assignee {
-                      id,
-                      version,
-                      lastUpdatedBy,
-                      type,
+                      id
+                      version
+                      lastUpdatedBy
+                      type
                       firstName
                     }
+                  }
+                  totalCount
+                  pageInfo {
+                    endCursor
+                    startCursor
+                    hasNextPage
+                    hasPreviousPage
                   }
                 }
               }

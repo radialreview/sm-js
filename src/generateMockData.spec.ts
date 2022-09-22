@@ -11,7 +11,10 @@ import {
   string,
   stringEnum,
 } from './dataTypes';
-import { GetResultingDataTypeFromProperties } from './types';
+import {
+  EPaginationFilteringSortingInstance,
+  GetResultingDataTypeFromProperties,
+} from './types';
 
 test('setupTest correctly returns mmGQLInstance.generateMockData as true', async () => {
   const { mmGQLInstance } = setupTest({
@@ -471,7 +474,11 @@ test('it correctly generates mock data for oneToMany relational queries', async 
 function setupTest(opts?: { generateMockData: boolean }) {
   const mmGQLInstance = new MMGQL(
     opts?.generateMockData
-      ? getMockConfig({ generateMockData: opts.generateMockData })
+      ? getMockConfig({
+          generateMockData: opts.generateMockData,
+          paginationFilteringSortingInstance:
+            EPaginationFilteringSortingInstance.CLIENT,
+        })
       : getMockConfig()
   );
 

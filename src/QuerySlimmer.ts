@@ -583,7 +583,7 @@ export class QuerySlimmer {
     parentContextKey?: string
   ) {
     const doesQueryHaveIdProperty =
-      !('id' in queryRecordEntry) || !!queryRecordEntry.id;
+      'id' in queryRecordEntry && !!queryRecordEntry.id;
     const parentContextKeyPrefix = !!parentContextKey
       ? `${parentContextKey}.`
       : '';
