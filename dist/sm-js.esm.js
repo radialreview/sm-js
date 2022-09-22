@@ -1334,7 +1334,6 @@ function createDOProxyGenerator(mmGQLInstance) {
         return prop.startsWith(name);
       });
       Object.defineProperty(objectToReturn, objectProp, {
-        // @TODO write tests for this enumeration
         enumerable: isUpToDate,
         get: function get() {
           if (dataForThisProp.type === DATA_TYPES.object || dataForThisProp.type === DATA_TYPES.maybeObject) {
