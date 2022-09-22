@@ -228,7 +228,6 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         opts.allPropertiesQueried.some(prop => prop.startsWith(name));
 
       Object.defineProperty(objectToReturn, objectProp, {
-        // @TODO write tests for this enumeration
         enumerable: isUpToDate,
         get: () => {
           if (
