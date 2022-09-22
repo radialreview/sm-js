@@ -237,7 +237,7 @@ export declare type GetSortingDataTypeFromProperties<TProperties extends Record<
 export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? GetResultingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never;
 export declare type SortDirection = 'asc' | 'desc';
 export declare type FilterCondition = 'or' | 'and';
-export declare type FilterValue<TValue extends string | number | boolean> = TValue | (Partial<Record<TValue extends Maybe<string> ? EStringFilterOperator : TValue extends Maybe<number> ? ENumberFilterOperator : TValue extends Maybe<boolean> ? EBooleanFilterOperator : never, TValue> & {
+export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>> = TValue | (Partial<Record<TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
     condition?: FilterCondition;
 }>);
 export declare type SortObject = {
