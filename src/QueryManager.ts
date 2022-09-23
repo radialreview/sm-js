@@ -185,6 +185,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             items,
             clientSidePageInfo,
             pageInfoFromResults,
+            // allows the UI to re-render when a nodeCollection's internal state is updated
+            onPaginationRequestStateChanged: this.opts.onResultsUpdated,
             onLoadMoreResults: () =>
               this.onLoadMoreResults({
                 aliasPath,
@@ -865,12 +867,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousEndCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
-      this.opts.onResultsUpdated();
-
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
         // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-        setTimeout(() => this.opts.onResultsUpdated());
         return;
       }
 
@@ -909,12 +908,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousEndCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
-      this.opts.onResultsUpdated();
-
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
         // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-        setTimeout(() => this.opts.onResultsUpdated());
         return;
       }
 
@@ -953,12 +949,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousStartCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
-      this.opts.onResultsUpdated();
-
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
         // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-        setTimeout(() => this.opts.onResultsUpdated());
         return;
       }
 

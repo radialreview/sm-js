@@ -13,6 +13,7 @@ export type ClientSidePageInfo = {
   pageSize: number;
 };
 
+export type OnPaginationRequestStateChangedCallback = () => void;
 export type OnLoadMoreResultsCallback = () => Promise<void>;
 export type OnGoToNextPageCallback = () => Promise<void>;
 export type OnGoToPreviousPageCallback = () => Promise<void>;
@@ -27,6 +28,7 @@ export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
   onGoToNextPage: OnGoToNextPageCallback;
   onGoToPreviousPage: OnGoToPreviousPageCallback;
+  onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
   items: T[];
   pageInfoFromResults: PageInfoFromResults;
   clientSidePageInfo: ClientSidePageInfo;
@@ -37,6 +39,7 @@ export class NodesCollection<T> {
   private onLoadMoreResults: OnLoadMoreResultsCallback;
   private onGoToNextPage: OnGoToNextPageCallback;
   private onGoToPreviousPage: OnGoToPreviousPageCallback;
+  private onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
   private items: T[];
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
@@ -60,6 +63,7 @@ export class NodesCollection<T> {
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
   }
 
   public get nodes() {
@@ -148,12 +152,17 @@ export class NodesCollection<T> {
     this.loadingState = ENodeCollectionLoadingState.LOADING;
     this.loadingError = null;
     try {
+      // re-render ui with the new loading state
+      this.onPaginationRequestStateChanged();
       await promiseGetter();
       this.loadingState = ENodeCollectionLoadingState.IDLE;
     } catch (e) {
       this.loadingState = ENodeCollectionLoadingState.ERROR;
       this.loadingError = e;
     }
+
+    // re-render the ui with the new nodes and loading/error state
+    this.onPaginationRequestStateChanged();
   }
 
   public async goToPage(_: number) {

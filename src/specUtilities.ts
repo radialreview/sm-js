@@ -507,6 +507,7 @@ export function convertNodesCollectionValuesToArray<
         onLoadMoreResults: async () => {},
         onGoToNextPage: async () => {},
         onGoToPreviousPage: async () => {},
+        onPaginationRequestStateChanged: () => {},
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
       });
