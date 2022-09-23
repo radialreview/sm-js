@@ -11,6 +11,7 @@ export { gql } from '@apollo/client';
 export declare class MMGQL implements IMMGQL {
     gqlClient: IMMGQL['gqlClient'];
     generateMockData: IMMGQL['generateMockData'];
+    getMockDataDelay: IMMGQL['getMockDataDelay'];
     enableQuerySlimming: IMMGQL['enableQuerySlimming'];
     enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
     paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];

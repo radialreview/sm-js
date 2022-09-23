@@ -33,6 +33,7 @@ export { gql } from '@apollo/client';
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
   public generateMockData: IMMGQL['generateMockData'];
+  public getMockDataDelay: IMMGQL['getMockDataDelay'];
   public enableQuerySlimming: IMMGQL['enableQuerySlimming'];
   public enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
   public paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
@@ -52,6 +53,7 @@ export class MMGQL implements IMMGQL {
   constructor(config: Config) {
     this.gqlClient = config.gqlClient;
     this.generateMockData = config.generateMockData;
+    this.getMockDataDelay = config.getMockDataDelay;
     this.enableQuerySlimming = config.enableQuerySlimming;
     this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
     this.paginationFilteringSortingInstance =

@@ -222,15 +222,18 @@ export function generateMockNodeDataForQueryRecord(opts: {
         });
       }
 
+      const pageInfo: PageInfoFromResults = {
+        endCursor: 'xyz',
+        startCursor: 'yzx',
+        hasPreviousPage: false,
+        hasNextPage: pageSize < arrayOfMockNodeValues.length,
+        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize),
+      };
+
       mockedNodeDataReturnValues = {
         [NODES_PROPERTY_KEY]: arrayOfMockNodeValues,
         [TOTAL_COUNT_PROPERTY_KEY]: arrayOfMockNodeValues.length,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          endCursor: 'xyz',
-          startCursor: 'yzx',
-          hasPreviousPage: false,
-          hasNextPage: pageSize < arrayOfMockNodeValues.length,
-        } as PageInfoFromResults,
+        [PAGE_INFO_PROPERTY_KEY]: pageInfo,
       };
     } else {
       const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(

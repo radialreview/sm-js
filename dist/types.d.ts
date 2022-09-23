@@ -36,6 +36,7 @@ export declare type Config = {
     gqlClient: IGQLClient;
     plugins?: Array<Plugin>;
     generateMockData: boolean;
+    getMockDataDelay?: () => number;
     enableQuerySlimming: boolean;
     enableQuerySlimmingLogging: boolean;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
@@ -126,6 +127,7 @@ export interface IMMGQL {
     gqlClient: IGQLClient;
     plugins: Array<Plugin> | undefined;
     generateMockData: boolean | undefined;
+    getMockDataDelay: (() => number) | undefined;
     enableQuerySlimming: boolean | undefined;
     enableQuerySlimmingLogging: boolean | undefined;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
