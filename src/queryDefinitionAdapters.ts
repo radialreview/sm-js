@@ -19,14 +19,20 @@ import {
   QueryDefinition,
   DataDefaultFn,
   IOneToOneQueryBuilderOpts,
+  EStringFilterOperator,
+  FilterCondition,
+  ENumberFilterOperator,
+  ValidSortForNode,
+  SortObject,
+  RelationalQueryRecord,
 } from './types';
-import { prepareObjectForBE } from './transaction/convertNodeDataToSMPersistedData';
 import {
+  PAGE_INFO_PROPERTY_KEY,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
+  TOTAL_COUNT_PROPERTY_KEY,
 } from './consts';
-import { getFlattenedNodeFilterObject } from './dataUtilities';
-import { set as lodashSet } from 'lodash';
+
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -398,6 +404,7 @@ export function getQueryRecordFromQueryDefinition<
     let nodeDef;
     let relational;
     let allowNullResult;
+    let tokenName;
     if (!queryDefinition) {
       return;
     } else if ('_isNodeDef' in queryDefinition) {
@@ -410,6 +417,7 @@ export function getQueryRecordFromQueryDefinition<
     } else {
       nodeDef = queryDefinition.def;
       allowNullResult = queryDefinition.target?.allowNullResult;
+      tokenName = queryDefinition.tokenName;
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
           mapFn: queryDefinition.map,
@@ -439,6 +447,7 @@ export function getQueryRecordFromQueryDefinition<
       properties: queriedProps,
       relational,
       allowNullResult,
+      tokenName,
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -487,45 +496,162 @@ function getIdsString(ids: Array<string>) {
   return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
-export function getKeyValueFilterString<TNode extends INode>(
+function wrapInQuotesIfString(value: any) {
+  if (typeof value === 'string') return `"${value}"`;
+  return value;
+}
+
+export function getBEFilterString<TNode extends INode>(
   filter: ValidFilterForNode<TNode>
 ) {
-  const flattenedFilters = getFlattenedNodeFilterObject(filter);
-  // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  // Adding '{} || ' temporarily disable all server filters
-  // Remove those line once backend filters are ready
-  const filtersWithEqualCondition = Object.keys({} || flattenedFilters)
-    .filter(x => {
-      return flattenedFilters[x]._eq !== undefined;
-    })
-    .reduce((acc, current) => {
-      lodashSet(acc, current, flattenedFilters[current]._eq);
-      return acc;
-    }, {} as ValidFilterForNode<TNode>);
+  type FilterForBE = {
+    key: keyof ValidFilterForNode<TNode>;
+    operator: EStringFilterOperator | ENumberFilterOperator;
+    value: any;
+  };
+  const readyForBE = Object.keys(filter).reduce(
+    (acc, current) => {
+      const key = current as keyof ValidFilterForNode<TNode>;
+      let filterForBE: FilterForBE;
+      if (
+        filter[key] === null ||
+        typeof filter[key] === 'string' ||
+        typeof filter[key] === 'number' ||
+        typeof filter[key] === 'boolean'
+      ) {
+        filterForBE = {
+          key,
+          operator: EStringFilterOperator.eq,
+          value: filter[key],
+        };
+      } else {
+        const { condition, ...rest } = filter[key];
+        const keys = Object.keys(rest);
+        if (keys.length !== 1) {
+          throw Error('Expected 1 property on this filter object');
+        }
+        const operator = (keys[0] as unknown) as
+          | EStringFilterOperator
+          | ENumberFilterOperator;
+        const value = rest[operator as keyof typeof rest];
 
-  const convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
-    omitObjectIdentifier: true,
-  });
-  return `{${Object.entries(convertedToDotFormat).reduce(
-    (acc, [key, value], idx, entries) => {
-      acc += `${key}: ${value == null ? null : `"${String(value)}"`}`;
-      if (idx < entries.length - 1) {
-        acc += `, `;
+        filterForBE = {
+          key,
+          operator,
+          value,
+        };
       }
+
+      const condition: FilterCondition = filter[key]?.condition || 'and';
+
+      const conditionArray = acc[condition] || [];
+      conditionArray.push(filterForBE);
+
+      acc[condition] = conditionArray;
+
+      return acc;
+    },
+    {} as {
+      and?: Array<FilterForBE>;
+      or?: Array<FilterForBE>;
+    }
+  );
+
+  if (readyForBE.and?.length === 0) {
+    delete readyForBE.and;
+  }
+
+  if (readyForBE.or?.length === 0) {
+    delete readyForBE.or;
+  }
+
+  return Object.entries(readyForBE).reduce(
+    (acc, [condition, filters], index) => {
+      if (index > 0) acc += ', ';
+
+      const stringifiedFilters = filters.reduce((acc, filter, index) => {
+        if (index > 0) acc += ', ';
+        acc += `{${filter.key}: {${filter.operator}: ${wrapInQuotesIfString(
+          filter.value
+        )}}}`;
+
+        return acc;
+      }, '');
+
+      acc += `{${condition}: [${stringifiedFilters}]}`;
+
       return acc;
     },
     ''
-  )}}`;
+  );
 }
 
-function getGetNodeOptions<TNode extends INode>(opts: {
-  def: TNode;
-  filter?: ValidFilterForNode<TNode>;
+function getBEOrderArrayString<TNode extends INode>(
+  sort: ValidSortForNode<TNode>
+) {
+  return (
+    Object.keys(sort)
+      .reduce((acc, key, sortIndex, sortKeys) => {
+        let direction: 'ASC' | 'DESC';
+        let priority: number;
+        const sortValue = sort[key as keyof ValidSortForNode<TNode>];
+        if (typeof sortValue === 'string') {
+          // ensure that items which were not given priority
+          // are placed at the end of the array
+          // in the order in which they were received
+          priority = sortKeys.length + sortIndex;
+          direction = sortValue === 'asc' ? 'ASC' : 'DESC';
+        } else {
+          const sortObject = sortValue as SortObject;
+          priority =
+            sortObject.priority != null
+              ? sortObject.priority
+              : sortKeys.length + sortIndex;
+          direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+        }
+
+        acc[priority] = `{${key}: ${direction}}`;
+        return acc;
+      }, [] as Array<string>)
+      // because we use priority to index sort objects
+      // we must filter out any indicies we left empty
+      .filter(item => item != null)
+      .join(', ')
+  );
+}
+
+function getGetNodeOptions(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
+  if (!opts.useServerSidePaginationFilteringSorting) return '';
+
   const options: Array<string> = [];
 
-  if (opts.filter !== null && opts.filter !== undefined) {
-    options.push(`filter: ${getKeyValueFilterString(opts.filter)}`);
+  if (opts.queryRecordEntry.filter != null) {
+    options.push(`where: ${getBEFilterString(opts.queryRecordEntry.filter)}`);
+  }
+
+  if (opts.queryRecordEntry.sort != null) {
+    options.push(
+      `order: [${getBEOrderArrayString(opts.queryRecordEntry.sort)}]`
+    );
+  }
+
+  if (opts.queryRecordEntry.pagination != null) {
+    if (opts.queryRecordEntry.pagination.endCursor) {
+      options.push(`before: "${opts.queryRecordEntry.pagination.endCursor}"`);
+    }
+    if (opts.queryRecordEntry.pagination.startCursor) {
+      options.push(`after: "${opts.queryRecordEntry.pagination.startCursor}"`);
+    }
+    if (opts.queryRecordEntry.pagination.itemsPerPage) {
+      options.push(
+        `${opts.queryRecordEntry.pagination.endCursor ? 'last' : 'first'}: ${
+          opts.queryRecordEntry.pagination.itemsPerPage
+        }`
+      );
+    }
   }
 
   return options.join(', ');
@@ -538,19 +664,20 @@ function getSpaces(numberOfSpaces: number) {
 function getQueryPropertiesString(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nestLevel: number;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   let propsString = `${getSpaces(opts.nestLevel * 2)}`;
   propsString += opts.queryRecordEntry.properties.join(
-    `,\n${getSpaces(opts.nestLevel * 2)}`
+    `\n${getSpaces(opts.nestLevel * 2)}`
   );
 
   if (opts.queryRecordEntry.relational) {
-    propsString +=
-      (propsString !== '' ? ',' : '') +
-      getRelationalQueryString({
-        relationalQueryRecord: opts.queryRecordEntry.relational,
-        nestLevel: opts.nestLevel,
-      });
+    propsString += getRelationalQueryString({
+      relationalQueryRecord: opts.queryRecordEntry.relational,
+      nestLevel: opts.nestLevel,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
   }
 
   return propsString;
@@ -559,6 +686,7 @@ function getQueryPropertiesString(opts: {
 function getRelationalQueryString(opts: {
   relationalQueryRecord: Record<string, RelationalQueryRecordEntry>;
   nestLevel: number;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   return Object.keys(opts.relationalQueryRecord).reduce((acc, alias) => {
     const relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
@@ -573,52 +701,94 @@ function getRelationalQueryString(opts: {
       );
     }
 
-    const operation = `${relationalQueryRecordEntry._relationshipName}`;
+    const resolver = `${relationalQueryRecordEntry._relationshipName}`;
+    const options = getGetNodeOptions({
+      queryRecordEntry: relationalQueryRecordEntry,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
+    const operation = `${resolver}${options !== '' ? `(${options})` : ''}`;
 
     return (
       acc +
       `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {\n` +
       ('oneToMany' in relationalQueryRecordEntry
-        ? wrapInNodes({
+        ? getNodesCollectionQuery({
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: relationalQueryRecordEntry,
               nestLevel: opts.nestLevel + 2,
+              useServerSidePaginationFilteringSorting:
+                opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: opts.nestLevel + 1,
           })
         : getQueryPropertiesString({
             queryRecordEntry: relationalQueryRecordEntry,
             nestLevel: opts.nestLevel + 1,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
           })) +
       `\n${getSpaces(opts.nestLevel * 2)}}`
     );
   }, '');
 }
 
-function getOperationFromQueryRecordEntry(queryRecordEntry: QueryRecordEntry) {
-  const nodeType = queryRecordEntry.def.type;
+function getOperationFromQueryRecordEntry(
+  opts: { useServerSidePaginationFilteringSorting: boolean } & QueryRecordEntry
+) {
+  const nodeType = opts.def.type;
   let operation: string;
-  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
-    operation = `${nodeType}s(ids: ${getIdsString(queryRecordEntry.ids)})`;
-  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
-    operation = `${nodeType}(id: "${queryRecordEntry.id}")`;
+  if ('ids' in opts && opts.ids != null) {
+    operation = `${nodeType}s(ids: ${getIdsString(opts.ids)})`;
+  } else if ('id' in opts && opts.id != null) {
+    operation = `${nodeType}(id: "${opts.id}")`;
   } else {
-    const options = getGetNodeOptions(queryRecordEntry);
+    const options = getGetNodeOptions({
+      queryRecordEntry: opts,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   }
 
   return operation;
 }
 
-function wrapInNodes(opts: { propertiesString: string; nestLevel: number }) {
-  return `${getSpaces(opts.nestLevel * 2)}nodes {\n${
-    opts.propertiesString
-  }\n${getSpaces(opts.nestLevel * 2)}}`;
+// queries a collection of nodes by wrapping the properties queried with "nodes"
+// and also includes other necessary paging information in the query
+function getNodesCollectionQuery(opts: {
+  propertiesString: string;
+  nestLevel: number;
+}) {
+  const closeFragment = `${getSpaces(opts.nestLevel * 2)}}`;
+  const openNodesFragment = `${getSpaces(opts.nestLevel * 2)}nodes {\n`;
+  const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
+
+  const totalCountFragment = `\n${getSpaces(
+    opts.nestLevel * 2
+  )}${TOTAL_COUNT_PROPERTY_KEY}`;
+
+  const openPageInfoFragment = `\n${getSpaces(
+    opts.nestLevel * 2
+  )}${PAGE_INFO_PROPERTY_KEY} {\n`;
+  const pageInfoProps = [
+    'endCursor',
+    'startCursor',
+    'hasNextPage',
+    'hasPreviousPage',
+  ];
+  const pageInfoProperties = pageInfoProps
+    .map(prop => `${getSpaces((opts.nestLevel + 1) * 2)}${prop}`)
+    .join(`\n`);
+  const pageInfoFragment = `${openPageInfoFragment}${pageInfoProperties}\n${closeFragment}`;
+
+  return `${nodesFragment}${totalCountFragment}${pageInfoFragment}`;
 }
 
 function getRootLevelQueryString(
   opts: {
     alias: string;
+    useServerSidePaginationFilteringSorting: boolean;
   } & QueryRecordEntry
 ) {
   const operation = getOperationFromQueryRecordEntry(opts);
@@ -627,14 +797,21 @@ function getRootLevelQueryString(
     `  ${opts.alias}: ${operation} {\n` +
     `${
       opts.id == null
-        ? wrapInNodes({
+        ? getNodesCollectionQuery({
             propertiesString: getQueryPropertiesString({
               queryRecordEntry: opts,
               nestLevel: 3,
+              useServerSidePaginationFilteringSorting:
+                opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: 2,
           })
-        : getQueryPropertiesString({ queryRecordEntry: opts, nestLevel: 2 })
+        : getQueryPropertiesString({
+            queryRecordEntry: opts,
+            nestLevel: 2,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
+          })
     }` +
     `\n  }`
   );
@@ -654,14 +831,17 @@ export type SubscriptionConfig = {
 export function getQueryGQLStringFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
+  useServerSidePaginationFilteringSorting: boolean;
 }) {
   return (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
       .map(alias =>
         getRootLevelQueryString({
-          alias,
           ...opts.queryRecord[alias],
+          alias,
+          useServerSidePaginationFilteringSorting:
+            opts.useServerSidePaginationFilteringSorting,
         })
       )
       .join('\n    ') +
@@ -669,7 +849,9 @@ export function getQueryGQLStringFromQueryRecord(opts: {
   ).trim();
 }
 
-function getQueryRecordSortAndFilterValues(record: QueryRecord) {
+function getQueryRecordSortAndFilterValues(
+  record: QueryRecord | RelationalQueryRecord
+) {
   return Object.keys(record).reduce((acc, alias) => {
     acc.push(record[alias].filter);
     acc.push(record[alias].sort);
@@ -682,6 +864,15 @@ function getQueryRecordSortAndFilterValues(record: QueryRecord) {
   }, [] as any[]);
 }
 
+export function queryRecordEntryReturnsArrayOfData(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  return (
+    (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
+    !('oneToOne' in opts.queryRecordEntry)
+  );
+}
+
 export function getQueryInfo<
   TNode,
   TMapFn,
@@ -691,11 +882,17 @@ export function getQueryInfo<
     TMapFn,
     TQueryDefinitionTarget
   >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+>(opts: {
+  queryDefinitions: TQueryDefinitions;
+  queryId: string;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
   const queryGQLString = getQueryGQLStringFromQueryRecord({
     queryId: opts.queryId,
     queryRecord,
+    useServerSidePaginationFilteringSorting:
+      opts.useServerSidePaginationFilteringSorting,
   });
   const queryParamsString = JSON.stringify(
     getQueryRecordSortAndFilterValues(queryRecord)
@@ -709,14 +906,23 @@ export function getQueryInfo<
     });
     const queryRecordEntry = queryRecord[alias];
 
-    const operation = getOperationFromQueryRecordEntry(queryRecordEntry);
+    const operation = getOperationFromQueryRecordEntry({
+      ...queryRecordEntry,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
 
     const gqlStrings = [
       `
     subscription ${subscriptionName} {
       ${alias}: ${operation} {
         node {
-          ${getQueryPropertiesString({ queryRecordEntry, nestLevel: 5 })}
+          ${getQueryPropertiesString({
+            queryRecordEntry,
+            nestLevel: 5,
+            useServerSidePaginationFilteringSorting:
+              opts.useServerSidePaginationFilteringSorting,
+          })}
         }
         operation { action, path }
       }
@@ -785,7 +991,11 @@ export function convertQueryDefinitionToQueryInfo<
     TMapFn,
     TQueryDefinitionTarget
   >
->(opts: { queryDefinitions: TQueryDefinitions; queryId: string }) {
+>(opts: {
+  queryDefinitions: TQueryDefinitions;
+  queryId: string;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
   const {
     queryGQLString,
     subscriptionConfigs,

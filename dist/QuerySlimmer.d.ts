@@ -1,30 +1,31 @@
-import { QueryRecord, QueryRecordEntry, RelationalQueryRecord, RelationalQueryRecordEntry, QueryDefinitions, QueryOpts, IMMGQL } from './types';
+import { QueryRecord, QueryRecordEntry, RelationalQueryRecord, RelationalQueryRecordEntry, IMMGQL } from './types';
 export interface IFetchedQueryData {
     subscriptionsByProperty: Record<string, number>;
     results: any | Array<any> | null;
 }
 export interface IInFlightQueryRecord {
     queryId: string;
-    queryRecord: QueryRecord;
+    queryRecord: QueryRecord | RelationalQueryRecord;
 }
 export declare type TQueryDataByContextMap = Record<string, IFetchedQueryData>;
 export declare type TInFlightQueriesByContextMap = Record<string, IInFlightQueryRecord[]>;
-export declare type TQueryRecordByContextMap = Record<string, QueryRecord>;
+export declare type TQueryRecordByContextMap = Record<string, QueryRecord | RelationalQueryRecord>;
 export declare class QuerySlimmer {
     constructor(mmGQLInstance: IMMGQL);
     private mmGQLInstance;
     queriesByContext: TQueryDataByContextMap;
     inFlightQueryRecords: TInFlightQueriesByContextMap;
-    query<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
+    query(opts: {
+        queryRecord: QueryRecord;
         queryId: string;
-        queryDefinitions: TQueryDefinitions;
-        queryOpts?: QueryOpts<TQueryDefinitions>;
+        useServerSidePaginationFilteringSorting: boolean;
         tokenName: string;
+        batchKey?: string;
     }): Promise<Record<string, any>>;
     getDataForQueryFromQueriesByContext(newQuery: QueryRecord | RelationalQueryRecord, parentContextKey?: string): Record<string, any>;
-    slimNewQueryAgainstInFlightQueries(newQuery: QueryRecord): {
+    slimNewQueryAgainstInFlightQueries(newQuery: QueryRecord | RelationalQueryRecord): {
         queryIdsSlimmedAgainst: string[];
-        slimmedQueryRecord: QueryRecord;
+        slimmedQueryRecord: {};
     } | null;
     /**
      * Returns in flight QueryRecordEntries by context that can slim down a new query.
@@ -40,9 +41,9 @@ export declare class QuerySlimmer {
      */
     getSlimmedQueryAgainstInFlightQuery(newQuery: QueryRecord | RelationalQueryRecord, inFlightQuery: QueryRecord | RelationalQueryRecord, isRelationalQueryRecord: boolean): QueryRecord | RelationalQueryRecord | null;
     getSlimmedQueryAgainstQueriesByContext(newQuery: QueryRecord | RelationalQueryRecord, parentContextKey?: string): QueryRecord | RelationalQueryRecord | null;
-    onSubscriptionCancelled(queryRecord: QueryRecord, parentContextKey?: string): void;
+    onSubscriptionCancelled(queryRecord: QueryRecord | RelationalQueryRecord, parentContextKey?: string): void;
     getRelationalDepthOfQueryRecordEntry(queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry): number;
-    populateQueriesByContext(queryRecord: QueryRecord, results: Record<string, any>, parentContextKey?: string): void;
+    populateQueriesByContext(queryRecord: QueryRecord | RelationalQueryRecord, results: Record<string, any>, parentContextKey?: string): void;
     private createContextKeyForQueryRecordEntry;
     private getPropertiesNotAlreadyCached;
     private getPropertiesNotCurrentlyBeingRequested;

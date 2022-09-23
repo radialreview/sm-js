@@ -1,13 +1,19 @@
 import { isArray, isObject } from 'lodash';
-import { FILTER_OPERATORS } from './consts';
+import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+
 import {
   FilterCondition,
-  FilterOperator,
+  EStringFilterOperator,
   FilterValue,
   INode,
   SortObject,
-  ValidFilterForNode,
   ValidSortForNode,
+  FilterOperator,
+  QueryRecordEntry,
+  RelationalQueryRecordEntry,
+  DATA_TYPES,
+  IData,
+  RelationalQueryRecord,
 } from './types';
 
 /**
@@ -202,43 +208,79 @@ export function getFlattenedObjectKeys(obj: Record<string, any>) {
  * @param filterObject : ;
  * @returns
  */
-export function getFlattenedNodeFilterObject<TNode extends INode>(
-  filterObject: ValidFilterForNode<TNode>
-) {
+export function getFlattenedNodeFilterObject(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
   const result: Record<
     string,
-    Partial<Record<FilterOperator, any>> & { _condition: FilterCondition }
+    Partial<Record<FilterOperator, any>> & {
+      condition: FilterCondition;
+    }
   > = {};
 
-  const filterObject2 = filterObject as any;
-  for (const i in filterObject2) {
-    const value = filterObject2[i] as FilterValue<string>;
-    const valueIsNotAFilterCondition = FILTER_OPERATORS.every(
-      condition => isObject(value) && !value.hasOwnProperty(condition)
-    );
-    if (
-      typeof filterObject2[i] == 'object' &&
-      filterObject2[i] !== null &&
-      valueIsNotAFilterCondition
-    ) {
-      const flatObject = getFlattenedNodeFilterObject(
-        value as ValidFilterForNode<TNode>
-      );
-      for (const x in flatObject) {
-        if (!flatObject.hasOwnProperty(x)) continue;
+  const filterObject = opts.queryRecordEntry.filter;
 
-        result[i + '.' + x] = flatObject[x];
-      }
+  if (!filterObject) return result;
+
+  const queriedRelations = opts.queryRecordEntry.relational;
+  const nodeData = opts.queryRecordEntry.def.data;
+
+  for (const filteredProperty in filterObject) {
+    const filterValue = filterObject[filteredProperty] as FilterValue<string>;
+
+    const isObjectInNodeData =
+      nodeData[filteredProperty] &&
+      ((nodeData[filteredProperty] as IData).type === DATA_TYPES.object ||
+        (nodeData[filteredProperty] as IData).type === DATA_TYPES.maybeObject);
+    const isAQueriedRelationalProp = queriedRelations
+      ? queriedRelations[filteredProperty] != null
+      : false;
+
+    const filterIsTargettingNestedObjectOrRelationalData =
+      isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
+
+    if (
+      typeof filterValue == 'object' &&
+      filterValue !== null &&
+      filterIsTargettingNestedObjectOrRelationalData
+    ) {
+      const queryRecordEntry = {
+        ...opts.queryRecordEntry,
+        def: isObjectInNodeData
+          ? opts.queryRecordEntry.def
+          : (queriedRelations as RelationalQueryRecord)[filteredProperty].def,
+        properties: isObjectInNodeData
+          ? opts.queryRecordEntry.properties
+              .filter(prop => prop.startsWith(filteredProperty))
+              .map(prop => {
+                const [, ...remainingPath] = prop.split(
+                  OBJECT_PROPERTY_SEPARATOR
+                );
+                return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+              })
+          : (queriedRelations as RelationalQueryRecord)[filteredProperty]
+              .properties,
+        filter: filterValue,
+      };
+
+      const flatObject = getFlattenedNodeFilterObject({
+        queryRecordEntry,
+      });
+      Object.keys(flatObject).forEach(key => {
+        result[filteredProperty + '.' + key] = flatObject[key];
+      });
     } else {
-      if (isObject(value)) {
-        result[i] = {
-          ...value,
-          _condition: value._condition || 'AND',
+      if (isObject(filterValue)) {
+        result[filteredProperty] = {
+          ...filterValue,
+          condition: filterValue.condition || 'and',
         };
-      } else if (value !== undefined) {
-        result[i] = {
-          _eq: value,
-          _condition: 'AND',
+      } else if (filterValue !== undefined) {
+        result[filteredProperty] = {
+          [EStringFilterOperator.eq]: filterValue,
+          condition: 'and',
+        } as Partial<Record<FilterOperator, any>> & {
+          condition: FilterCondition;
         };
       }
     }
@@ -255,7 +297,7 @@ export function getFlattenedNodeSortObject<TNode extends INode>(
     const sortObject = sorting as Record<string, any>;
     const value = sortObject[i];
     const valueIsNotASortObject =
-      isObject(value) && !Object.keys(value).includes('_direction');
+      isObject(value) && !Object.keys(value).includes('direction');
     if (
       typeof sortObject[i] == 'object' &&
       sortObject[i] !== null &&
@@ -272,7 +314,7 @@ export function getFlattenedNodeSortObject<TNode extends INode>(
         result[i] = value as SortObject;
       } else if (value !== undefined) {
         const filter: SortObject = {
-          _direction: value,
+          direction: value,
         };
         result[i] = filter;
       }

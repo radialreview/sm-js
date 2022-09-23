@@ -1,4 +1,4 @@
-import { OnPaginateCallback, NodesCollection } from './nodesCollection';
+import { OnLoadMoreResultsCallback, NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -38,6 +38,7 @@ export declare type Config = {
     generateMockData: boolean;
     enableQuerySlimming: boolean;
     enableQuerySlimmingLogging: boolean;
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
 };
 export interface IGQLClient {
     query(opts: {
@@ -70,7 +71,6 @@ export interface IQueryManager {
         queryId: string;
         subscriptionAlias: string;
     }): void;
-    getResults: () => Record<string, any>;
 }
 export declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
     data: QueryDataReturn<TQueryDefinitions>;
@@ -95,7 +95,7 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
         queryId: string;
         queryParamsString: string;
     }) => void;
-    onPaginate?: OnPaginateCallback;
+    onLoadMoreResults?: OnLoadMoreResultsCallback;
     skipInitialQuery?: boolean;
     queryId?: string;
     batchKey?: string;
@@ -107,6 +107,10 @@ export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
     error: any;
 };
+export declare enum EPaginationFilteringSortingInstance {
+    'SERVER' = 0,
+    'CLIENT' = 1
+}
 export interface IMMGQL {
     getToken(opts: {
         tokenName: string;
@@ -124,6 +128,7 @@ export interface IMMGQL {
     generateMockData: boolean | undefined;
     enableQuerySlimming: boolean | undefined;
     enableQuerySlimmingLogging: boolean | undefined;
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
@@ -231,13 +236,13 @@ export declare type GetSortingDataTypeFromProperties<TProperties extends Record<
 };
 export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? GetResultingDataTypeFromProperties<TNodeArgs["TNodeData"]> : never;
 export declare type SortDirection = 'asc' | 'desc';
-export declare type FilterCondition = 'OR' | 'AND';
-export declare type FilterValue<TValue> = TValue | (Partial<Record<FilterOperator, TValue> & {
-    _condition?: FilterCondition;
+export declare type FilterCondition = 'or' | 'and';
+export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>> = TValue | (Partial<Record<TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
+    condition?: FilterCondition;
 }>);
 export declare type SortObject = {
-    _direction: SortDirection;
-    _priority?: number;
+    direction: SortDirection;
+    priority?: number;
 };
 export declare type SortValue = SortDirection | SortObject;
 export declare type GetResultingFilterDataTypeFromNodeDefinition<TSMNode extends INode> = TSMNode extends INode<infer TNodeArgs> ? GetResultingFilterDataTypeFromProperties<TNodeArgs["TNodeData"] & NodeDefaultProps> : never;
@@ -409,8 +414,9 @@ export declare enum RELATIONAL_TYPES {
     oneToMany = "otM"
 }
 export interface IQueryPagination {
-    itemsPerPage: number;
-    page: number;
+    itemsPerPage?: number;
+    startCursor?: string;
+    endCursor?: string;
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface INodeRepository {
@@ -420,23 +426,33 @@ export interface INodeRepository {
     } & Record<string, any>): void;
     onNodeDeleted(id: string): void;
 }
-export declare type FilterOperator = 
-/** greater than or equal */
-'_gte' | 
-/** less than or equal */
-'_lte' | 
-/** equal */
-'_eq' | 
-/** greater than */
-'_gt' | 
-/** less than */
-'_lt' | 
-/** not equal */
-'_neq' | 
-/** contains */
-'_contains' | 
-/** does not contain */
-'_ncontains';
+export declare enum EStringFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq",
+    'contains' = "contains",
+    'ncontains' = "ncontains",
+    'startsWith' = "startsWith",
+    'nstartsWith' = "nstartsWith",
+    'endsWith' = "endsWith",
+    'nendsWith' = "nendsWith"
+}
+export declare enum ENumberFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq",
+    'gt' = "gt",
+    'ngt' = "ngt",
+    'gte' = "gte",
+    'ngte' = "ngte",
+    'lt' = "lt",
+    'nlt' = "nlt",
+    'lte' = "lte",
+    'nlte' = "nlte"
+}
+export declare enum EBooleanFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq"
+}
+export declare type FilterOperator = EStringFilterOperator | ENumberFilterOperator | EBooleanFilterOperator;
 /**
  * Returns the valid filter for a node
  * excluding properties which are arrays and records
@@ -659,6 +675,7 @@ export declare type BaseQueryRecordEntry = {
     pagination?: IQueryPagination;
 };
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
+    tokenName: Maybe<string>;
     pagination?: IQueryPagination;
     ids?: Array<string>;
     id?: string;

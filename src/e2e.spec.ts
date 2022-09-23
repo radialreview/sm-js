@@ -32,7 +32,7 @@ client.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'test' });
 //   console.log('data', data);
 // });
 
-test('queries users and measurables', async () => {
+test.skip('queries users and measurables', async () => {
   const { data } = await client.query({
     users: queryDefinition({
       def: userDef,

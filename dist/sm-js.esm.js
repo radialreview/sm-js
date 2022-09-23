@@ -1,13 +1,14 @@
-import { isObject, set, isArray, update, orderBy, cloneDeep, sortBy } from 'lodash-es';
+import { isObject, update, isArray, orderBy, cloneDeep, sortBy } from 'lodash-es';
 import Chance from 'chance';
 import { gql, split, ApolloLink, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
+import { gql as gql$1 } from '@apollo/client';
+export { gql } from '@apollo/client';
 import { observable, when } from 'mobx';
 import React from 'react';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-export { gql } from '@apollo/client';
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
   try {
@@ -257,8 +258,8 @@ var NotCachedException = /*#__PURE__*/function (_Error6) {
 var NodesCollectionPageOutOfBoundsException = /*#__PURE__*/function (_Error7) {
   _inheritsLoose(NodesCollectionPageOutOfBoundsException, _Error7);
 
-  function NodesCollectionPageOutOfBoundsException(opts) {
-    return _Error7.call(this, "NodesCollectionPageOutOfBoundsException - page '" + opts.page + "' does not exist.") || this;
+  function NodesCollectionPageOutOfBoundsException(message) {
+    return _Error7.call(this, "NodesCollectionPageOutOfBoundsException - " + message) || this;
   }
 
   return NodesCollectionPageOutOfBoundsException;
@@ -333,6 +334,13 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   return UnreachableCaseError;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
 
+var EPaginationFilteringSortingInstance;
+
+(function (EPaginationFilteringSortingInstance) {
+  EPaginationFilteringSortingInstance[EPaginationFilteringSortingInstance["SERVER"] = 0] = "SERVER";
+  EPaginationFilteringSortingInstance[EPaginationFilteringSortingInstance["CLIENT"] = 1] = "CLIENT";
+})(EPaginationFilteringSortingInstance || (EPaginationFilteringSortingInstance = {}));
+
 var DATA_TYPES;
 
 (function (DATA_TYPES) {
@@ -358,6 +366,41 @@ var RELATIONAL_TYPES;
   RELATIONAL_TYPES["oneToOne"] = "oTO";
   RELATIONAL_TYPES["oneToMany"] = "otM";
 })(RELATIONAL_TYPES || (RELATIONAL_TYPES = {}));
+
+var EStringFilterOperator;
+
+(function (EStringFilterOperator) {
+  EStringFilterOperator["eq"] = "eq";
+  EStringFilterOperator["neq"] = "neq";
+  EStringFilterOperator["contains"] = "contains";
+  EStringFilterOperator["ncontains"] = "ncontains";
+  EStringFilterOperator["startsWith"] = "startsWith";
+  EStringFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringFilterOperator["endsWith"] = "endsWith";
+  EStringFilterOperator["nendsWith"] = "nendsWith";
+})(EStringFilterOperator || (EStringFilterOperator = {}));
+
+var ENumberFilterOperator;
+
+(function (ENumberFilterOperator) {
+  ENumberFilterOperator["eq"] = "eq";
+  ENumberFilterOperator["neq"] = "neq";
+  ENumberFilterOperator["gt"] = "gt";
+  ENumberFilterOperator["ngt"] = "ngt";
+  ENumberFilterOperator["gte"] = "gte";
+  ENumberFilterOperator["ngte"] = "ngte";
+  ENumberFilterOperator["lt"] = "lt";
+  ENumberFilterOperator["nlt"] = "nlt";
+  ENumberFilterOperator["lte"] = "lte";
+  ENumberFilterOperator["nlte"] = "nlte";
+})(ENumberFilterOperator || (ENumberFilterOperator = {}));
+
+var EBooleanFilterOperator;
+
+(function (EBooleanFilterOperator) {
+  EBooleanFilterOperator["eq"] = "eq";
+  EBooleanFilterOperator["neq"] = "neq"; // not equal
+})(EBooleanFilterOperator || (EBooleanFilterOperator = {}));
 
 var Data = function Data(opts) {
   var _opts$defaultValue;
@@ -634,18 +677,10 @@ var DEFAULT_NODE_PROPERTIES = /*#__PURE__*/_extends({}, PROPERTIES_QUERIED_FOR_A
   dateLastModified: number,
   lastUpdatedClientTimestamp: number
 });
-var FILTER_OPERATORS_MAP = {
-  _gte: '_gte',
-  _lte: '_lte',
-  _eq: '_eq',
-  _gt: '_gt',
-  _lt: '_lt',
-  _neq: '_neq',
-  _contains: '_contains',
-  _ncontains: '_ncontains'
-};
-var FILTER_OPERATORS = /*#__PURE__*/Object.values(FILTER_OPERATORS_MAP);
 var NODES_PROPERTY_KEY = 'nodes';
+var PAGE_INFO_PROPERTY_KEY = 'pageInfo';
+var TOTAL_COUNT_PROPERTY_KEY = 'totalCount';
+var DEFAULT_PAGE_SIZE = 10;
 
 var JSON_TAG = '__JSON__';
 var NULL_TAG = '__NULL__';
@@ -1299,7 +1334,6 @@ function createDOProxyGenerator(mmGQLInstance) {
         return prop.startsWith(name);
       });
       Object.defineProperty(objectToReturn, objectProp, {
-        // @TODO write tests for this enumeration
         enumerable: isUpToDate,
         get: function get() {
           if (dataForThisProp.type === DATA_TYPES.object || dataForThisProp.type === DATA_TYPES.maybeObject) {
@@ -1461,39 +1495,54 @@ function extend(opts) {
  * @returns
  */
 
-function getFlattenedNodeFilterObject(filterObject) {
+function getFlattenedNodeFilterObject(opts) {
   var result = {};
-  var filterObject2 = filterObject;
+  var filterObject = opts.queryRecordEntry.filter;
+  if (!filterObject) return result;
+  var queriedRelations = opts.queryRecordEntry.relational;
+  var nodeData = opts.queryRecordEntry.def.data;
 
-  var _loop = function _loop(i) {
-    var value = filterObject2[i];
-    var valueIsNotAFilterCondition = FILTER_OPERATORS.every(function (condition) {
-      return isObject(value) && !value.hasOwnProperty(condition);
-    });
+  var _loop = function _loop(filteredProperty) {
+    var filterValue = filterObject[filteredProperty];
+    var isObjectInNodeData = nodeData[filteredProperty] && (nodeData[filteredProperty].type === DATA_TYPES.object || nodeData[filteredProperty].type === DATA_TYPES.maybeObject);
+    var isAQueriedRelationalProp = queriedRelations ? queriedRelations[filteredProperty] != null : false;
+    var filterIsTargettingNestedObjectOrRelationalData = isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
 
-    if (typeof filterObject2[i] == 'object' && filterObject2[i] !== null && valueIsNotAFilterCondition) {
-      var flatObject = getFlattenedNodeFilterObject(value);
+    if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
+      var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
+        def: isObjectInNodeData ? opts.queryRecordEntry.def : queriedRelations[filteredProperty].def,
+        properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
+          return prop.startsWith(filteredProperty);
+        }).map(function (prop) {
+          var _prop$split = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split.slice(1);
 
-      for (var x in flatObject) {
-        if (!flatObject.hasOwnProperty(x)) continue;
-        result[i + '.' + x] = flatObject[x];
-      }
+          return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+        }) : queriedRelations[filteredProperty].properties,
+        filter: filterValue
+      });
+
+      var flatObject = getFlattenedNodeFilterObject({
+        queryRecordEntry: queryRecordEntry
+      });
+      Object.keys(flatObject).forEach(function (key) {
+        result[filteredProperty + '.' + key] = flatObject[key];
+      });
     } else {
-      if (isObject(value)) {
-        result[i] = _extends({}, value, {
-          _condition: value._condition || 'AND'
+      if (isObject(filterValue)) {
+        result[filteredProperty] = _extends({}, filterValue, {
+          condition: filterValue.condition || 'and'
         });
-      } else if (value !== undefined) {
-        result[i] = {
-          _eq: value,
-          _condition: 'AND'
-        };
+      } else if (filterValue !== undefined) {
+        var _result$filteredPrope;
+
+        result[filteredProperty] = (_result$filteredPrope = {}, _result$filteredPrope[EStringFilterOperator.eq] = filterValue, _result$filteredPrope.condition = 'and', _result$filteredPrope);
       }
     }
   };
 
-  for (var i in filterObject2) {
-    _loop(i);
+  for (var filteredProperty in filterObject) {
+    _loop(filteredProperty);
   }
 
   return result;
@@ -1504,7 +1553,7 @@ function getFlattenedNodeSortObject(sorting) {
   for (var i in sorting) {
     var sortObject = sorting;
     var value = sortObject[i];
-    var valueIsNotASortObject = isObject(value) && !Object.keys(value).includes('_direction');
+    var valueIsNotASortObject = isObject(value) && !Object.keys(value).includes('direction');
 
     if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
       var flatObject = getFlattenedNodeSortObject(value);
@@ -1518,7 +1567,7 @@ function getFlattenedNodeSortObject(sorting) {
         result[i] = value;
       } else if (value !== undefined) {
         var filter = {
-          _direction: value
+          direction: value
         };
         result[i] = filter;
       }
@@ -2732,185 +2781,7 @@ function generateRandomNumber(min, max) {
   });
 }
 
-var _excluded = ["to"],
-    _excluded2 = ["from"];
-var JSON_TAG$1 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = prepareForBE(nodeData);
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-}
-
-function escapeText(text) {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-}
-/**
- * Takes an object node value and flattens it to be sent to SM
- *
- * @param obj an object with arbitrary data
- * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
- * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
- *  used to construct filters since there we don't care what the parent property is set to
- * @returns a flat object where the keys are of "key__dot__value" syntax
- *
- * For example:
- * ```typescript
- * const obj = {settings: {schedule: {day: 'Monday'} } }
- *  const result = prepareValueForBE(obj)
- * ```
- * The result will be:
- *  ```typescript
- *  {
- * settings: '__object__',
- * settings__dot__schedule: '__object__',
- * settings__dot__schedule__dot__day: 'Monday',
- * }
- * ```
- */
-
-
-function prepareObjectForBE(obj, opts) {
-  return Object.entries(obj).reduce(function (acc, _ref2) {
-    var key = _ref2[0],
-        val = _ref2[1];
-    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
-
-    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
-      if (!opts || !opts.omitObjectIdentifier) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
-      }
-
-      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
-        var key = _ref3[0],
-            val = _ref3[1];
-        return _extends({}, acc, convertPropertyToBE(_extends({
-          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
-          value: val
-        }, opts)));
-      }, {}));
-    } else {
-      acc = _extends({}, acc, convertPropertyToBE(_extends({
-        key: preparedKey,
-        value: val
-      }, opts)));
-    }
-
-    return acc;
-  }, {});
-}
-
-function convertPropertyToBE(opts) {
-  if (opts.value === null) {
-    var _ref4;
-
-    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
-  } else if (Array.isArray(opts.value)) {
-    var _ref5;
-
-    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$1 + escapeText(JSON.stringify(opts.value)), _ref5;
-  } else if (typeof opts.value === 'object') {
-    var _prepareObjectForBE;
-
-    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
-      omitObjectIdentifier: opts.omitObjectIdentifier
-    });
-  } else if (typeof opts.value === 'string') {
-    var _ref6;
-
-    return _ref6 = {}, _ref6[opts.key] = escapeText(opts.value), _ref6;
-  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-    var _ref8;
-
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      var _ref7;
-
-      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
-    }
-
-    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
-  } else {
-    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-  }
-}
-
-function convertEdgeDirectionNames(edgeItem) {
-  if (edgeItem.hasOwnProperty('to')) {
-    var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded);
-
-    return _extends({}, restOfEdgeItem, {
-      targetId: to
-    });
-  } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
-
-    return _extends({}, _restOfEdgeItem, {
-      sourceId: edgeItem.from
-    });
-  }
-
-  throw new Error('convertEdgeDirectionNames - received invalid data');
-}
-
-function prepareForBE(obj) {
-  return Object.entries(obj).reduce(function (acc, _ref9) {
-    var key = _ref9[0],
-        value = _ref9[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, convertPropertyToBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-}
-
+var _excluded = ["condition"];
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents
  * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
@@ -3168,6 +3039,7 @@ function getQueryRecordFromQueryDefinition(opts) {
     var nodeDef;
     var relational;
     var allowNullResult;
+    var tokenName;
 
     if (!queryDefinition) {
       return;
@@ -3183,6 +3055,7 @@ function getQueryRecordFromQueryDefinition(opts) {
 
       nodeDef = queryDefinition.def;
       allowNullResult = (_queryDefinition$targ = queryDefinition.target) == null ? void 0 : _queryDefinition$targ.allowNullResult;
+      tokenName = queryDefinition.tokenName;
 
       if (queryDefinition.map) {
         queriedProps = getQueriedProperties({
@@ -3212,7 +3085,8 @@ function getQueryRecordFromQueryDefinition(opts) {
       def: nodeDef,
       properties: queriedProps,
       relational: relational,
-      allowNullResult: allowNullResult
+      allowNullResult: allowNullResult,
+      tokenName: tokenName
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -3258,38 +3132,125 @@ function getIdsString(ids) {
   }).join(',') + "]";
 }
 
-function getKeyValueFilterString(filter) {
-  var flattenedFilters = getFlattenedNodeFilterObject(filter); // @TODO https://tractiontools.atlassian.net/browse/TTD-316
-  // Adding '{} || ' temporarily disable all server filters
-  // Remove those line once backend filters are ready
+function wrapInQuotesIfString(value) {
+  if (typeof value === 'string') return "\"" + value + "\"";
+  return value;
+}
 
-  var filtersWithEqualCondition = Object.keys({} || flattenedFilters).filter(function (x) {
-    return flattenedFilters[x]._eq !== undefined;
-  }).reduce(function (acc, current) {
-    set(acc, current, flattenedFilters[current]._eq);
-    return acc;
-  }, {});
-  var convertedToDotFormat = prepareObjectForBE(filtersWithEqualCondition, {
-    omitObjectIdentifier: true
-  });
-  return "{" + Object.entries(convertedToDotFormat).reduce(function (acc, _ref, idx, entries) {
-    var key = _ref[0],
-        value = _ref[1];
-    acc += key + ": " + (value == null ? null : "\"" + String(value) + "\"");
+function getBEFilterString(filter) {
+  var _readyForBE$and, _readyForBE$or;
 
-    if (idx < entries.length - 1) {
-      acc += ", ";
+  var readyForBE = Object.keys(filter).reduce(function (acc, current) {
+    var _filter$key2;
+
+    var key = current;
+    var filterForBE;
+
+    if (filter[key] === null || typeof filter[key] === 'string' || typeof filter[key] === 'number' || typeof filter[key] === 'boolean') {
+      filterForBE = {
+        key: key,
+        operator: EStringFilterOperator.eq,
+        value: filter[key]
+      };
+    } else {
+      var _filter$key = filter[key],
+          rest = _objectWithoutPropertiesLoose(_filter$key, _excluded);
+
+      var keys = Object.keys(rest);
+
+      if (keys.length !== 1) {
+        throw Error('Expected 1 property on this filter object');
+      }
+
+      var operator = keys[0];
+      var value = rest[operator];
+      filterForBE = {
+        key: key,
+        operator: operator,
+        value: value
+      };
     }
 
+    var condition = ((_filter$key2 = filter[key]) == null ? void 0 : _filter$key2.condition) || 'and';
+    var conditionArray = acc[condition] || [];
+    conditionArray.push(filterForBE);
+    acc[condition] = conditionArray;
     return acc;
-  }, '') + "}";
+  }, {});
+
+  if (((_readyForBE$and = readyForBE.and) == null ? void 0 : _readyForBE$and.length) === 0) {
+    delete readyForBE.and;
+  }
+
+  if (((_readyForBE$or = readyForBE.or) == null ? void 0 : _readyForBE$or.length) === 0) {
+    delete readyForBE.or;
+  }
+
+  return Object.entries(readyForBE).reduce(function (acc, _ref, index) {
+    var condition = _ref[0],
+        filters = _ref[1];
+    if (index > 0) acc += ', ';
+    var stringifiedFilters = filters.reduce(function (acc, filter, index) {
+      if (index > 0) acc += ', ';
+      acc += "{" + filter.key + ": {" + filter.operator + ": " + wrapInQuotesIfString(filter.value) + "}}";
+      return acc;
+    }, '');
+    acc += "{" + condition + ": [" + stringifiedFilters + "]}";
+    return acc;
+  }, '');
+}
+
+function getBEOrderArrayString(sort) {
+  return Object.keys(sort).reduce(function (acc, key, sortIndex, sortKeys) {
+    var direction;
+    var priority;
+    var sortValue = sort[key];
+
+    if (typeof sortValue === 'string') {
+      // ensure that items which were not given priority
+      // are placed at the end of the array
+      // in the order in which they were received
+      priority = sortKeys.length + sortIndex;
+      direction = sortValue === 'asc' ? 'ASC' : 'DESC';
+    } else {
+      var sortObject = sortValue;
+      priority = sortObject.priority != null ? sortObject.priority : sortKeys.length + sortIndex;
+      direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+    }
+
+    acc[priority] = "{" + key + ": " + direction + "}";
+    return acc;
+  }, []) // because we use priority to index sort objects
+  // we must filter out any indicies we left empty
+  .filter(function (item) {
+    return item != null;
+  }).join(', ');
 }
 
 function getGetNodeOptions(opts) {
+  if (!opts.useServerSidePaginationFilteringSorting) return '';
   var options = [];
 
-  if (opts.filter !== null && opts.filter !== undefined) {
-    options.push("filter: " + getKeyValueFilterString(opts.filter));
+  if (opts.queryRecordEntry.filter != null) {
+    options.push("where: " + getBEFilterString(opts.queryRecordEntry.filter));
+  }
+
+  if (opts.queryRecordEntry.sort != null) {
+    options.push("order: [" + getBEOrderArrayString(opts.queryRecordEntry.sort) + "]");
+  }
+
+  if (opts.queryRecordEntry.pagination != null) {
+    if (opts.queryRecordEntry.pagination.endCursor) {
+      options.push("before: \"" + opts.queryRecordEntry.pagination.endCursor + "\"");
+    }
+
+    if (opts.queryRecordEntry.pagination.startCursor) {
+      options.push("after: \"" + opts.queryRecordEntry.pagination.startCursor + "\"");
+    }
+
+    if (opts.queryRecordEntry.pagination.itemsPerPage) {
+      options.push((opts.queryRecordEntry.pagination.endCursor ? 'last' : 'first') + ": " + opts.queryRecordEntry.pagination.itemsPerPage);
+    }
   }
 
   return options.join(', ');
@@ -3301,12 +3262,13 @@ function getSpaces(numberOfSpaces) {
 
 function getQueryPropertiesString(opts) {
   var propsString = "" + getSpaces(opts.nestLevel * 2);
-  propsString += opts.queryRecordEntry.properties.join(",\n" + getSpaces(opts.nestLevel * 2));
+  propsString += opts.queryRecordEntry.properties.join("\n" + getSpaces(opts.nestLevel * 2));
 
   if (opts.queryRecordEntry.relational) {
-    propsString += (propsString !== '' ? ',' : '') + getRelationalQueryString({
+    propsString += getRelationalQueryString({
       relationalQueryRecord: opts.queryRecordEntry.relational,
-      nestLevel: opts.nestLevel
+      nestLevel: opts.nestLevel,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     });
   }
 
@@ -3321,51 +3283,75 @@ function getRelationalQueryString(opts) {
       throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
     }
 
-    var operation = "" + relationalQueryRecordEntry._relationshipName;
-    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {\n") + ('oneToMany' in relationalQueryRecordEntry ? wrapInNodes({
+    var resolver = "" + relationalQueryRecordEntry._relationshipName;
+    var options = getGetNodeOptions({
+      queryRecordEntry: relationalQueryRecordEntry,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    });
+    var operation = "" + resolver + (options !== '' ? "(" + options + ")" : '');
+    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {\n") + ('oneToMany' in relationalQueryRecordEntry ? getNodesCollectionQuery({
       propertiesString: getQueryPropertiesString({
         queryRecordEntry: relationalQueryRecordEntry,
-        nestLevel: opts.nestLevel + 2
+        nestLevel: opts.nestLevel + 2,
+        useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
       }),
       nestLevel: opts.nestLevel + 1
     }) : getQueryPropertiesString({
       queryRecordEntry: relationalQueryRecordEntry,
-      nestLevel: opts.nestLevel + 1
+      nestLevel: opts.nestLevel + 1,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     })) + ("\n" + getSpaces(opts.nestLevel * 2) + "}");
   }, '');
 }
 
-function getOperationFromQueryRecordEntry(queryRecordEntry) {
-  var nodeType = queryRecordEntry.def.type;
+function getOperationFromQueryRecordEntry(opts) {
+  var nodeType = opts.def.type;
   var operation;
 
-  if ('ids' in queryRecordEntry && queryRecordEntry.ids != null) {
-    operation = nodeType + "s(ids: " + getIdsString(queryRecordEntry.ids) + ")";
-  } else if ('id' in queryRecordEntry && queryRecordEntry.id != null) {
-    operation = nodeType + "(id: \"" + queryRecordEntry.id + "\")";
+  if ('ids' in opts && opts.ids != null) {
+    operation = nodeType + "s(ids: " + getIdsString(opts.ids) + ")";
+  } else if ('id' in opts && opts.id != null) {
+    operation = nodeType + "(id: \"" + opts.id + "\")";
   } else {
-    var options = getGetNodeOptions(queryRecordEntry);
+    var options = getGetNodeOptions({
+      queryRecordEntry: opts,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   }
 
   return operation;
-}
+} // queries a collection of nodes by wrapping the properties queried with "nodes"
+// and also includes other necessary paging information in the query
 
-function wrapInNodes(opts) {
-  return getSpaces(opts.nestLevel * 2) + "nodes {\n" + opts.propertiesString + "\n" + getSpaces(opts.nestLevel * 2) + "}";
+
+function getNodesCollectionQuery(opts) {
+  var closeFragment = getSpaces(opts.nestLevel * 2) + "}";
+  var openNodesFragment = getSpaces(opts.nestLevel * 2) + "nodes {\n";
+  var nodesFragment = "" + openNodesFragment + opts.propertiesString + "\n" + closeFragment;
+  var totalCountFragment = "\n" + getSpaces(opts.nestLevel * 2) + TOTAL_COUNT_PROPERTY_KEY;
+  var openPageInfoFragment = "\n" + getSpaces(opts.nestLevel * 2) + PAGE_INFO_PROPERTY_KEY + " {\n";
+  var pageInfoProps = ['endCursor', 'startCursor', 'hasNextPage', 'hasPreviousPage'];
+  var pageInfoProperties = pageInfoProps.map(function (prop) {
+    return "" + getSpaces((opts.nestLevel + 1) * 2) + prop;
+  }).join("\n");
+  var pageInfoFragment = "" + openPageInfoFragment + pageInfoProperties + "\n" + closeFragment;
+  return "" + nodesFragment + totalCountFragment + pageInfoFragment;
 }
 
 function getRootLevelQueryString(opts) {
   var operation = getOperationFromQueryRecordEntry(opts);
-  return "  " + opts.alias + ": " + operation + " {\n" + ("" + (opts.id == null ? wrapInNodes({
+  return "  " + opts.alias + ": " + operation + " {\n" + ("" + (opts.id == null ? getNodesCollectionQuery({
     propertiesString: getQueryPropertiesString({
       queryRecordEntry: opts,
-      nestLevel: 3
+      nestLevel: 3,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }),
     nestLevel: 2
   }) : getQueryPropertiesString({
     queryRecordEntry: opts,
-    nestLevel: 2
+    nestLevel: 2,
+    useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
   }))) + "\n  }";
 }
 
@@ -3373,9 +3359,10 @@ function getQueryGQLStringFromQueryRecord(opts) {
   return ("query " + getSanitizedQueryId({
     queryId: opts.queryId
   }) + " {\n" + Object.keys(opts.queryRecord).map(function (alias) {
-    return getRootLevelQueryString(_extends({
-      alias: alias
-    }, opts.queryRecord[alias]));
+    return getRootLevelQueryString(_extends({}, opts.queryRecord[alias], {
+      alias: alias,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    }));
   }).join('\n    ') + '\n}').trim();
 }
 
@@ -3393,11 +3380,15 @@ function getQueryRecordSortAndFilterValues(record) {
   }, []);
 }
 
+function queryRecordEntryReturnsArrayOfData(opts) {
+  return (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry);
+}
 function getQueryInfo(opts) {
   var queryRecord = getQueryRecordFromQueryDefinition(opts);
   var queryGQLString = getQueryGQLStringFromQueryRecord({
     queryId: opts.queryId,
-    queryRecord: queryRecord
+    queryRecord: queryRecord,
+    useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
   });
   var queryParamsString = JSON.stringify(getQueryRecordSortAndFilterValues(queryRecord));
   var subscriptionConfigs = Object.keys(queryRecord).reduce(function (subscriptionConfigsAcc, alias) {
@@ -3405,10 +3396,13 @@ function getQueryInfo(opts) {
       queryId: opts.queryId + '_' + alias
     });
     var queryRecordEntry = queryRecord[alias];
-    var operation = getOperationFromQueryRecordEntry(queryRecordEntry);
+    var operation = getOperationFromQueryRecordEntry(_extends({}, queryRecordEntry, {
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    }));
     var gqlStrings = [("\n    subscription " + subscriptionName + " {\n      " + alias + ": " + operation + " {\n        node {\n          " + getQueryPropertiesString({
       queryRecordEntry: queryRecordEntry,
-      nestLevel: 5
+      nestLevel: 5,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }) + "\n        }\n        operation { action, path }\n      }\n    }\n        ").trim()];
 
     function extractNodeFromSubscriptionMessage(subscriptionMessage) {
@@ -3482,8 +3476,8 @@ function getSanitizedQueryId(opts) {
 }
 
 var _excluded$1 = ["to"],
-    _excluded2$1 = ["from"];
-var JSON_TAG$2 = '__JSON__';
+    _excluded2 = ["from"];
+var JSON_TAG$1 = '__JSON__';
 /**
  * Takes the json representation of a node's data and prepares it to be sent to SM
  *
@@ -3521,7 +3515,7 @@ function revisedConvertNodeDataToSMPersistedData(opts) {
   return stringified;
 }
 
-function escapeText$1(text) {
+function escapeText(text) {
   return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 /**
@@ -3598,12 +3592,12 @@ function revisedConvertPropertyToBE(opts) {
   } else if (Array.isArray(value)) {
     var _ref5;
 
-    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref5;
+    return _ref5 = {}, _ref5[key] = "" + JSON_TAG$1 + (generatingMockData ? JSON.stringify(value) : escapeText(JSON.stringify(value))), _ref5;
   } else if (typeof value === 'object') {
     if (IDataRecordForKey.type === DATA_TYPES.record || IDataRecordForKey.type === DATA_TYPES.maybeRecord) {
       var _ref6;
 
-      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$2 + (generatingMockData ? JSON.stringify(value) : escapeText$1(JSON.stringify(value))), _ref6;
+      return _ref6 = {}, _ref6[key] = "" + JSON_TAG$1 + (generatingMockData ? JSON.stringify(value) : escapeText(JSON.stringify(value))), _ref6;
     } else {
       var _obj;
 
@@ -3617,7 +3611,7 @@ function revisedConvertPropertyToBE(opts) {
   } else if (typeof value === 'string') {
     var _ref7;
 
-    return _ref7 = {}, _ref7[key] = escapeText$1(value), _ref7;
+    return _ref7 = {}, _ref7[key] = escapeText(value), _ref7;
   } else if (typeof value === 'boolean' || typeof value === 'number') {
     var _ref9;
 
@@ -3642,7 +3636,7 @@ function revisedConvertEdgeDirectionNames(edgeItem) {
       targetId: to
     });
   } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2);
 
     return _extends({}, _restOfEdgeItem, {
       sourceId: edgeItem.from
@@ -3805,24 +3799,24 @@ function getMockValuesForIDataRecord(record) {
 }
 
 function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
-  var queryRecord = opts.queryRecord;
-  var nodePropertiesToMock = Object.keys(queryRecord.def.data).filter(function (nodeProperty) {
-    return queryRecord.properties.includes(nodeProperty);
+  var queryRecordEntry = opts.queryRecordEntry;
+  var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
+    return queryRecordEntry.properties.includes(nodeProperty);
   }).reduce(function (acc, item) {
-    acc[item] = queryRecord.def.data[item];
+    acc[item] = queryRecordEntry.def.data[item];
     return acc;
   }, {});
 
   var mockedValues = _extends({
-    type: opts.queryRecord.def.type,
+    type: opts.queryRecordEntry.def.type,
     version: '1'
   }, getMockValuesForIDataRecord(nodePropertiesToMock));
 
-  if (queryRecord.def.generateMockData) {
-    var queryRecordMockData = queryRecord.def.generateMockData();
-    var mockDataPropertiesToAddToExtension = Object.keys(queryRecordMockData).reduce(function (acc, item) {
-      if (queryRecord.properties.includes(item)) {
-        acc[item] = queryRecordMockData[item];
+  if (queryRecordEntry.def.generateMockData) {
+    var queryRecordEntryMockData = queryRecordEntry.def.generateMockData();
+    var mockDataPropertiesToAddToExtension = Object.keys(queryRecordEntryMockData).reduce(function (acc, item) {
+      if (queryRecordEntry.properties.includes(item)) {
+        acc[item] = queryRecordEntryMockData[item];
       }
 
       return acc;
@@ -3843,44 +3837,51 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
   return valuesForNodeDataPreparedForBE;
 }
 
-function generateMockNodeDataForAllQueryRecords(opts) {
-  var queryRecords = opts.queryRecords;
+function generateMockNodeDataForQueryRecord(opts) {
+  var queryRecord = opts.queryRecord;
   var mockedNodeData = {};
-  Object.keys(queryRecords).forEach(function (queryRecordAlias) {
-    var queryRecord = queryRecords[queryRecordAlias];
-    var returnValueShouldBeAnArray = !!queryRecord.id === false && !('oneToOne' in queryRecord);
+  Object.keys(queryRecord).forEach(function (queryRecordAlias) {
+    var queryRecordEntryForThisAlias = queryRecord[queryRecordAlias];
+    var returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
+      queryRecordEntry: queryRecordEntryForThisAlias
+    });
     var mockedNodeDataReturnValues;
     var relationalMockNodeProperties = {};
 
     if (returnValueShouldBeAnArray) {
+      var _mockedNodeDataReturn;
+
       var numOfResultsToGenerate = generateRandomNumber(2, 10);
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
         var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
-          queryRecord: queryRecord
+          queryRecordEntry: queryRecordEntryForThisAlias
         });
 
-        if (queryRecord.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
-            queryRecords: queryRecord.relational
+        if (queryRecordEntryForThisAlias.relational) {
+          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+            queryRecord: queryRecordEntryForThisAlias.relational
           });
         }
 
         arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
       }
 
-      mockedNodeDataReturnValues = {
-        nodes: arrayOfMockNodeValues
-      };
+      mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = {
+        endCursor: 'xyz',
+        startCursor: 'yzx',
+        hasPreviousPage: false,
+        hasNextPage: true
+      }, _mockedNodeDataReturn);
     } else {
       var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
-        queryRecord: queryRecord
+        queryRecordEntry: queryRecordEntryForThisAlias
       });
 
-      if (queryRecord.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForAllQueryRecords({
-          queryRecords: queryRecord.relational
+      if (queryRecordEntryForThisAlias.relational) {
+        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+          queryRecord: queryRecordEntryForThisAlias.relational
         });
       }
 
@@ -3890,18 +3891,6 @@ function generateMockNodeDataForAllQueryRecords(opts) {
     mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
   });
   return mockedNodeData;
-}
-
-function generateMockNodeDataFromQueryDefinitions(opts) {
-  var queryDefinitions = opts.queryDefinitions,
-      queryId = opts.queryId;
-  var queryRecords = getQueryRecordFromQueryDefinition({
-    queryDefinitions: queryDefinitions,
-    queryId: queryId
-  });
-  return generateMockNodeDataForAllQueryRecords({
-    queryRecords: queryRecords
-  });
 }
 
 function getRandomItemFromArray(array) {
@@ -3914,34 +3903,34 @@ function checkFilter(_ref) {
       filterValue = _ref.filterValue;
 
   switch (operator) {
-    case '_contains':
+    case 'contains':
       {
         return String(itemValue).toLowerCase().indexOf(String(filterValue).toLowerCase()) !== -1;
       }
 
-    case '_ncontains':
+    case 'ncontains':
       {
         return String(itemValue).toLowerCase().indexOf(String(filterValue).toLowerCase()) === -1;
       }
 
-    case '_eq':
+    case 'eq':
       {
         return String(itemValue).toLowerCase() === String(filterValue).toLowerCase();
       }
 
-    case '_neq':
+    case 'neq':
       return String(itemValue).toLowerCase() !== String(filterValue).toLowerCase();
 
-    case '_gt':
+    case 'gt':
       return itemValue > filterValue;
 
-    case '_gte':
+    case 'gte':
       return itemValue >= filterValue;
 
-    case '_lt':
+    case 'lt':
       return itemValue < filterValue;
 
-    case '_lte':
+    case 'lte':
       return itemValue <= filterValue;
 
     default:
@@ -3978,9 +3967,10 @@ function checkRelationalItems(_ref3) {
 function applyClientSideFilterToData(_ref4) {
   var queryRecordEntry = _ref4.queryRecordEntry,
       data = _ref4.data,
-      alias = _ref4.alias,
-      queryRecordEntryFilter = _ref4.filter;
-  var filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+      alias = _ref4.alias;
+  var filterObject = getFlattenedNodeFilterObject({
+    queryRecordEntry: queryRecordEntry
+  });
 
   if (filterObject && data[alias]) {
     var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
@@ -3991,7 +3981,7 @@ function applyClientSideFilterToData(_ref4) {
       var relational = possibleRelationalKey && queryRecordEntry.relational && queryRecordEntry.relational[possibleRelationalKey];
       var propertyFilter = filterObject[dotSeparatedPropName];
       var operators = Object.keys(propertyFilter).filter(function (x) {
-        return x !== '_condition';
+        return x !== 'condition';
       }).map(function (operator) {
         return {
           operator: operator,
@@ -4006,7 +3996,7 @@ function applyClientSideFilterToData(_ref4) {
         underscoreSeparatedPropName: underscoreSeparatedPropName,
         propNotInQuery: propNotInQuery,
         operators: operators,
-        condition: propertyFilter._condition,
+        condition: propertyFilter.condition,
         isRelational: isRelationalProperty,
         relationalKey: possibleRelationalKey,
         oneToOne: relational && 'oneToOne' in relational || undefined,
@@ -4032,10 +4022,10 @@ function applyClientSideFilterToData(_ref4) {
           }
 
           var orConditions = filterProperties.filter(function (x) {
-            return x.condition === 'OR';
+            return x.condition === 'or';
           });
           var andConditions = filterProperties.filter(function (x) {
-            return x.condition === 'AND';
+            return x.condition === 'and';
           });
           var hasPassedEveryANDConditions = andConditions.every(function (filter) {
             if (filter.isRelational) {
@@ -4193,8 +4183,8 @@ function applyClientSideSortToData(_ref9) {
         relationalKey: possibleRelationalKey,
         oneToOne: relational && 'oneToOne' in relational || undefined,
         oneToMany: relational && 'oneToMany' in relational || undefined,
-        priority: sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
-        direction: sortObject[dotSeparatedPropName]._direction || 'asc'
+        priority: sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+        direction: sortObject[dotSeparatedPropName].direction || 'asc'
       };
     }), function (x) {
       return x.priority;
@@ -4241,12 +4231,10 @@ function applyClientSideSortToData(_ref9) {
 function applyClientSideSortAndFilterToData(queryRecord, data) {
   Object.keys(queryRecord).forEach(function (alias) {
     var queryRecordEntry = queryRecord[alias];
-    var containsArrayData = isArray(data[alias][NODES_PROPERTY_KEY]);
 
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
         queryRecordEntry: queryRecordEntry,
-        filter: queryRecordEntry.filter,
         data: data,
         alias: alias
       });
@@ -4264,6 +4252,10 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     var relational = queryRecordEntry.relational;
 
     if (relational != null) {
+      var containsArrayData = queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry: queryRecordEntry
+      });
+
       if (containsArrayData) {
         if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
           data[alias][NODES_PROPERTY_KEY].forEach(function (item) {
@@ -4278,176 +4270,22 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
 }
 
 var queryIdx = 0;
-
-function splitQueryDefinitionsByToken(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
-    var alias = _ref[0],
-        queryDefinition = _ref[1];
-    var tokenName = queryDefinition && 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
-    split[tokenName] = split[tokenName] || {};
-    split[tokenName][alias] = queryDefinition;
-    return split;
-  }, {});
-}
-
-function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref2) {
-    var alias = _ref2[0],
-        queryDefinition = _ref2[1];
-    if (!queryDefinition) return acc;
-    acc[alias] = queryDefinition;
-    return acc;
-  }, {});
-}
-
-function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref3) {
-    var key = _ref3[0],
-        queryDefinition = _ref3[1];
-    if (queryDefinition == null) acc[key] = null;
-    return acc;
-  }, {});
-}
 /**
  * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
  * Which ensures that the socket messages are applied to the correct base set of results
  */
 
-
-function generateQuerier(_ref4) {
-  var mmGQLInstance = _ref4.mmGQLInstance,
-      queryManager = _ref4.queryManager;
+function generateQuerier(_ref) {
+  var mmGQLInstance = _ref.mmGQLInstance,
+      queryManager = _ref.queryManager;
   return /*#__PURE__*/function () {
-    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(queryDefinitions, opts) {
-      var startStack, queryId, getError, getToken, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, performQueries, _performQueries, results, qM, error, qmResults, _error;
+    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
+      var startStack, queryId, getError, nonNullishQueryDefinitions, nullishResults, results, dataToReturn, queryDefinitionsSplitByToken, _convertQueryDefiniti, queryRecord, queryGQL, resultsForEachTokenUsed, allResults, qM, error, _error;
 
-      return runtime_1.wrap(function _callee3$(_context3) {
+      return runtime_1.wrap(function _callee$(_context) {
         while (1) {
-          switch (_context3.prev = _context3.next) {
+          switch (_context.prev = _context.next) {
             case 0:
-              _performQueries = function _performQueries3() {
-                _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-                  var allResults;
-                  return runtime_1.wrap(function _callee2$(_context2) {
-                    while (1) {
-                      switch (_context2.prev = _context2.next) {
-                        case 0:
-                          _context2.next = 2;
-                          return Promise.all(Object.entries(queryDefinitionsSplitByToken).map( /*#__PURE__*/function () {
-                            var _ref6 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(_ref5) {
-                              var tokenName, queryDefinitions, response, _convertQueryDefiniti, queryGQL, queryRecord, queryOpts, filteredAndSortedResponse;
-
-                              return runtime_1.wrap(function _callee$(_context) {
-                                while (1) {
-                                  switch (_context.prev = _context.next) {
-                                    case 0:
-                                      tokenName = _ref5[0], queryDefinitions = _ref5[1];
-                                      _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
-                                        queryDefinitions: queryDefinitions,
-                                        queryId: queryId + '_' + tokenName
-                                      }), queryGQL = _convertQueryDefiniti.queryGQL, queryRecord = _convertQueryDefiniti.queryRecord;
-
-                                      if (!mmGQLInstance.generateMockData) {
-                                        _context.next = 6;
-                                        break;
-                                      }
-
-                                      response = generateMockNodeDataFromQueryDefinitions({
-                                        queryDefinitions: queryDefinitions,
-                                        queryId: queryId
-                                      });
-                                      _context.next = 17;
-                                      break;
-
-                                    case 6:
-                                      if (!mmGQLInstance.enableQuerySlimming) {
-                                        _context.next = 12;
-                                        break;
-                                      }
-
-                                      _context.next = 9;
-                                      return mmGQLInstance.QuerySlimmer.query({
-                                        queryId: queryId + "_" + tokenName,
-                                        queryDefinitions: queryDefinitions,
-                                        tokenName: tokenName,
-                                        queryOpts: opts
-                                      });
-
-                                    case 9:
-                                      response = _context.sent;
-                                      _context.next = 17;
-                                      break;
-
-                                    case 12:
-                                      queryOpts = {
-                                        gql: queryGQL,
-                                        token: getToken(tokenName)
-                                      };
-
-                                      if (opts && 'batchKey' in opts) {
-                                        queryOpts.batchKey = opts.batchKey;
-                                      }
-
-                                      _context.next = 16;
-                                      return mmGQLInstance.gqlClient.query(queryOpts);
-
-                                    case 16:
-                                      response = _context.sent;
-
-                                    case 17:
-                                      // clone the object only if we are running the unit test
-                                      // to simulate that we are receiving new response
-                                      // to prevent mutating the object multiple times when filtering or sorting
-                                      // resulting into incorrect results in our specs
-                                      filteredAndSortedResponse = process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
-                                      applyClientSideSortAndFilterToData(queryRecord, filteredAndSortedResponse);
-                                      return _context.abrupt("return", filteredAndSortedResponse);
-
-                                    case 20:
-                                    case "end":
-                                      return _context.stop();
-                                  }
-                                }
-                              }, _callee);
-                            }));
-
-                            return function (_x3) {
-                              return _ref6.apply(this, arguments);
-                            };
-                          }()));
-
-                        case 2:
-                          allResults = _context2.sent;
-                          return _context2.abrupt("return", allResults.reduce(function (acc, resultsForToken) {
-                            return _extends({}, acc, resultsForToken);
-                          }, _extends({}, nullishResults)));
-
-                        case 4:
-                        case "end":
-                          return _context2.stop();
-                      }
-                    }
-                  }, _callee2);
-                }));
-                return _performQueries.apply(this, arguments);
-              };
-
-              performQueries = function _performQueries2() {
-                return _performQueries.apply(this, arguments);
-              };
-
-              getToken = function _getToken(tokenName) {
-                var token = mmGQLInstance.getToken({
-                  tokenName: tokenName
-                });
-
-                if (!token) {
-                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
-                }
-
-                return token;
-              };
-
               getError = function _getError(error, stack) {
                 // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
                 error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
@@ -4458,81 +4296,129 @@ function generateQuerier(_ref4) {
               queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
-              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
-              _context3.prev = 9;
+              _context.prev = 5;
 
               if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context3.next = 13;
+                _context.next = 10;
                 break;
               }
 
+              results = _extends({}, nullishResults);
               (opts == null ? void 0 : opts.onData) && opts.onData({
-                results: _extends({}, nullishResults)
+                results: results
               });
-              return _context3.abrupt("return", {
-                data: _extends({}, nullishResults),
+              return _context.abrupt("return", {
+                data: results,
                 error: undefined
               });
 
-            case 13:
-              _context3.next = 15;
-              return performQueries();
+            case 10:
+              dataToReturn = _extends({}, nullishResults);
+              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
+              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+                queryDefinitions: queryDefinitions,
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
+              }), queryRecord = _convertQueryDefiniti.queryRecord, queryGQL = _convertQueryDefiniti.queryGQL;
+              _context.next = 15;
+              return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref2) {
+                var tokenName = _ref2[0],
+                    queryDefinitionsForThisToken = _ref2[1];
+                return performQueries({
+                  mmGQLInstance: mmGQLInstance,
+                  queryGQL: queryGQL,
+                  queryRecord: Object.entries(queryRecord).reduce(function (acc, _ref3) {
+                    var alias = _ref3[0],
+                        queryRecordEntry = _ref3[1];
+
+                    if (queryDefinitionsForThisToken[alias]) {
+                      acc[alias] = queryRecordEntry;
+                    }
+
+                    return acc;
+                  }, {}),
+                  tokenName: tokenName,
+                  queryId: queryId,
+                  batchKey: opts == null ? void 0 : opts.batchKey
+                });
+              }));
 
             case 15:
-              results = _context3.sent;
-              qM = queryManager || new mmGQLInstance.QueryManager(convertQueryDefinitionToQueryInfo({
-                queryDefinitions: nonNullishQueryDefinitions,
-                queryId: queryId
-              }).queryRecord);
-              _context3.prev = 17;
+              resultsForEachTokenUsed = _context.sent;
+              allResults = resultsForEachTokenUsed.reduce(function (acc, resultsForToken) {
+                return _extends({}, acc, resultsForToken);
+              }, {});
+              qM = queryManager || new mmGQLInstance.QueryManager(queryRecord, {
+                performQuery: function performQuery(_ref4) {
+                  var queryRecord = _ref4.queryRecord,
+                      queryGQL = _ref4.queryGQL,
+                      tokenName = _ref4.tokenName;
+                  return performQueries({
+                    mmGQLInstance: mmGQLInstance,
+                    queryRecord: queryRecord,
+                    queryId: queryId,
+                    tokenName: tokenName,
+                    queryGQL: queryGQL,
+                    batchKey: opts == null ? void 0 : opts.batchKey
+                  });
+                },
+                resultsObject: dataToReturn,
+                onResultsUpdated: function onResultsUpdated() {
+                  (opts == null ? void 0 : opts.onData) && opts.onData({
+                    results: dataToReturn
+                  });
+                },
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
+              });
+              _context.prev = 18;
               qM.onQueryResult({
                 queryId: queryId,
-                queryResult: results
+                queryResult: allResults
               });
-              _context3.next = 30;
+              (opts == null ? void 0 : opts.onData) && opts.onData({
+                results: dataToReturn
+              });
+              _context.next = 32;
               break;
 
-            case 21:
-              _context3.prev = 21;
-              _context3.t0 = _context3["catch"](17);
-              error = getError(new Error("Error applying query results"), _context3.t0.stack);
+            case 23:
+              _context.prev = 23;
+              _context.t0 = _context["catch"](18);
+              error = getError(new Error("Error applying query results"), _context.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 29;
+                _context.next = 31;
                 break;
               }
 
               opts.onError(error);
-              return _context3.abrupt("return", {
-                data: {},
+              return _context.abrupt("return", {
+                data: dataToReturn,
                 error: error
               });
 
-            case 29:
+            case 31:
               throw error;
 
-            case 30:
-              qmResults = qM.getResults();
-              (opts == null ? void 0 : opts.onData) && opts.onData({
-                results: _extends({}, nullishResults, qmResults)
-              });
-              return _context3.abrupt("return", {
-                data: _extends({}, nullishResults, qmResults),
+            case 32:
+              return _context.abrupt("return", {
+                data: dataToReturn,
                 error: undefined
               });
 
             case 35:
-              _context3.prev = 35;
-              _context3.t1 = _context3["catch"](9);
-              _error = getError(new Error("Error querying data"), _context3.t1.stack);
+              _context.prev = 35;
+              _context.t1 = _context["catch"](5);
+              _error = getError(new Error("Error querying data"), _context.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context3.next = 43;
+                _context.next = 43;
                 break;
               }
 
               opts.onError(_error);
-              return _context3.abrupt("return", {
+              return _context.abrupt("return", {
                 data: {},
                 error: _error
               });
@@ -4542,10 +4428,10 @@ function generateQuerier(_ref4) {
 
             case 44:
             case "end":
-              return _context3.stop();
+              return _context.stop();
           }
         }
-      }, _callee3, null, [[9, 35], [17, 21]]);
+      }, _callee, null, [[5, 35], [18, 23]]);
     }));
 
     function query(_x, _x2) {
@@ -4558,24 +4444,25 @@ function generateQuerier(_ref4) {
 var subscriptionId = 0;
 function generateSubscriber(mmGQLInstance) {
   return /*#__PURE__*/function () {
-    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(queryDefinitions, opts) {
-      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, _convertQueryDefiniti2, queryGQL, queryRecord, queryParamsString, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, queryDefinitionsSplitByToken, queryDefinitionsSplitByTokenEntries, initSubs, unsub, error, query, queryOpts, _error2, qmResults;
+    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
+      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, dataToReturn, _convertQueryDefiniti2, queryGQL, queryRecord, queryParamsString, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, queryDefinitionsSplitByToken, queryDefinitionsSplitByTokenEntries, initSubs, unsub, error, query, params, _error2;
 
-      return runtime_1.wrap(function _callee4$(_context4) {
+      return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context4.prev = _context4.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
               unsub = function _unsub() {
                 subscriptionCancellers.forEach(function (cancel) {
                   return cancel();
                 });
-                queryDefinitionsSplitByTokenEntries.forEach(function (_ref8) {
-                  var tokenName = _ref8[0],
-                      queryDefinitions = _ref8[1];
+                queryDefinitionsSplitByTokenEntries.forEach(function (_ref7) {
+                  var tokenName = _ref7[0],
+                      queryDefinitions = _ref7[1];
 
                   var _convertQueryDefiniti4 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName
+                    queryId: queryId + '_' + tokenName,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
                   }),
                       queryRecord = _convertQueryDefiniti4.queryRecord;
 
@@ -4584,13 +4471,14 @@ function generateSubscriber(mmGQLInstance) {
               };
 
               initSubs = function _initSubs() {
-                queryDefinitionsSplitByTokenEntries.forEach(function (_ref7) {
-                  var tokenName = _ref7[0],
-                      queryDefinitions = _ref7[1];
+                queryDefinitionsSplitByTokenEntries.forEach(function (_ref6) {
+                  var tokenName = _ref6[0],
+                      queryDefinitions = _ref6[1];
 
                   var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
                     queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName
+                    queryId: queryId + '_' + tokenName,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
                   }),
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
@@ -4610,12 +4498,6 @@ function generateSubscriber(mmGQLInstance) {
                         updateQueryManagerWithSubscriptionMessage({
                           message: message,
                           subscriptionConfig: subscriptionConfig
-                        }); // @TODO When called with skipInitialQuery, results should be null
-                        // and we should simply expose a "delta" from the message
-                        // probably don't need a query manager in that case either.
-
-                        opts.onData({
-                          results: _extends({}, nullishResults, queryManager.getResults())
                         });
                       },
                       onError: function onError(e) {
@@ -4634,7 +4516,7 @@ function generateSubscriber(mmGQLInstance) {
                 });
               };
 
-              getToken = function _getToken2(tokenName) {
+              getToken = function _getToken(tokenName) {
                 var token = mmGQLInstance.getToken({
                   tokenName: tokenName
                 });
@@ -4682,32 +4564,66 @@ function generateSubscriber(mmGQLInstance) {
               queryId = (opts == null ? void 0 : opts.queryId) || "query" + subscriptionId++;
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
+              dataToReturn = _extends({}, nullishResults);
 
               if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context4.next = 12;
+                _context2.next = 13;
                 break;
               }
 
               opts.onData({
-                results: _extends({}, nullishResults)
+                results: dataToReturn
               });
-              return _context4.abrupt("return", {
-                data: _extends({}, nullishResults),
+              return _context2.abrupt("return", {
+                data: dataToReturn,
                 unsub: function unsub() {}
               });
 
-            case 12:
+            case 13:
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
-                queryId: queryId
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
               }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, queryParamsString = _convertQueryDefiniti2.queryParamsString;
               opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
                 queryGQL: queryGQL,
                 queryId: queryId,
                 queryParamsString: queryParamsString
               });
+              // need to pass the info page from the results from this specific root/relational alias
+              // to the query builder, such that it applies the correct pagination param on that root/relational alias
+              // q: should the query manager perform the query? This would avoid having to pass data around in callbacks
+              //    instead the query manager would build the minimal queryRecord needed to
+              //    perform the new query for the next set of results and would append them to the results object?
+              //    Another option would be for the query manager to expect a callback function (as it does now)
+              //    which is called with a query record for that minimal query, and this fn needs to perform the query
+              //    and return the result of that query.
+              // Requirements
+              //    - loadMoreResults should append the new list of results to the previous list
+              //    - ensure that the correct token is used in the query for the next set of results
+              //       if a "query" fn is passed to the queryManager
               queryManager = new mmGQLInstance.QueryManager(queryRecord, {
-                onPaginate: opts.onPaginate
+                resultsObject: dataToReturn,
+                performQuery: function performQuery(_ref5) {
+                  var queryRecord = _ref5.queryRecord,
+                      queryGQL = _ref5.queryGQL,
+                      tokenName = _ref5.tokenName;
+                  return performQueries({
+                    mmGQLInstance: mmGQLInstance,
+                    queryRecord: queryRecord,
+                    queryId: queryId,
+                    tokenName: tokenName,
+                    queryGQL: queryGQL,
+                    batchKey: opts == null ? void 0 : opts.batchKey
+                  });
+                },
+                onResultsUpdated: function onResultsUpdated() {
+                  opts.onData({
+                    results: dataToReturn
+                  });
+                },
+                queryId: queryId,
+                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
               });
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
@@ -4720,81 +4636,77 @@ function generateSubscriber(mmGQLInstance) {
               messageQueue = [];
               queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
               queryDefinitionsSplitByTokenEntries = Object.entries(queryDefinitionsSplitByToken);
-              _context4.prev = 20;
+              _context2.prev = 21;
 
               if (!mmGQLInstance.generateMockData) {
                 initSubs();
               }
 
               opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
-              _context4.next = 34;
+              _context2.next = 35;
               break;
 
-            case 25:
-              _context4.prev = 25;
-              _context4.t0 = _context4["catch"](20);
-              error = getError(new Error("Error initializating subscriptions"), _context4.t0.stack);
+            case 26:
+              _context2.prev = 26;
+              _context2.t0 = _context2["catch"](21);
+              error = getError(new Error("Error initializating subscriptions"), _context2.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context4.next = 33;
+                _context2.next = 34;
                 break;
               }
 
               opts.onError(error);
-              return _context4.abrupt("return", {
-                data: {},
+              return _context2.abrupt("return", {
+                data: dataToReturn,
                 unsub: unsub,
                 error: error
               });
 
-            case 33:
+            case 34:
               throw error;
 
-            case 34:
+            case 35:
               if (!opts.skipInitialQuery) {
-                _context4.next = 38;
+                _context2.next = 39;
                 break;
               }
 
-              return _context4.abrupt("return", {
+              return _context2.abrupt("return", {
                 unsub: unsub
               });
 
-            case 38:
+            case 39:
               query = generateQuerier({
                 mmGQLInstance: mmGQLInstance,
                 queryManager: queryManager
               });
-              _context4.prev = 39;
-              queryOpts = {
-                queryId: opts.queryId
-              };
+              _context2.prev = 40;
+              params = [queryDefinitions, {
+                queryId: opts.queryId,
+                batchKey: opts.batchKey
+              }]; // this query method will post its results to the queryManager declared above
 
-              if (opts && 'batchKey' in opts) {
-                queryOpts.batchKey = opts.batchKey;
-              } // this query method will post its results to the queryManager declared above
-
-
-              _context4.next = 44;
-              return query(queryDefinitions, queryOpts);
+              _context2.next = 44;
+              return query.apply(void 0, params);
 
             case 44:
-              _context4.next = 55;
+              _context2.next = 55;
               break;
 
             case 46:
-              _context4.prev = 46;
-              _context4.t1 = _context4["catch"](39);
-              _error2 = getError(new Error("Error querying initial data set"), _context4.t1.stack);
+              _context2.prev = 46;
+              _context2.t1 = _context2["catch"](40);
+              _error2 = getError(new Error("Error querying initial data set"), _context2.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context4.next = 54;
+                _context2.next = 54;
                 break;
               }
 
               opts.onError(_error2);
-              return _context4.abrupt("return", {
-                data: {},
+              return _context2.abrupt("return", {
+                data: dataToReturn,
                 unsub: unsub,
                 error: _error2
               });
@@ -4809,25 +4721,24 @@ function generateSubscriber(mmGQLInstance) {
                 messageQueue.length = 0;
               }
 
-              qmResults = queryManager.getResults();
               opts.onData({
-                results: _extends({}, nullishResults, qmResults)
+                results: dataToReturn
               });
-              return _context4.abrupt("return", {
-                data: _extends({}, nullishResults, qmResults),
+              return _context2.abrupt("return", {
+                data: dataToReturn,
                 unsub: unsub,
-                error: null
+                error: undefined
               });
 
-            case 59:
+            case 58:
             case "end":
-              return _context4.stop();
+              return _context2.stop();
           }
         }
-      }, _callee4, null, [[20, 25], [39, 46]]);
+      }, _callee2, null, [[21, 26], [40, 46]]);
     }));
 
-    function subscribe(_x4, _x5) {
+    function subscribe(_x3, _x4) {
       return _subscribe.apply(this, arguments);
     }
 
@@ -4835,84 +4746,362 @@ function generateSubscriber(mmGQLInstance) {
   }();
 }
 
-function getPageResults(opts) {
-  var startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
-  return Array.from(opts.items || []).slice(startIndex, startIndex + opts.itemsPerPage);
+function splitQueryDefinitionsByToken(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (split, _ref8) {
+    var alias = _ref8[0],
+        queryDefinition = _ref8[1];
+    var tokenName = queryDefinition && 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
+    split[tokenName] = split[tokenName] || {};
+    split[tokenName][alias] = queryDefinition;
+    return split;
+  }, {});
+}
+
+function removeNullishQueryDefinitions(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref9) {
+    var alias = _ref9[0],
+        queryDefinition = _ref9[1];
+    if (!queryDefinition) return acc;
+    acc[alias] = queryDefinition;
+    return acc;
+  }, {});
+}
+
+function getNullishResults(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref10) {
+    var key = _ref10[0],
+        queryDefinition = _ref10[1];
+    if (queryDefinition == null) acc[key] = null;
+    return acc;
+  }, {});
+}
+
+function performQueries(_x5) {
+  return _performQueries.apply(this, arguments);
+}
+
+function _performQueries() {
+  _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
+    var getToken, response, _opts$mmGQLInstance$g, params, filteredAndSortedResponse;
+
+    return runtime_1.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            getToken = function _getToken2(tokenName) {
+              var token = opts.mmGQLInstance.getToken({
+                tokenName: tokenName
+              });
+
+              if (!token) {
+                throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
+              }
+
+              return token;
+            };
+
+            if (!opts.mmGQLInstance.generateMockData) {
+              _context3.next = 5;
+              break;
+            }
+
+            response = generateMockNodeDataForQueryRecord({
+              queryRecord: opts.queryRecord
+            });
+            _context3.next = 15;
+            break;
+
+          case 5:
+            if (!opts.mmGQLInstance.enableQuerySlimming) {
+              _context3.next = 11;
+              break;
+            }
+
+            _context3.next = 8;
+            return opts.mmGQLInstance.QuerySlimmer.query({
+              queryId: opts.queryId,
+              queryRecord: opts.queryRecord,
+              useServerSidePaginationFilteringSorting: opts.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER,
+              tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
+              batchKey: opts.batchKey
+            });
+
+          case 8:
+            response = _context3.sent;
+            _context3.next = 15;
+            break;
+
+          case 11:
+            params = [{
+              gql: opts.queryGQL,
+              token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
+              batchKey: opts.batchKey
+            }];
+            _context3.next = 14;
+            return (_opts$mmGQLInstance$g = opts.mmGQLInstance.gqlClient).query.apply(_opts$mmGQLInstance$g, params);
+
+          case 14:
+            response = _context3.sent;
+
+          case 15:
+            if (!(opts.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.CLIENT)) {
+              _context3.next = 19;
+              break;
+            }
+
+            // clone the object only if we are running the unit test
+            // to simulate that we are receiving new response
+            // to prevent mutating the object multiple times when filtering or sorting
+            // resulting into incorrect results in our specs
+            filteredAndSortedResponse = process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+            applyClientSideSortAndFilterToData(opts.queryRecord, filteredAndSortedResponse);
+            return _context3.abrupt("return", filteredAndSortedResponse);
+
+          case 19:
+            return _context3.abrupt("return", response);
+
+          case 20:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3);
+  }));
+  return _performQueries.apply(this, arguments);
 }
 
 var NodesCollection = /*#__PURE__*/function () {
+  // when "loadMore" is used, we display more than 1 page
+  // however, nothing in our code needs to know about this other than the "nodes"
+  // getter below, which must return multiple pages of results when loadMore is executed
   function NodesCollection(opts) {
-    this.itemsPerPage = void 0;
-    this.page = void 0;
-    this.onPaginate = void 0;
+    this.onLoadMoreResults = void 0;
+    this.onGoToNextPage = void 0;
+    this.onGoToPreviousPage = void 0;
     this.items = void 0;
-    this.itemsPerPage = opts.itemsPerPage;
-    this.page = opts.page;
+    this.pageInfoFromResults = void 0;
+    this.clientSidePageInfo = void 0;
+    this.useServerSidePaginationFilteringSorting = void 0;
+    this.pagesBeingDisplayed = void 0;
     this.items = opts.items;
-    this.onPaginate = opts.onPaginate;
+    this.pageInfoFromResults = opts.pageInfoFromResults;
+    this.clientSidePageInfo = opts.clientSidePageInfo;
+    this.useServerSidePaginationFilteringSorting = opts.useServerSidePaginationFilteringSorting;
+    this.pagesBeingDisplayed = [opts.clientSidePageInfo.lastQueriedPage];
+    this.onLoadMoreResults = opts.onLoadMoreResults;
+    this.onGoToNextPage = opts.onGoToNextPage;
+    this.onGoToPreviousPage = opts.onGoToPreviousPage;
   }
 
   var _proto = NodesCollection.prototype;
 
-  _proto.goToPage = function goToPage(page) {
-    if (page < 1 || page > this.totalPages) {
-      throw new NodesCollectionPageOutOfBoundsException({
-        page: page
-      });
+  _proto.loadMore = /*#__PURE__*/function () {
+    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+      return runtime_1.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              if (this.hasNextPage) {
+                _context.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No more results available - check results.hasNextPage before calling loadMore');
+
+            case 2:
+              this.clientSidePageInfo.lastQueriedPage++;
+              this.pagesBeingDisplayed = [].concat(this.pagesBeingDisplayed, [this.clientSidePageInfo.lastQueriedPage]);
+              _context.next = 6;
+              return this.onLoadMoreResults();
+
+            case 6:
+              if (!this.useServerSidePaginationFilteringSorting) {
+                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+              }
+
+            case 7:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee, this);
+    }));
+
+    function loadMore() {
+      return _loadMore.apply(this, arguments);
     }
 
-    this.page = page;
-    this.onPaginate && this.onPaginate({
-      page: page,
-      itemsPerPage: this.itemsPerPage
-    });
-  };
+    return loadMore;
+  }();
 
-  _proto.goToNextPage = function goToNextPage() {
-    if (!this.hasNextPage) {
-      return;
+  _proto.goToNextPage = /*#__PURE__*/function () {
+    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+      return runtime_1.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              if (this.hasNextPage) {
+                _context2.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No next page available - check results.hasNextPage before calling goToNextPage');
+
+            case 2:
+              this.clientSidePageInfo.lastQueriedPage++;
+              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+              _context2.next = 6;
+              return this.onGoToNextPage();
+
+            case 6:
+              if (!this.useServerSidePaginationFilteringSorting) {
+                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+              }
+
+            case 7:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2, this);
+    }));
+
+    function goToNextPage() {
+      return _goToNextPage.apply(this, arguments);
     }
 
-    this.goToPage(this.page + 1);
-  };
+    return goToNextPage;
+  }();
 
-  _proto.goToPreviousPage = function goToPreviousPage() {
-    if (!this.hasPreviousPage) {
-      return;
+  _proto.goToPreviousPage = /*#__PURE__*/function () {
+    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
+      return runtime_1.wrap(function _callee3$(_context3) {
+        while (1) {
+          switch (_context3.prev = _context3.next) {
+            case 0:
+              if (this.hasPreviousPage) {
+                _context3.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No previous page available - check results.hasPreviousPage before calling goToPreviousPage');
+
+            case 2:
+              this.clientSidePageInfo.lastQueriedPage--;
+              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+              _context3.next = 6;
+              return this.onGoToPreviousPage();
+
+            case 6:
+              if (!this.useServerSidePaginationFilteringSorting) {
+                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+              }
+
+            case 7:
+            case "end":
+              return _context3.stop();
+          }
+        }
+      }, _callee3, this);
+    }));
+
+    function goToPreviousPage() {
+      return _goToPreviousPage.apply(this, arguments);
     }
 
-    this.goToPage(this.page - 1);
+    return goToPreviousPage;
+  }();
+
+  _proto.goToPage = /*#__PURE__*/function () {
+    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(_) {
+      return runtime_1.wrap(function _callee4$(_context4) {
+        while (1) {
+          switch (_context4.prev = _context4.next) {
+            case 0:
+              throw new Error('Not implemented');
+
+            case 1:
+            case "end":
+              return _context4.stop();
+          }
+        }
+      }, _callee4);
+    }));
+
+    function goToPage(_x) {
+      return _goToPage.apply(this, arguments);
+    }
+
+    return goToPage;
+  }() // as the name implies, only runs when client side pagination is executed
+  // otherwise the onLoadMoreResults, onGoToNextPage, onGoToPreviousPage are expected to return the new page info
+  // this is because when doing client side pagination, all the items in this collection are expected to already
+  // be cached in this class' state
+  ;
+
+  _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
+    this.pageInfoFromResults = {
+      totalPages: this.pageInfoFromResults.totalPages,
+      hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
+      hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
+      endCursor: this.pageInfoFromResults.endCursor,
+      startCursor: this.pageInfoFromResults.startCursor
+    };
   };
 
   _createClass(NodesCollection, [{
     key: "nodes",
     get: function get() {
+      if (this.useServerSidePaginationFilteringSorting) return this.items; // this is because when doing client side pagination, all the items in this collection are expected to already
+      // be cached in this class' state
+
       return getPageResults({
         items: this.items,
-        page: this.page,
-        itemsPerPage: this.itemsPerPage
+        pages: this.pagesBeingDisplayed,
+        itemsPerPage: this.clientSidePageInfo.pageSize
       });
-    }
-  }, {
-    key: "totalPages",
-    get: function get() {
-      return Math.ceil((this.items || []).length / this.itemsPerPage);
     }
   }, {
     key: "hasNextPage",
     get: function get() {
-      return this.totalPages > this.page;
+      return this.pageInfoFromResults.hasNextPage;
     }
   }, {
     key: "hasPreviousPage",
     get: function get() {
-      return this.page > 1;
+      if (this.useServerSidePaginationFilteringSorting) {
+        return this.pageInfoFromResults.hasPreviousPage;
+      } else {
+        return this.clientSidePageInfo.lastQueriedPage > 1;
+      }
+    }
+  }, {
+    key: "totalPages",
+    get: function get() {
+      return this.pageInfoFromResults.totalPages;
+    }
+  }, {
+    key: "page",
+    get: function get() {
+      return this.clientSidePageInfo.lastQueriedPage;
     }
   }]);
 
   return NodesCollection;
 }();
 
+function getPageResults(opts) {
+  var inChunks = chunkArray(opts.items, opts.itemsPerPage);
+  return opts.pages.map(function (pageNumber) {
+    return inChunks[pageNumber - 1];
+  }).flat();
+}
+
+var chunkArray = function chunkArray(arr, size) {
+  return arr.length > size ? [arr.slice(0, size)].concat(chunkArray(arr.slice(size), size)) : [arr];
+};
+
+var _templateObject, _templateObject2, _templateObject3;
 function createQueryManager(mmGQLInstance) {
   /**
    * QueryManager is in charge of
@@ -4944,6 +5133,15 @@ function createQueryManager(mmGQLInstance) {
       this.state = this.getNewStateFromQueryResult(_extends({}, opts, {
         queryRecord: this.queryRecord
       }));
+      extend({
+        object: this.opts.resultsObject,
+        extension: this.getResultsFromState({
+          state: this.state,
+          aliasPath: []
+        }),
+        extendNestedObjects: false,
+        deleteKeysNotInExtension: false
+      });
     };
 
     _proto.onSubscriptionMessage = function onSubscriptionMessage(opts) {
@@ -4957,41 +5155,68 @@ function createQueryManager(mmGQLInstance) {
         queryRecord: (_queryRecord = {}, _queryRecord[subscriptionAlias] = queryRecordEntryForThisSubscription, _queryRecord)
       });
       this.updateProxiesAndStateFromSubscriptionMessage(opts);
+      Object.assign(this.opts.resultsObject, this.getResultsFromState({
+        state: this.state,
+        aliasPath: []
+      }));
     }
     /**
-     * Returns the current results based on received query results and subscription messages
+     * Is used to build the root level results for the query, and also to build the relational results
+     * used by each proxy, which is why "state" is a param here
+     *
+     * alias path is required such that when "loadMore" is executed on a node collection
+     * this query manager can perform a new query with the minimal query record necessary
+     * and extend the result set with the new results
      */
     ;
 
-    _proto.getResults = function getResults() {
-      return this.getResultsFromState(this.state);
-    }
-    /**
-     * Is used to build the overall results for the query, and also to build the relational results used by each proxy
-     * which is why "state" is a param here
-     */
-    ;
-
-    _proto.getResultsFromState = function getResultsFromState(state) {
+    _proto.getResultsFromState = function getResultsFromState(opts) {
       var _this = this;
 
-      var acc = Object.keys(state).reduce(function (resultsAcc, queryAlias) {
-        var stateForThisAlias = state[queryAlias];
+      return Object.keys(opts.state).reduce(function (resultsAcc, queryAlias) {
+        var stateForThisAlias = opts.state[queryAlias];
         var idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
+        var pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
+        var clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
 
         var resultsAlias = _this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          var _stateForThisAlias$pa, _stateForThisAlias$pa2, _this$opts;
+          if (!pageInfoFromResults) {
+            throw Error("No page info for results found for the alias " + queryAlias);
+          }
 
-          var ids = idsOrId.map(function (id) {
+          if (!clientSidePageInfo) {
+            throw Error("No client side page info found for the alias " + queryAlias);
+          }
+
+          var items = idsOrId.map(function (id) {
             return stateForThisAlias.proxyCache[id].proxy;
           });
+          var aliasPath = [].concat(opts.aliasPath || [], [resultsAlias]);
           resultsAcc[resultsAlias] = new NodesCollection({
-            items: ids,
-            itemsPerPage: ((_stateForThisAlias$pa = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa.itemsPerPage) || ids.length,
-            page: ((_stateForThisAlias$pa2 = stateForThisAlias.pagination) == null ? void 0 : _stateForThisAlias$pa2.page) || 1,
-            onPaginate: (_this$opts = _this.opts) == null ? void 0 : _this$opts.onPaginate
+            items: items,
+            clientSidePageInfo: clientSidePageInfo,
+            pageInfoFromResults: pageInfoFromResults,
+            onLoadMoreResults: function onLoadMoreResults() {
+              return _this.onLoadMoreResults({
+                aliasPath: aliasPath,
+                previousEndCursor: pageInfoFromResults.endCursor
+              });
+            },
+            onGoToNextPage: function onGoToNextPage() {
+              return _this.onGoToNextPage({
+                aliasPath: aliasPath,
+                previousEndCursor: pageInfoFromResults.endCursor
+              });
+            },
+            onGoToPreviousPage: function onGoToPreviousPage() {
+              return _this.onGoToPreviousPage({
+                aliasPath: aliasPath,
+                previousStartCursor: pageInfoFromResults.startCursor
+              });
+            },
+            useServerSidePaginationFilteringSorting: _this.opts.useServerSidePaginationFilteringSorting
           });
         } else if (idsOrId) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
@@ -5001,7 +5226,6 @@ function createQueryManager(mmGQLInstance) {
 
         return resultsAcc;
       }, {});
-      return acc;
     }
     /**
      * Takes a queryRecord and the data that resulted from that query
@@ -5014,7 +5238,7 @@ function createQueryManager(mmGQLInstance) {
 
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
         var dataForThisAlias = _this2.getDataFromResponse({
-          queryRecord: opts.queryRecord[queryAlias],
+          queryRecordEntry: opts.queryRecord[queryAlias],
           dataForThisAlias: opts.data[queryAlias]
         });
 
@@ -5076,10 +5300,17 @@ function createQueryManager(mmGQLInstance) {
         var cacheEntry = _this3.buildCacheEntry({
           nodeData: _this3.getDataFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias],
-            queryRecord: opts.queryRecord[queryAlias]
+            queryRecordEntry: opts.queryRecord[queryAlias]
           }),
-          queryId: opts.queryId,
-          queryAlias: queryAlias
+          pageInfoFromResults: _this3.getPageInfoFromResponse({
+            dataForThisAlias: opts.queryResult[queryAlias]
+          }),
+          clientSidePageInfo: _this3.getClientSidePageInfo({
+            queryRecordEntry: opts.queryRecord[queryAlias]
+          }),
+          queryRecord: opts.queryRecord,
+          queryAlias: queryAlias,
+          aliasPath: [queryAlias]
         });
 
         if (!cacheEntry) return resultingStateAcc;
@@ -5093,7 +5324,7 @@ function createQueryManager(mmGQLInstance) {
 
       var nodeData = opts.nodeData,
           queryAlias = opts.queryAlias;
-      var queryRecord = opts.queryRecord || this.queryRecord;
+      var queryRecord = opts.queryRecord;
       var relational = queryRecord[opts.queryAlias].relational; // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
       // this means that the result node likely matches a different type in that union
@@ -5109,17 +5340,28 @@ function createQueryManager(mmGQLInstance) {
           var _extends2;
 
           var relationalDataForThisAlias = _this4.getDataFromResponse({
-            queryRecord: relational[relationalAlias],
+            queryRecordEntry: relational[relationalAlias],
             dataForThisAlias: node[relationalAlias]
           });
 
           if (!relationalDataForThisAlias) return relationalStateAcc;
 
+          var aliasPath = _this4.addIdToLastEntryInAliasPath({
+            aliasPath: opts.aliasPath,
+            id: node.id
+          });
+
           var cacheEntry = _this4.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
-            queryId: opts.queryId,
+            pageInfoFromResults: _this4.getPageInfoFromResponse({
+              dataForThisAlias: node[relationalAlias]
+            }),
+            clientSidePageInfo: _this4.getClientSidePageInfo({
+              queryRecordEntry: relational[relationalAlias]
+            }),
             queryAlias: relationalAlias,
-            queryRecord: relational
+            queryRecord: relational,
+            aliasPath: [].concat(aliasPath, [relationalAlias])
           });
 
           if (!cacheEntry) return relationalStateAcc;
@@ -5127,20 +5369,29 @@ function createQueryManager(mmGQLInstance) {
         }, {});
       };
 
-      var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(node) {
-        var relationalState = buildRelationalStateForNode(node);
+      var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildCacheEntryOpts) {
+        var relationalState = buildRelationalStateForNode(buildCacheEntryOpts.node);
         var nodeRepository = queryRecord[queryAlias].def.repository;
         var relationalQueries = relational ? _this4.getApplicableRelationalQueries({
           relationalQueries: relational,
-          nodeData: node
+          nodeData: buildCacheEntryOpts.node
         }) : null;
+
+        var aliasPath = _this4.addIdToLastEntryInAliasPath({
+          aliasPath: opts.aliasPath,
+          id: buildCacheEntryOpts.node.id
+        });
+
         var proxy = mmGQLInstance.DOProxyGenerator({
           node: queryRecord[opts.queryAlias].def,
           allPropertiesQueried: queryRecord[opts.queryAlias].properties,
           relationalQueries: relationalQueries,
-          queryId: opts.queryId,
-          relationalResults: !relationalState ? null : _this4.getResultsFromState(relationalState),
-          "do": nodeRepository.byId(node.id)
+          queryId: _this4.opts.queryId,
+          relationalResults: !relationalState ? null : _this4.getResultsFromState({
+            state: relationalState,
+            aliasPath: aliasPath
+          }),
+          "do": nodeRepository.byId(buildCacheEntryOpts.node.id)
         });
         return {
           proxy: proxy,
@@ -5153,20 +5404,26 @@ function createQueryManager(mmGQLInstance) {
           if (opts.nodeData[0] == null) {
             if (!queryRecord[opts.queryAlias].allowNullResult) throw new DataParsingException({
               receivedData: opts.nodeData,
-              message: "Queried a node by id for the query with the id \"" + opts.queryId + "\" but received back an empty array"
+              message: "Queried a node by id for the query with the id \"" + this.opts.queryId + "\" but received back an empty array"
             });
             return {
               idsOrIdInCurrentResult: null,
-              proxyCache: {}
+              proxyCache: {},
+              pageInfoFromResults: opts.pageInfoFromResults,
+              clientSidePageInfo: opts.clientSidePageInfo
             };
           }
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
             proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node: node
+              });
               return proxyCacheAcc;
-            }, {})
+            }, {}),
+            pageInfoFromResults: opts.pageInfoFromResults,
+            clientSidePageInfo: opts.clientSidePageInfo
           };
         } else {
           return {
@@ -5174,10 +5431,13 @@ function createQueryManager(mmGQLInstance) {
               return node.id;
             }),
             proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode(node);
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node: node
+              });
               return proxyCacheAcc;
             }, {}),
-            pagination: queryRecord[opts.queryAlias].pagination
+            pageInfoFromResults: opts.pageInfoFromResults,
+            clientSidePageInfo: opts.clientSidePageInfo
           };
         }
       } else {
@@ -5185,14 +5445,17 @@ function createQueryManager(mmGQLInstance) {
 
         return {
           idsOrIdInCurrentResult: opts.nodeData.id,
-          proxyCache: (_proxyCache = {}, _proxyCache[nodeData.id] = buildProxyCacheEntryForNode(nodeData), _proxyCache)
+          proxyCache: (_proxyCache = {}, _proxyCache[nodeData.id] = buildProxyCacheEntryForNode({
+            node: nodeData
+          }), _proxyCache),
+          pageInfoFromResults: opts.pageInfoFromResults,
+          clientSidePageInfo: opts.clientSidePageInfo
         };
       }
     };
 
     _proto.updateProxiesAndStateFromSubscriptionMessage = function updateProxiesAndStateFromSubscriptionMessage(opts) {
       var node = opts.node,
-          queryId = opts.queryId,
           subscriptionAlias = opts.subscriptionAlias,
           operation = opts.operation;
 
@@ -5221,7 +5484,6 @@ function createQueryManager(mmGQLInstance) {
 
       if (proxy) {
         var newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry({
-          queryId: queryId,
           proxy: proxy,
           newRelationalData: this.getRelationalData({
             queryRecord: queryRecordEntryForThisSubscription,
@@ -5231,15 +5493,19 @@ function createQueryManager(mmGQLInstance) {
           currentState: {
             proxy: proxy,
             relationalState: relationalState
-          }
+          },
+          aliasPath: [subscriptionAlias]
         });
         stateForThisAlias.proxyCache[nodeId] = newCacheEntry;
       } else {
         var cacheEntry = this.buildCacheEntry({
           nodeData: node,
-          queryId: queryId,
           queryAlias: subscriptionAlias,
-          queryRecord: this.queryRecord
+          queryRecord: this.queryRecord,
+          // @TODO will we get pageInfo in subscription messages?
+          pageInfoFromResults: null,
+          clientSidePageInfo: null,
+          aliasPath: [subscriptionAlias]
         });
         if (!cacheEntry) return;
         var proxyCache = cacheEntry.proxyCache;
@@ -5264,8 +5530,7 @@ function createQueryManager(mmGQLInstance) {
     _proto.recursivelyUpdateProxyAndReturnNewCacheEntry = function recursivelyUpdateProxyAndReturnNewCacheEntry(opts) {
       var _this5 = this;
 
-      var queryId = opts.queryId,
-          proxy = opts.proxy,
+      var proxy = opts.proxy,
           newRelationalData = opts.newRelationalData,
           currentState = opts.currentState,
           relationalQueryRecord = opts.relationalQueryRecord;
@@ -5282,9 +5547,12 @@ function createQueryManager(mmGQLInstance) {
         if (!currentStateForThisAlias) {
           var cacheEntry = _this5.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
-            queryId: queryId,
             queryAlias: relationalAlias,
-            queryRecord: relationalQueryRecord
+            queryRecord: relationalQueryRecord,
+            // @TODO will we get pageInfo in subscription messages?
+            pageInfoFromResults: null,
+            clientSidePageInfo: null,
+            aliasPath: [].concat(opts.aliasPath, [relationalAlias])
           });
 
           if (!cacheEntry) return relationalStateAcc;
@@ -5307,33 +5575,42 @@ function createQueryManager(mmGQLInstance) {
 
               var _cacheEntry = _this5.buildCacheEntry({
                 nodeData: node,
-                queryId: queryId,
                 queryAlias: relationalAlias,
-                queryRecord: relationalQueryRecord
+                queryRecord: relationalQueryRecord,
+                // @TODO will we get pageInfo in subscription messages?
+                pageInfoFromResults: null,
+                clientSidePageInfo: null,
+                aliasPath: [].concat(opts.aliasPath, [relationalAlias])
               });
 
               if (!_cacheEntry) return;
               relationalStateAcc[relationalAlias] = {
                 proxyCache: _extends({}, relationalStateAcc[relationalAlias].proxyCache, (_extends3 = {}, _extends3[node.id] = _cacheEntry.proxyCache[node.id], _extends3)),
-                idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id])
+                idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id]),
+                // @TODO will we get pageInfo in subscription messages?
+                pageInfoFromResults: null,
+                clientSidePageInfo: null
               };
             } else {
               var _extends4;
 
               var newCacheEntry = _this5.recursivelyUpdateProxyAndReturnNewCacheEntry({
-                queryId: queryId,
                 proxy: existingProxy,
                 newRelationalData: _this5.getRelationalData({
                   queryRecord: queryRecordForThisAlias,
                   node: node
                 }),
                 relationalQueryRecord: queryRecordForThisAlias.relational || null,
-                currentState: currentStateForThisAlias.proxyCache[node.id]
+                currentState: currentStateForThisAlias.proxyCache[node.id],
+                aliasPath: [].concat(opts.aliasPath, [relationalAlias])
               });
 
               relationalStateAcc[relationalAlias] = {
                 proxyCache: _extends({}, relationalStateAcc[relationalAlias].proxyCache, (_extends4 = {}, _extends4[node.id] = newCacheEntry, _extends4)),
-                idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id])
+                idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id]),
+                // @TODO will we get pageInfo in subscription messages?
+                pageInfoFromResults: null,
+                clientSidePageInfo: null
               };
             }
           });
@@ -5343,7 +5620,10 @@ function createQueryManager(mmGQLInstance) {
 
         return relationalStateAcc;
       }, {});
-      newRelationalState ? proxy.updateRelationalResults(this.getResultsFromState(newRelationalState)) : proxy.updateRelationalResults(null);
+      newRelationalState ? proxy.updateRelationalResults(this.getResultsFromState({
+        state: newRelationalState,
+        aliasPath: opts.aliasPath
+      })) : proxy.updateRelationalResults(null);
       return {
         proxy: proxy,
         relationalState: newRelationalState
@@ -5378,7 +5658,406 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.getDataFromResponse = function getDataFromResponse(opts) {
-      return 'id' in opts.queryRecord || 'oneToOne' in opts.queryRecord ? opts.dataForThisAlias : opts.dataForThisAlias.nodes;
+      return queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry: opts.queryRecordEntry
+      }) ? opts.dataForThisAlias[NODES_PROPERTY_KEY] : opts.dataForThisAlias;
+    };
+
+    _proto.getPageInfoFromResponse = function getPageInfoFromResponse(opts) {
+      return opts.dataForThisAlias[PAGE_INFO_PROPERTY_KEY] || null;
+    };
+
+    _proto.getPageInfoFromResponseForAlias = function getPageInfoFromResponseForAlias(opts) {
+      var _opts$aliasPath = opts.aliasPath,
+          firstAlias = _opts$aliasPath[0],
+          remainingPath = _opts$aliasPath.slice(1);
+
+      var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
+      var idFromFirstAlias = this.getIdFromAlias(firstAlias);
+
+      if (remainingPath.length === 0) {
+        if (idFromFirstAlias != null) {
+          var isArrayOfData = Array.isArray(opts.response[firstAliasWithoutId] ? opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY] : false);
+          if (!isArrayOfData) throw Error('Expected array of data when an id is found in the alias');
+
+          var _dataForThisAlias = opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY].find(function (item) {
+            return item.id === idFromFirstAlias;
+          });
+
+          if (!_dataForThisAlias) throw Error('Expected data for this alias when an id is found in the alias');
+          return this.getPageInfoFromResponse({
+            dataForThisAlias: _dataForThisAlias
+          });
+        }
+
+        return this.getPageInfoFromResponse({
+          dataForThisAlias: opts.response[firstAliasWithoutId]
+        });
+      }
+
+      var dataForThisAlias = opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY].find(function (item) {
+        return item.id === idFromFirstAlias;
+      });
+      return this.getPageInfoFromResponseForAlias({
+        aliasPath: remainingPath,
+        response: dataForThisAlias
+      });
+    };
+
+    _proto.getClientSidePageInfo = function getClientSidePageInfo(opts) {
+      var _opts$queryRecordEntr;
+
+      if (!queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry: opts.queryRecordEntry
+      })) return null;
+      return {
+        lastQueriedPage: 1,
+        pageSize: ((_opts$queryRecordEntr = opts.queryRecordEntry.pagination) == null ? void 0 : _opts$queryRecordEntr.itemsPerPage) || DEFAULT_PAGE_SIZE
+      };
+    };
+
+    _proto.onLoadMoreResults = /*#__PURE__*/function () {
+      var _onLoadMoreResults = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+        var newMinimalQueryRecordForMoreResults, tokenName, newData;
+        return runtime_1.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context.next = 3;
+                  break;
+                }
+
+                // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
+                this.opts.onResultsUpdated();
+                return _context.abrupt("return");
+
+              case 3:
+                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
+                  preExistingQueryRecord: this.queryRecord,
+                  previousEndCursor: opts.previousEndCursor,
+                  aliasPath: opts.aliasPath
+                });
+                tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
+                _context.next = 7;
+                return this.opts.performQuery({
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  queryGQL: gql$1(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
+                    queryId: this.opts.queryId,
+                    queryRecord: newMinimalQueryRecordForMoreResults,
+                    useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
+                  })),
+                  tokenName: tokenName
+                });
+
+              case 7:
+                newData = _context.sent;
+                this.handlePagingEventData({
+                  aliasPath: opts.aliasPath,
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  newData: newData,
+                  event: 'LOAD_MORE'
+                });
+
+              case 9:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      function onLoadMoreResults(_x) {
+        return _onLoadMoreResults.apply(this, arguments);
+      }
+
+      return onLoadMoreResults;
+    }();
+
+    _proto.onGoToNextPage = /*#__PURE__*/function () {
+      var _onGoToNextPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+        var newMinimalQueryRecordForMoreResults, tokenName, newData;
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context2.next = 3;
+                  break;
+                }
+
+                // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
+                this.opts.onResultsUpdated();
+                return _context2.abrupt("return");
+
+              case 3:
+                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
+                  preExistingQueryRecord: this.queryRecord,
+                  previousEndCursor: opts.previousEndCursor,
+                  aliasPath: opts.aliasPath
+                });
+                tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
+                _context2.next = 7;
+                return this.opts.performQuery({
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  queryGQL: gql$1(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
+                    queryId: this.opts.queryId,
+                    queryRecord: newMinimalQueryRecordForMoreResults,
+                    useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
+                  })),
+                  tokenName: tokenName
+                });
+
+              case 7:
+                newData = _context2.sent;
+                this.handlePagingEventData({
+                  aliasPath: opts.aliasPath,
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  newData: newData,
+                  event: 'GO_TO_NEXT'
+                });
+
+              case 9:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, this);
+      }));
+
+      function onGoToNextPage(_x2) {
+        return _onGoToNextPage.apply(this, arguments);
+      }
+
+      return onGoToNextPage;
+    }();
+
+    _proto.onGoToPreviousPage = /*#__PURE__*/function () {
+      var _onGoToPreviousPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
+        var newMinimalQueryRecordForMoreResults, tokenName, newData;
+        return runtime_1.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context3.next = 3;
+                  break;
+                }
+
+                // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
+                this.opts.onResultsUpdated();
+                return _context3.abrupt("return");
+
+              case 3:
+                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
+                  preExistingQueryRecord: this.queryRecord,
+                  previousStartCursor: opts.previousStartCursor,
+                  aliasPath: opts.aliasPath
+                });
+                tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
+                _context3.next = 7;
+                return this.opts.performQuery({
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  queryGQL: gql$1(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
+                    queryId: this.opts.queryId,
+                    queryRecord: newMinimalQueryRecordForMoreResults,
+                    useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
+                  })),
+                  tokenName: tokenName
+                });
+
+              case 7:
+                newData = _context3.sent;
+                this.handlePagingEventData({
+                  aliasPath: opts.aliasPath,
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  newData: newData,
+                  event: 'GO_TO_PREVIOUS'
+                });
+
+              case 9:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3, this);
+      }));
+
+      function onGoToPreviousPage(_x3) {
+        return _onGoToPreviousPage.apply(this, arguments);
+      }
+
+      return onGoToPreviousPage;
+    }();
+
+    _proto.getTokenNameForAliasPath = function getTokenNameForAliasPath(aliasPath) {
+      if (aliasPath.length === 0) throw new Error('Alias path must contain at least 1 entry');
+      var firstAliasWithoutId = this.removeIdFromAlias(aliasPath[0]);
+      if (!this.queryRecord[firstAliasWithoutId]) throw Error("The key " + firstAliasWithoutId + " was not found in the queryRecord\n" + JSON.stringify(this.queryRecord, null, 2));
+      return this.queryRecord[firstAliasWithoutId].tokenName || DEFAULT_TOKEN_NAME;
+    }
+    /**
+     * Builds a new query record which contains the smallest query possible
+     * to get the data for a given aliasPath, with some new pagination params
+     *
+     * An alias path may look something like ['users'] if we're loading more results on a QueryRecordEntry (root level)
+     * or something like ['users', 'todos'] if we're loading more results on a RelationalQueryRecordEntry
+     */
+    ;
+
+    _proto.getMinimalQueryRecordWithUpdatedPaginationParams = function getMinimalQueryRecordWithUpdatedPaginationParams(opts) {
+      var _opts$aliasPath2 = opts.aliasPath,
+          firstAlias = _opts$aliasPath2[0],
+          remainingPath = _opts$aliasPath2.slice(1);
+
+      var newQueryRecord = {};
+      var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
+      var preExistingQueryRecordEntryForFirstAlias = opts.preExistingQueryRecord[firstAliasWithoutId];
+      if (!preExistingQueryRecordEntryForFirstAlias) throw new Error("No preexisting query record entry for the alias " + firstAliasWithoutId);
+
+      if (!remainingPath.length) {
+        newQueryRecord[firstAliasWithoutId] = _extends({}, preExistingQueryRecordEntryForFirstAlias, {
+          pagination: _extends({}, preExistingQueryRecordEntryForFirstAlias.pagination, opts.newPaginationParams)
+        });
+      } else {
+        newQueryRecord[firstAliasWithoutId] = _extends({}, preExistingQueryRecordEntryForFirstAlias, {
+          relational: this.getMinimalQueryRecordWithUpdatedPaginationParams({
+            aliasPath: remainingPath,
+            preExistingQueryRecord: preExistingQueryRecordEntryForFirstAlias.relational,
+            newPaginationParams: opts.newPaginationParams
+          })
+        });
+      }
+
+      return newQueryRecord;
+    };
+
+    _proto.getMinimalQueryRecordForMoreResults = function getMinimalQueryRecordForMoreResults(opts) {
+      return this.getMinimalQueryRecordWithUpdatedPaginationParams({
+        aliasPath: opts.aliasPath,
+        preExistingQueryRecord: opts.preExistingQueryRecord,
+        newPaginationParams: {
+          startCursor: opts.previousEndCursor,
+          endCursor: undefined
+        }
+      });
+    };
+
+    _proto.getMinimalQueryRecordForPreviousPage = function getMinimalQueryRecordForPreviousPage(opts) {
+      return this.getMinimalQueryRecordWithUpdatedPaginationParams({
+        aliasPath: opts.aliasPath,
+        preExistingQueryRecord: opts.preExistingQueryRecord,
+        newPaginationParams: {
+          endCursor: opts.previousStartCursor,
+          startCursor: undefined
+        }
+      });
+    };
+
+    _proto.handlePagingEventData = function handlePagingEventData(opts) {
+      this.notifyRepositories({
+        data: opts.newData,
+        queryRecord: opts.queryRecord
+      });
+      var newState = this.getNewStateFromQueryResult({
+        queryResult: opts.newData,
+        queryRecord: opts.queryRecord
+      });
+      this.extendStateObject({
+        aliasPath: opts.aliasPath,
+        originalAliasPath: opts.aliasPath,
+        state: this.state,
+        newState: newState,
+        mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE'
+      });
+      extend({
+        object: this.opts.resultsObject,
+        extension: this.getResultsFromState({
+          state: this.state
+        }),
+        extendNestedObjects: false,
+        deleteKeysNotInExtension: false
+      });
+      this.opts.onResultsUpdated();
+    };
+
+    _proto.extendStateObject = function extendStateObject(opts) {
+      var _opts$aliasPath3 = opts.aliasPath,
+          firstAlias = _opts$aliasPath3[0],
+          remainingPath = _opts$aliasPath3.slice(1);
+
+      var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
+      var existingStateForFirstAlias = opts.state[firstAliasWithoutId];
+      var newStateForFirstAlias = opts.newState[firstAliasWithoutId];
+      if (!existingStateForFirstAlias || !newStateForFirstAlias) throw Error("Expected new and existing state for the alias " + firstAliasWithoutId);
+
+      if (remainingPath.length === 0) {
+        var _opts$parentProxy, _state;
+
+        existingStateForFirstAlias.pageInfoFromResults = newStateForFirstAlias.pageInfoFromResults;
+        existingStateForFirstAlias.clientSidePageInfo = newStateForFirstAlias.clientSidePageInfo;
+        existingStateForFirstAlias.proxyCache = _extends({}, existingStateForFirstAlias.proxyCache, newStateForFirstAlias.proxyCache);
+
+        if (opts.mergeStrategy === 'CONCAT') {
+          if (!Array.isArray(existingStateForFirstAlias.idsOrIdInCurrentResult) || !Array.isArray(newStateForFirstAlias.idsOrIdInCurrentResult)) {
+            throw Error('Expected both existing and new state "idsOrIdInCurrentResult" to be arrays');
+          }
+
+          existingStateForFirstAlias.idsOrIdInCurrentResult = [].concat(existingStateForFirstAlias.idsOrIdInCurrentResult, newStateForFirstAlias.idsOrIdInCurrentResult);
+        } else if (opts.mergeStrategy === 'REPLACE') {
+          existingStateForFirstAlias.idsOrIdInCurrentResult = newStateForFirstAlias.idsOrIdInCurrentResult;
+        } else {
+          throw new UnreachableCaseError(opts.mergeStrategy);
+        }
+
+        (_opts$parentProxy = opts.parentProxy) == null ? void 0 : _opts$parentProxy.updateRelationalResults(this.getResultsFromState({
+          state: (_state = {}, _state[firstAliasWithoutId] = existingStateForFirstAlias, _state),
+          aliasPath: opts.originalAliasPath
+        }));
+      } else {
+        var id = this.getIdFromAlias(firstAlias);
+        if (!id) throw Error("Expected an id for the alias " + firstAlias);
+        var existingRelationalStateForThisProxy = existingStateForFirstAlias.proxyCache[id].relationalState;
+        if (!existingRelationalStateForThisProxy) throw Error("Expected existing relational state for the alias " + firstAlias + " and the id " + id);
+        var newRelationalStateForThisProxy = newStateForFirstAlias.proxyCache[id].relationalState;
+        if (!newRelationalStateForThisProxy) throw Error("Expected new relational state for the alias " + firstAlias + " and the id " + id);
+        this.extendStateObject({
+          aliasPath: remainingPath,
+          originalAliasPath: opts.originalAliasPath,
+          state: existingRelationalStateForThisProxy,
+          newState: newRelationalStateForThisProxy,
+          mergeStrategy: opts.mergeStrategy,
+          parentProxy: existingStateForFirstAlias.proxyCache[id].proxy
+        });
+      }
+    };
+
+    _proto.addIdToLastEntryInAliasPath = function addIdToLastEntryInAliasPath(opts) {
+      var aliasPath = [].concat(opts.aliasPath);
+      aliasPath[aliasPath.length - 1] = aliasPath[aliasPath.length - 1] + ("[" + opts.id + "]");
+      return aliasPath;
+    }
+    /**
+     * Removes the id from the alias if it exists
+     * @example input: 'user[12msad-249js-25285]'
+     * @example output: 'user'
+     */
+    ;
+
+    _proto.removeIdFromAlias = function removeIdFromAlias(alias) {
+      return alias.replace(/\[.*\]$/, '');
+    }
+    /**
+     * Returns the id from the alias if it exists
+     * @example input: 'user[12msad-249js-25285]'
+     * @example output: '12msad-249js-25285'
+     */
+    ;
+
+    _proto.getIdFromAlias = function getIdFromAlias(alias) {
+      var id = alias.match(/\[(.*)\]$/);
+      if (!id) return undefined;
+      return id[1];
     };
 
     return QueryManager;
@@ -5407,7 +6086,7 @@ function getEdgePermissionsString(permissions) {
   return "\n    view: " + (permissions.view ? 'true' : 'false') + ",\n    edit: " + (permissions.edit ? 'true' : 'false') + ",\n    manage: " + (permissions.manage ? 'true' : 'false') + ",\n    terminate: " + (permissions.terminate ? 'true' : 'false') + ",\n    addChild: " + (permissions.addChild ? 'true' : 'false') + "\n  ";
 }
 
-var _templateObject;
+var _templateObject$1;
 function createEdge(edge) {
   return _extends({
     type: 'createEdge'
@@ -5442,10 +6121,10 @@ function getMutationsFromEdgeCreateOperations(operations) {
 function convertEdgeCreationOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\"," + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'CreateEdge');
-  return gql(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
+  return gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _templateObject$1;
+var _templateObject$2;
 function dropEdge(edge) {
   return _extends({
     type: 'dropEdge',
@@ -5479,10 +6158,10 @@ function getMutationsFromEdgeDropOperations(operations) {
 
 function convertEdgeDropOperationToMutationArguments(opts) {
   var name = getMutationNameFromOperations([opts], 'DropEdge');
-  return gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
+  return gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
 }
 
-var _templateObject$2;
+var _templateObject$3;
 function replaceEdge(edge) {
   return _extends({
     type: 'replaceEdge',
@@ -5516,10 +6195,10 @@ function getMutationsFromEdgeReplaceOperations(operations) {
 function convertEdgeReplaceOperationToMutationArguments(opts) {
   var name = getMutationNameFromOperations([opts], 'ReplaceEdge');
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
-  return gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
+  return gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
 }
 
-var _templateObject$3;
+var _templateObject$4;
 function updateEdge(edge) {
   return _extends({
     type: 'updateEdge',
@@ -5553,10 +6232,189 @@ function getMutationsFromEdgeUpdateOperations(operations) {
 function convertEdgeUpdateOperationToMutationArguments(opts) {
   var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
   var name = getMutationNameFromOperations([opts], 'UpdateEdge');
-  return gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
+  return gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _templateObject$4;
+var _excluded$2 = ["to"],
+    _excluded2$1 = ["from"];
+var JSON_TAG$2 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText$1(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE(obj, opts) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, convertPropertyToBE(_extends({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }, opts)));
+      }, {}));
+    } else {
+      acc = _extends({}, acc, convertPropertyToBE(_extends({
+        key: preparedKey,
+        value: val
+      }, opts)));
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
+  } else if (Array.isArray(opts.value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$2 + escapeText$1(JSON.stringify(opts.value)), _ref5;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
+      omitObjectIdentifier: opts.omitObjectIdentifier
+    });
+  } else if (typeof opts.value === 'string') {
+    var _ref6;
+
+    return _ref6 = {}, _ref6[opts.key] = escapeText$1(opts.value), _ref6;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref8;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref7;
+
+      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
+    }
+
+    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$2);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref9) {
+    var key = _ref9[0],
+        value = _ref9[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
+}
+
+var _templateObject$5;
 function createNodes(operation) {
   return _extends({
     type: 'createNodes',
@@ -5583,7 +6441,7 @@ function getMutationsFromTransactionCreateOperations(operations) {
   var name = getMutationNameFromOperations(operations, 'CreateNodes'); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n          transactional: true\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
+  return [gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n          transactional: true\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
 }
 
 function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
@@ -5598,7 +6456,1276 @@ function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
   return "{\n    " + mutationArgs.join('\n') + "\n  }";
 }
 
-var _templateObject$5, _templateObject2;
+var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
+
+var QuerySlimmer = /*#__PURE__*/function () {
+  function QuerySlimmer(mmGQLInstance) {
+    this.mmGQLInstance = void 0;
+    this.queriesByContext = {};
+    this.inFlightQueryRecords = observable({});
+    this.mmGQLInstance = mmGQLInstance;
+  }
+
+  var _proto = QuerySlimmer.prototype;
+
+  _proto.query = /*#__PURE__*/function () {
+    var _query = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+      var _this = this;
+
+      var newQuerySlimmedByCache, data, newQuerySlimmedByInFlightQueries, _data, _data2;
+
+      return runtime_1.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(opts.queryRecord);
+
+              if (!(newQuerySlimmedByCache === null)) {
+                _context.next = 5;
+                break;
+              }
+
+              data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY FULLY CACHED", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(data));
+              return _context.abrupt("return", data);
+
+            case 5:
+              newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(newQuerySlimmedByCache);
+
+              if (!(newQuerySlimmedByInFlightQueries === null)) {
+                _context.next = 14;
+                break;
+              }
+
+              _context.next = 9;
+              return this.sendQueryRequest({
+                queryId: opts.queryId,
+                queryRecord: newQuerySlimmedByCache,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting,
+                tokenName: opts.tokenName,
+                batchKey: opts.batchKey
+              });
+
+            case 9:
+              _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByCache), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data));
+              return _context.abrupt("return", _data);
+
+            case 14:
+              this.log("QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "IN-FLIGHT QUERIES: " + JSON.stringify(this.inFlightQueryRecords), "CACHE: " + JSON.stringify(this.queriesByContext));
+              _context.next = 17;
+              return this.sendQueryRequest({
+                queryId: opts.queryId,
+                queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting,
+                tokenName: opts.tokenName,
+                batchKey: opts.batchKey
+              });
+
+            case 17:
+              _context.next = 19;
+              return when(function () {
+                return !_this.areDependentQueriesStillInFlight({
+                  queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
+                  querySlimmedByInFlightQueries: newQuerySlimmedByInFlightQueries.slimmedQueryRecord
+                });
+              }, {
+                timeout: IN_FLIGHT_TIMEOUT_MS,
+                onError: function onError(error) {
+                  throw new Error("QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES", error);
+                }
+              });
+
+            case 19:
+              _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data2));
+              return _context.abrupt("return", _data2);
+
+            case 22:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee, this);
+    }));
+
+    function query(_x) {
+      return _query.apply(this, arguments);
+    }
+
+    return query;
+  }();
+
+  _proto.getDataForQueryFromQueriesByContext = function getDataForQueryFromQueriesByContext(newQuery, parentContextKey) {
+    var _this2 = this;
+
+    var queryData = {};
+    var newQueryKeys = Object.keys(newQuery);
+    newQueryKeys.forEach(function (newQueryKey) {
+      var queryRecordEntry = newQuery[newQueryKey];
+
+      var contextKey = _this2.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      var cachedQueryData = _this2.queriesByContext[contextKey];
+      var newQueryData = {};
+      var newQueryRelationalData = {};
+      queryRecordEntry.properties.forEach(function (property) {
+        newQueryData[property] = {
+          nodes: cachedQueryData.results[property]
+        };
+      });
+
+      if (queryRecordEntry.relational !== undefined) {
+        newQueryRelationalData = _this2.getDataForQueryFromQueriesByContext(queryRecordEntry.relational, contextKey);
+      }
+
+      queryData[newQueryKey] = _extends({}, newQueryData, newQueryRelationalData);
+    });
+    return queryData;
+  };
+
+  _proto.slimNewQueryAgainstInFlightQueries = function slimNewQueryAgainstInFlightQueries(newQuery) {
+    var _this3 = this;
+
+    var newQueryByContextMap = this.getQueryRecordsByContextMap(newQuery);
+    var inFlightQueriesToSlimAgainst = this.getInFlightQueriesToSlimAgainst(newQueryByContextMap);
+
+    if (inFlightQueriesToSlimAgainst === null) {
+      return null;
+    }
+
+    var queryIdsSlimmedAgainst = [];
+    var newQuerySlimmed = {};
+    Object.keys(inFlightQueriesToSlimAgainst).forEach(function (inFlightQueryContextKey) {
+      if (inFlightQueryContextKey in newQueryByContextMap) {
+        var newQueryRecordPieceSlimmed = _extends({}, newQueryByContextMap[inFlightQueryContextKey]);
+
+        inFlightQueriesToSlimAgainst[inFlightQueryContextKey].forEach(function (inFlightQueryRecord) {
+          var slimmed = _this3.getSlimmedQueryAgainstInFlightQuery(newQueryRecordPieceSlimmed, inFlightQueryRecord.queryRecord, false);
+
+          if (slimmed !== null) {
+            queryIdsSlimmedAgainst.push(inFlightQueryRecord.queryId);
+            newQueryRecordPieceSlimmed = slimmed;
+          }
+        });
+        newQuerySlimmed = _extends({}, newQuerySlimmed, newQueryRecordPieceSlimmed);
+      }
+    });
+
+    if (Object.keys(newQuerySlimmed).length === 0) {
+      return null;
+    } else {
+      return {
+        queryIdsSlimmedAgainst: queryIdsSlimmedAgainst,
+        slimmedQueryRecord: newQuerySlimmed
+      };
+    }
+  }
+  /**
+   * Returns in flight QueryRecordEntries by context that can slim down a new query.
+   * The new query should wait for an in flight query to slim against if:
+   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
+   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
+   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
+   */
+  ;
+
+  _proto.getInFlightQueriesToSlimAgainst = function getInFlightQueriesToSlimAgainst(newQuery) {
+    var _this4 = this;
+
+    var inFlightQueriesToSlimAgainst = {};
+    var newQueryCtxtKeys = Object.keys(newQuery);
+    newQueryCtxtKeys.forEach(function (newQueryCtxKey) {
+      var queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
+      var newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
+
+      var newQueryRecordDepth = _this4.getRelationalDepthOfQueryRecordEntry(newQueryRecordEntry);
+
+      if (newQueryCtxKey in _this4.inFlightQueryRecords) {
+        var inFlightQueriesForCtxKey = _this4.inFlightQueryRecords[newQueryCtxKey];
+        inFlightQueriesForCtxKey.forEach(function (inFlightQueryRecord) {
+          if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
+            var inFlightQueryRecordEntry = inFlightQueryRecord.queryRecord[queryRecordBaseKey];
+            var inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(function (inFlightProp) {
+              return newQueryRecordEntry.properties.includes(inFlightProp);
+            });
+
+            if (inFlightRecordHasSomePropsInNewQuery) {
+              var inFlightRecordEntryDepth = _this4.getRelationalDepthOfQueryRecordEntry(inFlightQueryRecordEntry);
+
+              if (inFlightRecordEntryDepth <= newQueryRecordDepth) {
+                if (newQueryCtxKey in inFlightQueriesToSlimAgainst) {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey].push(inFlightQueryRecord);
+                } else {
+                  inFlightQueriesToSlimAgainst[newQueryCtxKey] = [inFlightQueryRecord];
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+    return Object.keys(inFlightQueriesToSlimAgainst).length === 0 ? null : inFlightQueriesToSlimAgainst;
+  }
+  /**
+   * Slims the new query against an in flight query.
+   * This function assumes queries have already been matched by context.
+   */
+  ;
+
+  _proto.getSlimmedQueryAgainstInFlightQuery = function getSlimmedQueryAgainstInFlightQuery(newQuery, inFlightQuery, isRelationalQueryRecord) {
+    var _this5 = this;
+
+    var slimmedQueryRecord = {};
+    var slimmedRelationalQueryRecord = {};
+    Object.keys(newQuery).forEach(function (newQueryKey) {
+      var newQueryRecordEntry = newQuery[newQueryKey];
+      var newRootRecordEntry = newQueryRecordEntry;
+      var newRelationalRecordEntry = newQueryRecordEntry;
+
+      if (inFlightQuery[newQueryKey] === undefined) {
+        // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
+        if (isRelationalQueryRecord) {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        } else {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        }
+      } else {
+        // If a newQueryContextKey is present we want to slim what we can from the in flight query.
+        var inFlightQueryRecordEntry = inFlightQuery[newQueryKey];
+
+        var newRequestedProperties = _this5.getPropertiesNotCurrentlyBeingRequested({
+          newQueryProps: newQueryRecordEntry.properties,
+          inFlightProps: inFlightQueryRecordEntry.properties
+        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+
+
+        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
+          if (isRelationalQueryRecord) {
+            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+              properties: newRequestedProperties
+            });
+          } else {
+            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+              properties: newRequestedProperties
+            });
+          }
+        } // If both queries contain relational queries we need to try slimming against those as well.
+        // If there are child relational queries we still need to handle those even if the parent query is requesting properties that are already in flight.
+
+
+        if (newQueryRecordEntry.relational !== undefined && inFlightQueryRecordEntry.relational !== undefined) {
+          var slimmedNewRelationalQueryRecord = _this5.getSlimmedQueryAgainstInFlightQuery(newQueryRecordEntry.relational, inFlightQueryRecordEntry.relational, true); // If there are any properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is requesting properties that are already in flight.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+
+
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isRelationalQueryRecord) {
+              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            } else {
+              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            }
+          }
+        }
+      }
+    });
+    var queryRecordToReturn = isRelationalQueryRecord ? slimmedRelationalQueryRecord : slimmedQueryRecord;
+    return Object.keys(queryRecordToReturn).length === 0 ? null : queryRecordToReturn;
+  };
+
+  _proto.getSlimmedQueryAgainstQueriesByContext = function getSlimmedQueryAgainstQueriesByContext(newQuery, parentContextKey) {
+    var _this6 = this;
+
+    // The query record could be a root query (not relational), or a child relational query.
+    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
+    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
+    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
+    // We know we are dealing with a relational query when parentContextKey is NOT undefined
+    var slimmedQueryRecord = {};
+    var slimmedRelationalQueryRecord = {};
+    var isNewQueryARootQuery = parentContextKey === undefined;
+    Object.keys(newQuery).forEach(function (newQueryKey) {
+      var newQueryRecordEntry = newQuery[newQueryKey];
+      var newRootRecordEntry = newQueryRecordEntry;
+      var newRelationalRecordEntry = newQueryRecordEntry;
+
+      var newQueryContextKey = _this6.createContextKeyForQueryRecordEntry(newQueryRecordEntry, parentContextKey);
+
+      if (_this6.queriesByContext[newQueryContextKey] === undefined) {
+        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
+        if (isNewQueryARootQuery) {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        } else {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        }
+      } else {
+        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
+        // by the new query are already cached.
+        var cachedQuery = _this6.queriesByContext[newQueryContextKey];
+
+        var newRequestedProperties = _this6.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty
+        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+
+
+        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
+          if (isNewQueryARootQuery) {
+            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+              properties: newRequestedProperties
+            });
+          } else {
+            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+              properties: newRequestedProperties
+            });
+          }
+        } // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
+
+
+        if (newQueryRecordEntry.relational !== undefined) {
+          var slimmedNewRelationalQueryRecord = _this6.getSlimmedQueryAgainstQueriesByContext(newQueryRecordEntry.relational, newQueryContextKey); // If there are any non-cached properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+
+
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isNewQueryARootQuery) {
+              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            } else {
+              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
+                properties: newRequestedProperties != null ? newRequestedProperties : [],
+                relational: _extends({}, slimmedNewRelationalQueryRecord)
+              });
+            }
+          }
+        }
+      }
+    });
+    var objectToReturn = isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord;
+    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
+  };
+
+  _proto.onSubscriptionCancelled = function onSubscriptionCancelled(queryRecord, parentContextKey) {
+    var _this7 = this;
+
+    Object.keys(queryRecord).forEach(function (queryRecordKey) {
+      var queryRecordEntry = queryRecord[queryRecordKey];
+
+      var currentQueryContextKey = _this7.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      if (queryRecordEntry.relational !== undefined) {
+        _this7.onSubscriptionCancelled(queryRecordEntry.relational, currentQueryContextKey);
+      }
+
+      if (currentQueryContextKey in _this7.queriesByContext) {
+        var cachedQuerySubsByProperty = _this7.queriesByContext[currentQueryContextKey].subscriptionsByProperty;
+        queryRecordEntry.properties.forEach(function (property) {
+          var propertySubCount = cachedQuerySubsByProperty[property];
+
+          if (propertySubCount >= 1) {
+            cachedQuerySubsByProperty[property] = propertySubCount - 1;
+          }
+        });
+      }
+    });
+  };
+
+  _proto.getRelationalDepthOfQueryRecordEntry = function getRelationalDepthOfQueryRecordEntry(queryRecordEntry) {
+    var _this8 = this;
+
+    var relationalDepth = 0;
+
+    if (queryRecordEntry.relational !== undefined) {
+      relationalDepth += 1;
+      Object.values(queryRecordEntry.relational).forEach(function (relationalEntry) {
+        relationalDepth += _this8.getRelationalDepthOfQueryRecordEntry(relationalEntry);
+      });
+    }
+
+    return relationalDepth;
+  };
+
+  _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
+    var _this9 = this;
+
+    Object.keys(queryRecord).forEach(function (alias) {
+      var _this9$queriesByConte;
+
+      var queryRecordEntry = queryRecord[alias];
+
+      var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+
+      _this9.queriesByContext[currentQueryContextKey] = {
+        subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
+          previous[current] = previous[current] ? previous[current] + 1 : 1;
+          return previous;
+        }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
+        results: results[alias]
+      };
+
+      if (queryRecordEntry.relational) {
+        var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
+          // do array vs object check here before map in case there's only a single id
+          previous[current] = results[alias].map(function (user) {
+            return user[current];
+          });
+          return previous;
+        }, {});
+
+        _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
+      }
+    });
+  };
+
+  _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
+    var doesQueryHaveIdProperty = 'id' in queryRecordEntry && !!queryRecordEntry.id;
+    var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
+    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
+    var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
+    return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
+  };
+
+  _proto.getPropertiesNotAlreadyCached = function getPropertiesNotAlreadyCached(opts) {
+    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
+      if (newQueryProperty in opts.cachedQuerySubsByProperty) {
+        return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
+      }
+
+      return true;
+    });
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+  };
+
+  _proto.getPropertiesNotCurrentlyBeingRequested = function getPropertiesNotCurrentlyBeingRequested(opts) {
+    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
+      return !opts.inFlightProps.includes(newQueryProperty);
+    });
+    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+  };
+
+  _proto.stringifyQueryParams = function stringifyQueryParams(entry) {
+    // https://tractiontools.atlassian.net/browse/TTD-315
+    // Handle filter/pagination/sorting query params
+    var params = {
+      ids: 'ids' in entry ? entry.ids : undefined,
+      id: 'id' in entry ? entry.id : undefined
+    };
+
+    if (!Object.values(params).some(function (value) {
+      return value != null;
+    })) {
+      return 'NO_PARAMS';
+    }
+
+    return JSON.stringify(params);
+  };
+
+  _proto.getQueryRecordsByContextMap = function getQueryRecordsByContextMap(queryRecord) {
+    var _this10 = this;
+
+    return Object.keys(queryRecord).reduce(function (queryRecordsByContext, queryRecordKey) {
+      var _queryRecordSlice;
+
+      var queryRecordEntry = queryRecord[queryRecordKey];
+
+      var contextKey = _this10.createContextKeyForQueryRecordEntry(queryRecordEntry);
+
+      var queryRecordSlice = (_queryRecordSlice = {}, _queryRecordSlice[queryRecordKey] = queryRecordEntry, _queryRecordSlice);
+      queryRecordsByContext[contextKey] = queryRecordSlice;
+      return queryRecordsByContext;
+    }, {});
+  };
+
+  _proto.sendQueryRequest = /*#__PURE__*/function () {
+    var _sendQueryRequest = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+      var inFlightQuery, queryGQLString, queryOpts, results;
+      return runtime_1.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              inFlightQuery = {
+                queryId: opts.queryId,
+                queryRecord: opts.queryRecord
+              };
+              queryGQLString = getQueryGQLStringFromQueryRecord({
+                queryId: opts.queryId,
+                queryRecord: opts.queryRecord,
+                useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+              });
+              queryOpts = {
+                gql: gql(queryGQLString),
+                token: opts.tokenName
+              };
+
+              if ('batchKey' in opts && opts.batchKey !== undefined) {
+                queryOpts.batchKey = opts.batchKey;
+              }
+
+              _context2.prev = 4;
+              this.setInFlightQuery(inFlightQuery);
+              _context2.next = 8;
+              return this.mmGQLInstance.gqlClient.query(queryOpts);
+
+            case 8:
+              results = _context2.sent;
+              this.removeInFlightQuery(inFlightQuery);
+              this.populateQueriesByContext(opts.queryRecord, results);
+              _context2.next = 17;
+              break;
+
+            case 13:
+              _context2.prev = 13;
+              _context2.t0 = _context2["catch"](4);
+              this.removeInFlightQuery(inFlightQuery);
+              throw new Error("QuerySlimmer: Error sending request for query: " + JSON.stringify(opts.queryRecord), _context2.t0);
+
+            case 17:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2, this, [[4, 13]]);
+    }));
+
+    function sendQueryRequest(_x2) {
+      return _sendQueryRequest.apply(this, arguments);
+    }
+
+    return sendQueryRequest;
+  }();
+
+  _proto.setInFlightQuery = function setInFlightQuery(inFlightQueryRecord) {
+    var _this11 = this;
+
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
+    Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
+      if (queryRecordContextKey in _this11.inFlightQueryRecords) {
+        _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
+      } else {
+        _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
+      }
+    });
+  };
+
+  _proto.removeInFlightQuery = function removeInFlightQuery(inFlightQueryToRemove) {
+    var _this12 = this;
+
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
+    Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
+      if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
+        _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
+          return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
+        });
+
+        if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+          delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
+        }
+      }
+    });
+  };
+
+  _proto.areDependentQueriesStillInFlight = function areDependentQueriesStillInFlight(opts) {
+    var _this13 = this;
+
+    var isStillWaitingOnInFlightQueries = false;
+    var queryRecordsByContext = this.getQueryRecordsByContextMap(opts.querySlimmedByInFlightQueries);
+    Object.keys(queryRecordsByContext).forEach(function (ctxKey) {
+      if (!isStillWaitingOnInFlightQueries) {
+        if (ctxKey in _this13.inFlightQueryRecords) {
+          var inFlightQueryHasDepedentId = _this13.inFlightQueryRecords[ctxKey].some(function (inFlightQuery) {
+            return opts.queryIds.includes(inFlightQuery.queryId);
+          });
+
+          if (inFlightQueryHasDepedentId) {
+            isStillWaitingOnInFlightQueries = true;
+          }
+        }
+      }
+    });
+    return isStillWaitingOnInFlightQueries;
+  };
+
+  _proto.log = function log(message) {
+    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
+      var _console;
+
+      for (var _len = arguments.length, optionalParams = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        optionalParams[_key - 1] = arguments[_key];
+      }
+
+      (_console = console).log.apply(_console, [message].concat(optionalParams));
+    }
+  };
+
+  return QuerySlimmer;
+}();
+
+var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
+var LoggingContext = /*#__PURE__*/React.createContext({
+  unsafe__silenceDuplicateSubIdErrors: false
+}); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
+// where the same subscription id may be used momentarily before the fallback route unmounts
+
+var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
+  return React.createElement(LoggingContext.Provider, {
+    value: {
+      unsafe__silenceDuplicateSubIdErrors: true
+    }
+  }, props.children);
+};
+var MMGQLProvider = function MMGQLProvider(props) {
+  var existingContext = React.useContext(MMGQLContext);
+
+  if (existingContext) {
+    throw Error('Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.');
+  }
+
+  var ongoingSubscriptionRecord = React.useRef({});
+  var cleanupTimeoutRecord = React.useRef({});
+  var mountedHooksBySubId = React.useRef({});
+  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
+    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
+  }, []);
+  var scheduleCleanup = React.useCallback(function (subscriptionId) {
+    function cleanup() {
+      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
+
+      if (existingContextSubscription) {
+        existingContextSubscription.unsub && existingContextSubscription.unsub();
+        delete ongoingSubscriptionRecord.current[subscriptionId];
+      }
+    }
+
+    if (props.subscriptionTTLMs != null) {
+      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
+    } else {
+      cleanup();
+    }
+  }, [props.subscriptionTTLMs]);
+  var cancelCleanup = React.useCallback(function (subscriptionId) {
+    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
+    delete cleanupTimeoutRecord.current[subscriptionId];
+  }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
+  // using a useSubscription hook are mounted at the same time
+  // since useSubscription uses the first line of the error stack to construct a unique sub id
+  // fixes https://tractiontools.atlassian.net/browse/MM-404
+
+  var onHookMount = React.useCallback(function (subscriptionId, _ref) {
+    var silenceDuplicateSubIdErrors = _ref.silenceDuplicateSubIdErrors;
+
+    if (mountedHooksBySubId.current[subscriptionId] && !silenceDuplicateSubIdErrors) {
+      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
+    }
+
+    mountedHooksBySubId.current[subscriptionId] = true;
+  }, []);
+  var onHookUnmount = React.useCallback(function (subscriptionId) {
+    delete mountedHooksBySubId.current[subscriptionId];
+  }, []);
+  return React.createElement(MMGQLContext.Provider, {
+    value: {
+      mmGQLInstance: props.mmGQL,
+      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
+      updateSubscriptionInfo: updateSubscriptionInfo,
+      scheduleCleanup: scheduleCleanup,
+      cancelCleanup: cancelCleanup,
+      onHookMount: onHookMount,
+      onHookUnmount: onHookUnmount
+    }
+  }, props.children);
+};
+
+function useSubscription(queryDefinitions, opts) {
+  var context = React.useContext(MMGQLContext);
+
+  if (!context) {
+    throw Error('You must wrap your app with an MMGQLProvider before using useSubscription.');
+  }
+
+  var obj = {
+    stack: ''
+  };
+  Error.captureStackTrace(obj, useSubscription);
+
+  if (obj.stack === '') {
+    // Should be supported in all browsers, but better safe than sorry
+    throw Error('Error.captureStackTrace not supported');
+  }
+
+  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
+  var preExistingState = getPreexistingState({
+    subscriptionId: subscriptionId,
+    context: context,
+    queryDefinitions: queryDefinitions
+  });
+
+  var _React$useState = React.useState(preExistingState.results),
+      results = _React$useState[0],
+      setResults = _React$useState[1];
+
+  var _React$useState2 = React.useState(preExistingState.error),
+      error = _React$useState2[0],
+      setError = _React$useState2[1];
+
+  var _React$useState3 = React.useState(preExistingState.querying),
+      querying = _React$useState3[0],
+      setQuerying = _React$useState3[1];
+
+  var loggingContext = React.useContext(LoggingContext);
+  var qdStateManager = null;
+  var qdError = null;
+
+  try {
+    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
+    // we catch that promise here and re-throw it further down, so that we can manage cleanup
+    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
+    qdStateManager = buildQueryDefinitionStateManager({
+      context: context,
+      subscriptionId: subscriptionId,
+      queryDefinitions: queryDefinitions,
+      data: {
+        results: results,
+        error: error,
+        querying: querying
+      },
+      handlers: {
+        onResults: setResults,
+        onError: setError,
+        setQuerying: setQuerying
+      },
+      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors,
+      useServerSidePaginationFilteringSorting: context.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER
+    });
+  } catch (e) {
+    qdError = e;
+    qdStateManager = null;
+  }
+
+  React.useEffect(function () {
+    var _qdStateManager;
+
+    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.onHookMount();
+    return function () {
+      var _qdStateManager2;
+
+      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.onHookUnmount();
+    }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
+    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
+    // to memoize all of their query definitions, which seems overkill
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context, subscriptionId]);
+  if (error || qdError) throw error || qdError;
+  return qdStateManager;
+}
+
+function getPreexistingState(opts) {
+  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
+  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+    acc[key] = null;
+    return acc;
+  }, {});
+  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
+  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
+  return {
+    results: results,
+    error: error,
+    querying: querying
+  };
+}
+/**
+ * useSubscription accepts query definitions that optionally disable suspense rendering
+ * to facilitate that, this method splits all query definitions into 2 groups
+ * @param queryDefinitions
+ * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
+ */
+
+
+function splitQueryDefinitions(queryDefinitions) {
+  var _Object$entries$reduc;
+
+  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
+    var _queryDefinition$useS;
+
+    var alias = _ref[0],
+        queryDefinition = _ref[1];
+    var suspend = queryDefinition && 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
+    split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
+    return split;
+  }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
+}
+
+var subscriptionIds = {
+  suspendEnabled: 'suspendEnabled',
+  suspendDisabled: 'suspendDisabled'
+};
+
+function buildQueryDefinitionStateManager(opts) {
+  // When a subscription is initialized, the state of the subscription is split
+  // suspended subscriptions and non suspended subscriptions are initialized separately,
+  // so that rendering can continue as soon as possible.
+  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
+  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
+  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
+  var parentSubscriptionId = opts.subscriptionId;
+  var preExistingContextForThisParentSubscription = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+
+  if (!preExistingContextForThisParentSubscription) {
+    opts.context.ongoingSubscriptionRecord[parentSubscriptionId] = {};
+  }
+
+  function onHookMount() {
+    opts.context.onHookMount(parentSubscriptionId, {
+      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
+    });
+    opts.context.cancelCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.context.cancelCleanup(subId);
+    });
+  }
+
+  function onHookUnmount() {
+    opts.context.onHookUnmount(parentSubscriptionId);
+    opts.context.scheduleCleanup(parentSubscriptionId);
+    allSubscriptionIds.forEach(function (subId) {
+      return opts.context.scheduleCleanup(subId);
+    });
+  } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
+  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
+  // state of the component rendered before the fallback occured.
+  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
+  // and call that in "onData" instead.
+
+
+  opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+    onResults: opts.handlers.onResults,
+    onError: opts.handlers.onError,
+    setQuerying: opts.handlers.setQuerying
+  });
+
+  var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
+      suspendDisabled = _splitQueryDefinition.suspendDisabled,
+      suspendEnabled = _splitQueryDefinition.suspendEnabled;
+
+  var allSubscriptionIds = Object.values(subscriptionIds).map(function (subscriptionId) {
+    return parentSubscriptionId + subscriptionId;
+  });
+
+  function getAllSubscriptionStates() {
+    return allSubscriptionIds.map(function (subscriptionId) {
+      return opts.context.ongoingSubscriptionRecord[subscriptionId];
+    });
+  } // From the received queried definitions
+  // and a static parentSubscriptionId+subscriptionSuffix identifier
+  // initializes subscriptions and updates the useSubscription state on the hook
+  // Also maintains a copy of that state at the context level, such that the component rendering the hook
+  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
+  //
+  // returns a promise if there's an unresolved request and "suspend" is set to true
+
+
+  function handleNewQueryDefitions(subOpts) {
+    var _opts$context$ongoing;
+
+    var queryDefinitions = subOpts.queryDefinitions,
+        parentSubscriptionId = subOpts.parentSubscriptionId,
+        subscriptionSuffix = subOpts.subscriptionSuffix,
+        suspend = subOpts.suspend;
+    var subscriptionId = parentSubscriptionId + subscriptionSuffix;
+    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
+
+    if (!preExistingContextForThisSubscription) {
+      opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
+    }
+
+    var newQueryInfo;
+    var newQueryDefinitionsAreAllNull;
+    var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
+
+    if (preExistingQueryInfo) {
+      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
+
+      if (Object.keys(nonNullishQueryDefinitions).length) {
+        newQueryInfo = convertQueryDefinitionToQueryInfo({
+          queryDefinitions: nonNullishQueryDefinitions,
+          queryId: preExistingQueryInfo.queryId,
+          useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+        });
+      } else {
+        newQueryDefinitionsAreAllNull = true;
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: null
+        });
+      }
+    }
+
+    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
+
+    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
+      return preExistingContextForThisSubscription.suspendPromise;
+    }
+
+    if (queryDefinitionHasBeenUpdated) {
+      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
+    }
+
+    var queryTimestamp = new Date().valueOf();
+    opts.context.updateSubscriptionInfo(subscriptionId, {
+      querying: true,
+      lastQueryTimestamp: queryTimestamp
+    });
+    opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+      querying: true
+    });
+    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
+    setQuerying && setQuerying(true);
+    opts.handlers.setQuerying(true);
+    var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
+      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+      // Make sure to re-render the component on paginate
+      onPaginate: function onPaginate() {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
+      },
+      onData: function onData(_ref2) {
+        var newResults = _ref2.results;
+        var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
+        var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
+
+        if (thisQueryIsMostRecent) {
+          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
+          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+            results: _extends({}, contextForThisParentSub.results, newResults)
+          });
+        }
+      },
+      onError: function onError(error) {
+        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
+        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
+        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+          error: error
+        });
+      },
+      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          unsub: function unsub() {
+            return subscriptionCanceller();
+          }
+        });
+        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+          unsub: function unsub() {
+            getAllSubscriptionStates().forEach(function (subscriptionState) {
+              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
+            });
+          }
+        });
+      },
+      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          queryInfo: queryInfo
+        });
+      }
+    })["finally"](function () {
+      var contextForThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
+      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
+
+      if (thisQueryIsMostRecent) {
+        opts.context.updateSubscriptionInfo(subscriptionId, {
+          suspendPromise: undefined,
+          querying: false
+        }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
+
+        var allQueriesHaveResolved = !getAllSubscriptionStates().some(function (state) {
+          return state && state.querying;
+        });
+
+        if (allQueriesHaveResolved) {
+          var _opts$context$ongoing2;
+
+          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+            querying: false
+          });
+
+          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
+
+          _setQuerying && _setQuerying(false);
+          opts.handlers.setQuerying(false);
+        }
+      }
+    });
+
+    if (!preExistingContextForThisSubscription && suspend) {
+      opts.context.updateSubscriptionInfo(subscriptionId, {
+        suspendPromise: suspendPromise
+      });
+      return suspendPromise;
+    }
+  }
+
+  if (opts.data.error) throw opts.data.error;
+  var suspendPromise;
+
+  if (Object.keys(suspendDisabled).length) {
+    try {
+      handleNewQueryDefitions({
+        queryDefinitions: suspendDisabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendDisabled,
+        suspend: false
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+      throw e;
+    }
+  }
+
+  if (Object.keys(suspendEnabled).length) {
+    try {
+      suspendPromise = handleNewQueryDefitions({
+        queryDefinitions: suspendEnabled,
+        parentSubscriptionId: parentSubscriptionId,
+        subscriptionSuffix: subscriptionIds.suspendEnabled,
+        suspend: true
+      });
+    } catch (e) {
+      opts.handlers.onError(e);
+      throw e;
+    }
+  }
+
+  if (suspendPromise) throw suspendPromise;
+  return {
+    data: opts.data.results,
+    error: opts.data.error,
+    querying: opts.data.querying,
+    onHookUnmount: onHookUnmount,
+    onHookMount: onHookMount
+  };
+}
+
+require('isomorphic-fetch');
+function getGQLCLient(gqlClientOpts) {
+  var wsLink = new WebSocketLink({
+    uri: gqlClientOpts.wsUrl,
+    options: {
+      reconnect: true
+    }
+  });
+  var nonBatchedLink = new HttpLink({
+    uri: gqlClientOpts.httpUrl
+  });
+  var queryBatchLink = split(function (operation) {
+    return operation.getContext().batchKey;
+  }, new BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    batchMax: 50,
+    batchInterval: 50,
+    batchKey: function batchKey(operation) {
+      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
+      // are batched separately
+
+      return JSON.stringify({
+        batchKey: context.batchKey,
+        headers: context.headers,
+        credentials: context.credentials
+      });
+    }
+  }), nonBatchedLink);
+  var mutationBatchLink = split(function (operation) {
+    return operation.getContext().batchedMutation;
+  }, new BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    // no batch max for explicitly batched mutations
+    // to ensure transactional integrity
+    batchMax: Number.MAX_SAFE_INTEGER,
+    batchInterval: 0
+  }), queryBatchLink);
+  var requestLink = split( // split based on operation type
+  function (_ref) {
+    var query = _ref.query;
+    var definition = getMainDefinition(query);
+    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
+  }, wsLink, mutationBatchLink);
+
+  function getContextWithToken(opts) {
+    return {
+      headers: {
+        Authorization: "Bearer " + opts.token
+      }
+    };
+  }
+
+  function authenticateSubscriptionDocument(opts) {
+    var _opts$gql$loc;
+
+    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
+
+    if (!documentBody) {
+      throw new Error('No documentBody found');
+    }
+
+    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
+
+    if (operationsThatRequireToken.some(function (operation) {
+      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
+    })) {
+      var documentBodyWithAuthTokensInjected = documentBody;
+      operationsThatRequireToken.forEach(function (operation) {
+        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
+      });
+      return gql(documentBodyWithAuthTokensInjected);
+    }
+
+    return opts.gql;
+  }
+
+  var authLink = new ApolloLink(function (operation, forward) {
+    return new Observable(function (observer) {
+      var handle;
+      Promise.resolve(operation).then(function () {
+        handle = forward(operation).subscribe({
+          next: observer.next.bind(observer),
+          error: observer.error.bind(observer),
+          complete: observer.complete.bind(observer)
+        });
+      })["catch"](observer.error.bind(observer));
+      return function () {
+        if (handle) handle.unsubscribe();
+      };
+    });
+  });
+  var baseClient = new ApolloClient({
+    link: ApolloLink.from([authLink, requestLink]),
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'ignore'
+      },
+      query: {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
+      }
+    }
+  });
+  var gqlClient = {
+    query: function () {
+      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+        var _yield$baseClient$que, data;
+
+        return runtime_1.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return baseClient.query({
+                  query: opts.gql,
+                  context: _extends({
+                    // allow turning off batching by specifying a null or undefined batchKey
+                    // but by default, batch all requests into the same request batch
+                    batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
+                  }, getContextWithToken({
+                    token: opts.token
+                  }))
+                });
+
+              case 2:
+                _yield$baseClient$que = _context.sent;
+                data = _yield$baseClient$que.data;
+                return _context.abrupt("return", data);
+
+              case 6:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      function query(_x) {
+        return _query.apply(this, arguments);
+      }
+
+      return query;
+    }(),
+    subscribe: function subscribe(opts) {
+      var subscription = baseClient.subscribe({
+        query: authenticateSubscriptionDocument(opts)
+      }).subscribe({
+        next: function next(message) {
+          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
+        },
+        error: opts.onError
+      });
+      return function () {
+        return subscription.unsubscribe();
+      };
+    },
+    mutate: function () {
+      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
+        return runtime_1.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.next = 3;
+                return Promise.all(opts.mutations.map(function (mutation) {
+                  return baseClient.mutate({
+                    mutation: mutation,
+                    context: _extends({
+                      batchedMutation: true
+                    }, getContextWithToken({
+                      token: opts.token
+                    }))
+                  });
+                }));
+
+              case 3:
+                return _context2.abrupt("return", _context2.sent);
+
+              case 4:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }));
+
+      function mutate(_x2) {
+        return _mutate.apply(this, arguments);
+      }
+
+      return mutate;
+    }()
+  };
+  return gqlClient;
+}
+
+function getDefaultConfig() {
+  return {
+    gqlClient: getGQLCLient({
+      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+    }),
+    generateMockData: false,
+    enableQuerySlimming: false,
+    enableQuerySlimmingLogging: false,
+    paginationFilteringSortingInstance: EPaginationFilteringSortingInstance.SERVER
+  };
+}
+
+var _templateObject$6, _templateObject2$1;
 function updateNodes(operation) {
   return _extends({
     type: 'updateNodes',
@@ -5644,7 +7771,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
     var propertiesToNull = getPropertiesToNull(updateNodeOperation);
 
     if (propertiesToNull.length) {
-      acc.push(gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
+      acc.push(gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n        mutation {\n          DropProperties(\n            nodeIds: [\"", "\"]\n            propertyNames: [", "]\n            transactional: true\n          )\n          { \n            id\n          }\n      }\n      "])), updateNodeOperation.id, propertiesToNull.map(function (prop) {
         return "\"" + prop + OBJECT_PROPERTY_SEPARATOR + "*\"";
       }).join(',')));
     }
@@ -5653,7 +7780,7 @@ function getMutationsFromTransactionUpdateOperations(operations) {
   }, []); // For now, returns a single mutation
   // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
 
-  return [gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
+  return [gql(_templateObject2$1 || (_templateObject2$1 = _taggedTemplateLiteralLoose(["\n        mutation ", " {\n          UpdateNodes(\n            nodes: [\n              ", "\n            ]\n            transactional: true\n          ) {\n            id\n          }\n        }\n      "])), name, allUpdateNodeOperations.map(convertUpdateNodeOperationToUpdateNodesMutationArguments).join('\n'))].concat(dropPropertiesMutations);
 }
 
 function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
@@ -5661,7 +7788,7 @@ function convertUpdateNodeOperationToUpdateNodesMutationArguments(operation) {
   return "{\n      " + dataToPersist + "\n    }";
 }
 
-var _templateObject$6;
+var _templateObject$7;
 function dropNode(operation) {
   return _extends({
     type: 'dropNode',
@@ -5679,7 +7806,7 @@ function getMutationsFromTransactionDropOperations(operations) {
   });
   return allDropNodeOperations.map(function (operation) {
     var name = getMutationNameFromOperations([operation], 'DropNode');
-    return gql(_templateObject$6 || (_templateObject$6 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
+    return gql(_templateObject$7 || (_templateObject$7 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        DropNode(nodeId: \"", "\", transactional: true)\n      }    \n    "])), name, operation.id);
   });
 }
 
@@ -6178,1276 +8305,13 @@ function createTransaction(mmGQLInstance, globalOperationHandlers) {
   };
 }
 
-var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
-
-var QuerySlimmer = /*#__PURE__*/function () {
-  function QuerySlimmer(mmGQLInstance) {
-    this.mmGQLInstance = void 0;
-    this.queriesByContext = {};
-    this.inFlightQueryRecords = observable({});
-    this.mmGQLInstance = mmGQLInstance;
-  }
-
-  var _proto = QuerySlimmer.prototype;
-
-  _proto.query = /*#__PURE__*/function () {
-    var _query = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-      var _this = this;
-
-      var _convertQueryDefiniti, queryRecord, newQuerySlimmedByCache, data, newQuerySlimmedByInFlightQueries, _opts$queryOpts, _data, _opts$queryOpts2, _data2;
-
-      return runtime_1.wrap(function _callee$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo(opts), queryRecord = _convertQueryDefiniti.queryRecord;
-              newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(queryRecord);
-
-              if (!(newQuerySlimmedByCache === null)) {
-                _context.next = 6;
-                break;
-              }
-
-              data = this.getDataForQueryFromQueriesByContext(queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY FULLY CACHED", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(data));
-              return _context.abrupt("return", data);
-
-            case 6:
-              newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(newQuerySlimmedByCache);
-
-              if (!(newQuerySlimmedByInFlightQueries === null)) {
-                _context.next = 15;
-                break;
-              }
-
-              _context.next = 10;
-              return this.sendQueryRequest({
-                queryId: opts.queryId,
-                queryRecord: newQuerySlimmedByCache,
-                tokenName: opts.tokenName,
-                batchKey: (_opts$queryOpts = opts.queryOpts) == null ? void 0 : _opts$queryOpts.batchKey
-              });
-
-            case 10:
-              _data = this.getDataForQueryFromQueriesByContext(queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByCache), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data));
-              return _context.abrupt("return", _data);
-
-            case 15:
-              this.log("QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "IN-FLIGHT QUERIES: " + JSON.stringify(this.inFlightQueryRecords), "CACHE: " + JSON.stringify(this.queriesByContext));
-              _context.next = 18;
-              return this.sendQueryRequest({
-                queryId: opts.queryId,
-                queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-                tokenName: opts.tokenName,
-                batchKey: (_opts$queryOpts2 = opts.queryOpts) == null ? void 0 : _opts$queryOpts2.batchKey
-              });
-
-            case 18:
-              _context.next = 20;
-              return when(function () {
-                return !_this.areDependentQueriesStillInFlight({
-                  queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
-                  querySlimmedByInFlightQueries: newQuerySlimmedByInFlightQueries.slimmedQueryRecord
-                });
-              }, {
-                timeout: IN_FLIGHT_TIMEOUT_MS,
-                onError: function onError(error) {
-                  throw new Error("QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES", error);
-                }
-              });
-
-            case 20:
-              _data2 = this.getDataForQueryFromQueriesByContext(queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES", "ORIGINAL QUERY: " + JSON.stringify(queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data2));
-              return _context.abrupt("return", _data2);
-
-            case 23:
-            case "end":
-              return _context.stop();
-          }
-        }
-      }, _callee, this);
-    }));
-
-    function query(_x) {
-      return _query.apply(this, arguments);
-    }
-
-    return query;
-  }();
-
-  _proto.getDataForQueryFromQueriesByContext = function getDataForQueryFromQueriesByContext(newQuery, parentContextKey) {
-    var _this2 = this;
-
-    var queryData = {};
-    var newQueryKeys = Object.keys(newQuery);
-    newQueryKeys.forEach(function (newQueryKey) {
-      var queryRecordEntry = newQuery[newQueryKey];
-
-      var contextKey = _this2.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      var cachedQueryData = _this2.queriesByContext[contextKey];
-      var newQueryData = {};
-      var newQueryRelationalData = {};
-      queryRecordEntry.properties.forEach(function (property) {
-        newQueryData[property] = {
-          nodes: cachedQueryData.results[property]
-        };
-      });
-
-      if (queryRecordEntry.relational !== undefined) {
-        newQueryRelationalData = _this2.getDataForQueryFromQueriesByContext(queryRecordEntry.relational, contextKey);
-      }
-
-      queryData[newQueryKey] = _extends({}, newQueryData, newQueryRelationalData);
-    });
-    return queryData;
-  };
-
-  _proto.slimNewQueryAgainstInFlightQueries = function slimNewQueryAgainstInFlightQueries(newQuery) {
-    var _this3 = this;
-
-    var newQueryByContextMap = this.getQueryRecordsByContextMap(newQuery);
-    var inFlightQueriesToSlimAgainst = this.getInFlightQueriesToSlimAgainst(newQueryByContextMap);
-
-    if (inFlightQueriesToSlimAgainst === null) {
-      return null;
-    }
-
-    var queryIdsSlimmedAgainst = [];
-    var newQuerySlimmed = {};
-    Object.keys(inFlightQueriesToSlimAgainst).forEach(function (inFlightQueryContextKey) {
-      if (inFlightQueryContextKey in newQueryByContextMap) {
-        var newQueryRecordPieceSlimmed = _extends({}, newQueryByContextMap[inFlightQueryContextKey]);
-
-        inFlightQueriesToSlimAgainst[inFlightQueryContextKey].forEach(function (inFlightQueryRecord) {
-          var slimmed = _this3.getSlimmedQueryAgainstInFlightQuery(newQueryRecordPieceSlimmed, inFlightQueryRecord.queryRecord, false);
-
-          if (slimmed !== null) {
-            queryIdsSlimmedAgainst.push(inFlightQueryRecord.queryId);
-            newQueryRecordPieceSlimmed = slimmed;
-          }
-        });
-        newQuerySlimmed = _extends({}, newQuerySlimmed, newQueryRecordPieceSlimmed);
-      }
-    });
-
-    if (Object.keys(newQuerySlimmed).length === 0) {
-      return null;
-    } else {
-      return {
-        queryIdsSlimmedAgainst: queryIdsSlimmedAgainst,
-        slimmedQueryRecord: newQuerySlimmed
-      };
-    }
-  }
-  /**
-   * Returns in flight QueryRecordEntries by context that can slim down a new query.
-   * The new query should wait for an in flight query to slim against if:
-   *   - At least one QueryRecordEntry ContextKey in the inFlightQuery matches the QueryRecordEntry ContextKey of the newQuery.
-   *   - At least one property that is being requested by the new query is already being requested by the in flight query.
-   *   - The matched in flight QueryRecordEntry (from above) is not requesting relational data deeper than the newQuery QueryRecordEntry.
-   */
-  ;
-
-  _proto.getInFlightQueriesToSlimAgainst = function getInFlightQueriesToSlimAgainst(newQuery) {
-    var _this4 = this;
-
-    var inFlightQueriesToSlimAgainst = {};
-    var newQueryCtxtKeys = Object.keys(newQuery);
-    newQueryCtxtKeys.forEach(function (newQueryCtxKey) {
-      var queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
-      var newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
-
-      var newQueryRecordDepth = _this4.getRelationalDepthOfQueryRecordEntry(newQueryRecordEntry);
-
-      if (newQueryCtxKey in _this4.inFlightQueryRecords) {
-        var inFlightQueriesForCtxKey = _this4.inFlightQueryRecords[newQueryCtxKey];
-        inFlightQueriesForCtxKey.forEach(function (inFlightQueryRecord) {
-          if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
-            var inFlightQueryRecordEntry = inFlightQueryRecord.queryRecord[queryRecordBaseKey];
-            var inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(function (inFlightProp) {
-              return newQueryRecordEntry.properties.includes(inFlightProp);
-            });
-
-            if (inFlightRecordHasSomePropsInNewQuery) {
-              var inFlightRecordEntryDepth = _this4.getRelationalDepthOfQueryRecordEntry(inFlightQueryRecordEntry);
-
-              if (inFlightRecordEntryDepth <= newQueryRecordDepth) {
-                if (newQueryCtxKey in inFlightQueriesToSlimAgainst) {
-                  inFlightQueriesToSlimAgainst[newQueryCtxKey].push(inFlightQueryRecord);
-                } else {
-                  inFlightQueriesToSlimAgainst[newQueryCtxKey] = [inFlightQueryRecord];
-                }
-              }
-            }
-          }
-        });
-      }
-    });
-    return Object.keys(inFlightQueriesToSlimAgainst).length === 0 ? null : inFlightQueriesToSlimAgainst;
-  }
-  /**
-   * Slims the new query against an in flight query.
-   * This function assumes queries have already been matched by context.
-   */
-  ;
-
-  _proto.getSlimmedQueryAgainstInFlightQuery = function getSlimmedQueryAgainstInFlightQuery(newQuery, inFlightQuery, isRelationalQueryRecord) {
-    var _this5 = this;
-
-    var slimmedQueryRecord = {};
-    var slimmedRelationalQueryRecord = {};
-    Object.keys(newQuery).forEach(function (newQueryKey) {
-      var newQueryRecordEntry = newQuery[newQueryKey];
-      var newRootRecordEntry = newQueryRecordEntry;
-      var newRelationalRecordEntry = newQueryRecordEntry;
-
-      if (inFlightQuery[newQueryKey] === undefined) {
-        // If the inFlightQuery does not contain a record for the newQueryContextKey we need to keep that data as it needs to be fetched.
-        if (isRelationalQueryRecord) {
-          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
-        } else {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        }
-      } else {
-        // If a newQueryContextKey is present we want to slim what we can from the in flight query.
-        var inFlightQueryRecordEntry = inFlightQuery[newQueryKey];
-
-        var newRequestedProperties = _this5.getPropertiesNotCurrentlyBeingRequested({
-          newQueryProps: newQueryRecordEntry.properties,
-          inFlightProps: inFlightQueryRecordEntry.properties
-        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
-        // we can just return the new query with only the newly requested properties.
-
-
-        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
-          if (isRelationalQueryRecord) {
-            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-              properties: newRequestedProperties
-            });
-          } else {
-            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-              properties: newRequestedProperties
-            });
-          }
-        } // If both queries contain relational queries we need to try slimming against those as well.
-        // If there are child relational queries we still need to handle those even if the parent query is requesting properties that are already in flight.
-
-
-        if (newQueryRecordEntry.relational !== undefined && inFlightQueryRecordEntry.relational !== undefined) {
-          var slimmedNewRelationalQueryRecord = _this5.getSlimmedQueryAgainstInFlightQuery(newQueryRecordEntry.relational, inFlightQueryRecordEntry.relational, true); // If there are any properties being requested in the child relational query
-          // we will still need to return the query record even if the parent is requesting properties that are already in flight.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
-
-
-          if (slimmedNewRelationalQueryRecord !== null) {
-            if (isRelationalQueryRecord) {
-              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            } else {
-              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            }
-          }
-        }
-      }
-    });
-    var queryRecordToReturn = isRelationalQueryRecord ? slimmedRelationalQueryRecord : slimmedQueryRecord;
-    return Object.keys(queryRecordToReturn).length === 0 ? null : queryRecordToReturn;
-  };
-
-  _proto.getSlimmedQueryAgainstQueriesByContext = function getSlimmedQueryAgainstQueriesByContext(newQuery, parentContextKey) {
-    var _this6 = this;
-
-    // The query record could be a root query (not relational), or a child relational query.
-    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
-    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
-    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
-    // We know we are dealing with a relational query when parentContextKey is NOT undefined
-    var slimmedQueryRecord = {};
-    var slimmedRelationalQueryRecord = {};
-    var isNewQueryARootQuery = parentContextKey === undefined;
-    Object.keys(newQuery).forEach(function (newQueryKey) {
-      var newQueryRecordEntry = newQuery[newQueryKey];
-      var newRootRecordEntry = newQueryRecordEntry;
-      var newRelationalRecordEntry = newQueryRecordEntry;
-
-      var newQueryContextKey = _this6.createContextKeyForQueryRecordEntry(newQueryRecordEntry, parentContextKey);
-
-      if (_this6.queriesByContext[newQueryContextKey] === undefined) {
-        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
-        if (isNewQueryARootQuery) {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        } else {
-          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
-        }
-      } else {
-        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
-        // by the new query are already cached.
-        var cachedQuery = _this6.queriesByContext[newQueryContextKey];
-
-        var newRequestedProperties = _this6.getPropertiesNotAlreadyCached({
-          newQueryProps: newQueryRecordEntry.properties,
-          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty
-        }); // If there are no further child relational queries to deal with and there are properties being requested that are not cached
-        // we can just return the new query with only the newly requested properties.
-
-
-        if (newRequestedProperties !== null && newQueryRecordEntry.relational === undefined) {
-          if (isNewQueryARootQuery) {
-            slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-              properties: newRequestedProperties
-            });
-          } else {
-            slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-              properties: newRequestedProperties
-            });
-          }
-        } // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
-
-
-        if (newQueryRecordEntry.relational !== undefined) {
-          var slimmedNewRelationalQueryRecord = _this6.getSlimmedQueryAgainstQueriesByContext(newQueryRecordEntry.relational, newQueryContextKey); // If there are any non-cached properties being requested in the child relational query
-          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
-
-
-          if (slimmedNewRelationalQueryRecord !== null) {
-            if (isNewQueryARootQuery) {
-              slimmedQueryRecord[newQueryKey] = _extends({}, newRootRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            } else {
-              slimmedRelationalQueryRecord[newQueryKey] = _extends({}, newRelationalRecordEntry, {
-                properties: newRequestedProperties != null ? newRequestedProperties : [],
-                relational: _extends({}, slimmedNewRelationalQueryRecord)
-              });
-            }
-          }
-        }
-      }
-    });
-    var objectToReturn = isNewQueryARootQuery ? slimmedQueryRecord : slimmedRelationalQueryRecord;
-    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
-  };
-
-  _proto.onSubscriptionCancelled = function onSubscriptionCancelled(queryRecord, parentContextKey) {
-    var _this7 = this;
-
-    Object.keys(queryRecord).forEach(function (queryRecordKey) {
-      var queryRecordEntry = queryRecord[queryRecordKey];
-
-      var currentQueryContextKey = _this7.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      if (queryRecordEntry.relational !== undefined) {
-        _this7.onSubscriptionCancelled(queryRecordEntry.relational, currentQueryContextKey);
-      }
-
-      if (currentQueryContextKey in _this7.queriesByContext) {
-        var cachedQuerySubsByProperty = _this7.queriesByContext[currentQueryContextKey].subscriptionsByProperty;
-        queryRecordEntry.properties.forEach(function (property) {
-          var propertySubCount = cachedQuerySubsByProperty[property];
-
-          if (propertySubCount >= 1) {
-            cachedQuerySubsByProperty[property] = propertySubCount - 1;
-          }
-        });
-      }
-    });
-  };
-
-  _proto.getRelationalDepthOfQueryRecordEntry = function getRelationalDepthOfQueryRecordEntry(queryRecordEntry) {
-    var _this8 = this;
-
-    var relationalDepth = 0;
-
-    if (queryRecordEntry.relational !== undefined) {
-      relationalDepth += 1;
-      Object.values(queryRecordEntry.relational).forEach(function (relationalEntry) {
-        relationalDepth += _this8.getRelationalDepthOfQueryRecordEntry(relationalEntry);
-      });
-    }
-
-    return relationalDepth;
-  };
-
-  _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
-    var _this9 = this;
-
-    Object.keys(queryRecord).forEach(function (alias) {
-      var _this9$queriesByConte;
-
-      var queryRecordEntry = queryRecord[alias];
-
-      var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
-
-      _this9.queriesByContext[currentQueryContextKey] = {
-        subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
-          previous[current] = previous[current] ? previous[current] + 1 : 1;
-          return previous;
-        }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
-        results: results[alias]
-      };
-
-      if (queryRecordEntry.relational) {
-        var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
-          // do array vs object check here before map in case there's only a single id
-          previous[current] = results[alias].map(function (user) {
-            return user[current];
-          });
-          return previous;
-        }, {});
-
-        _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
-      }
-    });
-  };
-
-  _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
-    var doesQueryHaveIdProperty = !!queryRecordEntry.id;
-    var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
-    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
-    var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
-    return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
-  };
-
-  _proto.getPropertiesNotAlreadyCached = function getPropertiesNotAlreadyCached(opts) {
-    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
-      if (newQueryProperty in opts.cachedQuerySubsByProperty) {
-        return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
-      }
-
-      return true;
-    });
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
-  };
-
-  _proto.getPropertiesNotCurrentlyBeingRequested = function getPropertiesNotCurrentlyBeingRequested(opts) {
-    var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
-      return !opts.inFlightProps.includes(newQueryProperty);
-    });
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
-  };
-
-  _proto.stringifyQueryParams = function stringifyQueryParams(entry) {
-    // https://tractiontools.atlassian.net/browse/TTD-315
-    // Handle filter/pagination/sorting query params
-    var params = {
-      ids: entry.ids,
-      id: entry.id
-    };
-
-    if (!Object.values(params).some(function (value) {
-      return value != null;
-    })) {
-      return 'NO_PARAMS';
-    }
-
-    return JSON.stringify(params);
-  };
-
-  _proto.getQueryRecordsByContextMap = function getQueryRecordsByContextMap(queryRecord) {
-    var _this10 = this;
-
-    return Object.keys(queryRecord).reduce(function (queryRecordsByContext, queryRecordKey) {
-      var _queryRecordSlice;
-
-      var queryRecordEntry = queryRecord[queryRecordKey];
-
-      var contextKey = _this10.createContextKeyForQueryRecordEntry(queryRecordEntry);
-
-      var queryRecordSlice = (_queryRecordSlice = {}, _queryRecordSlice[queryRecordKey] = queryRecordEntry, _queryRecordSlice);
-      queryRecordsByContext[contextKey] = queryRecordSlice;
-      return queryRecordsByContext;
-    }, {});
-  };
-
-  _proto.sendQueryRequest = /*#__PURE__*/function () {
-    var _sendQueryRequest = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-      var inFlightQuery, queryGQLString, queryOpts, results;
-      return runtime_1.wrap(function _callee2$(_context2) {
-        while (1) {
-          switch (_context2.prev = _context2.next) {
-            case 0:
-              inFlightQuery = {
-                queryId: opts.queryId,
-                queryRecord: opts.queryRecord
-              };
-              queryGQLString = getQueryGQLStringFromQueryRecord({
-                queryId: opts.queryId,
-                queryRecord: opts.queryRecord
-              });
-              queryOpts = {
-                gql: gql(queryGQLString),
-                token: opts.tokenName
-              };
-
-              if ('batchKey' in opts && opts.batchKey !== undefined) {
-                queryOpts.batchKey = opts.batchKey;
-              }
-
-              _context2.prev = 4;
-              this.setInFlightQuery(inFlightQuery);
-              _context2.next = 8;
-              return this.mmGQLInstance.gqlClient.query(queryOpts);
-
-            case 8:
-              results = _context2.sent;
-              this.removeInFlightQuery(inFlightQuery);
-              this.populateQueriesByContext(opts.queryRecord, results);
-              _context2.next = 17;
-              break;
-
-            case 13:
-              _context2.prev = 13;
-              _context2.t0 = _context2["catch"](4);
-              this.removeInFlightQuery(inFlightQuery);
-              throw new Error("QuerySlimmer: Error sending request for query: " + JSON.stringify(opts.queryRecord), _context2.t0);
-
-            case 17:
-            case "end":
-              return _context2.stop();
-          }
-        }
-      }, _callee2, this, [[4, 13]]);
-    }));
-
-    function sendQueryRequest(_x2) {
-      return _sendQueryRequest.apply(this, arguments);
-    }
-
-    return sendQueryRequest;
-  }();
-
-  _proto.setInFlightQuery = function setInFlightQuery(inFlightQueryRecord) {
-    var _this11 = this;
-
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
-      if (queryRecordContextKey in _this11.inFlightQueryRecords) {
-        _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
-      } else {
-        _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
-      }
-    });
-  };
-
-  _proto.removeInFlightQuery = function removeInFlightQuery(inFlightQueryToRemove) {
-    var _this12 = this;
-
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
-      if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
-        _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
-          return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
-        });
-
-        if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-          delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
-        }
-      }
-    });
-  };
-
-  _proto.areDependentQueriesStillInFlight = function areDependentQueriesStillInFlight(opts) {
-    var _this13 = this;
-
-    var isStillWaitingOnInFlightQueries = false;
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(opts.querySlimmedByInFlightQueries);
-    Object.keys(queryRecordsByContext).forEach(function (ctxKey) {
-      if (!isStillWaitingOnInFlightQueries) {
-        if (ctxKey in _this13.inFlightQueryRecords) {
-          var inFlightQueryHasDepedentId = _this13.inFlightQueryRecords[ctxKey].some(function (inFlightQuery) {
-            return opts.queryIds.includes(inFlightQuery.queryId);
-          });
-
-          if (inFlightQueryHasDepedentId) {
-            isStillWaitingOnInFlightQueries = true;
-          }
-        }
-      }
-    });
-    return isStillWaitingOnInFlightQueries;
-  };
-
-  _proto.log = function log(message) {
-    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
-      var _console;
-
-      for (var _len = arguments.length, optionalParams = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        optionalParams[_key - 1] = arguments[_key];
-      }
-
-      (_console = console).log.apply(_console, [message].concat(optionalParams));
-    }
-  };
-
-  return QuerySlimmer;
-}();
-
-var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
-var LoggingContext = /*#__PURE__*/React.createContext({
-  unsafe__silenceDuplicateSubIdErrors: false
-}); // Allows use cases such as rendering the previous route as a suspense fallback to the next route
-// where the same subscription id may be used momentarily before the fallback route unmounts
-
-var UnsafeNoDuplicateSubIdErrorProvider = function UnsafeNoDuplicateSubIdErrorProvider(props) {
-  return React.createElement(LoggingContext.Provider, {
-    value: {
-      unsafe__silenceDuplicateSubIdErrors: true
-    }
-  }, props.children);
-};
-var MMGQLProvider = function MMGQLProvider(props) {
-  var existingContext = React.useContext(MMGQLContext);
-
-  if (existingContext) {
-    throw Error('Another instance of an MMGQLProvider was already detected higher up the render tree.\nHaving multiple instances of MMGQLProviders is not supported and may lead to unexpected results.');
-  }
-
-  var ongoingSubscriptionRecord = React.useRef({});
-  var cleanupTimeoutRecord = React.useRef({});
-  var mountedHooksBySubId = React.useRef({});
-  var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
-    ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
-  }, []);
-  var scheduleCleanup = React.useCallback(function (subscriptionId) {
-    function cleanup() {
-      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
-
-      if (existingContextSubscription) {
-        existingContextSubscription.unsub && existingContextSubscription.unsub();
-        delete ongoingSubscriptionRecord.current[subscriptionId];
-      }
-    }
-
-    if (props.subscriptionTTLMs != null) {
-      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
-    } else {
-      cleanup();
-    }
-  }, [props.subscriptionTTLMs]);
-  var cancelCleanup = React.useCallback(function (subscriptionId) {
-    clearTimeout(cleanupTimeoutRecord.current[subscriptionId]);
-    delete cleanupTimeoutRecord.current[subscriptionId];
-  }, []); // These three functions exists to fix issues related to non unique sub ids, which happens when multiple instances of the same component
-  // using a useSubscription hook are mounted at the same time
-  // since useSubscription uses the first line of the error stack to construct a unique sub id
-  // fixes https://tractiontools.atlassian.net/browse/MM-404
-
-  var onHookMount = React.useCallback(function (subscriptionId, _ref) {
-    var silenceDuplicateSubIdErrors = _ref.silenceDuplicateSubIdErrors;
-
-    if (mountedHooksBySubId.current[subscriptionId] && !silenceDuplicateSubIdErrors) {
-      throw Error(["A useSubscription hook was already mounted using the following subscription id:", subscriptionId, "To fix this error, please specify a unique subscriptionId in the second argument of useSubscription", "useSubscription(queryDefinitions, { subscriptionId })"].join('\n'));
-    }
-
-    mountedHooksBySubId.current[subscriptionId] = true;
-  }, []);
-  var onHookUnmount = React.useCallback(function (subscriptionId) {
-    delete mountedHooksBySubId.current[subscriptionId];
-  }, []);
-  return React.createElement(MMGQLContext.Provider, {
-    value: {
-      mmGQLInstance: props.mmGQL,
-      ongoingSubscriptionRecord: ongoingSubscriptionRecord.current,
-      updateSubscriptionInfo: updateSubscriptionInfo,
-      scheduleCleanup: scheduleCleanup,
-      cancelCleanup: cancelCleanup,
-      onHookMount: onHookMount,
-      onHookUnmount: onHookUnmount
-    }
-  }, props.children);
-};
-
-function useSubscription(queryDefinitions, opts) {
-  var context = React.useContext(MMGQLContext);
-
-  if (!context) {
-    throw Error('You must wrap your app with an MMGQLProvider before using useSubscription.');
-  }
-
-  var obj = {
-    stack: ''
-  };
-  Error.captureStackTrace(obj, useSubscription);
-
-  if (obj.stack === '') {
-    // Should be supported in all browsers, but better safe than sorry
-    throw Error('Error.captureStackTrace not supported');
-  }
-
-  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
-  var preExistingState = getPreexistingState({
-    subscriptionId: subscriptionId,
-    context: context,
-    queryDefinitions: queryDefinitions
-  });
-
-  var _React$useState = React.useState(preExistingState.results),
-      results = _React$useState[0],
-      setResults = _React$useState[1];
-
-  var _React$useState2 = React.useState(preExistingState.error),
-      error = _React$useState2[0],
-      setError = _React$useState2[1];
-
-  var _React$useState3 = React.useState(preExistingState.querying),
-      querying = _React$useState3[0],
-      setQuerying = _React$useState3[1];
-
-  var loggingContext = React.useContext(LoggingContext);
-  var qdStateManager = null;
-  var qdError = null;
-
-  try {
-    // buildQueryDefinitionStateManager throws a promise if a query is suspending rendering
-    // we catch that promise here and re-throw it further down, so that we can manage cleanup
-    // if this function throws and it is not caught, then the number of hooks produced by this hook changes, causing a react error
-    qdStateManager = buildQueryDefinitionStateManager({
-      context: context,
-      subscriptionId: subscriptionId,
-      queryDefinitions: queryDefinitions,
-      data: {
-        results: results,
-        error: error,
-        querying: querying
-      },
-      handlers: {
-        onResults: setResults,
-        onError: setError,
-        setQuerying: setQuerying
-      },
-      silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors
-    });
-  } catch (e) {
-    qdError = e;
-    qdStateManager = null;
-  }
-
-  React.useEffect(function () {
-    var _qdStateManager;
-
-    (_qdStateManager = qdStateManager) == null ? void 0 : _qdStateManager.onHookMount();
-    return function () {
-      var _qdStateManager2;
-
-      (_qdStateManager2 = qdStateManager) == null ? void 0 : _qdStateManager2.onHookUnmount();
-    }; // can't add qdStateManager to the dependencies here, as this would cause this useEffect to run with every re-render
-    // memoizing qdStateManager can be done, but then we'd have to silence the exhaustive-deps check for queryDefinitions, unless we forced devs
-    // to memoize all of their query definitions, which seems overkill
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, subscriptionId]);
-  if (error || qdError) throw error || qdError;
-  return qdStateManager;
-}
-
-function getPreexistingState(opts) {
-  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
-  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
-    acc[key] = null;
-    return acc;
-  }, {});
-  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
-  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
-  return {
-    results: results,
-    error: error,
-    querying: querying
-  };
-}
-/**
- * useSubscription accepts query definitions that optionally disable suspense rendering
- * to facilitate that, this method splits all query definitions into 2 groups
- * @param queryDefinitions
- * @returns {suspendEnabled: UseSubscriptionQueryDefinitions, suspendDisabled: UseSubscriptionQueryDefinitions}
- */
-
-
-function splitQueryDefinitions(queryDefinitions) {
-  var _Object$entries$reduc;
-
-  return Object.entries(queryDefinitions).reduce(function (split, _ref) {
-    var _queryDefinition$useS;
-
-    var alias = _ref[0],
-        queryDefinition = _ref[1];
-    var suspend = queryDefinition && 'useSubOpts' in queryDefinition && ((_queryDefinition$useS = queryDefinition.useSubOpts) == null ? void 0 : _queryDefinition$useS.doNotSuspend) != null ? !queryDefinition.useSubOpts.doNotSuspend : true;
-    split[suspend ? subscriptionIds.suspendEnabled : subscriptionIds.suspendDisabled][alias] = queryDefinition;
-    return split;
-  }, (_Object$entries$reduc = {}, _Object$entries$reduc[subscriptionIds.suspendEnabled] = {}, _Object$entries$reduc[subscriptionIds.suspendDisabled] = {}, _Object$entries$reduc));
-}
-
-var subscriptionIds = {
-  suspendEnabled: 'suspendEnabled',
-  suspendDisabled: 'suspendDisabled'
-};
-
-function buildQueryDefinitionStateManager(opts) {
-  // When a subscription is initialized, the state of the subscription is split
-  // suspended subscriptions and non suspended subscriptions are initialized separately,
-  // so that rendering can continue as soon as possible.
-  // To maintain shared state (like results, which are an aggregate of the results from both suspended and non suspended queries)
-  // separately from subscription specific state (like the previously generated gql fragments to compare previous and next state and discover if we need to reinitialize subscriptions)
-  // we have a parentSubscriptionId we use for storing shared state, and a subscriptionId for storing subscription specific state
-  var parentSubscriptionId = opts.subscriptionId;
-  var preExistingContextForThisParentSubscription = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-
-  if (!preExistingContextForThisParentSubscription) {
-    opts.context.ongoingSubscriptionRecord[parentSubscriptionId] = {};
-  }
-
-  function onHookMount() {
-    opts.context.onHookMount(parentSubscriptionId, {
-      silenceDuplicateSubIdErrors: opts.silenceDuplicateSubIdErrors
-    });
-    opts.context.cancelCleanup(parentSubscriptionId);
-    allSubscriptionIds.forEach(function (subId) {
-      return opts.context.cancelCleanup(subId);
-    });
-  }
-
-  function onHookUnmount() {
-    opts.context.onHookUnmount(parentSubscriptionId);
-    opts.context.scheduleCleanup(parentSubscriptionId);
-    allSubscriptionIds.forEach(function (subId) {
-      return opts.context.scheduleCleanup(subId);
-    });
-  } // We can not directly call "onResults" from this function's arguments within the subscriptions 'onData'
-  // because if this component unmounts due to fallback rendering then mounts again, we would be calling onResults on the
-  // state of the component rendered before the fallback occured.
-  // To avoid that, we keep a reference to the most up to date results setter in the subscription context
-  // and call that in "onData" instead.
-
-
-  opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-    onResults: opts.handlers.onResults,
-    onError: opts.handlers.onError,
-    setQuerying: opts.handlers.setQuerying
-  });
-
-  var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
-      suspendDisabled = _splitQueryDefinition.suspendDisabled,
-      suspendEnabled = _splitQueryDefinition.suspendEnabled;
-
-  var allSubscriptionIds = Object.values(subscriptionIds).map(function (subscriptionId) {
-    return parentSubscriptionId + subscriptionId;
-  });
-
-  function getAllSubscriptionStates() {
-    return allSubscriptionIds.map(function (subscriptionId) {
-      return opts.context.ongoingSubscriptionRecord[subscriptionId];
-    });
-  } // From the received queried definitions
-  // and a static parentSubscriptionId+subscriptionSuffix identifier
-  // initializes subscriptions and updates the useSubscription state on the hook
-  // Also maintains a copy of that state at the context level, such that the component rendering the hook
-  // can unmount and remount without losing its state. This is key for suspense to work, since components unmount when a promise is thrown
-  //
-  // returns a promise if there's an unresolved request and "suspend" is set to true
-
-
-  function handleNewQueryDefitions(subOpts) {
-    var _opts$context$ongoing;
-
-    var queryDefinitions = subOpts.queryDefinitions,
-        parentSubscriptionId = subOpts.parentSubscriptionId,
-        subscriptionSuffix = subOpts.subscriptionSuffix,
-        suspend = subOpts.suspend;
-    var subscriptionId = parentSubscriptionId + subscriptionSuffix;
-    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
-
-    if (!preExistingContextForThisSubscription) {
-      opts.context.ongoingSubscriptionRecord[subscriptionId] = {};
-    }
-
-    var newQueryInfo;
-    var newQueryDefinitionsAreAllNull;
-    var preExistingQueryInfo = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.queryInfo;
-
-    if (preExistingQueryInfo) {
-      var nonNullishQueryDefinitions = removeNullishQueryDefinitions(subOpts.queryDefinitions);
-
-      if (Object.keys(nonNullishQueryDefinitions).length) {
-        newQueryInfo = convertQueryDefinitionToQueryInfo({
-          queryDefinitions: nonNullishQueryDefinitions,
-          queryId: preExistingQueryInfo.queryId
-        });
-      } else {
-        newQueryDefinitionsAreAllNull = true;
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          queryInfo: null
-        });
-      }
-    }
-
-    var queryDefinitionHasBeenUpdated = newQueryDefinitionsAreAllNull || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryGQL !== newQueryInfo.queryGQL) || newQueryInfo && (!preExistingQueryInfo || preExistingQueryInfo.queryParamsString !== newQueryInfo.queryParamsString);
-
-    if (preExistingContextForThisSubscription && !queryDefinitionHasBeenUpdated) {
-      return preExistingContextForThisSubscription.suspendPromise;
-    }
-
-    if (queryDefinitionHasBeenUpdated) {
-      preExistingContextForThisSubscription.unsub && preExistingContextForThisSubscription.unsub();
-    }
-
-    var queryTimestamp = new Date().valueOf();
-    opts.context.updateSubscriptionInfo(subscriptionId, {
-      querying: true,
-      lastQueryTimestamp: queryTimestamp
-    });
-    opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-      querying: true
-    });
-    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
-    setQuerying && setQuerying(true);
-    opts.handlers.setQuerying(true);
-    var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
-      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
-      // Make sure to re-render the component on paginate
-      onPaginate: function onPaginate() {
-        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
-      },
-      onData: function onData(_ref2) {
-        var newResults = _ref2.results;
-        var contextforThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
-        var thisQueryIsMostRecent = (contextforThisSub == null ? void 0 : contextforThisSub.lastQueryTimestamp) === queryTimestamp;
-
-        if (thisQueryIsMostRecent) {
-          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
-          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-            results: _extends({}, contextForThisParentSub.results, newResults)
-          });
-        }
-      },
-      onError: function onError(error) {
-        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
-        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-          error: error
-        });
-      },
-      onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          unsub: function unsub() {
-            return subscriptionCanceller();
-          }
-        });
-        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-          unsub: function unsub() {
-            getAllSubscriptionStates().forEach(function (subscriptionState) {
-              return (subscriptionState == null ? void 0 : subscriptionState.unsub) && subscriptionState.unsub();
-            });
-          }
-        });
-      },
-      onQueryInfoConstructed: function onQueryInfoConstructed(queryInfo) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          queryInfo: queryInfo
-        });
-      }
-    })["finally"](function () {
-      var contextForThisSub = opts.context.ongoingSubscriptionRecord[subscriptionId];
-      var thisQueryIsMostRecent = (contextForThisSub == null ? void 0 : contextForThisSub.lastQueryTimestamp) === queryTimestamp;
-
-      if (thisQueryIsMostRecent) {
-        opts.context.updateSubscriptionInfo(subscriptionId, {
-          suspendPromise: undefined,
-          querying: false
-        }); // if all the queries have resolved, we can set "querying" to false for the parent subscription state
-
-        var allQueriesHaveResolved = !getAllSubscriptionStates().some(function (state) {
-          return state && state.querying;
-        });
-
-        if (allQueriesHaveResolved) {
-          var _opts$context$ongoing2;
-
-          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-            querying: false
-          });
-
-          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
-
-          _setQuerying && _setQuerying(false);
-          opts.handlers.setQuerying(false);
-        }
-      }
-    });
-
-    if (!preExistingContextForThisSubscription && suspend) {
-      opts.context.updateSubscriptionInfo(subscriptionId, {
-        suspendPromise: suspendPromise
-      });
-      return suspendPromise;
-    }
-  }
-
-  if (opts.data.error) throw opts.data.error;
-  var suspendPromise;
-
-  if (Object.keys(suspendDisabled).length) {
-    try {
-      handleNewQueryDefitions({
-        queryDefinitions: suspendDisabled,
-        parentSubscriptionId: parentSubscriptionId,
-        subscriptionSuffix: subscriptionIds.suspendDisabled,
-        suspend: false
-      });
-    } catch (e) {
-      opts.handlers.onError(e);
-      throw e;
-    }
-  }
-
-  if (Object.keys(suspendEnabled).length) {
-    try {
-      suspendPromise = handleNewQueryDefitions({
-        queryDefinitions: suspendEnabled,
-        parentSubscriptionId: parentSubscriptionId,
-        subscriptionSuffix: subscriptionIds.suspendEnabled,
-        suspend: true
-      });
-    } catch (e) {
-      opts.handlers.onError(e);
-      throw e;
-    }
-  }
-
-  if (suspendPromise) throw suspendPromise;
-  return {
-    data: opts.data.results,
-    error: opts.data.error,
-    querying: opts.data.querying,
-    onHookUnmount: onHookUnmount,
-    onHookMount: onHookMount
-  };
-}
-
-require('isomorphic-fetch');
-function getGQLCLient(gqlClientOpts) {
-  var wsLink = new WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true
-    }
-  });
-  var nonBatchedLink = new HttpLink({
-    uri: gqlClientOpts.httpUrl
-  });
-  var queryBatchLink = split(function (operation) {
-    return operation.getContext().batchKey;
-  }, new BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    batchMax: 50,
-    batchInterval: 50,
-    batchKey: function batchKey(operation) {
-      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
-      // are batched separately
-
-      return JSON.stringify({
-        batchKey: context.batchKey,
-        headers: context.headers,
-        credentials: context.credentials
-      });
-    }
-  }), nonBatchedLink);
-  var mutationBatchLink = split(function (operation) {
-    return operation.getContext().batchedMutation;
-  }, new BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    // no batch max for explicitly batched mutations
-    // to ensure transactional integrity
-    batchMax: Number.MAX_SAFE_INTEGER,
-    batchInterval: 0
-  }), queryBatchLink);
-  var requestLink = split( // split based on operation type
-  function (_ref) {
-    var query = _ref.query;
-    var definition = getMainDefinition(query);
-    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
-  }, wsLink, mutationBatchLink);
-
-  function getContextWithToken(opts) {
-    return {
-      headers: {
-        Authorization: "Bearer " + opts.token
-      }
-    };
-  }
-
-  function authenticateSubscriptionDocument(opts) {
-    var _opts$gql$loc;
-
-    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
-
-    if (!documentBody) {
-      throw new Error('No documentBody found');
-    }
-
-    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
-
-    if (operationsThatRequireToken.some(function (operation) {
-      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
-    })) {
-      var documentBodyWithAuthTokensInjected = documentBody;
-      operationsThatRequireToken.forEach(function (operation) {
-        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
-      });
-      return gql(documentBodyWithAuthTokensInjected);
-    }
-
-    return opts.gql;
-  }
-
-  var authLink = new ApolloLink(function (operation, forward) {
-    return new Observable(function (observer) {
-      var handle;
-      Promise.resolve(operation).then(function () {
-        handle = forward(operation).subscribe({
-          next: observer.next.bind(observer),
-          error: observer.error.bind(observer),
-          complete: observer.complete.bind(observer)
-        });
-      })["catch"](observer.error.bind(observer));
-      return function () {
-        if (handle) handle.unsubscribe();
-      };
-    });
-  });
-  var baseClient = new ApolloClient({
-    link: ApolloLink.from([authLink, requestLink]),
-    cache: new InMemoryCache(),
-    defaultOptions: {
-      watchQuery: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'ignore'
-      },
-      query: {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }
-    }
-  });
-  var gqlClient = {
-    query: function () {
-      var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _yield$baseClient$que, data;
-
-        return runtime_1.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                _context.next = 2;
-                return baseClient.query({
-                  query: opts.gql,
-                  context: _extends({
-                    // allow turning off batching by specifying a null or undefined batchKey
-                    // but by default, batch all requests into the same request batch
-                    batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
-                  }, getContextWithToken({
-                    token: opts.token
-                  }))
-                });
-
-              case 2:
-                _yield$baseClient$que = _context.sent;
-                data = _yield$baseClient$que.data;
-                return _context.abrupt("return", data);
-
-              case 6:
-              case "end":
-                return _context.stop();
-            }
-          }
-        }, _callee);
-      }));
-
-      function query(_x) {
-        return _query.apply(this, arguments);
-      }
-
-      return query;
-    }(),
-    subscribe: function subscribe(opts) {
-      var subscription = baseClient.subscribe({
-        query: authenticateSubscriptionDocument(opts)
-      }).subscribe({
-        next: function next(message) {
-          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
-        },
-        error: opts.onError
-      });
-      return function () {
-        return subscription.unsubscribe();
-      };
-    },
-    mutate: function () {
-      var _mutate = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.next = 3;
-                return Promise.all(opts.mutations.map(function (mutation) {
-                  return baseClient.mutate({
-                    mutation: mutation,
-                    context: _extends({
-                      batchedMutation: true
-                    }, getContextWithToken({
-                      token: opts.token
-                    }))
-                  });
-                }));
-
-              case 3:
-                return _context2.abrupt("return", _context2.sent);
-
-              case 4:
-              case "end":
-                return _context2.stop();
-            }
-          }
-        }, _callee2);
-      }));
-
-      function mutate(_x2) {
-        return _mutate.apply(this, arguments);
-      }
-
-      return mutate;
-    }()
-  };
-  return gqlClient;
-}
-
-function getDefaultConfig() {
-  return {
-    gqlClient: getGQLCLient({
-      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
-    }),
-    generateMockData: false,
-    enableQuerySlimming: false,
-    enableQuerySlimmingLogging: false
-  };
-}
-
 var MMGQL = /*#__PURE__*/function () {
   function MMGQL(config) {
     this.gqlClient = void 0;
     this.generateMockData = void 0;
     this.enableQuerySlimming = void 0;
     this.enableQuerySlimmingLogging = void 0;
+    this.paginationFilteringSortingInstance = void 0;
     this.plugins = void 0;
     this.query = void 0;
     this.subscribe = void 0;
@@ -7462,6 +8326,7 @@ var MMGQL = /*#__PURE__*/function () {
     this.generateMockData = config.generateMockData;
     this.enableQuerySlimming = config.enableQuerySlimming;
     this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
+    this.paginationFilteringSortingInstance = config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
     this.query = generateQuerier({
       mmGQLInstance: this
@@ -7475,6 +8340,10 @@ var MMGQL = /*#__PURE__*/function () {
     this.transaction = createTransaction(this, {
       onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested
     });
+
+    if (config.generateMockData && config.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER) {
+      throw Error("mmGQL was told to generate mock data and use \"SERVER\" pagination/filtering/sorting. Switch paginationFilteringSortingInstance to \"CLIENT\"");
+    }
   }
 
   var _proto = MMGQL.prototype;
@@ -7546,5 +8415,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_TOKEN_NAME, Data, FILTER_OPERATORS, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

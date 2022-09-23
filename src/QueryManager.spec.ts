@@ -1,25 +1,35 @@
 import {
   mockQueryDataReturn,
   getMockQueryRecord,
-  mockQueryResultExpectations,
+  getMockQueryResultExpectations,
   getMockConfig,
-  convertNodesCollectionValuesToArray,
 } from './specUtilities';
 
 import { MMGQL } from '.';
 
 test('QueryManager handles a query result and returns the expected data', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
+  const resultsObject = {};
   const queryManager = new mmGQLInstance.QueryManager(
-    getMockQueryRecord(mmGQLInstance)
+    getMockQueryRecord(mmGQLInstance),
+    {
+      queryId: 'MockQueryId',
+      useServerSidePaginationFilteringSorting: true,
+      resultsObject,
+      onResultsUpdated: () => {},
+      performQuery: async () => {},
+    }
   );
 
   queryManager.onQueryResult({
     queryResult: mockQueryDataReturn,
-    queryId: 'MockQueryId',
   });
 
-  expect(queryManager.getResults()).toEqual(
-    convertNodesCollectionValuesToArray(mockQueryResultExpectations)
+  expect(resultsObject).toEqual(
+    JSON.stringify(
+      getMockQueryResultExpectations({
+        useServerSidePaginationFilteringSorting: true,
+      })
+    )
   );
 });

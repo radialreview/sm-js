@@ -1,0 +1,280 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`calling goToNextPage causes the expected query to be executed 1`] = `
+"
+query query8 {
+ users: users(after: \\"mock-end-cursor\\", first: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`calling goToPreviousPage causes the expected query to be executed 1`] = `
+"
+query query10 {
+ users: users(after: \\"xyz\\", first: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`calling loadMore on a piece of relational results causes the expected query to be executed 1`] = `
+"
+query query6 {
+ users: users(first: 1) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos(after: \\"mock-end-cursor-for-todos\\", first: 1) {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+         users: users(first: 1) {
+           nodes {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
+           }
+         }
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`calling loadMore on a piece of relational results causes the expected query to be executed 2`] = `
+"
+query query6 {
+ users: users(first: 1) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos(first: 1) {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+         users: users(after: \\"mock-end-cursor-for-users\\", first: 1) {
+           nodes {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
+           }
+         }
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`calling loadMore results causes the expected query to be executed 1`] = `
+"
+query query4 {
+ users: users(after: \\"mock-end-cursor\\", first: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}
+"
+`;
+
+exports[`query gql matches the expectation when querying relational data and specifying an items per page param 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos(first: 1) {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying a start cursor param 1`] = `
+"query query2 {
+ users: users(after: \\"xyz\\", first: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying an end cursor param 1`] = `
+"query query3 {
+ users: users(before: \\"xyz\\", last: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query gql matches the expectation when specifying an items per page param 1`] = `
+"query query0 {
+ users: users(first: 2) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;

@@ -1,81 +1,171 @@
 import { NodesCollectionPageOutOfBoundsException } from './exceptions';
 
-function getPageResults<T>(opts: {
+export type PageInfoFromResults = {
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  endCursor: string;
+  startCursor: string;
+};
+
+export type ClientSidePageInfo = {
+  lastQueriedPage: number;
+  pageSize: number;
+};
+
+export type OnLoadMoreResultsCallback = () => Promise<void>;
+export type OnGoToNextPageCallback = () => Promise<void>;
+export type OnGoToPreviousPageCallback = () => Promise<void>;
+
+export interface NodesCollectionOpts<T> {
+  onLoadMoreResults: OnLoadMoreResultsCallback;
+  onGoToNextPage: OnGoToNextPageCallback;
+  onGoToPreviousPage: OnGoToPreviousPageCallback;
   items: T[];
-  page: number;
-  itemsPerPage: number;
-}) {
-  const startIndex = opts.page === 1 ? 0 : (opts.page - 1) * opts.itemsPerPage;
-  return Array.from(opts.items || []).slice(
-    startIndex,
-    startIndex + opts.itemsPerPage
-  );
+  pageInfoFromResults: PageInfoFromResults;
+  clientSidePageInfo: ClientSidePageInfo;
+  useServerSidePaginationFilteringSorting: boolean;
 }
 
-export type OnPaginateCallback = (opts: {
-  page: number;
-  itemsPerPage: number;
-}) => void;
-
-interface NodesCollectionOpts<T> {
-  onPaginate?: OnPaginateCallback;
-  itemsPerPage: number;
-  page: number;
-  items: T[];
-}
 export class NodesCollection<T> {
-  public itemsPerPage: number;
-  public page: number;
-  private onPaginate?: OnPaginateCallback;
+  private onLoadMoreResults: OnLoadMoreResultsCallback;
+  private onGoToNextPage: OnGoToNextPageCallback;
+  private onGoToPreviousPage: OnGoToPreviousPageCallback;
   private items: T[];
+  private pageInfoFromResults: PageInfoFromResults;
+  private clientSidePageInfo: ClientSidePageInfo;
+  private useServerSidePaginationFilteringSorting: boolean;
+  // when "loadMore" is used, we display more than 1 page
+  // however, nothing in our code needs to know about this other than the "nodes"
+  // getter below, which must return multiple pages of results when loadMore is executed
+  private pagesBeingDisplayed: Array<number>;
 
   constructor(opts: NodesCollectionOpts<T>) {
-    this.itemsPerPage = opts.itemsPerPage;
-    this.page = opts.page;
     this.items = opts.items;
-    this.onPaginate = opts.onPaginate;
+
+    this.pageInfoFromResults = opts.pageInfoFromResults;
+    this.clientSidePageInfo = opts.clientSidePageInfo;
+    this.useServerSidePaginationFilteringSorting =
+      opts.useServerSidePaginationFilteringSorting;
+    this.pagesBeingDisplayed = [opts.clientSidePageInfo.lastQueriedPage];
+    this.onLoadMoreResults = opts.onLoadMoreResults;
+    this.onGoToNextPage = opts.onGoToNextPage;
+    this.onGoToPreviousPage = opts.onGoToPreviousPage;
   }
 
   public get nodes() {
+    if (this.useServerSidePaginationFilteringSorting) return this.items;
+    // this is because when doing client side pagination, all the items in this collection are expected to already
+    // be cached in this class' state
     return getPageResults({
       items: this.items,
-      page: this.page,
-      itemsPerPage: this.itemsPerPage,
+      pages: this.pagesBeingDisplayed,
+      itemsPerPage: this.clientSidePageInfo.pageSize,
     });
   }
 
-  public get totalPages() {
-    return Math.ceil((this.items || []).length / this.itemsPerPage);
-  }
-
-  public goToPage(page: number) {
-    if (page < 1 || page > this.totalPages) {
-      throw new NodesCollectionPageOutOfBoundsException({ page });
-    }
-    this.page = page;
-    this.onPaginate &&
-      this.onPaginate({ page, itemsPerPage: this.itemsPerPage });
-  }
-
   public get hasNextPage() {
-    return this.totalPages > this.page;
+    return this.pageInfoFromResults.hasNextPage;
   }
 
   public get hasPreviousPage() {
-    return this.page > 1;
+    if (this.useServerSidePaginationFilteringSorting) {
+      return this.pageInfoFromResults.hasPreviousPage;
+    } else {
+      return this.clientSidePageInfo.lastQueriedPage > 1;
+    }
   }
 
-  public goToNextPage() {
+  public get totalPages() {
+    return this.pageInfoFromResults.totalPages;
+  }
+
+  public get page() {
+    return this.clientSidePageInfo.lastQueriedPage;
+  }
+
+  public async loadMore() {
     if (!this.hasNextPage) {
-      return;
+      throw new NodesCollectionPageOutOfBoundsException(
+        'No more results available - check results.hasNextPage before calling loadMore'
+      );
     }
-    this.goToPage(this.page + 1);
+    this.clientSidePageInfo.lastQueriedPage++;
+    this.pagesBeingDisplayed = [
+      ...this.pagesBeingDisplayed,
+      this.clientSidePageInfo.lastQueriedPage,
+    ];
+
+    await this.onLoadMoreResults();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
   }
 
-  public goToPreviousPage() {
-    if (!this.hasPreviousPage) {
-      return;
+  public async goToNextPage() {
+    if (!this.hasNextPage) {
+      throw new NodesCollectionPageOutOfBoundsException(
+        'No next page available - check results.hasNextPage before calling goToNextPage'
+      );
     }
-    this.goToPage(this.page - 1);
+    this.clientSidePageInfo.lastQueriedPage++;
+    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+
+    await this.onGoToNextPage();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
+  }
+
+  public async goToPreviousPage() {
+    if (!this.hasPreviousPage) {
+      throw new NodesCollectionPageOutOfBoundsException(
+        'No previous page available - check results.hasPreviousPage before calling goToPreviousPage'
+      );
+    }
+    this.clientSidePageInfo.lastQueriedPage--;
+    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+
+    await this.onGoToPreviousPage();
+
+    if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
+  }
+
+  public async goToPage(_: number) {
+    throw new Error('Not implemented');
+  }
+
+  // as the name implies, only runs when client side pagination is executed
+  // otherwise the onLoadMoreResults, onGoToNextPage, onGoToPreviousPage are expected to return the new page info
+  // this is because when doing client side pagination, all the items in this collection are expected to already
+  // be cached in this class' state
+  private setNewClientSidePageInfoAfterClientSidePaginationRequest() {
+    this.pageInfoFromResults = {
+      totalPages: this.pageInfoFromResults.totalPages,
+      hasNextPage:
+        this.pageInfoFromResults.totalPages >
+        this.clientSidePageInfo.lastQueriedPage,
+      hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
+      endCursor: this.pageInfoFromResults.endCursor,
+      startCursor: this.pageInfoFromResults.startCursor,
+    };
   }
 }
+
+function getPageResults<T>(opts: {
+  items: T[];
+  pages: Array<number>;
+  itemsPerPage: number;
+}) {
+  const inChunks = chunkArray(opts.items, opts.itemsPerPage);
+  return opts.pages.map(pageNumber => inChunks[pageNumber - 1]).flat();
+}
+
+export const chunkArray = <T>(arr: T[], size: number): T[][] =>
+  arr.length > size
+    ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)]
+    : [arr];

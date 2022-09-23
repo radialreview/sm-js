@@ -1,6 +1,5 @@
-import { IData, QueryDefinitions, DataDefaultFn } from './types';
+import { IData, QueryRecord, DataDefaultFn, RelationalQueryRecord } from './types';
 export declare function getMockValuesForIDataRecord(record: Record<string, IData | DataDefaultFn>): Record<string, any>;
-export declare function generateMockNodeDataFromQueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TSMNode, TMapFn, TQueryDefinitionTarget>>(opts: {
-    queryDefinitions: TQueryDefinitions;
-    queryId: string;
+export declare function generateMockNodeDataForQueryRecord(opts: {
+    queryRecord: QueryRecord | RelationalQueryRecord;
 }): Record<string, any>;

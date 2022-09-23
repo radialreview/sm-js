@@ -1,0 +1,776 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query.filter can filter 'boolean' prop using 'eq' operator 1`] = `
+"query query6 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     archived
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'boolean' prop using 'neq' operator 1`] = `
+"query query9 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     archived
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'null' values with 'eq' operator 1`] = `
+"query query7 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     optionalProp
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'null' values with 'neq' operator 1`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     optionalProp
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'eq' operator 1`] = `
+"query query2 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
+"query query4 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'gte' operator 1`] = `
+"query query0 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'lt' operator 1`] = `
+"query query5 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'lte' operator 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
+"query query3 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'contains' operator 1`] = `
+"query query11 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'eq' operator 1`] = `
+"query query10 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'ncontains' operator 1`] = `
+"query query12 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
+"query query13 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter multilevel relational data 1`] = `
+"query query16 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         users: users {
+           nodes {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
+           }
+         }
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter multiple relational data 1`] = `
+"query query28 {
+ user: user(id: \\"mock-user-id\\") {
+   id
+   version
+   lastUpdatedBy
+   type
+   archived
+   todos: todos {
+     nodes {
+       id
+       version
+       lastUpdatedBy
+       type
+       task
+       numberProp
+     }
+     totalCount
+     pageInfo {
+       endCursor
+       startCursor
+       hasNextPage
+       hasPreviousPage
+     }
+   }
+   otherTodos: todos {
+     nodes {
+       id
+       version
+       lastUpdatedBy
+       type
+       task
+       numberProp
+     }
+     totalCount
+     pageInfo {
+       endCursor
+       startCursor
+       hasNextPage
+       hasPreviousPage
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter nested object property 1`] = `
+"query query17 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     address
+     address__dot__state
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "AND" condition using the node's oneToMany relational properties 1`] = `
+"query query20 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "AND" condition using the node's oneToOne relational properties 1`] = `
+"query query24 {
+ todos: todos {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     task
+     assignee: assignee {
+       id
+       version
+       lastUpdatedBy
+       type
+       firstName
+       archived
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "OR" condition using the node's oneToMany relational properties 1`] = `
+"query query21 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "OR" condition using the node's oneToOne relational properties 1`] = `
+"query query23 {
+ todos: todos {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     task
+     assignee: assignee {
+       id
+       version
+       lastUpdatedBy
+       type
+       firstName
+       archived
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter relational data 1`] = `
+"query query15 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter relational data of a single node query 1`] = `
+"query query27 {
+ user: user(id: \\"mock-user-id\\") {
+   id
+   version
+   lastUpdatedBy
+   type
+   archived
+   todos: todos {
+     nodes {
+       id
+       version
+       lastUpdatedBy
+       type
+       task
+       numberProp
+     }
+     totalCount
+     pageInfo {
+       endCursor
+       startCursor
+       hasNextPage
+       hasPreviousPage
+     }
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter relational data using "OR" condition 1`] = `
+"query query26 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+         numberProp
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter using "OR" condition 1`] = `
+"query query25 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function 1`] = `
+"query query19 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     address
+     address__dot__state
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter should throw an error if relational prop is not defined in the map function when filtering by relational data 1`] = `
+"query query22 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter supports old filter object format with 'eq' as default operator 1`] = `
+"query query14 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter undefined filters should not be included 1`] = `
+"query query18 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;

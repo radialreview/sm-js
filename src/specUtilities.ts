@@ -1,8 +1,10 @@
+import { isObject } from 'lodash';
+
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
-import { isObject } from 'lodash';
+
 import {
   IOneToOneQueryBuilder,
   IOneToManyQueryBuilder,
@@ -16,9 +18,11 @@ import {
   Config,
   QueryDefinitionTarget,
   NodeDefaultProps,
+  EPaginationFilteringSortingInstance,
+  DocumentNode,
 } from './types';
 import { NULL_TAG } from './dataConversions';
-import { NodesCollection } from './nodesCollection';
+import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
 const userProperties = {
   firstName: data.string,
@@ -249,72 +253,94 @@ export const mockUserData = {
   todos: [mockTodoData],
 };
 
+const mockPageInfo: PageInfoFromResults = {
+  hasPreviousPage: true,
+  hasNextPage: true,
+  endCursor: 'xyz',
+  startCursor: 'zyx',
+  totalPages: 3,
+};
+
 export const mockQueryDataReturn = {
-  users: {
-    nodes: [
+  users: createMockDataItems({
+    sampleMockData: {
+      id: 'mock-user-id',
+      type: 'user',
+      version: '1',
+      address: '__object__',
+      address__dot__state: 'FL',
+      address__dot__apt: '__object__',
+      address__dot__apt__dot__floor: '1',
+      address__dot__apt__dot__number: '1',
+      todos: createMockDataItems({
+        sampleMockData: {
+          version: '1',
+          id: 'mock-todo-id',
+          type: 'todo',
+          assignee: {
+            id: 'mock-user-id',
+            type: 'user',
+            version: '1',
+            firstName: 'Joe',
+          },
+        },
+        items: [
+          {
+            id: 'mock-todo-id',
+          },
+        ],
+      }),
+    },
+    items: [
       {
         id: 'mock-user-id',
-        type: 'user',
-        version: '1',
-        address: '__object__',
-        address__dot__state: 'FL',
-        address__dot__apt: '__object__',
-        address__dot__apt__dot__floor: '1',
-        address__dot__apt__dot__number: '1',
-        todos: {
-          nodes: [
-            {
-              version: '1',
-              id: 'mock-todo-id',
-              type: 'todo',
-              assignee: {
-                id: 'mock-user-id',
-                type: 'user',
-                version: '1',
-                firstName: 'Joe',
-              },
-            },
-          ],
-        },
       },
     ],
-  },
+  }),
 };
 
 const expectedAssignee = {
-  id: 'mock-user-id',
+  version: 1,
   type: 'user',
+  id: 'mock-user-id',
+  firstName: 'Joe',
   displayName: 'User display name',
   lastUpdatedBy: undefined,
-  firstName: 'Joe',
-  version: 1,
 };
 const expectedTodo = {
-  id: 'mock-todo-id',
+  version: 1,
   type: 'todo',
+  id: 'mock-todo-id',
   assignee: expectedAssignee,
   lastUpdatedBy: undefined,
-  version: 1,
 };
 const expectedUsers = [
   {
-    id: 'mock-user-id',
+    version: 1,
     type: 'user',
+    id: 'mock-user-id',
+    address: { state: 'FL', apt: { number: 1, floor: 1 } },
     displayName: 'User display name',
     lastUpdatedBy: undefined,
-    address: { state: 'FL', apt: { number: 1, floor: 1 } },
     todos: [expectedTodo],
-    version: 1,
   },
 ];
 
-export const mockQueryResultExpectations = { users: expectedUsers };
+export const getMockQueryResultExpectations = (opts: {
+  useServerSidePaginationFilteringSorting: boolean;
+}) =>
+  convertNodesCollectionValuesToArray({
+    obj: { users: expectedUsers },
+    useServerSidePaginationFilteringSorting:
+      opts.useServerSidePaginationFilteringSorting,
+  });
 
 export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
   const { queryRecord } = convertQueryDefinitionToQueryInfo({
     queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
+    useServerSidePaginationFilteringSorting: true,
   });
 
   return queryRecord;
@@ -360,20 +386,39 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
 
 export function getMockConfig(opts?: {
   mockData?: any;
+  getMockData?: () => any;
   generateMockData?: boolean;
   enableQuerySlimming?: boolean;
   enableQuerySlimmingLogging?: boolean;
+  paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
+  onQueryPerformed?: (query: DocumentNode) => void;
 }): Config {
+  if (opts?.mockData && opts?.getMockData) {
+    throw Error('Pick one');
+  }
+
   return {
     gqlClient: {
-      query: () =>
-        new Promise(res => res(opts?.mockData ?? mockQueryDataReturn)),
+      query: ({ gql }) => {
+        let response = mockQueryDataReturn;
+        if (opts?.getMockData) {
+          response = opts.getMockData();
+        } else if (opts?.mockData) {
+          response = opts.mockData;
+        }
+
+        opts?.onQueryPerformed && opts.onQueryPerformed(gql);
+        return new Promise(res => res(response));
+      },
       subscribe: () => () => {},
       mutate: () => new Promise(res => res([])),
     },
     generateMockData: !!opts?.generateMockData,
     enableQuerySlimming: opts?.enableQuerySlimming ?? false,
     enableQuerySlimmingLogging: opts?.enableQuerySlimmingLogging ?? false,
+    paginationFilteringSortingInstance:
+      opts?.paginationFilteringSortingInstance ??
+      EPaginationFilteringSortingInstance.SERVER,
   };
 }
 
@@ -423,23 +468,66 @@ export function autoIndentGQL(gqlString: string): string {
     .join('\n');
 }
 
+export function getPrettyPrintedGQL(documentNode: DocumentNode) {
+  const source = documentNode.loc?.source.body;
+  if (!source) throw Error('No source on the document node');
+  return autoIndentGQL(source);
+}
+
 export function convertNodesCollectionValuesToArray<
   T extends Record<string, any>
->(obj: T) {
-  return Object.keys(obj).reduce((acc, key) => {
+>(opts: { obj: T; useServerSidePaginationFilteringSorting: boolean }) {
+  return Object.keys(opts.obj).reduce((acc, key) => {
     if (Array.isArray(acc[key])) {
       const arrayValue = new NodesCollection({
         items: acc[key].map((item: any) => {
           return isObject(item)
-            ? convertNodesCollectionValuesToArray(item)
+            ? convertNodesCollectionValuesToArray({
+                obj: item,
+                useServerSidePaginationFilteringSorting:
+                  opts.useServerSidePaginationFilteringSorting,
+              })
             : item;
         }),
-        itemsPerPage: 1,
-        page: 1,
+        pageInfoFromResults: {
+          ...mockPageInfo,
+        },
+        clientSidePageInfo: {
+          lastQueriedPage: 1,
+          pageSize: 10,
+        },
+        onLoadMoreResults: async () => {},
+        onGoToNextPage: async () => {},
+        onGoToPreviousPage: async () => {},
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
       });
       acc[key] = arrayValue;
     }
 
     return acc;
-  }, obj as Record<string, any>);
+  }, opts.obj as Record<string, any>);
+}
+
+export function createMockDataItems<T>(opts: {
+  sampleMockData: T & { id: string };
+  items: Array<Partial<any>>;
+  pageInfo?: Partial<PageInfoFromResults>;
+  totalCount?: number;
+}) {
+  const pageInfo: PageInfoFromResults = opts.pageInfo
+    ? { ...mockPageInfo, ...opts.pageInfo }
+    : {
+        ...mockPageInfo,
+      };
+
+  return {
+    nodes: opts.items.map((mockItem, index) => ({
+      ...opts.sampleMockData,
+      id: opts.sampleMockData.id + index,
+      ...mockItem,
+    })),
+    totalCount: opts.totalCount ?? opts.items.length,
+    pageInfo,
+  };
 }

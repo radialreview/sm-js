@@ -1,9 +1,9 @@
-import { INode, QueryDefinitions, QueryRecord, ValidFilterForNode } from './types';
+import { INode, RelationalQueryRecordEntry, QueryDefinitions, QueryRecord, QueryRecordEntry, ValidFilterForNode } from './types';
 export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryId: string;
     queryDefinitions: TQueryDefinitions;
 }): QueryRecord;
-export declare function getKeyValueFilterString<TNode extends INode>(filter: ValidFilterForNode<TNode>): string;
+export declare function getBEFilterString<TNode extends INode>(filter: ValidFilterForNode<TNode>): string;
 export declare type SubscriptionConfig = {
     alias: string;
     gqlString: string;
@@ -13,10 +13,15 @@ export declare type SubscriptionConfig = {
 export declare function getQueryGQLStringFromQueryRecord(opts: {
     queryId: string;
     queryRecord: QueryRecord;
+    useServerSidePaginationFilteringSorting: boolean;
 }): string;
+export declare function queryRecordEntryReturnsArrayOfData(opts: {
+    queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}): boolean;
 export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryDefinitions: TQueryDefinitions;
     queryId: string;
+    useServerSidePaginationFilteringSorting: boolean;
 }): {
     subscriptionConfigs: SubscriptionConfig[];
     queryGQLString: string;
@@ -32,6 +37,7 @@ export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQue
 export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryDefinitions: TQueryDefinitions;
     queryId: string;
+    useServerSidePaginationFilteringSorting: boolean;
 }): {
     queryGQL: import("graphql/language/ast").DocumentNode;
     subscriptionConfigs: {

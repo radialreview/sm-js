@@ -1,0 +1,413 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`query.sorting can prioritize sorting 1`] = `
+"query query9 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     lastName
+     address
+     address__dot__streetName
+     address__dot__zipCode
+     address__dot__state
+     address__dot__apt
+     address__dot__apt__dot__number
+     address__dot__apt__dot__floor
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'boolean' properties 1`] = `
+"query query4 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     archived
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'boolean' properties descending 1`] = `
+"query query5 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     archived
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'number' properties 1`] = `
+"query query2 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'number' properties descending 1`] = `
+"query query3 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'object' properties 1`] = `
+"query query6 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     address
+     address__dot__streetName
+     address__dot__zipCode
+     address__dot__state
+     address__dot__apt
+     address__dot__apt__dot__number
+     address__dot__apt__dot__floor
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'object' properties decsending 1`] = `
+"query query7 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     address
+     address__dot__streetName
+     address__dot__zipCode
+     address__dot__state
+     address__dot__apt
+     address__dot__apt__dot__number
+     address__dot__apt__dot__floor
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'oneToMany' relational data 1`] = `
+"query query15 {
+ todos: todos {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     task
+     users: users {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         firstName
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'oneToOne' relational data 1`] = `
+"query query14 {
+ todos: todos {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     task
+     assignee: assignee {
+       id
+       version
+       lastUpdatedBy
+       type
+       firstName
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'string' properties 1`] = `
+"query query0 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     lastName
+     address
+     address__dot__state
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort 'string' properties descending 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     lastName
+     address
+     address__dot__state
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort multiple properties 1`] = `
+"query query8 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     address
+     address__dot__streetName
+     address__dot__zipCode
+     address__dot__state
+     address__dot__apt
+     address__dot__apt__dot__number
+     address__dot__apt__dot__floor
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting can sort relational data 1`] = `
+"query query11 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting should always sort null values last in ascending order 1`] = `
+"query query12 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     optionalProp
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting should always sort null values last in descending order 1`] = `
+"query query13 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     optionalProp
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.sorting should throw an error if property being sorted is not defined in the queryDefinition map function 1`] = `
+"query query10 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+     address
+     address__dot__state
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;

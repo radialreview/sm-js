@@ -1,5 +1,6 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode } from './types';
+import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
         (defaultValue: string): IData<{
@@ -2304,7 +2305,7 @@ export declare const mockUserData: {
 };
 export declare const mockQueryDataReturn: {
     users: {
-        nodes: {
+        nodes: ({
             id: string;
             type: string;
             version: string;
@@ -2314,7 +2315,7 @@ export declare const mockQueryDataReturn: {
             address__dot__apt__dot__floor: string;
             address__dot__apt__dot__number: string;
             todos: {
-                nodes: {
+                nodes: ({
                     version: string;
                     id: string;
                     type: string;
@@ -2324,41 +2325,22 @@ export declare const mockQueryDataReturn: {
                         version: string;
                         firstName: string;
                     };
-                }[];
+                } & {
+                    id: string;
+                })[];
+                totalCount: number;
+                pageInfo: PageInfoFromResults;
             };
-        }[];
+        } & {
+            id: string;
+        })[];
+        totalCount: number;
+        pageInfo: PageInfoFromResults;
     };
 };
-export declare const mockQueryResultExpectations: {
-    users: {
-        id: string;
-        type: string;
-        displayName: string;
-        lastUpdatedBy: undefined;
-        address: {
-            state: string;
-            apt: {
-                number: number;
-                floor: number;
-            };
-        };
-        todos: {
-            id: string;
-            type: string;
-            assignee: {
-                id: string;
-                type: string;
-                displayName: string;
-                lastUpdatedBy: undefined;
-                firstName: string;
-                version: number;
-            };
-            lastUpdatedBy: undefined;
-            version: number;
-        }[];
-        version: number;
-    }[];
-};
+export declare const getMockQueryResultExpectations: (opts: {
+    useServerSidePaginationFilteringSorting: boolean;
+}) => Record<string, any>;
 export declare function getMockQueryRecord(mmGQLInstance: IMMGQL): import("./types").QueryRecord;
 export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
     users: {
@@ -2390,10 +2372,31 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
 };
 export declare function getMockConfig(opts?: {
     mockData?: any;
+    getMockData?: () => any;
     generateMockData?: boolean;
     enableQuerySlimming?: boolean;
     enableQuerySlimmingLogging?: boolean;
+    paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
+    onQueryPerformed?: (query: DocumentNode) => void;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
-export declare function convertNodesCollectionValuesToArray<T extends Record<string, any>>(obj: T): Record<string, any>;
+export declare function getPrettyPrintedGQL(documentNode: DocumentNode): string;
+export declare function convertNodesCollectionValuesToArray<T extends Record<string, any>>(opts: {
+    obj: T;
+    useServerSidePaginationFilteringSorting: boolean;
+}): Record<string, any>;
+export declare function createMockDataItems<T>(opts: {
+    sampleMockData: T & {
+        id: string;
+    };
+    items: Array<Partial<any>>;
+    pageInfo?: Partial<PageInfoFromResults>;
+    totalCount?: number;
+}): {
+    nodes: (T & {
+        id: string;
+    })[];
+    totalCount: number;
+    pageInfo: PageInfoFromResults;
+};
 export {};

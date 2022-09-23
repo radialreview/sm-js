@@ -11,6 +11,8 @@ import {
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
 } from './exceptions';
+import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
+
 import {
   FilterValue,
   FilterOperator,
@@ -19,8 +21,9 @@ import {
   SortDirection,
   ValidSortForNode,
   QueryRecord,
-  FilterObjectForNode,
   FilterCondition,
+  RelationalQueryRecord,
+  RelationalQueryRecordEntry,
 } from './types';
 
 function checkFilter({
@@ -33,36 +36,36 @@ function checkFilter({
   itemValue: any;
 }) {
   switch (operator) {
-    case '_contains': {
+    case 'contains': {
       return (
         String(itemValue)
           .toLowerCase()
           .indexOf(String(filterValue).toLowerCase()) !== -1
       );
     }
-    case '_ncontains': {
+    case 'ncontains': {
       return (
         String(itemValue)
           .toLowerCase()
           .indexOf(String(filterValue).toLowerCase()) === -1
       );
     }
-    case '_eq': {
+    case 'eq': {
       return (
         String(itemValue).toLowerCase() === String(filterValue).toLowerCase()
       );
     }
-    case '_neq':
+    case 'neq':
       return (
         String(itemValue).toLowerCase() !== String(filterValue).toLowerCase()
       );
-    case '_gt':
+    case 'gt':
       return itemValue > filterValue;
-    case '_gte':
+    case 'gte':
       return itemValue >= filterValue;
-    case '_lt':
+    case 'lt':
       return itemValue < filterValue;
-    case '_lte':
+    case 'lte':
       return itemValue <= filterValue;
     default:
       throw new FilterOperatorNotImplementedException({
@@ -112,17 +115,17 @@ export function applyClientSideFilterToData({
   queryRecordEntry,
   data,
   alias,
-  filter: queryRecordEntryFilter,
 }: {
-  queryRecordEntry: QueryRecordEntry;
-  filter: FilterObjectForNode<INode>;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   data: any;
   alias: string;
 }) {
-  const filterObject = getFlattenedNodeFilterObject(queryRecordEntryFilter);
+  const filterObject = getFlattenedNodeFilterObject({
+    queryRecordEntry,
+  });
 
   if (filterObject && data[alias]) {
-    const filterProperties = Object.keys(filterObject).map<{
+    const filterProperties: Array<{
       dotSeparatedPropName: string;
       underscoreSeparatedPropName: string;
       propNotInQuery: boolean;
@@ -132,7 +135,7 @@ export function applyClientSideFilterToData({
       relationalKey?: string;
       oneToOne?: boolean;
       oneToMany?: boolean;
-    }>(dotSeparatedPropName => {
+    }> = Object.keys(filterObject).map(dotSeparatedPropName => {
       const [possibleRelationalKey, ...relationalProperties] = String(
         dotSeparatedPropName
       ).split('.');
@@ -143,7 +146,7 @@ export function applyClientSideFilterToData({
       const propertyFilter: FilterValue<any> =
         filterObject[dotSeparatedPropName];
       const operators = (Object.keys(propertyFilter).filter(
-        x => x !== '_condition'
+        x => x !== 'condition'
       ) as Array<FilterOperator>).map<{ operator: FilterOperator; value: any }>(
         operator => {
           return { operator, value: propertyFilter[operator] };
@@ -164,7 +167,7 @@ export function applyClientSideFilterToData({
         underscoreSeparatedPropName,
         propNotInQuery: propNotInQuery,
         operators,
-        condition: propertyFilter._condition,
+        condition: propertyFilter.condition,
         isRelational: isRelationalProperty,
         relationalKey: possibleRelationalKey,
         oneToOne: (relational && 'oneToOne' in relational) || undefined,
@@ -188,10 +191,10 @@ export function applyClientSideFilterToData({
             });
           }
           const orConditions = filterProperties.filter(
-            x => x.condition === 'OR'
+            x => x.condition === 'or'
           );
           const andConditions = filterProperties.filter(
-            x => x.condition === 'AND'
+            x => x.condition === 'and'
           );
 
           const hasPassedEveryANDConditions =
@@ -373,7 +376,7 @@ export function applyClientSideSortToData({
   alias,
   sort: queryRecordEntrySort,
 }: {
-  queryRecordEntry: QueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   sort: ValidSortForNode<INode>;
   data: any;
   alias: string;
@@ -420,8 +423,8 @@ export function applyClientSideSortToData({
           oneToOne: (relational && 'oneToOne' in relational) || undefined,
           oneToMany: (relational && 'oneToMany' in relational) || undefined,
           priority:
-            sortObject[dotSeparatedPropName]._priority || (index + 1) * 10000,
-          direction: sortObject[dotSeparatedPropName]._direction || 'asc',
+            sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+          direction: sortObject[dotSeparatedPropName].direction || 'asc',
         };
       }),
       x => x.priority,
@@ -475,18 +478,16 @@ export function applyClientSideSortToData({
 }
 
 export function applyClientSideSortAndFilterToData(
-  queryRecord: QueryRecord,
+  queryRecord: QueryRecord | RelationalQueryRecord,
   data: any
 ) {
   Object.keys(queryRecord).forEach(alias => {
     const queryRecordEntry = queryRecord[alias];
-    const containsArrayData = isArray(data[alias][NODES_PROPERTY_KEY]);
 
     if (queryRecordEntry.filter) {
       applyClientSideFilterToData({
         queryRecordEntry,
-        filter: queryRecordEntry.filter,
-        data: data,
+        data,
         alias,
       });
     }
@@ -495,7 +496,7 @@ export function applyClientSideSortAndFilterToData(
       applyClientSideSortToData({
         queryRecordEntry,
         sort: queryRecordEntry.sort as ValidSortForNode<INode>,
-        data: data,
+        data,
         alias,
       });
     }
@@ -503,6 +504,9 @@ export function applyClientSideSortAndFilterToData(
     const relational = queryRecordEntry.relational;
 
     if (relational != null) {
+      const containsArrayData = queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry,
+      });
       if (containsArrayData) {
         if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
           data[alias][NODES_PROPERTY_KEY].forEach((item: any) => {

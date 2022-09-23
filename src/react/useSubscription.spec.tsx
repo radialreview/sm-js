@@ -7,12 +7,14 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
   generateUserNode,
+  createMockDataItems,
+  mockUserData,
 } from '../specUtilities';
 import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
 import { MMGQLProvider, MMGQL, queryDefinition } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { SortDirection } from '../types';
+import { EPaginationFilteringSortingInstance, SortDirection } from '../types';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -283,8 +285,9 @@ test('handles a query definition switching from non nullish to nullish', async (
 
 test('updates data when paginating', async () => {
   const { mmGQL } = setupTests({
-    users: {
-      nodes: [
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
         {
           id: 'mock-user-id',
           type: 'user',
@@ -306,7 +309,7 @@ test('updates data when paginating', async () => {
           address__dot__apt__dot__number: '1',
         },
       ],
-    },
+    }),
   });
 
   function MyComponent() {
@@ -314,7 +317,6 @@ test('updates data when paginating', async () => {
       users: queryDefinition({
         pagination: {
           itemsPerPage: 1,
-          page: 1,
         },
         def: generateUserNode(mmGQL),
         map: ({ address }) => ({
@@ -350,8 +352,9 @@ test('updates data when paginating', async () => {
 
 test('updates data when filtering', async () => {
   const { mmGQL } = setupTests({
-    users: {
-      nodes: [
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
         {
           id: 'mock-user-id',
           type: 'user',
@@ -375,14 +378,14 @@ test('updates data when filtering', async () => {
           address__dot__apt__dot__number: '1',
         },
       ],
-    },
+    }),
   });
 
   function MyComponent() {
     const [archived, setArchived] = React.useState(false);
     const { data } = useSubscription({
       users: queryDefinition({
-        filter: { archived: { _contains: archived } },
+        filter: { archived },
         def: generateUserNode(mmGQL),
         map: ({ address, archived }) => ({
           archived,
@@ -418,8 +421,9 @@ test('updates data when filtering', async () => {
 
 test('updates data when sorting', async () => {
   const { mmGQL } = setupTests({
-    users: {
-      nodes: [
+    users: createMockDataItems({
+      sampleMockData: mockUserData,
+      items: [
         {
           id: 'mock-user-id',
           type: 'user',
@@ -439,7 +443,7 @@ test('updates data when sorting', async () => {
           firstName: 'B',
         },
       ],
-    },
+    }),
   });
 
   function MyComponent() {
@@ -722,7 +726,12 @@ test('rendering multiple instances of the same component using useSubscription w
 
 function setupTests(mockData?: any) {
   const mmGQL = new MMGQL(
-    getMockConfig({ mockData: mockData, generateMockData: false })
+    getMockConfig({
+      mockData: mockData,
+      generateMockData: false,
+      paginationFilteringSortingInstance:
+        EPaginationFilteringSortingInstance.CLIENT,
+    })
   );
   mmGQL.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'mock token' });
 

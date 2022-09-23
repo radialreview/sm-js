@@ -1,4 +1,5 @@
 import { MMGQL, QueryRecord, QueryRecordEntry } from '.';
+import { DEFAULT_TOKEN_NAME } from './consts';
 import { string, boolean } from './dataTypes';
 import {
   QuerySlimmer,
@@ -50,6 +51,7 @@ describe('populateQueriesByContext', () => {
       users: {
         def: userNode,
         properties: ['firstName', 'lastName'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const mockResults = {
@@ -79,6 +81,7 @@ describe('populateQueriesByContext', () => {
         id: 'id-2',
         def: userNode,
         properties: ['firstName', 'lastName'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const mockResults = {
@@ -106,6 +109,7 @@ describe('populateQueriesByContext', () => {
         def: userNode,
         properties: ['firstName', 'lastName'],
         ids: ['id-3', 'id-4'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const mockResults = {
@@ -150,6 +154,7 @@ describe('populateQueriesByContext', () => {
             oneToMany: true,
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const mockResults = {
@@ -196,12 +201,14 @@ describe('getInFlightQueriesToSlimAgainst', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'email'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       },
       [`todos(NO_PARAMS)`]: {
         todos: {
           def: todoNode,
           properties: ['task', 'done'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       },
     };
@@ -213,6 +220,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             users: {
               def: userNode,
               properties: ['firstName'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -222,6 +230,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             users: {
               def: userNode,
               properties: ['lastName'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -233,6 +242,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             todos: {
               def: todoNode,
               properties: ['task'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -246,6 +256,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             users: {
               def: userNode,
               properties: ['firstName'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -257,6 +268,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             todos: {
               def: todoNode,
               properties: ['task'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -286,6 +298,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
               oneToMany: true,
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       },
     };
@@ -298,6 +311,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             users: {
               def: userNode,
               properties: ['firstName', 'lastName'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -315,6 +329,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
                   oneToMany: true,
                 },
               },
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -340,6 +355,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
                   },
                 },
               },
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -354,6 +370,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
             users: {
               def: userNode,
               properties: ['firstName', 'lastName'],
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -371,6 +388,7 @@ describe('getInFlightQueriesToSlimAgainst', () => {
                   oneToMany: true,
                 },
               },
+              tokenName: DEFAULT_TOKEN_NAME,
             },
           },
         },
@@ -394,10 +412,12 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'lastName'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['id', 'task'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -413,10 +433,12 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'lastName'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['id', 'task'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const mockResults = {
@@ -466,10 +488,12 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'lastName'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['id', 'task'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -477,10 +501,12 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['lastName'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['id'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -496,14 +522,17 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'lastName'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         meetings: {
           def: meetingNode,
           properties: ['name', 'archived'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['task'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const mockCachedResults = {
@@ -536,14 +565,17 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['firstName', 'lastName', 'email'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         meetings: {
           def: meetingNode,
           properties: ['name', 'archived'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['task', 'done'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -551,10 +583,12 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         users: {
           def: userNode,
           properties: ['email'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
           properties: ['done'],
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -597,6 +631,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const mockCachedQueryData = {
@@ -657,6 +692,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const mockCachedQueryData = {
@@ -703,6 +739,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const expectedSlimmedQuery: QueryRecord = {
@@ -725,6 +762,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -761,6 +799,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const mockCachedQueryData = {
@@ -816,6 +855,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
       const expectedSlimmedNewQuery: QueryRecord = {
@@ -838,6 +878,7 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
               },
             },
           },
+          tokenName: DEFAULT_TOKEN_NAME,
         },
       };
 
@@ -877,10 +918,12 @@ describe('getSlimmedQueryAgainstInFlightQuery', () => {
             },
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
       todos: {
         def: todoNode,
         properties: ['task', 'done'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const inFlightQueryMock: QueryRecord = {
@@ -903,10 +946,12 @@ describe('getSlimmedQueryAgainstInFlightQuery', () => {
             },
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
       todos: {
         def: todoNode,
         properties: ['task'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const expectedSlimmedQuery: QueryRecord = {
@@ -929,10 +974,12 @@ describe('getSlimmedQueryAgainstInFlightQuery', () => {
             },
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
       todos: {
         def: todoNode,
         properties: ['done'],
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
 
@@ -970,6 +1017,7 @@ describe('onSubscriptionCancelled', () => {
             },
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
     const mockCachedQueryData = {
@@ -1022,6 +1070,7 @@ describe('onSubscriptionCancelled', () => {
             },
           },
         },
+        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
 
@@ -1082,6 +1131,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
     const mockQueryRecordEntry: QueryRecordEntry = {
       def: userNode,
       properties: ['firstName', 'lastName'],
+      tokenName: DEFAULT_TOKEN_NAME,
     };
     const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
       mockQueryRecordEntry
@@ -1104,6 +1154,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
           oneToMany: true,
         },
       },
+      tokenName: DEFAULT_TOKEN_NAME,
     };
     const mockQueryRecordEntry2: QueryRecordEntry = {
       def: userNode,
@@ -1124,6 +1175,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
           },
         },
       },
+      tokenName: DEFAULT_TOKEN_NAME,
     };
     const mockQueryRecordEntry3: QueryRecordEntry = {
       def: userNode,
@@ -1174,6 +1226,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
           },
         },
       },
+      tokenName: DEFAULT_TOKEN_NAME,
     };
 
     const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(

@@ -1,4 +1,3 @@
-import { FilterOperator } from './types';
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: {
     id: {
         (defaultValue: string): import("./types").IData<{
@@ -175,5 +174,7 @@ export declare const DEFAULT_NODE_PROPERTIES: {
         }>;
     };
 };
-export declare const FILTER_OPERATORS: Array<FilterOperator>;
 export declare const NODES_PROPERTY_KEY = "nodes";
+export declare const PAGE_INFO_PROPERTY_KEY = "pageInfo";
+export declare const TOTAL_COUNT_PROPERTY_KEY = "totalCount";
+export declare const DEFAULT_PAGE_SIZE = 10;
