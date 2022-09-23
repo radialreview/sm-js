@@ -5,6 +5,7 @@ import {
   MMGQL,
   queryDefinition,
 } from '..';
+import { ENodeCollectionLoadingState } from '../nodesCollection';
 import {
   getMockConfig,
   createMockQueryDefinitions,
@@ -386,6 +387,83 @@ test(`calling loadMore on a piece of relational results appends the new results 
   expect(data.users.nodes[0].todos.nodes[0].users.nodes.length).toBe(2);
 });
 
+test(`loadMore updates a node collections's loading state`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {},
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  const p = users.loadMore();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.LOADING);
+  await p;
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+});
+
+test(`loadMore updates a node collections's loading error state`, async () => {
+  let queriesPerformed = 0;
+  const error = new Error('Failed to query');
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {
+      queriesPerformed++;
+    },
+    failQuery: () => {
+      if (queriesPerformed === 2) return error;
+      return null;
+    },
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  await users.loadMore();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.ERROR);
+  expect(users.loadingError).toBe(error);
+});
+
 test(`calling goToNextPage causes the expected query to be executed`, async () => {
   let queriesPerformed = 0;
   const { mmGQLInstance } = setupTest({
@@ -475,6 +553,83 @@ test(`calling goToNextPage replaces the results in that node collection`, async 
 
   expect(data.users.nodes.length).toBe(1);
   expect(data.users.nodes[0].firstName).toBe('User 2');
+});
+
+test(`goToNextPage updates a node collections's loading state`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {},
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  const p = users.goToNextPage();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.LOADING);
+  await p;
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+});
+
+test(`goToNextPage updates a node collections's loading error state`, async () => {
+  let queriesPerformed = 0;
+  const error = new Error('Failed to query');
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {
+      queriesPerformed++;
+    },
+    failQuery: () => {
+      if (queriesPerformed === 2) return error;
+      return null;
+    },
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  await users.goToNextPage();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.ERROR);
+  expect(users.loadingError).toBe(error);
 });
 
 test(`calling goToPreviousPage causes the expected query to be executed`, async () => {
@@ -573,10 +728,89 @@ test(`calling goToPreviousPage replaces the results in that node collection`, as
   expect(data.users.nodes[0].firstName).toBe('User 2');
 });
 
+test(`goToPreviousPage updates a node collections's loading state`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {},
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  const p = users.goToPreviousPage();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.LOADING);
+  await p;
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+});
+
+test(`goToPreviousPage updates a node collections's loading error state`, async () => {
+  let queriesPerformed = 0;
+  const error = new Error('Failed to query');
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [],
+        pageInfo: {
+          endCursor: 'mock-end-cursor',
+        },
+      }),
+    },
+    onQueryPerformed: () => {
+      queriesPerformed++;
+    },
+    failQuery: () => {
+      if (queriesPerformed === 2) return error;
+      return null;
+    },
+  });
+
+  const {
+    data: { users },
+  } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ firstName }) => ({
+        firstName,
+      }),
+      pagination: {
+        itemsPerPage: 2,
+      },
+    }),
+  });
+
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.IDLE);
+  await users.goToPreviousPage();
+  expect(users.loadingState).toBe(ENodeCollectionLoadingState.ERROR);
+  expect(users.loadingError).toBe(error);
+});
+
+
 function setupTest(opts: {
   mockData?: any;
   getMockData?: () => any;
   onQueryPerformed: (query: DocumentNode) => void;
+  failQuery?: () => any;
 }) {
   const mmGQLInstance = new MMGQL(
     getMockConfig({
@@ -586,6 +820,7 @@ function setupTest(opts: {
       generateMockData: false,
       paginationFilteringSortingInstance:
         EPaginationFilteringSortingInstance.SERVER,
+      failQuery: opts.failQuery,
     })
   );
   mmGQLInstance.setToken({

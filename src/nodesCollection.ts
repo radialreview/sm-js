@@ -17,6 +17,12 @@ export type OnLoadMoreResultsCallback = () => Promise<void>;
 export type OnGoToNextPageCallback = () => Promise<void>;
 export type OnGoToPreviousPageCallback = () => Promise<void>;
 
+export enum ENodeCollectionLoadingState {
+  'IDLE' = 'IDLE',
+  'LOADING' = 'LOADING',
+  'ERROR' = 'ERROR',
+}
+
 export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
   onGoToNextPage: OnGoToNextPageCallback;
@@ -39,6 +45,9 @@ export class NodesCollection<T> {
   // however, nothing in our code needs to know about this other than the "nodes"
   // getter below, which must return multiple pages of results when loadMore is executed
   private pagesBeingDisplayed: Array<number>;
+
+  public loadingState = ENodeCollectionLoadingState.IDLE as ENodeCollectionLoadingState;
+  public loadingError = null as any;
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.items = opts.items;
@@ -96,7 +105,7 @@ export class NodesCollection<T> {
       this.clientSidePageInfo.lastQueriedPage,
     ];
 
-    await this.onLoadMoreResults();
+    await this.withLoadingState(this.onLoadMoreResults);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
@@ -112,7 +121,7 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage++;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.onGoToNextPage();
+    await this.withLoadingState(this.onGoToNextPage);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
@@ -128,10 +137,22 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage--;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.onGoToPreviousPage();
+    await this.withLoadingState(this.onGoToPreviousPage);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+    }
+  }
+
+  private async withLoadingState(promiseGetter: () => Promise<void>) {
+    this.loadingState = ENodeCollectionLoadingState.LOADING;
+    this.loadingError = null;
+    try {
+      await promiseGetter();
+      this.loadingState = ENodeCollectionLoadingState.IDLE;
+    } catch (e) {
+      this.loadingState = ENodeCollectionLoadingState.ERROR;
+      this.loadingError = e;
     }
   }
 
