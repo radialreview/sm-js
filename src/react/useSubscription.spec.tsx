@@ -15,6 +15,7 @@ import { MMGQLProvider, MMGQL, queryDefinition } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 import { EPaginationFilteringSortingInstance, SortDirection } from '../types';
+import { ENodeCollectionLoadingState } from '../nodesCollection';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -335,6 +336,8 @@ test('updates data when paginating', async () => {
       }, 200);
     }, []); // eslint-disable-line
 
+    if (data.users.loadingState === ENodeCollectionLoadingState.LOADING)
+      return <span>Loading next page</span>;
     return <>{data.users.nodes[0].address.state}</>;
   }
 
@@ -347,6 +350,7 @@ test('updates data when paginating', async () => {
   );
 
   await result.findByText('FL');
+  await result.findByText('Loading next page');
   await result.findByText('CA');
 });
 

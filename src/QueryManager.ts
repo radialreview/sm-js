@@ -185,6 +185,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             items,
             clientSidePageInfo,
             pageInfoFromResults,
+            // allows the UI to re-render when a nodeCollection's internal state is updated
+            onPaginationRequestStateChanged: this.opts.onResultsUpdated,
             onLoadMoreResults: () =>
               this.onLoadMoreResults({
                 aliasPath,
@@ -866,8 +868,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       aliasPath: Array<string>;
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
-        // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
-        this.opts.onResultsUpdated();
+        // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
         return;
       }
 
@@ -908,7 +909,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
-        this.opts.onResultsUpdated();
         return;
       }
 
@@ -949,7 +949,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
-        this.opts.onResultsUpdated();
         return;
       }
 

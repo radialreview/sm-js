@@ -13,14 +13,22 @@ export type ClientSidePageInfo = {
   pageSize: number;
 };
 
+export type OnPaginationRequestStateChangedCallback = () => void;
 export type OnLoadMoreResultsCallback = () => Promise<void>;
 export type OnGoToNextPageCallback = () => Promise<void>;
 export type OnGoToPreviousPageCallback = () => Promise<void>;
+
+export enum ENodeCollectionLoadingState {
+  'IDLE' = 'IDLE',
+  'LOADING' = 'LOADING',
+  'ERROR' = 'ERROR',
+}
 
 export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
   onGoToNextPage: OnGoToNextPageCallback;
   onGoToPreviousPage: OnGoToPreviousPageCallback;
+  onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
   items: T[];
   pageInfoFromResults: PageInfoFromResults;
   clientSidePageInfo: ClientSidePageInfo;
@@ -31,6 +39,7 @@ export class NodesCollection<T> {
   private onLoadMoreResults: OnLoadMoreResultsCallback;
   private onGoToNextPage: OnGoToNextPageCallback;
   private onGoToPreviousPage: OnGoToPreviousPageCallback;
+  private onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
   private items: T[];
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
@@ -39,6 +48,9 @@ export class NodesCollection<T> {
   // however, nothing in our code needs to know about this other than the "nodes"
   // getter below, which must return multiple pages of results when loadMore is executed
   private pagesBeingDisplayed: Array<number>;
+
+  public loadingState = ENodeCollectionLoadingState.IDLE as ENodeCollectionLoadingState;
+  public loadingError = null as any;
 
   constructor(opts: NodesCollectionOpts<T>) {
     this.items = opts.items;
@@ -51,6 +63,7 @@ export class NodesCollection<T> {
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
   }
 
   public get nodes() {
@@ -96,7 +109,7 @@ export class NodesCollection<T> {
       this.clientSidePageInfo.lastQueriedPage,
     ];
 
-    await this.onLoadMoreResults();
+    await this.withLoadingState(this.onLoadMoreResults);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
@@ -112,7 +125,7 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage++;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.onGoToNextPage();
+    await this.withLoadingState(this.onGoToNextPage);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
@@ -128,11 +141,28 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage--;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.onGoToPreviousPage();
+    await this.withLoadingState(this.onGoToPreviousPage);
 
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
+  }
+
+  private async withLoadingState(promiseGetter: () => Promise<void>) {
+    this.loadingState = ENodeCollectionLoadingState.LOADING;
+    this.loadingError = null;
+    try {
+      // re-render ui with the new loading state
+      this.onPaginationRequestStateChanged();
+      await promiseGetter();
+      this.loadingState = ENodeCollectionLoadingState.IDLE;
+    } catch (e) {
+      this.loadingState = ENodeCollectionLoadingState.ERROR;
+      this.loadingError = e;
+    }
+
+    // re-render the ui with the new nodes and loading/error state
+    this.onPaginationRequestStateChanged();
   }
 
   public async goToPage(_: number) {

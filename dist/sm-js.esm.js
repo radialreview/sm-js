@@ -4870,6 +4870,14 @@ function _performQueries() {
   return _performQueries.apply(this, arguments);
 }
 
+var ENodeCollectionLoadingState;
+
+(function (ENodeCollectionLoadingState) {
+  ENodeCollectionLoadingState["IDLE"] = "IDLE";
+  ENodeCollectionLoadingState["LOADING"] = "LOADING";
+  ENodeCollectionLoadingState["ERROR"] = "ERROR";
+})(ENodeCollectionLoadingState || (ENodeCollectionLoadingState = {}));
+
 var NodesCollection = /*#__PURE__*/function () {
   // when "loadMore" is used, we display more than 1 page
   // however, nothing in our code needs to know about this other than the "nodes"
@@ -4878,11 +4886,14 @@ var NodesCollection = /*#__PURE__*/function () {
     this.onLoadMoreResults = void 0;
     this.onGoToNextPage = void 0;
     this.onGoToPreviousPage = void 0;
+    this.onPaginationRequestStateChanged = void 0;
     this.items = void 0;
     this.pageInfoFromResults = void 0;
     this.clientSidePageInfo = void 0;
     this.useServerSidePaginationFilteringSorting = void 0;
     this.pagesBeingDisplayed = void 0;
+    this.loadingState = ENodeCollectionLoadingState.IDLE;
+    this.loadingError = null;
     this.items = opts.items;
     this.pageInfoFromResults = opts.pageInfoFromResults;
     this.clientSidePageInfo = opts.clientSidePageInfo;
@@ -4891,6 +4902,7 @@ var NodesCollection = /*#__PURE__*/function () {
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
   }
 
   var _proto = NodesCollection.prototype;
@@ -4912,7 +4924,7 @@ var NodesCollection = /*#__PURE__*/function () {
               this.clientSidePageInfo.lastQueriedPage++;
               this.pagesBeingDisplayed = [].concat(this.pagesBeingDisplayed, [this.clientSidePageInfo.lastQueriedPage]);
               _context.next = 6;
-              return this.onLoadMoreResults();
+              return this.withLoadingState(this.onLoadMoreResults);
 
             case 6:
               if (!this.useServerSidePaginationFilteringSorting) {
@@ -4951,7 +4963,7 @@ var NodesCollection = /*#__PURE__*/function () {
               this.clientSidePageInfo.lastQueriedPage++;
               this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
               _context2.next = 6;
-              return this.onGoToNextPage();
+              return this.withLoadingState(this.onGoToNextPage);
 
             case 6:
               if (!this.useServerSidePaginationFilteringSorting) {
@@ -4990,7 +5002,7 @@ var NodesCollection = /*#__PURE__*/function () {
               this.clientSidePageInfo.lastQueriedPage--;
               this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
               _context3.next = 6;
-              return this.onGoToPreviousPage();
+              return this.withLoadingState(this.onGoToPreviousPage);
 
             case 6:
               if (!this.useServerSidePaginationFilteringSorting) {
@@ -5012,23 +5024,67 @@ var NodesCollection = /*#__PURE__*/function () {
     return goToPreviousPage;
   }();
 
-  _proto.goToPage = /*#__PURE__*/function () {
-    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(_) {
+  _proto.withLoadingState = /*#__PURE__*/function () {
+    var _withLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(promiseGetter) {
       return runtime_1.wrap(function _callee4$(_context4) {
         while (1) {
           switch (_context4.prev = _context4.next) {
+            case 0:
+              this.loadingState = ENodeCollectionLoadingState.LOADING;
+              this.loadingError = null;
+              _context4.prev = 2;
+              // re-render ui with the new loading state
+              this.onPaginationRequestStateChanged();
+              _context4.next = 6;
+              return promiseGetter();
+
+            case 6:
+              this.loadingState = ENodeCollectionLoadingState.IDLE;
+              _context4.next = 13;
+              break;
+
+            case 9:
+              _context4.prev = 9;
+              _context4.t0 = _context4["catch"](2);
+              this.loadingState = ENodeCollectionLoadingState.ERROR;
+              this.loadingError = _context4.t0;
+
+            case 13:
+              // re-render the ui with the new nodes and loading/error state
+              this.onPaginationRequestStateChanged();
+
+            case 14:
+            case "end":
+              return _context4.stop();
+          }
+        }
+      }, _callee4, this, [[2, 9]]);
+    }));
+
+    function withLoadingState(_x) {
+      return _withLoadingState.apply(this, arguments);
+    }
+
+    return withLoadingState;
+  }();
+
+  _proto.goToPage = /*#__PURE__*/function () {
+    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5(_) {
+      return runtime_1.wrap(function _callee5$(_context5) {
+        while (1) {
+          switch (_context5.prev = _context5.next) {
             case 0:
               throw new Error('Not implemented');
 
             case 1:
             case "end":
-              return _context4.stop();
+              return _context5.stop();
           }
         }
-      }, _callee4);
+      }, _callee5);
     }));
 
-    function goToPage(_x) {
+    function goToPage(_x2) {
       return _goToPage.apply(this, arguments);
     }
 
@@ -5198,6 +5254,8 @@ function createQueryManager(mmGQLInstance) {
             items: items,
             clientSidePageInfo: clientSidePageInfo,
             pageInfoFromResults: pageInfoFromResults,
+            // allows the UI to re-render when a nodeCollection's internal state is updated
+            onPaginationRequestStateChanged: _this.opts.onResultsUpdated,
             onLoadMoreResults: function onLoadMoreResults() {
               return _this.onLoadMoreResults({
                 aliasPath: aliasPath,
@@ -5724,22 +5782,20 @@ function createQueryManager(mmGQLInstance) {
             switch (_context.prev = _context.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context.next = 3;
+                  _context.next = 2;
                   break;
                 }
 
-                // for client side pagination, loadMore logic ran on NodeCollection, which sets the new queried page
-                this.opts.onResultsUpdated();
                 return _context.abrupt("return");
 
-              case 3:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context.next = 7;
+                _context.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5750,7 +5806,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 7:
+              case 6:
                 newData = _context.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5759,7 +5815,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'LOAD_MORE'
                 });
 
-              case 9:
+              case 8:
               case "end":
                 return _context.stop();
             }
@@ -5782,22 +5838,20 @@ function createQueryManager(mmGQLInstance) {
             switch (_context2.prev = _context2.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context2.next = 3;
+                  _context2.next = 2;
                   break;
                 }
 
-                // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
-                this.opts.onResultsUpdated();
                 return _context2.abrupt("return");
 
-              case 3:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context2.next = 7;
+                _context2.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5808,7 +5862,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 7:
+              case 6:
                 newData = _context2.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5817,7 +5871,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_NEXT'
                 });
 
-              case 9:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -5840,22 +5894,20 @@ function createQueryManager(mmGQLInstance) {
             switch (_context3.prev = _context3.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context3.next = 3;
+                  _context3.next = 2;
                   break;
                 }
 
-                // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
-                this.opts.onResultsUpdated();
                 return _context3.abrupt("return");
 
-              case 3:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
                   preExistingQueryRecord: this.queryRecord,
                   previousStartCursor: opts.previousStartCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context3.next = 7;
+                _context3.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5866,7 +5918,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 7:
+              case 6:
                 newData = _context3.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5875,7 +5927,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_PREVIOUS'
                 });
 
-              case 9:
+              case 8:
               case "end":
                 return _context3.stop();
             }
@@ -8415,5 +8467,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENodeCollectionLoadingState, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

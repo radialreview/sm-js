@@ -2,7 +2,7 @@
 
 exports[`calling goToNextPage causes the expected query to be executed 1`] = `
 "
-query query8 {
+query query10 {
  users: users(after: \\"mock-end-cursor\\", first: 2) {
    nodes {
      id
@@ -25,7 +25,7 @@ query query8 {
 
 exports[`calling goToPreviousPage causes the expected query to be executed 1`] = `
 "
-query query10 {
+query query14 {
  users: users(after: \\"xyz\\", first: 2) {
    nodes {
      id

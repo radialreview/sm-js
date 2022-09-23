@@ -392,6 +392,9 @@ export function getMockConfig(opts?: {
   enableQuerySlimmingLogging?: boolean;
   paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
   onQueryPerformed?: (query: DocumentNode) => void;
+  // should return error to fail with when performing a query
+  // if not included or returns undefined, query will succeed
+  failQuery?: () => any;
 }): Config {
   if (opts?.mockData && opts?.getMockData) {
     throw Error('Pick one');
@@ -408,6 +411,11 @@ export function getMockConfig(opts?: {
         }
 
         opts?.onQueryPerformed && opts.onQueryPerformed(gql);
+
+        const error = opts?.failQuery ? opts.failQuery() : null;
+        if (error) {
+          return new Promise((_, rej) => rej(error));
+        }
         return new Promise(res => res(response));
       },
       subscribe: () => () => {},
@@ -499,6 +507,7 @@ export function convertNodesCollectionValuesToArray<
         onLoadMoreResults: async () => {},
         onGoToNextPage: async () => {},
         onGoToPreviousPage: async () => {},
+        onPaginationRequestStateChanged: () => {},
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
       });

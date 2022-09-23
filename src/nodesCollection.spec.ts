@@ -21,27 +21,10 @@ const getMockNodesCollectionConstructorArgs = (): NodesCollectionOpts<typeof ite
     lastQueriedPage: 1,
     pageSize: 1,
   },
-  onGoToNextPage: async () => ({
-    totalPages: 5,
-    hasNextPage: true,
-    hasPreviousPage: true,
-    endCursor: 'xyz',
-    startCursor: 'zyx',
-  }),
-  onGoToPreviousPage: async () => ({
-    totalPages: 5,
-    hasNextPage: true,
-    hasPreviousPage: true,
-    endCursor: 'xyz',
-    startCursor: 'zyx',
-  }),
-  onLoadMoreResults: async () => ({
-    totalPages: 5,
-    hasNextPage: true,
-    hasPreviousPage: true,
-    endCursor: 'xyz',
-    startCursor: 'zyx',
-  }),
+  onGoToNextPage: async () => {},
+  onGoToPreviousPage: async () => {},
+  onLoadMoreResults: async () => {},
+  onPaginationRequestStateChanged: () => {},
   useServerSidePaginationFilteringSorting: false,
 });
 
