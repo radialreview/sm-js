@@ -3862,12 +3862,14 @@ function generateMockNodeDataForQueryRecord(opts) {
         arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
       }
 
-      mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = {
+      var pageInfo = {
         endCursor: 'xyz',
         startCursor: 'yzx',
         hasPreviousPage: false,
-        hasNextPage: pageSize < arrayOfMockNodeValues.length
-      }, _mockedNodeDataReturn);
+        hasNextPage: pageSize < arrayOfMockNodeValues.length,
+        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize)
+      };
+      mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {
       var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
         queryRecordEntry: queryRecordEntryForThisAlias
@@ -4353,7 +4355,8 @@ function generateQuerier(_ref) {
                     queryId: queryId,
                     tokenName: tokenName,
                     queryGQL: queryGQL,
-                    batchKey: opts == null ? void 0 : opts.batchKey
+                    batchKey: opts == null ? void 0 : opts.batchKey,
+                    getMockDataDelay: mmGQLInstance.getMockDataDelay
                   });
                 },
                 resultsObject: dataToReturn,
@@ -4852,9 +4855,15 @@ function _performQueries() {
             return _context3.abrupt("return", filteredAndSortedResponse);
 
           case 19:
+            _context3.next = 21;
+            return new Promise(function (res) {
+              return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
+            });
+
+          case 21:
             return _context3.abrupt("return", response);
 
-          case 20:
+          case 22:
           case "end":
             return _context3.stop();
         }
@@ -5774,20 +5783,26 @@ function createQueryManager(mmGQLInstance) {
             switch (_context.prev = _context.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context.next = 2;
+                  _context.next = 4;
                   break;
                 }
 
+                _context.next = 3;
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
+                });
+
+              case 3:
                 return _context.abrupt("return");
 
-              case 2:
+              case 4:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context.next = 6;
+                _context.next = 8;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: client.gql(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5798,7 +5813,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 6:
+              case 8:
                 newData = _context.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5807,7 +5822,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'LOAD_MORE'
                 });
 
-              case 8:
+              case 10:
               case "end":
                 return _context.stop();
             }
@@ -5830,20 +5845,26 @@ function createQueryManager(mmGQLInstance) {
             switch (_context2.prev = _context2.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context2.next = 2;
+                  _context2.next = 4;
                   break;
                 }
 
+                _context2.next = 3;
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
+                });
+
+              case 3:
                 return _context2.abrupt("return");
 
-              case 2:
+              case 4:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context2.next = 6;
+                _context2.next = 8;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: client.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5854,7 +5875,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 6:
+              case 8:
                 newData = _context2.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5863,7 +5884,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_NEXT'
                 });
 
-              case 8:
+              case 10:
               case "end":
                 return _context2.stop();
             }
@@ -5886,20 +5907,26 @@ function createQueryManager(mmGQLInstance) {
             switch (_context3.prev = _context3.next) {
               case 0:
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context3.next = 2;
+                  _context3.next = 4;
                   break;
                 }
 
+                _context3.next = 3;
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
+                });
+
+              case 3:
                 return _context3.abrupt("return");
 
-              case 2:
+              case 4:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
                   preExistingQueryRecord: this.queryRecord,
                   previousStartCursor: opts.previousStartCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context3.next = 6;
+                _context3.next = 8;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: client.gql(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5910,7 +5937,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 6:
+              case 8:
                 newData = _context3.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5919,7 +5946,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_PREVIOUS'
                 });
 
-              case 8:
+              case 10:
               case "end":
                 return _context3.stop();
             }
@@ -8353,6 +8380,7 @@ var MMGQL = /*#__PURE__*/function () {
   function MMGQL(config) {
     this.gqlClient = void 0;
     this.generateMockData = void 0;
+    this.getMockDataDelay = void 0;
     this.enableQuerySlimming = void 0;
     this.enableQuerySlimmingLogging = void 0;
     this.paginationFilteringSortingInstance = void 0;
@@ -8368,6 +8396,7 @@ var MMGQL = /*#__PURE__*/function () {
     this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
     this.generateMockData = config.generateMockData;
+    this.getMockDataDelay = config.getMockDataDelay;
     this.enableQuerySlimming = config.enableQuerySlimming;
     this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
     this.paginationFilteringSortingInstance = config.paginationFilteringSortingInstance;
