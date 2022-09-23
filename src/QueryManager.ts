@@ -869,6 +869,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
+        await new Promise(resolve =>
+          setTimeout(resolve, mmGQLInstance.getMockDataDelay?.() || 0)
+        );
         return;
       }
 
@@ -909,6 +912,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
+        await new Promise(resolve =>
+          setTimeout(resolve, mmGQLInstance.getMockDataDelay?.() || 0)
+        );
         return;
       }
 
@@ -949,6 +955,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
+        await new Promise(resolve =>
+          setTimeout(resolve, mmGQLInstance.getMockDataDelay?.() || 0)
+        );
         return;
       }
 

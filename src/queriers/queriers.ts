@@ -143,6 +143,7 @@ export function generateQuerier({
               tokenName,
               queryGQL,
               batchKey: opts?.batchKey,
+              getMockDataDelay: mmGQLInstance.getMockDataDelay,
             }),
           resultsObject: dataToReturn,
           onResultsUpdated: () => {
@@ -574,6 +575,7 @@ async function performQueries(opts: {
   queryId: string;
   tokenName: Maybe<string>;
   batchKey?: string;
+  getMockDataDelay?: () => number;
 }) {
   function getToken(tokenName: string) {
     const token = opts.mmGQLInstance.getToken({ tokenName });
@@ -633,5 +635,6 @@ async function performQueries(opts: {
     return filteredAndSortedResponse;
   }
 
+  await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
   return response;
 }
