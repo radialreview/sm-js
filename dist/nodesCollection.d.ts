@@ -9,6 +9,7 @@ export declare type ClientSidePageInfo = {
     lastQueriedPage: number;
     pageSize: number;
 };
+export declare type OnPaginationRequestStateChangedCallback = () => void;
 export declare type OnLoadMoreResultsCallback = () => Promise<void>;
 export declare type OnGoToNextPageCallback = () => Promise<void>;
 export declare type OnGoToPreviousPageCallback = () => Promise<void>;
@@ -21,6 +22,7 @@ export interface NodesCollectionOpts<T> {
     onLoadMoreResults: OnLoadMoreResultsCallback;
     onGoToNextPage: OnGoToNextPageCallback;
     onGoToPreviousPage: OnGoToPreviousPageCallback;
+    onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
     items: T[];
     pageInfoFromResults: PageInfoFromResults;
     clientSidePageInfo: ClientSidePageInfo;
@@ -30,6 +32,7 @@ export declare class NodesCollection<T> {
     private onLoadMoreResults;
     private onGoToNextPage;
     private onGoToPreviousPage;
+    private onPaginationRequestStateChanged;
     private items;
     private pageInfoFromResults;
     private clientSidePageInfo;

@@ -4886,6 +4886,7 @@ var NodesCollection = /*#__PURE__*/function () {
     this.onLoadMoreResults = void 0;
     this.onGoToNextPage = void 0;
     this.onGoToPreviousPage = void 0;
+    this.onPaginationRequestStateChanged = void 0;
     this.items = void 0;
     this.pageInfoFromResults = void 0;
     this.clientSidePageInfo = void 0;
@@ -4901,6 +4902,7 @@ var NodesCollection = /*#__PURE__*/function () {
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
   }
 
   var _proto = NodesCollection.prototype;
@@ -5031,26 +5033,32 @@ var NodesCollection = /*#__PURE__*/function () {
               this.loadingState = ENodeCollectionLoadingState.LOADING;
               this.loadingError = null;
               _context4.prev = 2;
-              _context4.next = 5;
+              // re-render ui with the new loading state
+              this.onPaginationRequestStateChanged();
+              _context4.next = 6;
               return promiseGetter();
 
-            case 5:
+            case 6:
               this.loadingState = ENodeCollectionLoadingState.IDLE;
-              _context4.next = 12;
+              _context4.next = 13;
               break;
 
-            case 8:
-              _context4.prev = 8;
+            case 9:
+              _context4.prev = 9;
               _context4.t0 = _context4["catch"](2);
               this.loadingState = ENodeCollectionLoadingState.ERROR;
               this.loadingError = _context4.t0;
 
-            case 12:
+            case 13:
+              // re-render the ui with the new nodes and loading/error state
+              this.onPaginationRequestStateChanged();
+
+            case 14:
             case "end":
               return _context4.stop();
           }
         }
-      }, _callee4, this, [[2, 8]]);
+      }, _callee4, this, [[2, 9]]);
     }));
 
     function withLoadingState(_x) {
@@ -5246,6 +5254,8 @@ function createQueryManager(mmGQLInstance) {
             items: items,
             clientSidePageInfo: clientSidePageInfo,
             pageInfoFromResults: pageInfoFromResults,
+            // allows the UI to re-render when a nodeCollection's internal state is updated
+            onPaginationRequestStateChanged: _this.opts.onResultsUpdated,
             onLoadMoreResults: function onLoadMoreResults() {
               return _this.onLoadMoreResults({
                 aliasPath: aliasPath,
@@ -5766,35 +5776,26 @@ function createQueryManager(mmGQLInstance) {
 
     _proto.onLoadMoreResults = /*#__PURE__*/function () {
       var _onLoadMoreResults = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
-        var _this7 = this;
-
         var newMinimalQueryRecordForMoreResults, tokenName, newData;
         return runtime_1.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                this.opts.onResultsUpdated();
-
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context.next = 4;
+                  _context.next = 2;
                   break;
                 }
 
-                // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
-                // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-                setTimeout(function () {
-                  return _this7.opts.onResultsUpdated();
-                });
                 return _context.abrupt("return");
 
-              case 4:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context.next = 8;
+                _context.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5805,7 +5806,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 8:
+              case 6:
                 newData = _context.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5814,7 +5815,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'LOAD_MORE'
                 });
 
-              case 10:
+              case 8:
               case "end":
                 return _context.stop();
             }
@@ -5831,35 +5832,26 @@ function createQueryManager(mmGQLInstance) {
 
     _proto.onGoToNextPage = /*#__PURE__*/function () {
       var _onGoToNextPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-        var _this8 = this;
-
         var newMinimalQueryRecordForMoreResults, tokenName, newData;
         return runtime_1.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                this.opts.onResultsUpdated();
-
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context2.next = 4;
+                  _context2.next = 2;
                   break;
                 }
 
-                // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
-                // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-                setTimeout(function () {
-                  return _this8.opts.onResultsUpdated();
-                });
                 return _context2.abrupt("return");
 
-              case 4:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context2.next = 8;
+                _context2.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5870,7 +5862,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 8:
+              case 6:
                 newData = _context2.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5879,7 +5871,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_NEXT'
                 });
 
-              case 10:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -5896,35 +5888,26 @@ function createQueryManager(mmGQLInstance) {
 
     _proto.onGoToPreviousPage = /*#__PURE__*/function () {
       var _onGoToPreviousPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
-        var _this9 = this;
-
         var newMinimalQueryRecordForMoreResults, tokenName, newData;
         return runtime_1.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                this.opts.onResultsUpdated();
-
                 if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context3.next = 4;
+                  _context3.next = 2;
                   break;
                 }
 
-                // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
-                // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
-                setTimeout(function () {
-                  return _this9.opts.onResultsUpdated();
-                });
                 return _context3.abrupt("return");
 
-              case 4:
+              case 2:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
                   preExistingQueryRecord: this.queryRecord,
                   previousStartCursor: opts.previousStartCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context3.next = 8;
+                _context3.next = 6;
                 return this.opts.performQuery({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: gql$1(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
@@ -5935,7 +5918,7 @@ function createQueryManager(mmGQLInstance) {
                   tokenName: tokenName
                 });
 
-              case 8:
+              case 6:
                 newData = _context3.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
@@ -5944,7 +5927,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'GO_TO_PREVIOUS'
                 });
 
-              case 10:
+              case 8:
               case "end":
                 return _context3.stop();
             }
