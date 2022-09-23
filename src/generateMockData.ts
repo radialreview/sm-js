@@ -201,7 +201,8 @@ export function generateMockNodeDataForQueryRecord(opts: {
       const pageSize =
         queryRecordEntryForThisAlias.pagination?.itemsPerPage ||
         DEFAULT_PAGE_SIZE;
-      const numOfResultsToGenerate = generateRandomNumber(0, pageSize * 5);
+      // must generate at least 1 result, otherwise may return an empty array for a oneToMany relationship which expects at least 1 result
+      const numOfResultsToGenerate = generateRandomNumber(1, pageSize * 5);
       const arrayOfMockNodeValues = [];
 
       for (let i = 0; i < numOfResultsToGenerate; i++) {
