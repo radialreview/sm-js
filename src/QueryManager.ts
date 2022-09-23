@@ -869,7 +869,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
-        // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
         return;
       }
 
@@ -910,7 +909,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
-        // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
         return;
       }
 
@@ -951,7 +949,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Promise<void> {
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
-        // run onResultsUpdated once more so that the UI can re-render with the new idle loading states for the paginated nodes collection
         return;
       }
 
