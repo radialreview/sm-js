@@ -3849,9 +3849,10 @@ function generateMockNodeDataForQueryRecord(opts) {
     var relationalMockNodeProperties = {};
 
     if (returnValueShouldBeAnArray) {
-      var _mockedNodeDataReturn;
+      var _queryRecordEntryForT, _mockedNodeDataReturn;
 
-      var numOfResultsToGenerate = generateRandomNumber(2, 10);
+      var pageSize = ((_queryRecordEntryForT = queryRecordEntryForThisAlias.pagination) == null ? void 0 : _queryRecordEntryForT.itemsPerPage) || DEFAULT_PAGE_SIZE;
+      var numOfResultsToGenerate = generateRandomNumber(0, pageSize * 5);
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
@@ -3872,7 +3873,7 @@ function generateMockNodeDataForQueryRecord(opts) {
         endCursor: 'xyz',
         startCursor: 'yzx',
         hasPreviousPage: false,
-        hasNextPage: true
+        hasNextPage: pageSize < arrayOfMockNodeValues.length
       }, _mockedNodeDataReturn);
     } else {
       var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
