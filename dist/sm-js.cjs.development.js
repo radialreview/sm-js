@@ -3844,8 +3844,9 @@ function generateMockNodeDataForQueryRecord(opts) {
     if (returnValueShouldBeAnArray) {
       var _queryRecordEntryForT, _mockedNodeDataReturn;
 
-      var pageSize = ((_queryRecordEntryForT = queryRecordEntryForThisAlias.pagination) == null ? void 0 : _queryRecordEntryForT.itemsPerPage) || DEFAULT_PAGE_SIZE;
-      var numOfResultsToGenerate = generateRandomNumber(0, pageSize * 5);
+      var pageSize = ((_queryRecordEntryForT = queryRecordEntryForThisAlias.pagination) == null ? void 0 : _queryRecordEntryForT.itemsPerPage) || DEFAULT_PAGE_SIZE; // must generate at least 1 result, otherwise may return an empty array for a oneToMany relationship which expects at least 1 result
+
+      var numOfResultsToGenerate = generateRandomNumber(1, pageSize * 5);
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
