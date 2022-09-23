@@ -1,4 +1,5 @@
 import {
+  DEFAULT_PAGE_SIZE,
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   TOTAL_COUNT_PROPERTY_KEY,
@@ -197,7 +198,10 @@ export function generateMockNodeDataForQueryRecord(opts: {
     let relationalMockNodeProperties: Record<string, any> = {};
 
     if (returnValueShouldBeAnArray) {
-      const numOfResultsToGenerate = generateRandomNumber(2, 10);
+      const pageSize =
+        queryRecordEntryForThisAlias.pagination?.itemsPerPage ||
+        DEFAULT_PAGE_SIZE;
+      const numOfResultsToGenerate = generateRandomNumber(0, pageSize * 5);
       const arrayOfMockNodeValues = [];
 
       for (let i = 0; i < numOfResultsToGenerate; i++) {
@@ -225,7 +229,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
           endCursor: 'xyz',
           startCursor: 'yzx',
           hasPreviousPage: false,
-          hasNextPage: true,
+          hasNextPage: pageSize < arrayOfMockNodeValues.length,
         } as PageInfoFromResults,
       };
     } else {
