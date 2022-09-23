@@ -350,7 +350,7 @@ test('updates data when paginating', async () => {
   );
 
   await result.findByText('FL');
-  // await result.findByText('Loading next page');
+  await result.findByText('Loading next page');
   await result.findByText('CA');
 });
 
