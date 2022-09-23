@@ -2378,6 +2378,7 @@ export declare function getMockConfig(opts?: {
     enableQuerySlimmingLogging?: boolean;
     paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
     onQueryPerformed?: (query: DocumentNode) => void;
+    failQuery?: () => any;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
 export declare function getPrettyPrintedGQL(documentNode: DocumentNode): string;

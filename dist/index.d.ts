@@ -6,6 +6,7 @@ export * from './config';
 export * from './gqlClient';
 export * from './consts';
 export * from './generateMockDataUtilities';
+export * from './nodesCollection';
 export { gql } from '@apollo/client';
 export declare class MMGQL implements IMMGQL {
     gqlClient: IMMGQL['gqlClient'];

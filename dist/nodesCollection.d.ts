@@ -12,6 +12,11 @@ export declare type ClientSidePageInfo = {
 export declare type OnLoadMoreResultsCallback = () => Promise<void>;
 export declare type OnGoToNextPageCallback = () => Promise<void>;
 export declare type OnGoToPreviousPageCallback = () => Promise<void>;
+export declare enum ENodeCollectionLoadingState {
+    'IDLE' = "IDLE",
+    'LOADING' = "LOADING",
+    'ERROR' = "ERROR"
+}
 export interface NodesCollectionOpts<T> {
     onLoadMoreResults: OnLoadMoreResultsCallback;
     onGoToNextPage: OnGoToNextPageCallback;
@@ -30,6 +35,8 @@ export declare class NodesCollection<T> {
     private clientSidePageInfo;
     private useServerSidePaginationFilteringSorting;
     private pagesBeingDisplayed;
+    loadingState: ENodeCollectionLoadingState;
+    loadingError: any;
     constructor(opts: NodesCollectionOpts<T>);
     get nodes(): T[];
     get hasNextPage(): boolean;
@@ -39,6 +46,7 @@ export declare class NodesCollection<T> {
     loadMore(): Promise<void>;
     goToNextPage(): Promise<void>;
     goToPreviousPage(): Promise<void>;
+    private withLoadingState;
     goToPage(_: number): Promise<void>;
     private setNewClientSidePageInfoAfterClientSidePaginationRequest;
 }
