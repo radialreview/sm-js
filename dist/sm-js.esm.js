@@ -4919,30 +4919,48 @@ var NodesCollection = /*#__PURE__*/function () {
   var _proto = NodesCollection.prototype;
 
   _proto.loadMore = /*#__PURE__*/function () {
-    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-      return runtime_1.wrap(function _callee$(_context) {
+    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+      var _this = this;
+
+      return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context.prev = _context.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
               if (this.hasNextPage) {
-                _context.next = 2;
+                _context2.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No more results available - check results.hasNextPage before calling loadMore');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage++;
-              this.pagesBeingDisplayed = [].concat(this.pagesBeingDisplayed, [this.clientSidePageInfo.lastQueriedPage]);
-              _context.next = 6;
-              return this.withPaginationEventLoadingState(this.onLoadMoreResults);
+              _context2.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+                return runtime_1.wrap(function _callee$(_context) {
+                  while (1) {
+                    switch (_context.prev = _context.next) {
+                      case 0:
+                        _context.next = 2;
+                        return _this.onLoadMoreResults();
 
-            case 6:
+                      case 2:
+                        _this.clientSidePageInfo.lastQueriedPage++;
+                        _this.pagesBeingDisplayed = [].concat(_this.pagesBeingDisplayed, [_this.clientSidePageInfo.lastQueriedPage]);
+
+                      case 4:
+                      case "end":
+                        return _context.stop();
+                    }
+                  }
+                }, _callee);
+              })));
+
+            case 4:
             case "end":
-              return _context.stop();
+              return _context2.stop();
           }
         }
-      }, _callee, this);
+      }, _callee2, this);
     }));
 
     function loadMore() {
@@ -4953,30 +4971,48 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.goToNextPage = /*#__PURE__*/function () {
-    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-      return runtime_1.wrap(function _callee2$(_context2) {
+    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4() {
+      var _this2 = this;
+
+      return runtime_1.wrap(function _callee4$(_context4) {
         while (1) {
-          switch (_context2.prev = _context2.next) {
+          switch (_context4.prev = _context4.next) {
             case 0:
               if (this.hasNextPage) {
-                _context2.next = 2;
+                _context4.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No next page available - check results.hasNextPage before calling goToNextPage');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage++;
-              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
-              _context2.next = 6;
-              return this.withPaginationEventLoadingState(this.onGoToNextPage);
+              _context4.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
+                return runtime_1.wrap(function _callee3$(_context3) {
+                  while (1) {
+                    switch (_context3.prev = _context3.next) {
+                      case 0:
+                        _context3.next = 2;
+                        return _this2.onGoToNextPage();
 
-            case 6:
+                      case 2:
+                        _this2.clientSidePageInfo.lastQueriedPage++;
+                        _this2.pagesBeingDisplayed = [_this2.clientSidePageInfo.lastQueriedPage];
+
+                      case 4:
+                      case "end":
+                        return _context3.stop();
+                    }
+                  }
+                }, _callee3);
+              })));
+
+            case 4:
             case "end":
-              return _context2.stop();
+              return _context4.stop();
           }
         }
-      }, _callee2, this);
+      }, _callee4, this);
     }));
 
     function goToNextPage() {
@@ -4987,30 +5023,48 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.goToPreviousPage = /*#__PURE__*/function () {
-    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
-      return runtime_1.wrap(function _callee3$(_context3) {
+    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6() {
+      var _this3 = this;
+
+      return runtime_1.wrap(function _callee6$(_context6) {
         while (1) {
-          switch (_context3.prev = _context3.next) {
+          switch (_context6.prev = _context6.next) {
             case 0:
               if (this.hasPreviousPage) {
-                _context3.next = 2;
+                _context6.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No previous page available - check results.hasPreviousPage before calling goToPreviousPage');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage--;
-              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
-              _context3.next = 6;
-              return this.withPaginationEventLoadingState(this.onGoToPreviousPage);
+              _context6.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5() {
+                return runtime_1.wrap(function _callee5$(_context5) {
+                  while (1) {
+                    switch (_context5.prev = _context5.next) {
+                      case 0:
+                        _context5.next = 2;
+                        return _this3.onGoToPreviousPage();
 
-            case 6:
+                      case 2:
+                        _this3.clientSidePageInfo.lastQueriedPage--;
+                        _this3.pagesBeingDisplayed = [_this3.clientSidePageInfo.lastQueriedPage];
+
+                      case 4:
+                      case "end":
+                        return _context5.stop();
+                    }
+                  }
+                }, _callee5);
+              })));
+
+            case 4:
             case "end":
-              return _context3.stop();
+              return _context6.stop();
           }
         }
-      }, _callee3, this);
+      }, _callee6, this);
     }));
 
     function goToPreviousPage() {
@@ -5021,29 +5075,29 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.withPaginationEventLoadingState = /*#__PURE__*/function () {
-    var _withPaginationEventLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(promiseGetter) {
-      return runtime_1.wrap(function _callee4$(_context4) {
+    var _withPaginationEventLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee7(promiseGetter) {
+      return runtime_1.wrap(function _callee7$(_context7) {
         while (1) {
-          switch (_context4.prev = _context4.next) {
+          switch (_context7.prev = _context7.next) {
             case 0:
               this.loadingState = ENodeCollectionLoadingState.LOADING;
               this.loadingError = null;
-              _context4.prev = 2;
+              _context7.prev = 2;
               // re-render ui with the new loading state
               this.onPaginationRequestStateChanged();
-              _context4.next = 6;
+              _context7.next = 6;
               return promiseGetter();
 
             case 6:
               this.loadingState = ENodeCollectionLoadingState.IDLE;
-              _context4.next = 13;
+              _context7.next = 13;
               break;
 
             case 9:
-              _context4.prev = 9;
-              _context4.t0 = _context4["catch"](2);
+              _context7.prev = 9;
+              _context7.t0 = _context7["catch"](2);
               this.loadingState = ENodeCollectionLoadingState.ERROR;
-              this.loadingError = _context4.t0;
+              this.loadingError = _context7.t0;
 
             case 13:
               if (!this.useServerSidePaginationFilteringSorting) {
@@ -5055,10 +5109,10 @@ var NodesCollection = /*#__PURE__*/function () {
 
             case 15:
             case "end":
-              return _context4.stop();
+              return _context7.stop();
           }
         }
-      }, _callee4, this, [[2, 9]]);
+      }, _callee7, this, [[2, 9]]);
     }));
 
     function withPaginationEventLoadingState(_x) {
@@ -5069,19 +5123,19 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.goToPage = /*#__PURE__*/function () {
-    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5(_) {
-      return runtime_1.wrap(function _callee5$(_context5) {
+    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee8(_) {
+      return runtime_1.wrap(function _callee8$(_context8) {
         while (1) {
-          switch (_context5.prev = _context5.next) {
+          switch (_context8.prev = _context8.next) {
             case 0:
               throw new Error('Not implemented');
 
             case 1:
             case "end":
-              return _context5.stop();
+              return _context8.stop();
           }
         }
-      }, _callee5);
+      }, _callee8);
     }));
 
     function goToPage(_x2) {
