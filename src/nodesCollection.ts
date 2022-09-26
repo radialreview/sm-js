@@ -105,11 +105,7 @@ export class NodesCollection<T> {
       this.clientSidePageInfo.lastQueriedPage,
     ];
 
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
-
-    await this.withLoadingState(this.onLoadMoreResults);
+    await this.withPaginationEventLoadingState(this.onLoadMoreResults);
   }
 
   public async goToNextPage() {
@@ -121,11 +117,7 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage++;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
-
-    await this.withLoadingState(this.onGoToNextPage);
+    await this.withPaginationEventLoadingState(this.onGoToNextPage);
   }
 
   public async goToPreviousPage() {
@@ -137,14 +129,12 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage--;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
-
-    await this.withLoadingState(this.onGoToPreviousPage);
+    await this.withPaginationEventLoadingState(this.onGoToPreviousPage);
   }
 
-  private async withLoadingState(promiseGetter: () => Promise<void>) {
+  private async withPaginationEventLoadingState(
+    promiseGetter: () => Promise<void>
+  ) {
     this.loadingState = ENodeCollectionLoadingState.LOADING;
     this.loadingError = null;
     try {
@@ -155,6 +145,10 @@ export class NodesCollection<T> {
     } catch (e) {
       this.loadingState = ENodeCollectionLoadingState.ERROR;
       this.loadingError = e;
+    }
+
+    if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
 
     // re-render the ui with the new nodes and loading/error state

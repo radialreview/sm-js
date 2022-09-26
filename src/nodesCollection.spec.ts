@@ -95,9 +95,14 @@ describe('NodesCollection', () => {
   });
 
   test(`'hasPreviousPage' is set to 'false' if there are no previous pages to paginate.`, async () => {
-    const arrayWithPagination = new NodesCollection(
-      getMockNodesCollectionConstructorArgs()
-    );
+    const args = getMockNodesCollectionConstructorArgs();
+    const arrayWithPagination = new NodesCollection({
+      ...args,
+      pageInfoFromResults: {
+        ...args.pageInfoFromResults,
+        hasPreviousPage: false,
+      },
+    });
     expect(arrayWithPagination.hasPreviousPage).toBe(false);
   });
 });

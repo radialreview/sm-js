@@ -204,6 +204,9 @@ test(`query.pagination 'hasPreviousPage' is set to 'false' if there are no previ
             firstName: '3',
           },
         ],
+        pageInfo: {
+          hasPreviousPage: false,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -298,6 +301,7 @@ test(`query.pagination not defining pagination parameters should return all item
         pageInfo: {
           totalPages: 1,
           hasNextPage: false,
+          hasPreviousPage: false,
         },
       }),
     },
