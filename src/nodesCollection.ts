@@ -82,11 +82,7 @@ export class NodesCollection<T> {
   }
 
   public get hasPreviousPage() {
-    if (this.useServerSidePaginationFilteringSorting) {
-      return this.pageInfoFromResults.hasPreviousPage;
-    } else {
-      return this.clientSidePageInfo.lastQueriedPage > 1;
-    }
+    return this.pageInfoFromResults.hasPreviousPage;
   }
 
   public get totalPages() {
@@ -109,11 +105,11 @@ export class NodesCollection<T> {
       this.clientSidePageInfo.lastQueriedPage,
     ];
 
-    await this.withLoadingState(this.onLoadMoreResults);
-
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
+
+    await this.withLoadingState(this.onLoadMoreResults);
   }
 
   public async goToNextPage() {
@@ -125,11 +121,11 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage++;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withLoadingState(this.onGoToNextPage);
-
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
+
+    await this.withLoadingState(this.onGoToNextPage);
   }
 
   public async goToPreviousPage() {
@@ -141,11 +137,11 @@ export class NodesCollection<T> {
     this.clientSidePageInfo.lastQueriedPage--;
     this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withLoadingState(this.onGoToPreviousPage);
-
     if (!this.useServerSidePaginationFilteringSorting) {
       this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
+
+    await this.withLoadingState(this.onGoToPreviousPage);
   }
 
   private async withLoadingState(promiseGetter: () => Promise<void>) {
