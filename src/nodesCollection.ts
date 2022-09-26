@@ -99,13 +99,14 @@ export class NodesCollection<T> {
         'No more results available - check results.hasNextPage before calling loadMore'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage++;
-    this.pagesBeingDisplayed = [
-      ...this.pagesBeingDisplayed,
-      this.clientSidePageInfo.lastQueriedPage,
-    ];
-
-    await this.withPaginationEventLoadingState(this.onLoadMoreResults);
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onLoadMoreResults();
+      this.clientSidePageInfo.lastQueriedPage++;
+      this.pagesBeingDisplayed = [
+        ...this.pagesBeingDisplayed,
+        this.clientSidePageInfo.lastQueriedPage,
+      ];
+    });
   }
 
   public async goToNextPage() {
@@ -114,10 +115,12 @@ export class NodesCollection<T> {
         'No next page available - check results.hasNextPage before calling goToNextPage'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage++;
-    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withPaginationEventLoadingState(this.onGoToNextPage);
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onGoToNextPage();
+      this.clientSidePageInfo.lastQueriedPage++;
+      this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+    });
   }
 
   public async goToPreviousPage() {
@@ -126,10 +129,12 @@ export class NodesCollection<T> {
         'No previous page available - check results.hasPreviousPage before calling goToPreviousPage'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage--;
-    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withPaginationEventLoadingState(this.onGoToPreviousPage);
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onGoToPreviousPage();
+      this.clientSidePageInfo.lastQueriedPage--;
+      this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+    });
   }
 
   private async withPaginationEventLoadingState(
