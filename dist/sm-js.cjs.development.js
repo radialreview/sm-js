@@ -2775,6 +2775,9 @@ function generateRandomNumber(min, max) {
     max: max
   });
 }
+function generateRandomId() {
+  return chance.guid();
+}
 
 var _excluded = ["condition"];
 /**
@@ -3981,7 +3984,7 @@ function getMockValuesForIDataRecord(record) {
   }, {});
 }
 
-function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts) {
+function generateMockNodeDataForQueryRecordEntry(opts) {
   var queryRecordEntry = opts.queryRecordEntry;
   var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
     return queryRecordEntry.properties.includes(nodeProperty);
@@ -3992,6 +3995,7 @@ function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts) {
 
   var mockedValues = _extends({}, getMockValuesForIDataRecord(nodePropertiesToMock), {
     type: opts.queryRecordEntry.def.type,
+    id: generateRandomId(),
     version: '1'
   });
 
@@ -4043,7 +4047,14 @@ function generateMockNodeDataForQueryRecord(opts) {
       queryRecordEntry: queryRecordEntryForThisAlias
     });
     var mockedNodeDataReturnValues;
-    var relationalMockNodeProperties = {};
+
+    var relationalQueryRecord = _extends({}, queryRecordEntryForThisAlias.relational || {});
+
+    Object.keys(relationalQueryRecord).forEach(function (relationalQueryRecordAlias) {
+      if (queryRecordEntryForThisAlias.filter && Object.keys(queryRecordEntryForThisAlias.filter).includes(relationalQueryRecordAlias)) {
+        relationalQueryRecord[relationalQueryRecordAlias].filter = queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
+      }
+    });
 
     if (returnValueShouldBeAnArray) {
       var _queryRecordEntryForT, _mockedNodeDataReturn;
@@ -4054,17 +4065,13 @@ function generateMockNodeDataForQueryRecord(opts) {
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
-        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
+        var mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
           queryRecordEntry: queryRecordEntryForThisAlias
         });
-
-        if (queryRecordEntryForThisAlias.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-            queryRecord: queryRecordEntryForThisAlias.relational
-          });
-        }
-
-        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
+        var relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+          queryRecord: relationalQueryRecord
+        });
+        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecordEntry, relationalMockNodeProperties));
       }
 
       var pageInfo = {
@@ -4076,17 +4083,15 @@ function generateMockNodeDataForQueryRecord(opts) {
       };
       mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {
-      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
+      var _mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
         queryRecordEntry: queryRecordEntryForThisAlias
       });
 
-      if (queryRecordEntryForThisAlias.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: queryRecordEntryForThisAlias.relational
-        });
-      }
+      var _relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+        queryRecord: relationalQueryRecord
+      });
 
-      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecord, relationalMockNodeProperties);
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties);
     }
 
     mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
@@ -8776,6 +8781,7 @@ exports.boolean = _boolean;
 exports.chance = chance;
 exports.chunkArray = chunkArray;
 exports.generateRandomBoolean = generateRandomBoolean;
+exports.generateRandomId = generateRandomId;
 exports.generateRandomNumber = generateRandomNumber;
 exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;

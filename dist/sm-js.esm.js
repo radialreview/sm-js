@@ -2782,6 +2782,9 @@ function generateRandomNumber(min, max) {
     max: max
   });
 }
+function generateRandomId() {
+  return chance.guid();
+}
 
 var _excluded = ["condition"];
 /**
@@ -3988,7 +3991,7 @@ function getMockValuesForIDataRecord(record) {
   }, {});
 }
 
-function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts) {
+function generateMockNodeDataForQueryRecordEntry(opts) {
   var queryRecordEntry = opts.queryRecordEntry;
   var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
     return queryRecordEntry.properties.includes(nodeProperty);
@@ -3999,6 +4002,7 @@ function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts) {
 
   var mockedValues = _extends({}, getMockValuesForIDataRecord(nodePropertiesToMock), {
     type: opts.queryRecordEntry.def.type,
+    id: generateRandomId(),
     version: '1'
   });
 
@@ -4050,7 +4054,14 @@ function generateMockNodeDataForQueryRecord(opts) {
       queryRecordEntry: queryRecordEntryForThisAlias
     });
     var mockedNodeDataReturnValues;
-    var relationalMockNodeProperties = {};
+
+    var relationalQueryRecord = _extends({}, queryRecordEntryForThisAlias.relational || {});
+
+    Object.keys(relationalQueryRecord).forEach(function (relationalQueryRecordAlias) {
+      if (queryRecordEntryForThisAlias.filter && Object.keys(queryRecordEntryForThisAlias.filter).includes(relationalQueryRecordAlias)) {
+        relationalQueryRecord[relationalQueryRecordAlias].filter = queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
+      }
+    });
 
     if (returnValueShouldBeAnArray) {
       var _queryRecordEntryForT, _mockedNodeDataReturn;
@@ -4061,17 +4072,13 @@ function generateMockNodeDataForQueryRecord(opts) {
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
-        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
+        var mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
           queryRecordEntry: queryRecordEntryForThisAlias
         });
-
-        if (queryRecordEntryForThisAlias.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-            queryRecord: queryRecordEntryForThisAlias.relational
-          });
-        }
-
-        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
+        var relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+          queryRecord: relationalQueryRecord
+        });
+        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecordEntry, relationalMockNodeProperties));
       }
 
       var pageInfo = {
@@ -4083,17 +4090,15 @@ function generateMockNodeDataForQueryRecord(opts) {
       };
       mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {
-      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
+      var _mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
         queryRecordEntry: queryRecordEntryForThisAlias
       });
 
-      if (queryRecordEntryForThisAlias.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: queryRecordEntryForThisAlias.relational
-        });
-      }
+      var _relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+        queryRecord: relationalQueryRecord
+      });
 
-      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecord, relationalMockNodeProperties);
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties);
     }
 
     mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
@@ -8757,5 +8762,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENodeCollectionLoadingState, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENodeCollectionLoadingState, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, OBJECT_IDENTIFIER, OBJECT_PROPERTY_SEPARATOR, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map
