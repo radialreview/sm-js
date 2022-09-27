@@ -49,7 +49,7 @@ export declare class NodesCollection<T> {
     loadMore(): Promise<void>;
     goToNextPage(): Promise<void>;
     goToPreviousPage(): Promise<void>;
-    private withLoadingState;
+    private withPaginationEventLoadingState;
     goToPage(_: number): Promise<void>;
     private setNewClientSidePageInfoAfterClientSidePaginationRequest;
 }

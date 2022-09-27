@@ -542,7 +542,7 @@ export function getBEFilterString<TNode extends INode>(
         };
       }
 
-      const condition: FilterCondition = filter[key]?.condition || 'and';
+      const condition = (filter[key]?.condition || 'and') as FilterCondition;
 
       const conditionArray = acc[condition] || [];
       conditionArray.push(filterForBE);

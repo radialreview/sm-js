@@ -82,11 +82,7 @@ export class NodesCollection<T> {
   }
 
   public get hasPreviousPage() {
-    if (this.useServerSidePaginationFilteringSorting) {
-      return this.pageInfoFromResults.hasPreviousPage;
-    } else {
-      return this.clientSidePageInfo.lastQueriedPage > 1;
-    }
+    return this.pageInfoFromResults.hasPreviousPage;
   }
 
   public get totalPages() {
@@ -103,17 +99,14 @@ export class NodesCollection<T> {
         'No more results available - check results.hasNextPage before calling loadMore'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage++;
-    this.pagesBeingDisplayed = [
-      ...this.pagesBeingDisplayed,
-      this.clientSidePageInfo.lastQueriedPage,
-    ];
-
-    await this.withLoadingState(this.onLoadMoreResults);
-
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onLoadMoreResults();
+      this.clientSidePageInfo.lastQueriedPage++;
+      this.pagesBeingDisplayed = [
+        ...this.pagesBeingDisplayed,
+        this.clientSidePageInfo.lastQueriedPage,
+      ];
+    });
   }
 
   public async goToNextPage() {
@@ -122,14 +115,12 @@ export class NodesCollection<T> {
         'No next page available - check results.hasNextPage before calling goToNextPage'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage++;
-    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withLoadingState(this.onGoToNextPage);
-
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onGoToNextPage();
+      this.clientSidePageInfo.lastQueriedPage++;
+      this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+    });
   }
 
   public async goToPreviousPage() {
@@ -138,17 +129,17 @@ export class NodesCollection<T> {
         'No previous page available - check results.hasPreviousPage before calling goToPreviousPage'
       );
     }
-    this.clientSidePageInfo.lastQueriedPage--;
-    this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
 
-    await this.withLoadingState(this.onGoToPreviousPage);
-
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-    }
+    await this.withPaginationEventLoadingState(async () => {
+      await this.onGoToPreviousPage();
+      this.clientSidePageInfo.lastQueriedPage--;
+      this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
+    });
   }
 
-  private async withLoadingState(promiseGetter: () => Promise<void>) {
+  private async withPaginationEventLoadingState(
+    promiseGetter: () => Promise<void>
+  ) {
     this.loadingState = ENodeCollectionLoadingState.LOADING;
     this.loadingError = null;
     try {
@@ -159,6 +150,10 @@ export class NodesCollection<T> {
     } catch (e) {
       this.loadingState = ENodeCollectionLoadingState.ERROR;
       this.loadingError = e;
+    }
+
+    if (!this.useServerSidePaginationFilteringSorting) {
+      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
     }
 
     // re-render the ui with the new nodes and loading/error state

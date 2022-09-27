@@ -1503,7 +1503,9 @@ function getFlattenedNodeFilterObject(opts) {
 
     if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
       var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
-        def: isObjectInNodeData ? opts.queryRecordEntry.def : queriedRelations[filteredProperty].def,
+        def: isObjectInNodeData ? _extends({}, opts.queryRecordEntry.def, {
+          data: nodeData[filteredProperty].boxedValue
+        }) : queriedRelations[filteredProperty].def,
         properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
           return prop.startsWith(filteredProperty);
         }).map(function (prop) {
@@ -2773,6 +2775,9 @@ function generateRandomNumber(min, max) {
     max: max
   });
 }
+function generateRandomId() {
+  return chance.guid();
+}
 
 var _excluded = ["condition"];
 /**
@@ -3690,6 +3695,9 @@ function revisedPrepareForBE(opts) {
   }, {});
 }
 
+var _excluded$2 = ["condition"];
+var MAX_NUMBER_DEVIATION = 1000;
+
 function getMockValueForIData(data) {
   switch (data.type) {
     case exports.DATA_TYPES.string:
@@ -3776,10 +3784,195 @@ function getMockValueForIData(data) {
   }
 }
 
+function getMockDataThatConformsToFilter(opts) {
+  var filter = opts.filter,
+      data = opts.data;
+  var mockData = {};
+  Object.entries(filter).forEach(function (_ref3) {
+    var filterKey = _ref3[0],
+        filterValue = _ref3[1];
+    var isFilterOnDataOnNode = data[filterKey] != null;
+    var iData = isFilterOnDataOnNode ? typeof data[filterKey] === 'function' ? data[filterKey]._default : data[filterKey] : null;
+    var dataType = iData ? iData.type : null;
+
+    if (iData) {
+      if (filterValue != null && typeof filterValue === 'object') {
+        if (dataType === exports.DATA_TYPES.object || dataType === exports.DATA_TYPES.maybeObject) {
+          mockData[filterKey] = getMockDataThatConformsToFilter({
+            filter: filterValue,
+            data: iData.boxedValue,
+            relationalQueries: {}
+          });
+          return;
+        }
+
+        var restOfFilter = _objectWithoutPropertiesLoose(filterValue, _excluded$2);
+
+        if (Object.keys(restOfFilter).length !== 1) throw Error("Unexpected keys in filter " + JSON.stringify(restOfFilter));
+        var operator = Object.keys(restOfFilter)[0];
+        var operatorValue = restOfFilter[operator];
+
+        switch (operator) {
+          case 'eq':
+            {
+              mockData[filterKey] = operatorValue;
+              break;
+            }
+
+          case 'neq':
+            {
+              var valueSet = false;
+
+              do {
+                var proposedValue = getMockValueForIData(iData);
+
+                if (proposedValue !== operatorValue) {
+                  valueSet = true;
+                  mockData[filterKey] = proposedValue;
+                }
+              } while (!valueSet);
+
+              break;
+            }
+
+          case 'gt':
+          case 'nlte':
+            {
+              mockData[filterKey] = operatorValue + generateRandomNumber(1, MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'ngt':
+          case 'lte':
+            {
+              mockData[filterKey] = operatorValue - generateRandomNumber(0, // if the operator value is above 0, try to return an int that is also positive
+              // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+              operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'gte':
+          case 'nlt':
+            {
+              mockData[filterKey] = operatorValue + generateRandomNumber(0, MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'ngte':
+          case 'lt':
+            {
+              mockData[filterKey] = operatorValue - generateRandomNumber(1, // if the operator value is above 0, try to return an int that is also positive
+              // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+              operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'contains':
+            {
+              var _valueSet = false;
+
+              do {
+                var _proposedValue = getMockValueForIData(iData);
+
+                if (_proposedValue != null && typeof _proposedValue === 'string') {
+                  if (!_proposedValue.includes(operatorValue)) {
+                    var indexToInjectOperatorValue = generateRandomNumber(0, _proposedValue.length - 1);
+                    mockData[filterKey] = "" + _proposedValue.slice(0, indexToInjectOperatorValue) + operatorValue + _proposedValue.slice(indexToInjectOperatorValue);
+                  } else {
+                    mockData[filterKey] = _proposedValue;
+                  }
+
+                  _valueSet = true;
+                }
+              } while (!_valueSet);
+
+              break;
+            }
+
+          case 'ncontains':
+            {
+              var _valueSet2 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue2 = getMockValueForIData(iData);
+
+                if (_proposedValue2 == null || typeof _proposedValue2 === 'string' && !_proposedValue2.includes(operatorValue)) {
+                  _valueSet2 = true;
+                  mockData[filterKey] = _proposedValue2;
+                }
+              } while (!_valueSet2);
+
+              break;
+            }
+
+          case 'startsWith':
+            {
+              var _proposedValue3 = getMockValueForIData(iData);
+
+              mockData[filterKey] = operatorValue + _proposedValue3;
+              break;
+            }
+
+          case 'nstartsWith':
+            {
+              var _valueSet3 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue4 = getMockValueForIData(iData);
+
+                if (_proposedValue4 == null || typeof _proposedValue4 === 'string' && !_proposedValue4.startsWith(operatorValue)) {
+                  _valueSet3 = true;
+                  mockData[filterKey] = _proposedValue4;
+                }
+              } while (!_valueSet3);
+
+              break;
+            }
+
+          case 'endsWith':
+            {
+              var _proposedValue5 = getMockValueForIData(iData);
+
+              mockData[filterKey] = _proposedValue5 + operatorValue;
+              break;
+            }
+
+          case 'nendsWith':
+            {
+              var _valueSet4 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue6 = getMockValueForIData(iData);
+
+                if (_proposedValue6 == null || typeof _proposedValue6 === 'string' && !_proposedValue6.endsWith(operatorValue)) {
+                  _valueSet4 = true;
+                  mockData[filterKey] = _proposedValue6;
+                }
+              } while (!_valueSet4);
+
+              break;
+            }
+        }
+      } else {
+        mockData[filterKey] = filterValue;
+      }
+    }
+
+    var isRelationalDataOnNode = opts.relationalQueries && opts.relationalQueries[filterKey] != null;
+
+    if (isRelationalDataOnNode) {
+      // @TODO What do we do here?
+      // needs to set the filters on the related nodes that are being created
+      return;
+    }
+  });
+  return mockData;
+}
+
 function getMockValuesForIDataRecord(record) {
-  return Object.entries(record).reduce(function (acc, _ref3) {
-    var key = _ref3[0],
-        value = _ref3[1];
+  return Object.entries(record).reduce(function (acc, _ref4) {
+    var key = _ref4[0],
+        value = _ref4[1];
 
     if (typeof value === 'function') {
       acc[key] = getMockValueForIData(value._default);
@@ -3791,7 +3984,7 @@ function getMockValuesForIDataRecord(record) {
   }, {});
 }
 
-function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
+function generateMockNodeDataForQueryRecordEntry(opts) {
   var queryRecordEntry = opts.queryRecordEntry;
   var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
     return queryRecordEntry.properties.includes(nodeProperty);
@@ -3800,10 +3993,11 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     return acc;
   }, {});
 
-  var mockedValues = _extends({
+  var mockedValues = _extends({}, getMockValuesForIDataRecord(nodePropertiesToMock), {
     type: opts.queryRecordEntry.def.type,
+    id: generateRandomId(),
     version: '1'
-  }, getMockValuesForIDataRecord(nodePropertiesToMock));
+  });
 
   if (queryRecordEntry.def.generateMockData) {
     var queryRecordEntryMockData = queryRecordEntry.def.generateMockData();
@@ -3817,6 +4011,20 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     extend({
       object: mockedValues,
       extension: mockDataPropertiesToAddToExtension,
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false
+    });
+  }
+
+  if (queryRecordEntry.filter) {
+    var mockDataThatConformsToFilter = getMockDataThatConformsToFilter({
+      data: queryRecordEntry.def.data,
+      filter: queryRecordEntry.filter,
+      relationalQueries: queryRecordEntry.relational || {}
+    });
+    extend({
+      object: mockedValues,
+      extension: mockDataThatConformsToFilter,
       extendNestedObjects: true,
       deleteKeysNotInExtension: false
     });
@@ -3839,7 +4047,14 @@ function generateMockNodeDataForQueryRecord(opts) {
       queryRecordEntry: queryRecordEntryForThisAlias
     });
     var mockedNodeDataReturnValues;
-    var relationalMockNodeProperties = {};
+
+    var relationalQueryRecord = _extends({}, queryRecordEntryForThisAlias.relational || {});
+
+    Object.keys(relationalQueryRecord).forEach(function (relationalQueryRecordAlias) {
+      if (queryRecordEntryForThisAlias.filter && Object.keys(queryRecordEntryForThisAlias.filter).includes(relationalQueryRecordAlias)) {
+        relationalQueryRecord[relationalQueryRecordAlias].filter = queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
+      }
+    });
 
     if (returnValueShouldBeAnArray) {
       var _queryRecordEntryForT, _mockedNodeDataReturn;
@@ -3850,17 +4065,13 @@ function generateMockNodeDataForQueryRecord(opts) {
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
-        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+        var mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
           queryRecordEntry: queryRecordEntryForThisAlias
         });
-
-        if (queryRecordEntryForThisAlias.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-            queryRecord: queryRecordEntryForThisAlias.relational
-          });
-        }
-
-        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecord, relationalMockNodeProperties));
+        var relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+          queryRecord: relationalQueryRecord
+        });
+        arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecordEntry, relationalMockNodeProperties));
       }
 
       var pageInfo = {
@@ -3872,17 +4083,15 @@ function generateMockNodeDataForQueryRecord(opts) {
       };
       mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {
-      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+      var _mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
         queryRecordEntry: queryRecordEntryForThisAlias
       });
 
-      if (queryRecordEntryForThisAlias.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: queryRecordEntryForThisAlias.relational
-        });
-      }
+      var _relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+        queryRecord: relationalQueryRecord
+      });
 
-      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecord, relationalMockNodeProperties);
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties);
     }
 
     mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
@@ -3919,16 +4128,32 @@ function checkFilter(_ref) {
       return String(itemValue).toLowerCase() !== String(filterValue).toLowerCase();
 
     case 'gt':
+    case 'nlte':
       return itemValue > filterValue;
 
     case 'gte':
+    case 'nlt':
       return itemValue >= filterValue;
 
     case 'lt':
+    case 'ngte':
       return itemValue < filterValue;
 
     case 'lte':
+    case 'ngt':
       return itemValue <= filterValue;
+
+    case 'startsWith':
+      return String(itemValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
+
+    case 'nstartsWith':
+      return !String(itemValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
+
+    case 'endsWith':
+      return String(itemValue).toLowerCase().endsWith(String(filterValue).toLowerCase());
+
+    case 'nendsWith':
+      return !String(itemValue).toLowerCase().endsWith(String(filterValue).toLowerCase());
 
     default:
       throw new FilterOperatorNotImplementedException({
@@ -4910,35 +5135,48 @@ var NodesCollection = /*#__PURE__*/function () {
   var _proto = NodesCollection.prototype;
 
   _proto.loadMore = /*#__PURE__*/function () {
-    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-      return runtime_1.wrap(function _callee$(_context) {
+    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+      var _this = this;
+
+      return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context.prev = _context.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
               if (this.hasNextPage) {
-                _context.next = 2;
+                _context2.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No more results available - check results.hasNextPage before calling loadMore');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage++;
-              this.pagesBeingDisplayed = [].concat(this.pagesBeingDisplayed, [this.clientSidePageInfo.lastQueriedPage]);
-              _context.next = 6;
-              return this.withLoadingState(this.onLoadMoreResults);
+              _context2.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+                return runtime_1.wrap(function _callee$(_context) {
+                  while (1) {
+                    switch (_context.prev = _context.next) {
+                      case 0:
+                        _context.next = 2;
+                        return _this.onLoadMoreResults();
 
-            case 6:
-              if (!this.useServerSidePaginationFilteringSorting) {
-                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-              }
+                      case 2:
+                        _this.clientSidePageInfo.lastQueriedPage++;
+                        _this.pagesBeingDisplayed = [].concat(_this.pagesBeingDisplayed, [_this.clientSidePageInfo.lastQueriedPage]);
 
-            case 7:
+                      case 4:
+                      case "end":
+                        return _context.stop();
+                    }
+                  }
+                }, _callee);
+              })));
+
+            case 4:
             case "end":
-              return _context.stop();
+              return _context2.stop();
           }
         }
-      }, _callee, this);
+      }, _callee2, this);
     }));
 
     function loadMore() {
@@ -4949,35 +5187,48 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.goToNextPage = /*#__PURE__*/function () {
-    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-      return runtime_1.wrap(function _callee2$(_context2) {
+    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4() {
+      var _this2 = this;
+
+      return runtime_1.wrap(function _callee4$(_context4) {
         while (1) {
-          switch (_context2.prev = _context2.next) {
+          switch (_context4.prev = _context4.next) {
             case 0:
               if (this.hasNextPage) {
-                _context2.next = 2;
+                _context4.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No next page available - check results.hasNextPage before calling goToNextPage');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage++;
-              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
-              _context2.next = 6;
-              return this.withLoadingState(this.onGoToNextPage);
+              _context4.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
+                return runtime_1.wrap(function _callee3$(_context3) {
+                  while (1) {
+                    switch (_context3.prev = _context3.next) {
+                      case 0:
+                        _context3.next = 2;
+                        return _this2.onGoToNextPage();
 
-            case 6:
-              if (!this.useServerSidePaginationFilteringSorting) {
-                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-              }
+                      case 2:
+                        _this2.clientSidePageInfo.lastQueriedPage++;
+                        _this2.pagesBeingDisplayed = [_this2.clientSidePageInfo.lastQueriedPage];
 
-            case 7:
+                      case 4:
+                      case "end":
+                        return _context3.stop();
+                    }
+                  }
+                }, _callee3);
+              })));
+
+            case 4:
             case "end":
-              return _context2.stop();
+              return _context4.stop();
           }
         }
-      }, _callee2, this);
+      }, _callee4, this);
     }));
 
     function goToNextPage() {
@@ -4988,35 +5239,48 @@ var NodesCollection = /*#__PURE__*/function () {
   }();
 
   _proto.goToPreviousPage = /*#__PURE__*/function () {
-    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
-      return runtime_1.wrap(function _callee3$(_context3) {
+    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6() {
+      var _this3 = this;
+
+      return runtime_1.wrap(function _callee6$(_context6) {
         while (1) {
-          switch (_context3.prev = _context3.next) {
+          switch (_context6.prev = _context6.next) {
             case 0:
               if (this.hasPreviousPage) {
-                _context3.next = 2;
+                _context6.next = 2;
                 break;
               }
 
               throw new NodesCollectionPageOutOfBoundsException('No previous page available - check results.hasPreviousPage before calling goToPreviousPage');
 
             case 2:
-              this.clientSidePageInfo.lastQueriedPage--;
-              this.pagesBeingDisplayed = [this.clientSidePageInfo.lastQueriedPage];
-              _context3.next = 6;
-              return this.withLoadingState(this.onGoToPreviousPage);
+              _context6.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5() {
+                return runtime_1.wrap(function _callee5$(_context5) {
+                  while (1) {
+                    switch (_context5.prev = _context5.next) {
+                      case 0:
+                        _context5.next = 2;
+                        return _this3.onGoToPreviousPage();
 
-            case 6:
-              if (!this.useServerSidePaginationFilteringSorting) {
-                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-              }
+                      case 2:
+                        _this3.clientSidePageInfo.lastQueriedPage--;
+                        _this3.pagesBeingDisplayed = [_this3.clientSidePageInfo.lastQueriedPage];
 
-            case 7:
+                      case 4:
+                      case "end":
+                        return _context5.stop();
+                    }
+                  }
+                }, _callee5);
+              })));
+
+            case 4:
             case "end":
-              return _context3.stop();
+              return _context6.stop();
           }
         }
-      }, _callee3, this);
+      }, _callee6, this);
     }));
 
     function goToPreviousPage() {
@@ -5026,64 +5290,68 @@ var NodesCollection = /*#__PURE__*/function () {
     return goToPreviousPage;
   }();
 
-  _proto.withLoadingState = /*#__PURE__*/function () {
-    var _withLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(promiseGetter) {
-      return runtime_1.wrap(function _callee4$(_context4) {
+  _proto.withPaginationEventLoadingState = /*#__PURE__*/function () {
+    var _withPaginationEventLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee7(promiseGetter) {
+      return runtime_1.wrap(function _callee7$(_context7) {
         while (1) {
-          switch (_context4.prev = _context4.next) {
+          switch (_context7.prev = _context7.next) {
             case 0:
               this.loadingState = exports.ENodeCollectionLoadingState.LOADING;
               this.loadingError = null;
-              _context4.prev = 2;
+              _context7.prev = 2;
               // re-render ui with the new loading state
               this.onPaginationRequestStateChanged();
-              _context4.next = 6;
+              _context7.next = 6;
               return promiseGetter();
 
             case 6:
               this.loadingState = exports.ENodeCollectionLoadingState.IDLE;
-              _context4.next = 13;
+              _context7.next = 13;
               break;
 
             case 9:
-              _context4.prev = 9;
-              _context4.t0 = _context4["catch"](2);
+              _context7.prev = 9;
+              _context7.t0 = _context7["catch"](2);
               this.loadingState = exports.ENodeCollectionLoadingState.ERROR;
-              this.loadingError = _context4.t0;
+              this.loadingError = _context7.t0;
 
             case 13:
-              // re-render the ui with the new nodes and loading/error state
+              if (!this.useServerSidePaginationFilteringSorting) {
+                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+              } // re-render the ui with the new nodes and loading/error state
+
+
               this.onPaginationRequestStateChanged();
 
-            case 14:
+            case 15:
             case "end":
-              return _context4.stop();
+              return _context7.stop();
           }
         }
-      }, _callee4, this, [[2, 9]]);
+      }, _callee7, this, [[2, 9]]);
     }));
 
-    function withLoadingState(_x) {
-      return _withLoadingState.apply(this, arguments);
+    function withPaginationEventLoadingState(_x) {
+      return _withPaginationEventLoadingState.apply(this, arguments);
     }
 
-    return withLoadingState;
+    return withPaginationEventLoadingState;
   }();
 
   _proto.goToPage = /*#__PURE__*/function () {
-    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5(_) {
-      return runtime_1.wrap(function _callee5$(_context5) {
+    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee8(_) {
+      return runtime_1.wrap(function _callee8$(_context8) {
         while (1) {
-          switch (_context5.prev = _context5.next) {
+          switch (_context8.prev = _context8.next) {
             case 0:
               throw new Error('Not implemented');
 
             case 1:
             case "end":
-              return _context5.stop();
+              return _context8.stop();
           }
         }
-      }, _callee5);
+      }, _callee8);
     }));
 
     function goToPage(_x2) {
@@ -5127,11 +5395,7 @@ var NodesCollection = /*#__PURE__*/function () {
   }, {
     key: "hasPreviousPage",
     get: function get() {
-      if (this.useServerSidePaginationFilteringSorting) {
-        return this.pageInfoFromResults.hasPreviousPage;
-      } else {
-        return this.clientSidePageInfo.lastQueriedPage > 1;
-      }
+      return this.pageInfoFromResults.hasPreviousPage;
     }
   }, {
     key: "totalPages",
@@ -6307,7 +6571,7 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   return core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _excluded$2 = ["to"],
+var _excluded$3 = ["to"],
     _excluded2$1 = ["from"];
 var JSON_TAG$2 = '__JSON__';
 /**
@@ -6432,7 +6696,7 @@ function convertPropertyToBE(opts) {
 function convertEdgeDirectionNames(edgeItem) {
   if (edgeItem.hasOwnProperty('to')) {
     var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$2);
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$3);
 
     return _extends({}, restOfEdgeItem, {
       targetId: to
@@ -8517,6 +8781,7 @@ exports.boolean = _boolean;
 exports.chance = chance;
 exports.chunkArray = chunkArray;
 exports.generateRandomBoolean = generateRandomBoolean;
+exports.generateRandomId = generateRandomId;
 exports.generateRandomNumber = generateRandomNumber;
 exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;

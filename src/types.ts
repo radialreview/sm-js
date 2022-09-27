@@ -13,6 +13,10 @@ export type Maybe<T> = T | null;
 
 export type IsMaybe<Type> = null extends Type ? true : false
 
+export type RemoveNevers<TRecord extends Record<string,any>> = {
+  [TKey in keyof TRecord as TRecord[TKey] extends never ? never : TKey]: TRecord[TKey]
+}
+
 export type DataDefaultFn = {
   _default: IData
   (_default: any): IData;
@@ -646,7 +650,31 @@ export type FilterOperator = EStringFilterOperator | ENumberFilterOperator | EBo
  * excluding properties which are arrays and records
  * and including properties which are nested in objects
  */
-export type ValidFilterForNode<TNode extends INode> = ExtractNodeFilterData<TNode> | ExtractNodeRelationalDataFilter<TNode>
+export type ValidFilterForNode<TNode extends INode> = Partial<ExtractNodeFilterData<TNode>>
+export type ValidFilterForMapFnRelationalResults<
+  TValidFilterForMapFnRelationalResultsArgs extends {
+    TMapFn: MapFnForNode<TValidFilterForMapFnRelationalResultsArgs['TNode']> | undefined,
+    TNode: INode
+  },
+  TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'],
+  TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}
+> = Partial<RemoveNevers<{
+  [TKey in keyof TMapFnReturn]:
+    TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs>
+      ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
+        ? TOneToOneQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
+          ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
+          : never
+        : never
+      : TMapFnReturn[TKey] extends IOneToManyQuery<infer TOneToManyQueryArgs>
+        ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
+          ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+            ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+            : never
+          : never
+        : never
+}>>
+
 export type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>
 
 export type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
@@ -695,7 +723,9 @@ export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
-export type FilterObjectForNode<TNode extends INode> = ValidFilterForNode<TNode> 
+export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined }>  = 
+  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode']>
+
 export type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
 export type QueryDefinition<
@@ -707,7 +737,7 @@ export type QueryDefinition<
 > = { 
   def: TQueryDefinitionArgs["TNode"];
   map: TQueryDefinitionArgs["TMapFn"];
-  filter?: FilterObjectForNode<TQueryDefinitionArgs["TNode"]>
+  filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode']}>
   sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>
   target?: TQueryDefinitionArgs["TQueryDefinitionTarget"]
   pagination?: IQueryPagination
@@ -1053,16 +1083,6 @@ export type ExtractNodeDataWithDefaultProperties<TNode extends INode> = TNode ex
   ? TNodeArgs["TNodeData"] & NodeDefaultProps
   : never;
 
-export type ExtractNodeRelationalDataFilter<TNode extends INode> = TNode extends INode<infer TNodeArgs>
-  ? DeepPartial<{[Tkey in keyof TNodeArgs['TNodeRelationalData']]: 
-    TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> 
-      ? TOneToManyRelationalNode extends INode<any> 
-        ? ExtractNodeFilterData<TOneToManyRelationalNode> : never 
-    : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> 
-      ? TOneToOneRelationalNode extends INode<any> 
-        ? ExtractNodeFilterData<TOneToOneRelationalNode> : never  
-    : never}>
-  : never;
 export type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends INode<infer TNodeArgs>
   ? DeepPartial<{[Tkey in keyof TNodeArgs['TNodeRelationalData']]: 
     TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> 

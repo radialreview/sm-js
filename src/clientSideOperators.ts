@@ -60,13 +60,34 @@ function checkFilter({
         String(itemValue).toLowerCase() !== String(filterValue).toLowerCase()
       );
     case 'gt':
+    case 'nlte':
       return itemValue > filterValue;
     case 'gte':
+    case 'nlt':
       return itemValue >= filterValue;
     case 'lt':
+    case 'ngte':
       return itemValue < filterValue;
     case 'lte':
+    case 'ngt':
       return itemValue <= filterValue;
+    case 'startsWith':
+      return String(itemValue)
+        .toLowerCase()
+        .startsWith(String(filterValue).toLowerCase());
+    case 'nstartsWith':
+      return !String(itemValue)
+        .toLowerCase()
+        .startsWith(String(filterValue).toLowerCase());
+    case 'endsWith':
+      return String(itemValue)
+        .toLowerCase()
+        .endsWith(String(filterValue).toLowerCase());
+    case 'nendsWith':
+      return !String(itemValue)
+        .toLowerCase()
+        .endsWith(String(filterValue).toLowerCase());
+
     default:
       throw new FilterOperatorNotImplementedException({
         operator: operator,

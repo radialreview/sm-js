@@ -14,4 +14,8 @@ export function generateRandomNumber(min: number, max: number): number {
   return chance.integer({ min, max });
 }
 
+export function generateRandomId(): string {
+  return chance.guid();
+}
+
 export { chance };

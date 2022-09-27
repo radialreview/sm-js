@@ -204,6 +204,9 @@ test(`query.pagination 'hasPreviousPage' is set to 'false' if there are no previ
             firstName: '3',
           },
         ],
+        pageInfo: {
+          hasPreviousPage: false,
+        },
       }),
     },
     onQueryPerformed: query => {
@@ -298,6 +301,7 @@ test(`query.pagination not defining pagination parameters should return all item
         pageInfo: {
           totalPages: 1,
           hasNextPage: false,
+          hasPreviousPage: false,
         },
       }),
     },
@@ -525,7 +529,7 @@ test(`query.pagination can paginate relational data`, async () => {
 
   expect(data.users.nodes[0].todos.nodes.length).toBe(1);
   expect(data.users.nodes[0].todos.nodes[0].task).toBe('1');
-  data.users.nodes[0].todos.goToNextPage();
+  await data.users.nodes[0].todos.goToNextPage();
   expect(data.users.nodes[0].todos.nodes.length).toBe(1);
   expect(data.users.nodes[0].todos.nodes[0].task).toBe('2');
 });
