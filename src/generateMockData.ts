@@ -23,6 +23,8 @@ import {
   DataDefaultFn,
   DATA_TYPES,
   RelationalQueryRecord,
+  ValidFilterForNode,
+  INode,
 } from './types';
 
 type MockValuesIDataReturnType =
@@ -31,6 +33,8 @@ type MockValuesIDataReturnType =
   | string
   | boolean
   | Array<any>;
+
+const MAX_NUMBER_DEVIATION = 1000;
 
 function getMockValueForIData(data: IData): MockValuesIDataReturnType {
   switch (data.type) {
@@ -112,6 +116,200 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
   }
 }
 
+function getMockDataThatConformsToFilter(opts: {
+  filter: ValidFilterForNode<INode>;
+  data: Record<string, IData | DataDefaultFn>;
+  relationalQueries: RelationalQueryRecord;
+}) {
+  const { filter, data } = opts;
+  const mockData = {} as Record<string, any>;
+
+  Object.entries(filter).forEach(([filterKey, filterValue]) => {
+    const isFilterOnDataOnNode =
+      (data[filterKey] as IData | DataDefaultFn) != null;
+
+    const iData = isFilterOnDataOnNode
+      ? typeof data[filterKey] === 'function'
+        ? (data[filterKey] as DataDefaultFn)._default
+        : (data[filterKey] as IData)
+      : null;
+    const dataType = iData ? iData.type : null;
+
+    if (iData) {
+      if (filterValue != null && typeof filterValue === 'object') {
+        if (
+          dataType === DATA_TYPES.object ||
+          dataType === DATA_TYPES.maybeObject
+        ) {
+          mockData[filterKey] = getMockDataThatConformsToFilter({
+            filter: filterValue as Record<string, any>,
+            data: iData.boxedValue,
+            relationalQueries: {},
+          });
+          return;
+        }
+
+        const { condition, ...restOfFilter } = filterValue;
+
+        if (Object.keys(restOfFilter).length !== 1)
+          throw Error(
+            `Unexpected keys in filter ${JSON.stringify(restOfFilter)}`
+          );
+        const operator = Object.keys(restOfFilter)[0];
+        const operatorValue = restOfFilter[operator];
+
+        switch (operator) {
+          case 'eq': {
+            mockData[filterKey] = operatorValue;
+            break;
+          }
+          case 'neq': {
+            let valueSet = false;
+            do {
+              const proposedValue = getMockValueForIData(iData);
+              if (proposedValue !== operatorValue) {
+                valueSet = true;
+                mockData[filterKey] = proposedValue;
+              }
+            } while (!valueSet);
+            break;
+          }
+          case 'gt':
+          case 'nlte': {
+            mockData[filterKey] =
+              operatorValue + generateRandomNumber(1, MAX_NUMBER_DEVIATION);
+            break;
+          }
+          case 'ngt':
+          case 'lte': {
+            mockData[filterKey] =
+              operatorValue -
+              generateRandomNumber(
+                0,
+                // if the operator value is above 0, try to return an int that is also positive
+                // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+                operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION
+              );
+            break;
+          }
+          case 'gte':
+          case 'nlt': {
+            mockData[filterKey] =
+              operatorValue + generateRandomNumber(0, MAX_NUMBER_DEVIATION);
+            break;
+          }
+          case 'ngte':
+          case 'lt': {
+            mockData[filterKey] =
+              operatorValue -
+              generateRandomNumber(
+                1,
+                // if the operator value is above 0, try to return an int that is also positive
+                // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+                operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION
+              );
+            break;
+          }
+          case 'contains': {
+            let valueSet = false;
+            do {
+              const proposedValue = getMockValueForIData(iData);
+              if (proposedValue != null && typeof proposedValue === 'string') {
+                if (!proposedValue.includes(operatorValue)) {
+                  const indexToInjectOperatorValue = generateRandomNumber(
+                    0,
+                    proposedValue.length - 1
+                  );
+                  mockData[filterKey] = `${proposedValue.slice(
+                    0,
+                    indexToInjectOperatorValue
+                  )}${operatorValue}${proposedValue.slice(
+                    indexToInjectOperatorValue
+                  )}`;
+                } else {
+                  mockData[filterKey] = proposedValue;
+                }
+                valueSet = true;
+              }
+            } while (!valueSet);
+            break;
+          }
+          case 'ncontains': {
+            let valueSet = false;
+            // if not equal, generate random values until we get one that is not equal
+            do {
+              const proposedValue = getMockValueForIData(iData);
+              if (
+                proposedValue == null ||
+                (typeof proposedValue === 'string' &&
+                  !proposedValue.includes(operatorValue))
+              ) {
+                valueSet = true;
+                mockData[filterKey] = proposedValue;
+              }
+            } while (!valueSet);
+            break;
+          }
+          case 'startsWith': {
+            const proposedValue = getMockValueForIData(iData);
+            mockData[filterKey] = operatorValue + proposedValue;
+            break;
+          }
+          case 'nstartsWith': {
+            let valueSet = false;
+            // if not equal, generate random values until we get one that is not equal
+            do {
+              const proposedValue = getMockValueForIData(iData);
+              if (
+                proposedValue == null ||
+                (typeof proposedValue === 'string' &&
+                  !proposedValue.startsWith(operatorValue))
+              ) {
+                valueSet = true;
+                mockData[filterKey] = proposedValue;
+              }
+            } while (!valueSet);
+            break;
+          }
+          case 'endsWith': {
+            const proposedValue = getMockValueForIData(iData);
+            mockData[filterKey] = proposedValue + operatorValue;
+            break;
+          }
+          case 'nendsWith': {
+            let valueSet = false;
+            // if not equal, generate random values until we get one that is not equal
+            do {
+              const proposedValue = getMockValueForIData(iData);
+              if (
+                proposedValue == null ||
+                (typeof proposedValue === 'string' &&
+                  !proposedValue.endsWith(operatorValue))
+              ) {
+                valueSet = true;
+                mockData[filterKey] = proposedValue;
+              }
+            } while (!valueSet);
+            break;
+          }
+        }
+      } else {
+        mockData[filterKey] = filterValue;
+      }
+    }
+
+    const isRelationalDataOnNode =
+      opts.relationalQueries && opts.relationalQueries[filterKey] != null;
+    if (isRelationalDataOnNode) {
+      // @TODO What do we do here?
+      // needs to set the filters on the related nodes that are being created
+      return;
+    }
+  });
+
+  return mockData;
+}
+
 export function getMockValuesForIDataRecord(
   record: Record<string, IData | DataDefaultFn>
 ) {
@@ -125,7 +323,7 @@ export function getMockValuesForIDataRecord(
   }, {} as Record<string, any>);
 }
 
-function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
+function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const queryRecordEntry = opts.queryRecordEntry;
@@ -142,9 +340,9 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
     }, {} as Record<string, IData | DataDefaultFn>);
 
   const mockedValues = {
+    ...getMockValuesForIDataRecord(nodePropertiesToMock),
     type: opts.queryRecordEntry.def.type,
     version: '1',
-    ...getMockValuesForIDataRecord(nodePropertiesToMock),
   };
 
   if (queryRecordEntry.def.generateMockData) {
@@ -166,6 +364,21 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts: {
     extend({
       object: mockedValues,
       extension: mockDataPropertiesToAddToExtension,
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false,
+    });
+  }
+
+  if (queryRecordEntry.filter) {
+    const mockDataThatConformsToFilter = getMockDataThatConformsToFilter({
+      data: queryRecordEntry.def.data,
+      filter: queryRecordEntry.filter,
+      relationalQueries: queryRecordEntry.relational || {},
+    });
+
+    extend({
+      object: mockedValues,
+      extension: mockDataThatConformsToFilter,
       extendNestedObjects: true,
       deleteKeysNotInExtension: false,
     });
@@ -206,7 +419,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
       const arrayOfMockNodeValues = [];
 
       for (let i = 0; i < numOfResultsToGenerate; i++) {
-        const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
+        const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry(
           {
             queryRecordEntry: queryRecordEntryForThisAlias,
           }
@@ -237,7 +450,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
         [PAGE_INFO_PROPERTY_KEY]: pageInfo,
       };
     } else {
-      const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties(
+      const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry(
         {
           queryRecordEntry: queryRecordEntryForThisAlias,
         }

@@ -247,7 +247,10 @@ export function getFlattenedNodeFilterObject(opts: {
       const queryRecordEntry = {
         ...opts.queryRecordEntry,
         def: isObjectInNodeData
-          ? opts.queryRecordEntry.def
+          ? {
+              ...opts.queryRecordEntry.def,
+              data: nodeData[filteredProperty].boxedValue,
+            }
           : (queriedRelations as RelationalQueryRecord)[filteredProperty].def,
         properties: isObjectInNodeData
           ? opts.queryRecordEntry.properties

@@ -423,11 +423,32 @@ const stateNode: StateNode = mmGQL.def({
   await mmGQL.query({
     users: queryDefinition({
       def: userNode,
-      map: userData => ({ id: userData.id }),
+      map: userData => ({ id: userData.id, firstName: userData.firstName }),
       filter: {
         firstName: 'Meida',
         // @ts-expect-error not a property in the user node
         bogus: '',
+      },
+    }),
+  });
+
+  // testing relational filters
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todosForThisUser: userData.todos({ map: ({ task }) => ({ task }) }),
+      }),
+      filter: {
+        todosForThisUser: {
+          task: {
+            contains: 'test',
+          },
+          // @ts-expect-error wrong data type, id is a string
+          id: {
+            eq: 123,
+          },
+        },
       },
     }),
   });

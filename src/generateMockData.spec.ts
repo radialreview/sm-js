@@ -2,6 +2,7 @@ import { createMockQueryDefinitions, getMockConfig } from './specUtilities';
 import { queryDefinition, MMGQL } from '.';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import {
+  array,
   boolean,
   number,
   object,
@@ -14,20 +15,19 @@ import {
 import {
   EPaginationFilteringSortingInstance,
   GetResultingDataTypeFromProperties,
+  INode,
+  IOneToManyQueryBuilder,
+  IOneToOneQueryBuilder,
 } from './types';
 
 test('setupTest correctly returns mmGQLInstance.generateMockData as true', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   expect(mmGQLInstance.generateMockData).toEqual(true);
 });
 
 test('it correctly generates a single mock node when an id target is specified', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const mockNode = mmGQLInstance.def({
     type: 'mock',
@@ -47,9 +47,7 @@ test('it correctly generates a single mock node when an id target is specified',
 });
 
 test('it correctly generates multiple mock nodes when no id target is specified', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const mockNode = mmGQLInstance.def({
     type: 'mock',
@@ -72,9 +70,7 @@ test('it correctly generates multiple mock nodes when no id target is specified'
 });
 
 test('it correctly generates mock data for non optional properties on nodes', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const mockNode = mmGQLInstance.def({
     type: 'mock',
@@ -144,9 +140,7 @@ test('it correctly generates mock data for non optional properties on nodes', as
 });
 
 test('it correctly generates mock data for optional properties on nodes', async done => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const mockNodeProperties = {
     stringProp: string.optional,
@@ -348,9 +342,7 @@ test('it correctly generates mock data for optional properties on nodes', async 
  * Specific mocked values tests
  */
 test('it correctly generates mock data when a gen mock data fn is added to the node definition', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const nodeWithSpecificMockData = mmGQLInstance.def({
     type: 'mockNodeType',
@@ -405,9 +397,7 @@ test('it correctly generates mock data when a gen mock data fn is added to the n
  * Relational tests
  */
 test('it correctly generates mock data for oneToOne relational queries', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const childNode = mmGQLInstance.def({
     type: 'child',
@@ -439,9 +429,7 @@ test('it correctly generates mock data for oneToOne relational queries', async (
 });
 
 test('it correctly generates mock data for oneToMany relational queries', async () => {
-  const { mmGQLInstance } = setupTest({
-    generateMockData: true,
-  });
+  const { mmGQLInstance } = setupTest();
 
   const childNode = mmGQLInstance.def({
     type: 'child',
@@ -475,16 +463,633 @@ test('it correctly generates mock data for oneToMany relational queries', async 
   });
 });
 
-function setupTest(opts?: { generateMockData: boolean }) {
+/**
+ * Filter tests
+ */
+test('it generates mock data that conforms to strict equality filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: 'some mock string',
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp).toBe('some mock string');
+  });
+});
+
+test('it generates mock data that conforms to strict equality filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { eq: 'some mock string' },
+        optionalStringProp: { eq: null },
+        numberProp: { eq: 1 },
+        optionalNumberProp: { eq: null },
+        booleanProp: { eq: true },
+        optionalBooleanProp: { eq: null },
+        objectProp: {
+          nestedStringProp: { eq: 'some nested string' },
+          doubleNestedObject: {
+            doubleNestedStringProp: { eq: 'some double nested string' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp).toBe('some mock string');
+    expect(test.optionalStringProp).toBe(null);
+    expect(test.numberProp).toBe(1);
+    expect(test.optionalNumberProp).toBe(null);
+    expect(test.booleanProp).toBe(true);
+    expect(test.optionalBooleanProp).toBe(null);
+    expect(test.objectProp.nestedStringProp).toBe('some nested string');
+    expect(test.objectProp.doubleNestedObject.doubleNestedStringProp).toBe(
+      'some double nested string'
+    );
+  });
+});
+
+test('it generates mock data that conforms to neq filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { neq: 'some mock string' },
+        optionalStringProp: { neq: null },
+        numberProp: { neq: 1 },
+        optionalNumberProp: { neq: null },
+        booleanProp: { neq: true },
+        optionalBooleanProp: { neq: null },
+        objectProp: {
+          nestedStringProp: { neq: 'some nested string' },
+          doubleNestedObject: {
+            doubleNestedStringProp: { neq: 'some double nested string' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp).not.toBe('some mock string');
+    expect(test.optionalStringProp).not.toBe(null);
+    expect(test.numberProp).not.toBe(1);
+    expect(test.optionalNumberProp).not.toBe(null);
+    expect(test.booleanProp).not.toBe(true);
+    expect(test.optionalBooleanProp).not.toBe(null);
+    expect(test.objectProp.nestedStringProp).not.toBe('some nested string');
+    expect(test.objectProp.doubleNestedObject.doubleNestedStringProp).not.toBe(
+      'some double nested string'
+    );
+  });
+});
+
+test('it generates mock data that conforms to gt filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { gt: 5 },
+        optionalNumberProp: { gt: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { gt: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp > 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) > Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp > 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to nlte filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { nlte: 5 },
+        optionalNumberProp: { nlte: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { nlte: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp > 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) > Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp > 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to ngt filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { ngt: 5 },
+        optionalNumberProp: { ngt: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { ngt: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp <= 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) <= Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp <= 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to lte filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { lte: 5 },
+        optionalNumberProp: { lte: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { lte: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp <= 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) <= Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp <= 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to gte filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { gte: 5 },
+        optionalNumberProp: { gte: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { gte: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp >= 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) >= Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp >= 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to nlt filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { nlt: 5 },
+        optionalNumberProp: { nlt: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { nlt: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp >= 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) >= Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp >= 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to ngte filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { ngte: 5 },
+        optionalNumberProp: { ngte: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { ngte: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp < 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) < Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp < 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to lt filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        numberProp: { lt: 5 },
+        optionalNumberProp: { lt: null },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedNumberProp: { lt: 5 },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.numberProp < 5).toBeTruthy();
+    expect(Number(test.optionalNumberProp) < Number(null)).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedNumberProp < 5
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to contains filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { contains: 'some thing' },
+        optionalStringProp: { contains: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { contains: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.includes('some thing')).toBeTruthy();
+    expect(test.optionalStringProp?.includes('some other thing')).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.includes(
+        'some nested thing'
+      )
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to ncontains filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { ncontains: 'some thing' },
+        optionalStringProp: { ncontains: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { ncontains: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.includes('some thing')).toBeFalsy();
+    expect(test.optionalStringProp?.includes('some other thing')).toBeFalsy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.includes(
+        'some nested thing'
+      )
+    ).toBeFalsy();
+  });
+});
+
+test('it generates mock data that conforms to startsWith filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { startsWith: 'some thing' },
+        optionalStringProp: { startsWith: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { startsWith: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.startsWith('some thing')).toBeTruthy();
+    expect(
+      test.optionalStringProp?.startsWith('some other thing')
+    ).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.startsWith(
+        'some nested thing'
+      )
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to nstartsWith filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { nstartsWith: 'some thing' },
+        optionalStringProp: { nstartsWith: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { nstartsWith: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.startsWith('some thing')).toBeFalsy();
+    expect(test.optionalStringProp?.startsWith('some other thing')).toBeFalsy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.startsWith(
+        'some nested thing'
+      )
+    ).toBeFalsy();
+  });
+});
+
+test('it generates mock data that conforms to endsWith filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { endsWith: 'some thing' },
+        optionalStringProp: { endsWith: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { endsWith: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.endsWith('some thing')).toBeTruthy();
+    expect(test.optionalStringProp?.endsWith('some other thing')).toBeTruthy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.endsWith(
+        'some nested thing'
+      )
+    ).toBeTruthy();
+  });
+});
+
+test('it generates mock data that conforms to nendsWith filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: { nendsWith: 'some thing' },
+        optionalStringProp: { nendsWith: 'some other thing' },
+        objectProp: {
+          doubleNestedObject: {
+            doubleNestedStringProp: { nendsWith: 'some nested thing' },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.stringProp.endsWith('some thing')).toBeFalsy();
+    expect(test.optionalStringProp?.endsWith('some other thing')).toBeFalsy();
+    expect(
+      test.objectProp.doubleNestedObject.doubleNestedStringProp.endsWith(
+        'some nested thing'
+      )
+    ).toBeFalsy();
+  });
+});
+
+test('it generates mock data that conforms to relational filters specified in the query', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: ({ oneToOneChild, oneToManyChild }) => ({
+        oneToOneChild: oneToOneChild({
+          map: ({ stringProp }) => ({ stringProp }),
+        }),
+        oneToManyChild: oneToManyChild({
+          map: ({ stringProp }) => ({ stringProp }),
+        }),
+      }),
+      filter: {
+        oneToOneChild: {
+          stringProp: { eq: 'some thing' },
+        },
+        oneToManyChild: {
+          stringProp: 'a',
+        },
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+  expect(data.mock.nodes.length).toBeGreaterThanOrEqual(1);
+  data.mock.nodes.forEach(test => {
+    expect(test.oneToOneChild.stringProp).toEqual('some thing');
+    expect(test.oneToManyChild.nodes.length).toBeGreaterThanOrEqual(1);
+    test.oneToManyChild.nodes.forEach(child => {
+      expect(child.stringProp).toEqual('a');
+    });
+  });
+});
+
+function setupTest() {
   const mmGQLInstance = new MMGQL(
-    opts?.generateMockData
-      ? getMockConfig({
-          generateMockData: opts.generateMockData,
-          paginationFilteringSortingInstance:
-            EPaginationFilteringSortingInstance.CLIENT,
-        })
-      : getMockConfig()
+    getMockConfig({
+      generateMockData: true,
+      paginationFilteringSortingInstance:
+        EPaginationFilteringSortingInstance.CLIENT,
+    })
   );
+
+  const mockProps = {
+    stringProp: string,
+    optionalStringProp: string.optional,
+    numberProp: number,
+    optionalNumberProp: number.optional,
+    booleanProp: boolean(false),
+    optionalBooleanProp: boolean.optional,
+    objectProp: object({
+      nestedStringProp: string,
+      doubleNestedObject: object({
+        doubleNestedStringProp: string,
+        doubleNestedNumberProp: number,
+      }),
+    }),
+    optionalObjectProp: object.optional({
+      nestedStringProp: string,
+      doubleNestedObject: object({
+        doubleNestedStringProp: string,
+      }),
+    }),
+    arrayProp: array(string),
+  };
+
+  const childNode = mmGQLInstance.def({
+    type: 'mockChild',
+    properties: mockProps,
+  });
+
+  type MockNodeRelationalData = {
+    oneToOneChild: IOneToOneQueryBuilder<typeof childNode>;
+    oneToManyChild: IOneToManyQueryBuilder<typeof childNode>;
+  };
+  const mockNode: INode<{
+    TNodeType: 'mock';
+    TNodeData: typeof mockProps;
+    TNodeComputedData: {};
+    TNodeRelationalData: MockNodeRelationalData;
+  }> = mmGQLInstance.def({
+    type: 'mock',
+    properties: mockProps,
+    relational: {
+      oneToOneChild: () => oneToOne(childNode),
+      oneToManyChild: () => oneToMany(childNode),
+    },
+  });
 
   mmGQLInstance.setToken({
     tokenName: DEFAULT_TOKEN_NAME,
@@ -492,5 +1097,10 @@ function setupTest(opts?: { generateMockData: boolean }) {
   });
   const queryDefinitions = createMockQueryDefinitions(mmGQLInstance);
 
-  return { mmGQLInstance, queryDefinitions, createMockQueryDefinitions };
+  return {
+    mmGQLInstance,
+    queryDefinitions,
+    createMockQueryDefinitions,
+    mockNode,
+  };
 }
