@@ -1503,7 +1503,9 @@ function getFlattenedNodeFilterObject(opts) {
 
     if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
       var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
-        def: isObjectInNodeData ? opts.queryRecordEntry.def : queriedRelations[filteredProperty].def,
+        def: isObjectInNodeData ? _extends({}, opts.queryRecordEntry.def, {
+          data: nodeData[filteredProperty].boxedValue
+        }) : queriedRelations[filteredProperty].def,
         properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
           return prop.startsWith(filteredProperty);
         }).map(function (prop) {
@@ -3690,6 +3692,9 @@ function revisedPrepareForBE(opts) {
   }, {});
 }
 
+var _excluded$2 = ["condition"];
+var MAX_NUMBER_DEVIATION = 1000;
+
 function getMockValueForIData(data) {
   switch (data.type) {
     case exports.DATA_TYPES.string:
@@ -3776,10 +3781,195 @@ function getMockValueForIData(data) {
   }
 }
 
+function getMockDataThatConformsToFilter(opts) {
+  var filter = opts.filter,
+      data = opts.data;
+  var mockData = {};
+  Object.entries(filter).forEach(function (_ref3) {
+    var filterKey = _ref3[0],
+        filterValue = _ref3[1];
+    var isFilterOnDataOnNode = data[filterKey] != null;
+    var iData = isFilterOnDataOnNode ? typeof data[filterKey] === 'function' ? data[filterKey]._default : data[filterKey] : null;
+    var dataType = iData ? iData.type : null;
+
+    if (iData) {
+      if (filterValue != null && typeof filterValue === 'object') {
+        if (dataType === exports.DATA_TYPES.object || dataType === exports.DATA_TYPES.maybeObject) {
+          mockData[filterKey] = getMockDataThatConformsToFilter({
+            filter: filterValue,
+            data: iData.boxedValue,
+            relationalQueries: {}
+          });
+          return;
+        }
+
+        var restOfFilter = _objectWithoutPropertiesLoose(filterValue, _excluded$2);
+
+        if (Object.keys(restOfFilter).length !== 1) throw Error("Unexpected keys in filter " + JSON.stringify(restOfFilter));
+        var operator = Object.keys(restOfFilter)[0];
+        var operatorValue = restOfFilter[operator];
+
+        switch (operator) {
+          case 'eq':
+            {
+              mockData[filterKey] = operatorValue;
+              break;
+            }
+
+          case 'neq':
+            {
+              var valueSet = false;
+
+              do {
+                var proposedValue = getMockValueForIData(iData);
+
+                if (proposedValue !== operatorValue) {
+                  valueSet = true;
+                  mockData[filterKey] = proposedValue;
+                }
+              } while (!valueSet);
+
+              break;
+            }
+
+          case 'gt':
+          case 'nlte':
+            {
+              mockData[filterKey] = operatorValue + generateRandomNumber(1, MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'ngt':
+          case 'lte':
+            {
+              mockData[filterKey] = operatorValue - generateRandomNumber(0, // if the operator value is above 0, try to return an int that is also positive
+              // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+              operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'gte':
+          case 'nlt':
+            {
+              mockData[filterKey] = operatorValue + generateRandomNumber(0, MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'ngte':
+          case 'lt':
+            {
+              mockData[filterKey] = operatorValue - generateRandomNumber(1, // if the operator value is above 0, try to return an int that is also positive
+              // otherwise all bets are off, return a negative number up to MAX_NUMBER_DEVIATION
+              operatorValue > 0 ? operatorValue : MAX_NUMBER_DEVIATION);
+              break;
+            }
+
+          case 'contains':
+            {
+              var _valueSet = false;
+
+              do {
+                var _proposedValue = getMockValueForIData(iData);
+
+                if (_proposedValue != null && typeof _proposedValue === 'string') {
+                  if (!_proposedValue.includes(operatorValue)) {
+                    var indexToInjectOperatorValue = generateRandomNumber(0, _proposedValue.length - 1);
+                    mockData[filterKey] = "" + _proposedValue.slice(0, indexToInjectOperatorValue) + operatorValue + _proposedValue.slice(indexToInjectOperatorValue);
+                  } else {
+                    mockData[filterKey] = _proposedValue;
+                  }
+
+                  _valueSet = true;
+                }
+              } while (!_valueSet);
+
+              break;
+            }
+
+          case 'ncontains':
+            {
+              var _valueSet2 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue2 = getMockValueForIData(iData);
+
+                if (_proposedValue2 == null || typeof _proposedValue2 === 'string' && !_proposedValue2.includes(operatorValue)) {
+                  _valueSet2 = true;
+                  mockData[filterKey] = _proposedValue2;
+                }
+              } while (!_valueSet2);
+
+              break;
+            }
+
+          case 'startsWith':
+            {
+              var _proposedValue3 = getMockValueForIData(iData);
+
+              mockData[filterKey] = operatorValue + _proposedValue3;
+              break;
+            }
+
+          case 'nstartsWith':
+            {
+              var _valueSet3 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue4 = getMockValueForIData(iData);
+
+                if (_proposedValue4 == null || typeof _proposedValue4 === 'string' && !_proposedValue4.startsWith(operatorValue)) {
+                  _valueSet3 = true;
+                  mockData[filterKey] = _proposedValue4;
+                }
+              } while (!_valueSet3);
+
+              break;
+            }
+
+          case 'endsWith':
+            {
+              var _proposedValue5 = getMockValueForIData(iData);
+
+              mockData[filterKey] = _proposedValue5 + operatorValue;
+              break;
+            }
+
+          case 'nendsWith':
+            {
+              var _valueSet4 = false; // if not equal, generate random values until we get one that is not equal
+
+              do {
+                var _proposedValue6 = getMockValueForIData(iData);
+
+                if (_proposedValue6 == null || typeof _proposedValue6 === 'string' && !_proposedValue6.endsWith(operatorValue)) {
+                  _valueSet4 = true;
+                  mockData[filterKey] = _proposedValue6;
+                }
+              } while (!_valueSet4);
+
+              break;
+            }
+        }
+      } else {
+        mockData[filterKey] = filterValue;
+      }
+    }
+
+    var isRelationalDataOnNode = opts.relationalQueries && opts.relationalQueries[filterKey] != null;
+
+    if (isRelationalDataOnNode) {
+      // @TODO What do we do here?
+      // needs to set the filters on the related nodes that are being created
+      return;
+    }
+  });
+  return mockData;
+}
+
 function getMockValuesForIDataRecord(record) {
-  return Object.entries(record).reduce(function (acc, _ref3) {
-    var key = _ref3[0],
-        value = _ref3[1];
+  return Object.entries(record).reduce(function (acc, _ref4) {
+    var key = _ref4[0],
+        value = _ref4[1];
 
     if (typeof value === 'function') {
       acc[key] = getMockValueForIData(value._default);
@@ -3791,7 +3981,7 @@ function getMockValuesForIDataRecord(record) {
   }, {});
 }
 
-function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
+function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts) {
   var queryRecordEntry = opts.queryRecordEntry;
   var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
     return queryRecordEntry.properties.includes(nodeProperty);
@@ -3800,10 +3990,10 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     return acc;
   }, {});
 
-  var mockedValues = _extends({
+  var mockedValues = _extends({}, getMockValuesForIDataRecord(nodePropertiesToMock), {
     type: opts.queryRecordEntry.def.type,
     version: '1'
-  }, getMockValuesForIDataRecord(nodePropertiesToMock));
+  });
 
   if (queryRecordEntry.def.generateMockData) {
     var queryRecordEntryMockData = queryRecordEntry.def.generateMockData();
@@ -3817,6 +4007,20 @@ function generateMockNodeDataFromQueryRecordForQueriedProperties(opts) {
     extend({
       object: mockedValues,
       extension: mockDataPropertiesToAddToExtension,
+      extendNestedObjects: true,
+      deleteKeysNotInExtension: false
+    });
+  }
+
+  if (queryRecordEntry.filter) {
+    var mockDataThatConformsToFilter = getMockDataThatConformsToFilter({
+      data: queryRecordEntry.def.data,
+      filter: queryRecordEntry.filter,
+      relationalQueries: queryRecordEntry.relational || {}
+    });
+    extend({
+      object: mockedValues,
+      extension: mockDataThatConformsToFilter,
       extendNestedObjects: true,
       deleteKeysNotInExtension: false
     });
@@ -3850,7 +4054,7 @@ function generateMockNodeDataForQueryRecord(opts) {
       var arrayOfMockNodeValues = [];
 
       for (var i = 0; i < numOfResultsToGenerate; i++) {
-        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+        var mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
           queryRecordEntry: queryRecordEntryForThisAlias
         });
 
@@ -3872,7 +4076,7 @@ function generateMockNodeDataForQueryRecord(opts) {
       };
       mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {
-      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueriedProperties({
+      var _mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry({
         queryRecordEntry: queryRecordEntryForThisAlias
       });
 
@@ -3919,16 +4123,32 @@ function checkFilter(_ref) {
       return String(itemValue).toLowerCase() !== String(filterValue).toLowerCase();
 
     case 'gt':
+    case 'nlte':
       return itemValue > filterValue;
 
     case 'gte':
+    case 'nlt':
       return itemValue >= filterValue;
 
     case 'lt':
+    case 'ngte':
       return itemValue < filterValue;
 
     case 'lte':
+    case 'ngt':
       return itemValue <= filterValue;
+
+    case 'startsWith':
+      return String(itemValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
+
+    case 'nstartsWith':
+      return !String(itemValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
+
+    case 'endsWith':
+      return String(itemValue).toLowerCase().endsWith(String(filterValue).toLowerCase());
+
+    case 'nendsWith':
+      return !String(itemValue).toLowerCase().endsWith(String(filterValue).toLowerCase());
 
     default:
       throw new FilterOperatorNotImplementedException({
@@ -6346,7 +6566,7 @@ function convertEdgeUpdateOperationToMutationArguments(opts) {
   return core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
 }
 
-var _excluded$2 = ["to"],
+var _excluded$3 = ["to"],
     _excluded2$1 = ["from"];
 var JSON_TAG$2 = '__JSON__';
 /**
@@ -6471,7 +6691,7 @@ function convertPropertyToBE(opts) {
 function convertEdgeDirectionNames(edgeItem) {
   if (edgeItem.hasOwnProperty('to')) {
     var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$2);
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$3);
 
     return _extends({}, restOfEdgeItem, {
       targetId: to
