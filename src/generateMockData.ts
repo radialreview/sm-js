@@ -8,6 +8,7 @@ import { extend } from './dataUtilities';
 import { UnreachableCaseError } from './exceptions';
 import {
   generateRandomBoolean,
+  generateRandomId,
   generateRandomNumber,
   generateRandomString,
 } from './generateMockDataUtilities';
@@ -323,7 +324,7 @@ export function getMockValuesForIDataRecord(
   }, {} as Record<string, any>);
 }
 
-function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts: {
+function generateMockNodeDataForQueryRecordEntry(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const queryRecordEntry = opts.queryRecordEntry;
@@ -342,6 +343,7 @@ function generateMockNodeDataFromQueryRecordForQueryRecordEntry(opts: {
   const mockedValues = {
     ...getMockValuesForIDataRecord(nodePropertiesToMock),
     type: opts.queryRecordEntry.def.type,
+    id: generateRandomId(),
     version: '1',
   };
 
@@ -408,7 +410,22 @@ export function generateMockNodeDataForQueryRecord(opts: {
     });
 
     let mockedNodeDataReturnValues;
-    let relationalMockNodeProperties: Record<string, any> = {};
+
+    let relationalQueryRecord = {
+      ...(queryRecordEntryForThisAlias.relational || {}),
+    };
+
+    Object.keys(relationalQueryRecord).forEach(relationalQueryRecordAlias => {
+      if (
+        queryRecordEntryForThisAlias.filter &&
+        Object.keys(queryRecordEntryForThisAlias.filter).includes(
+          relationalQueryRecordAlias
+        )
+      ) {
+        relationalQueryRecord[relationalQueryRecordAlias].filter =
+          queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
+      }
+    });
 
     if (returnValueShouldBeAnArray) {
       const pageSize =
@@ -419,19 +436,20 @@ export function generateMockNodeDataForQueryRecord(opts: {
       const arrayOfMockNodeValues = [];
 
       for (let i = 0; i < numOfResultsToGenerate; i++) {
-        const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry(
+        const mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry(
           {
             queryRecordEntry: queryRecordEntryForThisAlias,
           }
         );
 
-        if (queryRecordEntryForThisAlias.relational) {
-          relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-            queryRecord: queryRecordEntryForThisAlias.relational,
-          });
-        }
+        const relationalMockNodeProperties = generateMockNodeDataForQueryRecord(
+          {
+            queryRecord: relationalQueryRecord,
+          }
+        );
+
         arrayOfMockNodeValues.push({
-          ...mockNodeDataForQueryRecord,
+          ...mockNodeDataForQueryRecordEntry,
           ...relationalMockNodeProperties,
         });
       }
@@ -450,20 +468,18 @@ export function generateMockNodeDataForQueryRecord(opts: {
         [PAGE_INFO_PROPERTY_KEY]: pageInfo,
       };
     } else {
-      const mockNodeDataForQueryRecord = generateMockNodeDataFromQueryRecordForQueryRecordEntry(
+      const mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry(
         {
           queryRecordEntry: queryRecordEntryForThisAlias,
         }
       );
 
-      if (queryRecordEntryForThisAlias.relational) {
-        relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: queryRecordEntryForThisAlias.relational as RelationalQueryRecord,
-        });
-      }
+      const relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
+        queryRecord: relationalQueryRecord,
+      });
 
       mockedNodeDataReturnValues = {
-        ...mockNodeDataForQueryRecord,
+        ...mockNodeDataForQueryRecordEntry,
         ...relationalMockNodeProperties,
       };
     }
