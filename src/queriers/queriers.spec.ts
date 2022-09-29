@@ -5,7 +5,7 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
 } from '../specUtilities';
-import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
 import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 

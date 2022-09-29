@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
-import { UnexpectedSubscriptionMessageException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
+import { UnexpectedSubscriptionMessageException } from '../exceptions';
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
@@ -25,13 +25,13 @@ import {
   ValidSortForNode,
   SortObject,
   RelationalQueryRecord,
-} from './types';
+} from '../types';
 import {
   PAGE_INFO_PROPERTY_KEY,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
   TOTAL_COUNT_PROPERTY_KEY,
-} from './consts';
+} from '../consts';
 
 /**
  * The functions in this file are responsible for translating queryDefinitionss to gql documents

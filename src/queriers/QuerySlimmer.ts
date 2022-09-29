@@ -8,7 +8,7 @@ import {
   RelationalQueryRecordEntry,
   IMMGQL,
   IGQLClient,
-} from './types';
+} from '../types';
 import { getQueryGQLStringFromQueryRecord } from './queryDefinitionAdapters';
 
 export interface IFetchedQueryData {

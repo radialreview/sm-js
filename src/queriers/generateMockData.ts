@@ -3,18 +3,18 @@ import {
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   TOTAL_COUNT_PROPERTY_KEY,
-} from './consts';
-import { extend } from './dataUtilities';
-import { UnreachableCaseError } from './exceptions';
+} from '../consts';
+import { extend } from '../dataUtilities';
+import { UnreachableCaseError } from '../exceptions';
 import {
   generateRandomBoolean,
   generateRandomId,
   generateRandomNumber,
   generateRandomString,
 } from './generateMockDataUtilities';
-import { PageInfoFromResults } from './nodesCollection';
+import { PageInfoFromResults } from '../nodesCollection';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
-import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
+import { revisedPrepareForBE } from '../transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
   IData,
@@ -26,7 +26,7 @@ import {
   RelationalQueryRecord,
   ValidFilterForNode,
   INode,
-} from './types';
+} from '../types';
 
 type MockValuesIDataReturnType =
   | Record<string, any>

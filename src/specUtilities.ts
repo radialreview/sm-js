@@ -2,7 +2,7 @@ import { isObject } from 'lodash';
 
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
-import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import { convertQueryDefinitionToQueryInfo } from './queriers/queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
 
 import {

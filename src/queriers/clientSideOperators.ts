@@ -1,16 +1,16 @@
 import { update, isArray, orderBy } from 'lodash';
-import { NODES_PROPERTY_KEY } from './consts';
-import { NULL_TAG } from './dataConversions';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { NODES_PROPERTY_KEY } from '../consts';
+import { NULL_TAG } from '../dataConversions';
+import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
 import {
   getFlattenedNodeFilterObject,
   getFlattenedNodeSortObject,
-} from './dataUtilities';
+} from '../dataUtilities';
 import {
   FilterPropertyNotDefinedInQueryException,
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
-} from './exceptions';
+} from '../exceptions';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
 
 import {
@@ -24,7 +24,7 @@ import {
   FilterCondition,
   RelationalQueryRecord,
   RelationalQueryRecordEntry,
-} from './types';
+} from '../types';
 
 function checkFilter({
   operator,

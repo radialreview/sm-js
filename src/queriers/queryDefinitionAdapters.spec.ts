@@ -4,24 +4,24 @@ import {
   generateTodoNode,
   TodoNode,
   getMockConfig,
-} from './specUtilities';
+} from '../specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
   getQueryInfo,
 } from './queryDefinitionAdapters';
-import { object, queryDefinition, oneToOne, string } from './dataTypes';
+import { object, queryDefinition, oneToOne, string } from '../dataTypes';
 import { gql } from '@apollo/client/core';
-import { MMGQL } from '.';
+import { MMGQL } from '..';
 import {
   IOneToOneQueryBuilder,
   INode,
   MapFnForNode,
   QueryRecordEntry,
-} from './types';
+} from '../types';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
-} from './consts';
+} from '../consts';
 
 describe('getQueryRecordFromQueryDefinition', () => {
   it('returns a query record with all the nodes that need to be fetched within a fetcher config', () => {

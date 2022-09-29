@@ -3,9 +3,9 @@ import {
   getMockQueryRecord,
   getMockQueryResultExpectations,
   getMockConfig,
-} from './specUtilities';
+} from '../specUtilities';
 
-import { MMGQL } from '.';
+import { MMGQL } from '..';
 
 test('QueryManager handles a query result and returns the expected data', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());

@@ -1,5 +1,5 @@
 import React from 'react';
-import { convertQueryDefinitionToQueryInfo } from '../queryDefinitionAdapters';
+import { convertQueryDefinitionToQueryInfo } from '../queriers/queryDefinitionAdapters';
 import { removeNullishQueryDefinitions } from '../queriers';
 import {
   QueryDataReturn,

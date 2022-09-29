@@ -1,12 +1,12 @@
-import { MMGQL, QueryRecord, QueryRecordEntry } from '.';
-import { DEFAULT_TOKEN_NAME } from './consts';
-import { string, boolean } from './dataTypes';
+import { MMGQL, QueryRecord, QueryRecordEntry } from '..';
+import { DEFAULT_TOKEN_NAME } from '../consts';
+import { string, boolean } from '../dataTypes';
 import {
   QuerySlimmer,
   TInFlightQueriesByContextMap,
   TQueryRecordByContextMap,
 } from './QuerySlimmer';
-import { getMockConfig } from './specUtilities';
+import { getMockConfig } from '../specUtilities';
 
 function setupTests() {
   const mmGQL = new MMGQL(getMockConfig());

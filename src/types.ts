@@ -3,9 +3,9 @@ import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './con
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
-import { createQueryManager } from './QueryManager';
+import { createQueryManager } from './queriers/QueryManager';
 import { createTransaction } from './transaction/transaction';
-import { QuerySlimmer } from './QuerySlimmer'
+import { QuerySlimmer } from './queriers/QuerySlimmer'
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 

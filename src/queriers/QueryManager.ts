@@ -2,15 +2,15 @@ import {
   NodesCollection,
   PageInfoFromResults,
   ClientSidePageInfo,
-} from './nodesCollection';
+} from '../nodesCollection';
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_TOKEN_NAME,
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   RELATIONAL_UNION_QUERY_SEPARATOR,
-} from './consts';
-import { DataParsingException, UnreachableCaseError } from './exceptions';
+} from '../consts';
+import { DataParsingException, UnreachableCaseError } from '../exceptions';
 import {
   IDOProxy,
   Maybe,
@@ -23,13 +23,13 @@ import {
   DocumentNode,
   RelationalQueryRecord,
   IQueryPagination,
-} from './types';
+} from '../types';
 import {
   getQueryGQLStringFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
 import { gql } from '@apollo/client';
-import { extend } from './dataUtilities';
+import { extend } from '../dataUtilities';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results

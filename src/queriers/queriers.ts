@@ -2,11 +2,11 @@ import { cloneDeep } from 'lodash';
 import { DocumentNode } from 'graphql';
 
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { generateMockNodeDataForQueryRecord } from '../generateMockData';
+import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import {
   convertQueryDefinitionToQueryInfo,
   SubscriptionConfig,
-} from '../queryDefinitionAdapters';
+} from './queryDefinitionAdapters';
 import {
   IMMGQL,
   IQueryManager,
@@ -22,7 +22,7 @@ import {
   QueryRecord,
   Maybe,
 } from '../types';
-import { applyClientSideSortAndFilterToData } from '../clientSideOperators';
+import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
 
