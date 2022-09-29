@@ -6400,398 +6400,6 @@ function createQueryManager(mmGQLInstance) {
   }();
 }
 
-function getMutationNameFromOperations(operations, fallback) {
-  var operationNames = operations.filter(function (operation) {
-    return 'name' in operation && !!operation.name;
-  }).map(function (operation) {
-    if ('name' in operation) {
-      return operation.name;
-    } else {
-      throw Error('Expected an operation name here');
-    }
-  });
-
-  if (operationNames.length) {
-    return operationNames.join('__');
-  }
-
-  return fallback;
-}
-
-function getEdgePermissionsString(permissions) {
-  return "\n    view: " + (permissions.view ? 'true' : 'false') + ",\n    edit: " + (permissions.edit ? 'true' : 'false') + ",\n    manage: " + (permissions.manage ? 'true' : 'false') + ",\n    terminate: " + (permissions.terminate ? 'true' : 'false') + ",\n    addChild: " + (permissions.addChild ? 'true' : 'false') + "\n  ";
-}
-
-var _templateObject$1;
-function createEdge(edge) {
-  return _extends({
-    type: 'createEdge'
-  }, edge, {
-    operationName: 'AttachEdge'
-  });
-}
-function createEdges(edges) {
-  return {
-    type: 'createEdges',
-    operationName: 'AttachEdge',
-    edges: edges
-  };
-}
-function getMutationsFromEdgeCreateOperations(operations) {
-  return operations.flatMap(function (operation) {
-    if (operation.type === 'createEdge') {
-      return convertEdgeCreationOperationToMutationArguments(_extends({}, operation.edge, {
-        name: operation.name
-      }));
-    } else if (operation.type === 'createEdges') {
-      return operation.edges.map(function (_ref) {
-        var edge = _ref.edge;
-        return convertEdgeCreationOperationToMutationArguments(edge);
-      });
-    }
-
-    throw Error("Operation not recognized: \"" + operation + "\"");
-  });
-}
-
-function convertEdgeCreationOperationToMutationArguments(opts) {
-  var edge = "{\ntype: \"" + (opts.type || 'access') + "\"," + getEdgePermissionsString(opts.permissions) + "}";
-  var name = getMutationNameFromOperations([opts], 'CreateEdge');
-  return core.gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
-}
-
-var _templateObject$2;
-function dropEdge(edge) {
-  return _extends({
-    type: 'dropEdge',
-    operationName: 'DropEdge'
-  }, edge);
-}
-function dropEdges(edges) {
-  return {
-    type: 'dropEdges',
-    operationName: 'DropEdge',
-    edges: edges
-  };
-}
-function getMutationsFromEdgeDropOperations(operations) {
-  return operations.flatMap(function (operation) {
-    if (operation.type === 'dropEdge') {
-      return convertEdgeDropOperationToMutationArguments(_extends({}, operation.edge, {
-        name: operation.name
-      }));
-    } else if (operation.type === 'dropEdges') {
-      return operation.edges.map(function (operation) {
-        return convertEdgeDropOperationToMutationArguments(_extends({}, operation.edge, {
-          name: operation.name
-        }));
-      });
-    }
-
-    throw Error("Operation not recognized: \"" + operation + "\"");
-  });
-}
-
-function convertEdgeDropOperationToMutationArguments(opts) {
-  var name = getMutationNameFromOperations([opts], 'DropEdge');
-  return core.gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
-}
-
-var _templateObject$3;
-function replaceEdge(edge) {
-  return _extends({
-    type: 'replaceEdge',
-    operationName: 'ReplaceEdge'
-  }, edge);
-}
-function replaceEdges(edges) {
-  return {
-    type: 'replaceEdges',
-    operationName: 'ReplaceEdge',
-    edges: edges
-  };
-}
-function getMutationsFromEdgeReplaceOperations(operations) {
-  return operations.flatMap(function (operation) {
-    if (operation.type === 'replaceEdge') {
-      return convertEdgeReplaceOperationToMutationArguments(_extends({}, operation.edge, {
-        name: operation.name
-      }));
-    } else if (operation.type === 'replaceEdges') {
-      return operation.edges.map(function (_ref) {
-        var edge = _ref.edge;
-        return convertEdgeReplaceOperationToMutationArguments(edge);
-      });
-    }
-
-    throw Error("Operation not recognized: \"" + operation + "\"");
-  });
-}
-
-function convertEdgeReplaceOperationToMutationArguments(opts) {
-  var name = getMutationNameFromOperations([opts], 'ReplaceEdge');
-  var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
-  return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
-}
-
-var _templateObject$4;
-function updateEdge(edge) {
-  return _extends({
-    type: 'updateEdge',
-    operationName: 'UpdateEdge'
-  }, edge);
-}
-function updateEdges(edges) {
-  return {
-    type: 'updateEdges',
-    operationName: 'UpdateEdge',
-    edges: edges
-  };
-}
-function getMutationsFromEdgeUpdateOperations(operations) {
-  return operations.flatMap(function (operation) {
-    if (operation.type === 'updateEdge') {
-      return convertEdgeUpdateOperationToMutationArguments(_extends({}, operation.edge, {
-        name: operation.name
-      }));
-    } else if (operation.type === 'updateEdges') {
-      return operation.edges.map(function (_ref) {
-        var edge = _ref.edge;
-        return convertEdgeUpdateOperationToMutationArguments(edge);
-      });
-    }
-
-    throw Error("Operation not recognized: \"" + operation + "\"");
-  });
-}
-
-function convertEdgeUpdateOperationToMutationArguments(opts) {
-  var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
-  var name = getMutationNameFromOperations([opts], 'UpdateEdge');
-  return core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
-}
-
-var _excluded$3 = ["to"],
-    _excluded2$1 = ["from"];
-var JSON_TAG$2 = '__JSON__';
-/**
- * Takes the json representation of a node's data and prepares it to be sent to SM
- *
- * @param nodeData an object with arbitrary data
- * @returns stringified params ready for mutation
- */
-
-function convertNodeDataToSMPersistedData(nodeData, opts) {
-  var parsedData = prepareForBE(nodeData);
-  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
-    var key = _ref[0],
-        value = _ref[1];
-
-    if (i > 0) {
-      acc += '\n';
-    }
-
-    if (key === 'childNodes' || key === 'additionalEdges') {
-      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
-    }
-
-    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
-    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
-  }, "");
-  return stringified;
-}
-
-function escapeText$1(text) {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-}
-/**
- * Takes an object node value and flattens it to be sent to SM
- *
- * @param obj an object with arbitrary data
- * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
- * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
- *  used to construct filters since there we don't care what the parent property is set to
- * @returns a flat object where the keys are of "key__dot__value" syntax
- *
- * For example:
- * ```typescript
- * const obj = {settings: {schedule: {day: 'Monday'} } }
- *  const result = prepareValueForBE(obj)
- * ```
- * The result will be:
- *  ```typescript
- *  {
- * settings: '__object__',
- * settings__dot__schedule: '__object__',
- * settings__dot__schedule__dot__day: 'Monday',
- * }
- * ```
- */
-
-
-function prepareObjectForBE(obj, opts) {
-  return Object.entries(obj).reduce(function (acc, _ref2) {
-    var key = _ref2[0],
-        val = _ref2[1];
-    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
-
-    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
-      if (!opts || !opts.omitObjectIdentifier) {
-        acc[preparedKey] = OBJECT_IDENTIFIER;
-      }
-
-      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
-        var key = _ref3[0],
-            val = _ref3[1];
-        return _extends({}, acc, convertPropertyToBE(_extends({
-          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
-          value: val
-        }, opts)));
-      }, {}));
-    } else {
-      acc = _extends({}, acc, convertPropertyToBE(_extends({
-        key: preparedKey,
-        value: val
-      }, opts)));
-    }
-
-    return acc;
-  }, {});
-}
-
-function convertPropertyToBE(opts) {
-  if (opts.value === null) {
-    var _ref4;
-
-    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
-  } else if (Array.isArray(opts.value)) {
-    var _ref5;
-
-    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$2 + escapeText$1(JSON.stringify(opts.value)), _ref5;
-  } else if (typeof opts.value === 'object') {
-    var _prepareObjectForBE;
-
-    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
-      omitObjectIdentifier: opts.omitObjectIdentifier
-    });
-  } else if (typeof opts.value === 'string') {
-    var _ref6;
-
-    return _ref6 = {}, _ref6[opts.key] = escapeText$1(opts.value), _ref6;
-  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
-    var _ref8;
-
-    if (typeof opts.value === 'number' && isNaN(opts.value)) {
-      var _ref7;
-
-      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
-    }
-
-    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
-  } else {
-    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
-  }
-}
-
-function convertEdgeDirectionNames(edgeItem) {
-  if (edgeItem.hasOwnProperty('to')) {
-    var to = edgeItem.to,
-        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$3);
-
-    return _extends({}, restOfEdgeItem, {
-      targetId: to
-    });
-  } else if (edgeItem.hasOwnProperty('from')) {
-    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
-
-    return _extends({}, _restOfEdgeItem, {
-      sourceId: edgeItem.from
-    });
-  }
-
-  throw new Error('convertEdgeDirectionNames - received invalid data');
-}
-
-function prepareForBE(obj) {
-  return Object.entries(obj).reduce(function (acc, _ref9) {
-    var key = _ref9[0],
-        value = _ref9[1];
-
-    if (key === 'childNodes') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"childNodes\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        childNodes: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(item);
-        })
-      });
-    }
-
-    if (key === 'additionalEdges') {
-      if (!Array.isArray(value)) {
-        throw new Error("\"additionalEdges\" is supposed to be an array");
-      }
-
-      return _extends({}, acc, {
-        additionalEdges: value.map(function (item) {
-          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
-            skipBooleanStringWrapping: true
-          });
-        })
-      });
-    }
-
-    return _extends({}, acc, convertPropertyToBE({
-      key: key,
-      value: value
-    }));
-  }, {});
-}
-
-var _templateObject$5;
-function createNodes(operation) {
-  return _extends({
-    type: 'createNodes',
-    operationName: 'CreateNodes'
-  }, operation);
-}
-function createNode(operation) {
-  return _extends({
-    type: 'createNode',
-    operationName: 'CreateNodes'
-  }, operation);
-}
-function getMutationsFromTransactionCreateOperations(operations) {
-  if (!operations.length) return [];
-  var allCreateNodeOperations = operations.flatMap(function (operation) {
-    if (operation.type === 'createNode') {
-      return operation;
-    } else if (operation.type === 'createNodes') {
-      return operation.nodes;
-    } else {
-      throw Error("Operation not recognized: \"" + operation + "\"");
-    }
-  });
-  var name = getMutationNameFromOperations(operations, 'CreateNodes'); // For now, returns a single mutation
-  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
-
-  return [core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n          transactional: true\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
-}
-
-function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
-  var dataToPersist = convertNodeDataToSMPersistedData(operation.data);
-  var mutationArgs = ["node: {\n        " + dataToPersist + "\n      }"];
-
-  if (operation.under) {
-    var value = typeof operation.under === 'string' ? "[\"" + operation.under + "\"]" : "[\"" + operation.under.join('", "') + "\"]";
-    mutationArgs.push("underIds: " + value);
-  }
-
-  return "{\n    " + mutationArgs.join('\n') + "\n  }";
-}
-
 var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 
 var QuerySlimmer = /*#__PURE__*/function () {
@@ -7407,6 +7015,398 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
   return QuerySlimmer;
 }();
+
+function getMutationNameFromOperations(operations, fallback) {
+  var operationNames = operations.filter(function (operation) {
+    return 'name' in operation && !!operation.name;
+  }).map(function (operation) {
+    if ('name' in operation) {
+      return operation.name;
+    } else {
+      throw Error('Expected an operation name here');
+    }
+  });
+
+  if (operationNames.length) {
+    return operationNames.join('__');
+  }
+
+  return fallback;
+}
+
+function getEdgePermissionsString(permissions) {
+  return "\n    view: " + (permissions.view ? 'true' : 'false') + ",\n    edit: " + (permissions.edit ? 'true' : 'false') + ",\n    manage: " + (permissions.manage ? 'true' : 'false') + ",\n    terminate: " + (permissions.terminate ? 'true' : 'false') + ",\n    addChild: " + (permissions.addChild ? 'true' : 'false') + "\n  ";
+}
+
+var _templateObject$1;
+function createEdge(edge) {
+  return _extends({
+    type: 'createEdge'
+  }, edge, {
+    operationName: 'AttachEdge'
+  });
+}
+function createEdges(edges) {
+  return {
+    type: 'createEdges',
+    operationName: 'AttachEdge',
+    edges: edges
+  };
+}
+function getMutationsFromEdgeCreateOperations(operations) {
+  return operations.flatMap(function (operation) {
+    if (operation.type === 'createEdge') {
+      return convertEdgeCreationOperationToMutationArguments(_extends({}, operation.edge, {
+        name: operation.name
+      }));
+    } else if (operation.type === 'createEdges') {
+      return operation.edges.map(function (_ref) {
+        var edge = _ref.edge;
+        return convertEdgeCreationOperationToMutationArguments(edge);
+      });
+    }
+
+    throw Error("Operation not recognized: \"" + operation + "\"");
+  });
+}
+
+function convertEdgeCreationOperationToMutationArguments(opts) {
+  var edge = "{\ntype: \"" + (opts.type || 'access') + "\"," + getEdgePermissionsString(opts.permissions) + "}";
+  var name = getMutationNameFromOperations([opts], 'CreateEdge');
+  return core.gql(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        AttachEdge(\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
+}
+
+var _templateObject$2;
+function dropEdge(edge) {
+  return _extends({
+    type: 'dropEdge',
+    operationName: 'DropEdge'
+  }, edge);
+}
+function dropEdges(edges) {
+  return {
+    type: 'dropEdges',
+    operationName: 'DropEdge',
+    edges: edges
+  };
+}
+function getMutationsFromEdgeDropOperations(operations) {
+  return operations.flatMap(function (operation) {
+    if (operation.type === 'dropEdge') {
+      return convertEdgeDropOperationToMutationArguments(_extends({}, operation.edge, {
+        name: operation.name
+      }));
+    } else if (operation.type === 'dropEdges') {
+      return operation.edges.map(function (operation) {
+        return convertEdgeDropOperationToMutationArguments(_extends({}, operation.edge, {
+          name: operation.name
+        }));
+      });
+    }
+
+    throw Error("Operation not recognized: \"" + operation + "\"");
+  });
+}
+
+function convertEdgeDropOperationToMutationArguments(opts) {
+  var name = getMutationNameFromOperations([opts], 'DropEdge');
+  return core.gql(_templateObject$2 || (_templateObject$2 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        DropEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edgeType: \"", "\"\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, opts.type || 'access');
+}
+
+var _templateObject$3;
+function replaceEdge(edge) {
+  return _extends({
+    type: 'replaceEdge',
+    operationName: 'ReplaceEdge'
+  }, edge);
+}
+function replaceEdges(edges) {
+  return {
+    type: 'replaceEdges',
+    operationName: 'ReplaceEdge',
+    edges: edges
+  };
+}
+function getMutationsFromEdgeReplaceOperations(operations) {
+  return operations.flatMap(function (operation) {
+    if (operation.type === 'replaceEdge') {
+      return convertEdgeReplaceOperationToMutationArguments(_extends({}, operation.edge, {
+        name: operation.name
+      }));
+    } else if (operation.type === 'replaceEdges') {
+      return operation.edges.map(function (_ref) {
+        var edge = _ref.edge;
+        return convertEdgeReplaceOperationToMutationArguments(edge);
+      });
+    }
+
+    throw Error("Operation not recognized: \"" + operation + "\"");
+  });
+}
+
+function convertEdgeReplaceOperationToMutationArguments(opts) {
+  var name = getMutationNameFromOperations([opts], 'ReplaceEdge');
+  var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
+  return core.gql(_templateObject$3 || (_templateObject$3 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        ReplaceEdge(\n            currentSourceId: \"", "\"\n            newSourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.current, opts.from, opts.to, edge);
+}
+
+var _templateObject$4;
+function updateEdge(edge) {
+  return _extends({
+    type: 'updateEdge',
+    operationName: 'UpdateEdge'
+  }, edge);
+}
+function updateEdges(edges) {
+  return {
+    type: 'updateEdges',
+    operationName: 'UpdateEdge',
+    edges: edges
+  };
+}
+function getMutationsFromEdgeUpdateOperations(operations) {
+  return operations.flatMap(function (operation) {
+    if (operation.type === 'updateEdge') {
+      return convertEdgeUpdateOperationToMutationArguments(_extends({}, operation.edge, {
+        name: operation.name
+      }));
+    } else if (operation.type === 'updateEdges') {
+      return operation.edges.map(function (_ref) {
+        var edge = _ref.edge;
+        return convertEdgeUpdateOperationToMutationArguments(edge);
+      });
+    }
+
+    throw Error("Operation not recognized: \"" + operation + "\"");
+  });
+}
+
+function convertEdgeUpdateOperationToMutationArguments(opts) {
+  var edge = "{\ntype: \"" + (opts.type || 'access') + "\", " + getEdgePermissionsString(opts.permissions) + "}";
+  var name = getMutationNameFromOperations([opts], 'UpdateEdge');
+  return core.gql(_templateObject$4 || (_templateObject$4 = _taggedTemplateLiteralLoose(["\n    mutation ", " {\n        UpdateEdge(\n            sourceId: \"", "\"\n            targetId: \"", "\"\n            edge: ", "\n            transactional: true\n        )\n    }"])), name, opts.from, opts.to, edge);
+}
+
+var _excluded$3 = ["to"],
+    _excluded2$1 = ["from"];
+var JSON_TAG$2 = '__JSON__';
+/**
+ * Takes the json representation of a node's data and prepares it to be sent to SM
+ *
+ * @param nodeData an object with arbitrary data
+ * @returns stringified params ready for mutation
+ */
+
+function convertNodeDataToSMPersistedData(nodeData, opts) {
+  var parsedData = prepareForBE(nodeData);
+  var stringified = Object.entries(parsedData).reduce(function (acc, _ref, i) {
+    var key = _ref[0],
+        value = _ref[1];
+
+    if (i > 0) {
+      acc += '\n';
+    }
+
+    if (key === 'childNodes' || key === 'additionalEdges') {
+      return acc + (key + ": [\n{\n" + value.join('\n}\n{\n') + "\n}\n]");
+    }
+
+    var shouldBeRawBoolean = (value === 'true' || value === 'false') && !!(opts != null && opts.skipBooleanStringWrapping);
+    return acc + (key + ": " + (value === null || shouldBeRawBoolean ? value : "\"" + value + "\""));
+  }, "");
+  return stringified;
+}
+
+function escapeText$1(text) {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+/**
+ * Takes an object node value and flattens it to be sent to SM
+ *
+ * @param obj an object with arbitrary data
+ * @param parentKey if the value is a nested object, the key of the parent is passed in order to prepend it to the child key
+ * @param omitObjectIdentifier skip including __object__ for identifying parent objects,
+ *  used to construct filters since there we don't care what the parent property is set to
+ * @returns a flat object where the keys are of "key__dot__value" syntax
+ *
+ * For example:
+ * ```typescript
+ * const obj = {settings: {schedule: {day: 'Monday'} } }
+ *  const result = prepareValueForBE(obj)
+ * ```
+ * The result will be:
+ *  ```typescript
+ *  {
+ * settings: '__object__',
+ * settings__dot__schedule: '__object__',
+ * settings__dot__schedule__dot__day: 'Monday',
+ * }
+ * ```
+ */
+
+
+function prepareObjectForBE(obj, opts) {
+  return Object.entries(obj).reduce(function (acc, _ref2) {
+    var key = _ref2[0],
+        val = _ref2[1];
+    var preparedKey = opts != null && opts.parentKey ? "" + opts.parentKey + OBJECT_PROPERTY_SEPARATOR + key : key;
+
+    if (typeof val === 'object' && val != null && !Array.isArray(val)) {
+      if (!opts || !opts.omitObjectIdentifier) {
+        acc[preparedKey] = OBJECT_IDENTIFIER;
+      }
+
+      acc = _extends({}, acc, Object.entries(val).reduce(function (acc, _ref3) {
+        var key = _ref3[0],
+            val = _ref3[1];
+        return _extends({}, acc, convertPropertyToBE(_extends({
+          key: "" + preparedKey + OBJECT_PROPERTY_SEPARATOR + key,
+          value: val
+        }, opts)));
+      }, {}));
+    } else {
+      acc = _extends({}, acc, convertPropertyToBE(_extends({
+        key: preparedKey,
+        value: val
+      }, opts)));
+    }
+
+    return acc;
+  }, {});
+}
+
+function convertPropertyToBE(opts) {
+  if (opts.value === null) {
+    var _ref4;
+
+    return _ref4 = {}, _ref4[opts.key] = null, _ref4;
+  } else if (Array.isArray(opts.value)) {
+    var _ref5;
+
+    return _ref5 = {}, _ref5[opts.key] = "" + JSON_TAG$2 + escapeText$1(JSON.stringify(opts.value)), _ref5;
+  } else if (typeof opts.value === 'object') {
+    var _prepareObjectForBE;
+
+    return prepareObjectForBE((_prepareObjectForBE = {}, _prepareObjectForBE[opts.key] = opts.value, _prepareObjectForBE), {
+      omitObjectIdentifier: opts.omitObjectIdentifier
+    });
+  } else if (typeof opts.value === 'string') {
+    var _ref6;
+
+    return _ref6 = {}, _ref6[opts.key] = escapeText$1(opts.value), _ref6;
+  } else if (typeof opts.value === 'boolean' || typeof opts.value === 'number') {
+    var _ref8;
+
+    if (typeof opts.value === 'number' && isNaN(opts.value)) {
+      var _ref7;
+
+      return _ref7 = {}, _ref7[opts.key] = null, _ref7;
+    }
+
+    return _ref8 = {}, _ref8[opts.key] = String(opts.value), _ref8;
+  } else {
+    throw Error("I don't yet know how to handle feData of type \"" + typeof opts.value + "\"");
+  }
+}
+
+function convertEdgeDirectionNames(edgeItem) {
+  if (edgeItem.hasOwnProperty('to')) {
+    var to = edgeItem.to,
+        restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded$3);
+
+    return _extends({}, restOfEdgeItem, {
+      targetId: to
+    });
+  } else if (edgeItem.hasOwnProperty('from')) {
+    var _restOfEdgeItem = _objectWithoutPropertiesLoose(edgeItem, _excluded2$1);
+
+    return _extends({}, _restOfEdgeItem, {
+      sourceId: edgeItem.from
+    });
+  }
+
+  throw new Error('convertEdgeDirectionNames - received invalid data');
+}
+
+function prepareForBE(obj) {
+  return Object.entries(obj).reduce(function (acc, _ref9) {
+    var key = _ref9[0],
+        value = _ref9[1];
+
+    if (key === 'childNodes') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"childNodes\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        childNodes: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(item);
+        })
+      });
+    }
+
+    if (key === 'additionalEdges') {
+      if (!Array.isArray(value)) {
+        throw new Error("\"additionalEdges\" is supposed to be an array");
+      }
+
+      return _extends({}, acc, {
+        additionalEdges: value.map(function (item) {
+          return convertNodeDataToSMPersistedData(convertEdgeDirectionNames(item), {
+            skipBooleanStringWrapping: true
+          });
+        })
+      });
+    }
+
+    return _extends({}, acc, convertPropertyToBE({
+      key: key,
+      value: value
+    }));
+  }, {});
+}
+
+var _templateObject$5;
+function createNodes(operation) {
+  return _extends({
+    type: 'createNodes',
+    operationName: 'CreateNodes'
+  }, operation);
+}
+function createNode(operation) {
+  return _extends({
+    type: 'createNode',
+    operationName: 'CreateNodes'
+  }, operation);
+}
+function getMutationsFromTransactionCreateOperations(operations) {
+  if (!operations.length) return [];
+  var allCreateNodeOperations = operations.flatMap(function (operation) {
+    if (operation.type === 'createNode') {
+      return operation;
+    } else if (operation.type === 'createNodes') {
+      return operation.nodes;
+    } else {
+      throw Error("Operation not recognized: \"" + operation + "\"");
+    }
+  });
+  var name = getMutationNameFromOperations(operations, 'CreateNodes'); // For now, returns a single mutation
+  // later, we may choose to alter this behavior, if we find performance gains in splitting the mutations
+
+  return [core.gql(_templateObject$5 || (_templateObject$5 = _taggedTemplateLiteralLoose(["\n      mutation ", " {\n        CreateNodes(\n          createOptions: [\n            ", "\n          ]\n          transactional: true\n        ) {\n          id\n        }\n      }\n    "])), name, allCreateNodeOperations.map(convertCreateNodeOperationToCreateNodesMutationArguments).join('\n'))];
+}
+
+function convertCreateNodeOperationToCreateNodesMutationArguments(operation) {
+  var dataToPersist = convertNodeDataToSMPersistedData(operation.data);
+  var mutationArgs = ["node: {\n        " + dataToPersist + "\n      }"];
+
+  if (operation.under) {
+    var value = typeof operation.under === 'string' ? "[\"" + operation.under + "\"]" : "[\"" + operation.under.join('", "') + "\"]";
+    mutationArgs.push("underIds: " + value);
+  }
+
+  return "{\n    " + mutationArgs.join('\n') + "\n  }";
+}
 
 var MMGQLContext = /*#__PURE__*/React.createContext(undefined);
 var LoggingContext = /*#__PURE__*/React.createContext({

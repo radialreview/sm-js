@@ -1,5 +1,5 @@
-import { PageInfoFromResults, ClientSidePageInfo } from './nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, DocumentNode, RelationalQueryRecord, IQueryPagination } from './types';
+import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, DocumentNode, RelationalQueryRecord, IQueryPagination } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
