@@ -305,7 +305,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             pageInfoFromResults: this.getPageInfoFromResponse({
               dataForThisAlias: opts.queryResult[queryAlias],
             }),
-            clientSidePageInfo: this.getClientSidePageInfo({
+            clientSidePageInfo: this.getInitialClientSidePageInfo({
               queryRecordEntry: opts.queryRecord[queryAlias],
             }),
             queryRecord: opts.queryRecord,
@@ -365,7 +365,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               pageInfoFromResults: this.getPageInfoFromResponse({
                 dataForThisAlias: node[relationalAlias],
               }),
-              clientSidePageInfo: this.getClientSidePageInfo({
+              clientSidePageInfo: this.getInitialClientSidePageInfo({
                 queryRecordEntry: relational[relationalAlias],
               }),
               queryAlias: relationalAlias,
@@ -846,7 +846,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public getClientSidePageInfo(opts: {
+    public getInitialClientSidePageInfo(opts: {
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     }): Maybe<ClientSidePageInfo> {
       if (

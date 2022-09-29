@@ -29,7 +29,7 @@ test('query uses the gql client, passing in the expected params', async done => 
     queryDefinitions,
     queryId,
     useServerSidePaginationFilteringSorting: true,
-  }).queryGQL.loc?.source.body;
+  }).queryGQL?.loc?.source.body;
 
   const mockQuery = jest.fn(async opts => {
     expect(opts.gql.loc.source.body).toEqual(expectedGQLBody);
@@ -511,6 +511,29 @@ test('subscribe throws an error when the user specifies a token which has not be
     done();
   }
 });
+
+test('subscribe does not throw an error when all query definitions are null', async () => {
+  const { mmGQLInstance } = setupTest();
+
+  const { data } = await mmGQLInstance.subscribe(
+    {
+      users: null,
+      todos: null,
+    },
+    {
+      onData: () => {},
+    }
+  );
+
+  expect(data.users).toBe(null);
+  expect(data.todos).toBe(null);
+});
+
+// @TODO
+test('subscribe provides a method to update the query definitions', async () => {});
+
+// @TODO
+test('subscribe avoids destroying pagination state when the query definitions are updated', async () => {});
 
 function setupTest(mockData?: any) {
   const mmGQLInstance = new MMGQL(

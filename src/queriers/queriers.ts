@@ -2,11 +2,6 @@ import { cloneDeep } from 'lodash';
 import { DocumentNode } from 'graphql';
 
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { generateMockNodeDataForQueryRecord } from './generateMockData';
-import {
-  convertQueryDefinitionToQueryInfo,
-  SubscriptionConfig,
-} from './queryDefinitionAdapters';
 import {
   IMMGQL,
   IQueryManager,
@@ -22,6 +17,11 @@ import {
   QueryRecord,
   Maybe,
 } from '../types';
+import { generateMockNodeDataForQueryRecord } from './generateMockData';
+import {
+  convertQueryDefinitionToQueryInfo,
+  SubscriptionConfig,
+} from './queryDefinitionAdapters';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 let queryIdx = 0;
@@ -98,40 +98,6 @@ export function generateQuerier({
           EPaginationFilteringSortingInstance.SERVER,
       });
 
-      const resultsForEachTokenUsed = await Promise.all(
-        Object.entries(queryDefinitionsSplitByToken).map(
-          ([tokenName, queryDefinitionsForThisToken]) => {
-            return performQueries({
-              mmGQLInstance,
-              queryGQL,
-              queryRecord: Object.entries(queryRecord).reduce(
-                (acc, [alias, queryRecordEntry]) => {
-                  if (queryDefinitionsForThisToken[alias]) {
-                    acc[alias] = queryRecordEntry;
-                  }
-
-                  return acc;
-                },
-                {} as QueryRecord
-              ),
-              tokenName,
-              queryId,
-              batchKey: opts?.batchKey,
-            });
-          }
-        )
-      );
-
-      const allResults = resultsForEachTokenUsed.reduce(
-        (acc, resultsForToken) => {
-          return {
-            ...acc,
-            ...resultsForToken,
-          };
-        },
-        {}
-      );
-
       const qM =
         queryManager ||
         new mmGQLInstance.QueryManager(queryRecord, {
@@ -154,26 +120,63 @@ export function generateQuerier({
             mmGQLInstance.paginationFilteringSortingInstance ===
             EPaginationFilteringSortingInstance.SERVER,
         });
-      try {
-        qM.onQueryResult({
-          queryId,
-          queryResult: allResults,
-        });
-        opts?.onData && opts.onData({ results: dataToReturn });
-      } catch (e) {
-        const error = getError(
-          new Error(`Error applying query results`),
-          (e as any).stack
+
+      if (queryGQL) {
+        const resultsForEachTokenUsed = await Promise.all(
+          Object.entries(queryDefinitionsSplitByToken).map(
+            ([tokenName, queryDefinitionsForThisToken]) => {
+              return performQueries({
+                mmGQLInstance,
+                queryGQL,
+                queryRecord: Object.entries(queryRecord).reduce(
+                  (acc, [alias, queryRecordEntry]) => {
+                    if (queryDefinitionsForThisToken[alias]) {
+                      acc[alias] = queryRecordEntry;
+                    }
+
+                    return acc;
+                  },
+                  {} as QueryRecord
+                ),
+                tokenName,
+                queryId,
+                batchKey: opts?.batchKey,
+              });
+            }
+          )
         );
 
-        if (opts?.onError) {
-          opts.onError(error);
-          return {
-            data: dataToReturn as QueryDataReturn<TQueryDefinitions>,
-            error,
-          };
-        } else {
-          throw error;
+        const allResults = resultsForEachTokenUsed.reduce(
+          (acc, resultsForToken) => {
+            return {
+              ...acc,
+              ...resultsForToken,
+            };
+          },
+          {}
+        );
+
+        try {
+          qM.onQueryResult({
+            queryId,
+            queryResult: allResults,
+          });
+          opts?.onData && opts.onData({ results: dataToReturn });
+        } catch (e) {
+          const error = getError(
+            new Error(`Error applying query results`),
+            (e as any).stack
+          );
+
+          if (opts?.onError) {
+            opts.onError(error);
+            return {
+              data: dataToReturn as QueryDataReturn<TQueryDefinitions>,
+              error,
+            };
+          } else {
+            throw error;
+          }
         }
       }
 
@@ -234,10 +237,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       TQueryDefinitions
     >;
 
-    if (!Object.keys(nonNullishQueryDefinitions).length) {
-      opts.onData({ results: dataToReturn });
-      return { data: dataToReturn, unsub: () => {} } as ReturnType;
-    }
     const {
       queryGQL,
       queryRecord,
@@ -249,6 +248,31 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
         mmGQLInstance.paginationFilteringSortingInstance ===
         EPaginationFilteringSortingInstance.SERVER,
     });
+
+    const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
+      resultsObject: dataToReturn,
+      performQuery: ({ queryRecord, queryGQL, tokenName }) =>
+        performQueries({
+          mmGQLInstance,
+          queryRecord,
+          queryId,
+          tokenName,
+          queryGQL,
+          batchKey: opts?.batchKey,
+        }),
+      onResultsUpdated: () => {
+        opts.onData({ results: dataToReturn });
+      },
+      queryId,
+      useServerSidePaginationFilteringSorting:
+        mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
+    });
+
+    if (!Object.keys(nonNullishQueryDefinitions).length) {
+      opts.onData({ results: dataToReturn });
+      return { data: dataToReturn, unsub: () => {} } as ReturnType;
+    }
 
     opts.onQueryInfoConstructed &&
       opts.onQueryInfoConstructed({ queryGQL, queryId, queryParamsString });
@@ -278,26 +302,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     //    - loadMoreResults should append the new list of results to the previous list
     //    - ensure that the correct token is used in the query for the next set of results
     //       if a "query" fn is passed to the queryManager
-
-    const queryManager = new mmGQLInstance.QueryManager(queryRecord, {
-      resultsObject: dataToReturn,
-      performQuery: ({ queryRecord, queryGQL, tokenName }) =>
-        performQueries({
-          mmGQLInstance,
-          queryRecord,
-          queryId,
-          tokenName,
-          queryGQL,
-          batchKey: opts?.batchKey,
-        }),
-      onResultsUpdated: () => {
-        opts.onData({ results: dataToReturn });
-      },
-      queryId,
-      useServerSidePaginationFilteringSorting:
-        mmGQLInstance.paginationFilteringSortingInstance ===
-        EPaginationFilteringSortingInstance.SERVER,
-    });
 
     function updateQueryManagerWithSubscriptionMessage(data: {
       message: Record<string, any>;
@@ -377,7 +381,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
           });
 
           subscriptionCancellers.push(
-            ...subscriptionConfigs.map(subscriptionConfig => {
+            ...(subscriptionConfigs || []).map(subscriptionConfig => {
               return mmGQLInstance.gqlClient.subscribe({
                 gql: subscriptionConfig.gql,
                 token: getToken(tokenName),

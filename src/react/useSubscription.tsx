@@ -206,8 +206,8 @@ function splitQueryDefinitions<
 }
 
 const subscriptionIds = {
-  suspendEnabled: 'suspendEnabled' as 'suspendEnabled',
-  suspendDisabled: 'suspendDisabled' as 'suspendDisabled',
+  suspendEnabled: 'suspendEnabled' as const,
+  suspendDisabled: 'suspendDisabled' as const,
 };
 
 function buildQueryDefinitionStateManager<
@@ -394,9 +394,10 @@ function buildQueryDefinitionStateManager<
     opts.context.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true,
     });
-    const setQuerying =
-      opts.context.ongoingSubscriptionRecord[parentSubscriptionId]?.setQuerying;
-    setQuerying && setQuerying(true);
+
+    opts.context.ongoingSubscriptionRecord[parentSubscriptionId]?.setQuerying?.(
+      true
+    );
     opts.handlers.setQuerying(true);
 
     const suspendPromise = opts.context.mmGQLInstance
@@ -406,10 +407,9 @@ function buildQueryDefinitionStateManager<
         onPaginate: () => {
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults &&
-            contextForThisParentSub.onResults({
-              ...contextForThisParentSub.results,
-            });
+          contextForThisParentSub.onResults?.({
+            ...contextForThisParentSub.results,
+          });
         },
         onData: ({ results: newResults }) => {
           const contextforThisSub =
@@ -419,11 +419,10 @@ function buildQueryDefinitionStateManager<
           if (thisQueryIsMostRecent) {
             const contextForThisParentSub =
               opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-            contextForThisParentSub.onResults &&
-              contextForThisParentSub.onResults({
-                ...contextForThisParentSub.results,
-                ...newResults,
-              });
+            contextForThisParentSub.onResults?.({
+              ...contextForThisParentSub.results,
+              ...newResults,
+            });
             opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
               results: { ...contextForThisParentSub.results, ...newResults },
             });
@@ -432,8 +431,7 @@ function buildQueryDefinitionStateManager<
         onError: error => {
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onError &&
-            contextForThisParentSub.onError(error);
+          contextForThisParentSub.onError?.(error);
           opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
             error,
           });
@@ -476,10 +474,9 @@ function buildQueryDefinitionStateManager<
             opts.context.updateSubscriptionInfo(parentSubscriptionId, {
               querying: false,
             });
-            const setQuerying =
-              opts.context.ongoingSubscriptionRecord[parentSubscriptionId]
-                ?.setQuerying;
-            setQuerying && setQuerying(false);
+            opts.context.ongoingSubscriptionRecord[
+              parentSubscriptionId
+            ]?.setQuerying?.(false);
             opts.handlers.setQuerying(false);
           }
         }

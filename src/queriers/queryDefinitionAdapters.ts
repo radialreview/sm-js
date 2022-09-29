@@ -996,13 +996,21 @@ export function convertQueryDefinitionToQueryInfo<
   queryId: string;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
+  if (Object.values(opts.queryDefinitions).every(value => value == null)) {
+    return {
+      queryGQL: null,
+      subscriptionConfigs: null,
+      queryRecord: {},
+      queryParamsString: null,
+    };
+  }
+
   const {
     queryGQLString,
     subscriptionConfigs,
     queryRecord,
     queryParamsString,
   } = getQueryInfo(opts);
-  //call plugin function here that takes in the queryRecord
 
   return {
     queryGQL: gql(queryGQLString),

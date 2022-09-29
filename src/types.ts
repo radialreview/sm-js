@@ -123,9 +123,9 @@ export type SubscriptionOpts<
     subscriptionCanceller: SubscriptionCanceller
   ) => void;
   onQueryInfoConstructed?: (queryInfo: {
-    queryGQL: DocumentNode;
+    queryGQL: Maybe<DocumentNode>;
     queryId: string;
-    queryParamsString: string;
+    queryParamsString: Maybe<string>;
   }) => void;
   onLoadMoreResults?: OnLoadMoreResultsCallback
   skipInitialQuery?: boolean;
@@ -138,7 +138,14 @@ export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 export type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR_ALL_NODES;
 
 export type SubscriptionCanceller = () => void;
-export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
+export type SubscriptionMeta = {
+  unsub: SubscriptionCanceller;
+  // updateQueryDefinitions is a function that can be called to update the query definitions for this subscription
+  // This is useful for when you want to change the query definitions for a subscription, but you don't want to
+  // unsubscribe and resubscribe, which would cause pagination state to be lost
+  updateQueryDefinitions: (newQueryDefinitionRecord: UseSubscriptionQueryDefinitions<any,any,any,any>) => Promise<void> ;
+  error: any
+};
 
 export enum EPaginationFilteringSortingInstance {
   'SERVER', 
