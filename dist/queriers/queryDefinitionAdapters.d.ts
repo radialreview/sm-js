@@ -39,6 +39,11 @@ export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryD
     queryId: string;
     useServerSidePaginationFilteringSorting: boolean;
 }): {
+    queryGQL: null;
+    subscriptionConfigs: null;
+    queryRecord: {};
+    queryParamsString: null;
+} | {
     queryGQL: import("graphql/language/ast").DocumentNode;
     subscriptionConfigs: {
         gql: import("graphql/language/ast").DocumentNode;

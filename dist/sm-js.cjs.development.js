@@ -3450,12 +3450,22 @@ function getQueryInfo(opts) {
  */
 
 function convertQueryDefinitionToQueryInfo(opts) {
+  if (Object.values(opts.queryDefinitions).every(function (value) {
+    return value == null;
+  })) {
+    return {
+      queryGQL: null,
+      subscriptionConfigs: null,
+      queryRecord: {},
+      queryParamsString: null
+    };
+  }
+
   var _getQueryInfo = getQueryInfo(opts),
       queryGQLString = _getQueryInfo.queryGQLString,
       subscriptionConfigs = _getQueryInfo.subscriptionConfigs,
       queryRecord = _getQueryInfo.queryRecord,
-      queryParamsString = _getQueryInfo.queryParamsString; //call plugin function here that takes in the queryRecord
-
+      queryParamsString = _getQueryInfo.queryParamsString;
 
   return {
     queryGQL: core.gql(queryGQLString),
@@ -4502,7 +4512,7 @@ function generateQuerier(_ref) {
       queryManager = _ref.queryManager;
   return /*#__PURE__*/function () {
     var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
-      var startStack, queryId, getError, nonNullishQueryDefinitions, nullishResults, results, dataToReturn, queryDefinitionsSplitByToken, _convertQueryDefiniti, queryRecord, queryGQL, resultsForEachTokenUsed, allResults, qM, error, _error;
+      var startStack, queryId, getError, nonNullishQueryDefinitions, nullishResults, results, dataToReturn, queryDefinitionsSplitByToken, _convertQueryDefiniti, queryRecord, queryGQL, qM, resultsForEachTokenUsed, allResults, error, _error;
 
       return runtime_1.wrap(function _callee$(_context) {
         while (1) {
@@ -4542,39 +4552,11 @@ function generateQuerier(_ref) {
                 queryId: queryId,
                 useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
               }), queryRecord = _convertQueryDefiniti.queryRecord, queryGQL = _convertQueryDefiniti.queryGQL;
-              _context.next = 15;
-              return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref2) {
-                var tokenName = _ref2[0],
-                    queryDefinitionsForThisToken = _ref2[1];
-                return performQueries({
-                  mmGQLInstance: mmGQLInstance,
-                  queryGQL: queryGQL,
-                  queryRecord: Object.entries(queryRecord).reduce(function (acc, _ref3) {
-                    var alias = _ref3[0],
-                        queryRecordEntry = _ref3[1];
-
-                    if (queryDefinitionsForThisToken[alias]) {
-                      acc[alias] = queryRecordEntry;
-                    }
-
-                    return acc;
-                  }, {}),
-                  tokenName: tokenName,
-                  queryId: queryId,
-                  batchKey: opts == null ? void 0 : opts.batchKey
-                });
-              }));
-
-            case 15:
-              resultsForEachTokenUsed = _context.sent;
-              allResults = resultsForEachTokenUsed.reduce(function (acc, resultsForToken) {
-                return _extends({}, acc, resultsForToken);
-              }, {});
               qM = queryManager || new mmGQLInstance.QueryManager(queryRecord, {
-                performQuery: function performQuery(_ref4) {
-                  var queryRecord = _ref4.queryRecord,
-                      queryGQL = _ref4.queryGQL,
-                      tokenName = _ref4.tokenName;
+                performQuery: function performQuery(_ref2) {
+                  var queryRecord = _ref2.queryRecord,
+                      queryGQL = _ref2.queryGQL,
+                      tokenName = _ref2.tokenName;
                   return performQueries({
                     mmGQLInstance: mmGQLInstance,
                     queryRecord: queryRecord,
@@ -4594,7 +4576,41 @@ function generateQuerier(_ref) {
                 queryId: queryId,
                 useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
               });
-              _context.prev = 18;
+
+              if (!queryGQL) {
+                _context.next = 33;
+                break;
+              }
+
+              _context.next = 17;
+              return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref3) {
+                var tokenName = _ref3[0],
+                    queryDefinitionsForThisToken = _ref3[1];
+                return performQueries({
+                  mmGQLInstance: mmGQLInstance,
+                  queryGQL: queryGQL,
+                  queryRecord: Object.entries(queryRecord).reduce(function (acc, _ref4) {
+                    var alias = _ref4[0],
+                        queryRecordEntry = _ref4[1];
+
+                    if (queryDefinitionsForThisToken[alias]) {
+                      acc[alias] = queryRecordEntry;
+                    }
+
+                    return acc;
+                  }, {}),
+                  tokenName: tokenName,
+                  queryId: queryId,
+                  batchKey: opts == null ? void 0 : opts.batchKey
+                });
+              }));
+
+            case 17:
+              resultsForEachTokenUsed = _context.sent;
+              allResults = resultsForEachTokenUsed.reduce(function (acc, resultsForToken) {
+                return _extends({}, acc, resultsForToken);
+              }, {});
+              _context.prev = 19;
               qM.onQueryResult({
                 queryId: queryId,
                 queryResult: allResults
@@ -4602,16 +4618,16 @@ function generateQuerier(_ref) {
               (opts == null ? void 0 : opts.onData) && opts.onData({
                 results: dataToReturn
               });
-              _context.next = 32;
+              _context.next = 33;
               break;
 
-            case 23:
-              _context.prev = 23;
-              _context.t0 = _context["catch"](18);
+            case 24:
+              _context.prev = 24;
+              _context.t0 = _context["catch"](19);
               error = getError(new Error("Error applying query results"), _context.t0.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context.next = 31;
+                _context.next = 32;
                 break;
               }
 
@@ -4621,22 +4637,22 @@ function generateQuerier(_ref) {
                 error: error
               });
 
-            case 31:
+            case 32:
               throw error;
 
-            case 32:
+            case 33:
               return _context.abrupt("return", {
                 data: dataToReturn,
                 error: undefined
               });
 
-            case 35:
-              _context.prev = 35;
+            case 36:
+              _context.prev = 36;
               _context.t1 = _context["catch"](5);
               _error = getError(new Error("Error querying data"), _context.t1.stack);
 
               if (!(opts != null && opts.onError)) {
-                _context.next = 43;
+                _context.next = 44;
                 break;
               }
 
@@ -4646,15 +4662,15 @@ function generateQuerier(_ref) {
                 error: _error
               });
 
-            case 43:
+            case 44:
               throw _error;
 
-            case 44:
+            case 45:
             case "end":
               return _context.stop();
           }
         }
-      }, _callee, null, [[5, 35], [18, 23]]);
+      }, _callee, null, [[5, 36], [19, 24]]);
     }));
 
     function query(_x, _x2) {
@@ -4668,7 +4684,7 @@ var subscriptionId = 0;
 function generateSubscriber(mmGQLInstance) {
   return /*#__PURE__*/function () {
     var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, dataToReturn, _convertQueryDefiniti2, queryGQL, queryRecord, queryParamsString, getError, queryManager, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, queryDefinitionsSplitByToken, queryDefinitionsSplitByTokenEntries, initSubs, unsub, error, query, params, _error2;
+      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, dataToReturn, _convertQueryDefiniti2, queryGQL, queryRecord, queryParamsString, queryManager, getError, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, queryDefinitionsSplitByToken, queryDefinitionsSplitByTokenEntries, initSubs, unsub, error, query, params, _error2;
 
       return runtime_1.wrap(function _callee2$(_context2) {
         while (1) {
@@ -4705,7 +4721,7 @@ function generateSubscriber(mmGQLInstance) {
                   }),
                       subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
 
-                  subscriptionCancellers.push.apply(subscriptionCancellers, subscriptionConfigs.map(function (subscriptionConfig) {
+                  subscriptionCancellers.push.apply(subscriptionCancellers, (subscriptionConfigs || []).map(function (subscriptionConfig) {
                     return mmGQLInstance.gqlClient.subscribe({
                       gql: subscriptionConfig.gql,
                       token: getToken(tokenName),
@@ -4788,43 +4804,11 @@ function generateSubscriber(mmGQLInstance) {
               nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
               nullishResults = getNullishResults(queryDefinitions);
               dataToReturn = _extends({}, nullishResults);
-
-              if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context2.next = 13;
-                break;
-              }
-
-              opts.onData({
-                results: dataToReturn
-              });
-              return _context2.abrupt("return", {
-                data: dataToReturn,
-                unsub: function unsub() {}
-              });
-
-            case 13:
               _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
                 queryDefinitions: nonNullishQueryDefinitions,
                 queryId: queryId,
                 useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
               }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, queryParamsString = _convertQueryDefiniti2.queryParamsString;
-              opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
-                queryGQL: queryGQL,
-                queryId: queryId,
-                queryParamsString: queryParamsString
-              });
-              // need to pass the info page from the results from this specific root/relational alias
-              // to the query builder, such that it applies the correct pagination param on that root/relational alias
-              // q: should the query manager perform the query? This would avoid having to pass data around in callbacks
-              //    instead the query manager would build the minimal queryRecord needed to
-              //    perform the new query for the next set of results and would append them to the results object?
-              //    Another option would be for the query manager to expect a callback function (as it does now)
-              //    which is called with a query record for that minimal query, and this fn needs to perform the query
-              //    and return the result of that query.
-              // Requirements
-              //    - loadMoreResults should append the new list of results to the previous list
-              //    - ensure that the correct token is used in the query for the next set of results
-              //       if a "query" fn is passed to the queryManager
               queryManager = new mmGQLInstance.QueryManager(queryRecord, {
                 resultsObject: dataToReturn,
                 performQuery: function performQuery(_ref5) {
@@ -4847,6 +4831,26 @@ function generateSubscriber(mmGQLInstance) {
                 },
                 queryId: queryId,
                 useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
+              });
+
+              if (Object.keys(nonNullishQueryDefinitions).length) {
+                _context2.next = 15;
+                break;
+              }
+
+              opts.onData({
+                results: dataToReturn
+              });
+              return _context2.abrupt("return", {
+                data: dataToReturn,
+                unsub: function unsub() {}
+              });
+
+            case 15:
+              opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
+                queryGQL: queryGQL,
+                queryId: queryId,
+                queryParamsString: queryParamsString
               });
               subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
               // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
@@ -5629,7 +5633,7 @@ function createQueryManager(mmGQLInstance) {
           pageInfoFromResults: _this3.getPageInfoFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias]
           }),
-          clientSidePageInfo: _this3.getClientSidePageInfo({
+          clientSidePageInfo: _this3.getInitialClientSidePageInfo({
             queryRecordEntry: opts.queryRecord[queryAlias]
           }),
           queryRecord: opts.queryRecord,
@@ -5680,7 +5684,7 @@ function createQueryManager(mmGQLInstance) {
             pageInfoFromResults: _this4.getPageInfoFromResponse({
               dataForThisAlias: node[relationalAlias]
             }),
-            clientSidePageInfo: _this4.getClientSidePageInfo({
+            clientSidePageInfo: _this4.getInitialClientSidePageInfo({
               queryRecordEntry: relational[relationalAlias]
             }),
             queryAlias: relationalAlias,
@@ -6028,7 +6032,7 @@ function createQueryManager(mmGQLInstance) {
       });
     };
 
-    _proto.getClientSidePageInfo = function getClientSidePageInfo(opts) {
+    _proto.getInitialClientSidePageInfo = function getInitialClientSidePageInfo(opts) {
       var _opts$queryRecordEntr;
 
       if (!queryRecordEntryReturnsArrayOfData({
@@ -7724,15 +7728,14 @@ function buildQueryDefinitionStateManager(opts) {
     opts.context.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true
     });
-    var setQuerying = (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying;
-    setQuerying && setQuerying(true);
+    (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying == null ? void 0 : _opts$context$ongoing.setQuerying(true);
     opts.handlers.setQuerying(true);
     var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
       batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
       // Make sure to re-render the component on paginate
       onPaginate: function onPaginate() {
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
+        contextForThisParentSub.onResults == null ? void 0 : contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results));
       },
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
@@ -7741,7 +7744,7 @@ function buildQueryDefinitionStateManager(opts) {
 
         if (thisQueryIsMostRecent) {
           var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          contextForThisParentSub.onResults && contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
+          contextForThisParentSub.onResults == null ? void 0 : contextForThisParentSub.onResults(_extends({}, contextForThisParentSub.results, newResults));
           opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
             results: _extends({}, contextForThisParentSub.results, newResults)
           });
@@ -7749,7 +7752,7 @@ function buildQueryDefinitionStateManager(opts) {
       },
       onError: function onError(error) {
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        contextForThisParentSub.onError && contextForThisParentSub.onError(error);
+        contextForThisParentSub.onError == null ? void 0 : contextForThisParentSub.onError(error);
         opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
           error: error
         });
@@ -7793,10 +7796,7 @@ function buildQueryDefinitionStateManager(opts) {
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false
           });
-
-          var _setQuerying = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying;
-
-          _setQuerying && _setQuerying(false);
+          (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.setQuerying == null ? void 0 : _opts$context$ongoing2.setQuerying(false);
           opts.handlers.setQuerying(false);
         }
       }

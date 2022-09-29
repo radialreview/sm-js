@@ -115,7 +115,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
             response: Record<string, any>;
         }): Maybe<PageInfoFromResults>;
-        getClientSidePageInfo(opts: {
+        getInitialClientSidePageInfo(opts: {
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }): Maybe<ClientSidePageInfo>;
         onLoadMoreResults(opts: {

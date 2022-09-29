@@ -95,9 +95,9 @@ export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions>
     onError?: (...args: any) => void;
     onSubscriptionInitialized?: (subscriptionCanceller: SubscriptionCanceller) => void;
     onQueryInfoConstructed?: (queryInfo: {
-        queryGQL: DocumentNode;
+        queryGQL: Maybe<DocumentNode>;
         queryId: string;
-        queryParamsString: string;
+        queryParamsString: Maybe<string>;
     }) => void;
     onLoadMoreResults?: OnLoadMoreResultsCallback;
     skipInitialQuery?: boolean;
@@ -109,6 +109,7 @@ export declare type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
+    updateQueryDefinitions: (newQueryDefinitionRecord: UseSubscriptionQueryDefinitions<any, any, any, any>) => Promise<void>;
     error: any;
 };
 export declare enum EPaginationFilteringSortingInstance {

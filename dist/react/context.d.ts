@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubscriptionCanceller, IMMGQL, DocumentNode } from '../types';
+import { SubscriptionCanceller, IMMGQL, DocumentNode, Maybe } from '../types';
 export interface IContextSubscription {
     results?: any;
     error?: any;
@@ -10,9 +10,9 @@ export interface IContextSubscription {
     onError?: (newError: any) => void;
     setQuerying?: (querying: boolean) => void;
     queryInfo?: {
-        queryGQL: DocumentNode;
+        queryGQL: Maybe<DocumentNode>;
         queryId: string;
-        queryParamsString: string;
+        queryParamsString: Maybe<string>;
     } | null;
     lastQueryTimestamp?: number;
 }
