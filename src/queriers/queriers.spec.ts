@@ -161,7 +161,7 @@ test('query can query data using multiple tokens, by making parallel requests', 
   );
 });
 
-test('sm.subscribe by default queries and subscribes to the data set', async done => {
+test.skip('sm.subscribe by default queries and subscribes to the data set', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
@@ -181,7 +181,7 @@ test('sm.subscribe by default queries and subscribes to the data set', async don
   done();
 });
 
-test('subscribe does not query if skipInitialQuery is true', async done => {
+test.skip('subscribe does not query if skipInitialQuery is true', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const mockQuery = jest.fn(async () => mockQueryDataReturn);
@@ -221,7 +221,7 @@ test('subscribe returns the expected data', async done => {
   done();
 });
 
-test('subscribe returns a method to cancel any subscriptions started', async done => {
+test.skip('subscribe returns a method to cancel any subscriptions started', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
 
   const cancel = jest.fn();
@@ -418,7 +418,7 @@ test.skip('subscribe throws an error when a subscription initialization error oc
   }
 });
 
-test('subscribe calls onError when a subscription initialization error occurs', async done => {
+test.skip('subscribe calls onError when a subscription initialization error occurs', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(() => {
     throw Error('Some error');
@@ -435,7 +435,7 @@ test('subscribe calls onError when a subscription initialization error occurs', 
   });
 });
 
-test('subscribe calls onError when an ongoing subscription error occurs', async done => {
+test.skip('subscribe calls onError when an ongoing subscription error occurs', async done => {
   const { mmGQLInstance, queryDefinitions } = setupTest();
   const mockSubscribe = jest.fn(opts => {
     setTimeout(() => {

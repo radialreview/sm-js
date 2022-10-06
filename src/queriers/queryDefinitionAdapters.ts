@@ -406,6 +406,7 @@ export function getQueryRecordFromQueryDefinition<
     let allowNullResult;
     let tokenName;
     if (!queryDefinition) {
+      queryRecord[queryDefinitionsAlias] = null;
       return;
     } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
@@ -836,14 +837,18 @@ export function getQueryGQLStringFromQueryRecord(opts: {
   return (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
-      .map(alias =>
-        getRootLevelQueryString({
-          ...opts.queryRecord[alias],
+      .map(alias => {
+        const queryRecordEntry = opts.queryRecord[alias];
+
+        if (!queryRecordEntry) return '';
+
+        return getRootLevelQueryString({
+          ...queryRecordEntry,
           alias,
           useServerSidePaginationFilteringSorting:
             opts.useServerSidePaginationFilteringSorting,
-        })
-      )
+        });
+      })
       .join('\n    ') +
     '\n}'
   ).trim();
@@ -853,9 +858,12 @@ function getQueryRecordSortAndFilterValues(
   record: QueryRecord | RelationalQueryRecord
 ) {
   return Object.keys(record).reduce((acc, alias) => {
-    acc.push(record[alias].filter);
-    acc.push(record[alias].sort);
-    const relational = record[alias].relational;
+    const queryRecordEntry = record[alias];
+    if (!queryRecordEntry) return acc;
+
+    acc.push(queryRecordEntry.filter);
+    acc.push(queryRecordEntry.sort);
+    const relational = queryRecordEntry.relational;
     if (relational) {
       acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
     }
@@ -905,6 +913,8 @@ export function getQueryInfo<
       queryId: opts.queryId + '_' + alias,
     });
     const queryRecordEntry = queryRecord[alias];
+
+    if (!queryRecordEntry) return subscriptionConfigsAcc;
 
     const operation = getOperationFromQueryRecordEntry({
       ...queryRecordEntry,
@@ -1000,7 +1010,10 @@ export function convertQueryDefinitionToQueryInfo<
     return {
       queryGQL: null,
       subscriptionConfigs: null,
-      queryRecord: {},
+      queryRecord: Object.keys(opts.queryDefinitions).reduce((acc, key) => {
+        acc[key] = null;
+        return acc;
+      }, {} as Record<string, null>),
       queryParamsString: null,
     };
   }

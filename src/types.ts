@@ -82,6 +82,7 @@ export interface IQueryManager {
     queryId: string;
     subscriptionAlias: string;
   }): void;
+  onQueryDefinitionsUpdated(newQueryDefinitions: QueryDefinitions<any,any,any>): Promise<void>
 }
 
 export type QueryReturn<
@@ -140,10 +141,10 @@ export type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR_ALL_NOD
 export type SubscriptionCanceller = () => void;
 export type SubscriptionMeta = {
   unsub: SubscriptionCanceller;
-  // updateQueryDefinitions is a function that can be called to update the query definitions for this subscription
+  // onQueryDefinitionsUpdated is a function that can be called to update the query definitions for this subscription
   // This is useful for when you want to change the query definitions for a subscription, but you don't want to
   // unsubscribe and resubscribe, which would cause pagination state to be lost
-  updateQueryDefinitions: (newQueryDefinitionRecord: UseSubscriptionQueryDefinitions<any,any,any,any>) => Promise<void> ;
+  onQueryDefinitionsUpdated: (newQueryDefinitionRecord: QueryDefinitions<any,any,any>) => Promise<void> ;
   error: any
 };
 
@@ -1168,7 +1169,7 @@ export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
   | (BaseQueryRecordEntry & { oneToMany: true })
 )
 
-export type QueryRecord = Record<string, QueryRecordEntry>;
+export type QueryRecord = Record<string, QueryRecordEntry | null>;
 
 export type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>
 

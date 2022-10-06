@@ -1,6 +1,7 @@
 import React from 'react';
 import { convertQueryDefinitionToQueryInfo } from '../queriers/queryDefinitionAdapters';
-import { removeNullishQueryDefinitions } from '../queriers';
+import { removeNullishQueryDefinitions } from '../queriers/QueryManager';
+
 import {
   QueryDataReturn,
   UseSubscriptionReturn,

@@ -23,13 +23,21 @@ import {
   DocumentNode,
   RelationalQueryRecord,
   IQueryPagination,
+  QueryDefinitions,
+  QueryDataReturn,
+  EPaginationFilteringSortingInstance,
+  IGQLClient,
 } from '../types';
 import {
+  convertQueryDefinitionToQueryInfo,
   getQueryGQLStringFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
 import { gql } from '@apollo/client';
 import { extend } from '../dataUtilities';
+import { generateMockNodeDataForQueryRecord } from './generateMockData';
+import { cloneDeep } from 'lodash';
+import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results
@@ -62,11 +70,9 @@ type QueryManagerOpts = {
   resultsObject: Object;
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
-  performQuery(opts: {
-    queryRecord: QueryRecord;
-    queryGQL: DocumentNode;
-    tokenName: Maybe<string>;
-  }): Promise<any>;
+  onQueryError(error: any): void;
+  batchKey: Maybe<string>;
+  getMockDataDelay: Maybe<() => number>;
 };
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
@@ -83,15 +89,29 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
    */
   return class QueryManager implements IQueryManager {
     public state: QueryManagerState = {};
-    public queryRecord: QueryRecord;
+    public queryDefinitions: QueryDefinitions<any, any, any>;
     public opts: QueryManagerOpts;
+    public queryRecord: Maybe<QueryRecord> = null;
 
-    constructor(queryRecord: QueryRecord, opts: QueryManagerOpts) {
-      this.queryRecord = queryRecord;
+    constructor(
+      queryDefinitions: QueryDefinitions<any, any, any>,
+      opts: QueryManagerOpts
+    ) {
+      this.queryDefinitions = queryDefinitions;
       this.opts = opts;
+
+      (async function onFirstQueryDefinitionsReceived(qm: QueryManager) {
+        try {
+          await qm.onQueryDefinitionsUpdated(qm.queryDefinitions);
+        } catch (e) {
+          qm.opts.onQueryError(e);
+        }
+      })(this);
     }
 
     public onQueryResult(opts: { queryResult: any }) {
+      if (!this.queryRecord) throw Error('No query record initialized');
+
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: this.queryRecord,
@@ -111,6 +131,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         extendNestedObjects: false,
         deleteKeysNotInExtension: false,
       });
+
+      this.opts.onResultsUpdated();
     }
 
     public onSubscriptionMessage(opts: {
@@ -122,6 +144,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       queryId: string;
       subscriptionAlias: string;
     }) {
+      if (!this.queryRecord) throw Error('No query record initialized');
       const { node, subscriptionAlias } = opts;
       const queryRecordEntryForThisSubscription = this.queryRecord[
         subscriptionAlias
@@ -142,6 +165,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         this.opts.resultsObject,
         this.getResultsFromState({ state: this.state, aliasPath: [] })
       );
+
+      this.opts.onResultsUpdated();
     }
 
     /**
@@ -223,26 +248,20 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public notifyRepositories(opts: {
       data: Record<string, any>;
       queryRecord: {
-        [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
+        [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
       };
     }) {
       Object.keys(opts.queryRecord).forEach(queryAlias => {
+        const queryRecordEntry = opts.queryRecord[queryAlias];
+
+        if (!queryRecordEntry) return;
+
         const dataForThisAlias = this.getDataFromResponse({
-          queryRecordEntry: opts.queryRecord[queryAlias],
+          queryRecordEntry,
           dataForThisAlias: opts.data[queryAlias],
         });
 
-        if (!dataForThisAlias) {
-          throw Error(
-            `notifyRepositories could not find resulting data for the alias "${queryAlias}" in the following queryRecord:\n${JSON.stringify(
-              opts.queryRecord,
-              null,
-              2
-            )}\nResulting data:\n${JSON.stringify(opts.data, null, 2)}`
-          );
-        }
-
-        const nodeRepository = opts.queryRecord[queryAlias].def.repository;
+        const nodeRepository = queryRecordEntry.def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
           dataForThisAlias.forEach(data => nodeRepository.onDataReceived(data));
@@ -250,7 +269,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           nodeRepository.onDataReceived(dataForThisAlias);
         }
 
-        const relationalQueries = opts.queryRecord[queryAlias].relational;
+        const relationalQueries = queryRecordEntry.relational;
 
         if (relationalQueries) {
           Object.keys(relationalQueries).forEach(relationalAlias => {
@@ -332,15 +351,25 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }): Maybe<QueryManagerStateEntry> {
       const { nodeData, queryAlias } = opts;
       const queryRecord = opts.queryRecord;
-      const { relational } = queryRecord[opts.queryAlias];
+      const queryRecordEntry = queryRecord[opts.queryAlias];
+
+      if (!queryRecordEntry) {
+        return {
+          idsOrIdInCurrentResult: null,
+          proxyCache: {},
+          pageInfoFromResults: null,
+          clientSidePageInfo: null,
+        };
+      }
+
+      const { relational } = queryRecordEntry;
 
       // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
       // this means that the result node likely matches a different type in that union
       if (queryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
         const node = (opts.nodeData as Array<any>)[0];
-        if (node && node.type !== queryRecord[opts.queryAlias].def.type)
-          return null;
+        if (node && node.type !== queryRecordEntry.def.type) return null;
       }
 
       const buildRelationalStateForNode = (
@@ -389,7 +418,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         const relationalState = buildRelationalStateForNode(
           buildCacheEntryOpts.node
         );
-        const nodeRepository = queryRecord[queryAlias].def.repository;
+        const nodeRepository = queryRecordEntry.def.repository;
         const relationalQueries = relational
           ? this.getApplicableRelationalQueries({
               relationalQueries: relational,
@@ -403,8 +432,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         });
 
         const proxy = mmGQLInstance.DOProxyGenerator({
-          node: queryRecord[opts.queryAlias].def,
-          allPropertiesQueried: queryRecord[opts.queryAlias].properties,
+          node: queryRecordEntry.def,
+          allPropertiesQueried: queryRecordEntry.properties,
           relationalQueries: relationalQueries,
           queryId: this.opts.queryId,
           relationalResults: !relationalState
@@ -423,9 +452,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       };
 
       if (Array.isArray(opts.nodeData)) {
-        if ('id' in queryRecord[opts.queryAlias]) {
+        if ('id' in queryRecordEntry) {
           if (opts.nodeData[0] == null) {
-            if (!queryRecord[opts.queryAlias].allowNullResult)
+            if (!queryRecordEntry.allowNullResult)
               throw new DataParsingException({
                 receivedData: opts.nodeData,
                 message: `Queried a node by id for the query with the id "${this.opts.queryId}" but received back an empty array`,
@@ -487,6 +516,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       };
       subscriptionAlias: string;
     }) {
+      if (!this.queryRecord) throw Error('No query record initialized');
+
       const { node, subscriptionAlias, operation } = opts;
       if (
         (operation.action === 'DeleteNode' ||
@@ -526,7 +557,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               node: opts.node,
             }),
             relationalQueryRecord:
-              queryRecordEntryForThisSubscription.relational || null,
+              queryRecordEntryForThisSubscription?.relational || null,
             currentState: { proxy, relationalState },
             aliasPath: [subscriptionAlias],
           }
@@ -553,7 +584,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
       }
 
-      if ('id' in queryRecordEntryForThisSubscription) {
+      if (!queryRecordEntryForThisSubscription) {
+        return;
+      } else if ('id' in queryRecordEntryForThisSubscription) {
         if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
           return;
         }
@@ -724,9 +757,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getRelationalData(opts: {
-      queryRecord: BaseQueryRecordEntry;
+      queryRecord: BaseQueryRecordEntry | null;
       node: Record<string, any>;
     }) {
+      if (!opts.queryRecord) return null;
+
       return opts.queryRecord.relational
         ? Object.keys(opts.queryRecord.relational).reduce(
             (relationalDataAcc, relationalAlias) => {
@@ -783,9 +818,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getDataFromResponse(opts: {
-      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
       dataForThisAlias: any;
     }) {
+      if (opts.queryRecordEntry == null) return null;
+
       return queryRecordEntryReturnsArrayOfData({
         queryRecordEntry: opts.queryRecordEntry,
       })
@@ -796,7 +833,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getPageInfoFromResponse(opts: {
       dataForThisAlias: any;
     }): Maybe<PageInfoFromResults> {
-      return opts.dataForThisAlias[PAGE_INFO_PROPERTY_KEY] || null;
+      return opts.dataForThisAlias?.[PAGE_INFO_PROPERTY_KEY] || null;
     }
 
     public getPageInfoFromResponseForAlias(opts: {
@@ -847,8 +884,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getInitialClientSidePageInfo(opts: {
-      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
     }): Maybe<ClientSidePageInfo> {
+      if (!opts.queryRecordEntry) return null;
+
       if (
         !queryRecordEntryReturnsArrayOfData({
           queryRecordEntry: opts.queryRecordEntry,
@@ -867,6 +906,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousEndCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
+      if (!this.queryRecord) throw Error('No query record initialized');
+
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, loadMoreResults logic ran on NodeCollection, which sets the new queried page
         await new Promise(resolve =>
@@ -885,7 +926,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newData = await this.opts.performQuery({
+      const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -896,6 +937,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           })}
         `,
         tokenName,
+        batchKey: this.opts.batchKey || null,
+        mmGQLInstance,
+        queryId: this.opts.queryId,
+        getMockDataDelay: this.opts.getMockDataDelay,
       });
 
       this.handlePagingEventData({
@@ -910,6 +955,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousEndCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
+      if (!this.queryRecord) throw Error('No query record initialized');
+
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToNextPage logic ran on NodeCollection, which sets the new queried page
         await new Promise(resolve =>
@@ -928,7 +975,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newData = await this.opts.performQuery({
+      const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -939,6 +986,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           })}
         `,
         tokenName,
+        batchKey: this.opts.batchKey || null,
+        mmGQLInstance,
+        queryId: this.opts.queryId,
+        getMockDataDelay: this.opts.getMockDataDelay,
       });
 
       this.handlePagingEventData({
@@ -953,6 +1004,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousStartCursor: string;
       aliasPath: Array<string>;
     }): Promise<void> {
+      if (!this.queryRecord) throw Error('No query record initialized');
+
       if (!this.opts.useServerSidePaginationFilteringSorting) {
         // for client side pagination, goToPreviousPage logic ran on NodeCollection, which sets the new queried page
         await new Promise(resolve =>
@@ -971,7 +1024,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
-      const newData = await this.opts.performQuery({
+      const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
         queryGQL: gql`
           ${getQueryGQLStringFromQueryRecord({
@@ -982,6 +1035,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           })}
         `,
         tokenName,
+        batchKey: this.opts.batchKey || null,
+        mmGQLInstance,
+        queryId: this.opts.queryId,
+        getMockDataDelay: this.opts.getMockDataDelay,
       });
 
       this.handlePagingEventData({
@@ -993,6 +1050,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getTokenNameForAliasPath(aliasPath: Array<string>): string {
+      if (!this.queryRecord) throw Error('No query record initialized');
       if (aliasPath.length === 0)
         throw new Error('Alias path must contain at least 1 entry');
 
@@ -1007,7 +1065,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         );
 
       return (
-        this.queryRecord[firstAliasWithoutId].tokenName || DEFAULT_TOKEN_NAME
+        this.queryRecord[firstAliasWithoutId]?.tokenName || DEFAULT_TOKEN_NAME
       );
     }
 
@@ -1119,6 +1177,75 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
 
       this.opts.onResultsUpdated();
+    }
+
+    public async onQueryDefinitionsUpdated(
+      newQueryDefinitionRecord: QueryDefinitions<any, any, any>
+    ): Promise<void> {
+      const { queryRecord } = convertQueryDefinitionToQueryInfo({
+        queryDefinitions: newQueryDefinitionRecord,
+        queryId: this.opts.queryId,
+        useServerSidePaginationFilteringSorting: this.opts
+          .useServerSidePaginationFilteringSorting,
+      });
+
+      this.queryRecord = queryRecord;
+
+      const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
+        newQueryDefinitionRecord
+      );
+      const nullishResults = getNullishResults(newQueryDefinitionRecord);
+
+      if (!Object.keys(nonNullishQueryDefinitions).length) {
+        this.onQueryResult({ queryResult: { ...nullishResults } });
+        return;
+      }
+
+      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
+        nonNullishQueryDefinitions
+      );
+
+      const resultsForEachTokenUsed = await Promise.all(
+        Object.entries(queryDefinitionsSplitByToken).map(
+          async ([tokenName, queryDefinitions]) => {
+            const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
+              {
+                queryDefinitions,
+                queryId: this.opts.queryId,
+                useServerSidePaginationFilteringSorting:
+                  mmGQLInstance.paginationFilteringSortingInstance ===
+                  EPaginationFilteringSortingInstance.SERVER,
+              }
+            );
+
+            if (queryGQL) {
+              return await performQueries({
+                queryRecord,
+                queryGQL,
+                queryId: this.opts.queryId,
+                batchKey: this.opts.batchKey,
+                getMockDataDelay: this.opts.getMockDataDelay,
+                tokenName,
+                mmGQLInstance,
+              });
+            }
+
+            return {};
+          }
+        )
+      );
+
+      const allResults = resultsForEachTokenUsed.reduce(
+        (acc, resultsForToken) => {
+          return {
+            ...acc,
+            ...resultsForToken,
+          };
+        },
+        { ...nullishResults }
+      );
+
+      this.onQueryResult({ queryResult: allResults });
     }
 
     public extendStateObject(opts: {
@@ -1235,4 +1362,150 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return id[1];
     }
   };
+}
+
+function splitQueryDefinitionsByToken<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions): Record<string, TQueryDefinitions> {
+  return Object.entries(queryDefinitions).reduce(
+    (split, [alias, queryDefinition]) => {
+      const tokenName =
+        queryDefinition &&
+        'tokenName' in queryDefinition &&
+        queryDefinition.tokenName != null
+          ? queryDefinition.tokenName
+          : DEFAULT_TOKEN_NAME;
+
+      split[tokenName] = split[tokenName] || {};
+      split[tokenName][
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
+
+      return split;
+    },
+    {} as Record<string, TQueryDefinitions>
+  );
+}
+
+export function removeNullishQueryDefinitions<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [alias, queryDefinition]) => {
+      if (!queryDefinition) return acc;
+      acc[
+        alias as keyof TQueryDefinitions
+      ] = queryDefinition as TQueryDefinitions[string];
+      return acc;
+    },
+    {} as TQueryDefinitions
+  );
+}
+
+function getNullishResults<
+  TNode,
+  TMapFn,
+  TQueryDefinitionTarget,
+  TQueryDefinitions extends QueryDefinitions<
+    TNode,
+    TMapFn,
+    TQueryDefinitionTarget
+  >
+>(queryDefinitions: TQueryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(
+    (acc, [key, queryDefinition]) => {
+      if (queryDefinition == null)
+        acc[key as keyof TQueryDefinitions] = null as QueryDataReturn<
+          TQueryDefinitions
+        >[keyof TQueryDefinitions];
+
+      return acc;
+    },
+    {} as QueryDataReturn<TQueryDefinitions>
+  );
+}
+
+async function performQueries(opts: {
+  queryRecord: QueryRecord;
+  queryGQL: DocumentNode;
+  mmGQLInstance: IMMGQL;
+  queryId: string;
+  tokenName: Maybe<string>;
+  batchKey: Maybe<string>;
+  getMockDataDelay: Maybe<() => number>;
+}) {
+  function getToken(tokenName: string) {
+    const token = opts.mmGQLInstance.getToken({ tokenName });
+
+    if (!token) {
+      throw new Error(
+        `No token registered with the name "${tokenName}".\n` +
+          'Please register this token prior to using it with setToken({ tokenName, token })) '
+      );
+    }
+
+    return token;
+  }
+
+  let response;
+
+  if (opts.mmGQLInstance.generateMockData) {
+    response = generateMockNodeDataForQueryRecord({
+      queryRecord: opts.queryRecord,
+    });
+  } else if (opts.mmGQLInstance.enableQuerySlimming) {
+    response = await opts.mmGQLInstance.QuerySlimmer.query({
+      queryId: opts.queryId,
+      queryRecord: opts.queryRecord,
+      useServerSidePaginationFilteringSorting:
+        opts.mmGQLInstance.paginationFilteringSortingInstance ===
+        EPaginationFilteringSortingInstance.SERVER,
+      tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
+      batchKey: opts.batchKey || undefined,
+    });
+  } else {
+    const params: Parameters<IGQLClient['query']> = [
+      {
+        gql: opts.queryGQL,
+        token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
+        batchKey: opts.batchKey || undefined,
+      },
+    ];
+    response = await opts.mmGQLInstance.gqlClient.query(...params);
+  }
+
+  if (
+    opts.mmGQLInstance.paginationFilteringSortingInstance ===
+    EPaginationFilteringSortingInstance.CLIENT
+  ) {
+    // clone the object only if we are running the unit test
+    // to simulate that we are receiving new response
+    // to prevent mutating the object multiple times when filtering or sorting
+    // resulting into incorrect results in our specs
+    const filteredAndSortedResponse =
+      process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+    applyClientSideSortAndFilterToData(
+      opts.queryRecord,
+      filteredAndSortedResponse
+    );
+
+    return filteredAndSortedResponse;
+  }
+
+  await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
+  return response;
 }
