@@ -2341,7 +2341,7 @@ export declare const mockQueryDataReturn: {
 export declare const getMockQueryResultExpectations: (opts: {
     useServerSidePaginationFilteringSorting: boolean;
 }) => Record<string, any>;
-export declare function getMockQueryRecord(mmGQLInstance: IMMGQL): import("./types").QueryRecord | {};
+export declare function getMockQueryRecord(mmGQLInstance: IMMGQL): Record<string, null> | import("./types").QueryRecord;
 export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
     users: {
         node: {
@@ -2366,7 +2366,7 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
             path: string;
         };
         queryId: string;
-        queryRecord: import("./types").QueryRecord | {};
+        queryRecord: Record<string, null> | import("./types").QueryRecord;
         subscriptionAlias: string;
     };
 };

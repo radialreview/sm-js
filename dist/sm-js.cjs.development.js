@@ -5,9 +5,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var lodash = require('lodash');
-var Chance = _interopDefault(require('chance'));
 var core = require('@apollo/client/core');
 var client = require('@apollo/client');
+var Chance = _interopDefault(require('chance'));
 var mobx = require('mobx');
 var React = _interopDefault(require('react'));
 var ws = require('@apollo/client/link/ws');
@@ -2762,22 +2762,519 @@ try {
 }
 });
 
-var chance = /*#__PURE__*/new Chance();
-function generateRandomString() {
-  return chance.word();
+var queryIdx = 0;
+function generateQuerier(_ref) {
+  var mmGQLInstance = _ref.mmGQLInstance;
+  return /*#__PURE__*/function () {
+    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
+      var startStack, queryId, getError;
+      return runtime_1.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              getError = function _getError(error, stack) {
+                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+                error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
+                return error;
+              };
+
+              startStack = new Error().stack;
+              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              return _context.abrupt("return", new Promise(function (res, rej) {
+                var dataToReturn = {};
+
+                try {
+                  new mmGQLInstance.QueryManager(queryDefinitions, {
+                    resultsObject: dataToReturn,
+                    onResultsUpdated: function onResultsUpdated() {
+                      res({
+                        data: dataToReturn,
+                        error: undefined
+                      });
+                      (opts == null ? void 0 : opts.onData) && opts.onData({
+                        results: dataToReturn
+                      });
+                    },
+                    onQueryError: function onQueryError(e) {
+                      var error = getError(new Error("Error querying data"), e.stack);
+
+                      if (opts != null && opts.onError) {
+                        opts.onError(error);
+                        res({
+                          data: dataToReturn,
+                          error: error
+                        });
+                        return;
+                      }
+
+                      rej(error);
+                    },
+                    queryId: queryId,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
+                    batchKey: (opts == null ? void 0 : opts.batchKey) || null,
+                    getMockDataDelay: (mmGQLInstance == null ? void 0 : mmGQLInstance.getMockDataDelay) || null
+                  });
+                } catch (e) {
+                  var error = getError(new Error("Error initializing query manager"), e.stack);
+
+                  if (opts != null && opts.onError) {
+                    opts.onError(error);
+                    res({
+                      data: dataToReturn,
+                      error: error
+                    });
+                    return;
+                  }
+
+                  rej(error);
+                }
+              }));
+
+            case 4:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee);
+    }));
+
+    function query(_x, _x2) {
+      return _query.apply(this, arguments);
+    }
+
+    return query;
+  }();
 }
-function generateRandomBoolean() {
-  return chance.bool();
+function generateSubscriber(mmGQLInstance) {
+  return /*#__PURE__*/function () {
+    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
+      var startStack, queryId, getError;
+      return runtime_1.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              getError = function _getError2(error, stack) {
+                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
+                error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
+                return error;
+              };
+
+              startStack = new Error().stack;
+              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              return _context2.abrupt("return", new Promise(function (res, rej) {
+                var dataToReturn = {};
+                var subCancellers = [];
+
+                function unsub() {
+                  subCancellers.forEach(function (subCanceller) {
+                    return subCanceller();
+                  });
+                  subCancellers.length = 0;
+                }
+
+                var handlers = {
+                  onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(_) {
+                    throw Error('onQueryDefinitionsUpdated not initialized');
+                  }
+                };
+
+                try {
+                  var qM = new mmGQLInstance.QueryManager(queryDefinitions, {
+                    resultsObject: dataToReturn,
+                    onResultsUpdated: function onResultsUpdated() {
+                      res({
+                        data: dataToReturn,
+                        unsub: unsub,
+                        onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(newQueryDefinitions) {
+                          return handlers.onQueryDefinitionsUpdated(newQueryDefinitions);
+                        },
+                        error: undefined
+                      });
+                      opts.onData({
+                        results: dataToReturn
+                      });
+                    },
+                    onQueryError: function onQueryError(e) {
+                      var error = getError(new Error("Error querying data"), e.stack);
+
+                      if (opts.onError) {
+                        opts.onError(error);
+                        res({
+                          data: dataToReturn,
+                          unsub: unsub,
+                          onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                          error: e
+                        });
+                        return;
+                      }
+
+                      rej(error);
+                    },
+                    queryId: queryId,
+                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
+                    batchKey: (opts == null ? void 0 : opts.batchKey) || null,
+                    getMockDataDelay: (mmGQLInstance == null ? void 0 : mmGQLInstance.getMockDataDelay) || null
+                  });
+                  handlers.onQueryDefinitionsUpdated = qM.onQueryDefinitionsUpdated;
+                } catch (e) {
+                  var error = getError(new Error("Error initializing query manager"), e.stack);
+
+                  if (opts.onError) {
+                    opts.onError(error);
+                    res({
+                      data: dataToReturn,
+                      unsub: unsub,
+                      onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated() {
+                        throw Error(error);
+                      },
+                      error: e
+                    });
+                    return;
+                  }
+
+                  rej(error);
+                }
+              }));
+
+            case 4:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2);
+    }));
+
+    function subscribe(_x3, _x4) {
+      return _subscribe.apply(this, arguments);
+    }
+
+    return subscribe;
+  }();
 }
-function generateRandomNumber(min, max) {
-  return chance.integer({
-    min: min,
-    max: max
-  });
+
+(function (ENodeCollectionLoadingState) {
+  ENodeCollectionLoadingState["IDLE"] = "IDLE";
+  ENodeCollectionLoadingState["LOADING"] = "LOADING";
+  ENodeCollectionLoadingState["ERROR"] = "ERROR";
+})(exports.ENodeCollectionLoadingState || (exports.ENodeCollectionLoadingState = {}));
+
+var NodesCollection = /*#__PURE__*/function () {
+  // when "loadMore" is used, we display more than 1 page
+  // however, nothing in our code needs to know about this other than the "nodes"
+  // getter below, which must return multiple pages of results when loadMore is executed
+  function NodesCollection(opts) {
+    this.onLoadMoreResults = void 0;
+    this.onGoToNextPage = void 0;
+    this.onGoToPreviousPage = void 0;
+    this.onPaginationRequestStateChanged = void 0;
+    this.items = void 0;
+    this.pageInfoFromResults = void 0;
+    this.clientSidePageInfo = void 0;
+    this.useServerSidePaginationFilteringSorting = void 0;
+    this.pagesBeingDisplayed = void 0;
+    this.loadingState = exports.ENodeCollectionLoadingState.IDLE;
+    this.loadingError = null;
+    this.items = opts.items;
+    this.pageInfoFromResults = opts.pageInfoFromResults;
+    this.clientSidePageInfo = opts.clientSidePageInfo;
+    this.useServerSidePaginationFilteringSorting = opts.useServerSidePaginationFilteringSorting;
+    this.pagesBeingDisplayed = [opts.clientSidePageInfo.lastQueriedPage];
+    this.onLoadMoreResults = opts.onLoadMoreResults;
+    this.onGoToNextPage = opts.onGoToNextPage;
+    this.onGoToPreviousPage = opts.onGoToPreviousPage;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
+  }
+
+  var _proto = NodesCollection.prototype;
+
+  _proto.loadMore = /*#__PURE__*/function () {
+    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
+      var _this = this;
+
+      return runtime_1.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              if (this.hasNextPage) {
+                _context2.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No more results available - check results.hasNextPage before calling loadMore');
+
+            case 2:
+              _context2.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
+                return runtime_1.wrap(function _callee$(_context) {
+                  while (1) {
+                    switch (_context.prev = _context.next) {
+                      case 0:
+                        _context.next = 2;
+                        return _this.onLoadMoreResults();
+
+                      case 2:
+                        _this.clientSidePageInfo.lastQueriedPage++;
+                        _this.pagesBeingDisplayed = [].concat(_this.pagesBeingDisplayed, [_this.clientSidePageInfo.lastQueriedPage]);
+
+                      case 4:
+                      case "end":
+                        return _context.stop();
+                    }
+                  }
+                }, _callee);
+              })));
+
+            case 4:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2, this);
+    }));
+
+    function loadMore() {
+      return _loadMore.apply(this, arguments);
+    }
+
+    return loadMore;
+  }();
+
+  _proto.goToNextPage = /*#__PURE__*/function () {
+    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4() {
+      var _this2 = this;
+
+      return runtime_1.wrap(function _callee4$(_context4) {
+        while (1) {
+          switch (_context4.prev = _context4.next) {
+            case 0:
+              if (this.hasNextPage) {
+                _context4.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No next page available - check results.hasNextPage before calling goToNextPage');
+
+            case 2:
+              _context4.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
+                return runtime_1.wrap(function _callee3$(_context3) {
+                  while (1) {
+                    switch (_context3.prev = _context3.next) {
+                      case 0:
+                        _context3.next = 2;
+                        return _this2.onGoToNextPage();
+
+                      case 2:
+                        _this2.clientSidePageInfo.lastQueriedPage++;
+                        _this2.pagesBeingDisplayed = [_this2.clientSidePageInfo.lastQueriedPage];
+
+                      case 4:
+                      case "end":
+                        return _context3.stop();
+                    }
+                  }
+                }, _callee3);
+              })));
+
+            case 4:
+            case "end":
+              return _context4.stop();
+          }
+        }
+      }, _callee4, this);
+    }));
+
+    function goToNextPage() {
+      return _goToNextPage.apply(this, arguments);
+    }
+
+    return goToNextPage;
+  }();
+
+  _proto.goToPreviousPage = /*#__PURE__*/function () {
+    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6() {
+      var _this3 = this;
+
+      return runtime_1.wrap(function _callee6$(_context6) {
+        while (1) {
+          switch (_context6.prev = _context6.next) {
+            case 0:
+              if (this.hasPreviousPage) {
+                _context6.next = 2;
+                break;
+              }
+
+              throw new NodesCollectionPageOutOfBoundsException('No previous page available - check results.hasPreviousPage before calling goToPreviousPage');
+
+            case 2:
+              _context6.next = 4;
+              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5() {
+                return runtime_1.wrap(function _callee5$(_context5) {
+                  while (1) {
+                    switch (_context5.prev = _context5.next) {
+                      case 0:
+                        _context5.next = 2;
+                        return _this3.onGoToPreviousPage();
+
+                      case 2:
+                        _this3.clientSidePageInfo.lastQueriedPage--;
+                        _this3.pagesBeingDisplayed = [_this3.clientSidePageInfo.lastQueriedPage];
+
+                      case 4:
+                      case "end":
+                        return _context5.stop();
+                    }
+                  }
+                }, _callee5);
+              })));
+
+            case 4:
+            case "end":
+              return _context6.stop();
+          }
+        }
+      }, _callee6, this);
+    }));
+
+    function goToPreviousPage() {
+      return _goToPreviousPage.apply(this, arguments);
+    }
+
+    return goToPreviousPage;
+  }();
+
+  _proto.withPaginationEventLoadingState = /*#__PURE__*/function () {
+    var _withPaginationEventLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee7(promiseGetter) {
+      return runtime_1.wrap(function _callee7$(_context7) {
+        while (1) {
+          switch (_context7.prev = _context7.next) {
+            case 0:
+              this.loadingState = exports.ENodeCollectionLoadingState.LOADING;
+              this.loadingError = null;
+              _context7.prev = 2;
+              // re-render ui with the new loading state
+              this.onPaginationRequestStateChanged();
+              _context7.next = 6;
+              return promiseGetter();
+
+            case 6:
+              this.loadingState = exports.ENodeCollectionLoadingState.IDLE;
+              _context7.next = 13;
+              break;
+
+            case 9:
+              _context7.prev = 9;
+              _context7.t0 = _context7["catch"](2);
+              this.loadingState = exports.ENodeCollectionLoadingState.ERROR;
+              this.loadingError = _context7.t0;
+
+            case 13:
+              if (!this.useServerSidePaginationFilteringSorting) {
+                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+              } // re-render the ui with the new nodes and loading/error state
+
+
+              this.onPaginationRequestStateChanged();
+
+            case 15:
+            case "end":
+              return _context7.stop();
+          }
+        }
+      }, _callee7, this, [[2, 9]]);
+    }));
+
+    function withPaginationEventLoadingState(_x) {
+      return _withPaginationEventLoadingState.apply(this, arguments);
+    }
+
+    return withPaginationEventLoadingState;
+  }();
+
+  _proto.goToPage = /*#__PURE__*/function () {
+    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee8(_) {
+      return runtime_1.wrap(function _callee8$(_context8) {
+        while (1) {
+          switch (_context8.prev = _context8.next) {
+            case 0:
+              throw new Error('Not implemented');
+
+            case 1:
+            case "end":
+              return _context8.stop();
+          }
+        }
+      }, _callee8);
+    }));
+
+    function goToPage(_x2) {
+      return _goToPage.apply(this, arguments);
+    }
+
+    return goToPage;
+  }() // as the name implies, only runs when client side pagination is executed
+  // otherwise the onLoadMoreResults, onGoToNextPage, onGoToPreviousPage are expected to return the new page info
+  // this is because when doing client side pagination, all the items in this collection are expected to already
+  // be cached in this class' state
+  ;
+
+  _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
+    this.pageInfoFromResults = {
+      totalPages: this.pageInfoFromResults.totalPages,
+      hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
+      hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
+      endCursor: this.pageInfoFromResults.endCursor,
+      startCursor: this.pageInfoFromResults.startCursor
+    };
+  };
+
+  _createClass(NodesCollection, [{
+    key: "nodes",
+    get: function get() {
+      if (this.useServerSidePaginationFilteringSorting) return this.items; // this is because when doing client side pagination, all the items in this collection are expected to already
+      // be cached in this class' state
+
+      return getPageResults({
+        items: this.items,
+        pages: this.pagesBeingDisplayed,
+        itemsPerPage: this.clientSidePageInfo.pageSize
+      });
+    }
+  }, {
+    key: "hasNextPage",
+    get: function get() {
+      return this.pageInfoFromResults.hasNextPage;
+    }
+  }, {
+    key: "hasPreviousPage",
+    get: function get() {
+      return this.pageInfoFromResults.hasPreviousPage;
+    }
+  }, {
+    key: "totalPages",
+    get: function get() {
+      return this.pageInfoFromResults.totalPages;
+    }
+  }, {
+    key: "page",
+    get: function get() {
+      return this.clientSidePageInfo.lastQueriedPage;
+    }
+  }]);
+
+  return NodesCollection;
+}();
+
+function getPageResults(opts) {
+  var inChunks = chunkArray(opts.items, opts.itemsPerPage);
+  return opts.pages.map(function (pageNumber) {
+    return inChunks[pageNumber - 1];
+  }).flat();
 }
-function generateRandomId() {
-  return chance.guid();
-}
+
+var chunkArray = function chunkArray(arr, size) {
+  return arr.length > size ? [arr.slice(0, size)].concat(chunkArray(arr.slice(size), size)) : [arr];
+};
 
 var _excluded = ["condition"];
 /**
@@ -3040,6 +3537,7 @@ function getQueryRecordFromQueryDefinition(opts) {
     var tokenName;
 
     if (!queryDefinition) {
+      queryRecord[queryDefinitionsAlias] = null;
       return;
     } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
@@ -3357,7 +3855,9 @@ function getQueryGQLStringFromQueryRecord(opts) {
   return ("query " + getSanitizedQueryId({
     queryId: opts.queryId
   }) + " {\n" + Object.keys(opts.queryRecord).map(function (alias) {
-    return getRootLevelQueryString(_extends({}, opts.queryRecord[alias], {
+    var queryRecordEntry = opts.queryRecord[alias];
+    if (!queryRecordEntry) return '';
+    return getRootLevelQueryString(_extends({}, queryRecordEntry, {
       alias: alias,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }));
@@ -3366,9 +3866,11 @@ function getQueryGQLStringFromQueryRecord(opts) {
 
 function getQueryRecordSortAndFilterValues(record) {
   return Object.keys(record).reduce(function (acc, alias) {
-    acc.push(record[alias].filter);
-    acc.push(record[alias].sort);
-    var relational = record[alias].relational;
+    var queryRecordEntry = record[alias];
+    if (!queryRecordEntry) return acc;
+    acc.push(queryRecordEntry.filter);
+    acc.push(queryRecordEntry.sort);
+    var relational = queryRecordEntry.relational;
 
     if (relational) {
       acc.push.apply(acc, getQueryRecordSortAndFilterValues(relational) || []);
@@ -3394,6 +3896,7 @@ function getQueryInfo(opts) {
       queryId: opts.queryId + '_' + alias
     });
     var queryRecordEntry = queryRecord[alias];
+    if (!queryRecordEntry) return subscriptionConfigsAcc;
     var operation = getOperationFromQueryRecordEntry(_extends({}, queryRecordEntry, {
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }));
@@ -3456,7 +3959,10 @@ function convertQueryDefinitionToQueryInfo(opts) {
     return {
       queryGQL: null,
       subscriptionConfigs: null,
-      queryRecord: {},
+      queryRecord: Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+        acc[key] = null;
+        return acc;
+      }, {}),
       queryParamsString: null
     };
   }
@@ -3481,6 +3987,23 @@ function convertQueryDefinitionToQueryInfo(opts) {
 
 function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
+}
+
+var chance = /*#__PURE__*/new Chance();
+function generateRandomString() {
+  return chance.word();
+}
+function generateRandomBoolean() {
+  return chance.bool();
+}
+function generateRandomNumber(min, max) {
+  return chance.integer({
+    min: min,
+    max: max
+  });
+}
+function generateRandomId() {
+  return chance.guid();
 }
 
 var _excluded$1 = ["to"],
@@ -4501,932 +5024,6 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
   });
 }
 
-var queryIdx = 0;
-/**
- * Declared as a factory function so that "subscribe" can generate its own querier which shares the same query manager
- * Which ensures that the socket messages are applied to the correct base set of results
- */
-
-function generateQuerier(_ref) {
-  var mmGQLInstance = _ref.mmGQLInstance,
-      queryManager = _ref.queryManager;
-  return /*#__PURE__*/function () {
-    var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(queryDefinitions, opts) {
-      var startStack, queryId, getError, nonNullishQueryDefinitions, nullishResults, results, dataToReturn, queryDefinitionsSplitByToken, _convertQueryDefiniti, queryRecord, queryGQL, qM, resultsForEachTokenUsed, allResults, error, _error;
-
-      return runtime_1.wrap(function _callee$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              getError = function _getError(error, stack) {
-                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-                error.stack = "\n" + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
-                return error;
-              };
-
-              startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
-              nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
-              nullishResults = getNullishResults(queryDefinitions);
-              _context.prev = 5;
-
-              if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context.next = 10;
-                break;
-              }
-
-              results = _extends({}, nullishResults);
-              (opts == null ? void 0 : opts.onData) && opts.onData({
-                results: results
-              });
-              return _context.abrupt("return", {
-                data: results,
-                error: undefined
-              });
-
-            case 10:
-              dataToReturn = _extends({}, nullishResults);
-              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
-              _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
-                queryDefinitions: queryDefinitions,
-                queryId: queryId,
-                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-              }), queryRecord = _convertQueryDefiniti.queryRecord, queryGQL = _convertQueryDefiniti.queryGQL;
-              qM = queryManager || new mmGQLInstance.QueryManager(queryRecord, {
-                performQuery: function performQuery(_ref2) {
-                  var queryRecord = _ref2.queryRecord,
-                      queryGQL = _ref2.queryGQL,
-                      tokenName = _ref2.tokenName;
-                  return performQueries({
-                    mmGQLInstance: mmGQLInstance,
-                    queryRecord: queryRecord,
-                    queryId: queryId,
-                    tokenName: tokenName,
-                    queryGQL: queryGQL,
-                    batchKey: opts == null ? void 0 : opts.batchKey,
-                    getMockDataDelay: mmGQLInstance.getMockDataDelay
-                  });
-                },
-                resultsObject: dataToReturn,
-                onResultsUpdated: function onResultsUpdated() {
-                  (opts == null ? void 0 : opts.onData) && opts.onData({
-                    results: dataToReturn
-                  });
-                },
-                queryId: queryId,
-                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-              });
-
-              if (!queryGQL) {
-                _context.next = 33;
-                break;
-              }
-
-              _context.next = 17;
-              return Promise.all(Object.entries(queryDefinitionsSplitByToken).map(function (_ref3) {
-                var tokenName = _ref3[0],
-                    queryDefinitionsForThisToken = _ref3[1];
-                return performQueries({
-                  mmGQLInstance: mmGQLInstance,
-                  queryGQL: queryGQL,
-                  queryRecord: Object.entries(queryRecord).reduce(function (acc, _ref4) {
-                    var alias = _ref4[0],
-                        queryRecordEntry = _ref4[1];
-
-                    if (queryDefinitionsForThisToken[alias]) {
-                      acc[alias] = queryRecordEntry;
-                    }
-
-                    return acc;
-                  }, {}),
-                  tokenName: tokenName,
-                  queryId: queryId,
-                  batchKey: opts == null ? void 0 : opts.batchKey
-                });
-              }));
-
-            case 17:
-              resultsForEachTokenUsed = _context.sent;
-              allResults = resultsForEachTokenUsed.reduce(function (acc, resultsForToken) {
-                return _extends({}, acc, resultsForToken);
-              }, {});
-              _context.prev = 19;
-              qM.onQueryResult({
-                queryId: queryId,
-                queryResult: allResults
-              });
-              (opts == null ? void 0 : opts.onData) && opts.onData({
-                results: dataToReturn
-              });
-              _context.next = 33;
-              break;
-
-            case 24:
-              _context.prev = 24;
-              _context.t0 = _context["catch"](19);
-              error = getError(new Error("Error applying query results"), _context.t0.stack);
-
-              if (!(opts != null && opts.onError)) {
-                _context.next = 32;
-                break;
-              }
-
-              opts.onError(error);
-              return _context.abrupt("return", {
-                data: dataToReturn,
-                error: error
-              });
-
-            case 32:
-              throw error;
-
-            case 33:
-              return _context.abrupt("return", {
-                data: dataToReturn,
-                error: undefined
-              });
-
-            case 36:
-              _context.prev = 36;
-              _context.t1 = _context["catch"](5);
-              _error = getError(new Error("Error querying data"), _context.t1.stack);
-
-              if (!(opts != null && opts.onError)) {
-                _context.next = 44;
-                break;
-              }
-
-              opts.onError(_error);
-              return _context.abrupt("return", {
-                data: {},
-                error: _error
-              });
-
-            case 44:
-              throw _error;
-
-            case 45:
-            case "end":
-              return _context.stop();
-          }
-        }
-      }, _callee, null, [[5, 36], [19, 24]]);
-    }));
-
-    function query(_x, _x2) {
-      return _query.apply(this, arguments);
-    }
-
-    return query;
-  }();
-}
-var subscriptionId = 0;
-function generateSubscriber(mmGQLInstance) {
-  return /*#__PURE__*/function () {
-    var _subscribe = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(queryDefinitions, opts) {
-      var startStack, queryId, nonNullishQueryDefinitions, nullishResults, dataToReturn, _convertQueryDefiniti2, queryGQL, queryRecord, queryParamsString, queryManager, getError, updateQueryManagerWithSubscriptionMessage, getToken, subscriptionCancellers, mustAwaitQuery, messageQueue, queryDefinitionsSplitByToken, queryDefinitionsSplitByTokenEntries, initSubs, unsub, error, query, params, _error2;
-
-      return runtime_1.wrap(function _callee2$(_context2) {
-        while (1) {
-          switch (_context2.prev = _context2.next) {
-            case 0:
-              unsub = function _unsub() {
-                subscriptionCancellers.forEach(function (cancel) {
-                  return cancel();
-                });
-                queryDefinitionsSplitByTokenEntries.forEach(function (_ref7) {
-                  var tokenName = _ref7[0],
-                      queryDefinitions = _ref7[1];
-
-                  var _convertQueryDefiniti4 = convertQueryDefinitionToQueryInfo({
-                    queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName,
-                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-                  }),
-                      queryRecord = _convertQueryDefiniti4.queryRecord;
-
-                  mmGQLInstance.QuerySlimmer.onSubscriptionCancelled(queryRecord);
-                });
-              };
-
-              initSubs = function _initSubs() {
-                queryDefinitionsSplitByTokenEntries.forEach(function (_ref6) {
-                  var tokenName = _ref6[0],
-                      queryDefinitions = _ref6[1];
-
-                  var _convertQueryDefiniti3 = convertQueryDefinitionToQueryInfo({
-                    queryDefinitions: queryDefinitions,
-                    queryId: queryId + '_' + tokenName,
-                    useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-                  }),
-                      subscriptionConfigs = _convertQueryDefiniti3.subscriptionConfigs;
-
-                  subscriptionCancellers.push.apply(subscriptionCancellers, (subscriptionConfigs || []).map(function (subscriptionConfig) {
-                    return mmGQLInstance.gqlClient.subscribe({
-                      gql: subscriptionConfig.gql,
-                      token: getToken(tokenName),
-                      onMessage: function onMessage(message) {
-                        if (mustAwaitQuery) {
-                          messageQueue.push({
-                            message: message,
-                            subscriptionConfig: subscriptionConfig
-                          });
-                          return;
-                        }
-
-                        updateQueryManagerWithSubscriptionMessage({
-                          message: message,
-                          subscriptionConfig: subscriptionConfig
-                        });
-                      },
-                      onError: function onError(e) {
-                        // Can never throw here. The dev consuming this would have no way of catching it
-                        // To catch an error in a subscription they must provide onError
-                        var error = getError(new Error("Error in a subscription message"), e.stack);
-
-                        if (opts.onError) {
-                          opts.onError(error);
-                        } else {
-                          console.error(error);
-                        }
-                      }
-                    });
-                  }));
-                });
-              };
-
-              getToken = function _getToken(tokenName) {
-                var token = mmGQLInstance.getToken({
-                  tokenName: tokenName
-                });
-
-                if (!token) {
-                  throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
-                }
-
-                return token;
-              };
-
-              updateQueryManagerWithSubscriptionMessage = function _updateQueryManagerWi(data) {
-                var node;
-                var operation;
-
-                try {
-                  node = data.subscriptionConfig.extractNodeFromSubscriptionMessage(data.message);
-                  operation = data.subscriptionConfig.extractOperationFromSubscriptionMessage(data.message); // TODO: https://tractiontools.atlassian.net/browse/TTD-377
-
-                  queryManager.onSubscriptionMessage({
-                    node: node,
-                    operation: operation,
-                    queryId: queryId,
-                    subscriptionAlias: data.subscriptionConfig.alias
-                  });
-                } catch (e) {
-                  var error = getError(new Error("Error applying subscription message"), e.stack);
-
-                  if (opts.onError) {
-                    opts.onError(error);
-                  } else {
-                    console.error(error);
-                  }
-                }
-              };
-
-              getError = function _getError2(error, stack) {
-                // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-                error.stack = '\n' + (stack || error.stack) + '\n' + startStack.substring(startStack.indexOf('\n') + 1);
-                return error;
-              };
-
-              // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
-              startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + subscriptionId++;
-              nonNullishQueryDefinitions = removeNullishQueryDefinitions(queryDefinitions);
-              nullishResults = getNullishResults(queryDefinitions);
-              dataToReturn = _extends({}, nullishResults);
-              _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
-                queryDefinitions: nonNullishQueryDefinitions,
-                queryId: queryId,
-                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-              }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord, queryParamsString = _convertQueryDefiniti2.queryParamsString;
-              queryManager = new mmGQLInstance.QueryManager(queryRecord, {
-                resultsObject: dataToReturn,
-                performQuery: function performQuery(_ref5) {
-                  var queryRecord = _ref5.queryRecord,
-                      queryGQL = _ref5.queryGQL,
-                      tokenName = _ref5.tokenName;
-                  return performQueries({
-                    mmGQLInstance: mmGQLInstance,
-                    queryRecord: queryRecord,
-                    queryId: queryId,
-                    tokenName: tokenName,
-                    queryGQL: queryGQL,
-                    batchKey: opts == null ? void 0 : opts.batchKey
-                  });
-                },
-                onResultsUpdated: function onResultsUpdated() {
-                  opts.onData({
-                    results: dataToReturn
-                  });
-                },
-                queryId: queryId,
-                useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
-              });
-
-              if (Object.keys(nonNullishQueryDefinitions).length) {
-                _context2.next = 15;
-                break;
-              }
-
-              opts.onData({
-                results: dataToReturn
-              });
-              return _context2.abrupt("return", {
-                data: dataToReturn,
-                unsub: function unsub() {}
-              });
-
-            case 15:
-              opts.onQueryInfoConstructed && opts.onQueryInfoConstructed({
-                queryGQL: queryGQL,
-                queryId: queryId,
-                queryParamsString: queryParamsString
-              });
-              subscriptionCancellers = []; // Subscriptions are initialized immediately, rather than after the query resolves, to prevent an edge case where an update to a node happens
-              // while the data for that node is being transfered from the backend to the client. This would result in a missed update.
-              // However, we must be careful to not call opts.onData with any subscription messages before the query resolves,
-              // because a subscription message only includes info about the node that changed, not all data being subscribed to,
-              // which means the consumer of this API would receive and incomplete data set in this edge case.
-              // This flag prevents that, by short-circuiting opts.onData in subscription messages, if the query has not resolved
-
-              mustAwaitQuery = !opts.skipInitialQuery;
-              messageQueue = [];
-              queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
-              queryDefinitionsSplitByTokenEntries = Object.entries(queryDefinitionsSplitByToken);
-              _context2.prev = 21;
-
-              if (!mmGQLInstance.generateMockData) {
-                initSubs();
-              }
-
-              opts.onSubscriptionInitialized && opts.onSubscriptionInitialized(unsub);
-              _context2.next = 35;
-              break;
-
-            case 26:
-              _context2.prev = 26;
-              _context2.t0 = _context2["catch"](21);
-              error = getError(new Error("Error initializating subscriptions"), _context2.t0.stack);
-
-              if (!(opts != null && opts.onError)) {
-                _context2.next = 34;
-                break;
-              }
-
-              opts.onError(error);
-              return _context2.abrupt("return", {
-                data: dataToReturn,
-                unsub: unsub,
-                error: error
-              });
-
-            case 34:
-              throw error;
-
-            case 35:
-              if (!opts.skipInitialQuery) {
-                _context2.next = 39;
-                break;
-              }
-
-              return _context2.abrupt("return", {
-                unsub: unsub
-              });
-
-            case 39:
-              query = generateQuerier({
-                mmGQLInstance: mmGQLInstance,
-                queryManager: queryManager
-              });
-              _context2.prev = 40;
-              params = [queryDefinitions, {
-                queryId: opts.queryId,
-                batchKey: opts.batchKey
-              }]; // this query method will post its results to the queryManager declared above
-
-              _context2.next = 44;
-              return query.apply(void 0, params);
-
-            case 44:
-              _context2.next = 55;
-              break;
-
-            case 46:
-              _context2.prev = 46;
-              _context2.t1 = _context2["catch"](40);
-              _error2 = getError(new Error("Error querying initial data set"), _context2.t1.stack);
-
-              if (!(opts != null && opts.onError)) {
-                _context2.next = 54;
-                break;
-              }
-
-              opts.onError(_error2);
-              return _context2.abrupt("return", {
-                data: dataToReturn,
-                unsub: unsub,
-                error: _error2
-              });
-
-            case 54:
-              throw _error2;
-
-            case 55:
-              if (mustAwaitQuery) {
-                mustAwaitQuery = false;
-                messageQueue.forEach(updateQueryManagerWithSubscriptionMessage);
-                messageQueue.length = 0;
-              }
-
-              opts.onData({
-                results: dataToReturn
-              });
-              return _context2.abrupt("return", {
-                data: dataToReturn,
-                unsub: unsub,
-                error: undefined
-              });
-
-            case 58:
-            case "end":
-              return _context2.stop();
-          }
-        }
-      }, _callee2, null, [[21, 26], [40, 46]]);
-    }));
-
-    function subscribe(_x3, _x4) {
-      return _subscribe.apply(this, arguments);
-    }
-
-    return subscribe;
-  }();
-}
-
-function splitQueryDefinitionsByToken(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (split, _ref8) {
-    var alias = _ref8[0],
-        queryDefinition = _ref8[1];
-    var tokenName = queryDefinition && 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
-    split[tokenName] = split[tokenName] || {};
-    split[tokenName][alias] = queryDefinition;
-    return split;
-  }, {});
-}
-
-function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref9) {
-    var alias = _ref9[0],
-        queryDefinition = _ref9[1];
-    if (!queryDefinition) return acc;
-    acc[alias] = queryDefinition;
-    return acc;
-  }, {});
-}
-
-function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref10) {
-    var key = _ref10[0],
-        queryDefinition = _ref10[1];
-    if (queryDefinition == null) acc[key] = null;
-    return acc;
-  }, {});
-}
-
-function performQueries(_x5) {
-  return _performQueries.apply(this, arguments);
-}
-
-function _performQueries() {
-  _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
-    var getToken, response, _opts$mmGQLInstance$g, params, filteredAndSortedResponse;
-
-    return runtime_1.wrap(function _callee3$(_context3) {
-      while (1) {
-        switch (_context3.prev = _context3.next) {
-          case 0:
-            getToken = function _getToken2(tokenName) {
-              var token = opts.mmGQLInstance.getToken({
-                tokenName: tokenName
-              });
-
-              if (!token) {
-                throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
-              }
-
-              return token;
-            };
-
-            if (!opts.mmGQLInstance.generateMockData) {
-              _context3.next = 5;
-              break;
-            }
-
-            response = generateMockNodeDataForQueryRecord({
-              queryRecord: opts.queryRecord
-            });
-            _context3.next = 15;
-            break;
-
-          case 5:
-            if (!opts.mmGQLInstance.enableQuerySlimming) {
-              _context3.next = 11;
-              break;
-            }
-
-            _context3.next = 8;
-            return opts.mmGQLInstance.QuerySlimmer.query({
-              queryId: opts.queryId,
-              queryRecord: opts.queryRecord,
-              useServerSidePaginationFilteringSorting: opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
-              tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
-              batchKey: opts.batchKey
-            });
-
-          case 8:
-            response = _context3.sent;
-            _context3.next = 15;
-            break;
-
-          case 11:
-            params = [{
-              gql: opts.queryGQL,
-              token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
-              batchKey: opts.batchKey
-            }];
-            _context3.next = 14;
-            return (_opts$mmGQLInstance$g = opts.mmGQLInstance.gqlClient).query.apply(_opts$mmGQLInstance$g, params);
-
-          case 14:
-            response = _context3.sent;
-
-          case 15:
-            if (!(opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.CLIENT)) {
-              _context3.next = 19;
-              break;
-            }
-
-            // clone the object only if we are running the unit test
-            // to simulate that we are receiving new response
-            // to prevent mutating the object multiple times when filtering or sorting
-            // resulting into incorrect results in our specs
-            filteredAndSortedResponse =  response;
-            applyClientSideSortAndFilterToData(opts.queryRecord, filteredAndSortedResponse);
-            return _context3.abrupt("return", filteredAndSortedResponse);
-
-          case 19:
-            _context3.next = 21;
-            return new Promise(function (res) {
-              return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
-            });
-
-          case 21:
-            return _context3.abrupt("return", response);
-
-          case 22:
-          case "end":
-            return _context3.stop();
-        }
-      }
-    }, _callee3);
-  }));
-  return _performQueries.apply(this, arguments);
-}
-
-(function (ENodeCollectionLoadingState) {
-  ENodeCollectionLoadingState["IDLE"] = "IDLE";
-  ENodeCollectionLoadingState["LOADING"] = "LOADING";
-  ENodeCollectionLoadingState["ERROR"] = "ERROR";
-})(exports.ENodeCollectionLoadingState || (exports.ENodeCollectionLoadingState = {}));
-
-var NodesCollection = /*#__PURE__*/function () {
-  // when "loadMore" is used, we display more than 1 page
-  // however, nothing in our code needs to know about this other than the "nodes"
-  // getter below, which must return multiple pages of results when loadMore is executed
-  function NodesCollection(opts) {
-    this.onLoadMoreResults = void 0;
-    this.onGoToNextPage = void 0;
-    this.onGoToPreviousPage = void 0;
-    this.onPaginationRequestStateChanged = void 0;
-    this.items = void 0;
-    this.pageInfoFromResults = void 0;
-    this.clientSidePageInfo = void 0;
-    this.useServerSidePaginationFilteringSorting = void 0;
-    this.pagesBeingDisplayed = void 0;
-    this.loadingState = exports.ENodeCollectionLoadingState.IDLE;
-    this.loadingError = null;
-    this.items = opts.items;
-    this.pageInfoFromResults = opts.pageInfoFromResults;
-    this.clientSidePageInfo = opts.clientSidePageInfo;
-    this.useServerSidePaginationFilteringSorting = opts.useServerSidePaginationFilteringSorting;
-    this.pagesBeingDisplayed = [opts.clientSidePageInfo.lastQueriedPage];
-    this.onLoadMoreResults = opts.onLoadMoreResults;
-    this.onGoToNextPage = opts.onGoToNextPage;
-    this.onGoToPreviousPage = opts.onGoToPreviousPage;
-    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
-  }
-
-  var _proto = NodesCollection.prototype;
-
-  _proto.loadMore = /*#__PURE__*/function () {
-    var _loadMore = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2() {
-      var _this = this;
-
-      return runtime_1.wrap(function _callee2$(_context2) {
-        while (1) {
-          switch (_context2.prev = _context2.next) {
-            case 0:
-              if (this.hasNextPage) {
-                _context2.next = 2;
-                break;
-              }
-
-              throw new NodesCollectionPageOutOfBoundsException('No more results available - check results.hasNextPage before calling loadMore');
-
-            case 2:
-              _context2.next = 4;
-              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee() {
-                return runtime_1.wrap(function _callee$(_context) {
-                  while (1) {
-                    switch (_context.prev = _context.next) {
-                      case 0:
-                        _context.next = 2;
-                        return _this.onLoadMoreResults();
-
-                      case 2:
-                        _this.clientSidePageInfo.lastQueriedPage++;
-                        _this.pagesBeingDisplayed = [].concat(_this.pagesBeingDisplayed, [_this.clientSidePageInfo.lastQueriedPage]);
-
-                      case 4:
-                      case "end":
-                        return _context.stop();
-                    }
-                  }
-                }, _callee);
-              })));
-
-            case 4:
-            case "end":
-              return _context2.stop();
-          }
-        }
-      }, _callee2, this);
-    }));
-
-    function loadMore() {
-      return _loadMore.apply(this, arguments);
-    }
-
-    return loadMore;
-  }();
-
-  _proto.goToNextPage = /*#__PURE__*/function () {
-    var _goToNextPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4() {
-      var _this2 = this;
-
-      return runtime_1.wrap(function _callee4$(_context4) {
-        while (1) {
-          switch (_context4.prev = _context4.next) {
-            case 0:
-              if (this.hasNextPage) {
-                _context4.next = 2;
-                break;
-              }
-
-              throw new NodesCollectionPageOutOfBoundsException('No next page available - check results.hasNextPage before calling goToNextPage');
-
-            case 2:
-              _context4.next = 4;
-              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3() {
-                return runtime_1.wrap(function _callee3$(_context3) {
-                  while (1) {
-                    switch (_context3.prev = _context3.next) {
-                      case 0:
-                        _context3.next = 2;
-                        return _this2.onGoToNextPage();
-
-                      case 2:
-                        _this2.clientSidePageInfo.lastQueriedPage++;
-                        _this2.pagesBeingDisplayed = [_this2.clientSidePageInfo.lastQueriedPage];
-
-                      case 4:
-                      case "end":
-                        return _context3.stop();
-                    }
-                  }
-                }, _callee3);
-              })));
-
-            case 4:
-            case "end":
-              return _context4.stop();
-          }
-        }
-      }, _callee4, this);
-    }));
-
-    function goToNextPage() {
-      return _goToNextPage.apply(this, arguments);
-    }
-
-    return goToNextPage;
-  }();
-
-  _proto.goToPreviousPage = /*#__PURE__*/function () {
-    var _goToPreviousPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6() {
-      var _this3 = this;
-
-      return runtime_1.wrap(function _callee6$(_context6) {
-        while (1) {
-          switch (_context6.prev = _context6.next) {
-            case 0:
-              if (this.hasPreviousPage) {
-                _context6.next = 2;
-                break;
-              }
-
-              throw new NodesCollectionPageOutOfBoundsException('No previous page available - check results.hasPreviousPage before calling goToPreviousPage');
-
-            case 2:
-              _context6.next = 4;
-              return this.withPaginationEventLoadingState( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5() {
-                return runtime_1.wrap(function _callee5$(_context5) {
-                  while (1) {
-                    switch (_context5.prev = _context5.next) {
-                      case 0:
-                        _context5.next = 2;
-                        return _this3.onGoToPreviousPage();
-
-                      case 2:
-                        _this3.clientSidePageInfo.lastQueriedPage--;
-                        _this3.pagesBeingDisplayed = [_this3.clientSidePageInfo.lastQueriedPage];
-
-                      case 4:
-                      case "end":
-                        return _context5.stop();
-                    }
-                  }
-                }, _callee5);
-              })));
-
-            case 4:
-            case "end":
-              return _context6.stop();
-          }
-        }
-      }, _callee6, this);
-    }));
-
-    function goToPreviousPage() {
-      return _goToPreviousPage.apply(this, arguments);
-    }
-
-    return goToPreviousPage;
-  }();
-
-  _proto.withPaginationEventLoadingState = /*#__PURE__*/function () {
-    var _withPaginationEventLoadingState = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee7(promiseGetter) {
-      return runtime_1.wrap(function _callee7$(_context7) {
-        while (1) {
-          switch (_context7.prev = _context7.next) {
-            case 0:
-              this.loadingState = exports.ENodeCollectionLoadingState.LOADING;
-              this.loadingError = null;
-              _context7.prev = 2;
-              // re-render ui with the new loading state
-              this.onPaginationRequestStateChanged();
-              _context7.next = 6;
-              return promiseGetter();
-
-            case 6:
-              this.loadingState = exports.ENodeCollectionLoadingState.IDLE;
-              _context7.next = 13;
-              break;
-
-            case 9:
-              _context7.prev = 9;
-              _context7.t0 = _context7["catch"](2);
-              this.loadingState = exports.ENodeCollectionLoadingState.ERROR;
-              this.loadingError = _context7.t0;
-
-            case 13:
-              if (!this.useServerSidePaginationFilteringSorting) {
-                this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
-              } // re-render the ui with the new nodes and loading/error state
-
-
-              this.onPaginationRequestStateChanged();
-
-            case 15:
-            case "end":
-              return _context7.stop();
-          }
-        }
-      }, _callee7, this, [[2, 9]]);
-    }));
-
-    function withPaginationEventLoadingState(_x) {
-      return _withPaginationEventLoadingState.apply(this, arguments);
-    }
-
-    return withPaginationEventLoadingState;
-  }();
-
-  _proto.goToPage = /*#__PURE__*/function () {
-    var _goToPage = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee8(_) {
-      return runtime_1.wrap(function _callee8$(_context8) {
-        while (1) {
-          switch (_context8.prev = _context8.next) {
-            case 0:
-              throw new Error('Not implemented');
-
-            case 1:
-            case "end":
-              return _context8.stop();
-          }
-        }
-      }, _callee8);
-    }));
-
-    function goToPage(_x2) {
-      return _goToPage.apply(this, arguments);
-    }
-
-    return goToPage;
-  }() // as the name implies, only runs when client side pagination is executed
-  // otherwise the onLoadMoreResults, onGoToNextPage, onGoToPreviousPage are expected to return the new page info
-  // this is because when doing client side pagination, all the items in this collection are expected to already
-  // be cached in this class' state
-  ;
-
-  _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
-    this.pageInfoFromResults = {
-      totalPages: this.pageInfoFromResults.totalPages,
-      hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
-      hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
-      endCursor: this.pageInfoFromResults.endCursor,
-      startCursor: this.pageInfoFromResults.startCursor
-    };
-  };
-
-  _createClass(NodesCollection, [{
-    key: "nodes",
-    get: function get() {
-      if (this.useServerSidePaginationFilteringSorting) return this.items; // this is because when doing client side pagination, all the items in this collection are expected to already
-      // be cached in this class' state
-
-      return getPageResults({
-        items: this.items,
-        pages: this.pagesBeingDisplayed,
-        itemsPerPage: this.clientSidePageInfo.pageSize
-      });
-    }
-  }, {
-    key: "hasNextPage",
-    get: function get() {
-      return this.pageInfoFromResults.hasNextPage;
-    }
-  }, {
-    key: "hasPreviousPage",
-    get: function get() {
-      return this.pageInfoFromResults.hasPreviousPage;
-    }
-  }, {
-    key: "totalPages",
-    get: function get() {
-      return this.pageInfoFromResults.totalPages;
-    }
-  }, {
-    key: "page",
-    get: function get() {
-      return this.clientSidePageInfo.lastQueriedPage;
-    }
-  }]);
-
-  return NodesCollection;
-}();
-
-function getPageResults(opts) {
-  var inChunks = chunkArray(opts.items, opts.itemsPerPage);
-  return opts.pages.map(function (pageNumber) {
-    return inChunks[pageNumber - 1];
-  }).flat();
-}
-
-var chunkArray = function chunkArray(arr, size) {
-  return arr.length > size ? [arr.slice(0, size)].concat(chunkArray(arr.slice(size), size)) : [arr];
-};
-
 var _templateObject, _templateObject2, _templateObject3;
 function createQueryManager(mmGQLInstance) {
   /**
@@ -5441,17 +5038,52 @@ function createQueryManager(mmGQLInstance) {
    *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
   return /*#__PURE__*/function () {
-    function QueryManager(queryRecord, opts) {
+    function QueryManager(queryDefinitions, opts) {
       this.state = {};
-      this.queryRecord = void 0;
+      this.queryDefinitions = void 0;
       this.opts = void 0;
-      this.queryRecord = queryRecord;
+      this.queryRecord = null;
+      this.queryDefinitions = queryDefinitions;
       this.opts = opts;
+      (function () {
+        var _onFirstQueryDefinitionsReceived = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(qm) {
+          return runtime_1.wrap(function _callee$(_context) {
+            while (1) {
+              switch (_context.prev = _context.next) {
+                case 0:
+                  _context.prev = 0;
+                  _context.next = 3;
+                  return qm.onQueryDefinitionsUpdated(qm.queryDefinitions);
+
+                case 3:
+                  _context.next = 8;
+                  break;
+
+                case 5:
+                  _context.prev = 5;
+                  _context.t0 = _context["catch"](0);
+                  qm.opts.onQueryError(_context.t0);
+
+                case 8:
+                case "end":
+                  return _context.stop();
+              }
+            }
+          }, _callee, null, [[0, 5]]);
+        }));
+
+        function onFirstQueryDefinitionsReceived(_x) {
+          return _onFirstQueryDefinitionsReceived.apply(this, arguments);
+        }
+
+        return onFirstQueryDefinitionsReceived;
+      })()(this);
     }
 
     var _proto = QueryManager.prototype;
 
     _proto.onQueryResult = function onQueryResult(opts) {
+      if (!this.queryRecord) throw Error('No query record initialized');
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: this.queryRecord
@@ -5468,11 +5100,13 @@ function createQueryManager(mmGQLInstance) {
         extendNestedObjects: false,
         deleteKeysNotInExtension: false
       });
+      this.opts.onResultsUpdated();
     };
 
     _proto.onSubscriptionMessage = function onSubscriptionMessage(opts) {
       var _data, _queryRecord;
 
+      if (!this.queryRecord) throw Error('No query record initialized');
       var node = opts.node,
           subscriptionAlias = opts.subscriptionAlias;
       var queryRecordEntryForThisSubscription = this.queryRecord[subscriptionAlias];
@@ -5485,6 +5119,7 @@ function createQueryManager(mmGQLInstance) {
         state: this.state,
         aliasPath: []
       }));
+      this.opts.onResultsUpdated();
     }
     /**
      * Is used to build the root level results for the query, and also to build the relational results
@@ -5565,16 +5200,15 @@ function createQueryManager(mmGQLInstance) {
       var _this2 = this;
 
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
+        var queryRecordEntry = opts.queryRecord[queryAlias];
+        if (!queryRecordEntry) return;
+
         var dataForThisAlias = _this2.getDataFromResponse({
-          queryRecordEntry: opts.queryRecord[queryAlias],
+          queryRecordEntry: queryRecordEntry,
           dataForThisAlias: opts.data[queryAlias]
         });
 
-        if (!dataForThisAlias) {
-          throw Error("notifyRepositories could not find resulting data for the alias \"" + queryAlias + "\" in the following queryRecord:\n" + JSON.stringify(opts.queryRecord, null, 2) + "\nResulting data:\n" + JSON.stringify(opts.data, null, 2));
-        }
-
-        var nodeRepository = opts.queryRecord[queryAlias].def.repository;
+        var nodeRepository = queryRecordEntry.def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
           dataForThisAlias.forEach(function (data) {
@@ -5584,7 +5218,7 @@ function createQueryManager(mmGQLInstance) {
           nodeRepository.onDataReceived(dataForThisAlias);
         }
 
-        var relationalQueries = opts.queryRecord[queryAlias].relational;
+        var relationalQueries = queryRecordEntry.relational;
 
         if (relationalQueries) {
           Object.keys(relationalQueries).forEach(function (relationalAlias) {
@@ -5653,13 +5287,24 @@ function createQueryManager(mmGQLInstance) {
       var nodeData = opts.nodeData,
           queryAlias = opts.queryAlias;
       var queryRecord = opts.queryRecord;
-      var relational = queryRecord[opts.queryAlias].relational; // if the query alias includes a relational union query separator
+      var queryRecordEntry = queryRecord[opts.queryAlias];
+
+      if (!queryRecordEntry) {
+        return {
+          idsOrIdInCurrentResult: null,
+          proxyCache: {},
+          pageInfoFromResults: null,
+          clientSidePageInfo: null
+        };
+      }
+
+      var relational = queryRecordEntry.relational; // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
       // this means that the result node likely matches a different type in that union
 
       if (queryAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
         var node = opts.nodeData[0];
-        if (node && node.type !== queryRecord[opts.queryAlias].def.type) return null;
+        if (node && node.type !== queryRecordEntry.def.type) return null;
       }
 
       var buildRelationalStateForNode = function buildRelationalStateForNode(node) {
@@ -5699,7 +5344,7 @@ function createQueryManager(mmGQLInstance) {
 
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildCacheEntryOpts) {
         var relationalState = buildRelationalStateForNode(buildCacheEntryOpts.node);
-        var nodeRepository = queryRecord[queryAlias].def.repository;
+        var nodeRepository = queryRecordEntry.def.repository;
         var relationalQueries = relational ? _this4.getApplicableRelationalQueries({
           relationalQueries: relational,
           nodeData: buildCacheEntryOpts.node
@@ -5711,8 +5356,8 @@ function createQueryManager(mmGQLInstance) {
         });
 
         var proxy = mmGQLInstance.DOProxyGenerator({
-          node: queryRecord[opts.queryAlias].def,
-          allPropertiesQueried: queryRecord[opts.queryAlias].properties,
+          node: queryRecordEntry.def,
+          allPropertiesQueried: queryRecordEntry.properties,
           relationalQueries: relationalQueries,
           queryId: _this4.opts.queryId,
           relationalResults: !relationalState ? null : _this4.getResultsFromState({
@@ -5728,9 +5373,9 @@ function createQueryManager(mmGQLInstance) {
       };
 
       if (Array.isArray(opts.nodeData)) {
-        if ('id' in queryRecord[opts.queryAlias]) {
+        if ('id' in queryRecordEntry) {
           if (opts.nodeData[0] == null) {
-            if (!queryRecord[opts.queryAlias].allowNullResult) throw new DataParsingException({
+            if (!queryRecordEntry.allowNullResult) throw new DataParsingException({
               receivedData: opts.nodeData,
               message: "Queried a node by id for the query with the id \"" + this.opts.queryId + "\" but received back an empty array"
             });
@@ -5783,6 +5428,7 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.updateProxiesAndStateFromSubscriptionMessage = function updateProxiesAndStateFromSubscriptionMessage(opts) {
+      if (!this.queryRecord) throw Error('No query record initialized');
       var node = opts.node,
           subscriptionAlias = opts.subscriptionAlias,
           operation = opts.operation;
@@ -5817,7 +5463,7 @@ function createQueryManager(mmGQLInstance) {
             queryRecord: queryRecordEntryForThisSubscription,
             node: opts.node
           }),
-          relationalQueryRecord: queryRecordEntryForThisSubscription.relational || null,
+          relationalQueryRecord: (queryRecordEntryForThisSubscription == null ? void 0 : queryRecordEntryForThisSubscription.relational) || null,
           currentState: {
             proxy: proxy,
             relationalState: relationalState
@@ -5842,7 +5488,9 @@ function createQueryManager(mmGQLInstance) {
         stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
       }
 
-      if ('id' in queryRecordEntryForThisSubscription) {
+      if (!queryRecordEntryForThisSubscription) {
+        return;
+      } else if ('id' in queryRecordEntryForThisSubscription) {
         if (stateForThisAlias.idsOrIdInCurrentResult === nodeId) {
           return;
         }
@@ -5959,6 +5607,7 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.getRelationalData = function getRelationalData(opts) {
+      if (!opts.queryRecord) return null;
       return opts.queryRecord.relational ? Object.keys(opts.queryRecord.relational).reduce(function (relationalDataAcc, relationalAlias) {
         relationalDataAcc[relationalAlias] = opts.node[relationalAlias];
         return relationalDataAcc;
@@ -5986,13 +5635,16 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.getDataFromResponse = function getDataFromResponse(opts) {
+      if (opts.queryRecordEntry == null) return null;
       return queryRecordEntryReturnsArrayOfData({
         queryRecordEntry: opts.queryRecordEntry
       }) ? opts.dataForThisAlias[NODES_PROPERTY_KEY] : opts.dataForThisAlias;
     };
 
     _proto.getPageInfoFromResponse = function getPageInfoFromResponse(opts) {
-      return opts.dataForThisAlias[PAGE_INFO_PROPERTY_KEY] || null;
+      var _opts$dataForThisAlia;
+
+      return ((_opts$dataForThisAlia = opts.dataForThisAlias) == null ? void 0 : _opts$dataForThisAlia[PAGE_INFO_PROPERTY_KEY]) || null;
     };
 
     _proto.getPageInfoFromResponseForAlias = function getPageInfoFromResponseForAlias(opts) {
@@ -6035,6 +5687,7 @@ function createQueryManager(mmGQLInstance) {
     _proto.getInitialClientSidePageInfo = function getInitialClientSidePageInfo(opts) {
       var _opts$queryRecordEntr;
 
+      if (!opts.queryRecordEntry) return null;
       if (!queryRecordEntryReturnsArrayOfData({
         queryRecordEntry: opts.queryRecordEntry
       })) return null;
@@ -6045,45 +5698,57 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.onLoadMoreResults = /*#__PURE__*/function () {
-      var _onLoadMoreResults = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+      var _onLoadMoreResults = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
         var newMinimalQueryRecordForMoreResults, tokenName, newData;
-        return runtime_1.wrap(function _callee$(_context) {
+        return runtime_1.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context.prev = _context.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
-                if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context.next = 4;
+                if (this.queryRecord) {
+                  _context2.next = 2;
                   break;
                 }
 
-                _context.next = 3;
+                throw Error('No query record initialized');
+
+              case 2:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context2.next = 6;
+                  break;
+                }
+
+                _context2.next = 5;
                 return new Promise(function (resolve) {
                   return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
                 });
 
-              case 3:
-                return _context.abrupt("return");
+              case 5:
+                return _context2.abrupt("return");
 
-              case 4:
+              case 6:
                 newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
                   previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context.next = 8;
-                return this.opts.performQuery({
+                _context2.next = 10;
+                return performQueries({
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   queryGQL: client.gql(_templateObject || (_templateObject = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
                     queryId: this.opts.queryId,
                     queryRecord: newMinimalQueryRecordForMoreResults,
                     useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
                   })),
-                  tokenName: tokenName
+                  tokenName: tokenName,
+                  batchKey: this.opts.batchKey || null,
+                  mmGQLInstance: mmGQLInstance,
+                  queryId: this.opts.queryId,
+                  getMockDataDelay: this.opts.getMockDataDelay
                 });
 
-              case 8:
-                newData = _context.sent;
+              case 10:
+                newData = _context2.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
                   queryRecord: newMinimalQueryRecordForMoreResults,
@@ -6091,69 +5756,7 @@ function createQueryManager(mmGQLInstance) {
                   event: 'LOAD_MORE'
                 });
 
-              case 10:
-              case "end":
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function onLoadMoreResults(_x) {
-        return _onLoadMoreResults.apply(this, arguments);
-      }
-
-      return onLoadMoreResults;
-    }();
-
-    _proto.onGoToNextPage = /*#__PURE__*/function () {
-      var _onGoToNextPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(opts) {
-        var newMinimalQueryRecordForMoreResults, tokenName, newData;
-        return runtime_1.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context2.next = 4;
-                  break;
-                }
-
-                _context2.next = 3;
-                return new Promise(function (resolve) {
-                  return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
-                });
-
-              case 3:
-                return _context2.abrupt("return");
-
-              case 4:
-                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
-                  preExistingQueryRecord: this.queryRecord,
-                  previousEndCursor: opts.previousEndCursor,
-                  aliasPath: opts.aliasPath
-                });
-                tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context2.next = 8;
-                return this.opts.performQuery({
-                  queryRecord: newMinimalQueryRecordForMoreResults,
-                  queryGQL: client.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
-                    queryId: this.opts.queryId,
-                    queryRecord: newMinimalQueryRecordForMoreResults,
-                    useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
-                  })),
-                  tokenName: tokenName
-                });
-
-              case 8:
-                newData = _context2.sent;
-                this.handlePagingEventData({
-                  aliasPath: opts.aliasPath,
-                  queryRecord: newMinimalQueryRecordForMoreResults,
-                  newData: newData,
-                  event: 'GO_TO_NEXT'
-                });
-
-              case 10:
+              case 12:
               case "end":
                 return _context2.stop();
             }
@@ -6161,61 +5764,73 @@ function createQueryManager(mmGQLInstance) {
         }, _callee2, this);
       }));
 
-      function onGoToNextPage(_x2) {
-        return _onGoToNextPage.apply(this, arguments);
+      function onLoadMoreResults(_x2) {
+        return _onLoadMoreResults.apply(this, arguments);
       }
 
-      return onGoToNextPage;
+      return onLoadMoreResults;
     }();
 
-    _proto.onGoToPreviousPage = /*#__PURE__*/function () {
-      var _onGoToPreviousPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
+    _proto.onGoToNextPage = /*#__PURE__*/function () {
+      var _onGoToNextPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee3(opts) {
         var newMinimalQueryRecordForMoreResults, tokenName, newData;
         return runtime_1.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                if (this.opts.useServerSidePaginationFilteringSorting) {
-                  _context3.next = 4;
+                if (this.queryRecord) {
+                  _context3.next = 2;
                   break;
                 }
 
-                _context3.next = 3;
+                throw Error('No query record initialized');
+
+              case 2:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context3.next = 6;
+                  break;
+                }
+
+                _context3.next = 5;
                 return new Promise(function (resolve) {
                   return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
                 });
 
-              case 3:
+              case 5:
                 return _context3.abrupt("return");
 
-              case 4:
-                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
+              case 6:
+                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForMoreResults({
                   preExistingQueryRecord: this.queryRecord,
-                  previousStartCursor: opts.previousStartCursor,
+                  previousEndCursor: opts.previousEndCursor,
                   aliasPath: opts.aliasPath
                 });
                 tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
-                _context3.next = 8;
-                return this.opts.performQuery({
+                _context3.next = 10;
+                return performQueries({
                   queryRecord: newMinimalQueryRecordForMoreResults,
-                  queryGQL: client.gql(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
+                  queryGQL: client.gql(_templateObject2 || (_templateObject2 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
                     queryId: this.opts.queryId,
                     queryRecord: newMinimalQueryRecordForMoreResults,
                     useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
                   })),
-                  tokenName: tokenName
+                  tokenName: tokenName,
+                  batchKey: this.opts.batchKey || null,
+                  mmGQLInstance: mmGQLInstance,
+                  queryId: this.opts.queryId,
+                  getMockDataDelay: this.opts.getMockDataDelay
                 });
 
-              case 8:
+              case 10:
                 newData = _context3.sent;
                 this.handlePagingEventData({
                   aliasPath: opts.aliasPath,
                   queryRecord: newMinimalQueryRecordForMoreResults,
                   newData: newData,
-                  event: 'GO_TO_PREVIOUS'
+                  event: 'GO_TO_NEXT'
                 });
 
-              case 10:
+              case 12:
               case "end":
                 return _context3.stop();
             }
@@ -6223,7 +5838,81 @@ function createQueryManager(mmGQLInstance) {
         }, _callee3, this);
       }));
 
-      function onGoToPreviousPage(_x3) {
+      function onGoToNextPage(_x3) {
+        return _onGoToNextPage.apply(this, arguments);
+      }
+
+      return onGoToNextPage;
+    }();
+
+    _proto.onGoToPreviousPage = /*#__PURE__*/function () {
+      var _onGoToPreviousPage = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee4(opts) {
+        var newMinimalQueryRecordForMoreResults, tokenName, newData;
+        return runtime_1.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                if (this.queryRecord) {
+                  _context4.next = 2;
+                  break;
+                }
+
+                throw Error('No query record initialized');
+
+              case 2:
+                if (this.opts.useServerSidePaginationFilteringSorting) {
+                  _context4.next = 6;
+                  break;
+                }
+
+                _context4.next = 5;
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, (mmGQLInstance.getMockDataDelay == null ? void 0 : mmGQLInstance.getMockDataDelay()) || 0);
+                });
+
+              case 5:
+                return _context4.abrupt("return");
+
+              case 6:
+                newMinimalQueryRecordForMoreResults = this.getMinimalQueryRecordForPreviousPage({
+                  preExistingQueryRecord: this.queryRecord,
+                  previousStartCursor: opts.previousStartCursor,
+                  aliasPath: opts.aliasPath
+                });
+                tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
+                _context4.next = 10;
+                return performQueries({
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  queryGQL: client.gql(_templateObject3 || (_templateObject3 = _taggedTemplateLiteralLoose(["\n          ", "\n        "])), getQueryGQLStringFromQueryRecord({
+                    queryId: this.opts.queryId,
+                    queryRecord: newMinimalQueryRecordForMoreResults,
+                    useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
+                  })),
+                  tokenName: tokenName,
+                  batchKey: this.opts.batchKey || null,
+                  mmGQLInstance: mmGQLInstance,
+                  queryId: this.opts.queryId,
+                  getMockDataDelay: this.opts.getMockDataDelay
+                });
+
+              case 10:
+                newData = _context4.sent;
+                this.handlePagingEventData({
+                  aliasPath: opts.aliasPath,
+                  queryRecord: newMinimalQueryRecordForMoreResults,
+                  newData: newData,
+                  event: 'GO_TO_PREVIOUS'
+                });
+
+              case 12:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4, this);
+      }));
+
+      function onGoToPreviousPage(_x4) {
         return _onGoToPreviousPage.apply(this, arguments);
       }
 
@@ -6231,10 +5920,13 @@ function createQueryManager(mmGQLInstance) {
     }();
 
     _proto.getTokenNameForAliasPath = function getTokenNameForAliasPath(aliasPath) {
+      var _this$queryRecord$fir;
+
+      if (!this.queryRecord) throw Error('No query record initialized');
       if (aliasPath.length === 0) throw new Error('Alias path must contain at least 1 entry');
       var firstAliasWithoutId = this.removeIdFromAlias(aliasPath[0]);
       if (!this.queryRecord[firstAliasWithoutId]) throw Error("The key " + firstAliasWithoutId + " was not found in the queryRecord\n" + JSON.stringify(this.queryRecord, null, 2));
-      return this.queryRecord[firstAliasWithoutId].tokenName || DEFAULT_TOKEN_NAME;
+      return ((_this$queryRecord$fir = this.queryRecord[firstAliasWithoutId]) == null ? void 0 : _this$queryRecord$fir.tokenName) || DEFAULT_TOKEN_NAME;
     }
     /**
      * Builds a new query record which contains the smallest query possible
@@ -6321,6 +6013,112 @@ function createQueryManager(mmGQLInstance) {
       this.opts.onResultsUpdated();
     };
 
+    _proto.onQueryDefinitionsUpdated = /*#__PURE__*/function () {
+      var _onQueryDefinitionsUpdated = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6(newQueryDefinitionRecord) {
+        var _this7 = this;
+
+        var _convertQueryDefiniti, queryRecord, nonNullishQueryDefinitions, nullishResults, queryDefinitionsSplitByToken, resultsForEachTokenUsed, allResults;
+
+        return runtime_1.wrap(function _callee6$(_context6) {
+          while (1) {
+            switch (_context6.prev = _context6.next) {
+              case 0:
+                _convertQueryDefiniti = convertQueryDefinitionToQueryInfo({
+                  queryDefinitions: newQueryDefinitionRecord,
+                  queryId: this.opts.queryId,
+                  useServerSidePaginationFilteringSorting: this.opts.useServerSidePaginationFilteringSorting
+                }), queryRecord = _convertQueryDefiniti.queryRecord;
+                this.queryRecord = queryRecord;
+                nonNullishQueryDefinitions = removeNullishQueryDefinitions(newQueryDefinitionRecord);
+                nullishResults = getNullishResults(newQueryDefinitionRecord);
+
+                if (Object.keys(nonNullishQueryDefinitions).length) {
+                  _context6.next = 7;
+                  break;
+                }
+
+                this.onQueryResult({
+                  queryResult: _extends({}, nullishResults)
+                });
+                return _context6.abrupt("return");
+
+              case 7:
+                queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(nonNullishQueryDefinitions);
+                _context6.next = 10;
+                return Promise.all(Object.entries(queryDefinitionsSplitByToken).map( /*#__PURE__*/function () {
+                  var _ref3 = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee5(_ref2) {
+                    var tokenName, queryDefinitions, _convertQueryDefiniti2, queryGQL, queryRecord;
+
+                    return runtime_1.wrap(function _callee5$(_context5) {
+                      while (1) {
+                        switch (_context5.prev = _context5.next) {
+                          case 0:
+                            tokenName = _ref2[0], queryDefinitions = _ref2[1];
+                            _convertQueryDefiniti2 = convertQueryDefinitionToQueryInfo({
+                              queryDefinitions: queryDefinitions,
+                              queryId: _this7.opts.queryId,
+                              useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
+                            }), queryGQL = _convertQueryDefiniti2.queryGQL, queryRecord = _convertQueryDefiniti2.queryRecord;
+
+                            if (!queryGQL) {
+                              _context5.next = 6;
+                              break;
+                            }
+
+                            _context5.next = 5;
+                            return performQueries({
+                              queryRecord: queryRecord,
+                              queryGQL: queryGQL,
+                              queryId: _this7.opts.queryId,
+                              batchKey: _this7.opts.batchKey,
+                              getMockDataDelay: _this7.opts.getMockDataDelay,
+                              tokenName: tokenName,
+                              mmGQLInstance: mmGQLInstance
+                            });
+
+                          case 5:
+                            return _context5.abrupt("return", _context5.sent);
+
+                          case 6:
+                            return _context5.abrupt("return", {});
+
+                          case 7:
+                          case "end":
+                            return _context5.stop();
+                        }
+                      }
+                    }, _callee5);
+                  }));
+
+                  return function (_x6) {
+                    return _ref3.apply(this, arguments);
+                  };
+                }()));
+
+              case 10:
+                resultsForEachTokenUsed = _context6.sent;
+                allResults = resultsForEachTokenUsed.reduce(function (acc, resultsForToken) {
+                  return _extends({}, acc, resultsForToken);
+                }, _extends({}, nullishResults));
+                this.onQueryResult({
+                  queryResult: allResults
+                });
+
+              case 13:
+              case "end":
+                return _context6.stop();
+            }
+          }
+        }, _callee6, this);
+      }));
+
+      function onQueryDefinitionsUpdated(_x5) {
+        return _onQueryDefinitionsUpdated.apply(this, arguments);
+      }
+
+      return onQueryDefinitionsUpdated;
+    }();
+
     _proto.extendStateObject = function extendStateObject(opts) {
       var _opts$aliasPath3 = opts.aliasPath,
           firstAlias = _opts$aliasPath3[0],
@@ -6402,6 +6200,136 @@ function createQueryManager(mmGQLInstance) {
 
     return QueryManager;
   }();
+}
+
+function splitQueryDefinitionsByToken(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (split, _ref4) {
+    var alias = _ref4[0],
+        queryDefinition = _ref4[1];
+    var tokenName = queryDefinition && 'tokenName' in queryDefinition && queryDefinition.tokenName != null ? queryDefinition.tokenName : DEFAULT_TOKEN_NAME;
+    split[tokenName] = split[tokenName] || {};
+    split[tokenName][alias] = queryDefinition;
+    return split;
+  }, {});
+}
+
+function removeNullishQueryDefinitions(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref5) {
+    var alias = _ref5[0],
+        queryDefinition = _ref5[1];
+    if (!queryDefinition) return acc;
+    acc[alias] = queryDefinition;
+    return acc;
+  }, {});
+}
+
+function getNullishResults(queryDefinitions) {
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
+    var key = _ref6[0],
+        queryDefinition = _ref6[1];
+    if (queryDefinition == null) acc[key] = null;
+    return acc;
+  }, {});
+}
+
+function performQueries(_x7) {
+  return _performQueries.apply(this, arguments);
+}
+
+function _performQueries() {
+  _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee7(opts) {
+    var getToken, response, _opts$mmGQLInstance$g, params, filteredAndSortedResponse;
+
+    return runtime_1.wrap(function _callee7$(_context7) {
+      while (1) {
+        switch (_context7.prev = _context7.next) {
+          case 0:
+            getToken = function _getToken(tokenName) {
+              var token = opts.mmGQLInstance.getToken({
+                tokenName: tokenName
+              });
+
+              if (!token) {
+                throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
+              }
+
+              return token;
+            };
+
+            if (!opts.mmGQLInstance.generateMockData) {
+              _context7.next = 5;
+              break;
+            }
+
+            response = generateMockNodeDataForQueryRecord({
+              queryRecord: opts.queryRecord
+            });
+            _context7.next = 15;
+            break;
+
+          case 5:
+            if (!opts.mmGQLInstance.enableQuerySlimming) {
+              _context7.next = 11;
+              break;
+            }
+
+            _context7.next = 8;
+            return opts.mmGQLInstance.QuerySlimmer.query({
+              queryId: opts.queryId,
+              queryRecord: opts.queryRecord,
+              useServerSidePaginationFilteringSorting: opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
+              tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
+              batchKey: opts.batchKey || undefined
+            });
+
+          case 8:
+            response = _context7.sent;
+            _context7.next = 15;
+            break;
+
+          case 11:
+            params = [{
+              gql: opts.queryGQL,
+              token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
+              batchKey: opts.batchKey || undefined
+            }];
+            _context7.next = 14;
+            return (_opts$mmGQLInstance$g = opts.mmGQLInstance.gqlClient).query.apply(_opts$mmGQLInstance$g, params);
+
+          case 14:
+            response = _context7.sent;
+
+          case 15:
+            if (!(opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.CLIENT)) {
+              _context7.next = 19;
+              break;
+            }
+
+            // clone the object only if we are running the unit test
+            // to simulate that we are receiving new response
+            // to prevent mutating the object multiple times when filtering or sorting
+            // resulting into incorrect results in our specs
+            filteredAndSortedResponse =  response;
+            applyClientSideSortAndFilterToData(opts.queryRecord, filteredAndSortedResponse);
+            return _context7.abrupt("return", filteredAndSortedResponse);
+
+          case 19:
+            _context7.next = 21;
+            return new Promise(function (res) {
+              return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
+            });
+
+          case 21:
+            return _context7.abrupt("return", response);
+
+          case 22:
+          case "end":
+            return _context7.stop();
+        }
+      }
+    }, _callee7);
+  }));
+  return _performQueries.apply(this, arguments);
 }
 
 var IN_FLIGHT_TIMEOUT_MS = 1000; // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377

@@ -41,7 +41,7 @@ export declare function convertQueryDefinitionToQueryInfo<TNode, TMapFn, TQueryD
 }): {
     queryGQL: null;
     subscriptionConfigs: null;
-    queryRecord: {};
+    queryRecord: Record<string, null>;
     queryParamsString: null;
 } | {
     queryGQL: import("graphql/language/ast").DocumentNode;

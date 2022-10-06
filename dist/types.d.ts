@@ -75,6 +75,7 @@ export interface IQueryManager {
         queryId: string;
         subscriptionAlias: string;
     }): void;
+    onQueryDefinitionsUpdated(newQueryDefinitions: QueryDefinitions<any, any, any>): Promise<void>;
 }
 export declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
     data: QueryDataReturn<TQueryDefinitions>;
@@ -109,7 +110,7 @@ export declare type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
-    updateQueryDefinitions: (newQueryDefinitionRecord: UseSubscriptionQueryDefinitions<any, any, any, any>) => Promise<void>;
+    onQueryDefinitionsUpdated: (newQueryDefinitionRecord: QueryDefinitions<any, any, any>) => Promise<void>;
     error: any;
 };
 export declare enum EPaginationFilteringSortingInstance {
@@ -703,7 +704,7 @@ export declare type RelationalQueryRecordEntry = {
 }) | (BaseQueryRecordEntry & {
     oneToMany: true;
 }));
-export declare type QueryRecord = Record<string, QueryRecordEntry>;
+export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
