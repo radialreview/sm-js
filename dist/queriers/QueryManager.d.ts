@@ -186,4 +186,34 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
     };
 };
 export declare function removeNullishQueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(queryDefinitions: TQueryDefinitions): TQueryDefinitions;
+/**
+ * Given a previousQueryRecord and a nextQueryRecord,
+ * returns the minimal query record required to perform the next query
+ *
+ * For now, does not account for a change in the properties being queried
+ * It only looks at the filter, sort and pagination parameters being used
+ *
+ * If any of those were updated, the query for that data will be performed
+ *
+ * Recursion: does it have to handle query changes in related data?
+ * The answer is yes, ideally. However, what if the user had loaded more results on the parent list,
+ * previous to updating the filter/sorting/pagination on the child list?
+ *
+ * In this case, we would have to load the relational results for which the query was updated
+ * for each item of the parent list that had been loaded so far, which could be a lot of data.
+ * Not just that, it would be impossible to request that in a single query, which means this
+ * function would have to inherit the additional complexity of returning multiple queries
+ * and then the function calling this function would have to handle that as well.
+ *
+ * Because of that, any update to the filter/sorting/pagination of a child list query will result in
+ * a full query starting at the root of the query record
+ */
+export declare function getMinimalQueryRecordForNextQuery(opts: {
+    previousQueryRecord: QueryRecord;
+    nextQueryRecord: QueryRecord;
+}): QueryRecord;
+export declare function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts: {
+    previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+    nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}): boolean;
 export {};
