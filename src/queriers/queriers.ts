@@ -199,7 +199,13 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             data: dataToReturn,
             unsub,
             onQueryDefinitionsUpdated: () => {
-              throw Error(error);
+              const error = getError(
+                new Error(
+                  `onQueryDefinitionsUpdated called when there was an error initializing query manager`
+                ),
+                (e as any).stack
+              );
+              throw error;
             },
             error: e,
           } as unknown) as ReturnType);

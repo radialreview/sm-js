@@ -1201,6 +1201,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return;
       }
 
+      // @TODO instead of using nonNullishQueryDefinitions
+      // use the minimal query record from getMinimalQueryRecordForNextQuery
       const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
         nonNullishQueryDefinitions
       );
@@ -1508,4 +1510,195 @@ async function performQueries(opts: {
 
   await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
   return response;
+}
+
+/**
+ * Given a previousQueryRecord and a nextQueryRecord,
+ * returns the minimal query record required to perform the next query
+ *
+ * For now, does not account for a change in the properties being queried
+ * It only looks at the filter, sort and pagination parameters being used
+ *
+ * If any of those were updated, the query for that data will be performed
+ *
+ * Recursion: does it have to handle query changes in related data?
+ * The answer is yes, ideally. However, what if the user had loaded more results on the parent list,
+ * previous to updating the filter/sorting/pagination on the child list?
+ *
+ * In this case, we would have to load the relational results for which the query was updated
+ * for each item of the parent list that had been loaded so far, which could be a lot of data.
+ * Not just that, it would be impossible to request that in a single query, which means this
+ * function would have to inherit the additional complexity of returning multiple queries
+ * and then the function calling this function would have to handle that as well.
+ *
+ * Because of that, any update to the filter/sorting/pagination of a child list query will result in
+ * a full query starting at the root of the query record
+ */
+export function getMinimalQueryRecordForNextQuery(opts: {
+  previousQueryRecord: QueryRecord;
+  nextQueryRecord: QueryRecord;
+}) {
+  const { nextQueryRecord, previousQueryRecord } = opts;
+  const minimalQueryRecord: QueryRecord = {};
+
+  Object.entries(nextQueryRecord).forEach(([alias, nextQueryRecordEntry]) => {
+    if (!nextQueryRecordEntry) return;
+
+    const previousQueryRecordEntry = previousQueryRecord[alias];
+
+    if (!previousQueryRecordEntry) {
+      minimalQueryRecord[alias] = nextQueryRecordEntry;
+      return;
+    }
+
+    // if this root query record entry returns an array of data
+    // we must perform a full query if sorting/pagination/filtering has changed
+    // for this root query or any of the relational queries
+    // for the reasons stated above
+    const rootQueryReturnsArray = queryRecordEntryReturnsArrayOfData({
+      queryRecordEntry: nextQueryRecordEntry,
+    });
+    if (rootQueryReturnsArray) {
+      const rootQueryHasUpdatedTheirFilteringSortingOrPagination = getQueryFilterSortingPaginationHasBeenUpdated(
+        {
+          previousQueryRecordEntry,
+          nextQueryRecordEntry,
+        }
+      );
+
+      if (rootQueryHasUpdatedTheirFilteringSortingOrPagination) {
+        minimalQueryRecord[alias] = nextQueryRecordEntry;
+        return;
+      }
+
+      const relationalParamsHaveBeenUpdatedForRelationalQueries = getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(
+        {
+          previousQueryRecordEntry: previousQueryRecordEntry,
+          nextQueryRecordEntry: nextQueryRecordEntry,
+        }
+      );
+      if (relationalParamsHaveBeenUpdatedForRelationalQueries) {
+        minimalQueryRecord[alias] = nextQueryRecordEntry;
+      }
+
+      return;
+    }
+
+    const updatedRelationalQueries = getRelationalQueriesWithUpdatedFilteringSortingPagination(
+      {
+        previousQueryRecordEntry: previousQueryRecordEntry,
+        nextQueryRecordEntry: nextQueryRecordEntry,
+      }
+    );
+
+    if (updatedRelationalQueries) {
+      minimalQueryRecord[alias] = {
+        ...nextQueryRecordEntry,
+        relational: updatedRelationalQueries,
+      };
+    }
+  });
+
+  return minimalQueryRecord;
+}
+
+export function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts: {
+  previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}): boolean {
+  const { previousQueryRecordEntry, nextQueryRecordEntry } = opts;
+
+  if (nextQueryRecordEntry.relational == null) {
+    return false;
+  } else if (previousQueryRecordEntry.relational == null) {
+    return true;
+  } else {
+    const previousRelational = previousQueryRecordEntry.relational as RelationalQueryRecord;
+    return Object.entries(nextQueryRecordEntry.relational).some(
+      ([key, nextQueryValue]) => {
+        const previousQueryValue = previousRelational[key];
+
+        if (!previousQueryValue) return true;
+
+        const previousFilterSortingPagination = JSON.stringify({
+          filter: previousQueryValue.filter,
+          sort: previousQueryValue.sort,
+          pagination: previousQueryValue.pagination,
+        });
+
+        const nextFilterSortingPagination = JSON.stringify({
+          filter: nextQueryValue.filter,
+          sort: nextQueryValue.sort,
+          pagination: nextQueryValue.pagination,
+        });
+
+        if (previousFilterSortingPagination !== nextFilterSortingPagination)
+          return true;
+
+        return getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination({
+          previousQueryRecordEntry: previousQueryValue,
+          nextQueryRecordEntry: nextQueryValue,
+        });
+      }
+    );
+  }
+}
+
+function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts: {
+  previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}): RelationalQueryRecord | undefined {
+  const { previousQueryRecordEntry, nextQueryRecordEntry } = opts;
+
+  if (
+    nextQueryRecordEntry.relational == null ||
+    previousQueryRecordEntry.relational == null
+  )
+    return nextQueryRecordEntry.relational;
+
+  const previousRelational = previousQueryRecordEntry.relational as RelationalQueryRecord;
+  return Object.entries(nextQueryRecordEntry.relational).reduce(
+    (acc, [key, nextQueryRecordEntry]) => {
+      const previousQueryRecordEntry = previousRelational[key];
+
+      if (!previousQueryRecordEntry) {
+        acc[key] = nextQueryRecordEntry;
+        return acc;
+      }
+
+      const filterSortingPaginationHasBeenUpdated = getQueryFilterSortingPaginationHasBeenUpdated(
+        {
+          previousQueryRecordEntry,
+          nextQueryRecordEntry,
+        }
+      );
+      if (filterSortingPaginationHasBeenUpdated) {
+        acc[key] = nextQueryRecordEntry;
+      }
+
+      return acc;
+    },
+    {} as RelationalQueryRecord
+  );
+}
+
+function getQueryFilterSortingPaginationHasBeenUpdated(opts: {
+  previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  const { previousQueryRecordEntry, nextQueryRecordEntry } = opts;
+
+  const previousFilterSortingPagination = JSON.stringify({
+    filter: previousQueryRecordEntry.filter,
+    sort: previousQueryRecordEntry.sort,
+    pagination: previousQueryRecordEntry.pagination,
+  });
+
+  const nextFilterSortingPagination = JSON.stringify({
+    filter: nextQueryRecordEntry.filter,
+    sort: nextQueryRecordEntry.sort,
+    pagination: nextQueryRecordEntry.pagination,
+  });
+
+  return previousFilterSortingPagination !== nextFilterSortingPagination;
 }
