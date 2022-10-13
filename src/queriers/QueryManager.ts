@@ -27,6 +27,7 @@ import {
   QueryDataReturn,
   EPaginationFilteringSortingInstance,
   IGQLClient,
+  UseSubscriptionQueryDefinitions,
 } from '../types';
 import {
   convertQueryDefinitionToQueryInfo,
@@ -88,12 +89,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
    */
   return class QueryManager implements IQueryManager {
     public state: QueryManagerState = {};
-    public queryDefinitions: QueryDefinitions<any, any, any>;
+    public queryDefinitions:
+      | QueryDefinitions<unknown, unknown, unknown>
+      | UseSubscriptionQueryDefinitions<unknown, unknown, unknown, unknown>;
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
 
     constructor(
-      queryDefinitions: QueryDefinitions<any, any, any>,
+      queryDefinitions:
+        | QueryDefinitions<unknown, unknown, unknown>
+        | UseSubscriptionQueryDefinitions<unknown, unknown, unknown, unknown>,
       opts: QueryManagerOpts
     ) {
       this.queryDefinitions = queryDefinitions;
@@ -1184,7 +1189,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public async onQueryDefinitionsUpdated(
-      newQueryDefinitionRecord: QueryDefinitions<any, any, any>
+      newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>
     ): Promise<void> {
       const previousQueryRecord = this.queryRecord;
 
