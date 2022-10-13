@@ -208,6 +208,116 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
     })
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
+    todosNotUpdating: undefined, // this query record entry should not be included because filtering has not been updated
+  });
+});
+
+test('getMinimalQueryRecordForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their sorting', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const todoNode = generateTodoNode(mmGQLInstance);
+  const userNode = generateUserNode(mmGQLInstance, todoNode);
+
+  const mockAssigneeRelationalQuery: RelationalQueryRecordEntry = {
+    _relationshipName: 'assignee',
+    def: userNode,
+    properties: ['id'],
+    sort: {
+      name: 'asc',
+    },
+    oneToMany: true,
+  };
+
+  const mockTodosQueryRecordEntry: QueryRecordEntry = {
+    def: todoNode,
+    properties: ['id'],
+    tokenName: 'test',
+    relational: {
+      assignee: mockAssigneeRelationalQuery,
+      assigneeNotUpdating: mockAssigneeRelationalQuery,
+    },
+  };
+
+  const mockTodosQueryRecordEntryWithUpdatedAssigneeFilter: QueryRecordEntry = {
+    ...mockTodosQueryRecordEntry,
+    relational: {
+      assignee: {
+        ...mockAssigneeRelationalQuery,
+        sort: {
+          name: 'desc',
+        },
+      },
+      assigneeNotUpdating: mockAssigneeRelationalQuery,
+    },
+  };
+
+  expect(
+    getMinimalQueryRecordForNextQuery({
+      nextQueryRecord: {
+        todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+      previousQueryRecord: {
+        todos: mockTodosQueryRecordEntry,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+    })
+  ).toEqual({
+    todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
+    todosNotUpdating: undefined, // this query record entry should not be included because sorting has not been updated
+  });
+});
+
+test('getMinimalQueryRecordForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their pagination', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const todoNode = generateTodoNode(mmGQLInstance);
+  const userNode = generateUserNode(mmGQLInstance, todoNode);
+
+  const mockAssigneeRelationalQuery: RelationalQueryRecordEntry = {
+    _relationshipName: 'assignee',
+    def: userNode,
+    properties: ['id'],
+    pagination: {
+      itemsPerPage: 10,
+    },
+    oneToMany: true,
+  };
+
+  const mockTodosQueryRecordEntry: QueryRecordEntry = {
+    def: todoNode,
+    properties: ['id'],
+    tokenName: 'test',
+    relational: {
+      assignee: mockAssigneeRelationalQuery,
+      assigneeNotUpdating: mockAssigneeRelationalQuery,
+    },
+  };
+
+  const mockTodosQueryRecordEntryWithUpdatedAssigneeFilter: QueryRecordEntry = {
+    ...mockTodosQueryRecordEntry,
+    relational: {
+      assignee: {
+        ...mockAssigneeRelationalQuery,
+        pagination: {
+          itemsPerPage: 20,
+        },
+      },
+      assigneeNotUpdating: mockAssigneeRelationalQuery,
+    },
+  };
+
+  expect(
+    getMinimalQueryRecordForNextQuery({
+      nextQueryRecord: {
+        todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+      previousQueryRecord: {
+        todos: mockTodosQueryRecordEntry,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+    })
+  ).toEqual({
+    todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
     todosNotUpdating: undefined, // this query record entry should not be included because pagination has not been updated
   });
 });

@@ -30,10 +30,9 @@ import {
 } from '../types';
 import {
   convertQueryDefinitionToQueryInfo,
-  getQueryGQLStringFromQueryRecord,
+  getQueryGQLDocumentFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
-import { gql } from '@apollo/client';
 import { extend } from '../dataUtilities';
 import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import { cloneDeep } from 'lodash';
@@ -925,17 +924,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       ) as QueryRecord;
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
+      const queryGQL = getQueryGQLDocumentFromQueryRecord({
+        queryId: this.opts.queryId,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        useServerSidePaginationFilteringSorting: this.opts
+          .useServerSidePaginationFilteringSorting,
+      });
+
+      if (!queryGQL) throw Error('Expected queryGQL to be defined');
 
       const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
-        queryGQL: gql`
-          ${getQueryGQLStringFromQueryRecord({
-            queryId: this.opts.queryId,
-            queryRecord: newMinimalQueryRecordForMoreResults,
-            useServerSidePaginationFilteringSorting: this.opts
-              .useServerSidePaginationFilteringSorting,
-          })}
-        `,
+        queryGQL,
         tokenName,
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
@@ -975,16 +975,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
+      const queryGQL = getQueryGQLDocumentFromQueryRecord({
+        queryId: this.opts.queryId,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        useServerSidePaginationFilteringSorting: this.opts
+          .useServerSidePaginationFilteringSorting,
+      });
+
+      if (!queryGQL) throw Error('Expected queryGQL to be defined');
+
       const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
-        queryGQL: gql`
-          ${getQueryGQLStringFromQueryRecord({
-            queryId: this.opts.queryId,
-            queryRecord: newMinimalQueryRecordForMoreResults,
-            useServerSidePaginationFilteringSorting: this.opts
-              .useServerSidePaginationFilteringSorting,
-          })}
-        `,
+        queryGQL,
         tokenName,
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
@@ -1024,16 +1026,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const tokenName = this.getTokenNameForAliasPath(opts.aliasPath);
 
+      const queryGQL = getQueryGQLDocumentFromQueryRecord({
+        queryId: this.opts.queryId,
+        queryRecord: newMinimalQueryRecordForMoreResults,
+        useServerSidePaginationFilteringSorting: this.opts
+          .useServerSidePaginationFilteringSorting,
+      });
+
+      if (!queryGQL) throw Error('Expected queryGQL to be defined');
+
       const newData = await performQueries({
         queryRecord: newMinimalQueryRecordForMoreResults,
-        queryGQL: gql`
-          ${getQueryGQLStringFromQueryRecord({
-            queryId: this.opts.queryId,
-            queryRecord: newMinimalQueryRecordForMoreResults,
-            useServerSidePaginationFilteringSorting: this.opts
-              .useServerSidePaginationFilteringSorting,
-          })}
-        `,
+        queryGQL,
         tokenName,
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
@@ -1182,14 +1186,22 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public async onQueryDefinitionsUpdated(
       newQueryDefinitionRecord: QueryDefinitions<any, any, any>
     ): Promise<void> {
+      const previousQueryRecord = this.queryRecord;
+
       const { queryRecord } = convertQueryDefinitionToQueryInfo({
         queryDefinitions: newQueryDefinitionRecord,
         queryId: this.opts.queryId,
         useServerSidePaginationFilteringSorting: this.opts
           .useServerSidePaginationFilteringSorting,
       });
-
       this.queryRecord = queryRecord;
+
+      const minimalQueryRecord = previousQueryRecord
+        ? getMinimalQueryRecordForNextQuery({
+            nextQueryRecord: queryRecord,
+            previousQueryRecord,
+          })
+        : queryRecord;
 
       const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
         newQueryDefinitionRecord
@@ -1201,24 +1213,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return;
       }
 
-      // @TODO instead of using nonNullishQueryDefinitions
-      // use the minimal query record from getMinimalQueryRecordForNextQuery
-      const queryDefinitionsSplitByToken = splitQueryDefinitionsByToken(
-        nonNullishQueryDefinitions
+      const queryRecordsSplitByToken = splitQueryRecordsByToken(
+        minimalQueryRecord
       );
 
       const resultsForEachTokenUsed = await Promise.all(
-        Object.entries(queryDefinitionsSplitByToken).map(
-          async ([tokenName, queryDefinitions]) => {
-            const { queryGQL, queryRecord } = convertQueryDefinitionToQueryInfo(
-              {
-                queryDefinitions,
-                queryId: this.opts.queryId,
-                useServerSidePaginationFilteringSorting:
-                  mmGQLInstance.paginationFilteringSortingInstance ===
-                  EPaginationFilteringSortingInstance.SERVER,
-              }
-            );
+        Object.entries(queryRecordsSplitByToken).map(
+          async ([tokenName, queryRecord]) => {
+            const queryGQL = getQueryGQLDocumentFromQueryRecord({
+              queryId: this.opts.queryId,
+              queryRecord,
+              useServerSidePaginationFilteringSorting: this.opts
+                .useServerSidePaginationFilteringSorting,
+            });
 
             if (queryGQL) {
               return await performQueries({
@@ -1366,17 +1373,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
   };
 }
 
-function splitQueryDefinitionsByToken<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(queryDefinitions: TQueryDefinitions): Record<string, TQueryDefinitions> {
-  return Object.entries(queryDefinitions).reduce(
+function splitQueryRecordsByToken(
+  queryRecord: QueryRecord
+): Record<string, QueryRecord> {
+  return Object.entries(queryRecord).reduce(
     (split, [alias, queryDefinition]) => {
       const tokenName =
         queryDefinition &&
@@ -1386,13 +1386,11 @@ function splitQueryDefinitionsByToken<
           : DEFAULT_TOKEN_NAME;
 
       split[tokenName] = split[tokenName] || {};
-      split[tokenName][
-        alias as keyof TQueryDefinitions
-      ] = queryDefinition as TQueryDefinitions[string];
+      split[tokenName][alias] = queryDefinition;
 
       return split;
     },
-    {} as Record<string, TQueryDefinitions>
+    {} as Record<string, QueryRecord>
   );
 }
 
@@ -1551,6 +1549,18 @@ export function getMinimalQueryRecordForNextQuery(opts: {
       return;
     }
 
+    const rootQueryHasUpdatedTheirFilteringSortingOrPagination = getQueryFilterSortingPaginationHasBeenUpdated(
+      {
+        previousQueryRecordEntry,
+        nextQueryRecordEntry,
+      }
+    );
+
+    if (rootQueryHasUpdatedTheirFilteringSortingOrPagination) {
+      minimalQueryRecord[alias] = nextQueryRecordEntry;
+      return;
+    }
+
     // if this root query record entry returns an array of data
     // we must perform a full query if sorting/pagination/filtering has changed
     // for this root query or any of the relational queries
@@ -1559,18 +1569,6 @@ export function getMinimalQueryRecordForNextQuery(opts: {
       queryRecordEntry: nextQueryRecordEntry,
     });
     if (rootQueryReturnsArray) {
-      const rootQueryHasUpdatedTheirFilteringSortingOrPagination = getQueryFilterSortingPaginationHasBeenUpdated(
-        {
-          previousQueryRecordEntry,
-          nextQueryRecordEntry,
-        }
-      );
-
-      if (rootQueryHasUpdatedTheirFilteringSortingOrPagination) {
-        minimalQueryRecord[alias] = nextQueryRecordEntry;
-        return;
-      }
-
       const relationalParamsHaveBeenUpdatedForRelationalQueries = getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(
         {
           previousQueryRecordEntry: previousQueryRecordEntry,
@@ -1579,9 +1577,8 @@ export function getMinimalQueryRecordForNextQuery(opts: {
       );
       if (relationalParamsHaveBeenUpdatedForRelationalQueries) {
         minimalQueryRecord[alias] = nextQueryRecordEntry;
+        return;
       }
-
-      return;
     }
 
     const updatedRelationalQueries = getRelationalQueriesWithUpdatedFilteringSortingPagination(
@@ -1602,42 +1599,45 @@ export function getMinimalQueryRecordForNextQuery(opts: {
   return minimalQueryRecord;
 }
 
-export function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts: {
+function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts: {
   previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }): boolean {
   const { previousQueryRecordEntry, nextQueryRecordEntry } = opts;
 
   if (nextQueryRecordEntry.relational == null) {
+    // @TODO because this returns false,
+    // we have to somehow manually update the relational results for applicable proxies
     return false;
   } else if (previousQueryRecordEntry.relational == null) {
     return true;
   } else {
-    const previousRelational = previousQueryRecordEntry.relational as RelationalQueryRecord;
+    const previousRelationalRecord = previousQueryRecordEntry.relational as RelationalQueryRecord;
     return Object.entries(nextQueryRecordEntry.relational).some(
-      ([key, nextQueryValue]) => {
-        const previousQueryValue = previousRelational[key];
+      ([key, nextRelationalQueryRecordEntry]) => {
+        const previousRelationalQueryRecordEntry =
+          previousRelationalRecord[key];
 
-        if (!previousQueryValue) return true;
+        if (!previousRelationalQueryRecordEntry) return true;
 
         const previousFilterSortingPagination = JSON.stringify({
-          filter: previousQueryValue.filter,
-          sort: previousQueryValue.sort,
-          pagination: previousQueryValue.pagination,
+          filter: previousRelationalQueryRecordEntry.filter,
+          sort: previousRelationalQueryRecordEntry.sort,
+          pagination: previousRelationalQueryRecordEntry.pagination,
         });
 
         const nextFilterSortingPagination = JSON.stringify({
-          filter: nextQueryValue.filter,
-          sort: nextQueryValue.sort,
-          pagination: nextQueryValue.pagination,
+          filter: nextRelationalQueryRecordEntry.filter,
+          sort: nextRelationalQueryRecordEntry.sort,
+          pagination: nextRelationalQueryRecordEntry.pagination,
         });
 
         if (previousFilterSortingPagination !== nextFilterSortingPagination)
           return true;
 
         return getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination({
-          previousQueryRecordEntry: previousQueryValue,
-          nextQueryRecordEntry: nextQueryValue,
+          previousQueryRecordEntry: previousRelationalQueryRecordEntry,
+          nextQueryRecordEntry: nextRelationalQueryRecordEntry,
         });
       }
     );
@@ -1657,29 +1657,32 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts: {
     return nextQueryRecordEntry.relational;
 
   const previousRelational = previousQueryRecordEntry.relational as RelationalQueryRecord;
-  return Object.entries(nextQueryRecordEntry.relational).reduce(
-    (acc, [key, nextQueryRecordEntry]) => {
-      const previousQueryRecordEntry = previousRelational[key];
+  const updatedRelationalQueries = Object.entries(
+    nextQueryRecordEntry.relational
+  ).reduce((acc, [key, nextQueryRecordEntry]) => {
+    const previousQueryRecordEntry = previousRelational[key];
 
-      if (!previousQueryRecordEntry) {
-        acc[key] = nextQueryRecordEntry;
-        return acc;
-      }
-
-      const filterSortingPaginationHasBeenUpdated = getQueryFilterSortingPaginationHasBeenUpdated(
-        {
-          previousQueryRecordEntry,
-          nextQueryRecordEntry,
-        }
-      );
-      if (filterSortingPaginationHasBeenUpdated) {
-        acc[key] = nextQueryRecordEntry;
-      }
-
+    if (!previousQueryRecordEntry) {
+      acc[key] = nextQueryRecordEntry;
       return acc;
-    },
-    {} as RelationalQueryRecord
-  );
+    }
+
+    const filterSortingPaginationHasBeenUpdated = getQueryFilterSortingPaginationHasBeenUpdated(
+      {
+        previousQueryRecordEntry,
+        nextQueryRecordEntry,
+      }
+    );
+    if (filterSortingPaginationHasBeenUpdated) {
+      acc[key] = nextQueryRecordEntry;
+    }
+
+    return acc;
+  }, {} as RelationalQueryRecord);
+
+  if (Object.keys(updatedRelationalQueries).length)
+    return updatedRelationalQueries;
+  return undefined;
 }
 
 function getQueryFilterSortingPaginationHasBeenUpdated(opts: {

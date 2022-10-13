@@ -829,12 +829,15 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
-export function getQueryGQLStringFromQueryRecord(opts: {
+export function getQueryGQLDocumentFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
-  return (
+  if (!Object.values(opts.queryRecord).some(value => value != null))
+    return null;
+
+  const queryString =
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
       .map(alias => {
@@ -850,8 +853,9 @@ export function getQueryGQLStringFromQueryRecord(opts: {
         });
       })
       .join('\n    ') +
-    '\n}'
-  ).trim();
+    '\n}'.trim();
+
+  return gql(queryString);
 }
 
 function getQueryRecordSortAndFilterValues(
@@ -896,7 +900,7 @@ export function getQueryInfo<
   useServerSidePaginationFilteringSorting: boolean;
 }) {
   const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLString = getQueryGQLStringFromQueryRecord({
+  const queryGQLDocument = getQueryGQLDocumentFromQueryRecord({
     queryId: opts.queryId,
     queryRecord,
     useServerSidePaginationFilteringSorting:
@@ -980,7 +984,7 @@ export function getQueryInfo<
 
   return {
     subscriptionConfigs: subscriptionConfigs,
-    queryGQLString,
+    queryGQLDocument,
     queryParamsString,
     queryRecord,
   };
@@ -1019,14 +1023,14 @@ export function convertQueryDefinitionToQueryInfo<
   }
 
   const {
-    queryGQLString,
+    queryGQLDocument,
     subscriptionConfigs,
     queryRecord,
     queryParamsString,
   } = getQueryInfo(opts);
 
   return {
-    queryGQL: gql(queryGQLString),
+    queryGQL: queryGQLDocument,
     subscriptionConfigs: subscriptionConfigs.map(subscriptionConfig => ({
       ...subscriptionConfig,
       gql: gql(subscriptionConfig.gqlString),
