@@ -14,7 +14,7 @@ import {
   QueryRecordEntry,
   RelationalQueryRecordEntry,
 } from '../types';
-import { getMinimalQueryRecordForNextQuery } from './QueryManager';
+import { getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery } from './QueryManager';
 import { oneToMany, queryDefinition } from '../dataTypes';
 import {
   DEFAULT_TOKEN_NAME,
@@ -433,7 +433,7 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
   }
 });
 
-test('getMinimalQueryRecordForNextQuery includes the query record entry if filtering has been updated', () => {
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if filtering has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -453,7 +453,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if filte
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -462,14 +462,14 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if filte
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedFilter,
     todosNotUpdating: undefined, // this query record entry should not be included because filtering has not been updated
   });
 });
 
-test('getMinimalQueryRecordForNextQuery includes the query record entry if sorting has been updated', () => {
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if sorting has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -489,7 +489,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if sorti
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedSort,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -498,14 +498,14 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if sorti
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedSort,
     todosNotUpdating: undefined, // this query record entry should not be included because sorting has not been updated
   });
 });
 
-test('getMinimalQueryRecordForNextQuery includes the query record entry if pagination has been updated', () => {
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if pagination has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -525,7 +525,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if pagin
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedPagination,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -534,15 +534,15 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry if pagin
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedPagination,
     todosNotUpdating: undefined, // this query record entry should not be included because pagination has not been updated
   });
 });
 
-// See comment above getMinimalQueryRecordForNextQuery for a why
-test('getMinimalQueryRecordForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their filtering', () => {
+// See comment above getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery for a why
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their filtering', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -581,7 +581,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -590,14 +590,14 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
     todosNotUpdating: undefined, // this query record entry should not be included because filtering has not been updated
   });
 });
 
-test('getMinimalQueryRecordForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their sorting', () => {
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their sorting', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -636,7 +636,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -645,14 +645,14 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
     todosNotUpdating: undefined, // this query record entry should not be included because sorting has not been updated
   });
 });
 
-test('getMinimalQueryRecordForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their pagination', () => {
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their pagination', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -691,7 +691,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
   };
 
   expect(
-    getMinimalQueryRecordForNextQuery({
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -700,7 +700,7 @@ test('getMinimalQueryRecordForNextQuery includes the query record entry as a who
         todos: mockTodosQueryRecordEntry,
         todosNotUpdating: mockTodosQueryRecordEntry,
       },
-    })
+    }).minimalQueryRecord
   ).toEqual({
     todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
     todosNotUpdating: undefined, // this query record entry should not be included because pagination has not been updated
