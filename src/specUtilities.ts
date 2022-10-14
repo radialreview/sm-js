@@ -2,7 +2,7 @@ import { isObject } from 'lodash';
 
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
-import { convertQueryDefinitionToQueryInfo } from './queriers/queryDefinitionAdapters';
+import { getQueryRecordFromQueryDefinition } from './queriers/queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
 
 import {
@@ -337,10 +337,9 @@ export const getMockQueryResultExpectations = (opts: {
 
 export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
-  const { queryRecord } = convertQueryDefinitionToQueryInfo({
+  const queryRecord = getQueryRecordFromQueryDefinition({
     queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
-    useServerSidePaginationFilteringSorting: true,
   });
 
   return queryRecord;

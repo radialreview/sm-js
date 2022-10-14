@@ -5,7 +5,10 @@ import {
   getMockSubscriptionMessage,
   getMockConfig,
 } from '../specUtilities';
-import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import {
+  getQueryGQLDocumentFromQueryRecord,
+  getQueryRecordFromQueryDefinition,
+} from './queryDefinitionAdapters';
 import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 
@@ -25,11 +28,15 @@ test('query uses the gql client, passing in the expected params', async done => 
   const token = 'mock token';
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token });
   const queryId = 'MockQueryId';
-  const expectedGQLBody = convertQueryDefinitionToQueryInfo({
+  const queryRecord = getQueryRecordFromQueryDefinition({
+    queryId,
     queryDefinitions,
+  });
+  const expectedGQLBody = getQueryGQLDocumentFromQueryRecord({
+    queryRecord,
     queryId,
     useServerSidePaginationFilteringSorting: true,
-  }).queryGQL?.loc?.source.body;
+  })?.loc?.source.body;
 
   const mockQuery = jest.fn(async opts => {
     expect(opts.gql.loc.source.body).toEqual(expectedGQLBody);

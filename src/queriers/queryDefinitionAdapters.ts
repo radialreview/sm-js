@@ -34,12 +34,6 @@ import {
 } from '../consts';
 
 /**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
-
-/**
  * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
  * so they can be evaluated lazily to avoid dependency loops between nodes related to each other.
  *
@@ -987,56 +981,6 @@ export function getQueryInfo<
     queryGQLDocument,
     queryParamsString,
     queryRecord,
-  };
-}
-
-/**
- * Converts a queryDefinitions into a gql doc that can be sent to the gqlClient
- * Returns a queryRecord for easily deduping requests based on the data that is being requested
- * Can later also be used to build a diff to request only the necessary data
- * taking into account the previous query record to avoid requesting data already in memory
- */
-export function convertQueryDefinitionToQueryInfo<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: {
-  queryDefinitions: TQueryDefinitions;
-  queryId: string;
-  useServerSidePaginationFilteringSorting: boolean;
-}) {
-  if (Object.values(opts.queryDefinitions).every(value => value == null)) {
-    return {
-      queryGQL: null,
-      subscriptionConfigs: null,
-      queryRecord: Object.keys(opts.queryDefinitions).reduce((acc, key) => {
-        acc[key] = null;
-        return acc;
-      }, {} as Record<string, null>),
-      queryParamsString: null,
-    };
-  }
-
-  const {
-    queryGQLDocument,
-    subscriptionConfigs,
-    queryRecord,
-    queryParamsString,
-  } = getQueryInfo(opts);
-
-  return {
-    queryGQL: queryGQLDocument,
-    subscriptionConfigs: subscriptionConfigs.map(subscriptionConfig => ({
-      ...subscriptionConfig,
-      gql: gql(subscriptionConfig.gqlString),
-    })),
-    queryRecord,
-    queryParamsString,
   };
 }
 
