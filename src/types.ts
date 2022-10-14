@@ -72,7 +72,6 @@ export interface IGQLClient {
 }
 
 export interface IQueryManager {
-  onQueryResult(opts: { queryResult: any; queryId: string }): void;
   onSubscriptionMessage(opts: {
     node: Record<string, any>;
     operation: {

@@ -150,14 +150,15 @@ export class NodesCollection<T> {
     } catch (e) {
       this.loadingState = ENodeCollectionLoadingState.ERROR;
       this.loadingError = e;
-    }
+      throw e;
+    } finally {
+      if (!this.useServerSidePaginationFilteringSorting) {
+        this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+      }
 
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+      // re-render the ui with the new nodes and loading/error state
+      this.onPaginationRequestStateChanged();
     }
-
-    // re-render the ui with the new nodes and loading/error state
-    this.onPaginationRequestStateChanged();
   }
 
   public async goToPage(_: number) {

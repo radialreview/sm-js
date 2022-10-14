@@ -30,8 +30,8 @@ import {
   UseSubscriptionQueryDefinitions,
 } from '../types';
 import {
-  convertQueryDefinitionToQueryInfo,
   getQueryGQLDocumentFromQueryRecord,
+  getQueryRecordFromQueryDefinition,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
 import { extend } from '../dataUtilities';
@@ -104,39 +104,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.queryDefinitions = queryDefinitions;
       this.opts = opts;
 
-      (async function onFirstQueryDefinitionsReceived(qm: QueryManager) {
-        try {
-          await qm.onQueryDefinitionsUpdated(qm.queryDefinitions);
-        } catch (e) {
-          qm.opts.onQueryError(e);
-        }
-      })(this);
-    }
-
-    public onQueryResult(opts: { queryResult: any }) {
-      if (!this.queryRecord) throw Error('No query record initialized');
-
-      this.notifyRepositories({
-        data: opts.queryResult,
-        queryRecord: this.queryRecord,
+      this.onQueryDefinitionsUpdated(this.queryDefinitions).catch(e => {
+        this.opts.onQueryError(e);
       });
-
-      this.state = this.getNewStateFromQueryResult({
-        ...opts,
-        queryRecord: this.queryRecord,
-      });
-
-      extend({
-        object: this.opts.resultsObject,
-        extension: this.getResultsFromState({
-          state: this.state,
-          aliasPath: [],
-        }),
-        extendNestedObjects: false,
-        deleteKeysNotInExtension: false,
-      });
-
-      this.opts.onResultsUpdated();
     }
 
     public onSubscriptionMessage(opts: {
@@ -1163,6 +1133,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         data: opts.newData,
         queryRecord: opts.queryRecord,
       });
+
       const newState = this.getNewStateFromQueryResult({
         queryResult: opts.newData,
         queryRecord: opts.queryRecord,
@@ -1193,20 +1164,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     ): Promise<void> {
       const previousQueryRecord = this.queryRecord;
 
-      const { queryRecord } = convertQueryDefinitionToQueryInfo({
+      const queryRecord = getQueryRecordFromQueryDefinition({
         queryDefinitions: newQueryDefinitionRecord,
         queryId: this.opts.queryId,
-        useServerSidePaginationFilteringSorting: this.opts
-          .useServerSidePaginationFilteringSorting,
       });
       this.queryRecord = queryRecord;
-
-      const minimalQueryRecord = previousQueryRecord
-        ? getMinimalQueryRecordForNextQuery({
-            nextQueryRecord: queryRecord,
-            previousQueryRecord,
-          })
-        : queryRecord;
 
       const nonNullishQueryDefinitions = removeNullishQueryDefinitions(
         newQueryDefinitionRecord
@@ -1214,9 +1176,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const nullishResults = getNullishResults(newQueryDefinitionRecord);
 
       if (!Object.keys(nonNullishQueryDefinitions).length) {
-        this.onQueryResult({ queryResult: { ...nullishResults } });
+        this.onQueryDefinitionUpdatedResult({
+          queryResult: nullishResults,
+          minimalQueryRecord: this.queryRecord,
+        });
         return;
       }
+
+      const minimalQueryRecord = previousQueryRecord
+        ? getMinimalQueryRecordForNextQuery({
+            nextQueryRecord: queryRecord,
+            previousQueryRecord,
+          })
+        : queryRecord;
 
       const queryRecordsSplitByToken = splitQueryRecordsByToken(
         minimalQueryRecord
@@ -1259,7 +1231,47 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         { ...nullishResults }
       );
 
-      this.onQueryResult({ queryResult: allResults });
+      this.onQueryDefinitionUpdatedResult({
+        queryResult: allResults,
+        minimalQueryRecord,
+      });
+    }
+
+    public onQueryDefinitionUpdatedResult(opts: {
+      queryResult: Record<string, any>;
+      minimalQueryRecord: QueryRecord;
+    }) {
+      this.notifyRepositories({
+        data: opts.queryResult,
+        queryRecord: opts.minimalQueryRecord,
+      });
+
+      const newState = this.getNewStateFromQueryResult({
+        queryResult: opts.queryResult,
+        queryRecord: opts.minimalQueryRecord,
+      });
+
+      Object.keys(newState).forEach(newStateAlias => {
+        this.extendStateObject({
+          aliasPath: [newStateAlias],
+          originalAliasPath: [newStateAlias],
+          state: this.state,
+          newState,
+          mergeStrategy: 'REPLACE',
+        });
+      });
+
+      extend({
+        object: this.opts.resultsObject,
+        extension: this.getResultsFromState({
+          state: this.state,
+          aliasPath: [],
+        }),
+        extendNestedObjects: false,
+        deleteKeysNotInExtension: false,
+      });
+
+      this.opts.onResultsUpdated();
     }
 
     public extendStateObject(opts: {
@@ -1275,46 +1287,48 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
       const existingStateForFirstAlias = opts.state[firstAliasWithoutId];
       const newStateForFirstAlias = opts.newState[firstAliasWithoutId];
-      if (!existingStateForFirstAlias || !newStateForFirstAlias)
-        throw Error(
-          `Expected new and existing state for the alias ${firstAliasWithoutId}`
-        );
+      if (!existingStateForFirstAlias && newStateForFirstAlias)
+        opts.state[firstAliasWithoutId] = newStateForFirstAlias;
 
       if (remainingPath.length === 0) {
-        existingStateForFirstAlias.pageInfoFromResults =
-          newStateForFirstAlias.pageInfoFromResults;
-        existingStateForFirstAlias.clientSidePageInfo =
-          newStateForFirstAlias.clientSidePageInfo;
-        existingStateForFirstAlias.proxyCache = {
-          ...existingStateForFirstAlias.proxyCache,
-          ...newStateForFirstAlias.proxyCache,
-        };
+        if (existingStateForFirstAlias) {
+          existingStateForFirstAlias.pageInfoFromResults =
+            newStateForFirstAlias.pageInfoFromResults;
+          existingStateForFirstAlias.clientSidePageInfo =
+            newStateForFirstAlias.clientSidePageInfo;
+          existingStateForFirstAlias.proxyCache = {
+            ...existingStateForFirstAlias.proxyCache,
+            ...newStateForFirstAlias.proxyCache,
+          };
 
-        if (opts.mergeStrategy === 'CONCAT') {
-          if (
-            !Array.isArray(existingStateForFirstAlias.idsOrIdInCurrentResult) ||
-            !Array.isArray(newStateForFirstAlias.idsOrIdInCurrentResult)
-          ) {
-            throw Error(
-              'Expected both existing and new state "idsOrIdInCurrentResult" to be arrays'
-            );
+          if (opts.mergeStrategy === 'CONCAT') {
+            if (
+              !Array.isArray(
+                existingStateForFirstAlias.idsOrIdInCurrentResult
+              ) ||
+              !Array.isArray(newStateForFirstAlias.idsOrIdInCurrentResult)
+            ) {
+              throw Error(
+                'Expected both existing and new state "idsOrIdInCurrentResult" to be arrays'
+              );
+            }
+
+            existingStateForFirstAlias.idsOrIdInCurrentResult = [
+              ...existingStateForFirstAlias.idsOrIdInCurrentResult,
+              ...newStateForFirstAlias.idsOrIdInCurrentResult,
+            ];
+          } else if (opts.mergeStrategy === 'REPLACE') {
+            existingStateForFirstAlias.idsOrIdInCurrentResult =
+              newStateForFirstAlias.idsOrIdInCurrentResult;
+          } else {
+            throw new UnreachableCaseError(opts.mergeStrategy);
           }
-
-          existingStateForFirstAlias.idsOrIdInCurrentResult = [
-            ...existingStateForFirstAlias.idsOrIdInCurrentResult,
-            ...newStateForFirstAlias.idsOrIdInCurrentResult,
-          ];
-        } else if (opts.mergeStrategy === 'REPLACE') {
-          existingStateForFirstAlias.idsOrIdInCurrentResult =
-            newStateForFirstAlias.idsOrIdInCurrentResult;
-        } else {
-          throw new UnreachableCaseError(opts.mergeStrategy);
         }
 
         opts.parentProxy?.updateRelationalResults(
           this.getResultsFromState({
             state: {
-              [firstAliasWithoutId]: existingStateForFirstAlias,
+              [firstAliasWithoutId]: opts.state[firstAliasWithoutId],
             },
             aliasPath: opts.originalAliasPath,
           })
@@ -1382,16 +1396,16 @@ function splitQueryRecordsByToken(
   queryRecord: QueryRecord
 ): Record<string, QueryRecord> {
   return Object.entries(queryRecord).reduce(
-    (split, [alias, queryDefinition]) => {
+    (split, [alias, queryRecordEntry]) => {
       const tokenName =
-        queryDefinition &&
-        'tokenName' in queryDefinition &&
-        queryDefinition.tokenName != null
-          ? queryDefinition.tokenName
+        queryRecordEntry &&
+        'tokenName' in queryRecordEntry &&
+        queryRecordEntry.tokenName != null
+          ? queryRecordEntry.tokenName
           : DEFAULT_TOKEN_NAME;
 
       split[tokenName] = split[tokenName] || {};
-      split[tokenName][alias] = queryDefinition;
+      split[tokenName][alias] = queryRecordEntry;
 
       return split;
     },
