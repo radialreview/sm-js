@@ -282,6 +282,157 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
   }
 });
 
+test('QueryManager correctly updates the results object when a fitler/sorting/pagination param is updated in a relational query under a by id query', async done => {
+  const mockNodeData = {
+    id: 'mock-id',
+    version: 1,
+    type: 'mock',
+  };
+
+  const secondMockNodeData = {
+    id: 'second-mock-id',
+    version: 1,
+    type: 'secondMock',
+    mockFirstResults: createMockDataItems({
+      sampleMockData: mockNodeData,
+      items: [{}],
+    }),
+    mockSecondResults: createMockDataItems({
+      sampleMockData: mockNodeData,
+      items: [{}],
+    }),
+  };
+
+  const mockQueryResult = {
+    secondMockResults: secondMockNodeData,
+  };
+
+  let queryIdx = 0;
+  const mmGQLInstance = new MMGQL(
+    getMockConfig({
+      getMockData: () => {
+        if (queryIdx === 0) {
+          queryIdx++;
+          return mockQueryResult;
+        } else if (queryIdx === 1) {
+          queryIdx++;
+          return {
+            secondMockResults: {
+              ...secondMockNodeData,
+              mockFirstResults: undefined,
+              // respond to the first query for looading more results for mockSecondResults
+              mockSecondResults: createMockDataItems({
+                sampleMockData: mockNodeData,
+                items: [{ id: 'mock-node-id-1' }],
+              }),
+            },
+          };
+        } else {
+          queryIdx++;
+          return {
+            secondMockResults: {
+              ...secondMockNodeData,
+              mockFirstResults: createMockDataItems({
+                sampleMockData: mockNodeData,
+                items: [{ id: 'test-id' }],
+              }),
+              mockSecondResults: undefined,
+            },
+          };
+        }
+      },
+    })
+  );
+  mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
+
+  const mockNode = mmGQLInstance.def({
+    type: mockNodeData.type,
+    properties: {},
+  });
+
+  const secondMockNode = mmGQLInstance.def({
+    type: secondMockNodeData.type,
+    properties: {},
+    relational: {
+      mock: () => oneToMany(mockNode),
+    },
+  });
+
+  const mockQueryDef = queryDefinition({
+    def: secondMockNode,
+    map: ({ mock }) => ({
+      mockFirstResults: mock({
+        map: ({}) => ({}),
+      }),
+      mockSecondResults: mock({
+        map: ({}) => ({}),
+      }),
+    }),
+    target: {
+      id: secondMockNodeData.id,
+    },
+  });
+
+  const resultsObject: Record<string, any> = {};
+  let resultsIdx = 0;
+  const queryManager = new mmGQLInstance.QueryManager(
+    {
+      secondMockResults: mockQueryDef,
+    },
+    {
+      queryId: 'MockQueryId',
+      useServerSidePaginationFilteringSorting: true,
+      resultsObject,
+      onResultsUpdated: () => {
+        if (resultsIdx === 0) {
+          resultsIdx++;
+          continueTest();
+        }
+        return;
+      },
+      onQueryError: e => done(e),
+      batchKey: null,
+      getMockDataDelay: null,
+    }
+  );
+
+  async function continueTest() {
+    await resultsObject.secondMockResults.mockSecondResults.loadMore();
+    expect(resultsObject.secondMockResults.mockSecondResults.nodes.length).toBe(
+      2
+    );
+
+    await queryManager.onQueryDefinitionsUpdated({
+      secondMockResults: queryDefinition({
+        ...mockQueryDef,
+        map: ({ mock }) => ({
+          mockFirstResults: mock({
+            map: ({}) => ({}),
+            filter: {
+              // update the filter
+              id: 'test-id',
+            },
+          }),
+          mockSecondResults: mock({
+            map: ({}) => ({}),
+          }),
+        }),
+      }),
+    });
+
+    // mock for secondResults was updated due to the change in filter above
+    expect(
+      resultsObject.secondMockResults.mockFirstResults.nodes[0].id
+    ).toEqual('test-id');
+
+    // pagination state for secondMockFirstResults remains intact
+    expect(resultsObject.secondMockResults.mockSecondResults.nodes.length).toBe(
+      2
+    );
+    done();
+  }
+});
+
 test('getMinimalQueryRecordForNextQuery includes the query record entry if filtering has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
