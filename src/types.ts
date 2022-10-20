@@ -1,4 +1,4 @@
-import { OnLoadMoreResultsCallback, NodesCollection } from './nodesCollection';
+import { NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
@@ -21,6 +21,12 @@ export type DataDefaultFn = {
   _default: IData
   (_default: any): IData;
 } 
+
+export enum QueryState {
+  'IDLE' = 'IDLE',
+  'LOADING' = 'LOADING',
+  'ERROR' = 'ERROR',
+}
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
@@ -105,8 +111,7 @@ export type QueryOpts<
 };
 
 export type SubscriptionOpts<
-  // @ts-ignore
-  TQueryDefinitions extends QueryDefinitions
+  TQueryDefinitions extends QueryDefinitions<unknown, unknown, unknown>
 > = {
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
@@ -122,12 +127,11 @@ export type SubscriptionOpts<
   onSubscriptionInitialized?: (
     subscriptionCanceller: SubscriptionCanceller
   ) => void;
-  onQueryInfoConstructed?: (queryInfo: {
-    queryGQL: Maybe<DocumentNode>;
-    queryId: string;
-    queryParamsString: Maybe<string>;
-  }) => void;
-  onLoadMoreResults?: OnLoadMoreResultsCallback
+  onQueryManagerQueryStateChange?: (queryStateChangeOpts: {
+    queryIdx: number;
+    queryState: QueryState;
+    error?: any;
+  }) => void
   skipInitialQuery?: boolean;
   queryId?: string;
   batchKey?: string;

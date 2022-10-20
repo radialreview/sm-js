@@ -28,6 +28,7 @@ import {
   EPaginationFilteringSortingInstance,
   IGQLClient,
   UseSubscriptionQueryDefinitions,
+  QueryState,
 } from '../types';
 import {
   getQueryGQLDocumentFromQueryRecord,
@@ -73,6 +74,11 @@ type QueryManagerOpts = {
   onQueryError(error: any): void;
   batchKey: Maybe<string>;
   getMockDataDelay: Maybe<() => number>;
+  onQueryStateChange?: (queryStateChangeOpts: {
+    queryIdx: number;
+    queryState: QueryState;
+    error?: any;
+  }) => void;
 };
 
 export function createQueryManager(mmGQLInstance: IMMGQL) {
@@ -94,6 +100,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       | UseSubscriptionQueryDefinitions<unknown, unknown, unknown, unknown>;
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
+    public queryIdx: number = 0;
 
     constructor(
       queryDefinitions:
@@ -1159,10 +1166,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.opts.onResultsUpdated();
     }
 
-    public async onQueryDefinitionsUpdated(
+    public onQueryDefinitionsUpdated = async (
       newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>
-    ): Promise<void> {
+    ): Promise<void> => {
       const previousQueryRecord = this.queryRecord;
+      const thisQueryIdx = this.queryIdx++;
 
       const queryRecord = getQueryRecordFromQueryDefinition({
         queryDefinitions: newQueryDefinitionRecord,
@@ -1176,6 +1184,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const nullishResults = getNullishResults(newQueryDefinitionRecord);
 
       if (!Object.keys(nonNullishQueryDefinitions).length) {
+        if (previousQueryRecord) {
+          const previousNullishResultKeys = Object.keys(
+            previousQueryRecord
+          ).filter(key => previousQueryRecord[key] == null);
+
+          if (
+            previousNullishResultKeys.length ===
+            Object.keys(nullishResults).length
+          ) {
+            return;
+          }
+        }
+
         this.onQueryDefinitionUpdatedResult({
           queryResult: nullishResults,
           minimalQueryRecord: this.queryRecord,
@@ -1203,53 +1224,74 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         aliasPathsToUpdate,
       } = getMinimalQueryRecordAndAliasPathsToUpdate();
 
+      if (!Object.keys(minimalQueryRecord).length) {
+        return;
+      }
+
+      this.opts.onQueryStateChange?.({
+        queryIdx: thisQueryIdx,
+        queryState: QueryState.LOADING,
+      });
+
       const queryRecordsSplitByToken = splitQueryRecordsByToken(
         minimalQueryRecord
       );
 
-      const resultsForEachTokenUsed = await Promise.all(
-        Object.entries(queryRecordsSplitByToken).map(
-          async ([tokenName, queryRecord]) => {
-            const queryGQL = getQueryGQLDocumentFromQueryRecord({
-              queryId: this.opts.queryId,
-              queryRecord,
-              useServerSidePaginationFilteringSorting: this.opts
-                .useServerSidePaginationFilteringSorting,
-            });
-
-            if (queryGQL) {
-              return await performQueries({
-                queryRecord,
-                queryGQL,
+      try {
+        const resultsForEachTokenUsed = await Promise.all(
+          Object.entries(queryRecordsSplitByToken).map(
+            async ([tokenName, queryRecord]) => {
+              const queryGQL = getQueryGQLDocumentFromQueryRecord({
                 queryId: this.opts.queryId,
-                batchKey: this.opts.batchKey,
-                getMockDataDelay: this.opts.getMockDataDelay,
-                tokenName,
-                mmGQLInstance,
+                queryRecord,
+                useServerSidePaginationFilteringSorting: this.opts
+                  .useServerSidePaginationFilteringSorting,
               });
+
+              if (queryGQL) {
+                return await performQueries({
+                  queryRecord,
+                  queryGQL,
+                  queryId: this.opts.queryId,
+                  batchKey: this.opts.batchKey,
+                  getMockDataDelay: this.opts.getMockDataDelay,
+                  tokenName,
+                  mmGQLInstance,
+                });
+              }
+
+              return {};
             }
+          )
+        );
 
-            return {};
-          }
-        )
-      );
+        const allResults = resultsForEachTokenUsed.reduce(
+          (acc, resultsForToken) => {
+            return {
+              ...acc,
+              ...resultsForToken,
+            };
+          },
+          { ...nullishResults }
+        );
 
-      const allResults = resultsForEachTokenUsed.reduce(
-        (acc, resultsForToken) => {
-          return {
-            ...acc,
-            ...resultsForToken,
-          };
-        },
-        { ...nullishResults }
-      );
-
-      this.onQueryDefinitionUpdatedResult({
-        queryResult: allResults,
-        minimalQueryRecord,
-        aliasPathsToUpdate: aliasPathsToUpdate,
-      });
-    }
+        this.onQueryDefinitionUpdatedResult({
+          queryResult: allResults,
+          minimalQueryRecord,
+          aliasPathsToUpdate: aliasPathsToUpdate,
+        });
+        this.opts.onQueryStateChange?.({
+          queryIdx: thisQueryIdx,
+          queryState: QueryState.IDLE,
+        });
+      } catch (error) {
+        this.opts.onQueryStateChange?.({
+          queryIdx: thisQueryIdx,
+          queryState: QueryState.ERROR,
+          error,
+        });
+      }
+    };
 
     public onQueryDefinitionUpdatedResult(opts: {
       queryResult: Record<string, any>;

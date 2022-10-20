@@ -505,7 +505,7 @@ export function applyClientSideSortAndFilterToData(
   Object.keys(queryRecord).forEach(alias => {
     const queryRecordEntry = queryRecord[alias];
 
-    if (queryRecordEntry.filter) {
+    if (queryRecordEntry?.filter) {
       applyClientSideFilterToData({
         queryRecordEntry,
         data,
@@ -513,7 +513,7 @@ export function applyClientSideSortAndFilterToData(
       });
     }
 
-    if (queryRecordEntry.sort) {
+    if (queryRecordEntry?.sort) {
       applyClientSideSortToData({
         queryRecordEntry,
         sort: queryRecordEntry.sort as ValidSortForNode<INode>,
@@ -522,8 +522,7 @@ export function applyClientSideSortAndFilterToData(
       });
     }
 
-    const relational = queryRecordEntry.relational;
-
+    const relational = queryRecordEntry?.relational;
     if (relational != null) {
       const containsArrayData = queryRecordEntryReturnsArrayOfData({
         queryRecordEntry,

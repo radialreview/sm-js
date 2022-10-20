@@ -871,9 +871,10 @@ function getQueryRecordSortAndFilterValues(
 }
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
-  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }) {
   return (
+    opts.queryRecordEntry &&
     (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
     !('oneToOne' in opts.queryRecordEntry)
   );

@@ -404,7 +404,13 @@ export function generateMockNodeDataForQueryRecord(opts: {
   Object.keys(queryRecord).forEach(queryRecordAlias => {
     const queryRecordEntryForThisAlias:
       | QueryRecordEntry
-      | RelationalQueryRecordEntry = queryRecord[queryRecordAlias];
+      | RelationalQueryRecordEntry
+      | null = queryRecord[queryRecordAlias];
+
+    if (!queryRecordEntryForThisAlias) {
+      mockedNodeData[queryRecordAlias] = null;
+      return;
+    }
     const returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
       queryRecordEntry: queryRecordEntryForThisAlias,
     });

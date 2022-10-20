@@ -20,6 +20,7 @@ import {
   NodeDefaultProps,
   EPaginationFilteringSortingInstance,
   DocumentNode,
+  ValidFilterForNode,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
@@ -168,6 +169,7 @@ export function createMockQueryDefinitions(
   opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
+    todosFilter?: ValidFilterForNode<TodoNode>;
   } = {}
 ) {
   let target = {} as QueryDefinitionTarget;
@@ -196,6 +198,7 @@ export function createMockQueryDefinitions(
               map: ({ firstName }) => ({ firstName }),
             }),
           }),
+          filter: opts.todosFilter,
         }),
       }),
       target,

@@ -183,6 +183,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             mmGQLInstance.paginationFilteringSortingInstance ===
             EPaginationFilteringSortingInstance.SERVER,
           batchKey: opts?.batchKey || null,
+          onQueryStateChange: opts.onQueryManagerQueryStateChange,
           getMockDataDelay: mmGQLInstance?.getMockDataDelay || null,
         });
 
