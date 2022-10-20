@@ -4,19 +4,21 @@ import {
   generateTodoNode,
   TodoNode,
   getMockConfig,
+  getMockQueryRecord,
+  getPrettyPrintedGQL,
 } from '../specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
-  getQueryInfo,
+  getQueryGQLDocumentFromQueryRecord,
 } from './queryDefinitionAdapters';
 import { object, queryDefinition, oneToOne, string } from '../dataTypes';
-import { gql } from '@apollo/client/core';
 import { MMGQL } from '..';
 import {
   IOneToOneQueryBuilder,
   INode,
   MapFnForNode,
   QueryRecordEntry,
+  DocumentNode,
 } from '../types';
 import {
   PROPERTIES_QUERIED_FOR_ALL_NODES,
@@ -93,7 +95,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
-      }).users.relational
+      }).users?.relational
     ).toEqual(
       expect.objectContaining({
         todos: expect.objectContaining({
@@ -111,7 +113,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       getQueryRecordFromQueryDefinition({
         queryId: 'queryId',
         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
-      }).users.relational?.todos.relational
+      }).users?.relational?.todos.relational
     ).toEqual(
       expect.objectContaining({
         assignee: expect.objectContaining({
@@ -156,7 +158,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
             }),
           }),
         },
-      }).users.relational
+      }).users?.relational
     ).toEqual(
       expect.objectContaining({
         todo: expect.objectContaining({
@@ -239,7 +241,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
             }),
           }),
         },
-      }).todos.relational
+      }).todos?.relational
     ).toEqual({
       [`assignee${RELATIONAL_UNION_QUERY_SEPARATOR}user`]: expect.objectContaining(
         {
@@ -276,7 +278,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
             }),
           }),
         },
-      }).todos.properties
+      }).todos?.properties
     ).toEqual([
       ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
       'settings',
@@ -301,7 +303,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
           }),
         }),
       },
-    }).todos.relational;
+    }).todos?.relational;
 
     expect(relationalResults).toEqual(
       expect.objectContaining({
@@ -363,7 +365,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       },
     });
 
-    expect(withDoubleNestedObjResults.mockNodes.properties).toEqual([
+    expect(withDoubleNestedObjResults.mockNodes?.properties).toEqual([
       ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
       'obj',
       'obj__dot__nested',
@@ -373,59 +375,61 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 });
 
-describe('getQueryInfo.queryGQLString', () => {
+describe('getQueryGQLDocumentFromQueryRecord', () => {
   it('creates a valid query from a fetcher config', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getMockQueryRecord(mmGQLInstance),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        users: users {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            address
-            address__dot__state
-            address__dot__apt
-            address__dot__apt__dot__floor
-            address__dot__apt__dot__number
-            todos: todos {
-              nodes {
-                id
-                version
-                lastUpdatedBy
-                type
-                assignee: assignee {
-                  id
-                  version
-                  lastUpdatedBy
-                  type
-                  firstName
-                }
-              }
-              totalCount
-              pageInfo {
-                endCursor
-                startCursor
-                hasNextPage
-                hasPreviousPage
-              }
-            }
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       users: users {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           address
+           address__dot__state
+           address__dot__apt
+           address__dot__apt__dot__floor
+           address__dot__apt__dot__number
+           todos: todos {
+             nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               assignee: assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
+             totalCount
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
@@ -433,205 +437,222 @@ describe('getQueryInfo.queryGQLString', () => {
   it('handles multiple aliases', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          users: createMockQueryDefinitions(mmGQLInstance).users,
-          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              users: createMockQueryDefinitions(mmGQLInstance).users,
+              otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        users: users {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            address
-            address__dot__state
-            address__dot__apt
-            address__dot__apt__dot__floor
-            address__dot__apt__dot__number
-            todos: todos {
-              nodes {
-                id
-                version
-                lastUpdatedBy
-                type
-                assignee: assignee {
-                  id
-                  version
-                  lastUpdatedBy
-                  type
-                  firstName
-                }
-              }
-              totalCount
-              pageInfo {
-                endCursor
-                startCursor
-                hasNextPage
-                hasPreviousPage
-              }
-            }
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
-            otherAlias: users {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            address
-            address__dot__state
-            address__dot__apt
-            address__dot__apt__dot__floor
-            address__dot__apt__dot__number
-            todos: todos {
-              nodes {
-                id
-                version
-                lastUpdatedBy
-                type
-                assignee: assignee {
-                  id
-                  version
-                  lastUpdatedBy
-                  type
-                  firstName
-                }
-              }
-              totalCount
-              pageInfo {
-                endCursor
-                startCursor
-                hasNextPage
-                hasPreviousPage
-              }
-            }
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       users: users {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           address
+           address__dot__state
+           address__dot__apt
+           address__dot__apt__dot__floor
+           address__dot__apt__dot__number
+           todos: todos {
+             nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               assignee: assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
+             totalCount
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+       otherAlias: users {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           address
+           address__dot__state
+           address__dot__apt
+           address__dot__apt__dot__floor
+           address__dot__apt__dot__number
+           todos: todos {
+             nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               assignee: assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
+             totalCount
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('handles fetching specific ids', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
-          useIds: true,
-        }),
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
+              useIds: true,
+            }),
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        users: users(ids: [\\"mock-id\\"]) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            address
-            address__dot__state
-            address__dot__apt
-            address__dot__apt__dot__floor
-            address__dot__apt__dot__number
-            todos: todos {
-              nodes {
-                id
-                version
-                lastUpdatedBy
-                type
-                assignee: assignee {
-                  id
-                  version
-                  lastUpdatedBy
-                  type
-                  firstName
-                }
-              }
-              totalCount
-              pageInfo {
-                endCursor
-                startCursor
-                hasNextPage
-                hasPreviousPage
-              }
-            }
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       users: users(ids: [\\"mock-id\\"]) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           address
+           address__dot__state
+           address__dot__apt
+           address__dot__apt__dot__floor
+           address__dot__apt__dot__number
+           todos: todos {
+             nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               assignee: assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
+             totalCount
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('handles shorthand query definitions', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: generateTodoNode(mmGQLInstance),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: generateTodoNode(mmGQLInstance),
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            task
-            done
-            assigneeId
-            meetingId
-            settings
-            settings__dot__archiveAfterMeeting
-            settings__dot__nestedSettings
-            settings__dot__nestedSettings__dot__nestedNestedMaybe
-            settings__dot__nestedRecord
-            dataSetIds
-            comments
-            record
-            numberProp
-            dateCreated
-            dateLastModified
-            lastUpdatedClientTimestamp
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           task
+           done
+           assigneeId
+           meetingId
+           settings
+           settings__dot__archiveAfterMeeting
+           settings__dot__nestedSettings
+           settings__dot__nestedSettings__dot__nestedNestedMaybe
+           settings__dot__nestedRecord
+           dataSetIds
+           comments
+           record
+           numberProp
+           dateCreated
+           dateLastModified
+           lastUpdatedClientTimestamp
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
@@ -639,194 +660,223 @@ describe('getQueryInfo.queryGQLString', () => {
   it('handles map fn omission', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: {
-            def: generateTodoNode(mmGQLInstance),
-            map: undefined,
-          },
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: {
+                def: generateTodoNode(mmGQLInstance),
+                map: undefined,
+              },
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-            task
-            done
-            assigneeId
-            meetingId
-            settings
-            settings__dot__archiveAfterMeeting
-            settings__dot__nestedSettings
-            settings__dot__nestedSettings__dot__nestedNestedMaybe
-            settings__dot__nestedRecord
-            dataSetIds
-            comments
-            record
-            numberProp
-            dateCreated
-            dateLastModified
-            lastUpdatedClientTimestamp
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           task
+           done
+           assigneeId
+           meetingId
+           settings
+           settings__dot__archiveAfterMeeting
+           settings__dot__nestedSettings
+           settings__dot__nestedSettings__dot__nestedNestedMaybe
+           settings__dot__nestedRecord
+           dataSetIds
+           comments
+           record
+           numberProp
+           dateCreated
+           dateLastModified
+           lastUpdatedClientTimestamp
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('supports strict equality filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: {
-              task: 'get it done',
-              done: false,
-              meetingId: null,
-              dateCreated: 1,
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                filter: {
+                  task: 'get it done',
+                  done: false,
+                  meetingId: null,
+                  dateCreated: 1,
+                },
+              }),
             },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}, {done: {eq: false}}, {meetingId: {eq: null}}, {dateCreated: {eq: 1}}]}) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}, {done: {eq: false}}, {meetingId: {eq: null}}, {dateCreated: {eq: 1}}]}) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('supports "or" filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: { condition: 'or', eq: 'get it done' } },
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                filter: { task: { condition: 'or', eq: 'get it done' } },
+              }),
+            },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(where: {or: [{task: {eq: \\"get it done\\"}}]}) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('supports "and" filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            filter: { task: { condition: 'and', eq: 'get it done' } },
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                filter: { task: { condition: 'and', eq: 'get it done' } },
+              }),
+            },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}]}) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}]}) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
 
   it('supports sorting short hand syntax', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
+
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            sort: { task: 'asc' },
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                sort: { task: 'asc' },
+              }),
+            },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(order: [{task: ASC}]) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(order: [{task: ASC}]) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
@@ -834,34 +884,39 @@ describe('getQueryInfo.queryGQLString', () => {
   it('supports sorting long hand syntax', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            sort: { task: { direction: 'asc' } },
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                sort: { task: { direction: 'asc' } },
+              }),
+            },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(order: [{task: ASC}]) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(order: [{task: ASC}]) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
@@ -869,269 +924,259 @@ describe('getQueryInfo.queryGQLString', () => {
   it('supports sorting with priority', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          todos: queryDefinition({
-            def: generateTodoNode(mmGQLInstance),
-            map: (() => ({})) as MapFnForNode<TodoNode>,
-            sort: {
-              task: { direction: 'asc' },
-              numberProp: { direction: 'asc', priority: 1 },
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                sort: {
+                  task: { direction: 'asc' },
+                  numberProp: { direction: 'asc', priority: 1 },
+                },
+              }),
             },
           }),
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).queryGQLString
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-        todos: todos(order: [{numberProp: ASC}, {task: ASC}]) {
-          nodes {
-            id
-            version
-            lastUpdatedBy
-            type
-          }
-          totalCount
-          pageInfo {
-            endCursor
-            startCursor
-            hasNextPage
-            hasPreviousPage
-          }
-        }
+       todos: todos(order: [{numberProp: ASC}, {task: ASC}]) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
       }"
     `);
   });
-
-  it('returns a valid gql string', () => {
-    const mmGQLInstance = new MMGQL(getMockConfig());
-    expect(() =>
-      gql(
-        getQueryInfo({
-          queryId: 'MyTestQuery',
-          queryDefinitions: {
-            users: createMockQueryDefinitions(mmGQLInstance).users,
-            otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-          },
-          useServerSidePaginationFilteringSorting: true,
-        }).queryGQLString
-      )
-    ).not.toThrow();
-  });
 });
 
-describe('getQueryInfo.subscriptionGQLStrings', () => {
-  it('creates a valid subscription from a fetcher config', () => {
-    const mmGQLInstance = new MMGQL(getMockConfig());
-    expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
-        useServerSidePaginationFilteringSorting: true,
-      }).subscriptionConfigs.map(config => config.gqlString)
-    ).toMatchInlineSnapshot(`
-      Array [
-        "subscription MyTestQuery_users {
-            users: users {
-              node {
-                          id
-                version
-                lastUpdatedBy
-                type
-                address
-                address__dot__state
-                address__dot__apt
-                address__dot__apt__dot__floor
-                address__dot__apt__dot__number
-                todos: todos {
-                  nodes {
-                    id
-                    version
-                    lastUpdatedBy
-                    type
-                    assignee: assignee {
-                      id
-                      version
-                      lastUpdatedBy
-                      type
-                      firstName
-                    }
-                  }
-                  totalCount
-                  pageInfo {
-                    endCursor
-                    startCursor
-                    hasNextPage
-                    hasPreviousPage
-                  }
-                }
-              }
-              operation { action, path }
-            }
-          }",
-      ]
-    `);
-  });
+// Will bring these back when we enable subscriptions
+// describe('getQueryInfo.subscriptionGQLStrings', () => {
+//   it('creates a valid subscription from a fetcher config', () => {
+//     const mmGQLInstance = new MMGQL(getMockConfig());
+//     expect(
+//       getQueryInfo({
+//         queryId: 'MyTestQuery',
+//         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
+//         useServerSidePaginationFilteringSorting: true,
+//       }).subscriptionConfigs.map(config => config.gqlString)
+//     ).toMatchInlineSnapshot(`
+//       Array [
+//         "subscription MyTestQuery_users {
+//             users: users {
+//               node {
+//                           id
+//                 version
+//                 lastUpdatedBy
+//                 type
+//                 address
+//                 address__dot__state
+//                 address__dot__apt
+//                 address__dot__apt__dot__floor
+//                 address__dot__apt__dot__number
+//                 todos: todos {
+//                   nodes {
+//                     id
+//                     version
+//                     lastUpdatedBy
+//                     type
+//                     assignee: assignee {
+//                       id
+//                       version
+//                       lastUpdatedBy
+//                       type
+//                       firstName
+//                     }
+//                   }
+//                   totalCount
+//                   pageInfo {
+//                     endCursor
+//                     startCursor
+//                     hasNextPage
+//                     hasPreviousPage
+//                   }
+//                 }
+//               }
+//               operation { action, path }
+//             }
+//           }",
+//       ]
+//     `);
+//   });
 
-  it('handles multiple aliases', () => {
-    const mmGQLInstance = new MMGQL(getMockConfig());
-    expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          users: createMockQueryDefinitions(mmGQLInstance).users,
-          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).subscriptionConfigs.map(config => config.gqlString)
-    ).toMatchInlineSnapshot(`
-      Array [
-        "subscription MyTestQuery_users {
-            users: users {
-              node {
-                          id
-                version
-                lastUpdatedBy
-                type
-                address
-                address__dot__state
-                address__dot__apt
-                address__dot__apt__dot__floor
-                address__dot__apt__dot__number
-                todos: todos {
-                  nodes {
-                    id
-                    version
-                    lastUpdatedBy
-                    type
-                    assignee: assignee {
-                      id
-                      version
-                      lastUpdatedBy
-                      type
-                      firstName
-                    }
-                  }
-                  totalCount
-                  pageInfo {
-                    endCursor
-                    startCursor
-                    hasNextPage
-                    hasPreviousPage
-                  }
-                }
-              }
-              operation { action, path }
-            }
-          }",
-        "subscription MyTestQuery_otherAlias {
-            otherAlias: users {
-              node {
-                          id
-                version
-                lastUpdatedBy
-                type
-                address
-                address__dot__state
-                address__dot__apt
-                address__dot__apt__dot__floor
-                address__dot__apt__dot__number
-                todos: todos {
-                  nodes {
-                    id
-                    version
-                    lastUpdatedBy
-                    type
-                    assignee: assignee {
-                      id
-                      version
-                      lastUpdatedBy
-                      type
-                      firstName
-                    }
-                  }
-                  totalCount
-                  pageInfo {
-                    endCursor
-                    startCursor
-                    hasNextPage
-                    hasPreviousPage
-                  }
-                }
-              }
-              operation { action, path }
-            }
-          }",
-      ]
-    `);
-  });
+//   it('handles multiple aliases', () => {
+//     const mmGQLInstance = new MMGQL(getMockConfig());
+//     expect(
+//       getQueryInfo({
+//         queryId: 'MyTestQuery',
+//         queryDefinitions: {
+//           users: createMockQueryDefinitions(mmGQLInstance).users,
+//           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
+//         },
+//         useServerSidePaginationFilteringSorting: true,
+//       }).subscriptionConfigs.map(config => config.gqlString)
+//     ).toMatchInlineSnapshot(`
+//       Array [
+//         "subscription MyTestQuery_users {
+//             users: users {
+//               node {
+//                           id
+//                 version
+//                 lastUpdatedBy
+//                 type
+//                 address
+//                 address__dot__state
+//                 address__dot__apt
+//                 address__dot__apt__dot__floor
+//                 address__dot__apt__dot__number
+//                 todos: todos {
+//                   nodes {
+//                     id
+//                     version
+//                     lastUpdatedBy
+//                     type
+//                     assignee: assignee {
+//                       id
+//                       version
+//                       lastUpdatedBy
+//                       type
+//                       firstName
+//                     }
+//                   }
+//                   totalCount
+//                   pageInfo {
+//                     endCursor
+//                     startCursor
+//                     hasNextPage
+//                     hasPreviousPage
+//                   }
+//                 }
+//               }
+//               operation { action, path }
+//             }
+//           }",
+//         "subscription MyTestQuery_otherAlias {
+//             otherAlias: users {
+//               node {
+//                           id
+//                 version
+//                 lastUpdatedBy
+//                 type
+//                 address
+//                 address__dot__state
+//                 address__dot__apt
+//                 address__dot__apt__dot__floor
+//                 address__dot__apt__dot__number
+//                 todos: todos {
+//                   nodes {
+//                     id
+//                     version
+//                     lastUpdatedBy
+//                     type
+//                     assignee: assignee {
+//                       id
+//                       version
+//                       lastUpdatedBy
+//                       type
+//                       firstName
+//                     }
+//                   }
+//                   totalCount
+//                   pageInfo {
+//                     endCursor
+//                     startCursor
+//                     hasNextPage
+//                     hasPreviousPage
+//                   }
+//                 }
+//               }
+//               operation { action, path }
+//             }
+//           }",
+//       ]
+//     `);
+//   });
 
-  it('handles fetching specific ids', () => {
-    const mmGQLInstance = new MMGQL(getMockConfig());
-    expect(
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
-          useIds: true,
-        }),
-        useServerSidePaginationFilteringSorting: true,
-      }).subscriptionConfigs.map(config => config.gqlString)
-    ).toMatchInlineSnapshot(`
-      Array [
-        "subscription MyTestQuery_users {
-            users: users(ids: [\\"mock-id\\"]) {
-              node {
-                          id
-                version
-                lastUpdatedBy
-                type
-                address
-                address__dot__state
-                address__dot__apt
-                address__dot__apt__dot__floor
-                address__dot__apt__dot__number
-                todos: todos {
-                  nodes {
-                    id
-                    version
-                    lastUpdatedBy
-                    type
-                    assignee: assignee {
-                      id
-                      version
-                      lastUpdatedBy
-                      type
-                      firstName
-                    }
-                  }
-                  totalCount
-                  pageInfo {
-                    endCursor
-                    startCursor
-                    hasNextPage
-                    hasPreviousPage
-                  }
-                }
-              }
-              operation { action, path }
-            }
-          }",
-      ]
-    `);
-  });
+//   it('handles fetching specific ids', () => {
+//     const mmGQLInstance = new MMGQL(getMockConfig());
+//     expect(
+//       getQueryInfo({
+//         queryId: 'MyTestQuery',
+//         queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
+//           useIds: true,
+//         }),
+//         useServerSidePaginationFilteringSorting: true,
+//       }).subscriptionConfigs.map(config => config.gqlString)
+//     ).toMatchInlineSnapshot(`
+//       Array [
+//         "subscription MyTestQuery_users {
+//             users: users(ids: [\\"mock-id\\"]) {
+//               node {
+//                           id
+//                 version
+//                 lastUpdatedBy
+//                 type
+//                 address
+//                 address__dot__state
+//                 address__dot__apt
+//                 address__dot__apt__dot__floor
+//                 address__dot__apt__dot__number
+//                 todos: todos {
+//                   nodes {
+//                     id
+//                     version
+//                     lastUpdatedBy
+//                     type
+//                     assignee: assignee {
+//                       id
+//                       version
+//                       lastUpdatedBy
+//                       type
+//                       firstName
+//                     }
+//                   }
+//                   totalCount
+//                   pageInfo {
+//                     endCursor
+//                     startCursor
+//                     hasNextPage
+//                     hasPreviousPage
+//                   }
+//                 }
+//               }
+//               operation { action, path }
+//             }
+//           }",
+//       ]
+//     `);
+//   });
 
-  it('returns a valid gql string', () => {
-    const mmGQLInstance = new MMGQL(getMockConfig());
-    expect(() =>
-      getQueryInfo({
-        queryId: 'MyTestQuery',
-        queryDefinitions: {
-          users: createMockQueryDefinitions(mmGQLInstance).users,
-          otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-        },
-        useServerSidePaginationFilteringSorting: true,
-      }).subscriptionConfigs.map(config => gql(config.gqlString))
-    ).not.toThrow();
-  });
-});
+//   it('returns a valid gql string', () => {
+//     const mmGQLInstance = new MMGQL(getMockConfig());
+//     expect(() =>
+//       getQueryInfo({
+//         queryId: 'MyTestQuery',
+//         queryDefinitions: {
+//           users: createMockQueryDefinitions(mmGQLInstance).users,
+//           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
+//         },
+//         useServerSidePaginationFilteringSorting: true,
+//       }).subscriptionConfigs.map(config => gql(config.gqlString))
+//     ).not.toThrow();
+//   });
+// });

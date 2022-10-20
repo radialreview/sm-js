@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client/core';
 import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
-import { UnexpectedSubscriptionMessageException } from '../exceptions';
+
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
@@ -24,7 +24,6 @@ import {
   ENumberFilterOperator,
   ValidSortForNode,
   SortObject,
-  RelationalQueryRecord,
 } from '../types';
 import {
   PAGE_INFO_PROPERTY_KEY,
@@ -831,7 +830,7 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
   if (!Object.values(opts.queryRecord).some(value => value != null))
     return null;
 
-  const queryString =
+  const queryString = (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
       .map(alias => {
@@ -847,27 +846,10 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
         });
       })
       .join('\n    ') +
-    '\n}'.trim();
+    '\n}'
+  ).trim();
 
   return gql(queryString);
-}
-
-function getQueryRecordSortAndFilterValues(
-  record: QueryRecord | RelationalQueryRecord
-) {
-  return Object.keys(record).reduce((acc, alias) => {
-    const queryRecordEntry = record[alias];
-    if (!queryRecordEntry) return acc;
-
-    acc.push(queryRecordEntry.filter);
-    acc.push(queryRecordEntry.sort);
-    const relational = queryRecordEntry.relational;
-    if (relational) {
-      acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
-    }
-
-    return acc;
-  }, [] as any[]);
 }
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
@@ -880,110 +862,75 @@ export function queryRecordEntryReturnsArrayOfData(opts: {
   );
 }
 
-export function getQueryInfo<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: {
-  queryDefinitions: TQueryDefinitions;
-  queryId: string;
-  useServerSidePaginationFilteringSorting: boolean;
-}) {
-  const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLDocument = getQueryGQLDocumentFromQueryRecord({
-    queryId: opts.queryId,
-    queryRecord,
-    useServerSidePaginationFilteringSorting:
-      opts.useServerSidePaginationFilteringSorting,
-  });
-  const queryParamsString = JSON.stringify(
-    getQueryRecordSortAndFilterValues(queryRecord)
-  );
+// will need this when we enable subscriptions
+// const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
+//   queryRecord
+// ).reduce((subscriptionConfigsAcc, alias) => {
+//   const subscriptionName = getSanitizedQueryId({
+//     queryId: opts.queryId + '_' + alias,
+//   });
+//   const queryRecordEntry = queryRecord[alias];
 
-  const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
-    queryRecord
-  ).reduce((subscriptionConfigsAcc, alias) => {
-    const subscriptionName = getSanitizedQueryId({
-      queryId: opts.queryId + '_' + alias,
-    });
-    const queryRecordEntry = queryRecord[alias];
+//   if (!queryRecordEntry) return subscriptionConfigsAcc;
 
-    if (!queryRecordEntry) return subscriptionConfigsAcc;
+//   const operation = getOperationFromQueryRecordEntry({
+//     ...queryRecordEntry,
+//     useServerSidePaginationFilteringSorting:
+//       opts.useServerSidePaginationFilteringSorting,
+//   });
 
-    const operation = getOperationFromQueryRecordEntry({
-      ...queryRecordEntry,
-      useServerSidePaginationFilteringSorting:
-        opts.useServerSidePaginationFilteringSorting,
-    });
+//   const gqlStrings = [
+//     `
+//   subscription ${subscriptionName} {
+//     ${alias}: ${operation} {
+//       node {
+//         ${getQueryPropertiesString({
+//           queryRecordEntry,
+//           nestLevel: 5,
+//           useServerSidePaginationFilteringSorting:
+//             opts.useServerSidePaginationFilteringSorting,
+//         })}
+//       }
+//       operation { action, path }
+//     }
+//   }
+//       `.trim(),
+//   ];
 
-    const gqlStrings = [
-      `
-    subscription ${subscriptionName} {
-      ${alias}: ${operation} {
-        node {
-          ${getQueryPropertiesString({
-            queryRecordEntry,
-            nestLevel: 5,
-            useServerSidePaginationFilteringSorting:
-              opts.useServerSidePaginationFilteringSorting,
-          })}
-        }
-        operation { action, path }
-      }
-    }
-        `.trim(),
-    ];
+//   function extractNodeFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].node) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "node" found in message',
+//       });
+//     }
 
-    function extractNodeFromSubscriptionMessage(
-      subscriptionMessage: Record<string, any>
-    ) {
-      if (!subscriptionMessage[alias].node) {
-        throw new UnexpectedSubscriptionMessageException({
-          subscriptionMessage,
-          description: 'No "node" found in message',
-        });
-      }
+//     return subscriptionMessage[alias].node;
+//   }
 
-      return subscriptionMessage[alias].node;
-    }
+//   function extractOperationFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].operation) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "operation" found in message',
+//       });
+//     }
 
-    function extractOperationFromSubscriptionMessage(
-      subscriptionMessage: Record<string, any>
-    ) {
-      if (!subscriptionMessage[alias].operation) {
-        throw new UnexpectedSubscriptionMessageException({
-          subscriptionMessage,
-          description: 'No "operation" found in message',
-        });
-      }
+//     return subscriptionMessage[alias].operation;
+//   }
 
-      return subscriptionMessage[alias].operation;
-    }
-
-    gqlStrings.forEach(gqlString => {
-      subscriptionConfigsAcc.push({
-        alias,
-        gqlString,
-        extractNodeFromSubscriptionMessage,
-        extractOperationFromSubscriptionMessage,
-      });
-    });
-
-    return subscriptionConfigsAcc;
-  }, [] as Array<SubscriptionConfig>);
-
-  return {
-    subscriptionConfigs: subscriptionConfigs,
-    queryGQLDocument,
-    queryParamsString,
-    queryRecord,
-  };
-}
+//   gqlStrings.forEach(gqlString => {
+//     subscriptionConfigsAcc.push({
+//       alias,
+//       gqlString,
+//       extractNodeFromSubscriptionMessage,
+//       extractOperationFromSubscriptionMessage,
+//     });
+//   });
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
   return opts.queryId.replace(/-/g, '_');

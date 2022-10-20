@@ -657,7 +657,7 @@ test('queries that do not suspend rendering go out in separate requests', async 
   expect(mmGQL.gqlClient.query).toHaveBeenCalledTimes(2);
 });
 
-test.only('rendering multiple instances of the same component using useSubscription throws an error if a unique subscriptionId is not provided', async done => {
+test('rendering multiple instances of the same component using useSubscription throws an error if a unique subscriptionId is not provided', async done => {
   const { mmGQL } = setupTests();
 
   function MyComponent() {

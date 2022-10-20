@@ -4,8 +4,9 @@ import {
   EPaginationFilteringSortingInstance,
   MMGQL,
   queryDefinition,
+  QueryState,
 } from '..';
-import { QueryState } from '../nodesCollection';
+
 import {
   getMockConfig,
   createMockQueryDefinitions,
@@ -422,9 +423,9 @@ test(`loadMore updates a node collections's loading state`, async () => {
   expect(users.loadingState).toBe(QueryState.IDLE);
 });
 
-test(`loadMore updates a node collections's loading error state`, async () => {
+test(`loadMore updates a node collections's loading error state`, async done => {
   let queriesPerformed = 0;
-  const error = new Error('Failed to query');
+  const error = Error('Failed to query');
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
@@ -459,9 +460,14 @@ test(`loadMore updates a node collections's loading error state`, async () => {
   });
 
   expect(users.loadingState).toBe(QueryState.IDLE);
-  await users.loadMore();
-  expect(users.loadingState).toBe(QueryState.ERROR);
-  expect(users.loadingError).toBe(error);
+  try {
+    await users.loadMore();
+  } catch (e) {
+    expect(users.loadingState).toBe(QueryState.ERROR);
+    expect(users.loadingError).toBe(error);
+    expect(e).toBe(error);
+    done();
+  }
 });
 
 test(`calling goToNextPage causes the expected query to be executed`, async () => {
@@ -590,7 +596,7 @@ test(`goToNextPage updates a node collections's loading state`, async () => {
   expect(users.loadingState).toBe(QueryState.IDLE);
 });
 
-test(`goToNextPage updates a node collections's loading error state`, async () => {
+test(`goToNextPage updates a node collections's loading error state`, async done => {
   let queriesPerformed = 0;
   const error = new Error('Failed to query');
   const { mmGQLInstance } = setupTest({
@@ -627,9 +633,14 @@ test(`goToNextPage updates a node collections's loading error state`, async () =
   });
 
   expect(users.loadingState).toBe(QueryState.IDLE);
-  await users.goToNextPage();
-  expect(users.loadingState).toBe(QueryState.ERROR);
-  expect(users.loadingError).toBe(error);
+  try {
+    await users.goToNextPage();
+  } catch (e) {
+    expect(users.loadingState).toBe(QueryState.ERROR);
+    expect(users.loadingError).toBe(error);
+    expect(e).toBe(error);
+    done();
+  }
 });
 
 test(`calling goToPreviousPage causes the expected query to be executed`, async () => {
@@ -763,7 +774,7 @@ test(`goToPreviousPage updates a node collections's loading state`, async () => 
   expect(users.loadingState).toBe(QueryState.IDLE);
 });
 
-test(`goToPreviousPage updates a node collections's loading error state`, async () => {
+test(`goToPreviousPage updates a node collections's loading error state`, async done => {
   let queriesPerformed = 0;
   const error = new Error('Failed to query');
   const { mmGQLInstance } = setupTest({
@@ -800,9 +811,14 @@ test(`goToPreviousPage updates a node collections's loading error state`, async 
   });
 
   expect(users.loadingState).toBe(QueryState.IDLE);
-  await users.goToPreviousPage();
-  expect(users.loadingState).toBe(QueryState.ERROR);
-  expect(users.loadingError).toBe(error);
+  try {
+    await users.goToPreviousPage();
+  } catch (e) {
+    expect(users.loadingState).toBe(QueryState.ERROR);
+    expect(users.loadingError).toBe(error);
+    expect(e).toBe(error);
+    done();
+  }
 });
 
 function setupTest(opts: {

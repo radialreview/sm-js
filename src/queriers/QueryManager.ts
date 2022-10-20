@@ -1170,7 +1170,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>
     ): Promise<void> => {
       const previousQueryRecord = this.queryRecord;
-      const thisQueryIdx = this.queryIdx++;
 
       const queryRecord = getQueryRecordFromQueryDefinition({
         queryDefinitions: newQueryDefinitionRecord,
@@ -1227,6 +1226,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       if (!Object.keys(minimalQueryRecord).length) {
         return;
       }
+
+      const thisQueryIdx = this.queryIdx++;
 
       this.opts.onQueryStateChange?.({
         queryIdx: thisQueryIdx,
@@ -1290,6 +1291,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           queryState: QueryState.ERROR,
           error,
         });
+        throw error;
       }
     };
 
@@ -1589,6 +1591,7 @@ async function performQueries(opts: {
     // resulting into incorrect results in our specs
     const filteredAndSortedResponse =
       process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
+
     applyClientSideSortAndFilterToData(
       opts.queryRecord,
       filteredAndSortedResponse

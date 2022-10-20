@@ -31,5 +31,6 @@ exports[`QueryManager will query a minimum set of results when a fitler/sorting/
      hasNextPage
      hasPreviousPage
    }
- }}"
+ }
+}"
 `;

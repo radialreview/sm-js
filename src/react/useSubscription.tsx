@@ -374,9 +374,10 @@ function getQueryDefinitionStateManager<
       const contextForThisParentSub =
         opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
-      const onError = contextForThisParentSub.onError;
+      const onError = contextForThisParentSub?.onError;
       if (!onError) {
-        throw Error('onError is not defined');
+        console.error('onError is not defined');
+        return;
       }
 
       onError(error);
@@ -395,6 +396,7 @@ function getQueryDefinitionStateManager<
           ?.lastQueryIdx;
 
       if (queryStateChangeOpts.queryState === QueryState.LOADING) {
+        // No need to update the state, we're already loading by default for the initial query
         if (queryStateChangeOpts.queryIdx === 0) return;
 
         opts.context.updateSubscriptionInfo(subscriptionId, {
@@ -409,13 +411,15 @@ function getQueryDefinitionStateManager<
           parentSubscriptionId
         ]?.setQuerying?.(true);
       } else if (queryStateChangeOpts.queryState === QueryState.IDLE) {
+        // only set querying back to false once the last performed query has resolved
         if (queryStateChangeOpts.queryIdx === lastQueryIdx) {
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
-          const setQuerying = contextForThisParentSub.setQuerying;
+          const setQuerying = contextForThisParentSub?.setQuerying;
           if (!setQuerying) {
-            throw Error('setQuerying is not defined');
+            onError(Error('setQuerying is not defined'));
+            return;
           }
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false,
@@ -423,14 +427,7 @@ function getQueryDefinitionStateManager<
           setQuerying(false);
         }
       } else if (queryStateChangeOpts.queryState === QueryState.ERROR) {
-        if (queryStateChangeOpts.queryIdx === lastQueryIdx) {
-          onError(queryStateChangeOpts.error);
-        } else {
-          console.error(
-            'Received a query error but it was ignored because it was not the latest query',
-            opts
-          );
-        }
+        onError(queryStateChangeOpts.error);
       } else {
         throw new UnreachableCaseError(queryStateChangeOpts.queryState);
       }
@@ -443,10 +440,11 @@ function getQueryDefinitionStateManager<
         onData: ({ results: newResults }) => {
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          const onResults = contextForThisParentSub.onResults;
+          const onResults = contextForThisParentSub?.onResults;
 
           if (!onResults) {
-            throw Error('onResults is not defined');
+            onError(Error('onResults is not defined'));
+            return;
           }
 
           onResults({
@@ -504,9 +502,10 @@ function getQueryDefinitionStateManager<
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
-          const setQuerying = contextForThisParentSub.setQuerying;
+          const setQuerying = contextForThisParentSub?.setQuerying;
           if (!setQuerying) {
-            throw Error('setQuerying is not defined');
+            onError(Error('setQuerying is not defined'));
+            return;
           }
 
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
