@@ -101,7 +101,7 @@ test('QueryManager will query a minimum set of results when a fitler/sorting/pag
     def: secondMockNode,
     map: ({ mock }) => ({
       mock: mock({
-        map: ({}) => ({}),
+        map: ({ id }) => ({ id }),
       }),
     }),
   });
@@ -228,7 +228,7 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     def: secondMockNode,
     map: ({ mock }) => ({
       mock: mock({
-        map: ({}) => ({}),
+        map: ({ id }) => ({ id }),
       }),
     }),
   });
@@ -362,10 +362,10 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     def: secondMockNode,
     map: ({ mock }) => ({
       mockFirstResults: mock({
-        map: ({}) => ({}),
+        map: ({ id }) => ({ id }),
       }),
       mockSecondResults: mock({
-        map: ({}) => ({}),
+        map: ({ id }) => ({ id }),
       }),
     }),
     target: {
@@ -407,14 +407,14 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
         ...mockQueryDef,
         map: ({ mock }) => ({
           mockFirstResults: mock({
-            map: ({}) => ({}),
+            map: ({ id }) => ({ id }),
             filter: {
               // update the filter
               id: 'test-id',
             },
           }),
           mockSecondResults: mock({
-            map: ({}) => ({}),
+            map: ({ id }) => ({ id }),
           }),
         }),
       }),
