@@ -18,13 +18,3 @@ export declare function getQueryGQLDocumentFromQueryRecord(opts: {
 export declare function queryRecordEntryReturnsArrayOfData(opts: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }): boolean | null;
-export declare function getQueryInfo<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
-    queryDefinitions: TQueryDefinitions;
-    queryId: string;
-    useServerSidePaginationFilteringSorting: boolean;
-}): {
-    subscriptionConfigs: SubscriptionConfig[];
-    queryGQLDocument: import("graphql/language/ast").DocumentNode | null;
-    queryParamsString: string;
-    queryRecord: QueryRecord;
-};

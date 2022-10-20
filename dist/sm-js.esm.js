@@ -3849,7 +3849,7 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
   if (!Object.values(opts.queryRecord).some(function (value) {
     return value != null;
   })) return null;
-  var queryString = "query " + getSanitizedQueryId({
+  var queryString = ("query " + getSanitizedQueryId({
     queryId: opts.queryId
   }) + " {\n" + Object.keys(opts.queryRecord).map(function (alias) {
     var queryRecordEntry = opts.queryRecord[alias];
@@ -3858,13 +3858,72 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
       alias: alias,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }));
-  }).join('\n    ') + '\n}'.trim();
+  }).join('\n    ') + '\n}').trim();
   return gql(queryString);
 }
-
 function queryRecordEntryReturnsArrayOfData(opts) {
   return opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry);
-}
+} // will need this when we enable subscriptions
+// const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
+//   queryRecord
+// ).reduce((subscriptionConfigsAcc, alias) => {
+//   const subscriptionName = getSanitizedQueryId({
+//     queryId: opts.queryId + '_' + alias,
+//   });
+//   const queryRecordEntry = queryRecord[alias];
+//   if (!queryRecordEntry) return subscriptionConfigsAcc;
+//   const operation = getOperationFromQueryRecordEntry({
+//     ...queryRecordEntry,
+//     useServerSidePaginationFilteringSorting:
+//       opts.useServerSidePaginationFilteringSorting,
+//   });
+//   const gqlStrings = [
+//     `
+//   subscription ${subscriptionName} {
+//     ${alias}: ${operation} {
+//       node {
+//         ${getQueryPropertiesString({
+//           queryRecordEntry,
+//           nestLevel: 5,
+//           useServerSidePaginationFilteringSorting:
+//             opts.useServerSidePaginationFilteringSorting,
+//         })}
+//       }
+//       operation { action, path }
+//     }
+//   }
+//       `.trim(),
+//   ];
+//   function extractNodeFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].node) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "node" found in message',
+//       });
+//     }
+//     return subscriptionMessage[alias].node;
+//   }
+//   function extractOperationFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].operation) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "operation" found in message',
+//       });
+//     }
+//     return subscriptionMessage[alias].operation;
+//   }
+//   gqlStrings.forEach(gqlString => {
+//     subscriptionConfigsAcc.push({
+//       alias,
+//       gqlString,
+//       extractNodeFromSubscriptionMessage,
+//       extractOperationFromSubscriptionMessage,
+//     });
+//   });
 
 function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
@@ -4935,7 +4994,7 @@ function createQueryManager(mmGQLInstance) {
 
       this.onQueryDefinitionsUpdated = /*#__PURE__*/function () {
         var _ref = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(newQueryDefinitionRecord) {
-          var previousQueryRecord, thisQueryIdx, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
+          var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
 
           return runtime_1.wrap(function _callee2$(_context2) {
             while (1) {
@@ -4955,7 +5014,6 @@ function createQueryManager(mmGQLInstance) {
                   };
 
                   previousQueryRecord = _this.queryRecord;
-                  thisQueryIdx = _this.queryIdx++;
                   queryRecord = getQueryRecordFromQueryDefinition({
                     queryDefinitions: newQueryDefinitionRecord,
                     queryId: _this.opts.queryId
@@ -4965,12 +5023,12 @@ function createQueryManager(mmGQLInstance) {
                   nullishResults = getNullishResults(newQueryDefinitionRecord);
 
                   if (Object.keys(nonNullishQueryDefinitions).length) {
-                    _context2.next = 14;
+                    _context2.next = 13;
                     break;
                   }
 
                   if (!previousQueryRecord) {
-                    _context2.next = 12;
+                    _context2.next = 11;
                     break;
                   }
 
@@ -4979,13 +5037,13 @@ function createQueryManager(mmGQLInstance) {
                   });
 
                   if (!(previousNullishResultKeys.length === Object.keys(nullishResults).length)) {
-                    _context2.next = 12;
+                    _context2.next = 11;
                     break;
                   }
 
                   return _context2.abrupt("return");
 
-                case 12:
+                case 11:
                   _this.onQueryDefinitionUpdatedResult({
                     queryResult: nullishResults,
                     minimalQueryRecord: _this.queryRecord
@@ -4993,17 +5051,18 @@ function createQueryManager(mmGQLInstance) {
 
                   return _context2.abrupt("return");
 
-                case 14:
+                case 13:
                   _getMinimalQueryRecor = getMinimalQueryRecordAndAliasPathsToUpdate(), minimalQueryRecord = _getMinimalQueryRecor.minimalQueryRecord, aliasPathsToUpdate = _getMinimalQueryRecor.aliasPathsToUpdate;
 
                   if (Object.keys(minimalQueryRecord).length) {
-                    _context2.next = 17;
+                    _context2.next = 16;
                     break;
                   }
 
                   return _context2.abrupt("return");
 
-                case 17:
+                case 16:
+                  thisQueryIdx = _this.queryIdx++;
                   _this.opts.onQueryStateChange == null ? void 0 : _this.opts.onQueryStateChange({
                     queryIdx: thisQueryIdx,
                     queryState: QueryState.LOADING
@@ -5076,7 +5135,7 @@ function createQueryManager(mmGQLInstance) {
                     queryIdx: thisQueryIdx,
                     queryState: QueryState.IDLE
                   });
-                  _context2.next = 31;
+                  _context2.next = 32;
                   break;
 
                 case 28:
@@ -5087,8 +5146,9 @@ function createQueryManager(mmGQLInstance) {
                     queryState: QueryState.ERROR,
                     error: _context2.t0
                   });
+                  throw _context2.t0;
 
-                case 31:
+                case 32:
                 case "end":
                   return _context2.stop();
               }
@@ -7826,10 +7886,11 @@ function getQueryDefinitionStateManager(opts) {
 
     function onError(error) {
       var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-      var onError = contextForThisParentSub.onError;
+      var onError = contextForThisParentSub == null ? void 0 : contextForThisParentSub.onError;
 
       if (!onError) {
-        throw Error('onError is not defined');
+        console.error('onError is not defined');
+        return;
       }
 
       onError(error);
@@ -7846,6 +7907,7 @@ function getQueryDefinitionStateManager(opts) {
       if (queryStateChangeOpts.queryState === QueryState.LOADING) {
         var _opts$context$ongoing3;
 
+        // No need to update the state, we're already loading by default for the initial query
         if (queryStateChangeOpts.queryIdx === 0) return;
         opts.context.updateSubscriptionInfo(subscriptionId, {
           querying: true,
@@ -7857,12 +7919,14 @@ function getQueryDefinitionStateManager(opts) {
         });
         (_opts$context$ongoing3 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing3.setQuerying == null ? void 0 : _opts$context$ongoing3.setQuerying(true);
       } else if (queryStateChangeOpts.queryState === QueryState.IDLE) {
+        // only set querying back to false once the last performed query has resolved
         if (queryStateChangeOpts.queryIdx === lastQueryIdx) {
           var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          var setQuerying = contextForThisParentSub.setQuerying;
+          var setQuerying = contextForThisParentSub == null ? void 0 : contextForThisParentSub.setQuerying;
 
           if (!setQuerying) {
-            throw Error('setQuerying is not defined');
+            onError(Error('setQuerying is not defined'));
+            return;
           }
 
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
@@ -7871,11 +7935,7 @@ function getQueryDefinitionStateManager(opts) {
           setQuerying(false);
         }
       } else if (queryStateChangeOpts.queryState === QueryState.ERROR) {
-        if (queryStateChangeOpts.queryIdx === lastQueryIdx) {
-          onError(queryStateChangeOpts.error);
-        } else {
-          console.error('Received a query error but it was ignored because it was not the latest query', opts);
-        }
+        onError(queryStateChangeOpts.error);
       } else {
         throw new UnreachableCaseError(queryStateChangeOpts.queryState);
       }
@@ -7887,10 +7947,11 @@ function getQueryDefinitionStateManager(opts) {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        var onResults = contextForThisParentSub.onResults;
+        var onResults = contextForThisParentSub == null ? void 0 : contextForThisParentSub.onResults;
 
         if (!onResults) {
-          throw Error('onResults is not defined');
+          onError(Error('onResults is not defined'));
+          return;
         }
 
         onResults(_extends({}, contextForThisParentSub.results, newResults));
@@ -7938,10 +7999,11 @@ function getQueryDefinitionStateManager(opts) {
 
       if (allQueriesHaveResolved) {
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        var setQuerying = contextForThisParentSub.setQuerying;
+        var setQuerying = contextForThisParentSub == null ? void 0 : contextForThisParentSub.setQuerying;
 
         if (!setQuerying) {
-          throw Error('setQuerying is not defined');
+          onError(Error('setQuerying is not defined'));
+          return;
         }
 
         opts.context.updateSubscriptionInfo(parentSubscriptionId, {
