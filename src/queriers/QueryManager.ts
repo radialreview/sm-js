@@ -1192,6 +1192,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             previousNullishResultKeys.length ===
             Object.keys(nullishResults).length
           ) {
+            // if all the results are null, and they were already null last renderdo nothing
+            // calling the onQueryDefinitionUpdatedResult callback here would cause an infinite loop
             return;
           }
         }

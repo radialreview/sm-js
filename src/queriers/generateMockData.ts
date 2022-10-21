@@ -4,7 +4,7 @@ import {
   PAGE_INFO_PROPERTY_KEY,
   TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
-import { extend } from '../dataUtilities';
+import { deepClone, extend } from '../dataUtilities';
 import { UnreachableCaseError } from '../exceptions';
 import {
   generateRandomBoolean,
@@ -417,21 +417,33 @@ export function generateMockNodeDataForQueryRecord(opts: {
 
     let mockedNodeDataReturnValues;
 
-    let relationalQueryRecord = {
-      ...(queryRecordEntryForThisAlias.relational || {}),
-    };
+    // to facilitate generating mock data that conforms to the relational filters
+    // we simply move relational filters to the relational query they apply to
+    const relationalQueryRecordWithSetFilters = Object.entries(
+      queryRecordEntryForThisAlias.relational || {}
+    ).reduce(
+      (acc, [relationalQueryRecordAlias, relationalQueryRecordEntry]) => {
+        // deep cloning to avoid mutating the original query record
+        // which leads to infinite loops in querymanager's query record diffing algorithm
+        acc[relationalQueryRecordAlias] = deepClone(relationalQueryRecordEntry);
+        if (
+          queryRecordEntryForThisAlias.filter &&
+          Object.keys(queryRecordEntryForThisAlias.filter).includes(
+            relationalQueryRecordAlias
+          )
+        ) {
+          acc[relationalQueryRecordAlias].filter = {
+            ...(acc[relationalQueryRecordAlias].filter || {}),
+            ...deepClone(
+              queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias]
+            ),
+          };
+        }
 
-    Object.keys(relationalQueryRecord).forEach(relationalQueryRecordAlias => {
-      if (
-        queryRecordEntryForThisAlias.filter &&
-        Object.keys(queryRecordEntryForThisAlias.filter).includes(
-          relationalQueryRecordAlias
-        )
-      ) {
-        relationalQueryRecord[relationalQueryRecordAlias].filter =
-          queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
-      }
-    });
+        return acc;
+      },
+      {} as RelationalQueryRecord
+    );
 
     if (returnValueShouldBeAnArray) {
       const pageSize =
@@ -450,7 +462,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
 
         const relationalMockNodeProperties = generateMockNodeDataForQueryRecord(
           {
-            queryRecord: relationalQueryRecord,
+            queryRecord: relationalQueryRecordWithSetFilters,
           }
         );
 
@@ -481,7 +493,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
       );
 
       const relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-        queryRecord: relationalQueryRecord,
+        queryRecord: relationalQueryRecordWithSetFilters,
       });
 
       mockedNodeDataReturnValues = {

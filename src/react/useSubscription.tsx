@@ -345,6 +345,11 @@ function getQueryDefinitionStateManager<
     >> = null;
     if (!preExistingContextForThisSubscription) {
       opts.context.ongoingSubscriptionRecord[subscriptionId] = {
+        // we can only deal with query definitions being updated
+        // once the querymanager has been initialized
+        // however, the querymanager is initialized within the asynchronous subscribe method
+        // keep track of any attempts to update the querydefinitions by a component
+        // and notify the querymanager once it's initialized below
         onQueryDefinitionsUpdated: queryDefinitions => {
           latestQueryDefinitionsUpdate = queryDefinitions;
         },
@@ -401,7 +406,6 @@ function getQueryDefinitionStateManager<
 
         opts.context.updateSubscriptionInfo(subscriptionId, {
           querying: true,
-          lastQueryIdx: queryStateChangeOpts.queryIdx,
         });
         opts.context.updateSubscriptionInfo(parentSubscriptionId, {
           querying: true,
@@ -470,23 +474,23 @@ function getQueryDefinitionStateManager<
           });
         },
       })
-      .then(queryManager => {
+      .then(subscription => {
         // if there was a query definition update while the subscription was initializing
         // we need to notify the now initialized query manager of this update
         if (latestQueryDefinitionsUpdate) {
-          queryManager
+          subscription
             .onQueryDefinitionsUpdated(latestQueryDefinitionsUpdate)
             .catch(onError);
         }
 
         opts.context.updateSubscriptionInfo(subscriptionId, {
           onQueryDefinitionsUpdated: newQueryDefinitions => {
-            queryManager
+            subscription
               .onQueryDefinitionsUpdated(newQueryDefinitions)
               .catch(onError);
           },
         });
-        return queryManager;
+        return subscription;
       })
       .finally(() => {
         opts.context.updateSubscriptionInfo(subscriptionId, {
