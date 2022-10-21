@@ -4525,15 +4525,22 @@ function generateMockNodeDataForQueryRecord(opts) {
     var returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
       queryRecordEntry: queryRecordEntryForThisAlias
     });
-    var mockedNodeDataReturnValues;
+    var mockedNodeDataReturnValues; // to facilitate generating mock data that conforms to the relational filters
+    // we simply move relational filters to the relational query they apply to
 
-    var relationalQueryRecord = _extends({}, queryRecordEntryForThisAlias.relational || {});
+    var relationalQueryRecordWithSetFilters = Object.entries(queryRecordEntryForThisAlias.relational || {}).reduce(function (acc, _ref5) {
+      var relationalQueryRecordAlias = _ref5[0],
+          relationalQueryRecordEntry = _ref5[1];
+      // deep cloning to avoid mutating the original query record
+      // which leads to infinite loops in querymanager's query record diffing algorithm
+      acc[relationalQueryRecordAlias] = deepClone(relationalQueryRecordEntry);
 
-    Object.keys(relationalQueryRecord).forEach(function (relationalQueryRecordAlias) {
       if (queryRecordEntryForThisAlias.filter && Object.keys(queryRecordEntryForThisAlias.filter).includes(relationalQueryRecordAlias)) {
-        relationalQueryRecord[relationalQueryRecordAlias].filter = queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
+        acc[relationalQueryRecordAlias].filter = _extends({}, acc[relationalQueryRecordAlias].filter || {}, deepClone(queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias]));
       }
-    });
+
+      return acc;
+    }, {});
 
     if (returnValueShouldBeAnArray) {
       var _queryRecordEntryForT, _mockedNodeDataReturn;
@@ -4548,7 +4555,7 @@ function generateMockNodeDataForQueryRecord(opts) {
           queryRecordEntry: queryRecordEntryForThisAlias
         });
         var relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-          queryRecord: relationalQueryRecord
+          queryRecord: relationalQueryRecordWithSetFilters
         });
         arrayOfMockNodeValues.push(_extends({}, mockNodeDataForQueryRecordEntry, relationalMockNodeProperties));
       }
@@ -4567,7 +4574,7 @@ function generateMockNodeDataForQueryRecord(opts) {
       });
 
       var _relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-        queryRecord: relationalQueryRecord
+        queryRecord: relationalQueryRecordWithSetFilters
       });
 
       mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties);
@@ -7863,6 +7870,11 @@ function getQueryDefinitionStateManager(opts) {
 
     if (!preExistingContextForThisSubscription) {
       opts.context.ongoingSubscriptionRecord[subscriptionId] = {
+        // we can only deal with query definitions being updated
+        // once the querymanager has been initialized
+        // however, the querymanager is initialized within the asynchronous subscribe method
+        // keep track of any attempts to update the querydefinitions by a component
+        // and notify the querymanager once it's initialized below
         onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(queryDefinitions) {
           latestQueryDefinitionsUpdate = queryDefinitions;
         }
@@ -7910,8 +7922,7 @@ function getQueryDefinitionStateManager(opts) {
         // No need to update the state, we're already loading by default for the initial query
         if (queryStateChangeOpts.queryIdx === 0) return;
         opts.context.updateSubscriptionInfo(subscriptionId, {
-          querying: true,
-          lastQueryIdx: queryStateChangeOpts.queryIdx
+          querying: true
         });
         opts.context.updateSubscriptionInfo(parentSubscriptionId, {
           querying: true,
@@ -7974,19 +7985,19 @@ function getQueryDefinitionStateManager(opts) {
           }
         });
       }
-    }).then(function (queryManager) {
+    }).then(function (subscription) {
       // if there was a query definition update while the subscription was initializing
       // we need to notify the now initialized query manager of this update
       if (latestQueryDefinitionsUpdate) {
-        queryManager.onQueryDefinitionsUpdated(latestQueryDefinitionsUpdate)["catch"](onError);
+        subscription.onQueryDefinitionsUpdated(latestQueryDefinitionsUpdate)["catch"](onError);
       }
 
       opts.context.updateSubscriptionInfo(subscriptionId, {
         onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(newQueryDefinitions) {
-          queryManager.onQueryDefinitionsUpdated(newQueryDefinitions)["catch"](onError);
+          subscription.onQueryDefinitionsUpdated(newQueryDefinitions)["catch"](onError);
         }
       });
-      return queryManager;
+      return subscription;
     })["finally"](function () {
       opts.context.updateSubscriptionInfo(subscriptionId, {
         suspendPromise: undefined,
