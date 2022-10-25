@@ -3,6 +3,7 @@ import { QueryState } from './types';
 
 export type PageInfoFromResults = {
   totalPages: number;
+  totalCount: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   endCursor: string;
@@ -82,6 +83,10 @@ export class NodesCollection<T> {
 
   public get totalPages() {
     return this.pageInfoFromResults.totalPages;
+  }
+
+  public get totalCount() {
+    return this.pageInfoFromResults.totalCount;
   }
 
   public get page() {
@@ -166,6 +171,7 @@ export class NodesCollection<T> {
   // be cached in this class' state
   private setNewClientSidePageInfoAfterClientSidePaginationRequest() {
     this.pageInfoFromResults = {
+      totalCount: this.pageInfoFromResults.totalCount,
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage:
         this.pageInfoFromResults.totalPages >

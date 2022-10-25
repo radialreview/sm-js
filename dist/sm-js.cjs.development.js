@@ -3212,6 +3212,7 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
     this.pageInfoFromResults = {
+      totalCount: this.pageInfoFromResults.totalCount,
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
       hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
@@ -3246,6 +3247,11 @@ var NodesCollection = /*#__PURE__*/function () {
     key: "totalPages",
     get: function get() {
       return this.pageInfoFromResults.totalPages;
+    }
+  }, {
+    key: "totalCount",
+    get: function get() {
+      return this.pageInfoFromResults.totalCount;
     }
   }, {
     key: "page",
@@ -4557,7 +4563,8 @@ function generateMockNodeDataForQueryRecord(opts) {
         startCursor: 'yzx',
         hasPreviousPage: false,
         hasNextPage: pageSize < arrayOfMockNodeValues.length,
-        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize)
+        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize),
+        totalCount: arrayOfMockNodeValues.length
       };
       mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
     } else {

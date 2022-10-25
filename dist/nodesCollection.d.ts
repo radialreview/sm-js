@@ -1,6 +1,7 @@
 import { QueryState } from './types';
 export declare type PageInfoFromResults = {
     totalPages: number;
+    totalCount: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
     endCursor: string;
@@ -41,6 +42,7 @@ export declare class NodesCollection<T> {
     get hasNextPage(): boolean;
     get hasPreviousPage(): boolean;
     get totalPages(): number;
+    get totalCount(): number;
     get page(): number;
     loadMore(): Promise<void>;
     goToNextPage(): Promise<void>;
