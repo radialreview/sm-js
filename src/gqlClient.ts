@@ -160,12 +160,6 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: IGQLClient = {
     query: async opts => {
-      gqlClientOpts.logging.gqlClientQueries &&
-        console.log(
-          'performing query',
-          JSON.stringify(opts.gql.loc?.source.body, null, 2)
-        );
-
       const { data } = await baseClient.query({
         query: opts.gql,
         context: {
@@ -175,9 +169,6 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           ...getContextWithToken({ token: opts.token }),
         },
       });
-
-      gqlClientOpts.logging.gqlClientQueries &&
-        console.log('query data result', JSON.stringify(data, null, 2));
 
       return data;
     },
