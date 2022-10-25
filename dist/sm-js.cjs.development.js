@@ -3212,6 +3212,7 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
     this.pageInfoFromResults = {
+      totalCount: this.pageInfoFromResults.totalCount,
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
       hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
@@ -3246,6 +3247,11 @@ var NodesCollection = /*#__PURE__*/function () {
     key: "totalPages",
     get: function get() {
       return this.pageInfoFromResults.totalPages;
+    }
+  }, {
+    key: "totalCount",
+    get: function get() {
+      return this.pageInfoFromResults.totalCount;
     }
   }, {
     key: "page",
