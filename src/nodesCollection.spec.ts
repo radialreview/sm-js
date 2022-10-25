@@ -11,6 +11,7 @@ const items = [
 const getMockNodesCollectionConstructorArgs = (): NodesCollectionOpts<typeof items[number]> => ({
   items,
   pageInfoFromResults: {
+    totalCount: 5,
     totalPages: 5,
     hasNextPage: true,
     hasPreviousPage: true,
@@ -55,12 +56,21 @@ describe('NodesCollection', () => {
     expect(arrayWithPagination.nodes).toEqual([items[0]]);
   });
 
-  test(`'totalPages' should return total pages base on 'itemsPerPage' and 'items' length`, async () => {
+  test(`'totalPages' contains the totalPages from the pageInfo from results`, async () => {
     const arrayWithPagination = new NodesCollection(
       getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.totalPages).toEqual(
       getMockNodesCollectionConstructorArgs().pageInfoFromResults.totalPages
+    );
+  });
+
+  test(`'totalCount' contains the totalCount from the pageInfo from results`, async () => {
+    const arrayWithPagination = new NodesCollection(
+      getMockNodesCollectionConstructorArgs()
+    );
+    expect(arrayWithPagination.totalCount).toEqual(
+      getMockNodesCollectionConstructorArgs().pageInfoFromResults.totalCount
     );
   });
 
