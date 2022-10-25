@@ -39,6 +39,7 @@ import { extend } from '../dataUtilities';
 import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import { cloneDeep } from 'lodash';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
+import { getPrettyPrintedGQL } from '../specUtilities';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results
@@ -1543,6 +1544,10 @@ async function performQueries(opts: {
   batchKey: Maybe<string>;
   getMockDataDelay: Maybe<() => number>;
 }) {
+  if (opts.mmGQLInstance.logging.gqlClientQueries) {
+    console.log('performing query', getPrettyPrintedGQL(opts.queryGQL));
+  }
+
   function getToken(tokenName: string) {
     const token = opts.mmGQLInstance.getToken({ tokenName });
 
@@ -1603,6 +1608,9 @@ async function performQueries(opts: {
   }
 
   await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
+  if (opts.mmGQLInstance.logging.gqlClientQueries) {
+    console.log('query response', JSON.stringify(response, null, 2));
+  }
   return response;
 }
 
