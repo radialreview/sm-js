@@ -46,8 +46,13 @@ export declare type Config = {
     generateMockData: boolean;
     getMockDataDelay?: () => number;
     enableQuerySlimming: boolean;
-    enableQuerySlimmingLogging: boolean;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
+    logging: {
+        querySlimming: boolean;
+        gqlClientQueries: boolean;
+        gqlClientMutations: boolean;
+        gqlClientSubscriptions: boolean;
+    };
 };
 export interface IGQLClient {
     query(opts: {
@@ -134,12 +139,12 @@ export interface IMMGQL {
     generateMockData: boolean | undefined;
     getMockDataDelay: (() => number) | undefined;
     enableQuerySlimming: boolean | undefined;
-    enableQuerySlimmingLogging: boolean | undefined;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
     DOProxyGenerator: ReturnType<typeof createDOProxyGenerator>;
     DOFactory: ReturnType<typeof createDOFactory>;
     QueryManager: ReturnType<typeof createQueryManager>;
     QuerySlimmer: QuerySlimmer;
+    logging: Config['logging'];
     def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<{
         TNodeType: TNodeType;
         TNodeData: TNodeData;

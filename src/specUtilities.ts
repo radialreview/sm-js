@@ -391,7 +391,7 @@ export function getMockConfig(opts?: {
   getMockData?: () => any;
   generateMockData?: boolean;
   enableQuerySlimming?: boolean;
-  enableQuerySlimmingLogging?: boolean;
+  logging?: Partial<Config['logging']>;
   paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
   onQueryPerformed?: (query: DocumentNode) => void;
   // should return error to fail with when performing a query
@@ -425,7 +425,13 @@ export function getMockConfig(opts?: {
     },
     generateMockData: !!opts?.generateMockData,
     enableQuerySlimming: opts?.enableQuerySlimming ?? false,
-    enableQuerySlimmingLogging: opts?.enableQuerySlimmingLogging ?? false,
+    logging: {
+      querySlimming: false,
+      gqlClientQueries: false,
+      gqlClientMutations: false,
+      gqlClientSubscriptions: false,
+      ...opts?.logging,
+    },
     paginationFilteringSortingInstance:
       opts?.paginationFilteringSortingInstance ??
       EPaginationFilteringSortingInstance.SERVER,

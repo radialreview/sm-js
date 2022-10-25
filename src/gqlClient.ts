@@ -10,16 +10,15 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { DocumentNode, IGQLClient } from './types';
+import { Config, DocumentNode, IGQLClient } from './types';
 
 require('isomorphic-fetch');
 
 interface IGetGQLClientOpts {
   httpUrl: string;
   wsUrl: string;
+  logging: Config['logging'];
 }
-
-const ENABLE_LOGGING = false;
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   const wsLink = new WebSocketLink({
@@ -161,6 +160,12 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const gqlClient: IGQLClient = {
     query: async opts => {
+      gqlClientOpts.logging.gqlClientQueries &&
+        console.log(
+          'performing query',
+          JSON.stringify(opts.gql.loc?.source.body, null, 2)
+        );
+
       const { data } = await baseClient.query({
         query: opts.gql,
         context: {
@@ -171,8 +176,8 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         },
       });
 
-      ENABLE_LOGGING &&
-        console.log('query data', JSON.stringify(data, null, 2));
+      gqlClientOpts.logging.gqlClientQueries &&
+        console.log('query data result', JSON.stringify(data, null, 2));
 
       return data;
     },
@@ -183,7 +188,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         })
         .subscribe({
           next: message => {
-            ENABLE_LOGGING &&
+            gqlClientOpts.logging.gqlClientSubscriptions &&
               console.log(
                 'subscription message',
                 JSON.stringify(message, null, 2)
@@ -200,7 +205,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return () => subscription.unsubscribe();
     },
     mutate: async opts => {
-      ENABLE_LOGGING &&
+      gqlClientOpts.logging.gqlClientMutations &&
         console.log(
           'mutations',
           opts.mutations.map(mutation => mutation.loc?.source.body)

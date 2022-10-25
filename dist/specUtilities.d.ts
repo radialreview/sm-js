@@ -2400,7 +2400,7 @@ export declare function getMockConfig(opts?: {
     getMockData?: () => any;
     generateMockData?: boolean;
     enableQuerySlimming?: boolean;
-    enableQuerySlimmingLogging?: boolean;
+    logging?: Partial<Config['logging']>;
     paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
     onQueryPerformed?: (query: DocumentNode) => void;
     failQuery?: () => any;
