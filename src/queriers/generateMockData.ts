@@ -478,6 +478,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
         hasPreviousPage: false,
         hasNextPage: pageSize < arrayOfMockNodeValues.length,
         totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize),
+        totalCount: arrayOfMockNodeValues.length,
       };
 
       mockedNodeDataReturnValues = {

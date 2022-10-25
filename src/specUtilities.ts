@@ -257,6 +257,7 @@ export const mockUserData = {
 };
 
 const mockPageInfo: PageInfoFromResults = {
+  totalCount: 10,
   hasPreviousPage: true,
   hasNextPage: true,
   endCursor: 'xyz',
