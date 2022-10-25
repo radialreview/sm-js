@@ -7180,7 +7180,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
   };
 
   _proto.log = function log(message) {
-    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
+    if (this.mmGQLInstance.logging.querySlimming) {
       var _console;
 
       for (var _len = arguments.length, optionalParams = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
@@ -8066,6 +8066,7 @@ function getQueryDefinitionStateManager(opts) {
 }
 
 require('isomorphic-fetch');
+
 function getGQLCLient(gqlClientOpts) {
   var wsLink = new ws.WebSocketLink({
     uri: gqlClientOpts.wsUrl,
@@ -8173,13 +8174,16 @@ function getGQLCLient(gqlClientOpts) {
   var gqlClient = {
     query: function () {
       var _query = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
+        var _opts$gql$loc2;
+
         var _yield$baseClient$que, data;
 
         return runtime_1.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                _context.next = 2;
+                gqlClientOpts.logging.gqlClientQueries && console.log('performing query', JSON.stringify((_opts$gql$loc2 = opts.gql.loc) == null ? void 0 : _opts$gql$loc2.source.body, null, 2));
+                _context.next = 3;
                 return baseClient.query({
                   query: opts.gql,
                   context: _extends({
@@ -8191,12 +8195,13 @@ function getGQLCLient(gqlClientOpts) {
                   }))
                 });
 
-              case 2:
+              case 3:
                 _yield$baseClient$que = _context.sent;
                 data = _yield$baseClient$que.data;
+                gqlClientOpts.logging.gqlClientQueries && console.log('query data result', JSON.stringify(data, null, 2));
                 return _context.abrupt("return", data);
 
-              case 6:
+              case 7:
               case "end":
                 return _context.stop();
             }
@@ -8215,6 +8220,7 @@ function getGQLCLient(gqlClientOpts) {
         query: authenticateSubscriptionDocument(opts)
       }).subscribe({
         next: function next(message) {
+          gqlClientOpts.logging.gqlClientSubscriptions && console.log('subscription message', JSON.stringify(message, null, 2));
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
         },
         error: opts.onError
@@ -8229,6 +8235,11 @@ function getGQLCLient(gqlClientOpts) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
+                gqlClientOpts.logging.gqlClientMutations && console.log('mutations', opts.mutations.map(function (mutation) {
+                  var _mutation$loc;
+
+                  return (_mutation$loc = mutation.loc) == null ? void 0 : _mutation$loc.source.body;
+                }));
                 _context2.next = 3;
                 return Promise.all(opts.mutations.map(function (mutation) {
                   return baseClient.mutate({
@@ -8263,15 +8274,22 @@ function getGQLCLient(gqlClientOpts) {
 }
 
 function getDefaultConfig() {
+  var logging = {
+    querySlimming: false,
+    gqlClientQueries: false,
+    gqlClientMutations: false,
+    gqlClientSubscriptions: false
+  };
   return {
     gqlClient: getGQLCLient({
       httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/'
+      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      logging: logging
     }),
     generateMockData: false,
     enableQuerySlimming: false,
-    enableQuerySlimmingLogging: false,
-    paginationFilteringSortingInstance: exports.EPaginationFilteringSortingInstance.SERVER
+    paginationFilteringSortingInstance: exports.EPaginationFilteringSortingInstance.SERVER,
+    logging: logging
   };
 }
 
@@ -8861,7 +8879,6 @@ var MMGQL = /*#__PURE__*/function () {
     this.generateMockData = void 0;
     this.getMockDataDelay = void 0;
     this.enableQuerySlimming = void 0;
-    this.enableQuerySlimmingLogging = void 0;
     this.paginationFilteringSortingInstance = void 0;
     this.plugins = void 0;
     this.query = void 0;
@@ -8872,12 +8889,13 @@ var MMGQL = /*#__PURE__*/function () {
     this.tokens = {};
     this.DOFactory = void 0;
     this.DOProxyGenerator = void 0;
+    this.logging = void 0;
     this.optimisticUpdatesOrchestrator = void 0;
     this.gqlClient = config.gqlClient;
     this.generateMockData = config.generateMockData;
     this.getMockDataDelay = config.getMockDataDelay;
     this.enableQuerySlimming = config.enableQuerySlimming;
-    this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
+    this.logging = config.logging;
     this.paginationFilteringSortingInstance = config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
     this.query = generateQuerier({

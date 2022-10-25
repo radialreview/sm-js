@@ -13,7 +13,6 @@ export declare class MMGQL implements IMMGQL {
     generateMockData: IMMGQL['generateMockData'];
     getMockDataDelay: IMMGQL['getMockDataDelay'];
     enableQuerySlimming: IMMGQL['enableQuerySlimming'];
-    enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
     paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
     plugins: IMMGQL['plugins'];
     query: IMMGQL['query'];
@@ -24,6 +23,7 @@ export declare class MMGQL implements IMMGQL {
     tokens: Record<string, string>;
     DOFactory: IMMGQL['DOFactory'];
     DOProxyGenerator: IMMGQL['DOProxyGenerator'];
+    logging: Config['logging'];
     private optimisticUpdatesOrchestrator;
     constructor(config: Config);
     def<TNodeType extends string, TNodeData extends Record<string, IData | DataDefaultFn>, TNodeComputedData extends Record<string, any> = {}, TNodeRelationalData extends NodeRelationalQueryBuilderRecord = {}>(def: NodeDefArgs<{
