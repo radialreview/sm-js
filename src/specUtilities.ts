@@ -2,7 +2,7 @@ import { isObject } from 'lodash';
 
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
-import { convertQueryDefinitionToQueryInfo } from './queryDefinitionAdapters';
+import { getQueryRecordFromQueryDefinition } from './queriers/queryDefinitionAdapters';
 import { getDefaultConfig, MMGQL } from '.';
 
 import {
@@ -20,6 +20,7 @@ import {
   NodeDefaultProps,
   EPaginationFilteringSortingInstance,
   DocumentNode,
+  ValidFilterForNode,
 } from './types';
 import { NULL_TAG } from './dataConversions';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
@@ -168,6 +169,7 @@ export function createMockQueryDefinitions(
   opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
+    todosFilter?: ValidFilterForNode<TodoNode>;
   } = {}
 ) {
   let target = {} as QueryDefinitionTarget;
@@ -196,6 +198,7 @@ export function createMockQueryDefinitions(
               map: ({ firstName }) => ({ firstName }),
             }),
           }),
+          filter: opts.todosFilter,
         }),
       }),
       target,
@@ -337,10 +340,9 @@ export const getMockQueryResultExpectations = (opts: {
 
 export function getMockQueryRecord(mmGQLInstance: IMMGQL) {
   const queryId = 'MockQuery';
-  const { queryRecord } = convertQueryDefinitionToQueryInfo({
+  const queryRecord = getQueryRecordFromQueryDefinition({
     queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
     queryId,
-    useServerSidePaginationFilteringSorting: true,
   });
 
   return queryRecord;

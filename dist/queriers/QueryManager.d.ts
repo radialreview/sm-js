@@ -1,5 +1,5 @@
-import { PageInfoFromResults, ClientSidePageInfo } from './nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, DocumentNode, RelationalQueryRecord, IQueryPagination } from './types';
+import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -19,20 +19,22 @@ declare type QueryManagerOpts = {
     useServerSidePaginationFilteringSorting: boolean;
     resultsObject: Object;
     onResultsUpdated(): void;
-    performQuery(opts: {
-        queryRecord: QueryRecord;
-        queryGQL: DocumentNode;
-        tokenName: Maybe<string>;
-    }): Promise<any>;
+    onQueryError(error: any): void;
+    batchKey: Maybe<string>;
+    getMockDataDelay: Maybe<() => number>;
+    onQueryStateChange?: (queryStateChangeOpts: {
+        queryIdx: number;
+        queryState: QueryState;
+        error?: any;
+    }) => void;
 };
 export declare function createQueryManager(mmGQLInstance: IMMGQL): {
-    new (queryRecord: QueryRecord, opts: QueryManagerOpts): {
+    new (queryDefinitions: QueryDefinitions<unknown, unknown, unknown> | UseSubscriptionQueryDefinitions<unknown, unknown, unknown, unknown>, opts: QueryManagerOpts): {
         state: QueryManagerState;
-        queryRecord: QueryRecord;
+        queryDefinitions: QueryDefinitions<unknown, unknown, unknown> | UseSubscriptionQueryDefinitions<unknown, unknown, unknown, unknown>;
         opts: QueryManagerOpts;
-        onQueryResult(opts: {
-            queryResult: any;
-        }): void;
+        queryRecord: Maybe<QueryRecord>;
+        queryIdx: number;
         onSubscriptionMessage(opts: {
             node: Record<string, any>;
             operation: {
@@ -61,7 +63,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         notifyRepositories(opts: {
             data: Record<string, any>;
             queryRecord: {
-                [key: string]: QueryRecordEntry | RelationalQueryRecordEntry;
+                [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
             };
         }): void;
         /**
@@ -96,7 +98,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
         }): QueryManagerProxyCacheEntry;
         getRelationalData(opts: {
-            queryRecord: BaseQueryRecordEntry;
+            queryRecord: BaseQueryRecordEntry | null;
             node: Record<string, any>;
         }): Record<string, any> | null;
         removeUnionSuffix(alias: string): string;
@@ -105,7 +107,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             nodeData: Record<string, any>;
         }): Record<string, RelationalQueryRecordEntry>;
         getDataFromResponse(opts: {
-            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             dataForThisAlias: any;
         }): any;
         getPageInfoFromResponse(opts: {
@@ -115,8 +117,8 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
             response: Record<string, any>;
         }): Maybe<PageInfoFromResults>;
-        getClientSidePageInfo(opts: {
-            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+        getInitialClientSidePageInfo(opts: {
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
         }): Maybe<ClientSidePageInfo>;
         onLoadMoreResults(opts: {
             previousEndCursor: string;
@@ -159,6 +161,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: QueryRecord;
             event: 'LOAD_MORE' | 'GO_TO_NEXT' | 'GO_TO_PREVIOUS';
         }): void;
+        onQueryDefinitionsUpdated: (newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>) => Promise<void>;
+        onQueryDefinitionUpdatedResult(opts: {
+            queryResult: Record<string, any>;
+            minimalQueryRecord: QueryRecord;
+            aliasPathsToUpdate?: Array<Array<string>>;
+        }): void;
         extendStateObject(opts: {
             aliasPath: Array<string>;
             originalAliasPath: Array<string>;
@@ -184,5 +192,35 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
          */
         getIdFromAlias(alias: string): string | undefined;
     };
+};
+export declare function removeNullishQueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(queryDefinitions: TQueryDefinitions): TQueryDefinitions;
+/**
+ * Given a previousQueryRecord and a nextQueryRecord,
+ * returns the minimal query record required to perform the next query
+ *
+ * For now, does not account for a change in the properties being queried
+ * It only looks at the filter, sort and pagination parameters being used
+ *
+ * If any of those were updated, the query for that data will be performed
+ *
+ * Recursion: does it have to handle query changes in related data?
+ * The answer is yes, ideally. However, what if the user had loaded more results on the parent list,
+ * previous to updating the filter/sorting/pagination on the child list?
+ *
+ * In this case, we would have to load the relational results for which the query was updated
+ * for each item of the parent list that had been loaded so far, which could be a lot of data.
+ * Not just that, it would be impossible to request that in a single query, which means this
+ * function would have to inherit the additional complexity of returning multiple queries
+ * and then the function calling this function would have to handle that as well.
+ *
+ * Because of that, any update to the filter/sorting/pagination of a child list query will result in
+ * a full query starting at the root of the query record
+ */
+export declare function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts: {
+    previousQueryRecord: QueryRecord;
+    nextQueryRecord: QueryRecord;
+}): {
+    minimalQueryRecord: QueryRecord;
+    aliasPathsToUpdate: Array<Array<string>>;
 };
 export {};

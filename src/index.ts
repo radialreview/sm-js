@@ -5,9 +5,9 @@ import { ImpliedNodePropertyException } from './exceptions';
 import { OptimisticUpdatesOrchestrator } from './OptimisticUpdates';
 import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './queriers';
-import { createQueryManager } from './QueryManager';
+import { createQueryManager } from './queriers/QueryManager';
+import { QuerySlimmer } from './queriers/QuerySlimmer';
 import { createTransaction } from './transaction/transaction';
-import { QuerySlimmer } from './QuerySlimmer';
 import {
   IMMGQL,
   Config,
@@ -26,7 +26,7 @@ export * from './react';
 export * from './config';
 export * from './gqlClient';
 export * from './consts';
-export * from './generateMockDataUtilities';
+export * from './queriers/generateMockDataUtilities';
 export * from './nodesCollection';
 export { gql } from '@apollo/client';
 

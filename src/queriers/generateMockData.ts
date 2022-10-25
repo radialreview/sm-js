@@ -3,18 +3,18 @@ import {
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   TOTAL_COUNT_PROPERTY_KEY,
-} from './consts';
-import { extend } from './dataUtilities';
-import { UnreachableCaseError } from './exceptions';
+} from '../consts';
+import { deepClone, extend } from '../dataUtilities';
+import { UnreachableCaseError } from '../exceptions';
 import {
   generateRandomBoolean,
   generateRandomId,
   generateRandomNumber,
   generateRandomString,
 } from './generateMockDataUtilities';
-import { PageInfoFromResults } from './nodesCollection';
+import { PageInfoFromResults } from '../nodesCollection';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
-import { revisedPrepareForBE } from './transaction/revisedConvertNodeDataToSMPersistedData';
+import { revisedPrepareForBE } from '../transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
   IData,
@@ -26,7 +26,7 @@ import {
   RelationalQueryRecord,
   ValidFilterForNode,
   INode,
-} from './types';
+} from '../types';
 
 type MockValuesIDataReturnType =
   | Record<string, any>
@@ -404,28 +404,46 @@ export function generateMockNodeDataForQueryRecord(opts: {
   Object.keys(queryRecord).forEach(queryRecordAlias => {
     const queryRecordEntryForThisAlias:
       | QueryRecordEntry
-      | RelationalQueryRecordEntry = queryRecord[queryRecordAlias];
+      | RelationalQueryRecordEntry
+      | null = queryRecord[queryRecordAlias];
+
+    if (!queryRecordEntryForThisAlias) {
+      mockedNodeData[queryRecordAlias] = null;
+      return;
+    }
     const returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
       queryRecordEntry: queryRecordEntryForThisAlias,
     });
 
     let mockedNodeDataReturnValues;
 
-    let relationalQueryRecord = {
-      ...(queryRecordEntryForThisAlias.relational || {}),
-    };
+    // to facilitate generating mock data that conforms to the relational filters
+    // we simply move relational filters to the relational query they apply to
+    const relationalQueryRecordWithSetFilters = Object.entries(
+      queryRecordEntryForThisAlias.relational || {}
+    ).reduce(
+      (acc, [relationalQueryRecordAlias, relationalQueryRecordEntry]) => {
+        // deep cloning to avoid mutating the original query record
+        // which leads to infinite loops in querymanager's query record diffing algorithm
+        acc[relationalQueryRecordAlias] = deepClone(relationalQueryRecordEntry);
+        if (
+          queryRecordEntryForThisAlias.filter &&
+          Object.keys(queryRecordEntryForThisAlias.filter).includes(
+            relationalQueryRecordAlias
+          )
+        ) {
+          acc[relationalQueryRecordAlias].filter = {
+            ...(acc[relationalQueryRecordAlias].filter || {}),
+            ...deepClone(
+              queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias]
+            ),
+          };
+        }
 
-    Object.keys(relationalQueryRecord).forEach(relationalQueryRecordAlias => {
-      if (
-        queryRecordEntryForThisAlias.filter &&
-        Object.keys(queryRecordEntryForThisAlias.filter).includes(
-          relationalQueryRecordAlias
-        )
-      ) {
-        relationalQueryRecord[relationalQueryRecordAlias].filter =
-          queryRecordEntryForThisAlias.filter[relationalQueryRecordAlias];
-      }
-    });
+        return acc;
+      },
+      {} as RelationalQueryRecord
+    );
 
     if (returnValueShouldBeAnArray) {
       const pageSize =
@@ -444,7 +462,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
 
         const relationalMockNodeProperties = generateMockNodeDataForQueryRecord(
           {
-            queryRecord: relationalQueryRecord,
+            queryRecord: relationalQueryRecordWithSetFilters,
           }
         );
 
@@ -475,7 +493,7 @@ export function generateMockNodeDataForQueryRecord(opts: {
       );
 
       const relationalMockNodeProperties = generateMockNodeDataForQueryRecord({
-        queryRecord: relationalQueryRecord,
+        queryRecord: relationalQueryRecordWithSetFilters,
       });
 
       mockedNodeDataReturnValues = {

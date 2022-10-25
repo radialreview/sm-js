@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubscriptionCanceller, IMMGQL, DocumentNode } from '../types';
+import { SubscriptionCanceller, IMMGQL, QueryDefinitions } from '../types';
 export interface IContextSubscription {
     results?: any;
     error?: any;
@@ -9,12 +9,8 @@ export interface IContextSubscription {
     onResults?: (newResults: any) => void;
     onError?: (newError: any) => void;
     setQuerying?: (querying: boolean) => void;
-    queryInfo?: {
-        queryGQL: DocumentNode;
-        queryId: string;
-        queryParamsString: string;
-    } | null;
-    lastQueryTimestamp?: number;
+    onQueryDefinitionsUpdated?: (newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>) => void;
+    lastQueryIdx?: number;
 }
 export interface IContext {
     mmGQLInstance: IMMGQL;

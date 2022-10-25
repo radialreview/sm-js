@@ -1,6 +1,6 @@
-import { createMockQueryDefinitions, getMockConfig } from './specUtilities';
-import { queryDefinition, MMGQL } from '.';
-import { DEFAULT_TOKEN_NAME } from './consts';
+import { createMockQueryDefinitions, getMockConfig } from '../specUtilities';
+import { queryDefinition, MMGQL } from '..';
+import { DEFAULT_TOKEN_NAME } from '../consts';
 import {
   array,
   boolean,
@@ -11,14 +11,14 @@ import {
   record,
   string,
   stringEnum,
-} from './dataTypes';
+} from '../dataTypes';
 import {
   EPaginationFilteringSortingInstance,
   GetResultingDataTypeFromProperties,
   INode,
   IOneToManyQueryBuilder,
   IOneToOneQueryBuilder,
-} from './types';
+} from '../types';
 
 test('setupTest correctly returns mmGQLInstance.generateMockData as true', async () => {
   const { mmGQLInstance } = setupTest();

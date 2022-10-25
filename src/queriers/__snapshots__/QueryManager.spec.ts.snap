@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`QueryManager will query a minimum set of results when a fitler/sorting/pagination param is updated in a relational query under a paginated list query: Should query only secondMockSecondResults, because the other query did not change 1`] = `
+"query MockQueryId {
+ secondMockSecondResults: secondMocks(where: {and: [{id: {eq: \\"test-id\\"}}]}) {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     mock: mock {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;

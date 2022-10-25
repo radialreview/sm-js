@@ -1,4 +1,4 @@
-import { QueryRecord, QueryRecordEntry, RelationalQueryRecord, RelationalQueryRecordEntry, IMMGQL } from './types';
+import { QueryRecord, QueryRecordEntry, RelationalQueryRecord, RelationalQueryRecordEntry, IMMGQL } from '../types';
 export interface IFetchedQueryData {
     subscriptionsByProperty: Record<string, number>;
     results: any | Array<any> | null;

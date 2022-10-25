@@ -1,4 +1,5 @@
 import { NodesCollectionPageOutOfBoundsException } from './exceptions';
+import { QueryState } from './types';
 
 export type PageInfoFromResults = {
   totalPages: number;
@@ -17,12 +18,6 @@ export type OnPaginationRequestStateChangedCallback = () => void;
 export type OnLoadMoreResultsCallback = () => Promise<void>;
 export type OnGoToNextPageCallback = () => Promise<void>;
 export type OnGoToPreviousPageCallback = () => Promise<void>;
-
-export enum ENodeCollectionLoadingState {
-  'IDLE' = 'IDLE',
-  'LOADING' = 'LOADING',
-  'ERROR' = 'ERROR',
-}
 
 export interface NodesCollectionOpts<T> {
   onLoadMoreResults: OnLoadMoreResultsCallback;
@@ -49,7 +44,7 @@ export class NodesCollection<T> {
   // getter below, which must return multiple pages of results when loadMore is executed
   private pagesBeingDisplayed: Array<number>;
 
-  public loadingState = ENodeCollectionLoadingState.IDLE as ENodeCollectionLoadingState;
+  public loadingState = QueryState.IDLE as QueryState;
   public loadingError = null as any;
 
   constructor(opts: NodesCollectionOpts<T>) {
@@ -140,24 +135,25 @@ export class NodesCollection<T> {
   private async withPaginationEventLoadingState(
     promiseGetter: () => Promise<void>
   ) {
-    this.loadingState = ENodeCollectionLoadingState.LOADING;
+    this.loadingState = QueryState.LOADING;
     this.loadingError = null;
     try {
       // re-render ui with the new loading state
       this.onPaginationRequestStateChanged();
       await promiseGetter();
-      this.loadingState = ENodeCollectionLoadingState.IDLE;
+      this.loadingState = QueryState.IDLE;
     } catch (e) {
-      this.loadingState = ENodeCollectionLoadingState.ERROR;
+      this.loadingState = QueryState.ERROR;
       this.loadingError = e;
-    }
+      throw e;
+    } finally {
+      if (!this.useServerSidePaginationFilteringSorting) {
+        this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+      }
 
-    if (!this.useServerSidePaginationFilteringSorting) {
-      this.setNewClientSidePageInfoAfterClientSidePaginationRequest();
+      // re-render the ui with the new nodes and loading/error state
+      this.onPaginationRequestStateChanged();
     }
-
-    // re-render the ui with the new nodes and loading/error state
-    this.onPaginationRequestStateChanged();
   }
 
   public async goToPage(_: number) {

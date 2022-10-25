@@ -1,4 +1,4 @@
-import { QueryRecordEntry, INode, ValidSortForNode, QueryRecord, RelationalQueryRecord, RelationalQueryRecordEntry } from './types';
+import { QueryRecordEntry, INode, ValidSortForNode, QueryRecord, RelationalQueryRecord, RelationalQueryRecordEntry } from '../types';
 export declare function applyClientSideFilterToData({ queryRecordEntry, data, alias, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     data: any;

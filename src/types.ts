@@ -1,11 +1,11 @@
-import { OnLoadMoreResultsCallback, NodesCollection } from './nodesCollection';
+import { NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
-import { createQueryManager } from './QueryManager';
+import { createQueryManager } from './queriers/QueryManager';
 import { createTransaction } from './transaction/transaction';
-import { QuerySlimmer } from './QuerySlimmer'
+import { QuerySlimmer } from './queriers/QuerySlimmer'
 
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
@@ -21,6 +21,12 @@ export type DataDefaultFn = {
   _default: IData
   (_default: any): IData;
 } 
+
+export enum QueryState {
+  'IDLE' = 'IDLE',
+  'LOADING' = 'LOADING',
+  'ERROR' = 'ERROR',
+}
 
 export type DocumentNode = import('@apollo/client/core').DocumentNode;
 
@@ -72,7 +78,6 @@ export interface IGQLClient {
 }
 
 export interface IQueryManager {
-  onQueryResult(opts: { queryResult: any; queryId: string }): void;
   onSubscriptionMessage(opts: {
     node: Record<string, any>;
     operation: {
@@ -82,6 +87,7 @@ export interface IQueryManager {
     queryId: string;
     subscriptionAlias: string;
   }): void;
+  onQueryDefinitionsUpdated(newQueryDefinitions: QueryDefinitions<any,any,any>): Promise<void>
 }
 
 export type QueryReturn<
@@ -105,8 +111,7 @@ export type QueryOpts<
 };
 
 export type SubscriptionOpts<
-  // @ts-ignore
-  TQueryDefinitions extends QueryDefinitions
+  TQueryDefinitions extends QueryDefinitions<unknown, unknown, unknown>
 > = {
   onData: (info: { results: QueryDataReturn<TQueryDefinitions> }) => void;
   // To catch an error in a subscription, you must provide an onError handler,
@@ -122,12 +127,11 @@ export type SubscriptionOpts<
   onSubscriptionInitialized?: (
     subscriptionCanceller: SubscriptionCanceller
   ) => void;
-  onQueryInfoConstructed?: (queryInfo: {
-    queryGQL: DocumentNode;
-    queryId: string;
-    queryParamsString: string;
-  }) => void;
-  onLoadMoreResults?: OnLoadMoreResultsCallback
+  onQueryManagerQueryStateChange?: (queryStateChangeOpts: {
+    queryIdx: number;
+    queryState: QueryState;
+    error?: any;
+  }) => void
   skipInitialQuery?: boolean;
   queryId?: string;
   batchKey?: string;
@@ -138,7 +142,14 @@ export type NodeDefaultProps = typeof DEFAULT_NODE_PROPERTIES;
 export type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR_ALL_NODES;
 
 export type SubscriptionCanceller = () => void;
-export type SubscriptionMeta = { unsub: SubscriptionCanceller; error: any };
+export type SubscriptionMeta = {
+  unsub: SubscriptionCanceller;
+  // onQueryDefinitionsUpdated is a function that can be called to update the query definitions for this subscription
+  // This is useful for when you want to change the query definitions for a subscription, but you don't want to
+  // unsubscribe and resubscribe, which would cause pagination state to be lost
+  onQueryDefinitionsUpdated: (newQueryDefinitionRecord: QueryDefinitions<any,any,any>) => Promise<void> ;
+  error: any
+};
 
 export enum EPaginationFilteringSortingInstance {
   'SERVER', 
@@ -1161,7 +1172,7 @@ export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
   | (BaseQueryRecordEntry & { oneToMany: true })
 )
 
-export type QueryRecord = Record<string, QueryRecordEntry>;
+export type QueryRecord = Record<string, QueryRecordEntry | null>;
 
 export type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>
 

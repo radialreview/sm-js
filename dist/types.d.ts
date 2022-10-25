@@ -1,11 +1,11 @@
-import { OnLoadMoreResultsCallback, NodesCollection } from './nodesCollection';
+import { NodesCollection } from './nodesCollection';
 import { DEFAULT_NODE_PROPERTIES, PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
-import { createQueryManager } from './QueryManager';
+import { createQueryManager } from './queriers/QueryManager';
 import { createTransaction } from './transaction/transaction';
-import { QuerySlimmer } from './QuerySlimmer';
+import { QuerySlimmer } from './queriers/QuerySlimmer';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
@@ -16,6 +16,11 @@ export declare type DataDefaultFn = {
     _default: IData;
     (_default: any): IData;
 };
+export declare enum QueryState {
+    'IDLE' = "IDLE",
+    'LOADING' = "LOADING",
+    'ERROR' = "ERROR"
+}
 export declare type DocumentNode = import('@apollo/client/core').DocumentNode;
 export declare type Plugin = {
     DO?: {
@@ -62,10 +67,6 @@ export interface IGQLClient {
     }): Promise<any>;
 }
 export interface IQueryManager {
-    onQueryResult(opts: {
-        queryResult: any;
-        queryId: string;
-    }): void;
     onSubscriptionMessage(opts: {
         node: Record<string, any>;
         operation: {
@@ -75,6 +76,7 @@ export interface IQueryManager {
         queryId: string;
         subscriptionAlias: string;
     }): void;
+    onQueryDefinitionsUpdated(newQueryDefinitions: QueryDefinitions<any, any, any>): Promise<void>;
 }
 export declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
     data: QueryDataReturn<TQueryDefinitions>;
@@ -88,18 +90,17 @@ export declare type QueryOpts<TQueryDefinitions extends QueryDefinitions> = {
     queryId?: string;
     batchKey?: string;
 };
-export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions> = {
+export declare type SubscriptionOpts<TQueryDefinitions extends QueryDefinitions<unknown, unknown, unknown>> = {
     onData: (info: {
         results: QueryDataReturn<TQueryDefinitions>;
     }) => void;
     onError?: (...args: any) => void;
     onSubscriptionInitialized?: (subscriptionCanceller: SubscriptionCanceller) => void;
-    onQueryInfoConstructed?: (queryInfo: {
-        queryGQL: DocumentNode;
-        queryId: string;
-        queryParamsString: string;
+    onQueryManagerQueryStateChange?: (queryStateChangeOpts: {
+        queryIdx: number;
+        queryState: QueryState;
+        error?: any;
     }) => void;
-    onLoadMoreResults?: OnLoadMoreResultsCallback;
     skipInitialQuery?: boolean;
     queryId?: string;
     batchKey?: string;
@@ -109,6 +110,7 @@ export declare type PropertiesQueriedForAllNodes = typeof PROPERTIES_QUERIED_FOR
 export declare type SubscriptionCanceller = () => void;
 export declare type SubscriptionMeta = {
     unsub: SubscriptionCanceller;
+    onQueryDefinitionsUpdated: (newQueryDefinitionRecord: QueryDefinitions<any, any, any>) => Promise<void>;
     error: any;
 };
 export declare enum EPaginationFilteringSortingInstance {
@@ -702,7 +704,7 @@ export declare type RelationalQueryRecordEntry = {
 }) | (BaseQueryRecordEntry & {
     oneToMany: true;
 }));
-export declare type QueryRecord = Record<string, QueryRecordEntry>;
+export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;

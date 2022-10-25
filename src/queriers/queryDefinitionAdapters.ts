@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
-import { UnexpectedSubscriptionMessageException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
+
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
@@ -24,20 +24,13 @@ import {
   ENumberFilterOperator,
   ValidSortForNode,
   SortObject,
-  RelationalQueryRecord,
-} from './types';
+} from '../types';
 import {
   PAGE_INFO_PROPERTY_KEY,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
   TOTAL_COUNT_PROPERTY_KEY,
-} from './consts';
-
-/**
- * The functions in this file are responsible for translating queryDefinitionss to gql documents
- * only function that should be needed outside this file is convertQueryDefinitionToQueryInfo
- * other fns are exported for testing purposes only
- */
+} from '../consts';
 
 /**
  * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
@@ -406,6 +399,7 @@ export function getQueryRecordFromQueryDefinition<
     let allowNullResult;
     let tokenName;
     if (!queryDefinition) {
+      queryRecord[queryDefinitionsAlias] = null;
       return;
     } else if ('_isNodeDef' in queryDefinition) {
       // shorthand syntax where the dev only specified a node defition, nothing else
@@ -828,192 +822,115 @@ export type SubscriptionConfig = {
   ) => any;
 };
 
-export function getQueryGQLStringFromQueryRecord(opts: {
+export function getQueryGQLDocumentFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
-  return (
+  if (!Object.values(opts.queryRecord).some(value => value != null))
+    return null;
+
+  const queryString = (
     `query ${getSanitizedQueryId({ queryId: opts.queryId })} {\n` +
     Object.keys(opts.queryRecord)
-      .map(alias =>
-        getRootLevelQueryString({
-          ...opts.queryRecord[alias],
+      .map(alias => {
+        const queryRecordEntry = opts.queryRecord[alias];
+
+        if (!queryRecordEntry) return '';
+
+        return getRootLevelQueryString({
+          ...queryRecordEntry,
           alias,
           useServerSidePaginationFilteringSorting:
             opts.useServerSidePaginationFilteringSorting,
-        })
-      )
+        });
+      })
       .join('\n    ') +
     '\n}'
   ).trim();
-}
 
-function getQueryRecordSortAndFilterValues(
-  record: QueryRecord | RelationalQueryRecord
-) {
-  return Object.keys(record).reduce((acc, alias) => {
-    acc.push(record[alias].filter);
-    acc.push(record[alias].sort);
-    const relational = record[alias].relational;
-    if (relational) {
-      acc.push(...(getQueryRecordSortAndFilterValues(relational) || []));
-    }
-
-    return acc;
-  }, [] as any[]);
+  return gql(queryString);
 }
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
-  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }) {
   return (
+    opts.queryRecordEntry &&
     (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
     !('oneToOne' in opts.queryRecordEntry)
   );
 }
 
-export function getQueryInfo<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: {
-  queryDefinitions: TQueryDefinitions;
-  queryId: string;
-  useServerSidePaginationFilteringSorting: boolean;
-}) {
-  const queryRecord: QueryRecord = getQueryRecordFromQueryDefinition(opts);
-  const queryGQLString = getQueryGQLStringFromQueryRecord({
-    queryId: opts.queryId,
-    queryRecord,
-    useServerSidePaginationFilteringSorting:
-      opts.useServerSidePaginationFilteringSorting,
-  });
-  const queryParamsString = JSON.stringify(
-    getQueryRecordSortAndFilterValues(queryRecord)
-  );
+// will need this when we enable subscriptions
+// const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
+//   queryRecord
+// ).reduce((subscriptionConfigsAcc, alias) => {
+//   const subscriptionName = getSanitizedQueryId({
+//     queryId: opts.queryId + '_' + alias,
+//   });
+//   const queryRecordEntry = queryRecord[alias];
 
-  const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
-    queryRecord
-  ).reduce((subscriptionConfigsAcc, alias) => {
-    const subscriptionName = getSanitizedQueryId({
-      queryId: opts.queryId + '_' + alias,
-    });
-    const queryRecordEntry = queryRecord[alias];
+//   if (!queryRecordEntry) return subscriptionConfigsAcc;
 
-    const operation = getOperationFromQueryRecordEntry({
-      ...queryRecordEntry,
-      useServerSidePaginationFilteringSorting:
-        opts.useServerSidePaginationFilteringSorting,
-    });
+//   const operation = getOperationFromQueryRecordEntry({
+//     ...queryRecordEntry,
+//     useServerSidePaginationFilteringSorting:
+//       opts.useServerSidePaginationFilteringSorting,
+//   });
 
-    const gqlStrings = [
-      `
-    subscription ${subscriptionName} {
-      ${alias}: ${operation} {
-        node {
-          ${getQueryPropertiesString({
-            queryRecordEntry,
-            nestLevel: 5,
-            useServerSidePaginationFilteringSorting:
-              opts.useServerSidePaginationFilteringSorting,
-          })}
-        }
-        operation { action, path }
-      }
-    }
-        `.trim(),
-    ];
+//   const gqlStrings = [
+//     `
+//   subscription ${subscriptionName} {
+//     ${alias}: ${operation} {
+//       node {
+//         ${getQueryPropertiesString({
+//           queryRecordEntry,
+//           nestLevel: 5,
+//           useServerSidePaginationFilteringSorting:
+//             opts.useServerSidePaginationFilteringSorting,
+//         })}
+//       }
+//       operation { action, path }
+//     }
+//   }
+//       `.trim(),
+//   ];
 
-    function extractNodeFromSubscriptionMessage(
-      subscriptionMessage: Record<string, any>
-    ) {
-      if (!subscriptionMessage[alias].node) {
-        throw new UnexpectedSubscriptionMessageException({
-          subscriptionMessage,
-          description: 'No "node" found in message',
-        });
-      }
+//   function extractNodeFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].node) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "node" found in message',
+//       });
+//     }
 
-      return subscriptionMessage[alias].node;
-    }
+//     return subscriptionMessage[alias].node;
+//   }
 
-    function extractOperationFromSubscriptionMessage(
-      subscriptionMessage: Record<string, any>
-    ) {
-      if (!subscriptionMessage[alias].operation) {
-        throw new UnexpectedSubscriptionMessageException({
-          subscriptionMessage,
-          description: 'No "operation" found in message',
-        });
-      }
+//   function extractOperationFromSubscriptionMessage(
+//     subscriptionMessage: Record<string, any>
+//   ) {
+//     if (!subscriptionMessage[alias].operation) {
+//       throw new UnexpectedSubscriptionMessageException({
+//         subscriptionMessage,
+//         description: 'No "operation" found in message',
+//       });
+//     }
 
-      return subscriptionMessage[alias].operation;
-    }
+//     return subscriptionMessage[alias].operation;
+//   }
 
-    gqlStrings.forEach(gqlString => {
-      subscriptionConfigsAcc.push({
-        alias,
-        gqlString,
-        extractNodeFromSubscriptionMessage,
-        extractOperationFromSubscriptionMessage,
-      });
-    });
-
-    return subscriptionConfigsAcc;
-  }, [] as Array<SubscriptionConfig>);
-
-  return {
-    subscriptionConfigs: subscriptionConfigs,
-    queryGQLString,
-    queryParamsString,
-    queryRecord,
-  };
-}
-
-/**
- * Converts a queryDefinitions into a gql doc that can be sent to the gqlClient
- * Returns a queryRecord for easily deduping requests based on the data that is being requested
- * Can later also be used to build a diff to request only the necessary data
- * taking into account the previous query record to avoid requesting data already in memory
- */
-export function convertQueryDefinitionToQueryInfo<
-  TNode,
-  TMapFn,
-  TQueryDefinitionTarget,
-  TQueryDefinitions extends QueryDefinitions<
-    TNode,
-    TMapFn,
-    TQueryDefinitionTarget
-  >
->(opts: {
-  queryDefinitions: TQueryDefinitions;
-  queryId: string;
-  useServerSidePaginationFilteringSorting: boolean;
-}) {
-  const {
-    queryGQLString,
-    subscriptionConfigs,
-    queryRecord,
-    queryParamsString,
-  } = getQueryInfo(opts);
-  //call plugin function here that takes in the queryRecord
-
-  return {
-    queryGQL: gql(queryGQLString),
-    subscriptionConfigs: subscriptionConfigs.map(subscriptionConfig => ({
-      ...subscriptionConfig,
-      gql: gql(subscriptionConfig.gqlString),
-    })),
-    queryRecord,
-    queryParamsString,
-  };
-}
+//   gqlStrings.forEach(gqlString => {
+//     subscriptionConfigsAcc.push({
+//       alias,
+//       gqlString,
+//       extractNodeFromSubscriptionMessage,
+//       extractOperationFromSubscriptionMessage,
+//     });
+//   });
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
   return opts.queryId.replace(/-/g, '_');

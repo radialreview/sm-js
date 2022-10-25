@@ -1,16 +1,16 @@
 import { update, isArray, orderBy } from 'lodash';
-import { NODES_PROPERTY_KEY } from './consts';
-import { NULL_TAG } from './dataConversions';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { NODES_PROPERTY_KEY } from '../consts';
+import { NULL_TAG } from '../dataConversions';
+import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
 import {
   getFlattenedNodeFilterObject,
   getFlattenedNodeSortObject,
-} from './dataUtilities';
+} from '../dataUtilities';
 import {
   FilterPropertyNotDefinedInQueryException,
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
-} from './exceptions';
+} from '../exceptions';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
 
 import {
@@ -24,7 +24,7 @@ import {
   FilterCondition,
   RelationalQueryRecord,
   RelationalQueryRecordEntry,
-} from './types';
+} from '../types';
 
 function checkFilter({
   operator,
@@ -505,7 +505,7 @@ export function applyClientSideSortAndFilterToData(
   Object.keys(queryRecord).forEach(alias => {
     const queryRecordEntry = queryRecord[alias];
 
-    if (queryRecordEntry.filter) {
+    if (queryRecordEntry?.filter) {
       applyClientSideFilterToData({
         queryRecordEntry,
         data,
@@ -513,7 +513,7 @@ export function applyClientSideSortAndFilterToData(
       });
     }
 
-    if (queryRecordEntry.sort) {
+    if (queryRecordEntry?.sort) {
       applyClientSideSortToData({
         queryRecordEntry,
         sort: queryRecordEntry.sort as ValidSortForNode<INode>,
@@ -522,8 +522,7 @@ export function applyClientSideSortAndFilterToData(
       });
     }
 
-    const relational = queryRecordEntry.relational;
-
+    const relational = queryRecordEntry?.relational;
     if (relational != null) {
       const containsArrayData = queryRecordEntryReturnsArrayOfData({
         queryRecordEntry,

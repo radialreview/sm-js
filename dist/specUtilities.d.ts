@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode } from './types';
 import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
@@ -865,6 +865,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
 } & {
     tokenName?: string;
     doNotSuspend?: boolean;
+    todosFilter?: ValidFilterForNode<TodoNode>;
 }): {
     users: import("./types").UseSubscriptionQueryDefinition<{
         TNode: UserNode;
@@ -2237,6 +2238,30 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             };
                         }>;
                     };
+                    filter: Partial<Partial<{
+                        task: import("./types").FilterValue<string>;
+                        done: import("./types").FilterValue<boolean>;
+                        assigneeId: import("./types").FilterValue<string>;
+                        meetingId: import("./types").FilterValue<import("./types").Maybe<string>>;
+                        settings: Partial<{
+                            archiveAfterMeeting: import("./types").FilterValue<import("./types").Maybe<boolean>>;
+                            nestedSettings: Partial<{
+                                nestedNestedMaybe: import("./types").FilterValue<import("./types").Maybe<string>>;
+                            } | null>;
+                            nestedRecord: Partial<{
+                                [x: string]: boolean;
+                            } | {
+                                condition?: import("./types").FilterCondition | undefined;
+                            }>;
+                        } | null>;
+                        numberProp: import("./types").FilterValue<number>;
+                        dateCreated: import("./types").FilterValue<number>;
+                        dateLastModified: import("./types").FilterValue<number>;
+                        lastUpdatedClientTimestamp: import("./types").FilterValue<number>;
+                        id: import("./types").FilterValue<string>;
+                        version: import("./types").FilterValue<number>;
+                        lastUpdatedBy: import("./types").FilterValue<string>;
+                    }>> | undefined;
                 };
             }>;
         };

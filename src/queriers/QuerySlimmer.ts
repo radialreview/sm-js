@@ -1,4 +1,3 @@
-import { gql } from '@apollo/client/core';
 import { observable, when } from 'mobx';
 
 import {
@@ -8,8 +7,8 @@ import {
   RelationalQueryRecordEntry,
   IMMGQL,
   IGQLClient,
-} from './types';
-import { getQueryGQLStringFromQueryRecord } from './queryDefinitionAdapters';
+} from '../types';
+import { getQueryGQLDocumentFromQueryRecord } from './queryDefinitionAdapters';
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
@@ -147,10 +146,14 @@ export class QuerySlimmer {
 
     newQueryKeys.forEach(newQueryKey => {
       const queryRecordEntry = newQuery[newQueryKey];
+
+      if (!queryRecordEntry) return;
+
       const contextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
       );
+
       const cachedQueryData = this.queriesByContext[contextKey];
       const newQueryData: Record<string, any | Array<any> | null> = {};
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
@@ -245,6 +248,9 @@ export class QuerySlimmer {
     newQueryCtxtKeys.forEach(newQueryCtxKey => {
       const queryRecordBaseKey = Object.keys(newQuery[newQueryCtxKey])[0];
       const newQueryRecordEntry = newQuery[newQueryCtxKey][queryRecordBaseKey];
+
+      if (!newQueryRecordEntry) return;
+
       const newQueryRecordDepth = this.getRelationalDepthOfQueryRecordEntry(
         newQueryRecordEntry
       );
@@ -258,6 +264,8 @@ export class QuerySlimmer {
           if (queryRecordBaseKey in inFlightQueryRecord.queryRecord) {
             const inFlightQueryRecordEntry =
               inFlightQueryRecord.queryRecord[queryRecordBaseKey];
+            if (!inFlightQueryRecordEntry) return;
+
             const inFlightRecordHasSomePropsInNewQuery = inFlightQueryRecordEntry.properties.some(
               inFlightProp =>
                 newQueryRecordEntry.properties.includes(inFlightProp)
@@ -304,6 +312,7 @@ export class QuerySlimmer {
 
     Object.keys(newQuery).forEach(newQueryKey => {
       const newQueryRecordEntry = newQuery[newQueryKey];
+      if (!newQueryRecordEntry) return;
       const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
       const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
 
@@ -317,6 +326,8 @@ export class QuerySlimmer {
       } else {
         // If a newQueryContextKey is present we want to slim what we can from the in flight query.
         const inFlightQueryRecordEntry = inFlightQuery[newQueryKey];
+        if (!inFlightQueryRecordEntry) return;
+
         const newRequestedProperties = this.getPropertiesNotCurrentlyBeingRequested(
           {
             newQueryProps: newQueryRecordEntry.properties,
@@ -408,6 +419,8 @@ export class QuerySlimmer {
       const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
       const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
 
+      if (!newQueryRecordEntry) return;
+
       const newQueryContextKey = this.createContextKeyForQueryRecordEntry(
         newQueryRecordEntry,
         parentContextKey
@@ -494,6 +507,7 @@ export class QuerySlimmer {
   ) {
     Object.keys(queryRecord).forEach(queryRecordKey => {
       const queryRecordEntry = queryRecord[queryRecordKey];
+      if (!queryRecordEntry) return;
       const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
@@ -543,6 +557,7 @@ export class QuerySlimmer {
   ) {
     Object.keys(queryRecord).forEach(alias => {
       const queryRecordEntry = queryRecord[alias];
+      if (!queryRecordEntry) return;
       const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
         queryRecordEntry,
         parentContextKey
@@ -642,6 +657,7 @@ export class QuerySlimmer {
     return Object.keys(queryRecord).reduce(
       (queryRecordsByContext, queryRecordKey) => {
         const queryRecordEntry = queryRecord[queryRecordKey];
+        if (!queryRecordEntry) return queryRecordsByContext;
         const contextKey = this.createContextKeyForQueryRecordEntry(
           queryRecordEntry
         );
@@ -666,14 +682,17 @@ export class QuerySlimmer {
       queryId: opts.queryId,
       queryRecord: opts.queryRecord,
     };
-    const queryGQLString = getQueryGQLStringFromQueryRecord({
+    const gqlDoc = getQueryGQLDocumentFromQueryRecord({
       queryId: opts.queryId,
       queryRecord: opts.queryRecord,
       useServerSidePaginationFilteringSorting:
         opts.useServerSidePaginationFilteringSorting,
     });
+
+    if (!gqlDoc) return;
+
     const queryOpts: Parameters<IGQLClient['query']>[0] = {
-      gql: gql(queryGQLString),
+      gql: gqlDoc,
       token: opts.tokenName,
     };
 
