@@ -35,7 +35,6 @@ export class MMGQL implements IMMGQL {
   public generateMockData: IMMGQL['generateMockData'];
   public getMockDataDelay: IMMGQL['getMockDataDelay'];
   public enableQuerySlimming: IMMGQL['enableQuerySlimming'];
-  public enableQuerySlimmingLogging: IMMGQL['enableQuerySlimmingLogging'];
   public paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
   public plugins: IMMGQL['plugins'];
   public query: IMMGQL['query'];
@@ -46,6 +45,7 @@ export class MMGQL implements IMMGQL {
   public tokens: Record<string, string> = {};
   public DOFactory: IMMGQL['DOFactory'];
   public DOProxyGenerator: IMMGQL['DOProxyGenerator'];
+  public logging: Config['logging'];
   private optimisticUpdatesOrchestrator: InstanceType<
     typeof OptimisticUpdatesOrchestrator
   >;
@@ -55,7 +55,7 @@ export class MMGQL implements IMMGQL {
     this.generateMockData = config.generateMockData;
     this.getMockDataDelay = config.getMockDataDelay;
     this.enableQuerySlimming = config.enableQuerySlimming;
-    this.enableQuerySlimmingLogging = config.enableQuerySlimmingLogging;
+    this.logging = config.logging;
     this.paginationFilteringSortingInstance =
       config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;

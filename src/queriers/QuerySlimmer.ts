@@ -781,7 +781,7 @@ export class QuerySlimmer {
   }
 
   private log(message?: any, ...optionalParams: any[]) {
-    if (this.mmGQLInstance.enableQuerySlimmingLogging) {
+    if (this.mmGQLInstance.logging.querySlimming) {
       console.log(message, ...optionalParams);
     }
   }
