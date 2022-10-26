@@ -4584,7 +4584,9 @@ function generateMockNodeDataForQueryRecord(opts) {
         queryRecord: relationalQueryRecordWithSetFilters
       });
 
-      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties);
+      mockedNodeDataReturnValues = _extends({}, _mockNodeDataForQueryRecordEntry, _relationalMockNodeProperties, {
+        id: 'id' in queryRecordEntryForThisAlias ? queryRecordEntryForThisAlias.id : _mockNodeDataForQueryRecordEntry.id
+      });
     }
 
     mockedNodeData[queryRecordAlias] = mockedNodeDataReturnValues;
@@ -8572,9 +8574,12 @@ function createQueryManager(mmGQLInstance) {
           aliasPath: opts.originalAliasPath
         }));
       } else {
-        var id = this.getIdFromAlias(firstAlias);
+        var id = this.getIdFromAlias(firstAlias); // because if we're not at the last alias, then we must be updating the relational results for a specific proxy
+
         if (!id) throw Error("Expected an id for the alias " + firstAlias);
-        var existingRelationalStateForThisProxy = existingStateForFirstAlias.proxyCache[id].relationalState;
+        var existingProxyCacheEntryForThisId = existingStateForFirstAlias.proxyCache[id];
+        if (!existingProxyCacheEntryForThisId) throw Error("Expected a proxy cache entry for the id " + id + ". This likely means that a query was performed with an id, and the results included a different id");
+        var existingRelationalStateForThisProxy = existingProxyCacheEntryForThisId.relationalState;
         if (!existingRelationalStateForThisProxy) throw Error("Expected existing relational state for the alias " + firstAlias + " and the id " + id);
         var newRelationalStateForThisProxy = newStateForFirstAlias.proxyCache[id].relationalState;
         if (!newRelationalStateForThisProxy) throw Error("Expected new relational state for the alias " + firstAlias + " and the id " + id);

@@ -43,7 +43,7 @@ test('it correctly generates a single mock node when an id target is specified',
   });
 
   expect(Array.isArray(data.mock)).toBeFalsy();
-  expect(typeof data.mock.id === 'string').toBeTruthy();
+  expect(data.mock.id).toBe('some-id');
 });
 
 test('it correctly generates multiple mock nodes when no id target is specified', async () => {

@@ -1410,9 +1410,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         );
       } else {
         const id = this.getIdFromAlias(firstAlias);
+        // because if we're not at the last alias, then we must be updating the relational results for a specific proxy
         if (!id) throw Error(`Expected an id for the alias ${firstAlias}`);
+        const existingProxyCacheEntryForThisId =
+          existingStateForFirstAlias.proxyCache[id];
+        if (!existingProxyCacheEntryForThisId)
+          throw Error(
+            `Expected a proxy cache entry for the id ${id}. This likely means that a query was performed with an id, and the results included a different id`
+          );
         const existingRelationalStateForThisProxy =
-          existingStateForFirstAlias.proxyCache[id].relationalState;
+          existingProxyCacheEntryForThisId.relationalState;
         if (!existingRelationalStateForThisProxy)
           throw Error(
             `Expected existing relational state for the alias ${firstAlias} and the id ${id}`
