@@ -500,6 +500,10 @@ export function generateMockNodeDataForQueryRecord(opts: {
       mockedNodeDataReturnValues = {
         ...mockNodeDataForQueryRecordEntry,
         ...relationalMockNodeProperties,
+        id:
+          'id' in queryRecordEntryForThisAlias
+            ? queryRecordEntryForThisAlias.id
+            : mockNodeDataForQueryRecordEntry.id,
       };
     }
 
