@@ -120,12 +120,13 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
 function getMockDataThatConformsToFilter(opts: {
   filter: ValidFilterForNode<INode>;
   data: Record<string, IData | DataDefaultFn>;
-  relationalQueries: RelationalQueryRecord;
 }) {
   const { filter, data } = opts;
   const mockData = {} as Record<string, any>;
 
   Object.entries(filter).forEach(([filterKey, filterValue]) => {
+    // this function does not need to deal with relational filters
+    // since those are moved down to the relational queries themselves when generating the mock data
     const isFilterOnDataOnNode =
       (data[filterKey] as IData | DataDefaultFn) != null;
 
@@ -137,7 +138,7 @@ function getMockDataThatConformsToFilter(opts: {
     const dataType = iData ? iData.type : null;
 
     if (iData) {
-      if (filterValue != null && typeof filterValue === 'object') {
+      if (filterValue !== null && typeof filterValue === 'object') {
         if (
           dataType === DATA_TYPES.object ||
           dataType === DATA_TYPES.maybeObject
@@ -145,7 +146,6 @@ function getMockDataThatConformsToFilter(opts: {
           mockData[filterKey] = getMockDataThatConformsToFilter({
             filter: filterValue as Record<string, any>,
             data: iData.boxedValue,
-            relationalQueries: {},
           });
           return;
         }
@@ -294,17 +294,9 @@ function getMockDataThatConformsToFilter(opts: {
             break;
           }
         }
-      } else {
+      } else if (filterValue !== undefined) {
         mockData[filterKey] = filterValue;
       }
-    }
-
-    const isRelationalDataOnNode =
-      opts.relationalQueries && opts.relationalQueries[filterKey] != null;
-    if (isRelationalDataOnNode) {
-      // @TODO What do we do here?
-      // needs to set the filters on the related nodes that are being created
-      return;
     }
   });
 
@@ -375,7 +367,6 @@ function generateMockNodeDataForQueryRecordEntry(opts: {
     const mockDataThatConformsToFilter = getMockDataThatConformsToFilter({
       data: queryRecordEntry.def.data,
       filter: queryRecordEntry.filter,
-      relationalQueries: queryRecordEntry.relational || {},
     });
 
     extend({

@@ -1,7 +1,64 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`query.filter accepts undefined as a value 1`] = `
+"query query0 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter accepts undefined as a value for a relational query's filter 1`] = `
+"query query1 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     todos: todos {
+       nodes {
+         id
+         version
+         lastUpdatedBy
+         type
+         task
+       }
+       totalCount
+       pageInfo {
+         endCursor
+         startCursor
+         hasNextPage
+         hasPreviousPage
+       }
+     }
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter 'boolean' prop using 'eq' operator 1`] = `
-"query query6 {
+"query query8 {
  users: users {
    nodes {
      id
@@ -23,7 +80,7 @@ exports[`query.filter can filter 'boolean' prop using 'eq' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'boolean' prop using 'neq' operator 1`] = `
-"query query9 {
+"query query11 {
  users: users {
    nodes {
      id
@@ -44,7 +101,7 @@ exports[`query.filter can filter 'boolean' prop using 'neq' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'null' values with 'eq' operator 1`] = `
-"query query7 {
+"query query9 {
  users: users {
    nodes {
      id
@@ -66,7 +123,7 @@ exports[`query.filter can filter 'null' values with 'eq' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'null' values with 'neq' operator 1`] = `
-"query query8 {
+"query query10 {
  users: users {
    nodes {
      id
@@ -88,27 +145,6 @@ exports[`query.filter can filter 'null' values with 'neq' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'number' prop using 'eq' operator 1`] = `
-"query query2 {
- users: users {
-   nodes {
-     id
-     version
-     lastUpdatedBy
-     type
-     score
-   }
-   totalCount
-   pageInfo {
-     endCursor
-     startCursor
-     hasNextPage
-     hasPreviousPage
-   }
- }
-}"
-`;
-
-exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
 "query query4 {
  users: users {
    nodes {
@@ -129,8 +165,29 @@ exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
 }"
 `;
 
+exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
+"query query6 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter 'number' prop using 'gte' operator 1`] = `
-"query query0 {
+"query query2 {
  users: users {
    nodes {
      id
@@ -151,7 +208,7 @@ exports[`query.filter can filter 'number' prop using 'gte' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'number' prop using 'lt' operator 1`] = `
-"query query5 {
+"query query7 {
  users: users {
    nodes {
      id
@@ -172,27 +229,6 @@ exports[`query.filter can filter 'number' prop using 'lt' operator 1`] = `
 `;
 
 exports[`query.filter can filter 'number' prop using 'lte' operator 1`] = `
-"query query1 {
- users: users {
-   nodes {
-     id
-     version
-     lastUpdatedBy
-     type
-     score
-   }
-   totalCount
-   pageInfo {
-     endCursor
-     startCursor
-     hasNextPage
-     hasPreviousPage
-   }
- }
-}"
-`;
-
-exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
 "query query3 {
  users: users {
    nodes {
@@ -213,70 +249,28 @@ exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
 }"
 `;
 
+exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
+"query query5 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     score
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter 'string' prop using 'contains' operator 1`] = `
-"query query11 {
- users: users {
-   nodes {
-     id
-     version
-     lastUpdatedBy
-     type
-     firstName
-   }
-   totalCount
-   pageInfo {
-     endCursor
-     startCursor
-     hasNextPage
-     hasPreviousPage
-   }
- }
-}"
-`;
-
-exports[`query.filter can filter 'string' prop using 'eq' operator 1`] = `
-"query query10 {
- users: users {
-   nodes {
-     id
-     version
-     lastUpdatedBy
-     type
-     firstName
-   }
-   totalCount
-   pageInfo {
-     endCursor
-     startCursor
-     hasNextPage
-     hasPreviousPage
-   }
- }
-}"
-`;
-
-exports[`query.filter can filter 'string' prop using 'ncontains' operator 1`] = `
-"query query12 {
- users: users {
-   nodes {
-     id
-     version
-     lastUpdatedBy
-     type
-     firstName
-   }
-   totalCount
-   pageInfo {
-     endCursor
-     startCursor
-     hasNextPage
-     hasPreviousPage
-   }
- }
-}"
-`;
-
-exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
 "query query13 {
  users: users {
    nodes {
@@ -297,8 +291,71 @@ exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
 }"
 `;
 
+exports[`query.filter can filter 'string' prop using 'eq' operator 1`] = `
+"query query12 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'ncontains' operator 1`] = `
+"query query14 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
+"query query15 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+   }
+   totalCount
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter multilevel relational data 1`] = `
-"query query16 {
+"query query18 {
  users: users {
    nodes {
      id
@@ -350,7 +407,7 @@ exports[`query.filter can filter multilevel relational data 1`] = `
 `;
 
 exports[`query.filter can filter multiple relational data 1`] = `
-"query query28 {
+"query query30 {
  user: user(id: \\"mock-user-id\\") {
    id
    version
@@ -396,7 +453,7 @@ exports[`query.filter can filter multiple relational data 1`] = `
 `;
 
 exports[`query.filter can filter nested object property 1`] = `
-"query query17 {
+"query query19 {
  users: users {
    nodes {
      id
@@ -418,7 +475,7 @@ exports[`query.filter can filter nested object property 1`] = `
 `;
 
 exports[`query.filter can filter query with "AND" condition using the node's oneToMany relational properties 1`] = `
-"query query20 {
+"query query22 {
  users: users {
    nodes {
      id
@@ -455,7 +512,7 @@ exports[`query.filter can filter query with "AND" condition using the node's one
 `;
 
 exports[`query.filter can filter query with "AND" condition using the node's oneToOne relational properties 1`] = `
-"query query24 {
+"query query26 {
  todos: todos {
    nodes {
      id
@@ -484,7 +541,7 @@ exports[`query.filter can filter query with "AND" condition using the node's one
 `;
 
 exports[`query.filter can filter query with "OR" condition using the node's oneToMany relational properties 1`] = `
-"query query21 {
+"query query23 {
  users: users {
    nodes {
      id
@@ -521,7 +578,7 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
 `;
 
 exports[`query.filter can filter query with "OR" condition using the node's oneToOne relational properties 1`] = `
-"query query23 {
+"query query25 {
  todos: todos {
    nodes {
      id
@@ -550,7 +607,7 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
 `;
 
 exports[`query.filter can filter relational data 1`] = `
-"query query15 {
+"query query17 {
  users: users {
    nodes {
      id
@@ -587,7 +644,7 @@ exports[`query.filter can filter relational data 1`] = `
 `;
 
 exports[`query.filter can filter relational data of a single node query 1`] = `
-"query query27 {
+"query query29 {
  user: user(id: \\"mock-user-id\\") {
    id
    version
@@ -616,7 +673,7 @@ exports[`query.filter can filter relational data of a single node query 1`] = `
 `;
 
 exports[`query.filter can filter relational data using "OR" condition 1`] = `
-"query query26 {
+"query query28 {
  users: users {
    nodes {
      id
@@ -653,7 +710,7 @@ exports[`query.filter can filter relational data using "OR" condition 1`] = `
 `;
 
 exports[`query.filter can filter using "OR" condition 1`] = `
-"query query25 {
+"query query27 {
  users: users {
    nodes {
      id
@@ -675,7 +732,7 @@ exports[`query.filter can filter using "OR" condition 1`] = `
 `;
 
 exports[`query.filter should throw an error if property being filtered is not defined in the queryDefinition map function 1`] = `
-"query query19 {
+"query query21 {
  users: users {
    nodes {
      id
@@ -697,7 +754,7 @@ exports[`query.filter should throw an error if property being filtered is not de
 `;
 
 exports[`query.filter should throw an error if relational prop is not defined in the map function when filtering by relational data 1`] = `
-"query query22 {
+"query query24 {
  users: users {
    nodes {
      id
@@ -733,7 +790,7 @@ exports[`query.filter should throw an error if relational prop is not defined in
 `;
 
 exports[`query.filter supports old filter object format with 'eq' as default operator 1`] = `
-"query query14 {
+"query query16 {
  users: users {
    nodes {
      id
@@ -754,7 +811,7 @@ exports[`query.filter supports old filter object format with 'eq' as default ope
 `;
 
 exports[`query.filter undefined filters should not be included 1`] = `
-"query query18 {
+"query query20 {
  users: users {
    nodes {
      id

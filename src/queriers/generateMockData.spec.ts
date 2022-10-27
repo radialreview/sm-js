@@ -1104,3 +1104,19 @@ function setupTest() {
     mockNode,
   };
 }
+
+test('it generates mock data when an undefined filter is provided', async () => {
+  const { mmGQLInstance, mockNode } = setupTest();
+
+  const { data } = await mmGQLInstance.query({
+    mock: queryDefinition({
+      def: mockNode,
+      map: undefined,
+      filter: {
+        stringProp: undefined,
+      },
+    }),
+  });
+
+  expect(Array.isArray(data.mock.nodes)).toBeTruthy();
+});
