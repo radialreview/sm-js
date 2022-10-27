@@ -4270,17 +4270,18 @@ function getMockDataThatConformsToFilter(opts) {
   Object.entries(filter).forEach(function (_ref3) {
     var filterKey = _ref3[0],
         filterValue = _ref3[1];
+    // this function does not need to deal with relational filters
+    // since those are moved down to the relational queries themselves when generating the mock data
     var isFilterOnDataOnNode = data[filterKey] != null;
     var iData = isFilterOnDataOnNode ? typeof data[filterKey] === 'function' ? data[filterKey]._default : data[filterKey] : null;
     var dataType = iData ? iData.type : null;
 
     if (iData) {
-      if (filterValue != null && typeof filterValue === 'object') {
+      if (filterValue !== null && typeof filterValue === 'object') {
         if (dataType === DATA_TYPES.object || dataType === DATA_TYPES.maybeObject) {
           mockData[filterKey] = getMockDataThatConformsToFilter({
             filter: filterValue,
-            data: iData.boxedValue,
-            relationalQueries: {}
+            data: iData.boxedValue
           });
           return;
         }
@@ -4432,17 +4433,9 @@ function getMockDataThatConformsToFilter(opts) {
               break;
             }
         }
-      } else {
+      } else if (filterValue !== undefined) {
         mockData[filterKey] = filterValue;
       }
-    }
-
-    var isRelationalDataOnNode = opts.relationalQueries && opts.relationalQueries[filterKey] != null;
-
-    if (isRelationalDataOnNode) {
-      // @TODO What do we do here?
-      // needs to set the filters on the related nodes that are being created
-      return;
     }
   });
   return mockData;
@@ -4498,8 +4491,7 @@ function generateMockNodeDataForQueryRecordEntry(opts) {
   if (queryRecordEntry.filter) {
     var mockDataThatConformsToFilter = getMockDataThatConformsToFilter({
       data: queryRecordEntry.def.data,
-      filter: queryRecordEntry.filter,
-      relationalQueries: queryRecordEntry.relational || {}
+      filter: queryRecordEntry.filter
     });
     extend({
       object: mockedValues,

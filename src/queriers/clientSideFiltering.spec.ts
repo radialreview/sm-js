@@ -17,6 +17,83 @@ import {
 } from '../specUtilities';
 import { DocumentNode } from '../types';
 
+test(`query.filter accepts undefined as a value`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            score: 10,
+          },
+          {
+            score: 20,
+          },
+          {
+            score: 30,
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ score }) => ({
+        score,
+      }),
+      filter: {
+        score: undefined,
+      },
+    }),
+  });
+
+  expect(data.users.nodes.length).toBe(3);
+});
+
+test(`query.filter accepts undefined as a value for a relational query's filter`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            todos: createMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [{}, {}],
+            }),
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      map: ({ todos }) => ({
+        todos: todos({
+          map: ({ task }) => ({ task }),
+        }),
+      }),
+      filter: {
+        todos: {
+          task: undefined,
+        },
+      },
+    }),
+  });
+
+  expect(data.users.nodes[0].todos.nodes.length).toBe(2);
+});
+
 test(`query.filter can filter 'number' prop using 'gte' operator`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
