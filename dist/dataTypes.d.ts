@@ -147,15 +147,17 @@ export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any
 }>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare const OBJECT_IDENTIFIER = "__object__";
-export declare function queryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts>(queryDefinition: UseSubscriptionQueryDefinition<{
+export declare function queryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts, TIncludeTotalCount extends boolean>(queryDefinition: UseSubscriptionQueryDefinition<{
     TNode: TNode;
     TMapFn: TMapFn;
     TQueryDefinitionTarget: TQueryDefinitionTarget;
     TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+    TIncludeTotalCount: TIncludeTotalCount;
 }>): UseSubscriptionQueryDefinition<{
     TNode: TNode;
     TMapFn: TMapFn;
     TQueryDefinitionTarget: TQueryDefinitionTarget;
     TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+    TIncludeTotalCount: TIncludeTotalCount;
 }>;
 export {};
