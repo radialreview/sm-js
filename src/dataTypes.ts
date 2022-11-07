@@ -458,7 +458,8 @@ export const oneToMany = <
 ) => {
   return (<
     TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
-      TTargetNodeOrTargetNodeRecord
+      TTargetNodeOrTargetNodeRecord,
+      any
     > & {
       _relationshipName: string;
       filter?: ValidFilterForNode<INode>;
@@ -488,13 +489,15 @@ export function queryDefinition<
   TNode extends INode,
   TMapFn extends MapFnForNode<TNode> | undefined,
   TQueryDefinitionTarget extends QueryDefinitionTarget,
-  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts
+  TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts,
+  TIncludeTotalCount extends boolean
 >(
   queryDefinition: UseSubscriptionQueryDefinition<{
     TNode: TNode;
     TMapFn: TMapFn;
     TQueryDefinitionTarget: TQueryDefinitionTarget;
     TUseSubscriptionQueryDefinitionOpts: TUseSubscriptionQueryDefinitionOpts;
+    TIncludeTotalCount: TIncludeTotalCount;
   }>
 ) {
   return queryDefinition;

@@ -757,6 +757,7 @@ const stateNode: StateNode = mmGQL.def({
     TNode: UserNode;
     TMapFn: typeof userMapFn;
     TQueryDefinitionTarget: any;
+    TIncludeTotalCount: false;
   }>;
   type UserData = GetResultingDataFromQueryDefinition<UserQueryDefinition>;
   const validUserData: UserData = {
@@ -889,6 +890,42 @@ const stateNode: StateNode = mmGQL.def({
   resultDataUndefinedMapFn.node2s.nodes[0].dateCreated as number;
   resultDataUndefinedMapFn.node2s.nodes[0].dateLastModified as number;
   resultDataUndefinedMapFn.node2s.nodes[0].lastUpdatedClientTimestamp as number;
+
+  const { data: resultDataTotalCount } = await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      pagination: {
+        includeTotalCount: true,
+      },
+      map: ({ todos }) => ({
+        todos: todos({
+          map: ({ task }) => ({ task }),
+          pagination: {
+            includeTotalCount: true,
+          },
+        }),
+      }),
+    }),
+  });
+
+  resultDataTotalCount.users.totalCount as number;
+  resultDataTotalCount.users.nodes[0].todos.totalCount as number;
+
+  const { data: resultDataNoTotalCount } = await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: ({ todos }) => ({
+        todos: todos({
+          map: ({ task }) => ({ task }),
+        }),
+      }),
+    }),
+  });
+
+  // @ts-expect-error no total count queried for this top level query
+  resultDataNoTotalCount.users.totalCount as number;
+  // @ts-expect-error no total count queried for this relational query
+  resultDataNoTotalCount.users.nodes[0].todos.totalCount as number;
 
   const { data: resultDataTargetAndMapFn } = await mmGQL.query({
     node2: queryDefinition({

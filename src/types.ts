@@ -509,13 +509,18 @@ export interface INode<
  * So, for example, if a user has meetings under them, one of the user's relational data properties is "meetings", which will be "IChildren".
  * This teaches the library how to interpret a query that asks for the user's meetings.
  */
-export type NodeRelationalQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
-  | IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord>
-  | IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>
+export type NodeRelationalQueryBuilder<
+  TNodeRelationalQueryBuilderArgs extends {
+    TTargetNodeOrTargetNodeRecord: INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
+    TIncludeTotalCount: boolean
+  }
+> =
+  | IOneToOneQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]>
+  | IOneToManyQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]>
 
 export type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
   | IOneToOneQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any }>
-  | IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any }>
+  | IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any, TIncludeTotalCount: any }>
 
 export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
   TTargetNodeOrTargetNodeRecord extends INode
@@ -546,12 +551,12 @@ export interface IOneToOneQuery<
   def: TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]
 }
 
-export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
+export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>, TIncludeTotalCount extends boolean> =
   TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
       filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
-      pagination?: IQueryPagination
+      pagination?: IQueryPagination<TIncludeTotalCount>
       sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
@@ -560,16 +565,17 @@ export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INo
     }
     : never
 export interface IOneToManyQueryBuilder<
-  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>
+      TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
 > {
-  <TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
+  <TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, boolean>>(
     queryBuilderOpts: TQueryBuilderOpts
-  ): IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts }>;
+  ): IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts, TIncludeTotalCount: boolean }>;
 }
 export interface IOneToManyQuery<
   TOneToManyQueryArgs extends {
     TTargetNodeOrTargetNodeRecord: INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
-    TQueryBuilderOpts: IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+    TIncludeTotalCount: boolean,
+    TQueryBuilderOpts: IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TIncludeTotalCount']>
   }
 > {
   _relational: RELATIONAL_TYPES.oneToMany;
@@ -600,7 +606,7 @@ export enum RELATIONAL_TYPES {
   oneToMany = 'otM',
 }
 
-export interface IQueryPagination {
+export interface IQueryPagination<TIncludeTotalCount extends boolean> {
   itemsPerPage?: number
   // not supported atm
   // startPage?: number
@@ -609,6 +615,7 @@ export interface IQueryPagination {
   // if endCursor ir set, returns the first N results up to that cursor
   startCursor?: string
   endCursor?: string
+  includeTotalCount?: TIncludeTotalCount
 }
 
 export type NodeRelationalQueryBuilderRecord = Record<
@@ -748,7 +755,8 @@ export type QueryDefinition<
   TQueryDefinitionArgs extends {
     TNode: INode,
     TMapFn: MapFnForNode<TQueryDefinitionArgs["TNode"]> | undefined,
-    TQueryDefinitionTarget: QueryDefinitionTarget
+    TQueryDefinitionTarget: QueryDefinitionTarget,
+    TIncludeTotalCount: boolean
   }
 > = { 
   def: TQueryDefinitionArgs["TNode"];
@@ -756,7 +764,7 @@ export type QueryDefinition<
   filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode']}>
   sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>
   target?: TQueryDefinitionArgs["TQueryDefinitionTarget"]
-  pagination?: IQueryPagination
+  pagination?: IQueryPagination<TQueryDefinitionArgs["TIncludeTotalCount"]>
   tokenName?: string
 };
 
@@ -788,15 +796,17 @@ export type UseSubscriptionQueryDefinitionOpts = {doNotSuspend?: boolean}
 
 export type UseSubscriptionQueryDefinition<
   TUseSubscriptionQueryDefinitionArgs extends {
-    TNode : INode,
-    TMapFn :  MapFnForNode<TUseSubscriptionQueryDefinitionArgs['TNode']> | undefined,
-    TQueryDefinitionTarget : QueryDefinitionTarget,
+    TNode: INode,
+    TMapFn:  MapFnForNode<TUseSubscriptionQueryDefinitionArgs['TNode']> | undefined,
+    TQueryDefinitionTarget: QueryDefinitionTarget,
     TUseSubscriptionQueryDefinitionOpts: UseSubscriptionQueryDefinitionOpts
+    TIncludeTotalCount: boolean
   }
 > = QueryDefinition<{
   TNode: TUseSubscriptionQueryDefinitionArgs["TNode"],
   TMapFn: TUseSubscriptionQueryDefinitionArgs["TMapFn"],
-  TQueryDefinitionTarget: TUseSubscriptionQueryDefinitionArgs["TQueryDefinitionTarget"]
+  TQueryDefinitionTarget: TUseSubscriptionQueryDefinitionArgs["TQueryDefinitionTarget"], 
+  TIncludeTotalCount:  TUseSubscriptionQueryDefinitionArgs["TIncludeTotalCount"]
 }> & {useSubOpts?: TUseSubscriptionQueryDefinitionArgs["TUseSubscriptionQueryDefinitionOpts"]}
 
 export type UseSubscriptionQueryDefinitions<
@@ -842,7 +852,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TNode>
-          : NodesCollection<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
+          : NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TMapFn, TNode>, TQueryDefinition>
         : never
       : never
     : never
@@ -851,8 +861,9 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
     ? TNode extends INode
       ? TQueryDefinition extends { target?: { id: string } }
         ? GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }> & DataExpectedOnAllNodeResults<TNode>
-        : NodesCollection<
-          GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }>  & DataExpectedOnAllNodeResults<TNode>
+        : NodesCollectionWithCorrectTotalCountParam<
+          GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }>  & DataExpectedOnAllNodeResults<TNode>,
+          TQueryDefinition
         >
       : never
     : never
@@ -860,13 +871,19 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   ? /**
      * shorthand syntax used, only a node definition was provided
      */
-    NodesCollection<
+    NodesCollectionWithCorrectTotalCountParam<
       GetAllAvailableNodeDataType<{
         TNodeData: ExtractNodeData<TQueryDefinition>,
         TNodeComputedData: ExtractNodeComputedData<TQueryDefinition>
-      }> & DataExpectedOnAllNodeResults<TQueryDefinition>
+      }> & DataExpectedOnAllNodeResults<TQueryDefinition>,
+      TQueryDefinition
     >
   : never;
+
+type NodesCollectionWithCorrectTotalCountParam<TItemType, TQueryDefinition> = 
+      TQueryDefinition extends {pagination?: IQueryPagination<true> | undefined}
+        ? NodesCollection<TItemType, true>
+        : NodesCollection<TItemType, false>
 
 export type UseSubscriptionReturn<
   // @ts-ignore
@@ -1042,21 +1059,21 @@ type ExtractQueriedDataFromOneToManyQuery<
   TOneToManyQuery extends IOneToManyQuery<infer TOneToManyQueryArgs>
     ? IsMaybe<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true
       ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode>
-        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>
-          ? Maybe<NodesCollection<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>>>
+        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]>
+          ? Maybe<NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>, TOneToManyQueryArgs['TQueryBuilderOpts']>>
           : never
         : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>>
-          ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> 
-            ? Maybe<NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>>>
+          ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]> 
+            ? Maybe<NodesCollectionWithCorrectTotalCountParam<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>, TOneToManyQueryArgs['TQueryBuilderOpts']>>
             : never
           : never
       : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
-        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
-          ? NodesCollection<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>
+        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]>
+          ? NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts']>
           : never
         : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode>
-        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
-            ? NodesCollection<ExtractResultsUnionFromOneToOneQueryBuilder<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>>
+        ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]>
+            ? NodesCollectionWithCorrectTotalCountParam<ExtractResultsUnionFromOneToOneQueryBuilder<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>, TOneToManyQueryArgs['TQueryBuilderOpts']>
             : never
           : never
     : never
@@ -1161,12 +1178,12 @@ export type BaseQueryRecordEntry = {
   relational?: RelationalQueryRecord;
   filter?: ValidFilterForNode<INode>
   sort?: ValidFilterForNode<INode>
-  pagination?: IQueryPagination
+  pagination?: IQueryPagination<boolean>
 };
 
 export type QueryRecordEntry = BaseQueryRecordEntry & {
   tokenName: Maybe<string>
-  pagination?: IQueryPagination
+  pagination?: IQueryPagination<boolean>
   ids?: Array<string> 
   id?: string
   allowNullResult?: boolean
