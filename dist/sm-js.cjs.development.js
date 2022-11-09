@@ -7065,12 +7065,14 @@ function getGQLCLient(gqlClientOpts) {
     }
   });
   var nonBatchedLink = new http.HttpLink({
-    uri: gqlClientOpts.httpUrl
+    uri: gqlClientOpts.httpUrl,
+    credentials: 'same-origin'
   });
   var queryBatchLink = core.split(function (operation) {
     return operation.getContext().batchKey;
   }, new batchHttp.BatchHttpLink({
     uri: gqlClientOpts.httpUrl,
+    credentials: 'same-origin',
     batchMax: 50,
     batchInterval: 50,
     batchKey: function batchKey(operation) {
@@ -7088,6 +7090,7 @@ function getGQLCLient(gqlClientOpts) {
     return operation.getContext().batchedMutation;
   }, new batchHttp.BatchHttpLink({
     uri: gqlClientOpts.httpUrl,
+    credentials: 'same-origin',
     // no batch max for explicitly batched mutations
     // to ensure transactional integrity
     batchMax: Number.MAX_SAFE_INTEGER,
