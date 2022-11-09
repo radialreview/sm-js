@@ -30,14 +30,14 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const nonBatchedLink = new HttpLink({
     uri: gqlClientOpts.httpUrl,
-    credentials: 'same-origin',
+    credentials: 'include',
   });
 
   const queryBatchLink = split(
     operation => operation.getContext().batchKey,
     new BatchHttpLink({
       uri: gqlClientOpts.httpUrl,
-      credentials: 'same-origin',
+      credentials: 'include',
       batchMax: 50,
       batchInterval: 50,
       batchKey: operation => {
@@ -58,7 +58,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     operation => operation.getContext().batchedMutation,
     new BatchHttpLink({
       uri: gqlClientOpts.httpUrl,
-      credentials: 'same-origin',
+      credentials: 'include',
       // no batch max for explicitly batched mutations
       // to ensure transactional integrity
       batchMax: Number.MAX_SAFE_INTEGER,
