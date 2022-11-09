@@ -7109,11 +7109,15 @@ function getGQLCLient(gqlClientOpts) {
   }, wsLink, mutationBatchLink);
 
   function getContextWithToken(opts) {
-    return {
-      headers: {
-        Authorization: "Bearer " + opts.token
-      }
-    };
+    if (opts.token != null && opts.token !== '') {
+      return {
+        headers: {
+          Authorization: "Bearer " + opts.token
+        }
+      };
+    } else {
+      return {};
+    }
   }
 
   function authenticateSubscriptionDocument(opts) {
