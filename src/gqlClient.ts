@@ -77,17 +77,21 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     mutationBatchLink
   );
 
-  function getContextWithToken(opts: { token: string }) {
-    return {
-      headers: {
-        Authorization: `Bearer ${opts.token}`,
-      },
-    };
+  function getContextWithToken(opts: { token?: string }) {
+    if (opts.token != null && opts.token !== '') {
+      return {
+        headers: {
+          Authorization: `Bearer ${opts.token}`,
+        },
+      };
+    } else {
+      return {};
+    }
   }
 
   function authenticateSubscriptionDocument(opts: {
     gql: DocumentNode;
-    token: string;
+    token?: string;
   }) {
     const documentBody = opts.gql.loc?.source.body;
 
