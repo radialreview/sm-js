@@ -112,26 +112,6 @@ test('query throws an error when the query fails and no "onError" handler is pro
   }
 });
 
-test('query throws an error when the user specifies a token which has not been registered', async done => {
-  const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
-
-  try {
-    await mmGQLInstance.query(
-      createMockQueryDefinitions(mmGQLInstance, {
-        tokenName: 'invalidTokenName',
-      })
-    );
-  } catch (e) {
-    expect(
-      (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
-      )
-    ).toBe(true);
-
-    done();
-  }
-});
-
 test('query can query data using multiple tokens, by making parallel requests', () => {
   const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
 
@@ -493,28 +473,6 @@ test('subscribe throws an error when a query error occurs and no onError handler
     });
   } catch (e) {
     expect((e as any).stack.includes(`Error: Some error`)).toBe(true);
-    done();
-  }
-});
-
-test('subscribe throws an error when the user specifies a token which has not been registered', async done => {
-  const { mmGQLInstance, createMockQueryDefinitions } = setupTest();
-
-  try {
-    await mmGQLInstance.subscribe(
-      createMockQueryDefinitions(mmGQLInstance, {
-        tokenName: 'invalidTokenName',
-      }),
-      {
-        onData: () => {},
-      }
-    );
-  } catch (e) {
-    expect(
-      (e as any).stack.includes(
-        `Error: No token registered with the name "invalidTokenName".\nPlease register this token prior to using it with setToken({ tokenName, token }))`
-      )
-    ).toBe(true);
     done();
   }
 });

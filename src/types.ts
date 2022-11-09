@@ -79,7 +79,7 @@ export interface IGQLClient {
     onMessage: (message: Record<string, any>) => void;
     onError: (error: any) => void;
   }): SubscriptionCanceller;
-  mutate(opts: { mutations: Array<DocumentNode>; token: string }): Promise<any>;
+  mutate(opts: { mutations: Array<DocumentNode>; token?: string }): Promise<any>;
 }
 
 export interface IQueryManager {
