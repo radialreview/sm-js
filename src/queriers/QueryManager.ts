@@ -452,26 +452,32 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
-            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
-                node,
-              });
+            proxyCache: (opts.nodeData as Array<any>).reduce(
+              (proxyCacheAcc, node) => {
+                proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                  node,
+                });
 
-              return proxyCacheAcc;
-            }, {} as QueryManagerProxyCache),
+                return proxyCacheAcc;
+              },
+              {} as QueryManagerProxyCache
+            ),
             pageInfoFromResults: opts.pageInfoFromResults,
             clientSidePageInfo: opts.clientSidePageInfo,
           };
         } else {
           return {
             idsOrIdInCurrentResult: opts.nodeData.map(node => node.id),
-            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
-                node,
-              });
+            proxyCache: (opts.nodeData as Array<any>).reduce(
+              (proxyCacheAcc, node) => {
+                proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                  node,
+                });
 
-              return proxyCacheAcc;
-            }, {} as QueryManagerProxyCache),
+                return proxyCacheAcc;
+              },
+              {} as QueryManagerProxyCache
+            ),
             pageInfoFromResults: opts.pageInfoFromResults,
             clientSidePageInfo: opts.clientSidePageInfo,
           };
