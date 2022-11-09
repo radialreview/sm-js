@@ -35,7 +35,7 @@ export function deepClone<T extends Record<string, any> | Array<any>>(
   } else {
     const outputObject = ({} as unknown) as T;
     for (const key in obj) {
-      outputObject[key] = deepClone((obj as Record<string, any>)[key]);
+      outputObject[key] = deepClone(obj[key]);
     }
 
     return outputObject;

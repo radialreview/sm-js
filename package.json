@@ -80,6 +80,7 @@
     "react-dom": "16.13.1",
     "subscriptions-transport-ws": "^0.11.0"
   },
+  "packageManager": "yarn@1.22.5",
   "resolutions": {
     "**/typescript": "^4.6.2",
     "**/@typescript-eslint/eslint-plugin": "^5.16.0",
