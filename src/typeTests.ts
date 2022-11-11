@@ -917,8 +917,14 @@ const stateNode: StateNode = mmGQL.def({
       map: ({ todos }) => ({
         todos: todos({
           map: ({ task }) => ({ task }),
+          pagination: {
+            itemsPerPage: 5,
+          },
         }),
       }),
+      pagination: {
+        itemsPerPage: 5,
+      },
     }),
   });
 
