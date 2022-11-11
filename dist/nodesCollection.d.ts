@@ -25,7 +25,10 @@ export interface NodesCollectionOpts<T> {
     clientSidePageInfo: ClientSidePageInfo;
     useServerSidePaginationFilteringSorting: boolean;
 }
-export declare class NodesCollection<TItemType, TIncludeTotalCount extends boolean> {
+export declare class NodesCollection<TNodesCollectionArgs extends {
+    TItemType: unknown;
+    TIncludeTotalCount: boolean;
+}> {
     private onLoadMoreResults;
     private onGoToNextPage;
     private onGoToPreviousPage;
@@ -37,12 +40,12 @@ export declare class NodesCollection<TItemType, TIncludeTotalCount extends boole
     private pagesBeingDisplayed;
     loadingState: QueryState;
     loadingError: any;
-    constructor(opts: NodesCollectionOpts<TItemType>);
-    get nodes(): TItemType[];
+    constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>);
+    get nodes(): TNodesCollectionArgs["TItemType"][];
     get hasNextPage(): boolean;
     get hasPreviousPage(): boolean;
     get totalPages(): number;
-    get totalCount(): TIncludeTotalCount extends true ? number : undefined;
+    get totalCount(): TNodesCollectionArgs['TIncludeTotalCount'] extends true ? number : undefined;
     get page(): number;
     loadMore(): Promise<void>;
     goToNextPage(): Promise<void>;

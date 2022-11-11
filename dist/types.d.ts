@@ -583,7 +583,13 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
 }> & DataExpectedOnAllNodeResults<TQueryDefinition>, TQueryDefinition> : never;
 declare type NodesCollectionWithCorrectTotalCountParam<TItemType, TQueryDefinition> = TQueryDefinition extends {
     pagination?: IQueryPagination<true> | undefined;
-} ? NodesCollection<TItemType, true> : NodesCollection<TItemType, false>;
+} ? NodesCollection<{
+    TItemType: TItemType;
+    TIncludeTotalCount: true;
+}> : NodesCollection<{
+    TItemType: TItemType;
+    TIncludeTotalCount: false;
+}>;
 export declare type UseSubscriptionReturn<TQueryDefinitions extends UseSubscriptionQueryDefinitions> = {
     data: {
         [key in keyof TQueryDefinitions]: TQueryDefinitions[key] extends {
