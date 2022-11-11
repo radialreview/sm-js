@@ -459,12 +459,13 @@ export const oneToMany = <
   return (<
     TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord,
-      any
+      TIncludeTotalCount
     > & {
       _relationshipName: string;
       filter?: ValidFilterForNode<INode>;
       sort?: ValidSortForNode<INode>;
-    }
+    },
+    TIncludeTotalCount extends boolean = false
   >(
     queryBuilderOpts: TQueryBuilderOpts
   ) => {
