@@ -3773,6 +3773,8 @@ function getQueryPropertiesString(opts) {
 
 function getRelationalQueryString(opts) {
   return Object.keys(opts.relationalQueryRecord).reduce(function (acc, alias) {
+    var _relationalQueryRecor;
+
     var relationalQueryRecordEntry = opts.relationalQueryRecord[alias];
 
     if (!relationalQueryRecordEntry._relationshipName) {
@@ -3791,7 +3793,8 @@ function getRelationalQueryString(opts) {
         nestLevel: opts.nestLevel + 2,
         useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
       }),
-      nestLevel: opts.nestLevel + 1
+      nestLevel: opts.nestLevel + 1,
+      includeTotalCount: ((_relationalQueryRecor = relationalQueryRecordEntry.pagination) == null ? void 0 : _relationalQueryRecor.includeTotalCount) || false
     }) : getQueryPropertiesString({
       queryRecordEntry: relationalQueryRecordEntry,
       nestLevel: opts.nestLevel + 1,
@@ -3825,7 +3828,7 @@ function getNodesCollectionQuery(opts) {
   var closeFragment = getSpaces(opts.nestLevel * 2) + "}";
   var openNodesFragment = getSpaces(opts.nestLevel * 2) + "nodes {\n";
   var nodesFragment = "" + openNodesFragment + opts.propertiesString + "\n" + closeFragment;
-  var totalCountFragment = "\n" + getSpaces(opts.nestLevel * 2) + TOTAL_COUNT_PROPERTY_KEY;
+  var totalCountFragment = opts.includeTotalCount ? "\n" + getSpaces(opts.nestLevel * 2) + TOTAL_COUNT_PROPERTY_KEY : '';
   var openPageInfoFragment = "\n" + getSpaces(opts.nestLevel * 2) + PAGE_INFO_PROPERTY_KEY + " {\n";
   var pageInfoProps = ['endCursor', 'startCursor', 'hasNextPage', 'hasPreviousPage'];
   var pageInfoProperties = pageInfoProps.map(function (prop) {
@@ -3836,6 +3839,8 @@ function getNodesCollectionQuery(opts) {
 }
 
 function getRootLevelQueryString(opts) {
+  var _opts$pagination;
+
   var operation = getOperationFromQueryRecordEntry(opts);
   return "  " + opts.alias + ": " + operation + " {\n" + ("" + (opts.id == null ? getNodesCollectionQuery({
     propertiesString: getQueryPropertiesString({
@@ -3843,7 +3848,8 @@ function getRootLevelQueryString(opts) {
       nestLevel: 3,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }),
-    nestLevel: 2
+    nestLevel: 2,
+    includeTotalCount: ((_opts$pagination = opts.pagination) == null ? void 0 : _opts$pagination.includeTotalCount) || false
   }) : getQueryPropertiesString({
     queryRecordEntry: opts,
     nestLevel: 2,

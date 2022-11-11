@@ -10,6 +10,7 @@
     "node": ">=10"
   },
   "scripts": {
+    "ci": "yarn lint && yarn test",
     "start": "tsdx watch",
     "build": "tsdx build",
     "test": "tsdx test",

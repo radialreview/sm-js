@@ -715,6 +715,8 @@ function getRelationalQueryString(opts: {
                 opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: opts.nestLevel + 1,
+            includeTotalCount:
+              relationalQueryRecordEntry.pagination?.includeTotalCount || false,
           })
         : getQueryPropertiesString({
             queryRecordEntry: relationalQueryRecordEntry,
@@ -753,14 +755,15 @@ function getOperationFromQueryRecordEntry(
 function getNodesCollectionQuery(opts: {
   propertiesString: string;
   nestLevel: number;
+  includeTotalCount: boolean;
 }) {
   const closeFragment = `${getSpaces(opts.nestLevel * 2)}}`;
   const openNodesFragment = `${getSpaces(opts.nestLevel * 2)}nodes {\n`;
   const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
 
-  const totalCountFragment = `\n${getSpaces(
-    opts.nestLevel * 2
-  )}${TOTAL_COUNT_PROPERTY_KEY}`;
+  const totalCountFragment = opts.includeTotalCount
+    ? `\n${getSpaces(opts.nestLevel * 2)}${TOTAL_COUNT_PROPERTY_KEY}`
+    : '';
 
   const openPageInfoFragment = `\n${getSpaces(
     opts.nestLevel * 2
@@ -799,6 +802,7 @@ function getRootLevelQueryString(
                 opts.useServerSidePaginationFilteringSorting,
             }),
             nestLevel: 2,
+            includeTotalCount: opts.pagination?.includeTotalCount || false,
           })
         : getQueryPropertiesString({
             queryRecordEntry: opts,
