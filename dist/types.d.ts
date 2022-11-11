@@ -395,10 +395,10 @@ export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord ext
     };
 } : never;
 export interface IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> {
-    <TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, boolean>>(queryBuilderOpts: TQueryBuilderOpts): IOneToManyQuery<{
+    <TIncludeTotalCount extends boolean, TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>(queryBuilderOpts: TQueryBuilderOpts): IOneToManyQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
         TQueryBuilderOpts: TQueryBuilderOpts;
-        TIncludeTotalCount: boolean;
+        TIncludeTotalCount: TIncludeTotalCount;
     }>;
 }
 export interface IOneToManyQuery<TOneToManyQueryArgs extends {
@@ -563,7 +563,10 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     target?: {
         allowNullResult: true;
     };
-} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TMapFn, TNode>, TQueryDefinition> : never : never : never : TQueryDefinition extends {
+} ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>> : ExtractQueriedDataFromMapFn<TMapFn, TNode> : NodesCollectionWithCorrectTotalCountParam<{
+    TItemType: ExtractQueriedDataFromMapFn<TMapFn, TNode>;
+    TQueryDefinition: TQueryDefinition;
+}> : never : never : never : TQueryDefinition extends {
     def: INode;
 } ? TQueryDefinition extends {
     def: infer TNode;
@@ -574,20 +577,43 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
 } ? GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TNode>;
     TNodeComputedData: ExtractNodeComputedData<TNode>;
-}> & DataExpectedOnAllNodeResults<TNode> : NodesCollectionWithCorrectTotalCountParam<GetAllAvailableNodeDataType<{
-    TNodeData: ExtractNodeData<TNode>;
-    TNodeComputedData: ExtractNodeComputedData<TNode>;
-}> & DataExpectedOnAllNodeResults<TNode>, TQueryDefinition> : never : never : TQueryDefinition extends INode ? NodesCollectionWithCorrectTotalCountParam<GetAllAvailableNodeDataType<{
-    TNodeData: ExtractNodeData<TQueryDefinition>;
-    TNodeComputedData: ExtractNodeComputedData<TQueryDefinition>;
-}> & DataExpectedOnAllNodeResults<TQueryDefinition>, TQueryDefinition> : never;
-declare type NodesCollectionWithCorrectTotalCountParam<TItemType, TQueryDefinition> = TQueryDefinition extends {
+}> & DataExpectedOnAllNodeResults<TNode> : NodesCollectionWithCorrectTotalCountParam<{
+    TItemType: GetAllAvailableNodeDataType<{
+        TNodeData: ExtractNodeData<TNode>;
+        TNodeComputedData: ExtractNodeComputedData<TNode>;
+    }> & DataExpectedOnAllNodeResults<TNode>;
+    TQueryDefinition: TQueryDefinition;
+}> : never : never : TQueryDefinition extends INode ? NodesCollectionWithCorrectTotalCountParam<{
+    TItemType: GetAllAvailableNodeDataType<{
+        TNodeData: ExtractNodeData<TQueryDefinition>;
+        TNodeComputedData: ExtractNodeComputedData<TQueryDefinition>;
+    }> & DataExpectedOnAllNodeResults<TQueryDefinition>;
+    TQueryDefinition: TQueryDefinition;
+}> : never;
+declare type NodesCollectionWithCorrectTotalCountParam<NodesCollectionWithCorrectTotalCountParamArgs extends {
+    TItemType: unknown;
+    TQueryDefinition: unknown;
+}> = NodesCollectionWithCorrectTotalCountParamArgs["TQueryDefinition"] extends {
     pagination?: IQueryPagination<true> | undefined;
 } ? NodesCollection<{
-    TItemType: TItemType;
+    TItemType: NodesCollectionWithCorrectTotalCountParamArgs["TItemType"];
     TIncludeTotalCount: true;
 }> : NodesCollection<{
-    TItemType: TItemType;
+    TItemType: NodesCollectionWithCorrectTotalCountParamArgs["TItemType"];
+    TIncludeTotalCount: false;
+}>;
+declare type NodesCollectionWithCorrectTotalCountParamForRelationalQueries<NodesCollectionWithCorrectTotalCountParamArgs extends {
+    TItemType: unknown;
+    TQueryDefinition: unknown;
+}> = NodesCollectionWithCorrectTotalCountParamArgs["TQueryDefinition"] extends {
+    pagination?: {
+        includeTotalCount: true;
+    };
+} ? NodesCollection<{
+    TItemType: NodesCollectionWithCorrectTotalCountParamArgs["TItemType"];
+    TIncludeTotalCount: true;
+}> : NodesCollection<{
+    TItemType: NodesCollectionWithCorrectTotalCountParamArgs["TItemType"];
     TIncludeTotalCount: false;
 }>;
 export declare type UseSubscriptionReturn<TQueryDefinitions extends UseSubscriptionQueryDefinitions> = {
@@ -656,7 +682,19 @@ declare type ExtractQueriedDataFromOneToOneQuery<TOneToOneQuery extends IOneToOn
 ] extends [never] ? never : TOneToOneQuery extends IOneToOneQuery<infer TOneToOneQueryArgs> ? IsMaybe<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>> ? Maybe<ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>>> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<NonNullable<TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]>> ? Maybe<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]>> : never : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ExtractQueriedDataFromMapFn<TOneToOneQueryArgs['TQueryBuilderOpts']['map'], TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToOneQueryArgs['TQueryBuilderOpts'] extends IOneToOneQueryBuilderOpts<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ExtractResultsUnionFromOneToOneQueryBuilder<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToOneQueryArgs['TQueryBuilderOpts'], Prev[D]> : never : never : never;
 declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneToManyQuery<any>, D extends Prev[number] = 1> = [
     D
-] extends [never] ? never : TOneToManyQuery extends IOneToManyQuery<infer TOneToManyQueryArgs> ? IsMaybe<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]> ? Maybe<NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>, TOneToManyQueryArgs['TQueryBuilderOpts']>> : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]> ? Maybe<NodesCollectionWithCorrectTotalCountParam<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>, TOneToManyQueryArgs['TQueryBuilderOpts']>> : never : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]> ? NodesCollectionWithCorrectTotalCountParam<ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts']> : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]> ? NodesCollectionWithCorrectTotalCountParam<ExtractResultsUnionFromOneToOneQueryBuilder<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>, TOneToManyQueryArgs['TQueryBuilderOpts']> : never : never : never;
+] extends [never] ? never : TOneToManyQuery extends IOneToManyQuery<infer TOneToManyQueryArgs> ? IsMaybe<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]> ? Maybe<NodesCollectionWithCorrectTotalCountParamForRelationalQueries<{
+    TItemType: ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>;
+    TQueryDefinition: TOneToManyQueryArgs['TQueryBuilderOpts'];
+}>> : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs["TIncludeTotalCount"]> ? Maybe<NodesCollectionWithCorrectTotalCountParamForRelationalQueries<{
+    TItemType: ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>;
+    TQueryDefinition: TOneToManyQueryArgs['TQueryBuilderOpts'];
+}>> : never : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]> ? NodesCollectionWithCorrectTotalCountParamForRelationalQueries<{
+    TItemType: ExtractQueriedDataFromMapFn<TOneToManyQueryArgs['TQueryBuilderOpts']['map'], TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>;
+    TQueryDefinition: TOneToManyQueryArgs['TQueryBuilderOpts'];
+}> : never : TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TOneToManyQueryArgs['TQueryBuilderOpts'] extends IOneToManyQueryBuilderOpts<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs["TIncludeTotalCount"]> ? NodesCollectionWithCorrectTotalCountParamForRelationalQueries<{
+    TItemType: ExtractResultsUnionFromOneToOneQueryBuilder<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>;
+    TQueryDefinition: TOneToManyQueryArgs['TQueryBuilderOpts'];
+}> : never : never : never;
 declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord extends Record<string, INode>, TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>, D extends Prev[number]> = ExtractObjectValues<{
     [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromOneToOneQuery<IOneToOneQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord[key];
