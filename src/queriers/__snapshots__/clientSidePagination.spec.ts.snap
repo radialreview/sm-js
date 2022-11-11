@@ -10,7 +10,6 @@ exports[`query.pagination 'hasNextPage' is set to 'false' if there are no next p
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -31,7 +30,6 @@ exports[`query.pagination 'hasNextPage' is set to 'true' if there are next pages
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -52,7 +50,6 @@ exports[`query.pagination 'hasPreviousPage' is set to 'false' if there are no pr
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -73,7 +70,6 @@ exports[`query.pagination 'hasPreviousPage' is set to 'true' if there are previo
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -94,7 +90,6 @@ exports[`query.pagination 'totalPages' should have the correct value. 1`] = `
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -115,7 +110,6 @@ exports[`query.pagination calling goToNextPage should go to next page and update
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -136,7 +130,6 @@ exports[`query.pagination calling goToPreviousPage should go to previous page an
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -157,7 +150,6 @@ exports[`query.pagination calling loadMore should load the next page of results 
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -178,7 +170,6 @@ exports[`query.pagination can paginate query with array results 1`] = `
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -206,7 +197,6 @@ exports[`query.pagination can paginate relational data 1`] = `
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -215,7 +205,6 @@ exports[`query.pagination can paginate relational data 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -236,7 +225,6 @@ exports[`query.pagination not defining pagination parameters should return all i
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor

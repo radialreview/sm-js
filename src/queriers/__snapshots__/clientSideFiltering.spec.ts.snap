@@ -10,7 +10,6 @@ exports[`query.filter accepts undefined as a value 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -37,7 +36,6 @@ exports[`query.filter accepts undefined as a value for a relational query's filt
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -46,7 +44,6 @@ exports[`query.filter accepts undefined as a value for a relational query's filt
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -68,7 +65,6 @@ exports[`query.filter can filter 'boolean' prop using 'eq' operator 1`] = `
      score
      archived
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -89,7 +85,6 @@ exports[`query.filter can filter 'boolean' prop using 'neq' operator 1`] = `
      type
      archived
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -111,7 +106,6 @@ exports[`query.filter can filter 'null' values with 'eq' operator 1`] = `
      score
      optionalProp
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -133,7 +127,6 @@ exports[`query.filter can filter 'null' values with 'neq' operator 1`] = `
      score
      optionalProp
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -154,7 +147,6 @@ exports[`query.filter can filter 'number' prop using 'eq' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -175,7 +167,6 @@ exports[`query.filter can filter 'number' prop using 'gt' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -196,7 +187,6 @@ exports[`query.filter can filter 'number' prop using 'gte' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -217,7 +207,6 @@ exports[`query.filter can filter 'number' prop using 'lt' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -238,7 +227,6 @@ exports[`query.filter can filter 'number' prop using 'lte' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -259,7 +247,6 @@ exports[`query.filter can filter 'number' prop using 'neq' operator 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -280,7 +267,6 @@ exports[`query.filter can filter 'string' prop using 'contains' operator 1`] = `
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -301,7 +287,6 @@ exports[`query.filter can filter 'string' prop using 'eq' operator 1`] = `
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -322,7 +307,6 @@ exports[`query.filter can filter 'string' prop using 'ncontains' operator 1`] = 
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -343,7 +327,6 @@ exports[`query.filter can filter 'string' prop using 'neq' operator 1`] = `
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -377,7 +360,6 @@ exports[`query.filter can filter multilevel relational data 1`] = `
              type
              firstName
            }
-           totalCount
            pageInfo {
              endCursor
              startCursor
@@ -386,7 +368,6 @@ exports[`query.filter can filter multilevel relational data 1`] = `
            }
          }
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -395,7 +376,6 @@ exports[`query.filter can filter multilevel relational data 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -423,7 +403,6 @@ exports[`query.filter can filter multiple relational data 1`] = `
        task
        numberProp
      }
-     totalCount
      pageInfo {
        endCursor
        startCursor
@@ -440,7 +419,6 @@ exports[`query.filter can filter multiple relational data 1`] = `
        task
        numberProp
      }
-     totalCount
      pageInfo {
        endCursor
        startCursor
@@ -463,7 +441,6 @@ exports[`query.filter can filter nested object property 1`] = `
      address
      address__dot__state
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -491,7 +468,6 @@ exports[`query.filter can filter query with "AND" condition using the node's one
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -500,7 +476,6 @@ exports[`query.filter can filter query with "AND" condition using the node's one
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -529,7 +504,6 @@ exports[`query.filter can filter query with "AND" condition using the node's one
        archived
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -557,7 +531,6 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -566,7 +539,6 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -595,7 +567,6 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
        archived
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -623,7 +594,6 @@ exports[`query.filter can filter relational data 1`] = `
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -632,7 +602,6 @@ exports[`query.filter can filter relational data 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -660,7 +629,6 @@ exports[`query.filter can filter relational data of a single node query 1`] = `
        task
        numberProp
      }
-     totalCount
      pageInfo {
        endCursor
        startCursor
@@ -689,7 +657,6 @@ exports[`query.filter can filter relational data using "OR" condition 1`] = `
          task
          numberProp
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -698,7 +665,6 @@ exports[`query.filter can filter relational data using "OR" condition 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -720,7 +686,6 @@ exports[`query.filter can filter using "OR" condition 1`] = `
      firstName
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -742,7 +707,6 @@ exports[`query.filter should throw an error if property being filtered is not de
      address
      address__dot__state
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -769,7 +733,6 @@ exports[`query.filter should throw an error if relational prop is not defined in
          lastUpdatedBy
          type
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -778,7 +741,6 @@ exports[`query.filter should throw an error if relational prop is not defined in
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -799,7 +761,6 @@ exports[`query.filter supports old filter object format with 'eq' as default ope
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -821,7 +782,6 @@ exports[`query.filter undefined filters should not be included 1`] = `
      score
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor

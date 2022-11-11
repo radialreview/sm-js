@@ -18,7 +18,6 @@ exports[`query.sorting can prioritize sorting 1`] = `
      address__dot__apt__dot__number
      address__dot__apt__dot__floor
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -39,7 +38,6 @@ exports[`query.sorting can sort 'boolean' properties 1`] = `
      type
      archived
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -60,7 +58,6 @@ exports[`query.sorting can sort 'boolean' properties descending 1`] = `
      type
      archived
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -81,7 +78,6 @@ exports[`query.sorting can sort 'number' properties 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -102,7 +98,6 @@ exports[`query.sorting can sort 'number' properties descending 1`] = `
      type
      score
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -129,7 +124,6 @@ exports[`query.sorting can sort 'object' properties 1`] = `
      address__dot__apt__dot__number
      address__dot__apt__dot__floor
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -156,7 +150,6 @@ exports[`query.sorting can sort 'object' properties decsending 1`] = `
      address__dot__apt__dot__number
      address__dot__apt__dot__floor
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -184,7 +177,6 @@ exports[`query.sorting can sort 'oneToMany' relational data 1`] = `
          type
          firstName
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -193,7 +185,6 @@ exports[`query.sorting can sort 'oneToMany' relational data 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -221,7 +212,6 @@ exports[`query.sorting can sort 'oneToOne' relational data 1`] = `
        firstName
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -245,7 +235,6 @@ exports[`query.sorting can sort 'string' properties 1`] = `
      address
      address__dot__state
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -269,7 +258,6 @@ exports[`query.sorting can sort 'string' properties descending 1`] = `
      address
      address__dot__state
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -297,7 +285,6 @@ exports[`query.sorting can sort multiple properties 1`] = `
      address__dot__apt__dot__number
      address__dot__apt__dot__floor
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -325,7 +312,6 @@ exports[`query.sorting can sort relational data 1`] = `
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -334,7 +320,6 @@ exports[`query.sorting can sort relational data 1`] = `
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -356,7 +341,6 @@ exports[`query.sorting should always sort null values last in ascending order 1`
      optionalProp
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -378,7 +362,6 @@ exports[`query.sorting should always sort null values last in descending order 1
      optionalProp
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -401,7 +384,6 @@ exports[`query.sorting should throw an error if property being sorted is not def
      address
      address__dot__state
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor

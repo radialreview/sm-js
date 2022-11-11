@@ -17,7 +17,6 @@ exports[`query gql matches the expectation when specifying a sort param for a re
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -26,7 +25,6 @@ exports[`query gql matches the expectation when specifying a sort param for a re
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -48,7 +46,6 @@ exports[`query gql matches the expectation when specifying a sort params with pr
      firstName
      lastName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -69,7 +66,6 @@ exports[`query gql matches the expectation when specifying a sorting param 1`] =
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
