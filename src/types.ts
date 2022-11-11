@@ -882,8 +882,8 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
 
 type NodesCollectionWithCorrectTotalCountParam<TItemType, TQueryDefinition> = 
       TQueryDefinition extends {pagination?: IQueryPagination<true> | undefined}
-        ? NodesCollection<TItemType, true>
-        : NodesCollection<TItemType, false>
+        ? NodesCollection<{ TItemType: TItemType,  TIncludeTotalCount: true }>
+        : NodesCollection<{ TItemType: TItemType, TIncludeTotalCount: false }>
 
 export type UseSubscriptionReturn<
   // @ts-ignore

@@ -31,12 +31,17 @@ export interface NodesCollectionOpts<T> {
   useServerSidePaginationFilteringSorting: boolean;
 }
 
-export class NodesCollection<TItemType, TIncludeTotalCount extends boolean> {
+export class NodesCollection<
+  TNodesCollectionArgs extends {
+    TItemType: unknown;
+    TIncludeTotalCount: boolean;
+  }
+> {
   private onLoadMoreResults: OnLoadMoreResultsCallback;
   private onGoToNextPage: OnGoToNextPageCallback;
   private onGoToPreviousPage: OnGoToPreviousPageCallback;
   private onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
-  private items: TItemType[];
+  private items: TNodesCollectionArgs['TItemType'][];
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
   private useServerSidePaginationFilteringSorting: boolean;
@@ -48,7 +53,7 @@ export class NodesCollection<TItemType, TIncludeTotalCount extends boolean> {
   public loadingState = QueryState.IDLE as QueryState;
   public loadingError = null as any;
 
-  constructor(opts: NodesCollectionOpts<TItemType>) {
+  constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>) {
     this.items = opts.items;
 
     this.pageInfoFromResults = opts.pageInfoFromResults;
@@ -85,11 +90,13 @@ export class NodesCollection<TItemType, TIncludeTotalCount extends boolean> {
     return this.pageInfoFromResults.totalPages;
   }
 
-  public get totalCount(): TIncludeTotalCount extends true
+  public get totalCount(): TNodesCollectionArgs['TIncludeTotalCount'] extends true
     ? number
     : undefined {
     return this.pageInfoFromResults
-      .totalCount as TIncludeTotalCount extends true ? number : undefined;
+      .totalCount as TNodesCollectionArgs['TIncludeTotalCount'] extends true
+      ? number
+      : undefined;
   }
 
   public get page() {
