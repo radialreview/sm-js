@@ -1556,16 +1556,7 @@ async function performQueries(opts: {
   }
 
   function getToken(tokenName: string) {
-    const token = opts.mmGQLInstance.getToken({ tokenName });
-
-    if (!token) {
-      throw new Error(
-        `No token registered with the name "${tokenName}".\n` +
-          'Please register this token prior to using it with setToken({ tokenName, token })) '
-      );
-    }
-
-    return token;
+    return opts.mmGQLInstance.getToken({ tokenName });
   }
 
   let response;

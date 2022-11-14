@@ -47,44 +47,6 @@ test('it throws an error when used outside the context of an MMGQLProvider', don
   }
 });
 
-test('it throws an error when a non registered token is used', done => {
-  const { mmGQL } = setupTests();
-  function MyComponent() {
-    try {
-      useSubscription(
-        createMockQueryDefinitions(mmGQL, { tokenName: 'invalid' })
-      );
-    } catch (e) {
-      if (e instanceof Promise) {
-        return null;
-      }
-
-      try {
-        const [first, second] = (e as any).stack.trim().split('\n');
-        expect([first, second]).toMatchInlineSnapshot(`
-        Array [
-          "Error: No token registered with the name \\"invalid\\".",
-          "Please register this token prior to using it with setToken({ tokenName, token })) ",
-        ]
-      `);
-        done();
-      } catch (e) {
-        done(e);
-      }
-    }
-
-    return null;
-  }
-
-  render(
-    <React.Suspense fallback={'loading'}>
-      <MMGQLProvider mmGQL={mmGQL}>
-        <MyComponent />
-      </MMGQLProvider>
-    </React.Suspense>
-  );
-});
-
 test('it throws a promise that resolves when the query for the data requested resolves, to enable React.Suspense integration', done => {
   let resolvePromise: (value: unknown) => void;
   const mockPromise = new Promise(res => {

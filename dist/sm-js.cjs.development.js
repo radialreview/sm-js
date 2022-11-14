@@ -7071,12 +7071,14 @@ function getGQLCLient(gqlClientOpts) {
     }
   });
   var nonBatchedLink = new http.HttpLink({
-    uri: gqlClientOpts.httpUrl
+    uri: gqlClientOpts.httpUrl,
+    credentials: 'include'
   });
   var queryBatchLink = core.split(function (operation) {
     return operation.getContext().batchKey;
   }, new batchHttp.BatchHttpLink({
     uri: gqlClientOpts.httpUrl,
+    credentials: 'include',
     batchMax: 50,
     batchInterval: 50,
     batchKey: function batchKey(operation) {
@@ -7094,6 +7096,7 @@ function getGQLCLient(gqlClientOpts) {
     return operation.getContext().batchedMutation;
   }, new batchHttp.BatchHttpLink({
     uri: gqlClientOpts.httpUrl,
+    credentials: 'include',
     // no batch max for explicitly batched mutations
     // to ensure transactional integrity
     batchMax: Number.MAX_SAFE_INTEGER,
@@ -7107,11 +7110,15 @@ function getGQLCLient(gqlClientOpts) {
   }, wsLink, mutationBatchLink);
 
   function getContextWithToken(opts) {
-    return {
-      headers: {
-        Authorization: "Bearer " + opts.token
-      }
-    };
+    if (opts.token != null && opts.token !== '') {
+      return {
+        headers: {
+          Authorization: "Bearer " + opts.token
+        }
+      };
+    } else {
+      return {};
+    }
   }
 
   function authenticateSubscriptionDocument(opts) {
@@ -8685,15 +8692,9 @@ function _performQueries() {
         switch (_context6.prev = _context6.next) {
           case 0:
             getToken = function _getToken(tokenName) {
-              var token = opts.mmGQLInstance.getToken({
+              return opts.mmGQLInstance.getToken({
                 tokenName: tokenName
               });
-
-              if (!token) {
-                throw new Error("No token registered with the name \"" + tokenName + "\".\n" + 'Please register this token prior to using it with setToken({ tokenName, token })) ');
-              }
-
-              return token;
             };
 
             if (opts.mmGQLInstance.logging.gqlClientQueries) {

@@ -57,18 +57,18 @@ export declare type Config = {
 export interface IGQLClient {
     query(opts: {
         gql: DocumentNode;
-        token: string;
+        token?: string;
         batchKey?: string;
     }): Promise<any>;
     subscribe(opts: {
         gql: DocumentNode;
-        token: string;
+        token?: string;
         onMessage: (message: Record<string, any>) => void;
         onError: (error: any) => void;
     }): SubscriptionCanceller;
     mutate(opts: {
         mutations: Array<DocumentNode>;
-        token: string;
+        token?: string;
     }): Promise<any>;
 }
 export interface IQueryManager {

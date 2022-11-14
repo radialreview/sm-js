@@ -30,12 +30,14 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
   const nonBatchedLink = new HttpLink({
     uri: gqlClientOpts.httpUrl,
+    credentials: 'include',
   });
 
   const queryBatchLink = split(
     operation => operation.getContext().batchKey,
     new BatchHttpLink({
       uri: gqlClientOpts.httpUrl,
+      credentials: 'include',
       batchMax: 50,
       batchInterval: 50,
       batchKey: operation => {
@@ -56,6 +58,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     operation => operation.getContext().batchedMutation,
     new BatchHttpLink({
       uri: gqlClientOpts.httpUrl,
+      credentials: 'include',
       // no batch max for explicitly batched mutations
       // to ensure transactional integrity
       batchMax: Number.MAX_SAFE_INTEGER,
@@ -77,17 +80,21 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     mutationBatchLink
   );
 
-  function getContextWithToken(opts: { token: string }) {
-    return {
-      headers: {
-        Authorization: `Bearer ${opts.token}`,
-      },
-    };
+  function getContextWithToken(opts: { token?: string }) {
+    if (opts.token != null && opts.token !== '') {
+      return {
+        headers: {
+          Authorization: `Bearer ${opts.token}`,
+        },
+      };
+    } else {
+      return {};
+    }
   }
 
   function authenticateSubscriptionDocument(opts: {
     gql: DocumentNode;
-    token: string;
+    token?: string;
   }) {
     const documentBody = opts.gql.loc?.source.body;
 
