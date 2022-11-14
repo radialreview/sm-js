@@ -15,7 +15,6 @@ exports[`QueryManager will query a minimum set of results when a fitler/sorting/
          lastUpdatedBy
          type
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -24,7 +23,6 @@ exports[`QueryManager will query a minimum set of results when a fitler/sorting/
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor

@@ -467,14 +467,15 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
 
       private setRelationalProp(opts: {
         relationshipName: string;
-        relationalQueryGetter: () => NodeRelationalQueryBuilder<
-          INode<{
+        relationalQueryGetter: () => NodeRelationalQueryBuilder<{
+          TTargetNodeOrTargetNodeRecord: INode<{
             TNodeType: any;
             TNodeData: TNodeData;
             TNodeComputedData: TNodeComputedData;
             TNodeRelationalData: TNodeRelationalData;
-          }>
-        >;
+          }>;
+          TIncludeTotalCount: boolean;
+        }>;
       }) {
         Object.defineProperty(this, opts.relationshipName, {
           configurable: true,

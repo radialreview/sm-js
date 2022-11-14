@@ -1066,7 +1066,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getMinimalQueryRecordWithUpdatedPaginationParams(opts: {
       aliasPath: Array<string>;
       preExistingQueryRecord: QueryRecord | RelationalQueryRecord;
-      newPaginationParams: Partial<IQueryPagination>;
+      newPaginationParams: Partial<IQueryPagination<any>>;
     }) {
       const [firstAlias, ...remainingPath] = opts.aliasPath;
 

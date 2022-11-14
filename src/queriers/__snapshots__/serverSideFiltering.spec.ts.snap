@@ -10,7 +10,6 @@ exports[`query gql matches the expectation when specifying a filter param 1`] = 
      type
      firstName
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor
@@ -38,7 +37,6 @@ exports[`query gql matches the expectation when specifying a filter param for a 
          type
          task
        }
-       totalCount
        pageInfo {
          endCursor
          startCursor
@@ -47,7 +45,6 @@ exports[`query gql matches the expectation when specifying a filter param for a 
        }
      }
    }
-   totalCount
    pageInfo {
      endCursor
      startCursor

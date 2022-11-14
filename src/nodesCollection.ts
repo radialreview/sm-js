@@ -31,12 +31,17 @@ export interface NodesCollectionOpts<T> {
   useServerSidePaginationFilteringSorting: boolean;
 }
 
-export class NodesCollection<T> {
+export class NodesCollection<
+  TNodesCollectionArgs extends {
+    TItemType: unknown;
+    TIncludeTotalCount: boolean;
+  }
+> {
   private onLoadMoreResults: OnLoadMoreResultsCallback;
   private onGoToNextPage: OnGoToNextPageCallback;
   private onGoToPreviousPage: OnGoToPreviousPageCallback;
   private onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
-  private items: T[];
+  private items: TNodesCollectionArgs['TItemType'][];
   private pageInfoFromResults: PageInfoFromResults;
   private clientSidePageInfo: ClientSidePageInfo;
   private useServerSidePaginationFilteringSorting: boolean;
@@ -48,7 +53,7 @@ export class NodesCollection<T> {
   public loadingState = QueryState.IDLE as QueryState;
   public loadingError = null as any;
 
-  constructor(opts: NodesCollectionOpts<T>) {
+  constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>) {
     this.items = opts.items;
 
     this.pageInfoFromResults = opts.pageInfoFromResults;
@@ -85,8 +90,13 @@ export class NodesCollection<T> {
     return this.pageInfoFromResults.totalPages;
   }
 
-  public get totalCount() {
-    return this.pageInfoFromResults.totalCount;
+  public get totalCount(): TNodesCollectionArgs['TIncludeTotalCount'] extends true
+    ? number
+    : undefined {
+    return this.pageInfoFromResults
+      .totalCount as TNodesCollectionArgs['TIncludeTotalCount'] extends true
+      ? number
+      : undefined;
   }
 
   public get page() {

@@ -413,7 +413,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  firstName
                }
              }
-             totalCount
              pageInfo {
                endCursor
                startCursor
@@ -422,7 +421,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
              }
            }
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -477,7 +475,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  firstName
                }
              }
-             totalCount
              pageInfo {
                endCursor
                startCursor
@@ -486,7 +483,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
              }
            }
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -519,7 +515,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  firstName
                }
              }
-             totalCount
              pageInfo {
                endCursor
                startCursor
@@ -528,7 +523,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
              }
            }
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -583,7 +577,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  firstName
                }
              }
-             totalCount
              pageInfo {
                endCursor
                startCursor
@@ -592,7 +585,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
              }
            }
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -645,7 +637,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            dateLastModified
            lastUpdatedClientTimestamp
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -700,7 +691,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            dateLastModified
            lastUpdatedClientTimestamp
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -746,7 +736,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            lastUpdatedBy
            type
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -787,7 +776,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            lastUpdatedBy
            type
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -828,7 +816,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            lastUpdatedBy
            type
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -869,7 +856,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            lastUpdatedBy
            type
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -909,7 +895,6 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            lastUpdatedBy
            type
          }
-         totalCount
          pageInfo {
            endCursor
            startCursor
@@ -951,6 +936,69 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            version
            lastUpdatedBy
            type
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
+  it('supports totalCount to query a count of the total number of nodes', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                pagination: {
+                  includeTotalCount: true,
+                },
+                map: (({ users }) => ({
+                  users: users({
+                    map: ({ id }) => ({ id }),
+                    pagination: {
+                      includeTotalCount: true,
+                    },
+                  }),
+                })) as MapFnForNode<TodoNode>,
+              }),
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       todos: todos {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           users: users {
+             nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+             }
+             totalCount
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
          }
          totalCount
          pageInfo {
