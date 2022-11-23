@@ -7122,11 +7122,6 @@ function getGQLCLient(gqlClientOpts) {
   function getContextWithToken(opts) {
     var headers = {};
 
-    if (opts.batched) {
-      headers.accept = 'multipart/mixed';
-      headers['content-type'] = 'multipart/mixed';
-    }
-
     if (opts.token != null && opts.token !== '') {
       headers.Authorization = "Bearer " + opts.token;
     }
@@ -7204,8 +7199,7 @@ function getGQLCLient(gqlClientOpts) {
                     // but by default, batch all requests into the same request batch
                     batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
                   }, getContextWithToken({
-                    token: opts.token,
-                    batched: opts.batchKey != null
+                    token: opts.token
                   }))
                 });
 
