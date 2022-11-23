@@ -33,26 +33,26 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     credentials: 'include',
   });
 
-  const queryBatchLink = split(
-    operation => operation.getContext().batchKey,
-    new BatchHttpLink({
-      uri: gqlClientOpts.httpUrl,
-      credentials: 'include',
-      batchMax: 50,
-      batchInterval: 50,
-      batchKey: operation => {
-        const context = operation.getContext();
-        // This ensures that requests with different batch keys, headers and credentials
-        // are batched separately
-        return JSON.stringify({
-          batchKey: context.batchKey,
-          headers: context.headers,
-          credentials: context.credentials,
-        });
-      },
-    }),
-    nonBatchedLink
-  );
+  // const queryBatchLink = split(
+  //   operation => operation.getContext().batchKey,
+  //   new BatchHttpLink({
+  //     uri: gqlClientOpts.httpUrl,
+  //     credentials: 'include',
+  //     batchMax: 50,
+  //     batchInterval: 50,
+  //     batchKey: operation => {
+  //       const context = operation.getContext();
+  //       // This ensures that requests with different batch keys, headers and credentials
+  //       // are batched separately
+  //       return JSON.stringify({
+  //         batchKey: context.batchKey,
+  //         headers: context.headers,
+  //         credentials: context.credentials,
+  //       });
+  //     },
+  //   }),
+  //   nonBatchedLink
+  // );
 
   const mutationBatchLink = split(
     operation => operation.getContext().batchedMutation,
@@ -64,7 +64,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       batchMax: Number.MAX_SAFE_INTEGER,
       batchInterval: 0,
     }),
-    queryBatchLink
+    nonBatchedLink
   );
 
   const requestLink = split(
