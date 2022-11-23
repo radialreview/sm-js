@@ -7,6 +7,7 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { createMultipartLink } from 'apollo-link-multipart';
 export { gql } from '@apollo/client';
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -7084,22 +7085,10 @@ function getGQLCLient(gqlClientOpts) {
   });
   var queryBatchLink = split(function (operation) {
     return operation.getContext().batchKey;
-  }, new BatchHttpLink({
+  }, ApolloLink.from([createMultipartLink({
     uri: gqlClientOpts.httpUrl,
-    credentials: 'include',
-    batchMax: 50,
-    batchInterval: 50,
-    batchKey: function batchKey(operation) {
-      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
-      // are batched separately
-
-      return JSON.stringify({
-        batchKey: context.batchKey,
-        headers: context.headers,
-        credentials: context.credentials
-      });
-    }
-  }), nonBatchedLink);
+    credentials: 'include'
+  })]), nonBatchedLink);
   var mutationBatchLink = split(function (operation) {
     return operation.getContext().batchedMutation;
   }, new BatchHttpLink({

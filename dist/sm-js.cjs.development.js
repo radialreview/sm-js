@@ -13,6 +13,7 @@ var ws = require('@apollo/client/link/ws');
 var http = require('@apollo/client/link/http');
 var batchHttp = require('@apollo/client/link/batch-http');
 var utilities = require('@apollo/client/utilities');
+var apolloLinkMultipart = require('apollo-link-multipart');
 var client = require('@apollo/client');
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -7076,22 +7077,10 @@ function getGQLCLient(gqlClientOpts) {
   });
   var queryBatchLink = core.split(function (operation) {
     return operation.getContext().batchKey;
-  }, new batchHttp.BatchHttpLink({
+  }, core.ApolloLink.from([apolloLinkMultipart.createMultipartLink({
     uri: gqlClientOpts.httpUrl,
-    credentials: 'include',
-    batchMax: 50,
-    batchInterval: 50,
-    batchKey: function batchKey(operation) {
-      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
-      // are batched separately
-
-      return JSON.stringify({
-        batchKey: context.batchKey,
-        headers: context.headers,
-        credentials: context.credentials
-      });
-    }
-  }), nonBatchedLink);
+    credentials: 'include'
+  })]), nonBatchedLink);
   var mutationBatchLink = core.split(function (operation) {
     return operation.getContext().batchedMutation;
   }, new batchHttp.BatchHttpLink({
