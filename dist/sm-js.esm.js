@@ -7122,6 +7122,7 @@ function getGQLCLient(gqlClientOpts) {
 
     if (opts.batched) {
       headers.accept = 'multipart/mixed';
+      headers['content-type'] = 'multipart/mixed';
     }
 
     if (opts.token != null && opts.token !== '') {
