@@ -3151,6 +3151,15 @@ anymatch@^3.0.3, anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
+apollo-link-multipart@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/apollo-link-multipart/-/apollo-link-multipart-0.0.3.tgz#9fd3693e5b32dfb56ae2cb31e7eba3edcd97f787"
+  integrity sha512-dJO1hL8dsYb/I6agZGo4uC8Gsgq0QiWHyLSWgC9zMUBKFk2nF6XYDk1t3NL5835T/i8ymMEupOF66Bzxqtq//w==
+  dependencies:
+    deepmerge "^4.2.2"
+    meros "^1.1.2"
+    nestie "^1.0.0"
+
 archy@~1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/archy/-/archy-1.0.0.tgz"
@@ -6886,6 +6895,11 @@ merge2@^1.3.0:
   resolved "https://registry.npmjs.org/merge2/-/merge2-1.4.1.tgz"
   integrity sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==
 
+meros@^1.1.2:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/meros/-/meros-1.2.1.tgz#056f7a76e8571d0aaf3c7afcbe7eb6407ff7329e"
+  integrity sha512-R2f/jxYqCAGI19KhAvaxSOxALBMkaXWH2a7rOyqQw+ZmizX5bKkEYWLzdhC+U82ZVVPVp6MCXe3EkVligh+12g==
+
 micromatch@4.x, micromatch@^4.0.2, micromatch@^4.0.4:
   version "4.0.4"
   resolved "https://registry.npmjs.org/micromatch/-/micromatch-4.0.4.tgz"
@@ -7035,6 +7049,11 @@ neo-async@^2.6.2:
   version "2.6.2"
   resolved "https://registry.npmjs.org/neo-async/-/neo-async-2.6.2.tgz"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
+
+nestie@^1.0.0:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/nestie/-/nestie-1.0.2.tgz#a55860ac6d4e07ebcf55d7aeb2db28d32fc4baab"
+  integrity sha512-UYn4gLUKrrPGZ8NKsM7TxP1qbWfdtEY587Uoje05YbO1rEJBS0wox+nCMKaBNe+h8Rp5PCxy70gmUlR2ns2nrQ==
 
 nice-try@^1.0.4:
   version "1.0.5"
