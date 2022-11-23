@@ -80,13 +80,8 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     mutationBatchLink
   );
 
-  function getContextWithToken(opts: { token?: string; batched?: boolean }) {
+  function getContextWithToken(opts: { token?: string }) {
     let headers: Record<string, string> = {};
-
-    if (opts.batched) {
-      headers.accept = 'multipart/mixed';
-      headers['content-type'] = 'multipart/mixed';
-    }
 
     if (opts.token != null && opts.token !== '') {
       headers.Authorization = `Bearer ${opts.token}`;
@@ -178,7 +173,6 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           batchKey: 'batchKey' in opts ? opts.batchKey : 'default',
           ...getContextWithToken({
             token: opts.token,
-            batched: opts.batchKey != null,
           }),
         },
       });
