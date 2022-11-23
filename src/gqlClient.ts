@@ -33,26 +33,26 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     credentials: 'include',
   });
 
-  const queryBatchLink = split(
-    operation => operation.getContext().batchKey,
-    new BatchHttpLink({
-      uri: gqlClientOpts.httpUrl,
-      credentials: 'include',
-      batchMax: 50,
-      batchInterval: 50,
-      batchKey: operation => {
-        const context = operation.getContext();
-        // This ensures that requests with different batch keys, headers and credentials
-        // are batched separately
-        return JSON.stringify({
-          batchKey: context.batchKey,
-          headers: context.headers,
-          credentials: context.credentials,
-        });
-      },
-    }),
-    nonBatchedLink
-  );
+  // const queryBatchLink = split(
+  //   operation => operation.getContext().batchKey,
+  //   new BatchHttpLink({
+  //     uri: gqlClientOpts.httpUrl,
+  //     credentials: 'include',
+  //     batchMax: 50,
+  //     batchInterval: 50,
+  //     batchKey: operation => {
+  //       const context = operation.getContext();
+  //       // This ensures that requests with different batch keys, headers and credentials
+  //       // are batched separately
+  //       return JSON.stringify({
+  //         batchKey: context.batchKey,
+  //         headers: context.headers,
+  //         credentials: context.credentials,
+  //       });
+  //     },
+  //   }),
+  //   nonBatchedLink
+  // );
 
   const mutationBatchLink = split(
     operation => operation.getContext().batchedMutation,
@@ -64,7 +64,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       batchMax: Number.MAX_SAFE_INTEGER,
       batchInterval: 0,
     }),
-    queryBatchLink
+    nonBatchedLink
   );
 
   const requestLink = split(
@@ -81,15 +81,13 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   );
 
   function getContextWithToken(opts: { token?: string }) {
+    let headers: Record<string, string> = {};
+
     if (opts.token != null && opts.token !== '') {
-      return {
-        headers: {
-          Authorization: `Bearer ${opts.token}`,
-        },
-      };
-    } else {
-      return {};
+      headers.Authorization = `Bearer ${opts.token}`;
     }
+
+    return headers;
   }
 
   function authenticateSubscriptionDocument(opts: {
@@ -173,7 +171,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           // allow turning off batching by specifying a null or undefined batchKey
           // but by default, batch all requests into the same request batch
           batchKey: 'batchKey' in opts ? opts.batchKey : 'default',
-          ...getContextWithToken({ token: opts.token }),
+          ...getContextWithToken({
+            token: opts.token,
+          }),
         },
       });
 

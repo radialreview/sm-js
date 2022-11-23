@@ -7081,25 +7081,27 @@ function getGQLCLient(gqlClientOpts) {
   var nonBatchedLink = new HttpLink({
     uri: gqlClientOpts.httpUrl,
     credentials: 'include'
-  });
-  var queryBatchLink = split(function (operation) {
-    return operation.getContext().batchKey;
-  }, new BatchHttpLink({
-    uri: gqlClientOpts.httpUrl,
-    credentials: 'include',
-    batchMax: 50,
-    batchInterval: 50,
-    batchKey: function batchKey(operation) {
-      var context = operation.getContext(); // This ensures that requests with different batch keys, headers and credentials
-      // are batched separately
+  }); // const queryBatchLink = split(
+  //   operation => operation.getContext().batchKey,
+  //   new BatchHttpLink({
+  //     uri: gqlClientOpts.httpUrl,
+  //     credentials: 'include',
+  //     batchMax: 50,
+  //     batchInterval: 50,
+  //     batchKey: operation => {
+  //       const context = operation.getContext();
+  //       // This ensures that requests with different batch keys, headers and credentials
+  //       // are batched separately
+  //       return JSON.stringify({
+  //         batchKey: context.batchKey,
+  //         headers: context.headers,
+  //         credentials: context.credentials,
+  //       });
+  //     },
+  //   }),
+  //   nonBatchedLink
+  // );
 
-      return JSON.stringify({
-        batchKey: context.batchKey,
-        headers: context.headers,
-        credentials: context.credentials
-      });
-    }
-  }), nonBatchedLink);
   var mutationBatchLink = split(function (operation) {
     return operation.getContext().batchedMutation;
   }, new BatchHttpLink({
@@ -7109,7 +7111,7 @@ function getGQLCLient(gqlClientOpts) {
     // to ensure transactional integrity
     batchMax: Number.MAX_SAFE_INTEGER,
     batchInterval: 0
-  }), queryBatchLink);
+  }), nonBatchedLink);
   var requestLink = split( // split based on operation type
   function (_ref) {
     var query = _ref.query;
@@ -7118,15 +7120,13 @@ function getGQLCLient(gqlClientOpts) {
   }, wsLink, mutationBatchLink);
 
   function getContextWithToken(opts) {
+    var headers = {};
+
     if (opts.token != null && opts.token !== '') {
-      return {
-        headers: {
-          Authorization: "Bearer " + opts.token
-        }
-      };
-    } else {
-      return {};
+      headers.Authorization = "Bearer " + opts.token;
     }
+
+    return headers;
   }
 
   function authenticateSubscriptionDocument(opts) {
