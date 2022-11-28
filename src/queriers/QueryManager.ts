@@ -243,6 +243,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           dataForThisAlias: opts.data[queryAlias],
         });
 
+        if (dataForThisAlias == null) return;
+
         const nodeRepository = queryRecordEntry.def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
@@ -336,12 +338,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const queryRecordEntry = queryRecord[opts.queryAlias];
 
       if (!queryRecordEntry) {
-        return {
-          idsOrIdInCurrentResult: null,
-          proxyCache: {},
-          pageInfoFromResults: null,
-          clientSidePageInfo: null,
-        };
+        return getEmptyStateEntry();
       }
 
       const { relational } = queryRecordEntry;
@@ -365,7 +362,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               queryRecordEntry: relational[relationalAlias],
               dataForThisAlias: node[relationalAlias],
             });
-            if (!relationalDataForThisAlias) return relationalStateAcc;
+            if (!relationalDataForThisAlias) {
+              relationalStateAcc[relationalAlias] = getEmptyStateEntry();
+              return relationalStateAcc;
+            }
+
             const aliasPath = this.addIdToLastEntryInAliasPath({
               aliasPath: opts.aliasPath,
               id: node.id,
@@ -442,12 +443,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 message: `Queried a node by id for the query with the id "${this.opts.queryId}" but received back an empty array`,
               });
 
-            return {
-              idsOrIdInCurrentResult: null,
-              proxyCache: {},
-              pageInfoFromResults: opts.pageInfoFromResults,
-              clientSidePageInfo: opts.clientSidePageInfo,
-            };
+            return getEmptyStateEntry();
           }
 
           return {
@@ -1828,4 +1824,15 @@ function getQueryFilterSortingPaginationHasBeenUpdated(opts: {
 
 function addIdToAliasPathEntry(opts: { aliasPathEntry: string; id: string }) {
   return `${opts.aliasPathEntry}[${opts.id}]`;
+}
+
+// when "null" is received as a root level result or relational result
+// there still must be a state entry created for it
+function getEmptyStateEntry(): QueryManagerStateEntry {
+  return {
+    idsOrIdInCurrentResult: null,
+    proxyCache: {},
+    pageInfoFromResults: null,
+    clientSidePageInfo: null,
+  };
 }
