@@ -7654,6 +7654,7 @@ function createQueryManager(mmGQLInstance) {
           dataForThisAlias: opts.data[queryAlias]
         });
 
+        if (dataForThisAlias == null) return;
         var nodeRepository = queryRecordEntry.def.repository;
 
         if (Array.isArray(dataForThisAlias)) {
@@ -7736,12 +7737,7 @@ function createQueryManager(mmGQLInstance) {
       var queryRecordEntry = queryRecord[opts.queryAlias];
 
       if (!queryRecordEntry) {
-        return {
-          idsOrIdInCurrentResult: null,
-          proxyCache: {},
-          pageInfoFromResults: null,
-          clientSidePageInfo: null
-        };
+        return getEmptyStateEntry();
       }
 
       var relational = queryRecordEntry.relational; // if the query alias includes a relational union query separator
@@ -7763,7 +7759,10 @@ function createQueryManager(mmGQLInstance) {
             dataForThisAlias: node[relationalAlias]
           });
 
-          if (!relationalDataForThisAlias) return relationalStateAcc;
+          if (!relationalDataForThisAlias) {
+            relationalStateAcc[relationalAlias] = getEmptyStateEntry();
+            return relationalStateAcc;
+          }
 
           var aliasPath = _this5.addIdToLastEntryInAliasPath({
             aliasPath: opts.aliasPath,
@@ -7825,12 +7824,7 @@ function createQueryManager(mmGQLInstance) {
               receivedData: opts.nodeData,
               message: "Queried a node by id for the query with the id \"" + this.opts.queryId + "\" but received back an empty array"
             });
-            return {
-              idsOrIdInCurrentResult: null,
-              proxyCache: {},
-              pageInfoFromResults: opts.pageInfoFromResults,
-              clientSidePageInfo: opts.clientSidePageInfo
-            };
+            return getEmptyStateEntry();
           }
 
           return {
@@ -8943,6 +8937,17 @@ function getQueryFilterSortingPaginationHasBeenUpdated(opts) {
 
 function addIdToAliasPathEntry(opts) {
   return opts.aliasPathEntry + "[" + opts.id + "]";
+} // when "null" is received as a root level result or relational result
+// there still must be a state entry created for it
+
+
+function getEmptyStateEntry() {
+  return {
+    idsOrIdInCurrentResult: null,
+    proxyCache: {},
+    pageInfoFromResults: null,
+    clientSidePageInfo: null
+  };
 }
 
 var MMGQL = /*#__PURE__*/function () {
