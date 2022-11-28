@@ -13,6 +13,7 @@ import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 
 import { EPaginationFilteringSortingInstance } from '../types';
+import { oneToOne, queryDefinition } from '../dataTypes';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -146,6 +147,45 @@ test('query can query data using multiple tokens, by making parallel requests', 
       token: '321',
     })
   );
+});
+
+test('accepts null as the result for a oneToOne relationship', async () => {
+  const { mmGQLInstance } = setupTest();
+
+  const mockChildNode = mmGQLInstance.def({
+    type: 'child',
+    properties: {},
+  });
+
+  const mockParentNode = mmGQLInstance.def({
+    type: 'parent',
+    properties: {},
+    relational: {
+      child: () => oneToOne(mockChildNode),
+    },
+  });
+
+  mmGQLInstance.gqlClient.query = jest.fn(async () => ({
+    parent: {
+      id: 'mock-id',
+      type: 'parent',
+      child: null,
+    },
+  }));
+
+  const result = await mmGQLInstance.query({
+    parent: queryDefinition({
+      def: mockParentNode,
+      map: ({ child }) => ({
+        child: child({
+          map: ({ id }) => ({ id }),
+        }),
+      }),
+      target: { id: 'mock-id' },
+    }),
+  });
+
+  expect(result.data.parent.child).toBe(null);
 });
 
 test.skip('sm.subscribe by default queries and subscribes to the data set', async done => {
