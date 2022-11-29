@@ -1869,7 +1869,9 @@ function createDOProxyGenerator(mmGQLInstance) {
         // This gives better json stringify results
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
-        if (opts.allPropertiesQueried.includes(key) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
+        if (opts.allPropertiesQueried.some(function (prop) {
+          return prop.startsWith(key);
+        }) || opts.relationalQueries && Object.keys(opts.relationalQueries).includes(key) || Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)) {
           return _extends({}, Object.getOwnPropertyDescriptor(target, key), {
             enumerable: true
           });
@@ -1911,7 +1913,9 @@ function createDOProxyGenerator(mmGQLInstance) {
         }
 
         if (Object.keys(opts.node.data).includes(key)) {
-          if (!opts.allPropertiesQueried.includes(key)) {
+          if (!opts.allPropertiesQueried.some(function (prop) {
+            return prop.startsWith(key);
+          })) {
             throw new NotUpToDateException({
               propName: key,
               queryId: opts.queryId,
