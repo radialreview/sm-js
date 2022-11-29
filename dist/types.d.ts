@@ -4,7 +4,6 @@ import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
-import { createTransaction } from './transaction/transaction';
 import { QuerySlimmer } from './queriers/QuerySlimmer';
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
@@ -133,7 +132,6 @@ export interface IMMGQL {
     clearTokens(): void;
     query: ReturnType<typeof generateQuerier>;
     subscribe: ReturnType<typeof generateSubscriber>;
-    transaction: ReturnType<typeof createTransaction>;
     gqlClient: IGQLClient;
     plugins: Array<Plugin> | undefined;
     generateMockData: boolean | undefined;
