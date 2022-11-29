@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
+
+export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 import {
   NodeRelationalFns,

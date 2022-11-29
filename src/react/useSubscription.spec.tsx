@@ -99,7 +99,9 @@ test.skip('it re-renders the component when a subscription message causes a chan
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address__dot__state: 'Definitely not FL',
+            address: {
+              state: 'Definitely not FL',
+            },
           },
         },
       });
@@ -265,21 +267,25 @@ test('updates data when paginating', async () => {
           id: 'mock-user-id',
           type: 'user',
           version: '1',
-          address: '__object__',
-          address__dot__state: 'FL',
-          address__dot__apt: '__object__',
-          address__dot__apt__dot__floor: '1',
-          address__dot__apt__dot__number: '1',
+          address: {
+            state: 'FL',
+            apt: {
+              floor: '1',
+              number: '1',
+            },
+          },
         },
         {
           id: 'mock-user-id2',
           type: 'user',
           version: '1',
-          address: '__object__',
-          address__dot__state: 'CA',
-          address__dot__apt: '__object__',
-          address__dot__apt__dot__floor: '1',
-          address__dot__apt__dot__number: '1',
+          address: {
+            state: 'CA',
+            apt: {
+              floor: '1',
+              number: '1',
+            },
+          },
         },
       ],
     }),
@@ -336,22 +342,26 @@ test('updates data when filtering', async () => {
           type: 'user',
           version: '1',
           archived: 'false',
-          address: '__object__',
-          address__dot__state: 'FL',
-          address__dot__apt: '__object__',
-          address__dot__apt__dot__floor: '1',
-          address__dot__apt__dot__number: '1',
+          address: {
+            state: 'FL',
+            apt: {
+              floor: '1',
+              number: '1',
+            },
+          },
         },
         {
           id: 'mock-user-id2',
           type: 'user',
           version: '1',
           archived: 'true',
-          address: '__object__',
-          address__dot__state: 'CA',
-          address__dot__apt: '__object__',
-          address__dot__apt__dot__floor: '1',
-          address__dot__apt__dot__number: '1',
+          address: {
+            state: 'CA',
+            apt: {
+              floor: '1',
+              number: '1',
+            },
+          },
         },
       ],
     }),

@@ -10,7 +10,6 @@ import {
   DataDefaultFn,
   IOneToOneQueryBuilder,
 } from './types';
-import { NULL_TAG } from './dataConversions';
 
 function generateRepositoryInstance<
   TNodeData extends Record<string, any>,
@@ -108,105 +107,6 @@ describe('data.repository', () => {
     expect(cachedAfterSecondData.task).toEqual('updated test task');
   });
 
-  it('converts data received with __dot__ nested format to a regular object', () => {
-    const repository = generateRepositoryInstance({
-      properties: {
-        settings: data.object({
-          schedule: data.object({
-            startTime: data.number,
-          }),
-        }),
-      },
-    });
-
-    repository.onDataReceived({
-      id: 'mock-id',
-      type: 'mockNodeType',
-      version: '1',
-      settings: data.OBJECT_IDENTIFIER,
-      settings__dot__schedule: data.OBJECT_IDENTIFIER,
-      settings__dot__schedule__dot__startTime: '321',
-    } as { id: string });
-
-    const DO = repository.byId('mock-id');
-    expect(DO.settings.schedule.startTime).toBe(321);
-  });
-
-  it('converts data received with __JSON__ array format to a regular array', () => {
-    const repository = generateRepositoryInstance({
-      properties: {
-        people: data.array(data.string),
-        peopleOptional: data.array(data.string).optional,
-        object: data.object({
-          nestedArray: data.array(data.string),
-          nestedOptionalArray: data.array(data.string).optional,
-        }),
-      },
-    });
-
-    repository.onDataReceived({
-      id: 'mock-id',
-      type: 'mockNodeType',
-      people: `__JSON__["joe", "bob"]`,
-      peopleOptional: `__JSON__["user1", "user2"]`,
-      object: data.OBJECT_IDENTIFIER,
-      [`object${data.OBJECT_PROPERTY_SEPARATOR}nestedArray`]: '__JSON__["joe", "bob"]',
-      [`object${data.OBJECT_PROPERTY_SEPARATOR}nestedOptionalArray`]: `__JSON__["user1", "user2"]`,
-    } as { id: string });
-
-    const DO = repository.byId('mock-id');
-
-    expect(DO.people).toEqual(['joe', 'bob']);
-    expect(DO.peopleOptional).toEqual(['user1', 'user2']);
-    expect(DO.object.nestedArray).toEqual(['joe', 'bob']);
-    expect(DO.object.nestedOptionalArray).toEqual(['user1', 'user2']);
-  });
-
-  it('converts data received in old object format to a regular object', () => {
-    const repository = generateRepositoryInstance({
-      properties: {
-        settings: data.object({
-          schedule: data.object({
-            startTime: data.number,
-          }),
-        }),
-        recordProp: data.record(
-          data.object({
-            stringProp: data.string,
-            optionalNumberProp: data.number.optional,
-          })
-        ),
-        optionalRecordProp: data.record.optional(
-          data.object({
-            stringProp: data.string,
-            optionalNumberProp: data.number.optional,
-          })
-        ),
-      },
-    });
-
-    repository.onDataReceived({
-      id: 'mock-id',
-      type: 'mockNodeType',
-      version: '1',
-      settings:
-        '__JSON__{\u0022schedule\u0022:{\u0022startTime\u0022:\u0022321\u0022}}',
-      recordProp:
-        '__JSON__{\u0022foo\u0022:{\u0022stringProp\u0022:\u0022mock string\u0022, \u0022optionalNumberProp\u0022:null}}',
-      optionalRecordProp: null,
-      settings__dot__schedule: null,
-      settings__dot__schedule__dot__startTime: null, // mimicking what the BE would return from querying this bit of the object
-    } as { id: string });
-
-    const DO = repository.byId('mock-id');
-    expect(DO.settings.schedule.startTime).toBe(321);
-    expect(DO.recordProp.foo).toEqual({
-      stringProp: 'mock string',
-      optionalNumberProp: null,
-    });
-    expect(DO.optionalRecordProp).toBe(null);
-  });
-
   // When we get back data from a query, we want to call DO.onDataReceived without having to manually parse the data
   // to remove the relational results. This ensures the DO is responsible for that.
   test('data received that is not part of node data or is relational is ignored', () => {
@@ -302,12 +202,12 @@ describe('data.repository', () => {
       type: 'mockNodeType',
       version: '1',
       object: null,
-      optionalObject: data.OBJECT_IDENTIFIER,
-      optionalObject__dot__string: 'hello',
-      optionalObject__dot__oldStyleString: NULL_TAG,
-      optionalObject__dot__requiredString2: NULL_TAG,
-      optionalObject__dot__nestedOptional: null,
-      optionalObject__dot__nestedOptional__dot__foo: null,
+      optionalObject: {
+        string: 'hello',
+        oldStyleString: null,
+        requiredString2: null,
+        nestedOptional: null,
+      },
     });
 
     const cached = repository.byId('123');

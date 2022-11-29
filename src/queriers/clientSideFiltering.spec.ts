@@ -4,7 +4,6 @@ import {
   MMGQL,
   queryDefinition,
 } from '..';
-import { NULL_TAG } from '../dataConversions';
 import {
   createMockQueryDefinitions,
   generateUserNode,
@@ -371,10 +370,10 @@ test(`query.filter can filter 'null' values with 'eq' operator`, async () => {
             optionalProp: null,
           },
           {
-            optionalProp: NULL_TAG,
+            optionalProp: null,
           },
           {
-            optionalProp: NULL_TAG,
+            optionalProp: null,
           },
           {
             optionalProp: 'withvalue',
@@ -412,10 +411,10 @@ test(`query.filter can filter 'null' values with 'neq' operator`, async () => {
         sampleMockData: mockUserData,
         items: [
           {
-            optionalProp: NULL_TAG,
+            optionalProp: null,
           },
           {
-            optionalProp: NULL_TAG,
+            optionalProp: null,
           },
           {
             optionalProp: 'withvalue',
@@ -800,13 +799,19 @@ test(`query.filter can filter nested object property`, async () => {
         sampleMockData: mockUserData,
         items: [
           {
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
-            address__dot__state: 'NY',
+            address: {
+              state: 'NY',
+            },
           },
           {
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
         ],
       }),

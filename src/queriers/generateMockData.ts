@@ -14,7 +14,6 @@ import {
 } from './generateMockDataUtilities';
 import { PageInfoFromResults } from '../nodesCollection';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
-import { revisedPrepareForBE } from '../transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
   IData,
@@ -377,13 +376,7 @@ function generateMockNodeDataForQueryRecordEntry(opts: {
     });
   }
 
-  const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
-    obj: mockedValues,
-    IDataRecord: nodePropertiesToMock,
-    generatingMockData: true,
-  });
-
-  return valuesForNodeDataPreparedForBE;
+  return mockedValues;
 }
 
 export function generateMockNodeDataForQueryRecord(opts: {

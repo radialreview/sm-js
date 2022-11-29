@@ -22,7 +22,6 @@ import {
   DocumentNode,
   ValidFilterForNode,
 } from './types';
-import { NULL_TAG } from './dataConversions';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
 const userProperties = {
@@ -244,13 +243,15 @@ export const mockUserData = {
   id: 'mock-user-id',
   type: 'user',
   version: '1',
-  address: '__object__',
-  address__dot__state: 'FL',
-  address__dot__apt: '__object__',
-  address__dot__apt__dot__floor: '1',
-  address__dot__apt__dot__number: '1',
+  address: {
+    state: 'FL',
+    apt: {
+      floor: 1,
+      number: 1,
+    },
+  },
   firstName: 'Paul',
-  optionalProp: NULL_TAG,
+  optionalProp: null,
   score: 12,
   archived: false,
   todos: [mockTodoData],
@@ -271,11 +272,13 @@ export const mockQueryDataReturn = {
       id: 'mock-user-id',
       type: 'user',
       version: '1',
-      address: '__object__',
-      address__dot__state: 'FL',
-      address__dot__apt: '__object__',
-      address__dot__apt__dot__floor: '1',
-      address__dot__apt__dot__number: '1',
+      address: {
+        state: 'FL',
+        apt: {
+          floor: 1,
+          number: 1,
+        },
+      },
       todos: createMockDataItems({
         sampleMockData: {
           version: '1',
@@ -358,7 +361,9 @@ export function getMockSubscriptionMessage(mmGQLInstance: IMMGQL) {
         // same prop values
         id: 'mock-user-id',
         type: 'user',
-        address__dot__state: 'AK',
+        address: {
+          state: 'AK',
+        },
         version: '2',
         todos: [
           {

@@ -3,7 +3,7 @@ import {
   NotUpToDateException,
   NotUpToDateInComputedException,
 } from './exceptions';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 import {
   IMMGQL,
   IData,

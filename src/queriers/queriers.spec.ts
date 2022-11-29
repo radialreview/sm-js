@@ -280,7 +280,9 @@ test.skip('subscribe calls onData with the new set of results when a node is upd
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address__dot__state: 'Definitely not FL',
+            address: {
+              state: 'Definitely not FL',
+            },
           },
         },
       });
@@ -323,7 +325,9 @@ test.skip('subscribe handles a case where a subscription message comes in before
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 2,
-            address__dot__state: 'Definitely not FL',
+            address: {
+              state: 'Definitely not FL',
+            },
           },
         },
       });
@@ -372,7 +376,9 @@ test.skip('subscribe handles a case where a subscription message comes in before
           node: {
             ...mockSubscriptionMessage.users.node,
             version: 0,
-            address__dot__state: 'Definitely not FL',
+            address: {
+              state: 'Definitely not FL',
+            },
           },
         },
       });
