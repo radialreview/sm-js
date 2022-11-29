@@ -96,7 +96,7 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
         if (
-          opts.allPropertiesQueried.includes(key) ||
+          opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
           (opts.relationalQueries &&
             Object.keys(opts.relationalQueries).includes(key)) ||
           Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
@@ -153,7 +153,7 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         }
 
         if (Object.keys(opts.node.data).includes(key)) {
-          if (!opts.allPropertiesQueried.includes(key)) {
+          if (!opts.allPropertiesQueried.some(prop => prop.startsWith(key))) {
             throw new NotUpToDateException({
               propName: key,
               queryId: opts.queryId,

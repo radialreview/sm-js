@@ -1,7 +1,5 @@
 import { gql } from '@apollo/client/core';
 
-export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
-
 import {
   NodeRelationalFns,
   NodeRelationalQueryBuilderRecord,
@@ -32,6 +30,8 @@ import {
   RELATIONAL_UNION_QUERY_SEPARATOR,
   TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
+
+export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 /**
  * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder

@@ -10,13 +10,15 @@ exports[`query.sorting can prioritize sorting 1`] = `
      type
      firstName
      lastName
-     address
-     address__dot__streetName
-     address__dot__zipCode
-     address__dot__state
-     address__dot__apt
-     address__dot__apt__dot__number
-     address__dot__apt__dot__floor
+     address {
+       streetName
+       zipCode
+       state
+       apt {
+         number
+         floor
+       }
+     }
    }
    pageInfo {
      endCursor
@@ -116,13 +118,15 @@ exports[`query.sorting can sort 'object' properties 1`] = `
      version
      lastUpdatedBy
      type
-     address
-     address__dot__streetName
-     address__dot__zipCode
-     address__dot__state
-     address__dot__apt
-     address__dot__apt__dot__number
-     address__dot__apt__dot__floor
+     address {
+       streetName
+       zipCode
+       state
+       apt {
+         number
+         floor
+       }
+     }
    }
    pageInfo {
      endCursor
@@ -142,13 +146,15 @@ exports[`query.sorting can sort 'object' properties decsending 1`] = `
      version
      lastUpdatedBy
      type
-     address
-     address__dot__streetName
-     address__dot__zipCode
-     address__dot__state
-     address__dot__apt
-     address__dot__apt__dot__number
-     address__dot__apt__dot__floor
+     address {
+       streetName
+       zipCode
+       state
+       apt {
+         number
+         floor
+       }
+     }
    }
    pageInfo {
      endCursor
@@ -232,8 +238,9 @@ exports[`query.sorting can sort 'string' properties 1`] = `
      type
      firstName
      lastName
-     address
-     address__dot__state
+     address {
+       state
+     }
    }
    pageInfo {
      endCursor
@@ -255,8 +262,9 @@ exports[`query.sorting can sort 'string' properties descending 1`] = `
      type
      firstName
      lastName
-     address
-     address__dot__state
+     address {
+       state
+     }
    }
    pageInfo {
      endCursor
@@ -277,13 +285,15 @@ exports[`query.sorting can sort multiple properties 1`] = `
      lastUpdatedBy
      type
      firstName
-     address
-     address__dot__streetName
-     address__dot__zipCode
-     address__dot__state
-     address__dot__apt
-     address__dot__apt__dot__number
-     address__dot__apt__dot__floor
+     address {
+       streetName
+       zipCode
+       state
+       apt {
+         number
+         floor
+       }
+     }
    }
    pageInfo {
      endCursor
@@ -381,8 +391,9 @@ exports[`query.sorting should throw an error if property being sorted is not def
      lastUpdatedBy
      type
      score
-     address
-     address__dot__state
+     address {
+       state
+     }
    }
    pageInfo {
      endCursor
