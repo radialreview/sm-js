@@ -4198,7 +4198,10 @@ function applyClientSideFilterToData(_ref3) {
                 }
               });
             } else {
-              var itemValue = item[filter.underscoreSeparatedPropName];
+              var itemValue = getValueWithUnderscoreSeparatedPropName({
+                item: item,
+                underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+              });
               return filter.operators.every(function (_ref5) {
                 var operator = _ref5.operator,
                     value = _ref5.value;
