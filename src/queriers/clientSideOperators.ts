@@ -238,7 +238,11 @@ export function applyClientSideFilterToData({
                   }
                 });
               } else {
-                const itemValue = item[filter.underscoreSeparatedPropName];
+                const itemValue = getValueWithUnderscoreSeparatedPropName({
+                  item: item,
+                  underscoreSeparatedPropName:
+                    filter.underscoreSeparatedPropName,
+                });
                 return filter.operators.every(({ operator, value }) => {
                   return checkFilter({
                     operator,
