@@ -1170,9 +1170,7 @@ function getQueriedProperties(opts) {
     var data = opts.data[key];
 
     if (data.type === exports.DATA_TYPES.object || data.type === exports.DATA_TYPES.maybeObject) {
-      // query for any data stored in old format (stringified json at the root of the node)
-      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
-
+      // objects have their queried properties saved in this array with __dot__ notation
       acc.push.apply(acc, getQueriedProperties({
         queryId: opts.queryId,
         mapFn: mapFnReturn && typeof mapFnReturn[key] === 'function' ? mapFnReturn[key] : function () {
@@ -1199,9 +1197,7 @@ function getAllNodeProperties(opts) {
     var data = opts.nodeProperties[key];
 
     if (data.type === exports.DATA_TYPES.object || data.type === exports.DATA_TYPES.maybeObject) {
-      // query for any data stored in old format (stringified json at the root of the node)
-      acc.push(key); // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
-
+      // objects have their queried properties saved in this array with __dot__ notation
       acc.push.apply(acc, getAllNodeProperties({
         nodeProperties: opts.nodeProperties[key].boxedValue,
         isRootLevel: false
@@ -1567,12 +1563,71 @@ function getGetNodeOptions(opts) {
 }
 
 function getSpaces(numberOfSpaces) {
-  return new Array(numberOfSpaces).fill(' ').join('');
+  return ' '.repeat(numberOfSpaces);
+} // we receive props to query in __dot__ notation
+// for example, address, address__dot__city, address__dot__state
+// from that dot notation, we need to build a query fragment
+// that looks like this:
+// {
+//   address {
+//     city
+//     state
+//   }
+// }
+
+
+function getObjectQueryString(opts) {
+  var previousRoots = opts.previousRoots,
+      root = opts.root,
+      allQueriedProps = opts.allQueriedProps,
+      baseSpacing = opts.baseSpacing;
+  var start = "" + (previousRoots.length ? '\n' : '') + getSpaces(baseSpacing) + root + " {";
+  var previousRootsString = previousRoots.join(OBJECT_PROPERTY_SEPARATOR);
+  var propertiesForThisRootStart = "" + (previousRootsString.length ? previousRootsString + OBJECT_PROPERTY_SEPARATOR : '') + root;
+  var handledNestedlRoots = [];
+  return allQueriedProps.reduce(function (acc, prop) {
+    var isRelatedToThisRoot = prop.startsWith("" + propertiesForThisRootStart + OBJECT_PROPERTY_SEPARATOR);
+    if (!isRelatedToThisRoot) return acc;
+    var restOfProp = prop.replace("" + propertiesForThisRootStart + OBJECT_PROPERTY_SEPARATOR, '');
+
+    if (restOfProp.includes(OBJECT_PROPERTY_SEPARATOR)) {
+      var nextRoot = restOfProp.split(OBJECT_PROPERTY_SEPARATOR)[0];
+      if (handledNestedlRoots.includes(nextRoot)) return acc;
+      handledNestedlRoots.push(nextRoot);
+      acc += getObjectQueryString({
+        previousRoots: [].concat(opts.previousRoots, [root]),
+        root: nextRoot,
+        allQueriedProps: allQueriedProps,
+        baseSpacing: baseSpacing + 2
+      });
+    } else {
+      acc += "\n" + getSpaces(baseSpacing + 2) + restOfProp;
+    }
+
+    return acc;
+  }, start) + ("\n" + getSpaces(baseSpacing) + "}");
 }
 
 function getQueryPropertiesString(opts) {
+  var handledObjectProps = [];
   var propsString = "" + getSpaces(opts.nestLevel * 2);
-  propsString += opts.queryRecordEntry.properties.join("\n" + getSpaces(opts.nestLevel * 2));
+  propsString += opts.queryRecordEntry.properties.reduce(function (acc, prop) {
+    if (prop.includes(OBJECT_PROPERTY_SEPARATOR)) {
+      var root = prop.split(OBJECT_PROPERTY_SEPARATOR)[0];
+      if (handledObjectProps.includes(root)) return acc;
+      handledObjectProps.push(root);
+      acc += '\n' + getObjectQueryString({
+        previousRoots: [],
+        root: root,
+        allQueriedProps: opts.queryRecordEntry.properties,
+        baseSpacing: opts.nestLevel * 2
+      });
+      return acc;
+    }
+
+    acc += "\n" + getSpaces(opts.nestLevel * 2) + prop;
+    return acc;
+  }, '');
 
   if (opts.queryRecordEntry.relational) {
     propsString += getRelationalQueryString({
@@ -1601,7 +1656,7 @@ function getRelationalQueryString(opts) {
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     });
     var operation = "" + resolver + (options !== '' ? "(" + options + ")" : '');
-    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {\n") + ('oneToMany' in relationalQueryRecordEntry ? getNodesCollectionQuery({
+    return acc + ("\n" + getSpaces(opts.nestLevel * 2) + alias + ": " + operation + " {") + ('oneToMany' in relationalQueryRecordEntry ? getNodesCollectionQuery({
       propertiesString: getQueryPropertiesString({
         queryRecordEntry: relationalQueryRecordEntry,
         nestLevel: opts.nestLevel + 2,
@@ -1639,8 +1694,8 @@ function getOperationFromQueryRecordEntry(opts) {
 
 
 function getNodesCollectionQuery(opts) {
+  var openNodesFragment = "\n" + getSpaces(opts.nestLevel * 2) + "nodes {";
   var closeFragment = getSpaces(opts.nestLevel * 2) + "}";
-  var openNodesFragment = getSpaces(opts.nestLevel * 2) + "nodes {\n";
   var nodesFragment = "" + openNodesFragment + opts.propertiesString + "\n" + closeFragment;
   var totalCountFragment = opts.includeTotalCount ? "\n" + getSpaces(opts.nestLevel * 2) + TOTAL_COUNT_PROPERTY_KEY : '';
   var openPageInfoFragment = "\n" + getSpaces(opts.nestLevel * 2) + PAGE_INFO_PROPERTY_KEY + " {\n";
@@ -1656,7 +1711,7 @@ function getRootLevelQueryString(opts) {
   var _opts$pagination;
 
   var operation = getOperationFromQueryRecordEntry(opts);
-  return "  " + opts.alias + ": " + operation + " {\n" + ("" + (opts.id == null ? getNodesCollectionQuery({
+  return "  " + opts.alias + ": " + operation + " {" + ("" + (opts.id == null ? getNodesCollectionQuery({
     propertiesString: getQueryPropertiesString({
       queryRecordEntry: opts,
       nestLevel: 3,
@@ -3897,7 +3952,9 @@ function getMockValuesForIDataRecord(record) {
 function generateMockNodeDataForQueryRecordEntry(opts) {
   var queryRecordEntry = opts.queryRecordEntry;
   var nodePropertiesToMock = Object.keys(queryRecordEntry.def.data).filter(function (nodeProperty) {
-    return queryRecordEntry.properties.includes(nodeProperty);
+    return queryRecordEntry.properties.some(function (prop) {
+      return prop.startsWith(nodeProperty);
+    });
   }).reduce(function (acc, item) {
     acc[item] = queryRecordEntry.def.data[item];
     return acc;
@@ -3912,7 +3969,9 @@ function generateMockNodeDataForQueryRecordEntry(opts) {
   if (queryRecordEntry.def.generateMockData) {
     var queryRecordEntryMockData = queryRecordEntry.def.generateMockData();
     var mockDataPropertiesToAddToExtension = Object.keys(queryRecordEntryMockData).reduce(function (acc, item) {
-      if (queryRecordEntry.properties.includes(item)) {
+      if (queryRecordEntry.properties.some(function (prop) {
+        return prop.startsWith(item);
+      })) {
         acc[item] = queryRecordEntryMockData[item];
       }
 
