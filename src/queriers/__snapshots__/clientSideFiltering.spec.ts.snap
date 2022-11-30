@@ -438,8 +438,9 @@ exports[`query.filter can filter nested object property 1`] = `
      version
      lastUpdatedBy
      type
-     address
-     address__dot__state
+     address {
+       state
+     }
    }
    pageInfo {
      endCursor
@@ -704,8 +705,9 @@ exports[`query.filter should throw an error if property being filtered is not de
      version
      lastUpdatedBy
      type
-     address
-     address__dot__state
+     address {
+       state
+     }
    }
    pageInfo {
      endCursor

@@ -2263,6 +2263,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         lastUpdatedBy: import("./types").FilterValue<string>;
                     }>> | undefined;
                 };
+                TIncludeTotalCount: boolean;
             }>;
         };
         TQueryDefinitionTarget: {
@@ -2274,6 +2275,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
         TUseSubscriptionQueryDefinitionOpts: {
             doNotSuspend: boolean | undefined;
         };
+        TIncludeTotalCount: boolean;
     }>;
 };
 export declare const mockTodoData: {
@@ -2299,13 +2301,15 @@ export declare const mockUserData: {
     id: string;
     type: string;
     version: string;
-    address: string;
-    address__dot__state: string;
-    address__dot__apt: string;
-    address__dot__apt__dot__floor: string;
-    address__dot__apt__dot__number: string;
+    address: {
+        state: string;
+        apt: {
+            floor: number;
+            number: number;
+        };
+    };
     firstName: string;
-    optionalProp: string;
+    optionalProp: null;
     score: number;
     archived: boolean;
     todos: {
@@ -2334,11 +2338,13 @@ export declare const mockQueryDataReturn: {
             id: string;
             type: string;
             version: string;
-            address: string;
-            address__dot__state: string;
-            address__dot__apt: string;
-            address__dot__apt__dot__floor: string;
-            address__dot__apt__dot__number: string;
+            address: {
+                state: string;
+                apt: {
+                    floor: number;
+                    number: number;
+                };
+            };
             todos: {
                 nodes: ({
                     version: string;
@@ -2372,7 +2378,9 @@ export declare function getMockSubscriptionMessage(mmGQLInstance: IMMGQL): {
         node: {
             id: string;
             type: string;
-            address__dot__state: string;
+            address: {
+                state: string;
+            };
             version: string;
             todos: {
                 version: string;

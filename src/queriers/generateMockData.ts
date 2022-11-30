@@ -14,7 +14,6 @@ import {
 } from './generateMockDataUtilities';
 import { PageInfoFromResults } from '../nodesCollection';
 import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
-import { revisedPrepareForBE } from '../transaction/revisedConvertNodeDataToSMPersistedData';
 
 import {
   IData,
@@ -322,7 +321,9 @@ function generateMockNodeDataForQueryRecordEntry(opts: {
   const queryRecordEntry = opts.queryRecordEntry;
   const nodePropertiesToMock = Object.keys(queryRecordEntry.def.data)
     .filter(nodeProperty => {
-      return queryRecordEntry.properties.includes(nodeProperty);
+      return queryRecordEntry.properties.some(prop =>
+        prop.startsWith(nodeProperty)
+      );
     })
     .reduce((acc, item) => {
       acc[item] = (queryRecordEntry.def.data as Record<
@@ -345,7 +346,7 @@ function generateMockNodeDataForQueryRecordEntry(opts: {
       queryRecordEntryMockData
     ).reduce(
       (acc, item) => {
-        if (queryRecordEntry.properties.includes(item)) {
+        if (queryRecordEntry.properties.some(prop => prop.startsWith(item))) {
           acc[item] = queryRecordEntryMockData[item];
         }
         return acc;
@@ -377,13 +378,7 @@ function generateMockNodeDataForQueryRecordEntry(opts: {
     });
   }
 
-  const valuesForNodeDataPreparedForBE = revisedPrepareForBE({
-    obj: mockedValues,
-    IDataRecord: nodePropertiesToMock,
-    generatingMockData: true,
-  });
-
-  return valuesForNodeDataPreparedForBE;
+  return mockedValues;
 }
 
 export function generateMockNodeDataForQueryRecord(opts: {

@@ -1,4 +1,5 @@
 import { INode, RelationalQueryRecordEntry, QueryDefinitions, QueryRecord, QueryRecordEntry, ValidFilterForNode } from '../types';
+export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryId: string;
     queryDefinitions: TQueryDefinitions;

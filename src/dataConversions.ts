@@ -1,28 +1,6 @@
-export const JSON_TAG = '__JSON__';
-export const NULL_TAG = '__NULL__';
-
-export function parseJSONFromBE(jsonString: string) {
-  if (!jsonString.startsWith(JSON_TAG)) {
-    throw Error(`parseJSONFromBE - invalid json received:\n${jsonString}`);
-  }
-
-  // convert string array into js array
-  if (jsonString.startsWith(`${JSON_TAG}[`)) {
-    return JSON.parse(jsonString.replace('__JSON__', ''));
-  }
-
-  // Allow new line text (\n to \\n)
-  // replacing prevents JSON.parse to complaining
-  return JSON.parse(jsonString.replace(JSON_TAG, '').replace(/\n/g, '\\n'));
-}
-
 export function prepareValueForFE(value: any): any {
-  if (value === NULL_TAG) {
-    return null;
-  } else if (value === 'true' || value === 'false') {
+  if (value === 'true' || value === 'false') {
     return value === 'true';
-  } else if (typeof value === 'string' && value.startsWith(JSON_TAG)) {
-    return parseJSONFromBE(value);
   } else if (Array.isArray(value)) {
     return value.map(entry => {
       if (typeof entry === 'object') {

@@ -1,5 +1,4 @@
 import { MMGQL } from '.';
-import { NULL_TAG } from './dataConversions';
 import * as data from './dataTypes';
 import {
   TodoNode,
@@ -348,26 +347,5 @@ describe('data.DO', () => {
         testOptionalNumber: null,
       },
     });
-  });
-
-  test('root level properties that receive NULL_TAG are coerced properly', () => {
-    const properties = {
-      meetingIds: data.array(data.string).optional,
-    };
-    const { doInstance } = generateDOInstance<
-      'mock-type',
-      typeof properties,
-      {},
-      {}
-    >({
-      properties,
-      initialData: {
-        id: '123',
-        version: 1,
-        meetingIds: NULL_TAG,
-      },
-    });
-
-    expect(doInstance.meetingIds).toEqual(null);
   });
 });

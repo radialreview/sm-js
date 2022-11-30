@@ -1,5 +1,4 @@
 import { gql } from '@apollo/client/core';
-import { OBJECT_PROPERTY_SEPARATOR } from '../dataTypes';
 
 import {
   NodeRelationalFns,
@@ -31,6 +30,8 @@ import {
   RELATIONAL_UNION_QUERY_SEPARATOR,
   TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
+
+export const OBJECT_PROPERTY_SEPARATOR = '__dot__';
 
 /**
  * Relational fns are specified when creating a node as fns that return a NodeRelationalQueryBuilder
@@ -137,10 +138,7 @@ function getQueriedProperties(opts: {
         data.type === DATA_TYPES.object ||
         data.type === DATA_TYPES.maybeObject
       ) {
-        // query for any data stored in old format (stringified json at the root of the node)
-        acc.push(key);
-
-        // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
+        // objects have their queried properties saved in this array with __dot__ notation
         acc.push(
           ...getQueriedProperties({
             queryId: opts.queryId,
@@ -181,9 +179,7 @@ function getAllNodeProperties(opts: {
         data.type === DATA_TYPES.object ||
         data.type === DATA_TYPES.maybeObject
       ) {
-        // query for any data stored in old format (stringified json at the root of the node)
-        acc.push(key);
-        // query for data in new format ("rootLevelProp_nestedProp_moreNestedProp")
+        // objects have their queried properties saved in this array with __dot__ notation
         acc.push(
           ...getAllNodeProperties({
             nodeProperties: (opts.nodeProperties[key] as IData)
@@ -652,7 +648,68 @@ function getGetNodeOptions(opts: {
 }
 
 function getSpaces(numberOfSpaces: number) {
-  return new Array(numberOfSpaces).fill(' ').join('');
+  return ' '.repeat(numberOfSpaces);
+}
+
+// we receive props to query in __dot__ notation
+// for example, address, address__dot__city, address__dot__state
+// from that dot notation, we need to build a query fragment
+// that looks like this:
+// {
+//   address {
+//     city
+//     state
+//   }
+// }
+function getObjectQueryString(opts: {
+  previousRoots: Array<string>;
+  root: string;
+  allQueriedProps: Array<string>;
+  baseSpacing: number;
+}) {
+  const { previousRoots, root, allQueriedProps, baseSpacing } = opts;
+  const start = `${previousRoots.length ? '\n' : ''}${getSpaces(
+    baseSpacing
+  )}${root} {`;
+  const previousRootsString = previousRoots.join(OBJECT_PROPERTY_SEPARATOR);
+  const propertiesForThisRootStart = `${
+    previousRootsString.length
+      ? previousRootsString + OBJECT_PROPERTY_SEPARATOR
+      : ''
+  }${root}`;
+
+  let handledNestedlRoots: Array<string> = [];
+  return (
+    allQueriedProps.reduce((acc, prop) => {
+      const isRelatedToThisRoot = prop.startsWith(
+        `${propertiesForThisRootStart}${OBJECT_PROPERTY_SEPARATOR}`
+      );
+      if (!isRelatedToThisRoot) return acc;
+
+      const restOfProp = prop.replace(
+        `${propertiesForThisRootStart}${OBJECT_PROPERTY_SEPARATOR}`,
+        ''
+      );
+
+      if (restOfProp.includes(OBJECT_PROPERTY_SEPARATOR)) {
+        const nextRoot = restOfProp.split(OBJECT_PROPERTY_SEPARATOR)[0];
+
+        if (handledNestedlRoots.includes(nextRoot)) return acc;
+        handledNestedlRoots.push(nextRoot);
+
+        acc += getObjectQueryString({
+          previousRoots: [...opts.previousRoots, root],
+          root: nextRoot,
+          allQueriedProps,
+          baseSpacing: baseSpacing + 2,
+        });
+      } else {
+        acc += `\n${getSpaces(baseSpacing + 2)}${restOfProp}`;
+      }
+
+      return acc;
+    }, start) + `\n${getSpaces(baseSpacing)}}`
+  );
 }
 
 function getQueryPropertiesString(opts: {
@@ -660,10 +717,29 @@ function getQueryPropertiesString(opts: {
   nestLevel: number;
   useServerSidePaginationFilteringSorting: boolean;
 }) {
+  let handledObjectProps: Array<string> = [];
   let propsString = `${getSpaces(opts.nestLevel * 2)}`;
-  propsString += opts.queryRecordEntry.properties.join(
-    `\n${getSpaces(opts.nestLevel * 2)}`
-  );
+  propsString += opts.queryRecordEntry.properties.reduce((acc, prop) => {
+    if (prop.includes(OBJECT_PROPERTY_SEPARATOR)) {
+      const root = prop.split(OBJECT_PROPERTY_SEPARATOR)[0];
+      if (handledObjectProps.includes(root)) return acc;
+
+      handledObjectProps.push(root);
+
+      acc +=
+        '\n' +
+        getObjectQueryString({
+          previousRoots: [],
+          root,
+          allQueriedProps: opts.queryRecordEntry.properties,
+          baseSpacing: opts.nestLevel * 2,
+        });
+      return acc;
+    }
+
+    acc += `\n${getSpaces(opts.nestLevel * 2)}${prop}`;
+    return acc;
+  }, '');
 
   if (opts.queryRecordEntry.relational) {
     propsString += getRelationalQueryString({
@@ -705,7 +781,7 @@ function getRelationalQueryString(opts: {
 
     return (
       acc +
-      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {\n` +
+      `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {` +
       ('oneToMany' in relationalQueryRecordEntry
         ? getNodesCollectionQuery({
             propertiesString: getQueryPropertiesString({
@@ -757,8 +833,8 @@ function getNodesCollectionQuery(opts: {
   nestLevel: number;
   includeTotalCount: boolean;
 }) {
+  const openNodesFragment = `\n${getSpaces(opts.nestLevel * 2)}nodes {`;
   const closeFragment = `${getSpaces(opts.nestLevel * 2)}}`;
-  const openNodesFragment = `${getSpaces(opts.nestLevel * 2)}nodes {\n`;
   const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
 
   const totalCountFragment = opts.includeTotalCount
@@ -791,7 +867,7 @@ function getRootLevelQueryString(
   const operation = getOperationFromQueryRecordEntry(opts);
 
   return (
-    `  ${opts.alias}: ${operation} {\n` +
+    `  ${opts.alias}: ${operation} {` +
     `${
       opts.id == null
         ? getNodesCollectionQuery({

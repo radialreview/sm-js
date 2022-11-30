@@ -1,5 +1,4 @@
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
-import { NULL_TAG } from './dataConversions';
 import { Data } from './dataTypes';
 import {
   IMMGQL,
@@ -98,9 +97,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
             const property = this.getData(propValue);
 
             const propExistsInInitialData =
-              propName in initialData &&
-              initialData[propName] != null &&
-              initialData[propName] !== NULL_TAG;
+              propName in initialData && initialData[propName] != null;
 
             if (this.isObjectType(property.type) && propExistsInInitialData) {
               acc[propName] = this.parseReceivedData({
@@ -261,11 +258,6 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           }
         } else if (property instanceof Data) {
           // sm.string, sm.boolean, sm.number
-
-          // if a property was nulled using our old format, parse as native null
-          if (opts.persistedData === NULL_TAG && opts.data.isOptional) {
-            return null;
-          }
 
           if (opts.persistedData != null) {
             return property.parser(opts.persistedData);

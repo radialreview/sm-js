@@ -7,7 +7,6 @@ import { RepositoryFactory } from './Repository';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer';
-import { createTransaction } from './transaction/transaction';
 import {
   IMMGQL,
   Config,
@@ -41,7 +40,6 @@ export class MMGQL implements IMMGQL {
   public subscribe: IMMGQL['subscribe'];
   public QueryManager: IMMGQL['QueryManager'];
   public QuerySlimmer: IMMGQL['QuerySlimmer'];
-  public transaction: IMMGQL['transaction'];
   public tokens: Record<string, string> = {};
   public DOFactory: IMMGQL['DOFactory'];
   public DOProxyGenerator: IMMGQL['DOProxyGenerator'];
@@ -66,9 +64,6 @@ export class MMGQL implements IMMGQL {
     this.QueryManager = createQueryManager(this);
     this.QuerySlimmer = new QuerySlimmer(this);
     this.optimisticUpdatesOrchestrator = new OptimisticUpdatesOrchestrator();
-    this.transaction = createTransaction(this, {
-      onUpdateRequested: this.optimisticUpdatesOrchestrator.onUpdateRequested,
-    });
 
     if (
       config.generateMockData &&

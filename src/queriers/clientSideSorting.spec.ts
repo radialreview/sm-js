@@ -1,6 +1,5 @@
 import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { NULL_TAG } from '../dataConversions';
 import { queryDefinition } from '../dataTypes';
 import {
   createMockDataItems,
@@ -269,13 +268,19 @@ test(`query.sorting can sort 'object' properties`, async () => {
         sampleMockData: mockUserData,
         items: [
           {
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
-            address__dot__state: 'CA',
+            address: {
+              state: 'CA',
+            },
           },
           {
-            address__dot__state: 'IL',
+            address: {
+              state: 'IL',
+            },
           },
         ],
       }),
@@ -311,13 +316,19 @@ test(`query.sorting can sort 'object' properties decsending`, async () => {
         sampleMockData: mockUserData,
         items: [
           {
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
-            address__dot__state: 'CA',
+            address: {
+              state: 'CA',
+            },
           },
           {
-            address__dot__state: 'IL',
+            address: {
+              state: 'IL',
+            },
           },
         ],
       }),
@@ -354,15 +365,21 @@ test(`query.sorting can sort multiple properties`, async () => {
         items: [
           {
             firstName: 'B',
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
             firstName: 'C',
-            address__dot__state: 'IL',
+            address: {
+              state: 'IL',
+            },
           },
           {
             firstName: 'B',
-            address__dot__state: 'CA',
+            address: {
+              state: 'CA',
+            },
           },
         ],
       }),
@@ -405,22 +422,30 @@ test(`query.sorting can prioritize sorting`, async () => {
           {
             firstName: 'A',
             lastName: 'Y',
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
             firstName: 'S',
             lastName: 'S',
-            address__dot__state: 'IL',
+            address: {
+              state: 'IL',
+            },
           },
           {
             firstName: 'B',
             lastName: 'Y',
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
           {
             firstName: 'Z',
             lastName: 'Z',
-            address__dot__state: 'FL',
+            address: {
+              state: 'FL',
+            },
           },
         ],
       }),
@@ -611,7 +636,7 @@ test(`query.sorting should always sort null values last in descending order`, as
           },
           {
             firstName: '5',
-            optionalProp: NULL_TAG,
+            optionalProp: null,
           },
           {
             firstName: '3',

@@ -12,7 +12,7 @@ import {
   RelationalQueryRecordEntry,
   DataDefaultFn,
 } from './types';
-import { OBJECT_PROPERTY_SEPARATOR } from './dataTypes';
+import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 
 describe('DOProxyGenerator', () => {

@@ -19,7 +19,6 @@ export declare class MMGQL implements IMMGQL {
     subscribe: IMMGQL['subscribe'];
     QueryManager: IMMGQL['QueryManager'];
     QuerySlimmer: IMMGQL['QuerySlimmer'];
-    transaction: IMMGQL['transaction'];
     tokens: Record<string, string>;
     DOFactory: IMMGQL['DOFactory'];
     DOProxyGenerator: IMMGQL['DOProxyGenerator'];

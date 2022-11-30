@@ -77,13 +77,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     expect(queryRecord.def).toEqual(expect.objectContaining({ type: 'user' }));
     expect(queryRecord.properties).toEqual([
       ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
-      // include the root property name
-      // so that we can continue querying old formats (stringified json)
-      'address',
-      // new format separates the object query into every non-object property that was queried
-      // so that we can query much less data
       'address__dot__state',
-      'address__dot__apt',
       'address__dot__apt__dot__floor',
       'address__dot__apt__dot__number',
     ]);
@@ -281,9 +275,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
       }).todos?.properties
     ).toEqual([
       ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
-      'settings',
       'settings__dot__archiveAfterMeeting',
-      'settings__dot__nestedSettings',
       'settings__dot__nestedSettings__dot__nestedNestedMaybe',
       'settings__dot__nestedRecord',
     ]);
@@ -316,11 +308,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
             'score',
             'archived',
             'optionalProp',
-            'address',
             'address__dot__streetName',
             'address__dot__zipCode',
             'address__dot__state',
-            'address__dot__apt',
             'address__dot__apt__dot__number',
             'address__dot__apt__dot__floor',
             'dateCreated',
@@ -367,9 +357,6 @@ describe('getQueryRecordFromQueryDefinition', () => {
 
     expect(withDoubleNestedObjResults.mockNodes?.properties).toEqual([
       ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
-      'obj',
-      'obj__dot__nested',
-      'obj__dot__nested__dot__doubleNested',
       'obj__dot__nested__dot__doubleNested__dot__label',
     ]);
   });
@@ -394,11 +381,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            version
            lastUpdatedBy
            type
-           address
-           address__dot__state
-           address__dot__apt
-           address__dot__apt__dot__floor
-           address__dot__apt__dot__number
+           address {
+             state
+             apt {
+               floor
+               number
+             }
+           }
            todos: todos {
              nodes {
                id
@@ -456,11 +445,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            version
            lastUpdatedBy
            type
-           address
-           address__dot__state
-           address__dot__apt
-           address__dot__apt__dot__floor
-           address__dot__apt__dot__number
+           address {
+             state
+             apt {
+               floor
+               number
+             }
+           }
            todos: todos {
              nodes {
                id
@@ -496,11 +487,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            version
            lastUpdatedBy
            type
-           address
-           address__dot__state
-           address__dot__apt
-           address__dot__apt__dot__floor
-           address__dot__apt__dot__number
+           address {
+             state
+             apt {
+               floor
+               number
+             }
+           }
            todos: todos {
              nodes {
                id
@@ -558,11 +551,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            version
            lastUpdatedBy
            type
-           address
-           address__dot__state
-           address__dot__apt
-           address__dot__apt__dot__floor
-           address__dot__apt__dot__number
+           address {
+             state
+             apt {
+               floor
+               number
+             }
+           }
            todos: todos {
              nodes {
                id
@@ -624,11 +619,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            done
            assigneeId
            meetingId
-           settings
-           settings__dot__archiveAfterMeeting
-           settings__dot__nestedSettings
-           settings__dot__nestedSettings__dot__nestedNestedMaybe
-           settings__dot__nestedRecord
+           settings {
+             archiveAfterMeeting
+             nestedSettings {
+               nestedNestedMaybe
+             }
+             nestedRecord
+           }
            dataSetIds
            comments
            record
@@ -678,11 +675,13 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            done
            assigneeId
            meetingId
-           settings
-           settings__dot__archiveAfterMeeting
-           settings__dot__nestedSettings
-           settings__dot__nestedSettings__dot__nestedNestedMaybe
-           settings__dot__nestedRecord
+           settings {
+             archiveAfterMeeting
+             nestedSettings {
+               nestedNestedMaybe
+             }
+             nestedRecord
+           }
            dataSetIds
            comments
            record
