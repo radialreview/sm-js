@@ -706,3 +706,38 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
     todosNotUpdating: undefined, // this query record entry should not be included because pagination has not been updated
   });
 });
+
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if targeting has been updated', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const todoNode = generateTodoNode(mmGQLInstance);
+  const mockTodosQueryRecordEntry: QueryRecordEntry = {
+    def: todoNode,
+    properties: ['id'],
+    sort: {
+      task: 'asc',
+    },
+    id: 'mock-id',
+    tokenName: 'test',
+  };
+
+  const mockTodosQueryRecordEntryWithUpdatedTarget: QueryRecordEntry = {
+    ...mockTodosQueryRecordEntry,
+    id: 'mock-id-2',
+  };
+
+  expect(
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+      nextQueryRecord: {
+        todos: mockTodosQueryRecordEntryWithUpdatedTarget,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+      previousQueryRecord: {
+        todos: mockTodosQueryRecordEntry,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+    }).minimalQueryRecord
+  ).toEqual({
+    todos: mockTodosQueryRecordEntryWithUpdatedTarget,
+    todosNotUpdating: undefined, // this query record entry should not be included because sorting has not been updated
+  });
+});
