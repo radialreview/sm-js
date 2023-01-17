@@ -1652,7 +1652,7 @@ export function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts: {
       return;
     }
 
-    const rootQueryHasUpdatedTheirFilteringSortingOrPagination = getQueryFilterSortingPaginationHasBeenUpdated(
+    const rootQueryHasUpdatedTheirFilteringSortingOrPagination = getQueryFilterSortingPaginationTargetingHasBeenUpdated(
       {
         previousQueryRecordEntry,
         nextQueryRecordEntry,
@@ -1783,7 +1783,7 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts: {
       return acc;
     }
 
-    const filterSortingPaginationHasBeenUpdated = getQueryFilterSortingPaginationHasBeenUpdated(
+    const filterSortingPaginationHasBeenUpdated = getQueryFilterSortingPaginationTargetingHasBeenUpdated(
       {
         previousQueryRecordEntry,
         nextQueryRecordEntry,
@@ -1801,25 +1801,38 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts: {
   return undefined;
 }
 
-function getQueryFilterSortingPaginationHasBeenUpdated(opts: {
+function getQueryFilterSortingPaginationTargetingHasBeenUpdated(opts: {
   previousQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   nextQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
 }) {
   const { previousQueryRecordEntry, nextQueryRecordEntry } = opts;
 
-  const previousFilterSortingPagination = JSON.stringify({
-    filter: previousQueryRecordEntry.filter,
-    sort: previousQueryRecordEntry.sort,
-    pagination: previousQueryRecordEntry.pagination,
+  const previousFilterSortingPaginationTargeting = stringifyQueryRecordEntry({
+    queryRecordEntry: previousQueryRecordEntry,
   });
 
-  const nextFilterSortingPagination = JSON.stringify({
-    filter: nextQueryRecordEntry.filter,
-    sort: nextQueryRecordEntry.sort,
-    pagination: nextQueryRecordEntry.pagination,
+  const nextFilterSortingPaginationTargeting = stringifyQueryRecordEntry({
+    queryRecordEntry: nextQueryRecordEntry,
   });
 
-  return previousFilterSortingPagination !== nextFilterSortingPagination;
+  return (
+    previousFilterSortingPaginationTargeting !==
+    nextFilterSortingPaginationTargeting
+  );
+}
+
+function stringifyQueryRecordEntry(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  return JSON.stringify({
+    filter: opts.queryRecordEntry.filter,
+    sort: opts.queryRecordEntry.sort,
+    pagination: opts.queryRecordEntry.pagination,
+    targeting: {
+      id: 'id' in opts.queryRecordEntry ? opts.queryRecordEntry.id : null,
+      ids: 'ids' in opts.queryRecordEntry ? opts.queryRecordEntry.ids : null,
+    },
+  });
 }
 
 function addIdToAliasPathEntry(opts: { aliasPathEntry: string; id: string }) {
