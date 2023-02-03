@@ -87,7 +87,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       headers.Authorization = `Bearer ${opts.token}`;
     }
 
-    return headers;
+    return { headers };
   }
 
   function authenticateSubscriptionDocument(opts: {

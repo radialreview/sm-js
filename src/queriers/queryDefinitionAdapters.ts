@@ -585,6 +585,8 @@ function getBEOrderArrayString<TNode extends INode>(
         let direction: 'ASC' | 'DESC';
         let priority: number;
         const sortValue = sort[key as keyof ValidSortForNode<TNode>];
+        if (sortValue == null) return acc;
+
         if (typeof sortValue === 'string') {
           // ensure that items which were not given priority
           // are placed at the end of the array
@@ -623,9 +625,10 @@ function getGetNodeOptions(opts: {
   }
 
   if (opts.queryRecordEntry.sort != null) {
-    options.push(
-      `order: [${getBEOrderArrayString(opts.queryRecordEntry.sort)}]`
-    );
+    const orderString = getBEOrderArrayString(opts.queryRecordEntry.sort);
+    if (orderString !== '') {
+      options.push(`order: [${orderString}]`);
+    }
   }
 
   if (opts.queryRecordEntry.pagination != null) {
