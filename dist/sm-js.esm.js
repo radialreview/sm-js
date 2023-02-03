@@ -1519,6 +1519,7 @@ function getBEOrderArrayString(sort) {
     var direction;
     var priority;
     var sortValue = sort[key];
+    if (sortValue == null) return acc;
 
     if (typeof sortValue === 'string') {
       // ensure that items which were not given priority
@@ -1550,7 +1551,11 @@ function getGetNodeOptions(opts) {
   }
 
   if (opts.queryRecordEntry.sort != null) {
-    options.push("order: [" + getBEOrderArrayString(opts.queryRecordEntry.sort) + "]");
+    var orderString = getBEOrderArrayString(opts.queryRecordEntry.sort);
+
+    if (orderString !== '') {
+      options.push("order: [" + orderString + "]");
+    }
   }
 
   if (opts.queryRecordEntry.pagination != null) {
@@ -5783,7 +5788,9 @@ function getGQLCLient(gqlClientOpts) {
       headers.Authorization = "Bearer " + opts.token;
     }
 
-    return headers;
+    return {
+      headers: headers
+    };
   }
 
   function authenticateSubscriptionDocument(opts) {
