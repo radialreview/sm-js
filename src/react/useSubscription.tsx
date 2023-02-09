@@ -20,9 +20,6 @@ import {
   MMGQLContext,
 } from './context';
 
-// findings: if I update the split fn to suspend all queries, issue disappears
-// useState is not behaving as expected, after a setState call, then next render returns an unexpected result
-
 export function useSubscription<
   TNode,
   TMapFn,
