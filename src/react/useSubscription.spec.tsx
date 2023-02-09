@@ -258,6 +258,40 @@ test('handles a query definition switching from non nullish to nullish', async (
   await result.findByText('No users');
 });
 
+test('handles a query definition switching from non nullish to nullish when query is not suspended', async () => {
+  const { mmGQL } = setupTests();
+
+  function MyComponent() {
+    const [updateQueryDefinition, setUpdateQueryDefinition] = React.useState(
+      false
+    );
+    const { data } = useSubscription(
+      updateQueryDefinition
+        ? { users: null }
+        : createMockQueryDefinitions(mmGQL, { doNotSuspend: true })
+    );
+
+    React.useEffect(() => {
+      setTimeout(() => {
+        setUpdateQueryDefinition(true);
+      }, 200);
+    }, []);
+
+    return <>{data.users ? data.users.nodes[0].address.state : 'No users'}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <MMGQLProvider mmGQL={mmGQL}>
+        <MyComponent />
+      </MMGQLProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('FL');
+  await result.findByText('No users');
+});
+
 test('updates data when paginating', async () => {
   const { mmGQL } = setupTests({
     users: createMockDataItems({

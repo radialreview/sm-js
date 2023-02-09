@@ -5337,23 +5337,16 @@ function useSubscription(queryDefinitions, opts) {
   }
 
   var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
-  var preExistingState = getPreexistingState({
+  var queryState = getQueryState({
     subscriptionId: subscriptionId,
     context: context,
     queryDefinitions: queryDefinitions
-  });
+  }); // the state for this query is actually persisted using react context
+  // this is to enable support for react suspense, where components are unmounted when they throw a promise
+  // to ensure that a change in that context causes a re-render, we use a state variable that is incremented on each query state change
 
-  var _React$useState = React.useState(preExistingState.results),
-      results = _React$useState[0],
-      setResults = _React$useState[1];
-
-  var _React$useState2 = React.useState(preExistingState.error),
-      error = _React$useState2[0],
-      setError = _React$useState2[1];
-
-  var _React$useState3 = React.useState(preExistingState.querying),
-      querying = _React$useState3[0],
-      setQuerying = _React$useState3[1];
+  var _React$useState = React.useState(0),
+      setRenderIdx = _React$useState[1];
 
   var loggingContext = React.useContext(LoggingContext);
   var qdStateManager = null;
@@ -5367,15 +5360,11 @@ function useSubscription(queryDefinitions, opts) {
       context: context,
       subscriptionId: subscriptionId,
       queryDefinitions: queryDefinitions,
-      data: {
-        results: results,
-        error: error,
-        querying: querying
-      },
-      handlers: {
-        onResults: setResults,
-        onError: setError,
-        setQuerying: setQuerying
+      queryState: queryState,
+      onQueryStateChange: function onQueryStateChange() {
+        setRenderIdx(function (current) {
+          return current + 1;
+        });
       },
       silenceDuplicateSubIdErrors: loggingContext.unsafe__silenceDuplicateSubIdErrors,
       useServerSidePaginationFilteringSorting: context.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER
@@ -5398,20 +5387,20 @@ function useSubscription(queryDefinitions, opts) {
     // to memoize all of their query definitions, which seems overkill
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, subscriptionId]);
-  if (error || qdError) throw error || qdError;
+  if (queryState.error || qdError) throw queryState.error || qdError;
   return qdStateManager;
 }
 
-function getPreexistingState(opts) {
-  var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
-  var results = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.results) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
+function getQueryState(opts) {
+  var stateForThisSubscription = opts.context.ongoingSubscriptionRecord[opts.subscriptionId];
+  var data = (stateForThisSubscription == null ? void 0 : stateForThisSubscription.data) || Object.keys(opts.queryDefinitions).reduce(function (acc, key) {
     acc[key] = null;
     return acc;
   }, {});
-  var error = preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.error;
-  var querying = (preExistingContextForThisSubscription == null ? void 0 : preExistingContextForThisSubscription.querying) != null ? preExistingContextForThisSubscription.querying : true;
+  var error = stateForThisSubscription == null ? void 0 : stateForThisSubscription.error;
+  var querying = (stateForThisSubscription == null ? void 0 : stateForThisSubscription.querying) != null ? stateForThisSubscription.querying : true;
   return {
-    results: results,
+    data: data,
     error: error,
     querying: querying
   };
@@ -5481,9 +5470,7 @@ function getQueryDefinitionStateManager(opts) {
 
 
   opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-    onResults: opts.handlers.onResults,
-    onError: opts.handlers.onError,
-    setQuerying: opts.handlers.setQuerying
+    onQueryStateChange: opts.onQueryStateChange
   });
 
   var _splitQueryDefinition = splitQueryDefinitions(opts.queryDefinitions),
@@ -5515,10 +5502,10 @@ function getQueryDefinitionStateManager(opts) {
         subscriptionSuffix = subOpts.subscriptionSuffix,
         suspend = subOpts.suspend;
     var subscriptionId = parentSubscriptionId + subscriptionSuffix;
-    var preExistingContextForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
+    var stateForThisSubscription = opts.context.ongoingSubscriptionRecord[subscriptionId];
     var latestQueryDefinitionsUpdate = null;
 
-    if (!preExistingContextForThisSubscription) {
+    if (!stateForThisSubscription) {
       opts.context.ongoingSubscriptionRecord[subscriptionId] = {
         // we can only deal with query definitions being updated
         // once the querymanager has been initialized
@@ -5530,12 +5517,12 @@ function getQueryDefinitionStateManager(opts) {
         }
       };
     } else {
-      if (!preExistingContextForThisSubscription.onQueryDefinitionsUpdated) {
+      if (!stateForThisSubscription.onQueryDefinitionsUpdated) {
         throw Error('onQueryDefinitionsUpdated is not defined');
       }
 
-      preExistingContextForThisSubscription.onQueryDefinitionsUpdated(subOpts.queryDefinitions);
-      return preExistingContextForThisSubscription.suspendPromise;
+      stateForThisSubscription.onQueryDefinitionsUpdated(subOpts.queryDefinitions);
+      return stateForThisSubscription.suspendPromise;
     }
 
     opts.context.updateSubscriptionInfo(subscriptionId, {
@@ -5544,30 +5531,24 @@ function getQueryDefinitionStateManager(opts) {
     opts.context.updateSubscriptionInfo(parentSubscriptionId, {
       querying: true
     });
-    (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.setQuerying == null ? void 0 : _opts$context$ongoing.setQuerying(true);
+    (_opts$context$ongoing = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing.onQueryStateChange == null ? void 0 : _opts$context$ongoing.onQueryStateChange();
 
     function onError(error) {
-      var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-      var onError = contextForThisParentSub == null ? void 0 : contextForThisParentSub.onError;
+      var _opts$context$ongoing2;
 
-      if (!onError) {
-        console.error('onError is not defined');
-        return;
-      }
-
-      onError(error);
       opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
         error: error
       });
+      (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.onQueryStateChange == null ? void 0 : _opts$context$ongoing2.onQueryStateChange();
     }
 
     function onQueryManagerQueryStateChange(queryStateChangeOpts) {
-      var _opts$context$ongoing2;
+      var _opts$context$ongoing3;
 
-      var lastQueryIdx = (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.lastQueryIdx;
+      var lastQueryIdx = (_opts$context$ongoing3 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing3.lastQueryIdx;
 
       if (queryStateChangeOpts.queryState === exports.QueryState.LOADING) {
-        var _opts$context$ongoing3;
+        var _opts$context$ongoing4;
 
         // No need to update the state, we're already loading by default for the initial query
         if (queryStateChangeOpts.queryIdx === 0) return;
@@ -5578,22 +5559,16 @@ function getQueryDefinitionStateManager(opts) {
           querying: true,
           lastQueryIdx: queryStateChangeOpts.queryIdx
         });
-        (_opts$context$ongoing3 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing3.setQuerying == null ? void 0 : _opts$context$ongoing3.setQuerying(true);
+        (_opts$context$ongoing4 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing4.onQueryStateChange == null ? void 0 : _opts$context$ongoing4.onQueryStateChange();
       } else if (queryStateChangeOpts.queryState === exports.QueryState.IDLE) {
         // only set querying back to false once the last performed query has resolved
         if (queryStateChangeOpts.queryIdx === lastQueryIdx) {
-          var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-          var setQuerying = contextForThisParentSub == null ? void 0 : contextForThisParentSub.setQuerying;
-
-          if (!setQuerying) {
-            onError(Error('setQuerying is not defined'));
-            return;
-          }
+          var _opts$context$ongoing5;
 
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
             querying: false
           });
-          setQuerying(false);
+          (_opts$context$ongoing5 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing5.onQueryStateChange == null ? void 0 : _opts$context$ongoing5.onQueryStateChange();
         }
       } else if (queryStateChangeOpts.queryState === exports.QueryState.ERROR) {
         onError(queryStateChangeOpts.error);
@@ -5608,17 +5583,10 @@ function getQueryDefinitionStateManager(opts) {
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        var onResults = contextForThisParentSub == null ? void 0 : contextForThisParentSub.onResults;
-
-        if (!onResults) {
-          onError(Error('onResults is not defined'));
-          return;
-        }
-
-        onResults(_extends({}, contextForThisParentSub.results, newResults));
         opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
-          results: _extends({}, contextForThisParentSub.results, newResults)
+          data: _extends({}, contextForThisParentSub.data, newResults)
         });
+        contextForThisParentSub.onQueryStateChange == null ? void 0 : contextForThisParentSub.onQueryStateChange();
       },
       onError: onError,
       onSubscriptionInitialized: function onSubscriptionInitialized(subscriptionCanceller) {
@@ -5659,22 +5627,16 @@ function getQueryDefinitionStateManager(opts) {
       });
 
       if (allQueriesHaveResolved) {
-        var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        var setQuerying = contextForThisParentSub == null ? void 0 : contextForThisParentSub.setQuerying;
-
-        if (!setQuerying) {
-          onError(Error('setQuerying is not defined'));
-          return;
-        }
+        var _opts$context$ongoing6;
 
         opts.context.updateSubscriptionInfo(parentSubscriptionId, {
           querying: false
         });
-        setQuerying(false);
+        (_opts$context$ongoing6 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing6.onQueryStateChange == null ? void 0 : _opts$context$ongoing6.onQueryStateChange();
       }
     });
 
-    if (!preExistingContextForThisSubscription && suspend) {
+    if (!stateForThisSubscription && suspend) {
       opts.context.updateSubscriptionInfo(subscriptionId, {
         suspendPromise: suspendPromise
       });
@@ -5682,7 +5644,7 @@ function getQueryDefinitionStateManager(opts) {
     }
   }
 
-  if (opts.data.error) throw opts.data.error;
+  if (opts.queryState.error) throw opts.queryState.error;
   var suspendPromise;
 
   if (Object.keys(suspendDisabled).length) {
@@ -5694,7 +5656,12 @@ function getQueryDefinitionStateManager(opts) {
         suspend: false
       });
     } catch (e) {
-      opts.handlers.onError(e);
+      var _opts$context$ongoing7, _opts$context$ongoing8;
+
+      opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+        error: e
+      });
+      (_opts$context$ongoing7 = (_opts$context$ongoing8 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]).onQueryStateChange) == null ? void 0 : _opts$context$ongoing7.call(_opts$context$ongoing8);
       throw e;
     }
   }
@@ -5708,19 +5675,21 @@ function getQueryDefinitionStateManager(opts) {
         suspend: true
       });
     } catch (e) {
-      opts.handlers.onError(e);
+      var _opts$context$ongoing9, _opts$context$ongoing10;
+
+      opts.context.updateSubscriptionInfo(parentSubscriptionId, {
+        error: e
+      });
+      (_opts$context$ongoing9 = (_opts$context$ongoing10 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]).onQueryStateChange) == null ? void 0 : _opts$context$ongoing9.call(_opts$context$ongoing10);
       throw e;
     }
   }
 
   if (suspendPromise) throw suspendPromise;
-  return {
-    data: opts.data.results,
-    error: opts.data.error,
-    querying: opts.data.querying,
+  return _extends({}, opts.queryState, {
     onHookUnmount: onHookUnmount,
     onHookMount: onHookMount
-  };
+  });
 }
 
 require('isomorphic-fetch');

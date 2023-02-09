@@ -1,14 +1,12 @@
 import React from 'react';
 import { SubscriptionCanceller, IMMGQL, QueryDefinitions } from '../types';
 export interface IContextSubscription {
-    results?: any;
+    data?: any;
     error?: any;
     querying?: boolean;
     unsub?: SubscriptionCanceller;
     suspendPromise?: Promise<any>;
-    onResults?: (newResults: any) => void;
-    onError?: (newError: any) => void;
-    setQuerying?: (querying: boolean) => void;
+    onQueryStateChange?: () => void;
     onQueryDefinitionsUpdated?: (newQueryDefinitionRecord: QueryDefinitions<unknown, unknown, unknown>) => void;
     lastQueryIdx?: number;
 }
