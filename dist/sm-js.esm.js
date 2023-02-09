@@ -5327,8 +5327,6 @@ var MMGQLProvider = function MMGQLProvider(props) {
   }, props.children);
 };
 
-// useState is not behaving as expected, after a setState call, then next render returns an unexpected result
-
 function useSubscription(queryDefinitions, opts) {
   var context = React.useContext(MMGQLContext);
 
