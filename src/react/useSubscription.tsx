@@ -63,7 +63,7 @@ export function useSubscription<
   // the state for this query is actually persisted using react context
   // this is to enable support for react suspense, where components are unmounted when they throw a promise
   // to ensure that a change in that context causes a re-render, we use a state variable that is incremented on each query state change
-  const [_, setRenderIdx] = React.useState<number>(0);
+  const [, setRenderIdx] = React.useState<number>(0);
   const loggingContext = React.useContext(LoggingContext);
 
   let qdStateManager: Maybe<UseSubscriptionReturn<TQueryDefinitions> & {
