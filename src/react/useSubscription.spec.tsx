@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
 import {
   createMockQueryDefinitions,
@@ -289,8 +289,8 @@ test('handles a query definition switching from non nullish to nullish when quer
   );
 
   await result.findByText('FL');
-  await waitFor(() => result.findByText('No users'));
-}, 10000);
+  await result.findByText('No users');
+});
 
 test('updates data when paginating', async () => {
   const { mmGQL } = setupTests({
