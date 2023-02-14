@@ -42,6 +42,7 @@ const todoProperties = {
 };
 const todoRelational = {
   assignee: () => oneToOne(userNode),
+  assignees: () => oneToMany(userNode),
   meeting: () => oneToOne(meetingNode),
   assigneeUnionNullable: () =>
     oneToOne<Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>>({
@@ -78,6 +79,7 @@ type TodoNode = INode<{
   TNodeComputedData: {};
   TNodeRelationalData: {
     assignee: IOneToOneQueryBuilder<UserNode>;
+    assignees: IOneToManyQueryBuilder<UserNode>;
     meeting: IOneToOneQueryBuilder<Maybe<MeetingNode>>;
     assigneeUnionNullable: IOneToOneQueryBuilder<
       Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
@@ -968,4 +970,84 @@ const stateNode: StateNode = mmGQL.def({
   resultDataTargetUndefinedMapFn.node2.dateCreated as number;
   resultDataTargetUndefinedMapFn.node2.dateLastModified as number;
   resultDataTargetUndefinedMapFn.node2.lastUpdatedClientTimestamp as number;
+
+  // heavily nested query
+  queryDefinition({
+    def: userNode,
+    map: ({ todos }) => ({
+      todos: todos({
+        map: ({ task, assignee }) => ({
+          task,
+          assignee: assignee({
+            map: ({ todos }) => ({
+              todos: todos({
+                map: ({ assignee, assignees }) => ({
+                  assignee: assignee({
+                    // @ts-expect-error bogus is not a property on the user type
+                    map: ({ firstName, bogus }) => ({
+                      firstName,
+                      bogus,
+                    }),
+                  }),
+                  assignees: assignees({
+                    map: ({ firstName, todos }) => ({
+                      firstName,
+                      todos: todos({
+                        // @ts-expect-error bogus is not a property on the todo type
+                        map: ({ task, bogus }) => ({ task, bogus }),
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    }),
+  });
+
+  // Tests for this bug https://winterinternational.atlassian.net/browse/TTD-1317
+  const mockNode2Props = {
+    id: string,
+    name: string,
+  };
+
+  type MockNode2 = INode<{
+    TNodeType: 'mock';
+    TNodeData: typeof mockNode2Props;
+    // Record<string,never> as computed and relational
+    TNodeComputedData: Record<string, never>;
+    TNodeRelationalData: Record<string, never>;
+  }>;
+
+  const mockNode2: MockNode2 = mmGQL.def({
+    type: 'mock',
+    properties: mockNode2Props,
+    relational: {},
+    computed: {},
+  });
+
+  queryDefinition({
+    def: mockNode2,
+    // @ts-expect-error bogus is not a property on the mock type
+    map: ({ name, bogus }) => ({
+      name,
+      bogus,
+    }),
+  });
+
+  const {
+    data: { mockNode2: mockNode2Results },
+  } = useSubscription({
+    mockNode2: queryDefinition({
+      def: mockNode2,
+      map: ({ name }) => ({
+        name,
+      }),
+    }),
+  });
+
+  // @ts-expect-error t is not a property on the mock type
+  mockNode2Results.nodes[0].t;
 })();

@@ -1168,13 +1168,15 @@ export type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends I
 type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<
   infer TNodeArgs
 >
-  ? TNodeArgs["TNodeComputedData"]
+  // RemoveNevers fixes this bug https://winterinternational.atlassian.net/browse/TTD-1317
+  ? RemoveNevers<TNodeArgs["TNodeComputedData"]>
   : never;
 
 type ExtractNodeRelationalData<
   TNode extends INode
 > = TNode extends INode<infer TNodeArgs>
-  ? TNodeArgs["TNodeRelationalData"]
+  // RemoveNevers fixes this bug https://winterinternational.atlassian.net/browse/TTD-1317
+  ? RemoveNevers<TNodeArgs["TNodeRelationalData"]>
   : never;
 
 /**

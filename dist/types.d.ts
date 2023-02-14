@@ -707,8 +707,8 @@ export declare type ExtractNodeDataWithDefaultProperties<TNode extends INode> = 
 export declare type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? DeepPartial<{
     [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToOneRelationalNode> : never : never;
 }> : never;
-declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeComputedData"] : never;
-declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeRelationalData"] : never;
+declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeComputedData"]> : never;
+declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeRelationalData"]> : never;
 /**
  * a record of all the queries identified in this query definitions
  * looks something like this
