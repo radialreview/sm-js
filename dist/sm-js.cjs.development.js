@@ -1398,7 +1398,7 @@ function getQueryRecordFromQueryDefinition(opts) {
     if ('target' in queryDefinition && queryDefinition.target != null) {
       if ('ids' in queryDefinition.target && queryDefinition.target.ids != null) {
         if (queryDefinition.target.ids.some(function (id) {
-          return typeof id !== 'string';
+          return typeof id !== 'string' && typeof id !== 'number';
         })) {
           throw Error('Invalid id in target.ids');
         }
@@ -1407,7 +1407,7 @@ function getQueryRecordFromQueryDefinition(opts) {
       }
 
       if ('id' in queryDefinition.target) {
-        if (typeof queryDefinition.target.id !== 'string') {
+        if (typeof queryDefinition.target.id !== 'string' && typeof queryDefinition.target.id !== 'number') {
           throw Error('Invalid id in target.id');
         }
 
@@ -1443,24 +1443,24 @@ function wrapInQuotesIfString(value) {
   return value;
 }
 
-function getBEFilterString(filter) {
+function getBEFilterString(opts) {
   var _readyForBE$and, _readyForBE$or;
 
-  var readyForBE = Object.keys(filter).reduce(function (acc, current) {
-    var _filter$key2;
+  var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
+    var _opts$filter$key2;
 
     var key = current;
     var filterForBE;
 
-    if (filter[key] === null || typeof filter[key] === 'string' || typeof filter[key] === 'number' || typeof filter[key] === 'boolean') {
+    if (opts.filter[key] === null || typeof opts.filter[key] === 'string' || typeof opts.filter[key] === 'number' || typeof opts.filter[key] === 'boolean') {
       filterForBE = {
         key: key,
         operator: exports.EStringFilterOperator.eq,
-        value: filter[key]
+        value: opts.filter[key]
       };
     } else {
-      var _filter$key = filter[key],
-          rest = _objectWithoutPropertiesLoose(_filter$key, _excluded);
+      var _opts$filter$key = opts.filter[key],
+          rest = _objectWithoutPropertiesLoose(_opts$filter$key, _excluded);
 
       var keys = Object.keys(rest);
 
@@ -1477,7 +1477,7 @@ function getBEFilterString(filter) {
       };
     }
 
-    var condition = ((_filter$key2 = filter[key]) == null ? void 0 : _filter$key2.condition) || 'and';
+    var condition = ((_opts$filter$key2 = opts.filter[key]) == null ? void 0 : _opts$filter$key2.condition) || 'and';
     var conditionArray = acc[condition] || [];
     conditionArray.push(filterForBE);
     acc[condition] = conditionArray;
@@ -1498,12 +1498,14 @@ function getBEFilterString(filter) {
     if (index > 0) acc += ', ';
     var stringifiedFilters = filters.reduce(function (acc, filter, index) {
       if (index > 0) acc += ', ';
-      acc += "{" + filter.key + ": {" + filter.operator + ": " + wrapInQuotesIfString(filter.value) + "}}";
+      var isStringEnum = opts.def.data[filter.key].type === exports.DATA_TYPES.stringEnum || opts.def.data[filter.key].type === exports.DATA_TYPES.maybeStringEnum;
+      var value = isStringEnum ? filter.value : wrapInQuotesIfString(filter.value);
+      acc += "{" + filter.key + ": {" + filter.operator + ": " + value + "}}";
       return acc;
     }, '');
-    acc += "{" + condition + ": [" + stringifiedFilters + "]}";
+    acc += condition + ": [" + stringifiedFilters + "]";
     return acc;
-  }, '');
+  }, '{') + '}';
 }
 
 function getBEOrderArrayString(sort) {
@@ -1539,7 +1541,10 @@ function getGetNodeOptions(opts) {
   var options = [];
 
   if (opts.queryRecordEntry.filter != null) {
-    options.push("where: " + getBEFilterString(opts.queryRecordEntry.filter));
+    options.push("where: " + getBEFilterString({
+      filter: opts.queryRecordEntry.filter,
+      def: opts.queryRecordEntry.def
+    }));
   }
 
   if (opts.queryRecordEntry.sort != null) {
@@ -5940,7 +5945,9 @@ var todoProperties = {
   dataSetIds: /*#__PURE__*/array(string),
   comments: /*#__PURE__*/array(string.optional).optional,
   record: /*#__PURE__*/record(string),
-  numberProp: number
+  numberProp: number,
+  enumProp: /*#__PURE__*/stringEnum(['A', 'B', 'C']),
+  maybeEnumProp: /*#__PURE__*/stringEnum.optional(['A', 'B', 'C'])
 };
 
 function isTerminatingLine(line) {

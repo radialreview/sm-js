@@ -4,7 +4,10 @@ export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryD
     queryId: string;
     queryDefinitions: TQueryDefinitions;
 }): QueryRecord;
-export declare function getBEFilterString<TNode extends INode>(filter: ValidFilterForNode<TNode>): string;
+export declare function getBEFilterString<TNode extends INode>(opts: {
+    filter: ValidFilterForNode<TNode>;
+    def: INode;
+}): string;
 export declare type SubscriptionConfig = {
     alias: string;
     gqlString: string;
