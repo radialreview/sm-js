@@ -630,6 +630,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            comments
            record
            numberProp
+           enumProp
+           maybeEnumProp
            dateCreated
            dateLastModified
            lastUpdatedClientTimestamp
@@ -686,6 +688,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            comments
            record
            numberProp
+           enumProp
+           maybeEnumProp
            dateCreated
            dateLastModified
            lastUpdatedClientTimestamp
@@ -809,6 +813,49 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
        todos: todos(where: {and: [{task: {eq: \\"get it done\\"}}]}) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
+  it('supports enum filters, avoiding quotes around values', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                filter: {
+                  enumProp: { condition: 'and', eq: 'A' },
+                  maybeEnumProp: { condition: 'or', eq: null },
+                },
+              }),
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       todos: todos(where: {and: [{enumProp: {eq: A}}], or: [{maybeEnumProp: {eq: null}}]}) {
          nodes {
            id
            version

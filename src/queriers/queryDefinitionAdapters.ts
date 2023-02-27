@@ -447,7 +447,7 @@ export function getQueryRecordFromQueryDefinition<
       ) {
         if (
           (queryDefinition.target.ids as Array<string>).some(
-            id => typeof id !== 'string'
+            id => typeof id !== 'string' && typeof id !== 'number'
           )
         ) {
           throw Error('Invalid id in target.ids');
@@ -457,7 +457,10 @@ export function getQueryRecordFromQueryDefinition<
           queryDefinition.target.ids;
       }
       if ('id' in queryDefinition.target) {
-        if (typeof queryDefinition.target.id !== 'string') {
+        if (
+          typeof queryDefinition.target.id !== 'string' &&
+          typeof queryDefinition.target.id !== 'number'
+        ) {
           throw Error('Invalid id in target.id');
         }
 
@@ -491,31 +494,32 @@ function wrapInQuotesIfString(value: any) {
   return value;
 }
 
-export function getBEFilterString<TNode extends INode>(
-  filter: ValidFilterForNode<TNode>
-) {
+export function getBEFilterString<TNode extends INode>(opts: {
+  filter: ValidFilterForNode<TNode>;
+  def: INode;
+}) {
   type FilterForBE = {
     key: keyof ValidFilterForNode<TNode>;
     operator: EStringFilterOperator | ENumberFilterOperator;
     value: any;
   };
-  const readyForBE = Object.keys(filter).reduce(
+  const readyForBE = Object.keys(opts.filter).reduce(
     (acc, current) => {
       const key = current as keyof ValidFilterForNode<TNode>;
       let filterForBE: FilterForBE;
       if (
-        filter[key] === null ||
-        typeof filter[key] === 'string' ||
-        typeof filter[key] === 'number' ||
-        typeof filter[key] === 'boolean'
+        opts.filter[key] === null ||
+        typeof opts.filter[key] === 'string' ||
+        typeof opts.filter[key] === 'number' ||
+        typeof opts.filter[key] === 'boolean'
       ) {
         filterForBE = {
           key,
           operator: EStringFilterOperator.eq,
-          value: filter[key],
+          value: opts.filter[key],
         };
       } else {
-        const { condition, ...rest } = filter[key];
+        const { condition, ...rest } = opts.filter[key];
         const keys = Object.keys(rest);
         if (keys.length !== 1) {
           throw Error('Expected 1 property on this filter object');
@@ -532,7 +536,8 @@ export function getBEFilterString<TNode extends INode>(
         };
       }
 
-      const condition = (filter[key]?.condition || 'and') as FilterCondition;
+      const condition = (opts.filter[key]?.condition ||
+        'and') as FilterCondition;
 
       const conditionArray = acc[condition] || [];
       conditionArray.push(filterForBE);
@@ -555,24 +560,29 @@ export function getBEFilterString<TNode extends INode>(
     delete readyForBE.or;
   }
 
-  return Object.entries(readyForBE).reduce(
-    (acc, [condition, filters], index) => {
+  return (
+    Object.entries(readyForBE).reduce((acc, [condition, filters], index) => {
       if (index > 0) acc += ', ';
 
       const stringifiedFilters = filters.reduce((acc, filter, index) => {
         if (index > 0) acc += ', ';
-        acc += `{${filter.key}: {${filter.operator}: ${wrapInQuotesIfString(
-          filter.value
-        )}}}`;
+
+        const isStringEnum =
+          opts.def.data[filter.key].type === DATA_TYPES.stringEnum ||
+          opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
+        const value = isStringEnum
+          ? filter.value
+          : wrapInQuotesIfString(filter.value);
+
+        acc += `{${filter.key}: {${filter.operator}: ${value}}}`;
 
         return acc;
       }, '');
 
-      acc += `{${condition}: [${stringifiedFilters}]}`;
+      acc += `${condition}: [${stringifiedFilters}]`;
 
       return acc;
-    },
-    ''
+    }, '{') + '}'
   );
 }
 
@@ -621,7 +631,12 @@ function getGetNodeOptions(opts: {
   const options: Array<string> = [];
 
   if (opts.queryRecordEntry.filter != null) {
-    options.push(`where: ${getBEFilterString(opts.queryRecordEntry.filter)}`);
+    options.push(
+      `where: ${getBEFilterString({
+        filter: opts.queryRecordEntry.filter,
+        def: opts.queryRecordEntry.def,
+      })}`
+    );
   }
 
   if (opts.queryRecordEntry.sort != null) {

@@ -96,6 +96,8 @@ const todoProperties = {
   comments: data.array(data.string.optional).optional,
   record: data.record(data.string),
   numberProp: data.number,
+  enumProp: data.stringEnum(['A', 'B', 'C']),
+  maybeEnumProp: data.stringEnum.optional(['A', 'B', 'C']),
 };
 
 export type TodoProperties = typeof todoProperties;
