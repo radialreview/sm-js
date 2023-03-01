@@ -832,6 +832,16 @@ declare const todoProperties: {
             TBoxedValue: undefined;
         }>;
     };
+    enumProp: IData<{
+        TValue: "A" | "B" | "C";
+        TParsedValue: "A" | "B" | "C";
+        TBoxedValue: undefined;
+    }>;
+    maybeEnumProp: IData<{
+        TValue: import("./types").Maybe<"A" | "B" | "C">;
+        TParsedValue: import("./types").Maybe<"A" | "B" | "C">;
+        TBoxedValue: undefined;
+    }>;
 };
 export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
@@ -1088,7 +1098,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
             }>>(opts: {
                 map: TMapFn;
             }) => TMapFn;
-        } & UserRelationalData & {
+        } & import("./types").RemoveNevers<UserRelationalData> & {
             dateCreated: {
                 (defaultValue: number): IData<{
                     TValue: string;
@@ -1787,7 +1797,17 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                 TBoxedValue: undefined;
                             }>;
                         };
-                    } & TodoRelationalData & {
+                        enumProp: IData<{
+                            TValue: "A" | "B" | "C";
+                            TParsedValue: "A" | "B" | "C";
+                            TBoxedValue: undefined;
+                        }>;
+                        maybeEnumProp: IData<{
+                            TValue: import("./types").Maybe<"A" | "B" | "C">;
+                            TParsedValue: import("./types").Maybe<"A" | "B" | "C">;
+                            TBoxedValue: undefined;
+                        }>;
+                    } & import("./types").RemoveNevers<TodoRelationalData> & {
                         dateCreated: {
                             (defaultValue: number): IData<{
                                 TValue: string;
@@ -2113,7 +2133,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     }>>(opts: {
                                         map: TMapFn;
                                     }) => TMapFn;
-                                } & UserRelationalData & {
+                                } & import("./types").RemoveNevers<UserRelationalData> & {
                                     dateCreated: {
                                         (defaultValue: number): IData<{
                                             TValue: string;
@@ -2255,6 +2275,8 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             }>;
                         } | null>;
                         numberProp: import("./types").FilterValue<number>;
+                        enumProp: import("./types").FilterValue<"A" | "B" | "C">;
+                        maybeEnumProp: import("./types").FilterValue<import("./types").Maybe<"A" | "B" | "C">>;
                         dateCreated: import("./types").FilterValue<number>;
                         dateLastModified: import("./types").FilterValue<number>;
                         lastUpdatedClientTimestamp: import("./types").FilterValue<number>;
