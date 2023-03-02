@@ -40,7 +40,7 @@ test(`query gql matches the expectation when specifying a filter param`, async (
   });
 });
 
-test.only(`query gql matches the expectation when specifying a filter param for a relational property`, async () => {
+test(`query gql matches the expectation when specifying a filter param for a relational property`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
