@@ -994,6 +994,47 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
     `);
   });
 
+  it('supports sorting on relational data', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                sort: {
+                  assignee: { firstName: { direction: 'asc' } },
+                },
+              }),
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       todos: todos(order: [{assignee: {firstName: ASC}}]) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
   it('supports totalCount to query a count of the total number of nodes', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     expect(

@@ -497,6 +497,7 @@ function wrapInQuotesIfString(value: any) {
 export function getBEFilterString<TNode extends INode>(opts: {
   filter: ValidFilterForNode<TNode>;
   def: INode;
+  relational?: Record<string, RelationalQueryRecordEntry>;
 }) {
   type FilterForBE = {
     key: keyof ValidFilterForNode<TNode>;
@@ -519,21 +520,33 @@ export function getBEFilterString<TNode extends INode>(opts: {
           value: opts.filter[key],
         };
       } else {
-        const { condition, ...rest } = opts.filter[key];
-        const keys = Object.keys(rest);
-        if (keys.length !== 1) {
-          throw Error('Expected 1 property on this filter object');
-        }
-        const operator = (keys[0] as unknown) as
-          | EStringFilterOperator
-          | ENumberFilterOperator;
-        const value = rest[operator as keyof typeof rest];
+        if (opts.relational && key in opts.relational) {
+          // format is
+          // filter: { task: { id: { eq: 'some id' } } }
+          filterForBE = {
+            key,
+            operator: EStringFilterOperator.eq,
+            value: opts.filter[key],
+          };
+        } else {
+          // format is
+          // filter: { task: { eq: 'some task' }
+          const { condition, ...rest } = opts.filter[key];
+          const keys = Object.keys(rest);
+          if (keys.length !== 1) {
+            throw Error('Expected 1 property on this filter object');
+          }
+          const operator = (keys[0] as unknown) as
+            | EStringFilterOperator
+            | ENumberFilterOperator;
+          const value = rest[operator as keyof typeof rest];
 
-        filterForBE = {
-          key,
-          operator,
-          value,
-        };
+          filterForBE = {
+            key,
+            operator,
+            value,
+          };
+        }
       }
 
       const condition = (opts.filter[key]?.condition ||
@@ -567,14 +580,28 @@ export function getBEFilterString<TNode extends INode>(opts: {
       const stringifiedFilters = filters.reduce((acc, filter, index) => {
         if (index > 0) acc += ', ';
 
-        const isStringEnum =
-          opts.def.data[filter.key].type === DATA_TYPES.stringEnum ||
-          opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
-        const value = isStringEnum
-          ? filter.value
-          : wrapInQuotesIfString(filter.value);
+        if (filter.key in opts.def.data) {
+          // filtering on a prop that is part of the node's own data
+          const isStringEnum =
+            opts.def.data[filter.key].type === DATA_TYPES.stringEnum ||
+            opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
+          const value = isStringEnum
+            ? filter.value
+            : wrapInQuotesIfString(filter.value);
 
-        acc += `{${filter.key}: {${filter.operator}: ${value}}}`;
+          acc += `{${filter.key}: {${filter.operator}: ${value}}}`;
+        } else {
+          // filtering on a prop that's part of a relational query
+          if (!opts.relational || !(filter.key in opts.relational)) {
+            throw Error(`Invalid filter key: ${filter.key}`);
+          }
+
+          acc += `{${filter.key}: ${getBEFilterString({
+            filter: filter.value,
+            def: opts.relational[filter.key].def,
+            relational: opts.relational[filter.key].relational,
+          })}}`;
+        }
 
         return acc;
       }, '');
@@ -603,16 +630,28 @@ function getBEOrderArrayString<TNode extends INode>(
           // in the order in which they were received
           priority = sortKeys.length + sortIndex;
           direction = sortValue === 'asc' ? 'ASC' : 'DESC';
+          acc[priority] = `{${key}: ${direction}}`;
         } else {
           const sortObject = sortValue as SortObject;
-          priority =
-            sortObject.priority != null
-              ? sortObject.priority
-              : sortKeys.length + sortIndex;
-          direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+          if ('direction' in sortObject) {
+            priority =
+              sortObject.priority != null
+                ? sortObject.priority
+                : sortKeys.length + sortIndex;
+            direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+            acc[priority] = `{${key}: ${direction}}`;
+          } else {
+            priority =
+              sortObject.priority != null
+                ? sortObject.priority
+                : sortKeys.length + sortIndex;
+            const nestedSorts = getBEOrderArrayString(
+              (sortObject as unknown) as ValidSortForNode<TNode>
+            );
+            acc[priority] = `{${key}: ${nestedSorts}}`;
+          }
         }
 
-        acc[priority] = `{${key}: ${direction}}`;
         return acc;
       }, [] as Array<string>)
       // because we use priority to index sort objects
@@ -635,6 +674,7 @@ function getGetNodeOptions(opts: {
       `where: ${getBEFilterString({
         filter: opts.queryRecordEntry.filter,
         def: opts.queryRecordEntry.def,
+        relational: opts.queryRecordEntry.relational,
       })}`
     );
   }

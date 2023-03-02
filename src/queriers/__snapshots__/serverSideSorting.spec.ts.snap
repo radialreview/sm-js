@@ -2,7 +2,7 @@
 
 exports[`query gql matches the expectation when specifying a sort param for a relational property 1`] = `
 "query query1 {
- users: users(order: [{todos: DESC}]) {
+ users: users(order: [{todos: {task: ASC}}]) {
    nodes {
      id
      version

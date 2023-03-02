@@ -1467,22 +1467,34 @@ function getBEFilterString(opts) {
         value: opts.filter[key]
       };
     } else {
-      var _opts$filter$key = opts.filter[key],
-          rest = _objectWithoutPropertiesLoose(_opts$filter$key, _excluded);
+      if (opts.relational && key in opts.relational) {
+        // format is
+        // filter: { task: { id: { eq: 'some id' } } }
+        filterForBE = {
+          key: key,
+          operator: EStringFilterOperator.eq,
+          value: opts.filter[key]
+        };
+      } else {
+        // format is
+        // filter: { task: { eq: 'some task' }
+        var _opts$filter$key = opts.filter[key],
+            rest = _objectWithoutPropertiesLoose(_opts$filter$key, _excluded);
 
-      var keys = Object.keys(rest);
+        var keys = Object.keys(rest);
 
-      if (keys.length !== 1) {
-        throw Error('Expected 1 property on this filter object');
+        if (keys.length !== 1) {
+          throw Error('Expected 1 property on this filter object');
+        }
+
+        var operator = keys[0];
+        var value = rest[operator];
+        filterForBE = {
+          key: key,
+          operator: operator,
+          value: value
+        };
       }
-
-      var operator = keys[0];
-      var value = rest[operator];
-      filterForBE = {
-        key: key,
-        operator: operator,
-        value: value
-      };
     }
 
     var condition = ((_opts$filter$key2 = opts.filter[key]) == null ? void 0 : _opts$filter$key2.condition) || 'and';
@@ -1506,9 +1518,25 @@ function getBEFilterString(opts) {
     if (index > 0) acc += ', ';
     var stringifiedFilters = filters.reduce(function (acc, filter, index) {
       if (index > 0) acc += ', ';
-      var isStringEnum = opts.def.data[filter.key].type === DATA_TYPES.stringEnum || opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
-      var value = isStringEnum ? filter.value : wrapInQuotesIfString(filter.value);
-      acc += "{" + filter.key + ": {" + filter.operator + ": " + value + "}}";
+
+      if (filter.key in opts.def.data) {
+        // filtering on a prop that is part of the node's own data
+        var isStringEnum = opts.def.data[filter.key].type === DATA_TYPES.stringEnum || opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
+        var value = isStringEnum ? filter.value : wrapInQuotesIfString(filter.value);
+        acc += "{" + filter.key + ": {" + filter.operator + ": " + value + "}}";
+      } else {
+        // filtering on a prop that's part of a relational query
+        if (!opts.relational || !(filter.key in opts.relational)) {
+          throw Error("Invalid filter key: " + filter.key);
+        }
+
+        acc += "{" + filter.key + ": " + getBEFilterString({
+          filter: filter.value,
+          def: opts.relational[filter.key].def,
+          relational: opts.relational[filter.key].relational
+        }) + "}";
+      }
+
       return acc;
     }, '');
     acc += condition + ": [" + stringifiedFilters + "]";
@@ -1529,13 +1557,21 @@ function getBEOrderArrayString(sort) {
       // in the order in which they were received
       priority = sortKeys.length + sortIndex;
       direction = sortValue === 'asc' ? 'ASC' : 'DESC';
+      acc[priority] = "{" + key + ": " + direction + "}";
     } else {
       var sortObject = sortValue;
-      priority = sortObject.priority != null ? sortObject.priority : sortKeys.length + sortIndex;
-      direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+
+      if ('direction' in sortObject) {
+        priority = sortObject.priority != null ? sortObject.priority : sortKeys.length + sortIndex;
+        direction = sortObject.direction === 'asc' ? 'ASC' : 'DESC';
+        acc[priority] = "{" + key + ": " + direction + "}";
+      } else {
+        priority = sortObject.priority != null ? sortObject.priority : sortKeys.length + sortIndex;
+        var nestedSorts = getBEOrderArrayString(sortObject);
+        acc[priority] = "{" + key + ": " + nestedSorts + "}";
+      }
     }
 
-    acc[priority] = "{" + key + ": " + direction + "}";
     return acc;
   }, []) // because we use priority to index sort objects
   // we must filter out any indicies we left empty
@@ -1551,7 +1587,8 @@ function getGetNodeOptions(opts) {
   if (opts.queryRecordEntry.filter != null) {
     options.push("where: " + getBEFilterString({
       filter: opts.queryRecordEntry.filter,
-      def: opts.queryRecordEntry.def
+      def: opts.queryRecordEntry.def,
+      relational: opts.queryRecordEntry.relational
     }));
   }
 

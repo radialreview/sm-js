@@ -7,6 +7,7 @@ export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryD
 export declare function getBEFilterString<TNode extends INode>(opts: {
     filter: ValidFilterForNode<TNode>;
     def: INode;
+    relational?: Record<string, RelationalQueryRecordEntry>;
 }): string;
 export declare type SubscriptionConfig = {
     alias: string;
