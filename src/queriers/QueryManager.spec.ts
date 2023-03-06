@@ -21,6 +21,7 @@ import {
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
 } from '../consts';
+import { deepClone } from '../dataUtilities';
 
 test('QueryManager handles a query result and returns the expected data', done => {
   const mmGQLInstance = new MMGQL(getMockConfig());
@@ -451,6 +452,123 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
       task: 'get it done updated',
     },
   };
+
+  expect(
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+      nextQueryRecord: {
+        todos: mockTodosQueryRecordEntryWithUpdatedFilter,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+      previousQueryRecord: {
+        todos: mockTodosQueryRecordEntry,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+    }).minimalQueryRecord
+  ).toEqual({
+    todos: mockTodosQueryRecordEntryWithUpdatedFilter,
+    todosNotUpdating: undefined, // this query record entry should not be included because filtering has not been updated
+  });
+});
+
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if a nested filter has been updated', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const todoNode = generateTodoNode(mmGQLInstance);
+  const userNode = generateUserNode(mmGQLInstance);
+  const mockTodosQueryRecordEntry: QueryRecordEntry = {
+    def: todoNode,
+    properties: ['id'],
+    relational: {
+      assignee: {
+        def: userNode,
+        _relationshipName: 'assignee',
+        properties: ['id'],
+        relational: {
+          todos: {
+            def: todoNode,
+            _relationshipName: 'todos',
+            properties: ['id'],
+            filter: {
+              tast: 'test',
+            },
+            oneToMany: true,
+          },
+        },
+        oneToOne: true,
+      },
+    },
+    tokenName: 'test',
+  };
+
+  const mockTodosQueryRecordEntryWithUpdatedFilter: QueryRecordEntry = deepClone(
+    mockTodosQueryRecordEntry
+  );
+  if (
+    mockTodosQueryRecordEntryWithUpdatedFilter.relational?.assignee.relational
+      ?.todos.filter
+  ) {
+    mockTodosQueryRecordEntryWithUpdatedFilter.relational.assignee.relational.todos.filter = {
+      task: 'get it done updated',
+    };
+  }
+
+  expect(
+    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+      nextQueryRecord: {
+        todos: mockTodosQueryRecordEntryWithUpdatedFilter,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+      previousQueryRecord: {
+        todos: mockTodosQueryRecordEntry,
+        todosNotUpdating: mockTodosQueryRecordEntry,
+      },
+    }).minimalQueryRecord
+  ).toEqual({
+    todos: mockTodosQueryRecordEntryWithUpdatedFilter,
+    todosNotUpdating: undefined, // this query record entry should not be included because filtering has not been updated
+  });
+});
+
+test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if a nested filter has been updated, if the root query returns a single entity', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const todoNode = generateTodoNode(mmGQLInstance);
+  const userNode = generateUserNode(mmGQLInstance);
+  const mockTodosQueryRecordEntry: QueryRecordEntry = {
+    def: todoNode,
+    properties: ['id'],
+    relational: {
+      assignee: {
+        def: userNode,
+        _relationshipName: 'assignee',
+        properties: ['id'],
+        relational: {
+          todos: {
+            def: todoNode,
+            _relationshipName: 'todos',
+            properties: ['id'],
+            filter: {
+              tast: 'test',
+            },
+            oneToMany: true,
+          },
+        },
+        oneToOne: true,
+      },
+    },
+    id: 'test-id',
+    tokenName: 'test',
+  };
+
+  const mockTodosQueryRecordEntryWithUpdatedFilter: QueryRecordEntry = deepClone(
+    mockTodosQueryRecordEntry
+  );
+  if (
+    mockTodosQueryRecordEntryWithUpdatedFilter.relational?.assignee.relational
+      ?.todos.filter
+  ) {
+    mockTodosQueryRecordEntryWithUpdatedFilter.relational.assignee.relational.todos.filter = {
+      task: 'get it done updated',
+    };
+  }
 
   expect(
     getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({

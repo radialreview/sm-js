@@ -3832,7 +3832,6 @@ function getMockDataThatConformsToFilter(opts) {
 
         var restOfFilter = _objectWithoutPropertiesLoose(filterValue, _excluded$1);
 
-        if (Object.keys(restOfFilter).length !== 1) throw Error("Unexpected keys in filter " + JSON.stringify(restOfFilter));
         var operator = Object.keys(restOfFilter)[0];
         var operatorValue = restOfFilter[operator];
 
@@ -7588,6 +7587,17 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
 
     if (filterSortingPaginationHasBeenUpdated) {
       acc[key] = nextQueryRecordEntry;
+      return acc;
+    }
+
+    var relationalQueryHasUpdatedTheirFilterSortingPagination = getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination({
+      previousQueryRecordEntry: previousQueryRecordEntry,
+      nextQueryRecordEntry: nextQueryRecordEntry
+    });
+
+    if (relationalQueryHasUpdatedTheirFilterSortingPagination) {
+      acc[key] = nextQueryRecordEntry;
+      return acc;
     }
 
     return acc;

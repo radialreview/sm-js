@@ -151,10 +151,14 @@ function getMockDataThatConformsToFilter(opts: {
 
         const { condition, ...restOfFilter } = filterValue;
 
-        if (Object.keys(restOfFilter).length !== 1)
-          throw Error(
-            `Unexpected keys in filter ${JSON.stringify(restOfFilter)}`
-          );
+        if (Object.keys(restOfFilter).length !== 1) {
+          // @TODO ignoring the rest of the filter for now
+          // since handling a complex filter with multiple properties would be somewhat complex
+          // and I don't think it's necessary for the mock data generator
+          // the side effect of this is that some of the mock data may not match the filter
+          // if more than 1 filter condition is used (which is rare)
+        }
+
         const operator = Object.keys(restOfFilter)[0];
         const operatorValue = restOfFilter[operator];
 
