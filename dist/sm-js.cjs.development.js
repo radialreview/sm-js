@@ -3832,7 +3832,6 @@ function getMockDataThatConformsToFilter(opts) {
 
         var restOfFilter = _objectWithoutPropertiesLoose(filterValue, _excluded$1);
 
-        if (Object.keys(restOfFilter).length !== 1) throw Error("Unexpected keys in filter " + JSON.stringify(restOfFilter));
         var operator = Object.keys(restOfFilter)[0];
         var operatorValue = restOfFilter[operator];
 
