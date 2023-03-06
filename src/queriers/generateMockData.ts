@@ -151,10 +151,10 @@ function getMockDataThatConformsToFilter(opts: {
 
         const { condition, ...restOfFilter } = filterValue;
 
-        if (Object.keys(restOfFilter).length !== 1)
-          throw Error(
-            `Unexpected keys in filter ${JSON.stringify(restOfFilter)}`
-          );
+        if (Object.keys(restOfFilter).length !== 1) {
+          // @TODO ignoring the rest of the filter for now
+        }
+
         const operator = Object.keys(restOfFilter)[0];
         const operatorValue = restOfFilter[operator];
 
