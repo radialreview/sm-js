@@ -7587,6 +7587,17 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
 
     if (filterSortingPaginationHasBeenUpdated) {
       acc[key] = nextQueryRecordEntry;
+      return acc;
+    }
+
+    var relationalQueryHasUpdatedTheirFilterSortingPagination = getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination({
+      previousQueryRecordEntry: previousQueryRecordEntry,
+      nextQueryRecordEntry: nextQueryRecordEntry
+    });
+
+    if (relationalQueryHasUpdatedTheirFilterSortingPagination) {
+      acc[key] = nextQueryRecordEntry;
+      return acc;
     }
 
     return acc;
