@@ -1139,7 +1139,7 @@ function getMapFnReturn(opts) {
       };
     }
   });
-  return opts.mapFn(mapFnOpts);
+  return opts.mapFn ? opts.mapFn(mapFnOpts) : opts.properties;
 }
 
 function getQueriedProperties(opts) {
@@ -1181,9 +1181,7 @@ function getQueriedProperties(opts) {
       // objects have their queried properties saved in this array with __dot__ notation
       acc.push.apply(acc, getQueriedProperties({
         queryId: opts.queryId,
-        mapFn: mapFnReturn && typeof mapFnReturn[key] === 'function' ? mapFnReturn[key] : function () {
-          return null;
-        },
+        mapFn: mapFnReturn && typeof mapFnReturn[key] === 'function' ? mapFnReturn[key] : undefined,
         data: data.boxedValue
       }).map(function (nestedKey) {
         return "" + key + OBJECT_PROPERTY_SEPARATOR + nestedKey;

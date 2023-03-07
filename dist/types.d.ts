@@ -635,9 +635,9 @@ export declare type MapFn<TMapFnArgs extends {
     TNodeData: Record<string, IData | DataDefaultFn>;
     TNodeComputedData: Record<string, any>;
     TNodeRelationalData: NodeRelationalQueryBuilderRecord;
-}> = (data: GetMapFnArgs<INode<TMapFnArgs & {
+}> = ((data: GetMapFnArgs<INode<TMapFnArgs & {
     TNodeType: any;
-}>>) => RequestedData<TMapFnArgs>;
+}>>) => RequestedData) | undefined;
 export declare type GetMapFnArgs<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? GetMapFnArgsFromProperties<TNodeArgs['TNodeData']> & TNodeArgs['TNodeRelationalData'] & GetMapFnArgsFromProperties<NodeDefaultProps> : never;
 declare type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataDefaultFn>> = {
     [key in keyof TProperties]: TProperties[key] extends IData<{
@@ -646,34 +646,28 @@ declare type GetMapFnArgsFromProperties<TProperties extends Record<string, IData
         TBoxedValue: any;
     }> ? TProperties[key] : TProperties[key] extends IData<infer TDataArgs> ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn> ? <TMapFn extends MapFn<{
         TNodeData: TDataArgs['TBoxedValue'];
-        TNodeComputedData: {};
-        TNodeRelationalData: {};
+        TNodeComputedData: Record<string, never>;
+        TNodeRelationalData: Record<string, never>;
     }>>(opts: {
         map: TMapFn;
     }) => TMapFn : TProperties[key] : TProperties[key];
 };
-declare type RequestedData<TRequestedDataArgs extends {
-    TNodeData: Record<string, IData | DataDefaultFn>;
-    TNodeComputedData: Record<string, any>;
-}> = Partial<{
-    [Key in keyof TRequestedDataArgs['TNodeData'] | keyof TRequestedDataArgs['TNodeComputedData']]: Key extends keyof TRequestedDataArgs['TNodeData'] ? TRequestedDataArgs['TNodeData'][Key] extends IData<{
-        TParsedValue: Maybe<Array<any>>;
-        TBoxedValue: any;
-        TValue: any;
-    }> ? TRequestedDataArgs['TNodeData'][Key] : TRequestedDataArgs['TNodeData'][Key] extends IData<infer TDataArgs> ? TDataArgs['TValue'] extends Maybe<Record<string, any>> ? MapFn<{
-        TNodeData: TDataArgs['TValue'];
-        TNodeComputedData: {};
-        TNodeRelationalData: {};
-    }> : TRequestedDataArgs['TNodeData'][Key] : TRequestedDataArgs['TNodeData'][Key] : Key extends keyof TRequestedDataArgs['TNodeComputedData'] ? TRequestedDataArgs['TNodeComputedData'][Key] : never;
-} | Record<string, unknown>>;
-export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TNode>, TNode extends INode> = DataExpectedOnAllNodeResults<TNode> & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>;
+declare type RequestedData = {
+    [key in string]: IData | ((args: any) => RequestedData | IData) | ((opts: {
+        map: MapFn<any>;
+    }) => MapFn<any>) | IOneToManyQuery<any> | IOneToOneQuery<any>;
+};
+export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<NonNullable<TNode>>, TNode extends INode | null> = RemoveNevers<(TNode extends null ? Record<string, never> : DataExpectedOnAllNodeResults<NonNullable<TNode>>) & (TMapFn extends undefined ? GetAllAvailableNodeDataType<{
+    TNodeData: ExtractNodeData<NonNullable<TNode>>;
+    TNodeComputedData: ExtractNodeComputedData<NonNullable<TNode>>;
+}> : TMapFn extends NonNullable<MapFnForNode<NonNullable<TNode>>> ? ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, NonNullable<TNode>> : never)>;
 declare type DataExpectedOnAllNodeResults<TNode extends INode> = {
     type: TNode['type'];
 } & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes> & ExtractNodeComputedData<TNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TNode extends INode> = {
     [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
         map: MapFn<infer TMapFnArgs>;
-    }) => MapFn<any> ? GetResultingDataTypeFromProperties<TMapFnArgs['TNodeData']> : TMapFnReturn[Key] extends MapFn<any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : never;
+    }) => MapFn<any> ? GetResultingDataTypeFromProperties<TMapFnArgs['TNodeData']> : TMapFnReturn[Key] extends MapFn<any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], null> : never;
 };
 declare type Prev = [never, 0, 1];
 declare type ExtractQueriedDataFromOneToOneQuery<TOneToOneQuery extends IOneToOneQuery<any>, D extends Prev[number] = 1> = [
