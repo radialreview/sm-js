@@ -259,7 +259,8 @@ function getRelationalQueries(opts: {
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
-          typeof relationalQuery.queryBuilderOpts.map === 'function'
+          (typeof relationalQuery.queryBuilderOpts.map === 'function' ||
+            relationalQuery.queryBuilderOpts.map === undefined)
         ) {
           // non union
           const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
