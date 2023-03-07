@@ -1299,7 +1299,7 @@ function getRelationalQueries(opts) {
       }
 
       if (relationalQuery._relational === exports.RELATIONAL_TYPES.oneToOne || relationalQuery._relational === exports.RELATIONAL_TYPES.oneToMany) {
-        if ('map' in relationalQuery.queryBuilderOpts && typeof relationalQuery.queryBuilderOpts.map === 'function') {
+        if ('map' in relationalQuery.queryBuilderOpts && (typeof relationalQuery.queryBuilderOpts.map === 'function' || relationalQuery.queryBuilderOpts.map === undefined)) {
           // non union
           var queryBuilderOpts = relationalQuery.queryBuilderOpts;
           addRelationalQueryRecord({
