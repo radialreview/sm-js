@@ -281,7 +281,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
     ]);
   });
 
-  it('handles querying all data for a relational query result, by using an undefined map fn', () => {
+  it('handles querying all data within a related node, by using an undefined map fn for that relationship', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
     const relationalResults = getQueryRecordFromQueryDefinition({
       queryId: 'queryId',
