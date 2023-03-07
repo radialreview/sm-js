@@ -5,6 +5,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer';
+declare type ValidateShape<T, Shape> = T extends Shape ? Exclude<keyof T, keyof Shape> extends never ? T : Shape : Shape;
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
@@ -368,7 +369,7 @@ export declare type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord exte
     };
 } : never;
 export interface IOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> {
-    <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(queryBuilderOpts: TQueryBuilderOpts): IOneToOneQuery<{
+    <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(queryBuilderOpts: ValidateShape<TQueryBuilderOpts, IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>): IOneToOneQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
         TQueryBuilderOpts: TQueryBuilderOpts;
     }>;
@@ -382,18 +383,18 @@ export interface IOneToOneQuery<TOneToOneQueryArgs extends {
     queryBuilderOpts: TOneToOneQueryArgs["TQueryBuilderOpts"];
     def: TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"];
 }
-export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>, TIncludeTotalCount extends boolean> = TTargetNodeOrTargetNodeRecord extends INode ? {
+export declare type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>, TIncludeTotalCount extends boolean, TOpts = TTargetNodeOrTargetNodeRecord extends INode ? {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-    filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>;
+    filter?: ValidFilterForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
     pagination?: IQueryPagination<TIncludeTotalCount>;
-    sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>;
+    sort?: ValidSortForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
 } : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? {
     [Tkey in keyof TTargetNodeOrTargetNodeRecord]: {
         map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]>;
     };
-} : never;
+} : never> = TOpts;
 export interface IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> {
-    <TIncludeTotalCount extends boolean, TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>(queryBuilderOpts: TQueryBuilderOpts): IOneToManyQuery<{
+    <TIncludeTotalCount extends boolean, TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>(queryBuilderOpts: ValidateShape<TQueryBuilderOpts, IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>): IOneToManyQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
         TQueryBuilderOpts: TQueryBuilderOpts;
         TIncludeTotalCount: TIncludeTotalCount;
@@ -664,7 +665,7 @@ declare type RequestedData<TRequestedDataArgs extends {
         TNodeComputedData: {};
         TNodeRelationalData: {};
     }> : TRequestedDataArgs['TNodeData'][Key] : TRequestedDataArgs['TNodeData'][Key] : Key extends keyof TRequestedDataArgs['TNodeComputedData'] ? TRequestedDataArgs['TNodeComputedData'][Key] : never;
-} | {}>;
+} | Record<string, unknown>>;
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<TNode>, TNode extends INode> = DataExpectedOnAllNodeResults<TNode> & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>;
 declare type DataExpectedOnAllNodeResults<TNode extends INode> = {
     type: TNode['type'];
