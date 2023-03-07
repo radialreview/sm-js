@@ -21,7 +21,7 @@ exports[`query gql matches the expectation when specifying a filter param 1`] = 
 `;
 
 exports[`query gql matches the expectation when specifying a filter param for a relational property 1`] = `
-"query query0 {
+"query query1 {
  users: users(where: {and: [{todos: {and: [{task: {eq: \\"get it done\\"}}]}}]}) {
    nodes {
      id

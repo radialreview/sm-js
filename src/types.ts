@@ -940,10 +940,9 @@ export type MapFn<
     TNodeComputedData: Record<string, any>,
     TNodeRelationalData: NodeRelationalQueryBuilderRecord,
   },
-  TRequestedData = RequestedData<TMapFnArgs>
-> = (
+> = ((
   data: GetMapFnArgs<INode<TMapFnArgs & { TNodeType: any }>>
-) => ValidateShape<TRequestedData, RequestedData<TMapFnArgs>>
+) => RequestedData) | undefined
 
 export type GetMapFnArgs<
   TNode extends INode,
@@ -960,7 +959,7 @@ type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataD
       : TProperties[key] extends IData<infer TDataArgs>
         ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn>
           // allows querying a partial of an object within a node
-          ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:{},  TNodeRelationalData: {} }>>(opts: {
+          ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:Record<string,never>,  TNodeRelationalData: Record<string,never> }>>(opts: {
               map: TMapFn;
             }) => TMapFn
           : TProperties[key]
@@ -971,22 +970,33 @@ type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataD
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
 // which gives us typo prevention :)
-type RequestedData<
-    TRequestedDataArgs extends {
-      TNodeData: Record<string, IData | DataDefaultFn>,
-      TNodeComputedData: Record<string, any>,
-    }
-  // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
-  // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
-> = { [key in string]: IData | DataDefaultFn | IOneToManyQuery<any> | IOneToOneQuery<any> }
-
+type RequestedData = {
+  [key in string]:
+    | IData
+    | ((args: any) => RequestedData | IData)
+    | ((opts: { map: MapFn<any> }) => MapFn<any>)
+    | IOneToManyQuery<any>
+    | IOneToOneQuery<any>
+} 
 
 // A generic to extract the resulting data based on a map fn
 export type ExtractQueriedDataFromMapFn<
-  TMapFn extends MapFnForNode<TNode>,
-  TNode extends INode
-> = DataExpectedOnAllNodeResults<TNode>
-  & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>
+  TMapFn extends MapFnForNode<NonNullable<TNode>>,
+  TNode extends INode | null // null when querying within a nested object
+> = RemoveNevers<
+  (TNode extends null ? Record<string,never> : DataExpectedOnAllNodeResults<NonNullable<TNode>>)
+  & 
+  (TMapFn extends undefined
+    ? GetAllAvailableNodeDataType<{
+        TNodeData: ExtractNodeData<NonNullable<TNode>>,
+        TNodeComputedData: ExtractNodeComputedData<NonNullable<TNode>
+      >}>
+    :
+    TMapFn extends NonNullable<MapFnForNode<NonNullable<TNode>>>
+      ? ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, NonNullable<TNode>>
+      : never
+  )
+>
 
 type DataExpectedOnAllNodeResults<TNode extends INode> =
   { type: TNode['type'] }
@@ -1022,7 +1032,7 @@ type ExtractQueriedDataFromMapFnReturn<
     :
     // when we're querying data inside a nested object
     TMapFnReturn[Key] extends MapFn<any>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], null>
     :
     never;
 };
