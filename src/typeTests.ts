@@ -1050,4 +1050,31 @@ const stateNode: StateNode = mmGQL.def({
 
   // @ts-expect-error t is not a property on the mock type
   mockNode2Results.nodes[0].t;
+
+  // testing bad properties on root queries and relational queries
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todosForThisUser: userData.todos({
+          map: ({ task, assignee }) => ({
+            task,
+            assignee: assignee({
+              map: ({ firstName }) => ({ firstName }),
+              // @ts-expect-error "filter" is invalid here, this is a one to one relationship
+              filter: {
+                firstName: 'bob',
+              },
+            }),
+          }),
+          // @ts-expect-error "filters" is invalid, "filter" is correct
+          filters: {
+            task: 'get it done',
+          },
+        }),
+      }),
+      // @ts-expect-error "filters" is invalid, "filter" is correct
+      filters: {},
+    }),
+  });
 })();

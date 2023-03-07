@@ -6,6 +6,16 @@ import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer'
 
+// inspired by https://fettblog.eu/typescript-match-the-exact-object-shape/
+// with a small change to provide better error messages
+// (the original version would assign "never" which gave a TS error but was not very helpful)
+type ValidateShape<T, Shape> =
+  T extends Shape
+    ? Exclude<keyof T, keyof Shape> extends never
+      ? T
+      : Shape
+    : Shape;
+
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
 export type Maybe<T> = T | null;
@@ -534,7 +544,7 @@ export interface IOneToOneQueryBuilder<
   TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>
 > {
   <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
-    queryBuilderOpts: TQueryBuilderOpts
+    queryBuilderOpts: ValidateShape<TQueryBuilderOpts, IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>
   ): IOneToOneQuery<{TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts}>;
 }
 export interface IOneToOneQuery<
@@ -549,24 +559,28 @@ export interface IOneToOneQuery<
   def: TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]
 }
 
-export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>, TIncludeTotalCount extends boolean> =
-  TTargetNodeOrTargetNodeRecord extends INode
+export type IOneToManyQueryBuilderOpts<
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
+  TIncludeTotalCount extends boolean,
+  TOpts = TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-      filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
+      filter?: ValidFilterForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
       pagination?: IQueryPagination<TIncludeTotalCount>
-      sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>
+      sort?: ValidSortForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
+> = TOpts
+    
 export interface IOneToManyQueryBuilder<
-      TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
+      TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>,
 > {
   <TIncludeTotalCount extends boolean, TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>(
-    queryBuilderOpts: TQueryBuilderOpts
+    queryBuilderOpts: ValidateShape<TQueryBuilderOpts,  IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>
   ): IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts, TIncludeTotalCount: TIncludeTotalCount }>;
 }
 export interface IOneToManyQuery<
@@ -978,7 +992,7 @@ type RequestedData<
           : Key extends keyof  TRequestedDataArgs['TNodeComputedData']
         ? TRequestedDataArgs['TNodeComputedData'][Key] 
         : never;
-  } | {}>
+  } | Record<string, unknown>>
 
 
 // A generic to extract the resulting data based on a map fn
