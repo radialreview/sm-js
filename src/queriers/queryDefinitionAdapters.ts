@@ -76,15 +76,17 @@ function getMapFnReturn(opts: {
     }
   });
 
-  return opts.mapFn(mapFnOpts) as Record<
-    string,
-    IData | MapFn<any> | NodeRelationalQuery<INode>
-  >;
+  return opts.mapFn
+    ? (opts.mapFn(mapFnOpts) as Record<
+        string,
+        IData | MapFn<any> | NodeRelationalQuery<INode>
+      >)
+    : opts.properties;
 }
 
 function getQueriedProperties(opts: {
   queryId: string;
-  mapFn: (data: Record<string, any>) => Record<string, any>;
+  mapFn: MapFn<any>;
   data: Record<string, any>;
   computed?: NodeComputedFns<{
     TNodeData: Record<string, any>;
@@ -144,7 +146,7 @@ function getQueriedProperties(opts: {
             queryId: opts.queryId,
             mapFn: (mapFnReturn && typeof mapFnReturn[key] === 'function'
               ? mapFnReturn[key]
-              : () => null) as MapFn<any>,
+              : undefined) as MapFn<any>,
             data: (data.boxedValue as unknown) as Record<string, IData>,
           }).map(nestedKey => `${key}${OBJECT_PROPERTY_SEPARATOR}${nestedKey}`)
         );
@@ -200,7 +202,7 @@ function getAllNodeProperties(opts: {
 
 function getRelationalQueries(opts: {
   queryId: string;
-  mapFn: (data: Record<string, any>) => Record<string, any>;
+  mapFn: MapFn<any>;
   data: Record<string, any>;
   computed?: NodeComputedFns<{
     TNodeData: Record<string, any>;
@@ -257,7 +259,8 @@ function getRelationalQueries(opts: {
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
-          typeof relationalQuery.queryBuilderOpts.map === 'function'
+          (typeof relationalQuery.queryBuilderOpts.map === 'function' ||
+            relationalQuery.queryBuilderOpts.map === undefined)
         ) {
           // non union
           const queryBuilderOpts = relationalQuery.queryBuilderOpts as IOneToOneQueryBuilderOpts<
@@ -296,7 +299,7 @@ function getRelationalQueries(opts: {
         _relational: RELATIONAL_TYPES;
         _relationshipName: string;
         def: INode;
-        mapFn: (data: any) => any;
+        mapFn: MapFn<any>;
         alias: string;
       }) {
         const relationalQueryRecord: Partial<RelationalQueryRecordEntry> = {

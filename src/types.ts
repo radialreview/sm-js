@@ -6,6 +6,16 @@ import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer'
 
+// inspired by https://fettblog.eu/typescript-match-the-exact-object-shape/
+// with a small change to provide better error messages
+// (the original version would assign "never" which gave a TS error but was not very helpful)
+type ValidateShape<T, Shape> =
+  T extends Shape
+    ? Exclude<keyof T, keyof Shape> extends never
+      ? T
+      : Shape
+    : Shape;
+
 export type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 
 export type Maybe<T> = T | null;
@@ -534,7 +544,7 @@ export interface IOneToOneQueryBuilder<
   TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>
 > {
   <TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
-    queryBuilderOpts: TQueryBuilderOpts
+    queryBuilderOpts: ValidateShape<TQueryBuilderOpts, IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>
   ): IOneToOneQuery<{TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts}>;
 }
 export interface IOneToOneQuery<
@@ -549,24 +559,28 @@ export interface IOneToOneQuery<
   def: TOneToOneQueryArgs["TTargetNodeOrTargetNodeRecord"]
 }
 
-export type IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>, TIncludeTotalCount extends boolean> =
-  TTargetNodeOrTargetNodeRecord extends INode
+export type IOneToManyQueryBuilderOpts<
+  TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
+  TIncludeTotalCount extends boolean,
+  TOpts = TTargetNodeOrTargetNodeRecord extends INode
   ? {
       map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-      filter?: ValidFilterForNode<TTargetNodeOrTargetNodeRecord>
+      filter?: ValidFilterForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
       pagination?: IQueryPagination<TIncludeTotalCount>
-      sort?: ValidSortForNode<TTargetNodeOrTargetNodeRecord>
+      sort?: ValidSortForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
   }
   : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
     ? {
       [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
     }
     : never
+> = TOpts
+    
 export interface IOneToManyQueryBuilder<
-      TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
+      TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>,
 > {
   <TIncludeTotalCount extends boolean, TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>(
-    queryBuilderOpts: TQueryBuilderOpts
+    queryBuilderOpts: ValidateShape<TQueryBuilderOpts,  IOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount>>
   ): IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts, TIncludeTotalCount: TIncludeTotalCount }>;
 }
 export interface IOneToManyQuery<
@@ -925,10 +939,10 @@ export type MapFn<
     TNodeData: Record<string, IData | DataDefaultFn>,
     TNodeComputedData: Record<string, any>,
     TNodeRelationalData: NodeRelationalQueryBuilderRecord,
-  }
-> = (
+  },
+> = ((
   data: GetMapFnArgs<INode<TMapFnArgs & { TNodeType: any }>>
-) => RequestedData<TMapFnArgs>;
+) => RequestedData) | undefined
 
 export type GetMapFnArgs<
   TNode extends INode,
@@ -945,7 +959,7 @@ type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataD
       : TProperties[key] extends IData<infer TDataArgs>
         ? TDataArgs['TBoxedValue'] extends Record<string, IData | DataDefaultFn>
           // allows querying a partial of an object within a node
-          ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:{},  TNodeRelationalData: {} }>>(opts: {
+          ? <TMapFn extends MapFn<{ TNodeData: TDataArgs['TBoxedValue'], TNodeComputedData:Record<string,never>,  TNodeRelationalData: Record<string,never> }>>(opts: {
               map: TMapFn;
             }) => TMapFn
           : TProperties[key]
@@ -956,37 +970,33 @@ type GetMapFnArgsFromProperties<TProperties extends Record<string, IData | DataD
 // The accepted type for a map fn return
 // validates that the engineer is querying data that exists on the nodes
 // which gives us typo prevention :)
-type RequestedData<
-    TRequestedDataArgs extends {
-      TNodeData: Record<string, IData | DataDefaultFn>,
-      TNodeComputedData: Record<string, any>,
-    }
-  // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
-  // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
-> = Partial<{
-      [Key in
-        keyof TRequestedDataArgs['TNodeData']
-        | keyof TRequestedDataArgs['TNodeComputedData']
-       ]: Key extends keyof TRequestedDataArgs['TNodeData']
-        ? TRequestedDataArgs['TNodeData'][Key] extends IData<{TParsedValue: Maybe<Array<any>>, TBoxedValue: any, TValue: any}>
-          ? TRequestedDataArgs['TNodeData'][Key]
-          : TRequestedDataArgs['TNodeData'][Key] extends IData<infer TDataArgs> 
-            ? TDataArgs['TValue'] extends Maybe<Record<string,any>> // Allows querying partials of nested objects
-              ? MapFn<{TNodeData: TDataArgs['TValue'], TNodeComputedData: {}, TNodeRelationalData:{}}> // {} because there should be no computed data or relational data for objects nested in nodes
-              : TRequestedDataArgs['TNodeData'][Key]
-            : TRequestedDataArgs['TNodeData'][Key]
-          : Key extends keyof  TRequestedDataArgs['TNodeComputedData']
-        ? TRequestedDataArgs['TNodeComputedData'][Key] 
-        : never;
-  } | {}>
-
+type RequestedData = {
+  [key in string]:
+    | IData
+    | ((args: any) => RequestedData | IData)
+    | ((opts: { map: MapFn<any> }) => MapFn<any>)
+    | IOneToManyQuery<any>
+    | IOneToOneQuery<any>
+} 
 
 // A generic to extract the resulting data based on a map fn
 export type ExtractQueriedDataFromMapFn<
-  TMapFn extends MapFnForNode<TNode>,
-  TNode extends INode
-> = DataExpectedOnAllNodeResults<TNode>
-  & ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, TNode>
+  TMapFn extends MapFnForNode<NonNullable<TNode>>,
+  TNode extends INode | null // null when querying within a nested object
+> = RemoveNevers<
+  (TNode extends null ? Record<string,never> : DataExpectedOnAllNodeResults<NonNullable<TNode>>)
+  & 
+  (TMapFn extends undefined
+    ? GetAllAvailableNodeDataType<{
+        TNodeData: ExtractNodeData<NonNullable<TNode>>,
+        TNodeComputedData: ExtractNodeComputedData<NonNullable<TNode>
+      >}>
+    :
+    TMapFn extends NonNullable<MapFnForNode<NonNullable<TNode>>>
+      ? ExtractQueriedDataFromMapFnReturn<ReturnType<TMapFn>, NonNullable<TNode>>
+      : never
+  )
+>
 
 type DataExpectedOnAllNodeResults<TNode extends INode> =
   { type: TNode['type'] }
@@ -1022,7 +1032,7 @@ type ExtractQueriedDataFromMapFnReturn<
     :
     // when we're querying data inside a nested object
     TMapFnReturn[Key] extends MapFn<any>
-    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode>
+    ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], null>
     :
     never;
 };

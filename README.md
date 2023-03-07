@@ -1,3 +1,9 @@
+# Documentation
+
+Documentation for how to use the library can be found here https://github.com/radialreview/sm-js/wiki
+
+The rest of this Readme is the default TSDX Readme.
+
 # TSDX User Guide
 
 Congrats! You just saved yourself hours of work by bootstrapping this project with TSDX. Let’s get you oriented with what’s here and how to use it.

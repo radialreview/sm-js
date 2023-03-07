@@ -181,16 +181,14 @@ const stateNode: StateNode = mmGQL.def({
   properties: stateNodeProperties,
 });
 (async function MapFnTests() {
-  // @ts-ignore
+  // @ts-ignore - 'bleh' is assigned a string which is not valid
   const mapFn: MapFnForNode<UserNode> = ({
     id,
     // @ts-expect-error
     yeahThisDoesntExist,
   }) => ({
     id,
-    // // TS-TYPE-TEST-1
-    // // @ts-expect-error
-    // bleh: '',
+    bleh: '',
   });
 
   // @ts-ignore
@@ -207,8 +205,7 @@ const stateNode: StateNode = mmGQL.def({
         task: todoData.task,
       }),
     }),
-    // // TS-TYPE-TEST-1
-    // // @ts-expect-error
+
     todos2: todos,
   });
 })();
@@ -401,12 +398,11 @@ const stateNode: StateNode = mmGQL.def({
   const targetOmmissionResults = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
+      // @ts-expect-error bogus property in return
       map: userData => ({
         id: userData.id,
         // @ts-expect-error
         nonExisting: userData.nonExisting,
-        // // TS-TYPE-TEST-1
-        // // @ts-expect-error
         bogus: '',
       }),
     }),
@@ -542,7 +538,9 @@ const stateNode: StateNode = mmGQL.def({
       def: userNode,
       map: userData => ({
         address: userData.address({
-          map: addressData => ({ state: addressData.state }),
+          map: addressData => ({
+            state: addressData.state,
+          }),
         }),
       }),
     }),
@@ -597,13 +595,15 @@ const stateNode: StateNode = mmGQL.def({
   });
 
   withMapFnFromObjectOmitted.data.users.nodes[0].address.state as string;
+  withMapFnFromObjectOmitted.data.users.nodes[0].address.nestedInAddress
+    .nestedNestedInAddress as boolean;
 
   const withRelationalMapFnReturningAllData = await mmGQL.query({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
         todos: userData.todos({
-          map: allTodoData => allTodoData,
+          map: undefined,
         }),
       }),
     }),
@@ -612,8 +612,7 @@ const stateNode: StateNode = mmGQL.def({
   const todos =
     withRelationalMapFnReturningAllData.data.users.nodes[0].todos.nodes;
   todos[0].id as string;
-  // @ts-expect-error relational properties are not queried when all data is passed through in a map fn
-  todos[0].assignee.id;
+  todos[0].task as string;
 
   const mockNode = mmGQL.def({
     type: 'test',
@@ -678,7 +677,7 @@ const stateNode: StateNode = mmGQL.def({
               id,
               lastName,
               address,
-              todos: todos({ map: allData => allData }),
+              todos: todos({ map: undefined }),
             }),
           },
           meetingGuest: {
@@ -1050,4 +1049,42 @@ const stateNode: StateNode = mmGQL.def({
 
   // @ts-expect-error t is not a property on the mock type
   mockNode2Results.nodes[0].t;
+
+  // testing bad properties on root queries and relational queries
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todosForThisUser: userData.todos({
+          map: ({ task, assignee }) => ({
+            task,
+            assignee: assignee({
+              map: ({ firstName }) => ({ firstName }),
+              // @ts-expect-error "filter" is invalid here, this is a one to one relationship
+              filter: {
+                firstName: 'bob',
+              },
+            }),
+          }),
+          // @ts-expect-error "filters" is invalid, "filter" is correct
+          filters: {
+            task: 'get it done',
+          },
+        }),
+      }),
+      // @ts-expect-error "filters" is invalid, "filter" is correct
+      filters: {},
+    }),
+  });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      // @ts-expect-error "bogus" is assigned a bad value
+      map: userData => ({
+        id: userData.id,
+        bogus: '',
+      }),
+    }),
+  });
 })();

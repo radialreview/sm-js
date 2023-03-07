@@ -514,9 +514,13 @@ test(`query.sorting should throw an error if property being sorted is not define
     await mmGQLInstance.query({
       users: queryDefinition({
         def: generateUserNode(mmGQLInstance),
-        map: ({ score }) => ({
+        map: ({ score, address }) => ({
           score,
-          address: ({ state }) => ({ state }),
+          address: address({
+            map: ({ state }) => ({
+              state,
+            }),
+          }),
         }),
         sort: {
           score: 'asc',
