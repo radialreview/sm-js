@@ -939,10 +939,11 @@ export type MapFn<
     TNodeData: Record<string, IData | DataDefaultFn>,
     TNodeComputedData: Record<string, any>,
     TNodeRelationalData: NodeRelationalQueryBuilderRecord,
-  }
+  },
+  TRequestedData = RequestedData<TMapFnArgs>
 > = (
   data: GetMapFnArgs<INode<TMapFnArgs & { TNodeType: any }>>
-) => RequestedData<TMapFnArgs>;
+) => ValidateShape<TRequestedData, RequestedData<TMapFnArgs>>
 
 export type GetMapFnArgs<
   TNode extends INode,
@@ -977,22 +978,7 @@ type RequestedData<
     }
   // TS-TYPE-TEST-1 making this a partial seems to cause TS to not throw errors when a random property is put into a map fn return with a bogus value
   // this will likely lead to developers misusing the query function (such as forgetting to define a map function for a relational query)
-> = Partial<{
-      [Key in
-        keyof TRequestedDataArgs['TNodeData']
-        | keyof TRequestedDataArgs['TNodeComputedData']
-       ]: Key extends keyof TRequestedDataArgs['TNodeData']
-        ? TRequestedDataArgs['TNodeData'][Key] extends IData<{TParsedValue: Maybe<Array<any>>, TBoxedValue: any, TValue: any}>
-          ? TRequestedDataArgs['TNodeData'][Key]
-          : TRequestedDataArgs['TNodeData'][Key] extends IData<infer TDataArgs> 
-            ? TDataArgs['TValue'] extends Maybe<Record<string,any>> // Allows querying partials of nested objects
-              ? MapFn<{TNodeData: TDataArgs['TValue'], TNodeComputedData: {}, TNodeRelationalData:{}}> // {} because there should be no computed data or relational data for objects nested in nodes
-              : TRequestedDataArgs['TNodeData'][Key]
-            : TRequestedDataArgs['TNodeData'][Key]
-          : Key extends keyof  TRequestedDataArgs['TNodeComputedData']
-        ? TRequestedDataArgs['TNodeComputedData'][Key] 
-        : never;
-  } | Record<string, unknown>>
+> = { [key in string]: IData | DataDefaultFn | IOneToManyQuery<any> | IOneToOneQuery<any> }
 
 
 // A generic to extract the resulting data based on a map fn

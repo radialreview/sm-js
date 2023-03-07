@@ -1077,4 +1077,14 @@ const stateNode: StateNode = mmGQL.def({
       filters: {},
     }),
   });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        bogus: '',
+      }),
+    }),
+  });
 })();
