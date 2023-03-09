@@ -22,6 +22,8 @@ import {
   UseSubscriptionQueryDefinition,
   ValidFilterForNode,
   ValidSortForNode,
+  INonPaginatedOneToManyQueryBuilderOpts,
+  INonPaginatedOneToManyQueryBuilder,
 } from './types';
 
 export class Data<
@@ -477,6 +479,38 @@ export const oneToMany = <
       queryBuilderOpts,
     };
   }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
+};
+
+export const nonPaginatedOneToMany = <
+  TTargetNodeOrTargetNodeRecord extends
+    | INode
+    | Maybe<INode>
+    | Record<string, INode>
+    | Maybe<Record<string, INode>>
+>(
+  def: NonNullable<TTargetNodeOrTargetNodeRecord>
+) => {
+  return (<
+    TQueryBuilderOpts extends INonPaginatedOneToManyQueryBuilderOpts<
+      TTargetNodeOrTargetNodeRecord,
+      TIncludeTotalCount
+    > & {
+      _relationshipName: string;
+      filter?: ValidFilterForNode<INode>;
+      sort?: ValidSortForNode<INode>;
+    },
+    TIncludeTotalCount extends boolean = false
+  >(
+    queryBuilderOpts: TQueryBuilderOpts
+  ) => {
+    return {
+      def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _relational: RELATIONAL_TYPES.nonPaginatedOneToMany,
+      filter: queryBuilderOpts.filter,
+      queryBuilderOpts,
+    };
+  }) as INonPaginatedOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 };
 
 // HACK ALERT! Exists only to make TS work the way we need it
