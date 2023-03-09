@@ -1,4 +1,4 @@
-import { GetResultingDataTypeFromProperties, GetDataType, IOneToOneQueryBuilder, IOneToManyQueryBuilder, IData, INode, MapFnForNode, Maybe, QueryDefinitionTarget, DataDefaultFn, DATA_TYPES, UseSubscriptionQueryDefinitionOpts, UseSubscriptionQueryDefinition } from './types';
+import { GetResultingDataTypeFromProperties, GetDataType, IOneToOneQueryBuilder, IOneToManyQueryBuilder, IData, INode, MapFnForNode, Maybe, QueryDefinitionTarget, DataDefaultFn, DATA_TYPES, UseSubscriptionQueryDefinitionOpts, UseSubscriptionQueryDefinition, INonPaginatedOneToManyQueryBuilder } from './types';
 export declare class Data<TDataArgs extends {
     TParsedValue: any;
     TValue: any;
@@ -145,6 +145,13 @@ export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any
     TNodeData: any;
     TNodeComputedData: any;
 }>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
+export declare const nonPaginatedOneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any, import("./types").NodeComputedFns<{
+    TNodeData: any;
+    TNodeComputedData: any;
+}>, import("./types").NodeDO> | Record<string, INode<any, import("./types").NodeComputedFns<{
+    TNodeData: any;
+    TNodeComputedData: any;
+}>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => INonPaginatedOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 export declare function queryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts, TIncludeTotalCount extends boolean>(queryDefinition: UseSubscriptionQueryDefinition<{
     TNode: TNode;
     TMapFn: TMapFn;

@@ -348,7 +348,8 @@ var RELATIONAL_TYPES;
 
 (function (RELATIONAL_TYPES) {
   RELATIONAL_TYPES["oneToOne"] = "oTO";
-  RELATIONAL_TYPES["oneToMany"] = "otM";
+  RELATIONAL_TYPES["oneToMany"] = "oTM";
+  RELATIONAL_TYPES["nonPaginatedOneToMany"] = "nPOTM";
 })(RELATIONAL_TYPES || (RELATIONAL_TYPES = {}));
 
 var EStringFilterOperator;
@@ -629,6 +630,17 @@ var oneToMany = function oneToMany(def) {
       def: def,
       _relationshipName: queryBuilderOpts._relationshipName,
       _relational: RELATIONAL_TYPES.oneToMany,
+      filter: queryBuilderOpts.filter,
+      queryBuilderOpts: queryBuilderOpts
+    };
+  };
+};
+var nonPaginatedOneToMany = function nonPaginatedOneToMany(def) {
+  return function (queryBuilderOpts) {
+    return {
+      def: def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _relational: RELATIONAL_TYPES.nonPaginatedOneToMany,
       filter: queryBuilderOpts.filter,
       queryBuilderOpts: queryBuilderOpts
     };
@@ -7759,5 +7771,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, string, stringEnum, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

@@ -346,7 +346,8 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
 
 (function (RELATIONAL_TYPES) {
   RELATIONAL_TYPES["oneToOne"] = "oTO";
-  RELATIONAL_TYPES["oneToMany"] = "otM";
+  RELATIONAL_TYPES["oneToMany"] = "oTM";
+  RELATIONAL_TYPES["nonPaginatedOneToMany"] = "nPOTM";
 })(exports.RELATIONAL_TYPES || (exports.RELATIONAL_TYPES = {}));
 
 (function (EStringFilterOperator) {
@@ -621,6 +622,17 @@ var oneToMany = function oneToMany(def) {
       def: def,
       _relationshipName: queryBuilderOpts._relationshipName,
       _relational: exports.RELATIONAL_TYPES.oneToMany,
+      filter: queryBuilderOpts.filter,
+      queryBuilderOpts: queryBuilderOpts
+    };
+  };
+};
+var nonPaginatedOneToMany = function nonPaginatedOneToMany(def) {
+  return function (queryBuilderOpts) {
+    return {
+      def: def,
+      _relationshipName: queryBuilderOpts._relationshipName,
+      _relational: exports.RELATIONAL_TYPES.nonPaginatedOneToMany,
       filter: queryBuilderOpts.filter,
       queryBuilderOpts: queryBuilderOpts
     };
@@ -7782,6 +7794,7 @@ exports.generateRandomNumber = generateRandomNumber;
 exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;
 exports.getGQLCLient = getGQLCLient;
+exports.nonPaginatedOneToMany = nonPaginatedOneToMany;
 exports.number = number;
 exports.object = object;
 exports.oneToMany = oneToMany;
