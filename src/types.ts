@@ -730,7 +730,7 @@ export type ValidFilterForMapFnRelationalResults<
   },
   TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'],
   TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}
-> = Partial<RemoveNevers<{
+> = RemoveNevers<{
   [TKey in keyof TMapFnReturn]:
     TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs>
       ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
@@ -738,14 +738,20 @@ export type ValidFilterForMapFnRelationalResults<
           ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']>
           : never
         : never
-      : TMapFnReturn[TKey] extends (IOneToManyQuery<infer TOneToManyQueryArgs> | INonPaginatedOneToManyQuery<infer TOneToManyQueryArgs>)
+      : TMapFnReturn[TKey] extends IOneToManyQuery<infer TOneToManyQueryArgs>
         ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
           ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
             ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
             : never
           : never
-        : never
-}>>
+      : TMapFnReturn[TKey] extends INonPaginatedOneToManyQuery<infer TNonPaginatedOneToManyQueryArgs>
+        ? TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
+          ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+            ? ValidFilterForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+            : never
+          : never
+      : never
+}>
 
 export type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>
 
@@ -1324,6 +1330,7 @@ export type QueryRecordEntry = BaseQueryRecordEntry & {
 export type RelationalQueryRecordEntry =  { _relationshipName: string } & (
   | (BaseQueryRecordEntry & { oneToOne: true })
   | (BaseQueryRecordEntry & { oneToMany: true })
+  | (BaseQueryRecordEntry & { nonPaginatedOneToMany: true })
 )
 
 export type QueryRecord = Record<string, QueryRecordEntry | null>;

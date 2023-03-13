@@ -70,6 +70,33 @@ exports[`query.sorting can sort 'boolean' properties descending 1`] = `
 }"
 `;
 
+exports[`query.sorting can sort 'nonPaginatedOneToMany' relational data 1`] = `
+"query query16 {
+ todos: todos {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     task
+     users: nonPaginatedUsers {
+       id
+       version
+       lastUpdatedBy
+       type
+       firstName
+     }
+   }
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.sorting can sort 'number' properties 1`] = `
 "query query2 {
  users: users {

@@ -13,6 +13,7 @@ import {
   createMockDataItems,
   getPrettyPrintedGQL,
   generateTodoNode,
+  createNonPaginatedMockDataItems,
 } from '../specUtilities';
 import { DocumentNode } from '../types';
 
@@ -1109,6 +1110,189 @@ test(`query.filter can filter query with "OR" condition using the node's oneToMa
       map: ({ firstName, todos }) => ({
         firstName,
         todos: todos({
+          map: ({ task }) => ({ task }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 2', 'User 3']);
+});
+
+test(`query.filter can filter query with "AND" condition using the node's nonPaginatedOneToMany relational properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: 'User 1',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 1',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 3',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 2',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 4',
+                },
+                {
+                  task: 'Task 5',
+                },
+                {
+                  task: 'Task 6',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 3',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 7',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 9',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 3',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 7',
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        firstName: { eq: 'User 3', condition: 'and' },
+        todos: {
+          task: { contains: 'Task 9', condition: 'and' },
+        },
+      },
+      map: ({ firstName, nonPaginatedTodos }) => ({
+        firstName,
+        todos: nonPaginatedTodos({
+          map: ({ task }) => ({ task }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
+});
+
+test(`query.filter can filter query with "OR" condition using the node's nonPaginatedOneToMany relational properties`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      users: createMockDataItems({
+        sampleMockData: mockUserData,
+        items: [
+          {
+            firstName: 'User 1',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 1',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 3',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 2',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 4',
+                },
+                {
+                  task: 'Task 5',
+                },
+                {
+                  task: 'Task 6',
+                },
+              ],
+            }),
+          },
+          {
+            firstName: 'User 3',
+            todos: createNonPaginatedMockDataItems({
+              sampleMockData: mockTodoData,
+              items: [
+                {
+                  task: 'Task 7',
+                },
+                {
+                  task: 'Task 2',
+                },
+                {
+                  task: 'Task 9',
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    users: queryDefinition({
+      def: generateUserNode(mmGQLInstance),
+      filter: {
+        firstName: { eq: 'User 3', condition: 'or' },
+        todos: {
+          task: { contains: 'Task 6', condition: 'or' },
+        },
+      },
+      map: ({ firstName, nonPaginatedTodos }) => ({
+        firstName,
+        todos: nonPaginatedTodos({
           map: ({ task }) => ({ task }),
         }),
       }),

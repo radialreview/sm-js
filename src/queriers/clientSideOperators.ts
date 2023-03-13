@@ -1,13 +1,16 @@
 import { update, isArray, isObject, orderBy } from 'lodash';
 import { NODES_PROPERTY_KEY } from '../consts';
-import { OBJECT_PROPERTY_SEPARATOR } from '../queriers/queryDefinitionAdapters';
+import {
+  OBJECT_PROPERTY_SEPARATOR,
+  queryRecordEntryReturnsArrayOfDataNestedInNodes,
+} from '../queriers/queryDefinitionAdapters';
 
 import {
   FilterPropertyNotDefinedInQueryException,
   FilterOperatorNotImplementedException,
   SortPropertyNotDefinedInQueryException,
 } from '../exceptions';
-import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
+import { getDataFromQueryResponsePartial } from './queryDefinitionAdapters';
 
 import {
   FilterValue,
@@ -144,6 +147,7 @@ export function applyClientSideFilterToData({
       relationalKey?: string;
       oneToOne?: boolean;
       oneToMany?: boolean;
+      nonPaginatedOneToMany?: boolean;
     }> = Object.keys(filterObject).map(dotSeparatedPropName => {
       const [possibleRelationalKey, ...relationalProperties] = String(
         dotSeparatedPropName
@@ -181,11 +185,20 @@ export function applyClientSideFilterToData({
         relationalKey: possibleRelationalKey,
         oneToOne: (relational && 'oneToOne' in relational) || undefined,
         oneToMany: (relational && 'oneToMany' in relational) || undefined,
+        nonPaginatedOneToMany:
+          (relational && 'nonPaginatedOneToMany' in relational) || undefined,
       };
     });
 
     if (filterProperties.length > 0) {
-      update(data, `${alias}.${NODES_PROPERTY_KEY}`, items => {
+      let pathToDataArray = `${alias}`;
+      if (
+        queryRecordEntryReturnsArrayOfDataNestedInNodes({ queryRecordEntry })
+      ) {
+        pathToDataArray += `.${NODES_PROPERTY_KEY}`;
+      }
+
+      update(data, pathToDataArray, items => {
         if (!isArray(items)) {
           return items;
         }
@@ -224,7 +237,18 @@ export function applyClientSideFilterToData({
                       filterValue: value,
                       itemValue,
                     });
-                  } else {
+                  } else if (filter.nonPaginatedOneToMany === true) {
+                    const relationalItems: Array<any> = filter.relationalKey
+                      ? item[filter.relationalKey] || []
+                      : [];
+                    return checkRelationalItems({
+                      relationalItems,
+                      operator,
+                      filterValue: value,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    });
+                  } else if (filter.oneToMany === true) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
                       : [];
@@ -235,6 +259,8 @@ export function applyClientSideFilterToData({
                       underscoreSeparatedPropName:
                         filter.underscoreSeparatedPropName,
                     });
+                  } else {
+                    throw new Error('Unrecognized relational filter type.');
                   }
                 });
               } else {
@@ -275,7 +301,18 @@ export function applyClientSideFilterToData({
                       filterValue: value,
                       itemValue,
                     });
-                  } else {
+                  } else if (filter.nonPaginatedOneToMany === true) {
+                    const relationalItems: Array<any> = filter.relationalKey
+                      ? item[filter.relationalKey] || []
+                      : [];
+                    return checkRelationalItems({
+                      relationalItems,
+                      operator,
+                      filterValue: value,
+                      underscoreSeparatedPropName:
+                        filter.underscoreSeparatedPropName,
+                    });
+                  } else if (filter.oneToMany === true) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
                       : [];
@@ -286,6 +323,8 @@ export function applyClientSideFilterToData({
                       underscoreSeparatedPropName:
                         filter.underscoreSeparatedPropName,
                     });
+                  } else {
+                    throw new Error('Unrecognized relational filter type.');
                   }
                 });
               } else {
@@ -344,29 +383,38 @@ function getNodeSortPropertyValue(opts: {
   node: any;
   direction: SortDirection;
   oneToMany?: boolean;
+  nonPaginatedOneToMany?: boolean;
   isRelational: boolean;
   relationalKey?: string;
   underscoreSeparatedPropName: string;
 }) {
-  return opts.isRelational && opts.relationalKey
-    ? opts.oneToMany
-      ? ((opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || []) as Array<
-          any
-        >)
-          .sort((a, b) => {
-            return getSortPosition(
-              getItemSortValue(a, opts.underscoreSeparatedPropName),
-              getItemSortValue(b, opts.underscoreSeparatedPropName),
-              opts.direction === 'asc'
-            );
-          })
-          .map(x => x[opts.underscoreSeparatedPropName])
-          .join('')
-      : getItemSortValue(
-          opts.node[opts.relationalKey],
-          opts.underscoreSeparatedPropName
-        )
-    : getItemSortValue(opts.node, opts.underscoreSeparatedPropName);
+  function getData() {
+    if (opts.isRelational && opts.relationalKey) {
+      if (opts.oneToMany) {
+        return opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || [];
+      } else if (opts.nonPaginatedOneToMany) {
+        return opts.node[opts.relationalKey] || [];
+      } else {
+        return opts.node[opts.relationalKey];
+      }
+    } else {
+      return opts.node;
+    }
+  }
+
+  const data = getData();
+  return Array.isArray(data)
+    ? data
+        .sort((a, b) => {
+          return getSortPosition(
+            getItemSortValue(a, opts.underscoreSeparatedPropName),
+            getItemSortValue(b, opts.underscoreSeparatedPropName),
+            opts.direction === 'asc'
+          );
+        })
+        .map(x => x[opts.underscoreSeparatedPropName])
+        .join('')
+    : getItemSortValue(data, opts.underscoreSeparatedPropName);
 }
 
 function getItemSortValue(item: any, underscoreSeparatedPropertyPath: string) {
@@ -401,6 +449,7 @@ export function applyClientSideSortToData({
         relationalKey?: string;
         oneToOne?: boolean;
         oneToMany?: boolean;
+        nonPaginatedOneToMany?: boolean;
         priority?: number;
         direction: SortDirection;
       }>((dotSeparatedPropName, index) => {
@@ -431,6 +480,8 @@ export function applyClientSideSortToData({
           relationalKey: possibleRelationalKey,
           oneToOne: (relational && 'oneToOne' in relational) || undefined,
           oneToMany: (relational && 'oneToMany' in relational) || undefined,
+          nonPaginatedOneToMany:
+            (relational && 'nonPaginatedOneToMany' in relational) || undefined,
           priority:
             sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
           direction: sortObject[dotSeparatedPropName].direction || 'asc',
@@ -450,7 +501,12 @@ export function applyClientSideSortToData({
       });
     }
 
-    update(data, `${alias}.${NODES_PROPERTY_KEY}`, items => {
+    let pathToDataArray = `${alias}`;
+    if (queryRecordEntryReturnsArrayOfDataNestedInNodes({ queryRecordEntry })) {
+      pathToDataArray += `.${NODES_PROPERTY_KEY}`;
+    }
+
+    update(data, pathToDataArray, items => {
       if (!isArray(items)) {
         return items;
       }
@@ -464,6 +520,7 @@ export function applyClientSideSortToData({
                 direction: sort.direction,
                 isRelational: sort.isRelational,
                 oneToMany: sort.oneToMany,
+                nonPaginatedOneToMany: sort.nonPaginatedOneToMany,
                 underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
                 relationalKey: sort.relationalKey,
               }),
@@ -512,17 +569,17 @@ export function applyClientSideSortAndFilterToData(
 
     const relational = queryRecordEntry?.relational;
     if (relational != null) {
-      const containsArrayData = queryRecordEntryReturnsArrayOfData({
+      const dataForThisAlias = getDataFromQueryResponsePartial({
+        queryResponsePartial: data[alias],
         queryRecordEntry,
       });
-      if (containsArrayData) {
-        if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
-          data[alias][NODES_PROPERTY_KEY].forEach((item: any) => {
-            applyClientSideSortAndFilterToData(relational, item);
-          });
-        }
+
+      if (Array.isArray(dataForThisAlias)) {
+        dataForThisAlias.forEach((item: any) => {
+          applyClientSideSortAndFilterToData(relational, item);
+        });
       } else {
-        applyClientSideSortAndFilterToData(relational, data[alias]);
+        applyClientSideSortAndFilterToData(relational, dataForThisAlias);
       }
     }
   });

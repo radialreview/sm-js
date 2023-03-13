@@ -13,7 +13,10 @@ import {
   generateRandomString,
 } from './generateMockDataUtilities';
 import { PageInfoFromResults } from '../nodesCollection';
-import { queryRecordEntryReturnsArrayOfData } from './queryDefinitionAdapters';
+import {
+  queryRecordEntryReturnsArrayOfData,
+  queryRecordEntryReturnsArrayOfDataNestedInNodes,
+} from './queryDefinitionAdapters';
 
 import {
   IData,
@@ -404,6 +407,11 @@ export function generateMockNodeDataForQueryRecord(opts: {
     const returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
       queryRecordEntry: queryRecordEntryForThisAlias,
     });
+    const returnValueShouldBeNestedInNodes = queryRecordEntryReturnsArrayOfDataNestedInNodes(
+      {
+        queryRecordEntry: queryRecordEntryForThisAlias,
+      }
+    );
 
     let mockedNodeDataReturnValues;
 
@@ -471,11 +479,15 @@ export function generateMockNodeDataForQueryRecord(opts: {
         totalCount: arrayOfMockNodeValues.length,
       };
 
-      mockedNodeDataReturnValues = {
-        [NODES_PROPERTY_KEY]: arrayOfMockNodeValues,
-        [TOTAL_COUNT_PROPERTY_KEY]: arrayOfMockNodeValues.length,
-        [PAGE_INFO_PROPERTY_KEY]: pageInfo,
-      };
+      if (returnValueShouldBeNestedInNodes) {
+        mockedNodeDataReturnValues = {
+          [NODES_PROPERTY_KEY]: arrayOfMockNodeValues,
+          [TOTAL_COUNT_PROPERTY_KEY]: arrayOfMockNodeValues.length,
+          [PAGE_INFO_PROPERTY_KEY]: pageInfo,
+        };
+      } else {
+        mockedNodeDataReturnValues = arrayOfMockNodeValues;
+      }
     } else {
       const mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry(
         {

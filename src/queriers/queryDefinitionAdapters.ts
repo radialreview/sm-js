@@ -25,6 +25,7 @@ import {
   SortObject,
 } from '../types';
 import {
+  NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
@@ -255,7 +256,8 @@ function getRelationalQueries(opts: {
 
       if (
         relationalQuery._relational === RELATIONAL_TYPES.oneToOne ||
-        relationalQuery._relational === RELATIONAL_TYPES.oneToMany
+        relationalQuery._relational === RELATIONAL_TYPES.oneToMany ||
+        relationalQuery._relational === RELATIONAL_TYPES.nonPaginatedOneToMany
       ) {
         if (
           'map' in relationalQuery.queryBuilderOpts &&
@@ -351,6 +353,24 @@ function getRelationalQueries(opts: {
           ) {
             (relationalQueryRecord as RelationalQueryRecordEntry).pagination =
               relationalQuery.queryBuilderOpts.pagination;
+          }
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.sort
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).sort =
+              relationalQuery.queryBuilderOpts.sort;
+          }
+        } else if (relationalType === RELATIONAL_TYPES.nonPaginatedOneToMany) {
+          (relationalQueryRecord as RelationalQueryRecordEntry & {
+            nonPaginatedOneToMany: true;
+          }).nonPaginatedOneToMany = true;
+          if (
+            relationalQuery.queryBuilderOpts &&
+            relationalQuery.queryBuilderOpts.filter
+          ) {
+            (relationalQueryRecord as RelationalQueryRecordEntry).filter =
+              relationalQuery.queryBuilderOpts.filter;
           }
           if (
             relationalQuery.queryBuilderOpts &&
@@ -1001,6 +1021,32 @@ export function queryRecordEntryReturnsArrayOfData(opts: {
     (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
     !('oneToOne' in opts.queryRecordEntry)
   );
+}
+
+export function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+}) {
+  return (
+    opts.queryRecordEntry &&
+    queryRecordEntryReturnsArrayOfData(opts) &&
+    !('nonPaginatedOneToMany' in opts.queryRecordEntry)
+  );
+}
+
+// When we query for paginated arrays, the response is an object containing
+// a "nodes" property which is an array of the nodes
+// Otherwise the response is the node, or the list of nodes, itself
+export function getDataFromQueryResponsePartial(opts: {
+  queryResponsePartial: Record<string, any>;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+}) {
+  if (!opts.queryRecordEntry) return null;
+
+  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts)) {
+    return opts.queryResponsePartial[NODES_PROPERTY_KEY];
+  } else {
+    return opts.queryResponsePartial;
+  }
 }
 
 // will need this when we enable subscriptions
