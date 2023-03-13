@@ -387,7 +387,7 @@ exports[`query.filter can filter multilevel relational data 1`] = `
 `;
 
 exports[`query.filter can filter multiple relational data 1`] = `
-"query query30 {
+"query query32 {
  user: user(id: \\"mock-user-id\\") {
    id
    version
@@ -452,6 +452,33 @@ exports[`query.filter can filter nested object property 1`] = `
 }"
 `;
 
+exports[`query.filter can filter query with "AND" condition using the node's nonPaginatedOneToMany relational properties 1`] = `
+"query query24 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: nonPaginatedTodos {
+       id
+       version
+       lastUpdatedBy
+       type
+       task
+     }
+   }
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
 exports[`query.filter can filter query with "AND" condition using the node's oneToMany relational properties 1`] = `
 "query query22 {
  users: users {
@@ -488,7 +515,7 @@ exports[`query.filter can filter query with "AND" condition using the node's one
 `;
 
 exports[`query.filter can filter query with "AND" condition using the node's oneToOne relational properties 1`] = `
-"query query26 {
+"query query28 {
  todos: todos {
    nodes {
      id
@@ -503,6 +530,33 @@ exports[`query.filter can filter query with "AND" condition using the node's one
        type
        firstName
        archived
+     }
+   }
+   pageInfo {
+     endCursor
+     startCursor
+     hasNextPage
+     hasPreviousPage
+   }
+ }
+}"
+`;
+
+exports[`query.filter can filter query with "OR" condition using the node's nonPaginatedOneToMany relational properties 1`] = `
+"query query25 {
+ users: users {
+   nodes {
+     id
+     version
+     lastUpdatedBy
+     type
+     firstName
+     todos: nonPaginatedTodos {
+       id
+       version
+       lastUpdatedBy
+       type
+       task
      }
    }
    pageInfo {
@@ -551,7 +605,7 @@ exports[`query.filter can filter query with "OR" condition using the node's oneT
 `;
 
 exports[`query.filter can filter query with "OR" condition using the node's oneToOne relational properties 1`] = `
-"query query25 {
+"query query27 {
  todos: todos {
    nodes {
      id
@@ -614,7 +668,7 @@ exports[`query.filter can filter relational data 1`] = `
 `;
 
 exports[`query.filter can filter relational data of a single node query 1`] = `
-"query query29 {
+"query query31 {
  user: user(id: \\"mock-user-id\\") {
    id
    version
@@ -642,7 +696,7 @@ exports[`query.filter can filter relational data of a single node query 1`] = `
 `;
 
 exports[`query.filter can filter relational data using "OR" condition 1`] = `
-"query query28 {
+"query query30 {
  users: users {
    nodes {
      id
@@ -677,7 +731,7 @@ exports[`query.filter can filter relational data using "OR" condition 1`] = `
 `;
 
 exports[`query.filter can filter using "OR" condition 1`] = `
-"query query27 {
+"query query29 {
  users: users {
    nodes {
      id
@@ -720,7 +774,7 @@ exports[`query.filter should throw an error if property being filtered is not de
 `;
 
 exports[`query.filter should throw an error if relational prop is not defined in the map function when filtering by relational data 1`] = `
-"query query24 {
+"query query26 {
  users: users {
    nodes {
      id

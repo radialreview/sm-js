@@ -21,6 +21,7 @@ import {
   EPaginationFilteringSortingInstance,
   DocumentNode,
   ValidFilterForNode,
+  INonPaginatedOneToManyQueryBuilder,
 } from './types';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
@@ -45,6 +46,7 @@ type UserProperties = typeof userProperties;
 
 type UserRelationalData = {
   todos: IOneToManyQueryBuilder<TodoNode>;
+  nonPaginatedTodos: INonPaginatedOneToManyQueryBuilder<TodoNode>;
 };
 
 // Reason why we need to declare explicit types for these, instead of relying on type inference
@@ -71,6 +73,7 @@ export function generateUserNode(
     },
     relational: {
       todos: () => data.oneToMany(todoNode),
+      nonPaginatedTodos: () => data.nonPaginatedOneToMany(todoNode),
     },
   });
 
@@ -105,6 +108,7 @@ export type TodoProperties = typeof todoProperties;
 export type TodoRelationalData = {
   assignee: IOneToOneQueryBuilder<UserNode>;
   users: IOneToManyQueryBuilder<UserNode>;
+  nonPaginatedUsers: INonPaginatedOneToManyQueryBuilder<UserNode>;
 };
 
 export type TodoNode = INode<{
@@ -124,6 +128,7 @@ export function generateTodoNode(
     relational: {
       assignee: () => data.oneToOne<UserNode>(userNode),
       users: () => data.oneToMany<UserNode>(userNode),
+      nonPaginatedUsers: () => data.nonPaginatedOneToMany<UserNode>(userNode),
     },
   }) as TodoNode;
 
@@ -555,4 +560,15 @@ export function createMockDataItems<T>(opts: {
     totalCount: opts.totalCount ?? opts.items.length,
     pageInfo,
   };
+}
+
+export function createNonPaginatedMockDataItems<T>(opts: {
+  sampleMockData: T & { id: string };
+  items: Array<Partial<any>>;
+}) {
+  return opts.items.map((mockItem, index) => ({
+    ...opts.sampleMockData,
+    id: opts.sampleMockData.id + index,
+    ...mockItem,
+  }));
 }

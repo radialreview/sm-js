@@ -10,6 +10,7 @@ import {
   getMockConfig,
   createMockQueryDefinitions,
   getPrettyPrintedGQL,
+  createNonPaginatedMockDataItems,
 } from '../specUtilities';
 import { EPaginationFilteringSortingInstance, DocumentNode } from '../types';
 
@@ -796,6 +797,83 @@ test(`query.sorting can sort 'oneToMany' relational data`, async () => {
       map: ({ task, users }) => ({
         task,
         users: users({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    }),
+  });
+
+  expect(data.todos.nodes.map(x => x.task)).toEqual([
+    'Todo 1',
+    'Todo 3',
+    'Todo 5',
+  ]);
+});
+
+test(`query.sorting can sort 'nonPaginatedOneToMany' relational data`, async () => {
+  const { mmGQLInstance } = setupTest({
+    mockData: {
+      todos: createMockDataItems({
+        sampleMockData: mockTodoData,
+        items: [
+          {
+            task: 'Todo 1',
+            users: createNonPaginatedMockDataItems({
+              sampleMockData: mockUserData,
+              items: [
+                {
+                  firstName: 'A',
+                },
+                {
+                  firstName: 'Z',
+                },
+                {
+                  firstName: 'D',
+                },
+              ],
+            }),
+          },
+          {
+            task: 'Todo 5',
+            users: createNonPaginatedMockDataItems({
+              sampleMockData: mockUserData,
+              items: [
+                {
+                  firstName: 'Assignee 1',
+                },
+              ],
+            }),
+          },
+          {
+            task: 'Todo 3',
+            users: createNonPaginatedMockDataItems({
+              sampleMockData: mockUserData,
+              items: [
+                {
+                  firstName: 'Assignee 5',
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    },
+    onQueryPerformed: query => {
+      expect(getPrettyPrintedGQL(query)).toMatchSnapshot();
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    todos: queryDefinition({
+      def: generateTodoNode(mmGQLInstance),
+      sort: {
+        users: {
+          firstName: 'desc',
+        },
+      },
+      map: ({ task, nonPaginatedUsers }) => ({
+        task,
+        users: nonPaginatedUsers({
           map: ({ firstName }) => ({ firstName }),
         }),
       }),

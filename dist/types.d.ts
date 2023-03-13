@@ -352,7 +352,7 @@ export interface INode<TNodeArgs extends {
 export declare type NodeRelationalQueryBuilder<TNodeRelationalQueryBuilderArgs extends {
     TTargetNodeOrTargetNodeRecord: INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>;
     TIncludeTotalCount: boolean;
-}> = IOneToOneQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]> | IOneToManyQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]>;
+}> = IOneToOneQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]> | IOneToManyQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]> | INonPaginatedOneToManyQueryBuilder<TNodeRelationalQueryBuilderArgs["TTargetNodeOrTargetNodeRecord"]>;
 export declare type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> = IOneToOneQuery<{
     TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
     TQueryBuilderOpts: any;
@@ -360,6 +360,9 @@ export declare type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends IN
     TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
     TQueryBuilderOpts: any;
     TIncludeTotalCount: any;
+}> | INonPaginatedOneToManyQuery<{
+    TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
+    TQueryBuilderOpts: any;
 }>;
 export declare type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> = TTargetNodeOrTargetNodeRecord extends INode ? {
     map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
@@ -410,6 +413,30 @@ export interface IOneToManyQuery<TOneToManyQueryArgs extends {
     queryBuilderOpts: TOneToManyQueryArgs['TQueryBuilderOpts'];
     def: TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'];
 }
+export declare type INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>, TOpts = TTargetNodeOrTargetNodeRecord extends INode ? {
+    map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+    filter?: ValidFilterForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+    sort?: ValidSortForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
+} : TTargetNodeOrTargetNodeRecord extends Record<string, INode> ? {
+    [Tkey in keyof TTargetNodeOrTargetNodeRecord]: {
+        map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]>;
+    };
+} : never> = TOpts;
+export interface INonPaginatedOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>> {
+    <TQueryBuilderOpts extends INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(queryBuilderOpts: ValidateShape<TQueryBuilderOpts, INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>): INonPaginatedOneToManyQuery<{
+        TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord;
+        TQueryBuilderOpts: TQueryBuilderOpts;
+    }>;
+}
+export interface INonPaginatedOneToManyQuery<TNonPaginatedOneToManyQueryArgs extends {
+    TTargetNodeOrTargetNodeRecord: INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>;
+    TQueryBuilderOpts: INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>;
+}> {
+    _relational: RELATIONAL_TYPES.nonPaginatedOneToMany;
+    _relationshipName: string;
+    queryBuilderOpts: TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'];
+    def: TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'];
+}
 export declare enum DATA_TYPES {
     string = "s",
     maybeString = "mS",
@@ -428,7 +455,8 @@ export declare enum DATA_TYPES {
 }
 export declare enum RELATIONAL_TYPES {
     oneToOne = "oTO",
-    oneToMany = "otM"
+    oneToMany = "oTM",
+    nonPaginatedOneToMany = "nPOTM"
 }
 export interface IQueryPagination<TIncludeTotalCount extends boolean> {
     itemsPerPage?: number;
@@ -481,7 +509,7 @@ export declare type ValidFilterForMapFnRelationalResults<TValidFilterForMapFnRel
     TMapFn: MapFnForNode<TValidFilterForMapFnRelationalResultsArgs['TNode']> | undefined;
     TNode: INode;
 }, TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'], TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}> = Partial<RemoveNevers<{
-    [TKey in keyof TMapFnReturn]: TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs> ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends IOneToManyQuery<infer TOneToManyQueryArgs> ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : never;
+    [TKey in keyof TMapFnReturn]: TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs> ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends IOneToManyQuery<infer TOneToManyQueryArgs> ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends INonPaginatedOneToManyQuery<infer TNonPaginatedOneToManyQueryArgs> ? TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : never;
 }>>;
 export declare type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>;
 export declare type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
@@ -655,7 +683,7 @@ declare type GetMapFnArgsFromProperties<TProperties extends Record<string, IData
 declare type RequestedData = {
     [key in string]: IData | ((args: any) => RequestedData | IData) | ((opts: {
         map: MapFn<any>;
-    }) => MapFn<any>) | IOneToManyQuery<any> | IOneToOneQuery<any>;
+    }) => MapFn<any>) | IOneToManyQuery<any> | INonPaginatedOneToManyQuery<any> | IOneToOneQuery<any>;
 };
 export declare type ExtractQueriedDataFromMapFn<TMapFn extends MapFnForNode<NonNullable<TNode>>, TNode extends INode | null> = RemoveNevers<(TNode extends null ? Record<string, never> : DataExpectedOnAllNodeResults<NonNullable<TNode>>) & (TMapFn extends undefined ? GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<NonNullable<TNode>>;
@@ -665,7 +693,7 @@ declare type DataExpectedOnAllNodeResults<TNode extends INode> = {
     type: TNode['type'];
 } & GetResultingDataTypeFromProperties<PropertiesQueriedForAllNodes> & ExtractNodeComputedData<TNode>;
 declare type ExtractQueriedDataFromMapFnReturn<TMapFnReturn, TNode extends INode> = {
-    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
+    [Key in keyof TMapFnReturn]: TMapFnReturn[Key] extends NodeRelationalQueryBuilder<any> ? never : TMapFnReturn[Key] extends IOneToOneQuery<any> ? ExtractQueriedDataFromOneToOneQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends IOneToManyQuery<any> ? ExtractQueriedDataFromOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends INonPaginatedOneToManyQuery<any> ? ExtractQueriedDataFromNonPaginatedOneToManyQuery<TMapFnReturn[Key]> : TMapFnReturn[Key] extends MapFnForNode<TNode> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], TNode> : TMapFnReturn[Key] extends IData | DataDefaultFn ? GetDataType<TMapFnReturn[Key]> : TMapFnReturn[Key] extends (opts: {
         map: MapFn<infer TMapFnArgs>;
     }) => MapFn<any> ? GetResultingDataTypeFromProperties<TMapFnArgs['TNodeData']> : TMapFnReturn[Key] extends MapFn<any> ? ExtractQueriedDataFromMapFn<TMapFnReturn[Key], null> : never;
 };
@@ -688,6 +716,9 @@ declare type ExtractQueriedDataFromOneToManyQuery<TOneToManyQuery extends IOneTo
     TItemType: ExtractResultsUnionFromOneToOneQueryBuilder<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>;
     TQueryDefinition: TOneToManyQueryArgs['TQueryBuilderOpts'];
 }> : never : never : never;
+declare type ExtractQueriedDataFromNonPaginatedOneToManyQuery<TNonPaginatedOneToManyQuery extends INonPaginatedOneToManyQuery<any>, D extends Prev[number] = 1> = [
+    D
+] extends [never] ? never : TNonPaginatedOneToManyQuery extends INonPaginatedOneToManyQuery<infer TNonPaginatedOneToManyQueryArgs> ? IsMaybe<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true ? TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode> ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> ? Maybe<Array<ExtractQueriedDataFromMapFn<TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'], NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>>> : never : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>> ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>>> : never : never : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? Array<ExtractQueriedDataFromMapFn<TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'], TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> : never : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode> ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'], Prev[D]>> : never : never : never;
 declare type ExtractResultsUnionFromOneToOneQueryBuilder<TTargetNodeOrTargetNodeRecord extends Record<string, INode>, TQueryBuilderOpts extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>, D extends Prev[number]> = ExtractObjectValues<{
     [key in keyof TQueryBuilderOpts]: key extends keyof TTargetNodeOrTargetNodeRecord ? TQueryBuilderOpts[key] extends IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord[key]> ? ExtractQueriedDataFromOneToOneQuery<IOneToOneQuery<{
         TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord[key];
@@ -700,7 +731,7 @@ declare type ExtractObjectValues<TObject extends Record<string, any>> = TObject 
 export declare type ExtractNodeData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeData"] : never;
 export declare type ExtractNodeDataWithDefaultProperties<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? TNodeArgs["TNodeData"] & NodeDefaultProps : never;
 export declare type ExtractNodeRelationalDataSort<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? DeepPartial<{
-    [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToManyQueryBuilder<infer TOneToManyRelationalNode> ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToOneRelationalNode> : never : never;
+    [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends (IOneToManyQueryBuilder<infer TOneToManyRelationalNode> | INonPaginatedOneToManyQueryBuilder<infer TOneToManyRelationalNode>) ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToOneRelationalNode> : never : never;
 }> : never;
 declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeComputedData"]> : never;
 declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeRelationalData"]> : never;
@@ -758,6 +789,8 @@ export declare type RelationalQueryRecordEntry = {
     oneToOne: true;
 }) | (BaseQueryRecordEntry & {
     oneToMany: true;
+}) | (BaseQueryRecordEntry & {
+    nonPaginatedOneToMany: true;
 }));
 export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;

@@ -4,6 +4,7 @@ import { DEFAULT_TOKEN_NAME } from '../consts';
 import {
   array,
   boolean,
+  nonPaginatedOneToMany,
   number,
   object,
   oneToMany,
@@ -16,6 +17,7 @@ import {
   EPaginationFilteringSortingInstance,
   GetResultingDataTypeFromProperties,
   INode,
+  INonPaginatedOneToManyQueryBuilder,
   IOneToManyQueryBuilder,
   IOneToOneQueryBuilder,
 } from '../types';
@@ -459,6 +461,41 @@ test('it correctly generates mock data for oneToMany relational queries', async 
 
   expect(Array.isArray(data.parent.children.nodes)).toBeTruthy();
   data.parent.children.nodes.forEach(child => {
+    expect(typeof child.testProp === 'string').toBeTruthy();
+  });
+});
+
+test('it correctly generates mock data for nonPaginatedOneToMany relational queries', async () => {
+  const { mmGQLInstance } = setupTest();
+
+  const childNode = mmGQLInstance.def({
+    type: 'child',
+    properties: {
+      testProp: string,
+    },
+  });
+  const parentNode = mmGQLInstance.def({
+    type: 'parent',
+    properties: {},
+    relational: {
+      children: () => nonPaginatedOneToMany(childNode),
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    parent: queryDefinition({
+      def: parentNode,
+      map: ({ children }) => ({
+        children: children({
+          map: ({ testProp }) => ({ testProp }),
+        }),
+      }),
+      target: { id: 'some-id' },
+    }),
+  });
+
+  expect(Array.isArray(data.parent.children)).toBeTruthy();
+  data.parent.children.forEach(child => {
     expect(typeof child.testProp === 'string').toBeTruthy();
   });
 });
@@ -1006,11 +1043,14 @@ test('it generates mock data that conforms to relational filters specified in th
   const { data } = await mmGQLInstance.query({
     mock: queryDefinition({
       def: mockNode,
-      map: ({ oneToOneChild, oneToManyChild }) => ({
+      map: ({ oneToOneChild, oneToManyChild, nonPaginatedOneToManyChild }) => ({
         oneToOneChild: oneToOneChild({
           map: ({ stringProp }) => ({ stringProp }),
         }),
         oneToManyChild: oneToManyChild({
+          map: ({ stringProp }) => ({ stringProp }),
+        }),
+        nonPaginatedOneToManyChild: nonPaginatedOneToManyChild({
           map: ({ stringProp }) => ({ stringProp }),
         }),
       }),
@@ -1020,6 +1060,9 @@ test('it generates mock data that conforms to relational filters specified in th
         },
         oneToManyChild: {
           stringProp: 'a',
+        },
+        nonPaginatedOneToManyChild: {
+          stringProp: 'foo',
         },
       },
     }),
@@ -1032,6 +1075,9 @@ test('it generates mock data that conforms to relational filters specified in th
     expect(test.oneToManyChild.nodes.length).toBeGreaterThanOrEqual(1);
     test.oneToManyChild.nodes.forEach(child => {
       expect(child.stringProp).toEqual('a');
+    });
+    test.nonPaginatedOneToManyChild.forEach(child => {
+      expect(child.stringProp).toEqual('foo');
     });
   });
 });
@@ -1076,6 +1122,9 @@ function setupTest() {
   type MockNodeRelationalData = {
     oneToOneChild: IOneToOneQueryBuilder<typeof childNode>;
     oneToManyChild: IOneToManyQueryBuilder<typeof childNode>;
+    nonPaginatedOneToManyChild: INonPaginatedOneToManyQueryBuilder<
+      typeof childNode
+    >;
   };
   const mockNode: INode<{
     TNodeType: 'mock';
@@ -1088,6 +1137,7 @@ function setupTest() {
     relational: {
       oneToOneChild: () => oneToOne(childNode),
       oneToManyChild: () => oneToMany(childNode),
+      nonPaginatedOneToManyChild: () => nonPaginatedOneToMany(childNode),
     },
   });
 

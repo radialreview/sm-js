@@ -6,12 +6,20 @@ import {
   getMockConfig,
   getMockQueryRecord,
   getPrettyPrintedGQL,
+  UserNode,
 } from '../specUtilities';
 import {
   getQueryRecordFromQueryDefinition,
   getQueryGQLDocumentFromQueryRecord,
 } from './queryDefinitionAdapters';
-import { object, queryDefinition, oneToOne, string } from '../dataTypes';
+import {
+  object,
+  queryDefinition,
+  oneToOne,
+  string,
+  oneToMany,
+  nonPaginatedOneToMany,
+} from '../dataTypes';
 import { MMGQL } from '..';
 import {
   IOneToOneQueryBuilder,
@@ -19,8 +27,11 @@ import {
   MapFnForNode,
   QueryRecordEntry,
   DocumentNode,
+  IOneToManyQueryBuilder,
+  INonPaginatedOneToManyQueryBuilder,
 } from '../types';
 import {
+  DEFAULT_TOKEN_NAME,
   PROPERTIES_QUERIED_FOR_ALL_NODES,
   RELATIONAL_UNION_QUERY_SEPARATOR,
 } from '../consts';
@@ -158,6 +169,7 @@ describe('getQueryRecordFromQueryDefinition', () => {
         todo: expect.objectContaining({
           def: expect.objectContaining({ type: 'todo' }),
           _relationshipName: 'todo',
+          oneToOne: true,
         }),
       })
     );
@@ -256,6 +268,92 @@ describe('getQueryRecordFromQueryDefinition', () => {
         }
       ),
     });
+  });
+
+  it('handles oneToMany queries', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    const todoProperties = {};
+    type TodoNode = INode<{
+      TNodeType: 'todo';
+      TNodeData: typeof todoProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: { assignees: IOneToManyQueryBuilder<UserNode> };
+    }>;
+    const todoNode: TodoNode = mmGQLInstance.def({
+      type: 'todo',
+      properties: {},
+      relational: {
+        assignees: () => oneToMany(generateUserNode(mmGQLInstance)),
+      },
+    });
+
+    expect(
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: todoNode,
+            map: ({ assignees }) => ({
+              assignees: assignees({
+                map: () => ({}),
+              }),
+            }),
+          }),
+        },
+      }).todos?.relational
+    ).toEqual(
+      expect.objectContaining({
+        assignees: expect.objectContaining({
+          def: expect.objectContaining({ type: 'user' }),
+          _relationshipName: 'assignees',
+          oneToMany: true,
+        }),
+      })
+    );
+  });
+
+  it('handles nonPaginatedOneToMany queries', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+    const todoProperties = {};
+    type TodoNode = INode<{
+      TNodeType: 'todo';
+      TNodeData: typeof todoProperties;
+      TNodeComputedData: {};
+      TNodeRelationalData: {
+        assignees: INonPaginatedOneToManyQueryBuilder<UserNode>;
+      };
+    }>;
+    const todoNode: TodoNode = mmGQLInstance.def({
+      type: 'todo',
+      properties: {},
+      relational: {
+        assignees: () => nonPaginatedOneToMany(generateUserNode(mmGQLInstance)),
+      },
+    });
+
+    expect(
+      getQueryRecordFromQueryDefinition({
+        queryId: 'queryId',
+        queryDefinitions: {
+          todos: queryDefinition({
+            def: todoNode,
+            map: ({ assignees }) => ({
+              assignees: assignees({
+                map: () => ({}),
+              }),
+            }),
+          }),
+        },
+      }).todos?.relational
+    ).toEqual(
+      expect.objectContaining({
+        assignees: expect.objectContaining({
+          def: expect.objectContaining({ type: 'user' }),
+          _relationshipName: 'assignees',
+          nonPaginatedOneToMany: true,
+        }),
+      })
+    );
   });
 
   it('handles omitting map fn for objects, and will query all data in that object', () => {
@@ -578,6 +676,51 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasNextPage
                hasPreviousPage
              }
+           }
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
+  it('handles fetching nonPaginatedOneToMany data', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: {
+            users: {
+              def: generateUserNode(mmGQLInstance),
+              properties: ['id'],
+              relational: {
+                todos: {
+                  def: generateTodoNode(mmGQLInstance),
+                  properties: ['id'],
+                  _relationshipName: 'todos',
+                  nonPaginatedOneToMany: true,
+                },
+              },
+              tokenName: DEFAULT_TOKEN_NAME,
+            },
+          },
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       users: users {
+         nodes {
+           id
+           todos: todos {
+             id
            }
          }
          pageInfo {

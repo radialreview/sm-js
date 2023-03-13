@@ -31,6 +31,7 @@ import {
   QueryState,
 } from '../types';
 import {
+  getDataFromQueryResponsePartial,
   getQueryGQLDocumentFromQueryRecord,
   getQueryRecordFromQueryDefinition,
   queryRecordEntryReturnsArrayOfData,
@@ -172,12 +173,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         const resultsAlias = this.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          if (!pageInfoFromResults) {
-            throw Error(
-              `No page info for results found for the alias ${queryAlias}`
-            );
-          }
-
           if (!clientSidePageInfo) {
             throw Error(
               `No client side page info found for the alias ${queryAlias}`
@@ -188,30 +183,34 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             id => stateForThisAlias.proxyCache[id].proxy
           );
           const aliasPath = [...(opts.aliasPath || []), resultsAlias];
-          resultsAcc[resultsAlias] = new NodesCollection({
-            items,
-            clientSidePageInfo,
-            pageInfoFromResults,
-            // allows the UI to re-render when a nodeCollection's internal state is updated
-            onPaginationRequestStateChanged: this.opts.onResultsUpdated,
-            onLoadMoreResults: () =>
-              this.onLoadMoreResults({
-                aliasPath,
-                previousEndCursor: pageInfoFromResults.endCursor,
-              }),
-            onGoToNextPage: () =>
-              this.onGoToNextPage({
-                aliasPath,
-                previousEndCursor: pageInfoFromResults.endCursor,
-              }),
-            onGoToPreviousPage: () =>
-              this.onGoToPreviousPage({
-                aliasPath,
-                previousStartCursor: pageInfoFromResults.startCursor,
-              }),
-            useServerSidePaginationFilteringSorting: this.opts
-              .useServerSidePaginationFilteringSorting,
-          });
+          if (pageInfoFromResults) {
+            resultsAcc[resultsAlias] = new NodesCollection({
+              items,
+              clientSidePageInfo,
+              pageInfoFromResults,
+              // allows the UI to re-render when a nodeCollection's internal state is updated
+              onPaginationRequestStateChanged: this.opts.onResultsUpdated,
+              onLoadMoreResults: () =>
+                this.onLoadMoreResults({
+                  aliasPath,
+                  previousEndCursor: pageInfoFromResults.endCursor,
+                }),
+              onGoToNextPage: () =>
+                this.onGoToNextPage({
+                  aliasPath,
+                  previousEndCursor: pageInfoFromResults.endCursor,
+                }),
+              onGoToPreviousPage: () =>
+                this.onGoToPreviousPage({
+                  aliasPath,
+                  previousStartCursor: pageInfoFromResults.startCursor,
+                }),
+              useServerSidePaginationFilteringSorting: this.opts
+                .useServerSidePaginationFilteringSorting,
+            });
+          } else {
+            resultsAcc[resultsAlias] = items;
+          }
         } else if (idsOrId) {
           resultsAcc[resultsAlias] =
             stateForThisAlias.proxyCache[idsOrId].proxy;
@@ -238,9 +237,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         if (!queryRecordEntry) return;
 
-        const dataForThisAlias = this.getDataFromResponse({
+        const dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry,
-          dataForThisAlias: opts.data[queryAlias],
+          queryResponsePartial: opts.data[queryAlias],
         });
 
         if (dataForThisAlias == null) return;
@@ -301,8 +300,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return Object.keys(opts.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
           const cacheEntry = this.buildCacheEntry({
-            nodeData: this.getDataFromResponse({
-              dataForThisAlias: opts.queryResult[queryAlias],
+            nodeData: getDataFromQueryResponsePartial({
+              queryResponsePartial: opts.queryResult[queryAlias],
               queryRecordEntry: opts.queryRecord[queryAlias],
             }),
             pageInfoFromResults: this.getPageInfoFromResponse({
@@ -358,10 +357,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         return Object.keys(relational).reduce(
           (relationalStateAcc, relationalAlias) => {
-            const relationalDataForThisAlias = this.getDataFromResponse({
+            const relationalDataForThisAlias = getDataFromQueryResponsePartial({
+              queryResponsePartial: node[relationalAlias],
               queryRecordEntry: relational[relationalAlias],
-              dataForThisAlias: node[relationalAlias],
             });
+
             if (!relationalDataForThisAlias) {
               relationalStateAcc[relationalAlias] = getEmptyStateEntry();
               return relationalStateAcc;
@@ -795,19 +795,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       );
     }
 
-    public getDataFromResponse(opts: {
-      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
-      dataForThisAlias: any;
-    }) {
-      if (opts.queryRecordEntry == null) return null;
-
-      return queryRecordEntryReturnsArrayOfData({
-        queryRecordEntry: opts.queryRecordEntry,
-      })
-        ? opts.dataForThisAlias[NODES_PROPERTY_KEY]
-        : opts.dataForThisAlias;
-    }
-
     public getPageInfoFromResponse(opts: {
       dataForThisAlias: any;
     }): Maybe<PageInfoFromResults> {
@@ -824,19 +811,31 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const idFromFirstAlias = this.getIdFromAlias(firstAlias);
       if (remainingPath.length === 0) {
         if (idFromFirstAlias != null) {
-          const isArrayOfData = Array.isArray(
+          if (!opts.response[firstAliasWithoutId]) {
+            throw Error(
+              'Expected array of data when an id is found in the alias'
+            );
+          }
+
+          const dataIsArrayAtRoot = Array.isArray(
             opts.response[firstAliasWithoutId]
-              ? opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]
-              : false
           );
-          if (!isArrayOfData)
+          const dataIsArrayNestedInNodes = Array.isArray(
+            opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]
+          );
+
+          if (!dataIsArrayAtRoot && !dataIsArrayNestedInNodes)
             throw Error(
               'Expected array of data when an id is found in the alias'
             );
 
-          const dataForThisAlias = opts.response[firstAliasWithoutId][
-            NODES_PROPERTY_KEY
-          ].find((item: any) => item.id === idFromFirstAlias);
+          const dataArray = dataIsArrayAtRoot
+            ? opts.response[firstAliasWithoutId]
+            : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
+
+          const dataForThisAlias = dataArray.find(
+            (item: any) => item.id === idFromFirstAlias
+          );
           if (!dataForThisAlias)
             throw Error(
               'Expected data for this alias when an id is found in the alias'
@@ -852,9 +851,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         });
       }
 
-      const dataForThisAlias = opts.response[firstAliasWithoutId][
-        NODES_PROPERTY_KEY
-      ].find((item: any) => item.id === idFromFirstAlias);
+      const dataIsArrayAtRoot = Array.isArray(
+        opts.response[firstAliasWithoutId]
+      );
+      const dataArray = dataIsArrayAtRoot
+        ? opts.response[firstAliasWithoutId]
+        : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
+
+      const dataForThisAlias = dataArray.find(
+        (item: any) => item.id === idFromFirstAlias
+      );
       return this.getPageInfoFromResponseForAlias({
         aliasPath: remainingPath,
         response: dataForThisAlias,

@@ -23,3 +23,10 @@ export declare function getQueryGQLDocumentFromQueryRecord(opts: {
 export declare function queryRecordEntryReturnsArrayOfData(opts: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }): boolean | null;
+export declare function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
+    queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+}): boolean | null;
+export declare function getDataFromQueryResponsePartial(opts: {
+    queryResponsePartial: Record<string, any>;
+    queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+}): any;

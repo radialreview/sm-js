@@ -10,6 +10,7 @@ import {
   record,
   oneToMany,
   oneToOne,
+  nonPaginatedOneToMany,
 } from './dataTypes';
 import {
   ExtractQueriedDataFromMapFn,
@@ -24,6 +25,7 @@ import {
   QueryDefinition,
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
+  INonPaginatedOneToManyQueryBuilder,
 } from './types';
 
 /**
@@ -43,6 +45,7 @@ const todoProperties = {
 const todoRelational = {
   assignee: () => oneToOne(userNode),
   assignees: () => oneToMany(userNode),
+  assignees_nonPaginated: () => nonPaginatedOneToMany(userNode),
   meeting: () => oneToOne(meetingNode),
   assigneeUnionNullable: () =>
     oneToOne<Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>>({
@@ -80,6 +83,7 @@ type TodoNode = INode<{
   TNodeRelationalData: {
     assignee: IOneToOneQueryBuilder<UserNode>;
     assignees: IOneToManyQueryBuilder<UserNode>;
+    assignees_nonPaginated: INonPaginatedOneToManyQueryBuilder<UserNode>;
     meeting: IOneToOneQueryBuilder<Maybe<MeetingNode>>;
     assigneeUnionNullable: IOneToOneQueryBuilder<
       Maybe<{ meetingGuest: MeetingGuestNode; orgUser: UserNode }>
@@ -426,6 +430,21 @@ const stateNode: StateNode = mmGQL.def({
         firstName: 'Meida',
         // @ts-expect-error not a property in the user node
         bogus: '',
+      },
+    }),
+  });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        todos: userData.todos({ map: ({ task }) => ({ task }) }),
+      }),
+      filter: {
+        // filter defined when there's also relational data being accessed
+        firstName: 'Meida',
       },
     }),
   });
@@ -1087,4 +1106,27 @@ const stateNode: StateNode = mmGQL.def({
       }),
     }),
   });
+
+  // nonPaginatedOneToMany tests
+  const result = await mmGQL.query({
+    todos: queryDefinition({
+      def: todoNode,
+
+      map: ({ assignees_nonPaginated }) => ({
+        assignees: assignees_nonPaginated({
+          map: ({ firstName, lastName }) => ({
+            firstName,
+            lastName,
+          }),
+        }),
+      }),
+    }),
+  });
+
+  result.data.todos.nodes[0].assignees as Array<any>;
+  result.data.todos.nodes[0].assignees[0].firstName as string;
+  result.data.todos.nodes[0].assignees[0].lastName as string;
+  result.data.todos.nodes[0].assignees[0].fullName as string;
+  // @ts-expect-error address was not queried
+  result.data.todos.nodes[0].assignees[0].address as any;
 })();

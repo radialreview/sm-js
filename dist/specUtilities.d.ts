@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder } from './types';
 import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
@@ -546,6 +546,7 @@ declare const userProperties: {
 declare type UserProperties = typeof userProperties;
 declare type UserRelationalData = {
     todos: IOneToManyQueryBuilder<TodoNode>;
+    nonPaginatedTodos: INonPaginatedOneToManyQueryBuilder<TodoNode>;
 };
 export declare type UserNode = INode<{
     TNodeType: 'user';
@@ -847,6 +848,7 @@ export declare type TodoProperties = typeof todoProperties;
 export declare type TodoRelationalData = {
     assignee: IOneToOneQueryBuilder<UserNode>;
     users: IOneToManyQueryBuilder<UserNode>;
+    nonPaginatedUsers: INonPaginatedOneToManyQueryBuilder<UserNode>;
 };
 export declare type TodoNode = INode<{
     TNodeType: 'todo';
@@ -1093,8 +1095,8 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         };
                     }>;
                 };
-                TNodeComputedData: {};
-                TNodeRelationalData: {};
+                TNodeComputedData: Record<string, never>;
+                TNodeRelationalData: Record<string, never>;
             }>>(opts: {
                 map: TMapFn;
             }) => TMapFn;
@@ -1291,12 +1293,12 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             }>;
                         };
                     };
-                    TNodeComputedData: {};
-                    TNodeRelationalData: {};
+                    TNodeComputedData: Record<string, never>;
+                    TNodeRelationalData: Record<string, never>;
                 }>>(opts: {
                     map: TMapFn_1;
                 }) => TMapFn_1;
-            } & {
+            } & Record<string, never> & {
                 dateCreated: {
                     (defaultValue: number): IData<{
                         TValue: string;
@@ -1452,7 +1454,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             TBoxedValue: undefined;
                         }>;
                     };
-                } & {
+                } & Record<string, never> & {
                     dateCreated: {
                         (defaultValue: number): IData<{
                             TValue: string;
@@ -1680,8 +1682,8 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     }>;
                                 }>;
                             };
-                            TNodeComputedData: {};
-                            TNodeRelationalData: {};
+                            TNodeComputedData: Record<string, never>;
+                            TNodeRelationalData: Record<string, never>;
                         }>>(opts: {
                             map: TMapFn_2;
                         }) => TMapFn_2;
@@ -2128,8 +2130,8 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                                 };
                                             }>;
                                         };
-                                        TNodeComputedData: {};
-                                        TNodeRelationalData: {};
+                                        TNodeComputedData: Record<string, never>;
+                                        TNodeRelationalData: Record<string, never>;
                                     }>>(opts: {
                                         map: TMapFn;
                                     }) => TMapFn;
@@ -2455,4 +2457,12 @@ export declare function createMockDataItems<T>(opts: {
     totalCount: number;
     pageInfo: PageInfoFromResults;
 };
+export declare function createNonPaginatedMockDataItems<T>(opts: {
+    sampleMockData: T & {
+        id: string;
+    };
+    items: Array<Partial<any>>;
+}): (T & {
+    id: string;
+})[];
 export {};
