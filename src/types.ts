@@ -730,7 +730,7 @@ export type ValidFilterForMapFnRelationalResults<
   },
   TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'],
   TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}
-> = RemoveNevers<{
+> = Partial<RemoveNevers<{
   [TKey in keyof TMapFnReturn]:
     TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs>
       ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
@@ -751,7 +751,7 @@ export type ValidFilterForMapFnRelationalResults<
             : never
           : never
       : never
-}>
+}>>
 
 export type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>
 

@@ -434,6 +434,21 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        todos: userData.todos({ map: ({ task }) => ({ task }) }),
+      }),
+      filter: {
+        // filter defined when there's also relational data being accessed
+        firstName: 'Meida',
+      },
+    }),
+  });
+
   // testing relational filters
   await mmGQL.query({
     users: queryDefinition({
