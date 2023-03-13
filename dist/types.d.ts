@@ -508,9 +508,9 @@ export declare type ValidFilterForNode<TNode extends INode> = Partial<ExtractNod
 export declare type ValidFilterForMapFnRelationalResults<TValidFilterForMapFnRelationalResultsArgs extends {
     TMapFn: MapFnForNode<TValidFilterForMapFnRelationalResultsArgs['TNode']> | undefined;
     TNode: INode;
-}, TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'], TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}> = Partial<RemoveNevers<{
-    [TKey in keyof TMapFnReturn]: TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs> ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends (IOneToManyQuery<infer TOneToManyQueryArgs> | INonPaginatedOneToManyQuery<infer TOneToManyQueryArgs>) ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : never;
-}>>;
+}, TMapFn = TValidFilterForMapFnRelationalResultsArgs['TMapFn'], TMapFnReturn = TMapFn extends (...args: any) => any ? ReturnType<TMapFn> : {}> = RemoveNevers<{
+    [TKey in keyof TMapFnReturn]: TMapFnReturn[TKey] extends IOneToOneQuery<infer TOneToOneQueryArgs> ? TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToOneQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToOneQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends IOneToManyQuery<infer TOneToManyQueryArgs> ? TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : TMapFnReturn[TKey] extends INonPaginatedOneToManyQuery<infer TNonPaginatedOneToManyQueryArgs> ? TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'] extends MapFnForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> ? ValidFilterForNode<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> : never : never : never;
+}>;
 export declare type ValidSortForNode<TNode extends INode> = ExtractNodeSortData<TNode> | ExtractNodeRelationalDataSort<TNode>;
 export declare type ExtractNodeFilterData<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetResultingFilterDataTypeFromNodeDefinition<TNode> ? GetResultingFilterDataTypeFromNodeDefinition<TNode>[TKey] : never;
@@ -789,6 +789,8 @@ export declare type RelationalQueryRecordEntry = {
     oneToOne: true;
 }) | (BaseQueryRecordEntry & {
     oneToMany: true;
+}) | (BaseQueryRecordEntry & {
+    nonPaginatedOneToMany: true;
 }));
 export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;

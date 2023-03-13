@@ -106,10 +106,6 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             relationalQueries: Record<string, RelationalQueryRecordEntry>;
             nodeData: Record<string, any>;
         }): Record<string, RelationalQueryRecordEntry>;
-        getDataFromResponse(opts: {
-            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
-            dataForThisAlias: any;
-        }): any;
         getPageInfoFromResponse(opts: {
             dataForThisAlias: any;
         }): Maybe<PageInfoFromResults>;

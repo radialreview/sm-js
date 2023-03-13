@@ -1285,6 +1285,16 @@ function getRelationalQueries(opts) {
           if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.sort) {
             relationalQueryRecord.sort = relationalQuery.queryBuilderOpts.sort;
           }
+        } else if (relationalType === RELATIONAL_TYPES.nonPaginatedOneToMany) {
+          relationalQueryRecord.nonPaginatedOneToMany = true;
+
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.filter) {
+            relationalQueryRecord.filter = relationalQuery.queryBuilderOpts.filter;
+          }
+
+          if (relationalQuery.queryBuilderOpts && relationalQuery.queryBuilderOpts.sort) {
+            relationalQueryRecord.sort = relationalQuery.queryBuilderOpts.sort;
+          }
         } else {
           throw Error("relationalType \"" + relationalType + "\" is not valid.");
         }
@@ -1318,7 +1328,7 @@ function getRelationalQueries(opts) {
         throw Error("getRelationalQueries - the key \"" + alias + "\" is not a data property, not a computed property and does not contain a relational query.");
       }
 
-      if (relationalQuery._relational === RELATIONAL_TYPES.oneToOne || relationalQuery._relational === RELATIONAL_TYPES.oneToMany) {
+      if (relationalQuery._relational === RELATIONAL_TYPES.oneToOne || relationalQuery._relational === RELATIONAL_TYPES.oneToMany || relationalQuery._relational === RELATIONAL_TYPES.nonPaginatedOneToMany) {
         if ('map' in relationalQuery.queryBuilderOpts && (typeof relationalQuery.queryBuilderOpts.map === 'function' || relationalQuery.queryBuilderOpts.map === undefined)) {
           // non union
           var queryBuilderOpts = relationalQuery.queryBuilderOpts;
@@ -1809,6 +1819,21 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
 }
 function queryRecordEntryReturnsArrayOfData(opts) {
   return opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry);
+}
+function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) {
+  return opts.queryRecordEntry && queryRecordEntryReturnsArrayOfData(opts) && !('nonPaginatedOneToMany' in opts.queryRecordEntry);
+} // When we query for paginated arrays, the response is an object containing
+// a "nodes" property which is an array of the nodes
+// Otherwise the response is the node, or the list of nodes, itself
+
+function getDataFromQueryResponsePartial(opts) {
+  if (!opts.queryRecordEntry) return null;
+
+  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts)) {
+    return opts.queryResponsePartial[NODES_PROPERTY_KEY];
+  } else {
+    return opts.queryResponsePartial;
+  }
 } // will need this when we enable subscriptions
 // const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
 //   queryRecord
@@ -4083,6 +4108,9 @@ function generateMockNodeDataForQueryRecord(opts) {
     var returnValueShouldBeAnArray = queryRecordEntryReturnsArrayOfData({
       queryRecordEntry: queryRecordEntryForThisAlias
     });
+    var returnValueShouldBeNestedInNodes = queryRecordEntryReturnsArrayOfDataNestedInNodes({
+      queryRecordEntry: queryRecordEntryForThisAlias
+    });
     var mockedNodeDataReturnValues; // to facilitate generating mock data that conforms to the relational filters
     // we simply move relational filters to the relational query they apply to
 
@@ -4101,7 +4129,7 @@ function generateMockNodeDataForQueryRecord(opts) {
     }, {});
 
     if (returnValueShouldBeAnArray) {
-      var _queryRecordEntryForT, _mockedNodeDataReturn;
+      var _queryRecordEntryForT;
 
       var pageSize = ((_queryRecordEntryForT = queryRecordEntryForThisAlias.pagination) == null ? void 0 : _queryRecordEntryForT.itemsPerPage) || DEFAULT_PAGE_SIZE; // must generate at least 1 result, otherwise may return an empty array for a oneToMany relationship which expects at least 1 result
 
@@ -4126,7 +4154,14 @@ function generateMockNodeDataForQueryRecord(opts) {
         totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize),
         totalCount: arrayOfMockNodeValues.length
       };
-      mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
+
+      if (returnValueShouldBeNestedInNodes) {
+        var _mockedNodeDataReturn;
+
+        mockedNodeDataReturnValues = (_mockedNodeDataReturn = {}, _mockedNodeDataReturn[NODES_PROPERTY_KEY] = arrayOfMockNodeValues, _mockedNodeDataReturn[TOTAL_COUNT_PROPERTY_KEY] = arrayOfMockNodeValues.length, _mockedNodeDataReturn[PAGE_INFO_PROPERTY_KEY] = pageInfo, _mockedNodeDataReturn);
+      } else {
+        mockedNodeDataReturnValues = arrayOfMockNodeValues;
+      }
     } else {
       var _mockNodeDataForQueryRecordEntry = generateMockNodeDataForQueryRecordEntry({
         queryRecordEntry: queryRecordEntryForThisAlias
@@ -4263,12 +4298,21 @@ function applyClientSideFilterToData(_ref3) {
         isRelational: isRelationalProperty,
         relationalKey: possibleRelationalKey,
         oneToOne: relational && 'oneToOne' in relational || undefined,
-        oneToMany: relational && 'oneToMany' in relational || undefined
+        oneToMany: relational && 'oneToMany' in relational || undefined,
+        nonPaginatedOneToMany: relational && 'nonPaginatedOneToMany' in relational || undefined
       };
     });
 
     if (filterProperties.length > 0) {
-      update(data, alias + "." + NODES_PROPERTY_KEY, function (items) {
+      var pathToDataArray = "" + alias;
+
+      if (queryRecordEntryReturnsArrayOfDataNestedInNodes({
+        queryRecordEntry: queryRecordEntry
+      })) {
+        pathToDataArray += "." + NODES_PROPERTY_KEY;
+      }
+
+      update(data, pathToDataArray, function (items) {
         if (!isArray(items)) {
           return items;
         }
@@ -4306,14 +4350,25 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     itemValue: itemValue
                   });
-                } else {
-                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                } else if (filter.nonPaginatedOneToMany === true) {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey] || [] : [];
                   return checkRelationalItems({
                     relationalItems: relationalItems,
                     operator: operator,
                     filterValue: value,
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
                   });
+                } else if (filter.oneToMany === true) {
+                  var _relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+
+                  return checkRelationalItems({
+                    relationalItems: _relationalItems,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                } else {
+                  throw new Error('Unrecognized relational filter type.');
                 }
               });
             } else {
@@ -4353,14 +4408,25 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     itemValue: itemValue
                   });
-                } else {
-                  var relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+                } else if (filter.nonPaginatedOneToMany === true) {
+                  var relationalItems = filter.relationalKey ? item[filter.relationalKey] || [] : [];
                   return checkRelationalItems({
                     relationalItems: relationalItems,
                     operator: operator,
                     filterValue: value,
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
                   });
+                } else if (filter.oneToMany === true) {
+                  var _relationalItems2 = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
+
+                  return checkRelationalItems({
+                    relationalItems: _relationalItems2,
+                    operator: operator,
+                    filterValue: value,
+                    underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+                  });
+                } else {
+                  throw new Error('Unrecognized relational filter type.');
                 }
               });
             } else {
@@ -4411,11 +4477,26 @@ function getSortPosition(first, second, ascending) {
 }
 
 function getNodeSortPropertyValue(opts) {
-  return opts.isRelational && opts.relationalKey ? opts.oneToMany ? (opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || []).sort(function (a, b) {
+  function getData() {
+    if (opts.isRelational && opts.relationalKey) {
+      if (opts.oneToMany) {
+        return opts.node[opts.relationalKey][NODES_PROPERTY_KEY] || [];
+      } else if (opts.nonPaginatedOneToMany) {
+        return opts.node[opts.relationalKey] || [];
+      } else {
+        return opts.node[opts.relationalKey];
+      }
+    } else {
+      return opts.node;
+    }
+  }
+
+  var data = getData();
+  return Array.isArray(data) ? data.sort(function (a, b) {
     return getSortPosition(getItemSortValue(a, opts.underscoreSeparatedPropName), getItemSortValue(b, opts.underscoreSeparatedPropName), opts.direction === 'asc');
   }).map(function (x) {
     return x[opts.underscoreSeparatedPropName];
-  }).join('') : getItemSortValue(opts.node[opts.relationalKey], opts.underscoreSeparatedPropName) : getItemSortValue(opts.node, opts.underscoreSeparatedPropName);
+  }).join('') : getItemSortValue(data, opts.underscoreSeparatedPropName);
 }
 
 function getItemSortValue(item, underscoreSeparatedPropertyPath) {
@@ -4453,6 +4534,7 @@ function applyClientSideSortToData(_ref8) {
         relationalKey: possibleRelationalKey,
         oneToOne: relational && 'oneToOne' in relational || undefined,
         oneToMany: relational && 'oneToMany' in relational || undefined,
+        nonPaginatedOneToMany: relational && 'nonPaginatedOneToMany' in relational || undefined,
         priority: sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
         direction: sortObject[dotSeparatedPropName].direction || 'asc'
       };
@@ -4469,7 +4551,15 @@ function applyClientSideSortToData(_ref8) {
       });
     }
 
-    update(data, alias + "." + NODES_PROPERTY_KEY, function (items) {
+    var pathToDataArray = "" + alias;
+
+    if (queryRecordEntryReturnsArrayOfDataNestedInNodes({
+      queryRecordEntry: queryRecordEntry
+    })) {
+      pathToDataArray += "." + NODES_PROPERTY_KEY;
+    }
+
+    update(data, pathToDataArray, function (items) {
       if (!isArray(items)) {
         return items;
       }
@@ -4481,6 +4571,7 @@ function applyClientSideSortToData(_ref8) {
             direction: sort.direction,
             isRelational: sort.isRelational,
             oneToMany: sort.oneToMany,
+            nonPaginatedOneToMany: sort.nonPaginatedOneToMany,
             underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
             relationalKey: sort.relationalKey
           }), getNodeSortPropertyValue({
@@ -4522,18 +4613,17 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     var relational = queryRecordEntry == null ? void 0 : queryRecordEntry.relational;
 
     if (relational != null) {
-      var containsArrayData = queryRecordEntryReturnsArrayOfData({
+      var dataForThisAlias = getDataFromQueryResponsePartial({
+        queryResponsePartial: data[alias],
         queryRecordEntry: queryRecordEntry
       });
 
-      if (containsArrayData) {
-        if (data[alias] && data[alias][NODES_PROPERTY_KEY]) {
-          data[alias][NODES_PROPERTY_KEY].forEach(function (item) {
-            applyClientSideSortAndFilterToData(relational, item);
-          });
-        }
+      if (Array.isArray(dataForThisAlias)) {
+        dataForThisAlias.forEach(function (item) {
+          applyClientSideSortAndFilterToData(relational, item);
+        });
       } else {
-        applyClientSideSortAndFilterToData(relational, data[alias]);
+        applyClientSideSortAndFilterToData(relational, dataForThisAlias);
       }
     }
   });
@@ -6283,10 +6373,6 @@ function createQueryManager(mmGQLInstance) {
         var resultsAlias = _this2.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
-          if (!pageInfoFromResults) {
-            throw Error("No page info for results found for the alias " + queryAlias);
-          }
-
           if (!clientSidePageInfo) {
             throw Error("No client side page info found for the alias " + queryAlias);
           }
@@ -6295,32 +6381,37 @@ function createQueryManager(mmGQLInstance) {
             return stateForThisAlias.proxyCache[id].proxy;
           });
           var aliasPath = [].concat(opts.aliasPath || [], [resultsAlias]);
-          resultsAcc[resultsAlias] = new NodesCollection({
-            items: items,
-            clientSidePageInfo: clientSidePageInfo,
-            pageInfoFromResults: pageInfoFromResults,
-            // allows the UI to re-render when a nodeCollection's internal state is updated
-            onPaginationRequestStateChanged: _this2.opts.onResultsUpdated,
-            onLoadMoreResults: function onLoadMoreResults() {
-              return _this2.onLoadMoreResults({
-                aliasPath: aliasPath,
-                previousEndCursor: pageInfoFromResults.endCursor
-              });
-            },
-            onGoToNextPage: function onGoToNextPage() {
-              return _this2.onGoToNextPage({
-                aliasPath: aliasPath,
-                previousEndCursor: pageInfoFromResults.endCursor
-              });
-            },
-            onGoToPreviousPage: function onGoToPreviousPage() {
-              return _this2.onGoToPreviousPage({
-                aliasPath: aliasPath,
-                previousStartCursor: pageInfoFromResults.startCursor
-              });
-            },
-            useServerSidePaginationFilteringSorting: _this2.opts.useServerSidePaginationFilteringSorting
-          });
+
+          if (pageInfoFromResults) {
+            resultsAcc[resultsAlias] = new NodesCollection({
+              items: items,
+              clientSidePageInfo: clientSidePageInfo,
+              pageInfoFromResults: pageInfoFromResults,
+              // allows the UI to re-render when a nodeCollection's internal state is updated
+              onPaginationRequestStateChanged: _this2.opts.onResultsUpdated,
+              onLoadMoreResults: function onLoadMoreResults() {
+                return _this2.onLoadMoreResults({
+                  aliasPath: aliasPath,
+                  previousEndCursor: pageInfoFromResults.endCursor
+                });
+              },
+              onGoToNextPage: function onGoToNextPage() {
+                return _this2.onGoToNextPage({
+                  aliasPath: aliasPath,
+                  previousEndCursor: pageInfoFromResults.endCursor
+                });
+              },
+              onGoToPreviousPage: function onGoToPreviousPage() {
+                return _this2.onGoToPreviousPage({
+                  aliasPath: aliasPath,
+                  previousStartCursor: pageInfoFromResults.startCursor
+                });
+              },
+              useServerSidePaginationFilteringSorting: _this2.opts.useServerSidePaginationFilteringSorting
+            });
+          } else {
+            resultsAcc[resultsAlias] = items;
+          }
         } else if (idsOrId) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
         } else {
@@ -6342,12 +6433,10 @@ function createQueryManager(mmGQLInstance) {
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
         if (!queryRecordEntry) return;
-
-        var dataForThisAlias = _this3.getDataFromResponse({
+        var dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry: queryRecordEntry,
-          dataForThisAlias: opts.data[queryAlias]
+          queryResponsePartial: opts.data[queryAlias]
         });
-
         if (dataForThisAlias == null) return;
         var nodeRepository = queryRecordEntry.def.repository;
 
@@ -6401,8 +6490,8 @@ function createQueryManager(mmGQLInstance) {
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var cacheEntry = _this4.buildCacheEntry({
-          nodeData: _this4.getDataFromResponse({
-            dataForThisAlias: opts.queryResult[queryAlias],
+          nodeData: getDataFromQueryResponsePartial({
+            queryResponsePartial: opts.queryResult[queryAlias],
             queryRecordEntry: opts.queryRecord[queryAlias]
           }),
           pageInfoFromResults: _this4.getPageInfoFromResponse({
@@ -6448,9 +6537,9 @@ function createQueryManager(mmGQLInstance) {
         return Object.keys(relational).reduce(function (relationalStateAcc, relationalAlias) {
           var _extends2;
 
-          var relationalDataForThisAlias = _this5.getDataFromResponse({
-            queryRecordEntry: relational[relationalAlias],
-            dataForThisAlias: node[relationalAlias]
+          var relationalDataForThisAlias = getDataFromQueryResponsePartial({
+            queryResponsePartial: node[relationalAlias],
+            queryRecordEntry: relational[relationalAlias]
           });
 
           if (!relationalDataForThisAlias) {
@@ -6768,13 +6857,6 @@ function createQueryManager(mmGQLInstance) {
       }, {});
     };
 
-    _proto.getDataFromResponse = function getDataFromResponse(opts) {
-      if (opts.queryRecordEntry == null) return null;
-      return queryRecordEntryReturnsArrayOfData({
-        queryRecordEntry: opts.queryRecordEntry
-      }) ? opts.dataForThisAlias[NODES_PROPERTY_KEY] : opts.dataForThisAlias;
-    };
-
     _proto.getPageInfoFromResponse = function getPageInfoFromResponse(opts) {
       var _opts$dataForThisAlia;
 
@@ -6791,10 +6873,18 @@ function createQueryManager(mmGQLInstance) {
 
       if (remainingPath.length === 0) {
         if (idFromFirstAlias != null) {
-          var isArrayOfData = Array.isArray(opts.response[firstAliasWithoutId] ? opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY] : false);
-          if (!isArrayOfData) throw Error('Expected array of data when an id is found in the alias');
+          if (!opts.response[firstAliasWithoutId]) {
+            throw Error('Expected array of data when an id is found in the alias');
+          }
 
-          var _dataForThisAlias = opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY].find(function (item) {
+          var _dataIsArrayAtRoot = Array.isArray(opts.response[firstAliasWithoutId]);
+
+          var dataIsArrayNestedInNodes = Array.isArray(opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]);
+          if (!_dataIsArrayAtRoot && !dataIsArrayNestedInNodes) throw Error('Expected array of data when an id is found in the alias');
+
+          var _dataArray = _dataIsArrayAtRoot ? opts.response[firstAliasWithoutId] : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
+
+          var _dataForThisAlias = _dataArray.find(function (item) {
             return item.id === idFromFirstAlias;
           });
 
@@ -6809,7 +6899,9 @@ function createQueryManager(mmGQLInstance) {
         });
       }
 
-      var dataForThisAlias = opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY].find(function (item) {
+      var dataIsArrayAtRoot = Array.isArray(opts.response[firstAliasWithoutId]);
+      var dataArray = dataIsArrayAtRoot ? opts.response[firstAliasWithoutId] : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
+      var dataForThisAlias = dataArray.find(function (item) {
         return item.id === idFromFirstAlias;
       });
       return this.getPageInfoFromResponseForAlias({
