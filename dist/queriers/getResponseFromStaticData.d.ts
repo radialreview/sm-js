@@ -7,3 +7,6 @@ export declare function getResponseFromStaticData(opts: {
     queryRecord: QueryRecord;
     staticData: StaticData;
 }): Record<string, any>;
+export declare function staticRelational(ownPropName: string): {
+    __staticRelational: string;
+};
