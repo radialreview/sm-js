@@ -1,11 +1,17 @@
 import { MMGQL } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
-import { oneToMany, oneToOne, string } from '../dataTypes';
+import {
+  nonPaginatedOneToMany,
+  oneToMany,
+  oneToOne,
+  string,
+} from '../dataTypes';
 import { getMockConfig } from '../specUtilities';
 import { QueryRecord } from '../types';
 import {
   getResponseFromStaticData,
   StaticData,
+  staticRelational,
 } from './getResponseFromStaticData';
 
 function setupTest() {
@@ -35,6 +41,7 @@ function setupTest() {
     },
     relational: {
       attendees: () => oneToMany(attendeeNode),
+      nonPaginatedAttendees: () => nonPaginatedOneToMany(attendeeNode),
       team: () => oneToOne(teamNode),
     },
   });
@@ -45,6 +52,10 @@ function setupTest() {
         id: 'meeting-1',
         meetingName: 'Meeting 1',
         attendeeIds: ['attendee-1', 'attendee-2'],
+        attendees: staticRelational('attendeeIds'),
+        nonPaginatedAttendees: staticRelational('attendeeIds'),
+        teamId: 'team-1',
+        team: staticRelational('teamId'),
       },
       'meeting-2': {
         id: 'meeting-2',
@@ -68,6 +79,7 @@ function setupTest() {
         id: 'team-1',
         teamName: 'Team 1',
         memberIds: ['attendee-1', 'attendee-2'],
+        members: staticRelational('memberIds'),
       },
     },
   };
@@ -197,5 +209,102 @@ test('returns null when a node is requested by id and not found in static data',
     })
   ).toEqual({
     meeting: null,
+  });
+});
+
+test('returns the correct data when a node is requested by id and has relational data accessed', () => {
+  const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+        },
+        nonPaginatedAttendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'nonPaginatedAttendees',
+          nonPaginatedOneToMany: true,
+        },
+        team: {
+          def: teamNode,
+          properties: ['id', 'teamName'],
+          _relationshipName: 'team',
+          oneToOne: true,
+          relational: {
+            members: {
+              def: attendeeNode,
+              properties: ['id', 'firstName', 'lastName'],
+              _relationshipName: 'members',
+              oneToMany: true,
+            },
+          },
+        },
+      },
+    },
+  };
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendees: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-1',
+            firstName: 'John',
+            lastName: 'Doe',
+          }),
+          expect.objectContaining({
+            id: 'attendee-2',
+            firstName: 'Jane',
+            lastName: 'Doe',
+          }),
+        ],
+      },
+      nonPaginatedAttendees: [
+        expect.objectContaining({
+          id: 'attendee-1',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+        expect.objectContaining({
+          id: 'attendee-2',
+          firstName: 'Jane',
+          lastName: 'Doe',
+        }),
+      ],
+      team: expect.objectContaining({
+        id: 'team-1',
+        teamName: 'Team 1',
+        members: {
+          nodes: [
+            expect.objectContaining({
+              id: 'attendee-1',
+              firstName: 'John',
+              lastName: 'Doe',
+            }),
+            expect.objectContaining({
+              id: 'attendee-2',
+              firstName: 'Jane',
+              lastName: 'Doe',
+            }),
+          ],
+        },
+      }),
+    }),
   });
 });
