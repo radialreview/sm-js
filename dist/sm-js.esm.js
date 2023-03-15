@@ -5895,6 +5895,7 @@ function getGQLCLient(gqlClientOpts) {
     var headers = {};
 
     if (opts.token != null && opts.token !== '') {
+      console.log('token', opts.token);
       headers.Authorization = "Bearer " + opts.token;
     }
 
@@ -6063,8 +6064,8 @@ function getDefaultConfig() {
   };
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      httpUrl: 'https://dev.bloomgrowth.com/graphql',
+      wsUrl: 'wss://dev.bloomgrowth.com/graphql',
       logging: logging
     }),
     generateMockData: false,
