@@ -11,10 +11,8 @@ export function getDefaultConfig(): Config {
 
   return {
     gqlClient: getGQLCLient({
-      httpUrl:
-        'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl:
-        'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
+      httpUrl: 'https://dev.bloomgrowth.com/graphql',
+      wsUrl: 'wss://dev.bloomgrowth.com/graphql',
       logging,
     }),
     generateMockData: false,

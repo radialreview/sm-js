@@ -84,6 +84,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     let headers: Record<string, string> = {};
 
     if (opts.token != null && opts.token !== '') {
+      console.log('token', opts.token);
       headers.Authorization = `Bearer ${opts.token}`;
     }
 
