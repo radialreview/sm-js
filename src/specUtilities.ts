@@ -437,6 +437,8 @@ export function getMockConfig(opts?: {
       mutate: () => new Promise(res => res([])),
     },
     generateMockData: !!opts?.generateMockData,
+    mockDataType: 'random',
+    staticData: undefined,
     enableQuerySlimming: opts?.enableQuerySlimming ?? false,
     logging: {
       querySlimming: false,
