@@ -6,6 +6,7 @@ import {
   oneToOne,
   string,
 } from '../dataTypes';
+import { deepClone } from '../dataUtilities';
 import { getMockConfig } from '../specUtilities';
 import { QueryRecord } from '../types';
 import {
@@ -130,6 +131,14 @@ test('returns the correct data when a collection of nodes is requested', () => {
           meetingName: 'Meeting 2',
         }),
       ],
+      pageInfo: {
+        endCursor: '2',
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: '1',
+        totalCount: 2,
+        totalPages: 1,
+      },
     },
   });
 });
@@ -274,6 +283,14 @@ test('returns the correct data when a node is requested by id and has relational
             lastName: 'Doe',
           }),
         ],
+        pageInfo: {
+          endCursor: '2',
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: '1',
+          totalCount: 2,
+          totalPages: 1,
+        },
       },
       nonPaginatedAttendees: [
         expect.objectContaining({
@@ -303,6 +320,405 @@ test('returns the correct data when a node is requested by id and has relational
               lastName: 'Doe',
             }),
           ],
+          pageInfo: {
+            endCursor: '2',
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: '1',
+            totalCount: 2,
+            totalPages: 1,
+          },
+        },
+      }),
+    }),
+  });
+});
+
+test('returns the correct data when switching through pages', () => {
+  const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+          pagination: {
+            startCursor: '1',
+            endCursor: '2',
+            itemsPerPage: 1,
+          },
+        },
+        team: {
+          def: teamNode,
+          properties: ['id', 'teamName'],
+          _relationshipName: 'team',
+          oneToOne: true,
+          relational: {
+            members: {
+              def: attendeeNode,
+              properties: ['id', 'firstName', 'lastName'],
+              _relationshipName: 'members',
+              oneToMany: true,
+              pagination: {
+                startCursor: '1',
+                endCursor: '2',
+                itemsPerPage: 1,
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendees: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-1',
+            firstName: 'John',
+            lastName: 'Doe',
+          }),
+        ],
+        pageInfo: {
+          hasNextPage: true,
+          hasPreviousPage: false,
+          startCursor: '1',
+          endCursor: '2',
+          totalCount: 2,
+          totalPages: 2,
+        },
+      },
+      team: expect.objectContaining({
+        id: 'team-1',
+        teamName: 'Team 1',
+        members: {
+          nodes: [
+            expect.objectContaining({
+              id: 'attendee-1',
+              firstName: 'John',
+              lastName: 'Doe',
+            }),
+          ],
+          pageInfo: {
+            hasNextPage: true,
+            hasPreviousPage: false,
+            startCursor: '1',
+            endCursor: '2',
+            totalCount: 2,
+            totalPages: 2,
+          },
+        },
+      }),
+    }),
+  });
+
+  const queryRecordClone = deepClone(queryRecord);
+  if (queryRecordClone.meeting?.relational?.attendees.pagination) {
+    queryRecordClone.meeting.relational.attendees.pagination.startCursor = '2';
+  }
+  if (
+    queryRecordClone.meeting?.relational?.team?.relational?.members.pagination
+  ) {
+    queryRecordClone.meeting.relational.team.relational.members.pagination.startCursor =
+      '2';
+  }
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord: queryRecordClone,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendees: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-2',
+            firstName: 'Jane',
+            lastName: 'Doe',
+          }),
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: '2',
+          endCursor: '3',
+          totalCount: 2,
+          totalPages: 2,
+        },
+      },
+      team: expect.objectContaining({
+        id: 'team-1',
+        teamName: 'Team 1',
+        members: {
+          nodes: [
+            expect.objectContaining({
+              id: 'attendee-2',
+              firstName: 'Jane',
+              lastName: 'Doe',
+            }),
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: true,
+            startCursor: '2',
+            endCursor: '3',
+            totalCount: 2,
+            totalPages: 2,
+          },
+        },
+      }),
+    }),
+  });
+});
+
+test('returns the correct data when filtering a collection', () => {
+  const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+          filter: {
+            firstName: {
+              eq: 'John',
+            },
+          },
+        },
+        nonPaginatedAttendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'nonPaginatedAttendees',
+          nonPaginatedOneToMany: true,
+          filter: {
+            firstName: {
+              eq: 'John',
+            },
+          },
+        },
+        team: {
+          def: teamNode,
+          properties: ['id', 'teamName'],
+          _relationshipName: 'team',
+          oneToOne: true,
+          relational: {
+            members: {
+              def: attendeeNode,
+              properties: ['id', 'firstName', 'lastName'],
+              _relationshipName: 'members',
+              oneToMany: true,
+              filter: {
+                firstName: {
+                  eq: 'John',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendees: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-1',
+            firstName: 'John',
+            lastName: 'Doe',
+          }),
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: '1',
+          endCursor: '2',
+          totalCount: 1,
+          totalPages: 1,
+        },
+      },
+      nonPaginatedAttendees: [
+        expect.objectContaining({
+          id: 'attendee-1',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      ],
+      team: expect.objectContaining({
+        id: 'team-1',
+        teamName: 'Team 1',
+        members: {
+          nodes: [
+            expect.objectContaining({
+              id: 'attendee-1',
+              firstName: 'John',
+              lastName: 'Doe',
+            }),
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: '1',
+            endCursor: '2',
+            totalCount: 1,
+            totalPages: 1,
+          },
+        },
+      }),
+    }),
+  });
+});
+
+test('returns the correct data when sorting a collection', () => {
+  const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+          sort: {
+            firstName: 'asc',
+          },
+        },
+        nonPaginatedAttendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'nonPaginatedAttendees',
+          nonPaginatedOneToMany: true,
+          sort: {
+            firstName: 'asc',
+          },
+        },
+        team: {
+          def: teamNode,
+          properties: ['id', 'teamName'],
+          _relationshipName: 'team',
+          oneToOne: true,
+          relational: {
+            members: {
+              def: attendeeNode,
+              properties: ['id', 'firstName', 'lastName'],
+              _relationshipName: 'members',
+              oneToMany: true,
+              sort: {
+                firstName: 'asc',
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendees: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-2',
+            firstName: 'Jane',
+            lastName: 'Doe',
+          }),
+          expect.objectContaining({
+            id: 'attendee-1',
+            firstName: 'John',
+            lastName: 'Doe',
+          }),
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: '1',
+          endCursor: '2',
+          totalCount: 2,
+          totalPages: 1,
+        },
+      },
+      nonPaginatedAttendees: [
+        expect.objectContaining({
+          id: 'attendee-2',
+          firstName: 'Jane',
+          lastName: 'Doe',
+        }),
+        expect.objectContaining({
+          id: 'attendee-1',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      ],
+      team: expect.objectContaining({
+        id: 'team-1',
+        teamName: 'Team 1',
+        members: {
+          nodes: [
+            expect.objectContaining({
+              id: 'attendee-2',
+              firstName: 'Jane',
+              lastName: 'Doe',
+            }),
+            expect.objectContaining({
+              id: 'attendee-1',
+              firstName: 'John',
+              lastName: 'Doe',
+            }),
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: '1',
+            endCursor: '2',
+            totalCount: 2,
+            totalPages: 1,
+          },
         },
       }),
     }),

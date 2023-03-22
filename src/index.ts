@@ -18,6 +18,7 @@ import {
   NodeDefaultProps,
   EPaginationFilteringSortingInstance,
 } from './types';
+import { StaticData } from './queriers/getResponseFromStaticData';
 
 export * from './types';
 export * from './dataTypes';
@@ -26,12 +27,15 @@ export * from './config';
 export * from './gqlClient';
 export * from './consts';
 export * from './queriers/generateMockDataUtilities';
+export * from './queriers/getResponseFromStaticData';
 export * from './nodesCollection';
 export { gql } from '@apollo/client';
 
 export class MMGQL implements IMMGQL {
   public gqlClient: IMMGQL['gqlClient'];
   public generateMockData: IMMGQL['generateMockData'];
+  public mockDataType: 'random' | 'static' | undefined;
+  public staticData: StaticData | undefined;
   public getMockDataDelay: IMMGQL['getMockDataDelay'];
   public enableQuerySlimming: IMMGQL['enableQuerySlimming'];
   public paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
@@ -57,6 +61,9 @@ export class MMGQL implements IMMGQL {
     this.paginationFilteringSortingInstance =
       config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
+    this.mockDataType = config.mockDataType;
+    this.staticData = config.staticData;
+
     this.query = generateQuerier({ mmGQLInstance: this });
     this.subscribe = generateSubscriber(this);
     this.DOProxyGenerator = createDOProxyGenerator(this);

@@ -1,5 +1,17 @@
+import {
+  DEFAULT_PAGE_SIZE,
+  NODES_PROPERTY_KEY,
+  PAGE_INFO_PROPERTY_KEY,
+} from '../consts';
 import { UnreachableCaseError } from '../exceptions';
-import { QueryRecord, QueryRecordEntry, RelationalQueryRecord } from '../types';
+import { PageInfoFromResults } from '../nodesCollection';
+import {
+  QueryRecord,
+  QueryRecordEntry,
+  RelationalQueryRecord,
+  RelationalQueryRecordEntry,
+} from '../types';
+import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 
 export type StaticData = Record<
   string, // node type
@@ -34,31 +46,43 @@ export function getResponseFromStaticData(opts: {
       throw new Error(`No static data for type ${type}`);
     }
 
-    function augmentEntryWithRelational(entry: Record<string, any>) {
+    function agumentNodeWithRelationalData(node: Record<string, any>) {
       if (relational) {
         return augmentWithRelational({
-          dataToAugment: entry,
+          dataToAugment: node,
           allStaticData: staticData,
           relational,
         });
       } else {
-        return entry;
+        return node;
       }
     }
 
     if (id != null) {
       response[alias] =
-        augmentEntryWithRelational(staticData[type][id]) || null;
+        agumentNodeWithRelationalData(staticData[type][id]) || null;
       return;
     } else if (ids != null) {
       response[alias] = ids.map(id =>
-        augmentEntryWithRelational(staticData[type][id])
+        agumentNodeWithRelationalData(staticData[type][id])
       );
+
       return;
     } else {
-      response[alias] = {
-        nodes: Object.values(staticData[type]).map(augmentEntryWithRelational),
+      const nodes = Object.values(staticData[type]).map(
+        agumentNodeWithRelationalData
+      );
+
+      const data = {
+        [alias]: nodes,
       };
+
+      applyClientSideSortAndFilterToData(queryRecord, data);
+
+      response[alias] = addPaginationData({
+        filteredNodes: data[alias],
+        queryRecordEntry,
+      });
       return;
     }
   });
@@ -110,7 +134,7 @@ function augmentWithRelational(opts: {
       tokenName: '',
     };
 
-    const unparsedResponse = getResponseFromStaticData({
+    const unfilteredResponse = getResponseFromStaticData({
       queryRecord: {
         [alias]: queryRecordEntry,
       },
@@ -118,22 +142,69 @@ function augmentWithRelational(opts: {
     });
 
     // when a oneToMany relationship is queried, we must return back a paginated nodes collection
-    // however to avoid having "getResposneFromStaticData" know about relational queries, we just
+    // however to avoid having "getResponseFromStaticData" know about relational queries, we just
     // do that work here
     if ('oneToMany' in relational[alias]) {
-      relationalData[alias] = {
-        nodes: unparsedResponse[alias],
+      const data = {
+        [alias]: {
+          [NODES_PROPERTY_KEY]: unfilteredResponse[alias],
+        },
       };
+
+      applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
+
+      relationalData[alias] = addPaginationData({
+        filteredNodes: data[alias][NODES_PROPERTY_KEY],
+        queryRecordEntry: relational[alias],
+      });
     } else if ('oneToOne' in relational[alias]) {
-      relationalData[alias] = unparsedResponse[alias];
+      relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
-      relationalData[alias] = unparsedResponse[alias];
+      const data = {
+        [alias]: unfilteredResponse[alias],
+      };
+
+      applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
+
+      relationalData[alias] = data[alias];
     } else {
       throw new UnreachableCaseError(relational[alias] as never);
     }
   });
 
   return { ...dataToAugment, ...relationalData };
+}
+
+function addPaginationData(opts: {
+  filteredNodes: Array<unknown>;
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}) {
+  const { filteredNodes, queryRecordEntry } = opts;
+  const pageSize =
+    queryRecordEntry.pagination?.itemsPerPage || DEFAULT_PAGE_SIZE;
+  const pageNumber = queryRecordEntry.pagination?.startCursor
+    ? Number(queryRecordEntry.pagination.startCursor)
+    : 1;
+  const totalPages = Math.ceil(filteredNodes.length / pageSize);
+
+  const pageInfo: PageInfoFromResults = {
+    totalPages: Math.ceil(filteredNodes.length / pageSize),
+    hasNextPage: totalPages > pageNumber,
+    totalCount: filteredNodes.length,
+    hasPreviousPage: pageNumber > 1,
+    endCursor: String(pageNumber + 1),
+    startCursor: String(pageNumber),
+  };
+
+  const thisPageOfNodes = filteredNodes.slice(
+    (pageNumber - 1) * pageSize,
+    pageNumber * pageSize
+  );
+
+  return {
+    [NODES_PROPERTY_KEY]: thisPageOfNodes,
+    [PAGE_INFO_PROPERTY_KEY]: pageInfo,
+  };
 }
 
 const STATIC_RELATIONAL = '__staticRelational';
