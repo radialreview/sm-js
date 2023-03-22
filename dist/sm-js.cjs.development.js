@@ -6091,6 +6091,10 @@ function getResponseFromStaticData(opts) {
     }
 
     function agumentNodeWithRelationalData(node) {
+      if (!node) {
+        return null;
+      }
+
       if (relational) {
         return augmentWithRelational({
           dataToAugment: node,
