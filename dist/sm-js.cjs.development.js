@@ -6060,6 +6060,8 @@ function getDefaultConfig() {
       logging: logging
     }),
     generateMockData: false,
+    mockDataType: 'random',
+    staticData: undefined,
     enableQuerySlimming: false,
     paginationFilteringSortingInstance: exports.EPaginationFilteringSortingInstance.SERVER,
     logging: logging
