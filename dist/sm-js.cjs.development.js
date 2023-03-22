@@ -6066,6 +6066,156 @@ function getDefaultConfig() {
   };
 }
 
+function getResponseFromStaticData(opts) {
+  var queryRecord = opts.queryRecord,
+      staticData = opts.staticData;
+  var response = {};
+  Object.keys(queryRecord).forEach(function (alias) {
+    var queryRecordEntry = queryRecord[alias];
+
+    if (!queryRecordEntry) {
+      response[alias] = null;
+      return;
+    }
+
+    var def = queryRecordEntry.def,
+        id = queryRecordEntry.id,
+        ids = queryRecordEntry.ids,
+        relational = queryRecordEntry.relational;
+    var type = def.type;
+
+    if (!staticData[type]) {
+      throw new Error("No static data for type " + type);
+    }
+
+    function agumentNodeWithRelationalData(node) {
+      if (relational) {
+        return augmentWithRelational({
+          dataToAugment: node,
+          allStaticData: staticData,
+          relational: relational
+        });
+      } else {
+        return node;
+      }
+    }
+
+    if (id != null) {
+      response[alias] = agumentNodeWithRelationalData(staticData[type][id]) || null;
+      return;
+    } else if (ids != null) {
+      response[alias] = ids.map(function (id) {
+        return agumentNodeWithRelationalData(staticData[type][id]);
+      });
+      return;
+    } else {
+      var _data;
+
+      var nodes = Object.values(staticData[type]).map(agumentNodeWithRelationalData);
+      var data = (_data = {}, _data[alias] = nodes, _data);
+      applyClientSideSortAndFilterToData(queryRecord, data);
+      response[alias] = addPaginationData({
+        filteredNodes: data[alias],
+        queryRecordEntry: queryRecordEntry
+      });
+      return;
+    }
+  });
+  return response;
+}
+
+function augmentWithRelational(opts) {
+  var dataToAugment = opts.dataToAugment,
+      allStaticData = opts.allStaticData,
+      relational = opts.relational;
+  var relationalData = {};
+  Object.keys(relational).forEach(function (alias) {
+    var _queryRecord;
+
+    var _relational$alias = relational[alias],
+        def = _relational$alias.def,
+        _relationshipName = _relational$alias._relationshipName,
+        properties = _relational$alias.properties,
+        relationalDataForThisRelationalData = _relational$alias.relational;
+
+    if (!dataToAugment[_relationshipName] || !dataToAugment[_relationshipName][STATIC_RELATIONAL]) {
+      throw Error("The relationship " + _relationshipName + " was queried for the node with the id " + dataToAugment.id + " but it was not included in the static data.");
+    }
+
+    var ownPropName = dataToAugment[_relationshipName][STATIC_RELATIONAL];
+
+    if (!dataToAugment[ownPropName]) {
+      throw Error("The relationship " + _relationshipName + " was queried for the node with the id " + dataToAugment.id + " but the static relational property " + ownPropName + " was not included in the static data.");
+    }
+
+    var idOrIds = dataToAugment[ownPropName];
+    var queryRecordEntry = {
+      def: def,
+      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      ids: Array.isArray(idOrIds) ? idOrIds : undefined,
+      properties: properties,
+      relational: relationalDataForThisRelationalData,
+      tokenName: ''
+    };
+    var unfilteredResponse = getResponseFromStaticData({
+      queryRecord: (_queryRecord = {}, _queryRecord[alias] = queryRecordEntry, _queryRecord),
+      staticData: allStaticData
+    }); // when a oneToMany relationship is queried, we must return back a paginated nodes collection
+    // however to avoid having "getResponseFromStaticData" know about relational queries, we just
+    // do that work here
+
+    if ('oneToMany' in relational[alias]) {
+      var _alias, _data2, _applyClientSideSortA;
+
+      var data = (_data2 = {}, _data2[alias] = (_alias = {}, _alias[NODES_PROPERTY_KEY] = unfilteredResponse[alias], _alias), _data2);
+      applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = relational[alias], _applyClientSideSortA), data);
+      relationalData[alias] = addPaginationData({
+        filteredNodes: data[alias][NODES_PROPERTY_KEY],
+        queryRecordEntry: relational[alias]
+      });
+    } else if ('oneToOne' in relational[alias]) {
+      relationalData[alias] = unfilteredResponse[alias];
+    } else if ('nonPaginatedOneToMany' in relational[alias]) {
+      var _data4, _applyClientSideSortA2;
+
+      var _data3 = (_data4 = {}, _data4[alias] = unfilteredResponse[alias], _data4);
+
+      applyClientSideSortAndFilterToData((_applyClientSideSortA2 = {}, _applyClientSideSortA2[alias] = relational[alias], _applyClientSideSortA2), _data3);
+      relationalData[alias] = _data3[alias];
+    } else {
+      throw new UnreachableCaseError(relational[alias]);
+    }
+  });
+  return _extends({}, dataToAugment, relationalData);
+}
+
+function addPaginationData(opts) {
+  var _queryRecordEntry$pag, _queryRecordEntry$pag2, _ref;
+
+  var filteredNodes = opts.filteredNodes,
+      queryRecordEntry = opts.queryRecordEntry;
+  var pageSize = ((_queryRecordEntry$pag = queryRecordEntry.pagination) == null ? void 0 : _queryRecordEntry$pag.itemsPerPage) || DEFAULT_PAGE_SIZE;
+  var pageNumber = (_queryRecordEntry$pag2 = queryRecordEntry.pagination) != null && _queryRecordEntry$pag2.startCursor ? Number(queryRecordEntry.pagination.startCursor) : 1;
+  var totalPages = Math.ceil(filteredNodes.length / pageSize);
+  var pageInfo = {
+    totalPages: Math.ceil(filteredNodes.length / pageSize),
+    hasNextPage: totalPages > pageNumber,
+    totalCount: filteredNodes.length,
+    hasPreviousPage: pageNumber > 1,
+    endCursor: String(pageNumber + 1),
+    startCursor: String(pageNumber)
+  };
+  var thisPageOfNodes = filteredNodes.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+  return _ref = {}, _ref[NODES_PROPERTY_KEY] = thisPageOfNodes, _ref[PAGE_INFO_PROPERTY_KEY] = pageInfo, _ref;
+}
+
+var STATIC_RELATIONAL = '__staticRelational';
+function staticRelational(ownPropName) {
+  var _ref2;
+
+  return _ref2 = {}, _ref2[STATIC_RELATIONAL] = ownPropName, _ref2;
+}
+
 var todoProperties = {
   task: string,
   done: /*#__PURE__*/_boolean(false),
@@ -7474,23 +7624,46 @@ function _performQueries() {
             }
 
             if (!opts.mmGQLInstance.generateMockData) {
-              _context6.next = 6;
-              break;
-            }
-
-            response = generateMockNodeDataForQueryRecord({
-              queryRecord: opts.queryRecord
-            });
-            _context6.next = 16;
-            break;
-
-          case 6:
-            if (!opts.mmGQLInstance.enableQuerySlimming) {
               _context6.next = 12;
               break;
             }
 
-            _context6.next = 9;
+            if (!(opts.mmGQLInstance.mockDataType === 'static')) {
+              _context6.next = 9;
+              break;
+            }
+
+            if (opts.mmGQLInstance.staticData) {
+              _context6.next = 6;
+              break;
+            }
+
+            throw Error("Expected staticData to be defined when using static mock data");
+
+          case 6:
+            response = getResponseFromStaticData({
+              queryRecord: opts.queryRecord,
+              staticData: opts.mmGQLInstance.staticData
+            });
+            _context6.next = 10;
+            break;
+
+          case 9:
+            response = generateMockNodeDataForQueryRecord({
+              queryRecord: opts.queryRecord
+            });
+
+          case 10:
+            _context6.next = 22;
+            break;
+
+          case 12:
+            if (!opts.mmGQLInstance.enableQuerySlimming) {
+              _context6.next = 18;
+              break;
+            }
+
+            _context6.next = 15;
             return opts.mmGQLInstance.QuerySlimmer.query({
               queryId: opts.queryId,
               queryRecord: opts.queryRecord,
@@ -7499,51 +7672,51 @@ function _performQueries() {
               batchKey: opts.batchKey || undefined
             });
 
-          case 9:
+          case 15:
             response = _context6.sent;
-            _context6.next = 16;
+            _context6.next = 22;
             break;
 
-          case 12:
+          case 18:
             params = [{
               gql: opts.queryGQL,
               token: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
               batchKey: opts.batchKey || undefined
             }];
-            _context6.next = 15;
+            _context6.next = 21;
             return (_opts$mmGQLInstance$g = opts.mmGQLInstance.gqlClient).query.apply(_opts$mmGQLInstance$g, params);
 
-          case 15:
+          case 21:
             response = _context6.sent;
 
-          case 16:
+          case 22:
             if (!(opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.CLIENT)) {
-              _context6.next = 20;
+              _context6.next = 26;
               break;
             }
 
             // clone the object only if we are running the unit test
             // to simulate that we are receiving new response
             // to prevent mutating the object multiple times when filtering or sorting
-            // resulting into incorrect results in our specs
+            // resulting in incorrect results in our specs
             filteredAndSortedResponse =  response;
             applyClientSideSortAndFilterToData(opts.queryRecord, filteredAndSortedResponse);
             return _context6.abrupt("return", filteredAndSortedResponse);
 
-          case 20:
-            _context6.next = 22;
+          case 26:
+            _context6.next = 28;
             return new Promise(function (res) {
               return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
             });
 
-          case 22:
+          case 28:
             if (opts.mmGQLInstance.logging.gqlClientQueries) {
               console.log('query response', JSON.stringify(response, null, 2));
             }
 
             return _context6.abrupt("return", response);
 
-          case 24:
+          case 30:
           case "end":
             return _context6.stop();
         }
@@ -7751,6 +7924,8 @@ var MMGQL = /*#__PURE__*/function () {
   function MMGQL(config) {
     this.gqlClient = void 0;
     this.generateMockData = void 0;
+    this.mockDataType = void 0;
+    this.staticData = void 0;
     this.getMockDataDelay = void 0;
     this.enableQuerySlimming = void 0;
     this.paginationFilteringSortingInstance = void 0;
@@ -7771,6 +7946,8 @@ var MMGQL = /*#__PURE__*/function () {
     this.logging = config.logging;
     this.paginationFilteringSortingInstance = config.paginationFilteringSortingInstance;
     this.plugins = config.plugins;
+    this.mockDataType = config.mockDataType;
+    this.staticData = config.staticData;
     this.query = generateQuerier({
       mmGQLInstance: this
     });
@@ -7886,6 +8063,7 @@ exports.generateRandomNumber = generateRandomNumber;
 exports.generateRandomString = generateRandomString;
 exports.getDefaultConfig = getDefaultConfig;
 exports.getGQLCLient = getGQLCLient;
+exports.getResponseFromStaticData = getResponseFromStaticData;
 exports.nonPaginatedOneToMany = nonPaginatedOneToMany;
 exports.number = number;
 exports.object = object;
@@ -7893,6 +8071,7 @@ exports.oneToMany = oneToMany;
 exports.oneToOne = oneToOne;
 exports.queryDefinition = queryDefinition;
 exports.record = record;
+exports.staticRelational = staticRelational;
 exports.string = string;
 exports.stringEnum = stringEnum;
 exports.useSubscription = useSubscription;

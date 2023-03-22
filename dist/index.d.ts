@@ -1,4 +1,5 @@
 import { IMMGQL, Config, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeDefArgs, INode } from './types';
+import { StaticData } from './queriers/getResponseFromStaticData';
 export * from './types';
 export * from './dataTypes';
 export * from './react';
@@ -6,11 +7,14 @@ export * from './config';
 export * from './gqlClient';
 export * from './consts';
 export * from './queriers/generateMockDataUtilities';
+export * from './queriers/getResponseFromStaticData';
 export * from './nodesCollection';
 export { gql } from '@apollo/client';
 export declare class MMGQL implements IMMGQL {
     gqlClient: IMMGQL['gqlClient'];
     generateMockData: IMMGQL['generateMockData'];
+    mockDataType: 'random' | 'static' | undefined;
+    staticData: StaticData | undefined;
     getMockDataDelay: IMMGQL['getMockDataDelay'];
     enableQuerySlimming: IMMGQL['enableQuerySlimming'];
     paginationFilteringSortingInstance: IMMGQL['paginationFilteringSortingInstance'];
