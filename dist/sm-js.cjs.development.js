@@ -6107,7 +6107,7 @@ function getResponseFromStaticData(opts) {
     }
 
     if (id != null) {
-      response[alias] = agumentNodeWithRelationalData(staticData[type][id]) || null;
+      response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
       response[alias] = ids.map(function (id) {
