@@ -47,6 +47,10 @@ export function getResponseFromStaticData(opts: {
     }
 
     function agumentNodeWithRelationalData(node: Record<string, any>) {
+      if (!node) {
+        return null;
+      }
+
       if (relational) {
         return augmentWithRelational({
           dataToAugment: node,
