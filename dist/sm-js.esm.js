@@ -7630,7 +7630,7 @@ function performQueries(_x6) {
 
 function _performQueries() {
   _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6(opts) {
-    var getToken, response, _opts$mmGQLInstance$g, params, filteredAndSortedResponse;
+    var getToken, response, _opts$mmGQLInstance$g, params, shouldApplyClientSideFilterAndSort, filteredAndSortedResponse;
 
     return runtime_1.wrap(function _callee6$(_context6) {
       while (1) {
@@ -7713,8 +7713,12 @@ function _performQueries() {
             response = _context6.sent;
 
           case 22:
-            if (!(opts.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.CLIENT)) {
-              _context6.next = 26;
+            // if we are using static mock data, client side filtering and sorting is done in getResponseFromStaticData
+            // because that static data has to be filtered before being paginated
+            shouldApplyClientSideFilterAndSort = opts.mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.CLIENT && opts.mmGQLInstance.generateMockData && opts.mmGQLInstance.mockDataType === 'static';
+
+            if (!shouldApplyClientSideFilterAndSort) {
+              _context6.next = 27;
               break;
             }
 
@@ -7726,20 +7730,20 @@ function _performQueries() {
             applyClientSideSortAndFilterToData(opts.queryRecord, filteredAndSortedResponse);
             return _context6.abrupt("return", filteredAndSortedResponse);
 
-          case 26:
-            _context6.next = 28;
+          case 27:
+            _context6.next = 29;
             return new Promise(function (res) {
               return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
             });
 
-          case 28:
+          case 29:
             if (opts.mmGQLInstance.logging.gqlClientQueries) {
               console.log('query response', JSON.stringify(response, null, 2));
             }
 
             return _context6.abrupt("return", response);
 
-          case 30:
+          case 31:
           case "end":
             return _context6.stop();
         }
