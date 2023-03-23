@@ -1606,8 +1606,8 @@ async function performQueries(opts: {
   const shouldApplyClientSideFilterAndSort =
     opts.mmGQLInstance.paginationFilteringSortingInstance ===
       EPaginationFilteringSortingInstance.CLIENT &&
-    opts.mmGQLInstance.generateMockData &&
-    opts.mmGQLInstance.mockDataType === 'static';
+    (!opts.mmGQLInstance.generateMockData ||
+      opts.mmGQLInstance.mockDataType !== 'static');
   if (shouldApplyClientSideFilterAndSort) {
     // clone the object only if we are running the unit test
     // to simulate that we are receiving new response
