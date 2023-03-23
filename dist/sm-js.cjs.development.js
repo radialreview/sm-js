@@ -7706,7 +7706,7 @@ function _performQueries() {
           case 22:
             // if we are using static mock data, client side filtering and sorting is done in getResponseFromStaticData
             // because that static data has to be filtered before being paginated
-            shouldApplyClientSideFilterAndSort = opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.CLIENT && opts.mmGQLInstance.generateMockData && opts.mmGQLInstance.mockDataType === 'static';
+            shouldApplyClientSideFilterAndSort = opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.CLIENT && (!opts.mmGQLInstance.generateMockData || opts.mmGQLInstance.mockDataType !== 'static');
 
             if (!shouldApplyClientSideFilterAndSort) {
               _context6.next = 27;
