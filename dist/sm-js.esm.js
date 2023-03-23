@@ -6115,10 +6115,18 @@ function getResponseFromStaticData(opts) {
     }
 
     if (id != null) {
+      if (opts.throwErrorOnMissingIds && !staticData[type][id]) {
+        throw new Error("No static data for node of type " + type + " with id " + id);
+      }
+
       response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
       response[alias] = ids.map(function (id) {
+        if (opts.throwErrorOnMissingIds && !staticData[type][id]) {
+          throw new Error("No static data for node of type " + type + " with id " + id);
+        }
+
         return agumentNodeWithRelationalData(staticData[type][id]);
       });
       return;
@@ -6173,7 +6181,8 @@ function augmentWithRelational(opts) {
     };
     var unfilteredResponse = getResponseFromStaticData({
       queryRecord: (_queryRecord = {}, _queryRecord[alias] = queryRecordEntry, _queryRecord),
-      staticData: allStaticData
+      staticData: allStaticData,
+      throwErrorOnMissingIds: true
     }); // when a oneToMany relationship is queried, we must return back a paginated nodes collection
     // however to avoid having "getResponseFromStaticData" know about relational queries, we just
     // do that work here
