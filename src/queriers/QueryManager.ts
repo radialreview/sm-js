@@ -1601,10 +1601,14 @@ async function performQueries(opts: {
     response = await opts.mmGQLInstance.gqlClient.query(...params);
   }
 
-  if (
+  // if we are using static mock data, client side filtering and sorting is done in getResponseFromStaticData
+  // because that static data has to be filtered before being paginated
+  const shouldApplyClientSideFilterAndSort =
     opts.mmGQLInstance.paginationFilteringSortingInstance ===
-    EPaginationFilteringSortingInstance.CLIENT
-  ) {
+      EPaginationFilteringSortingInstance.CLIENT &&
+    opts.mmGQLInstance.generateMockData &&
+    opts.mmGQLInstance.mockDataType === 'static';
+  if (shouldApplyClientSideFilterAndSort) {
     // clone the object only if we are running the unit test
     // to simulate that we are receiving new response
     // to prevent mutating the object multiple times when filtering or sorting
