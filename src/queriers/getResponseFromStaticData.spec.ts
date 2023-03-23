@@ -725,6 +725,61 @@ it('returns the correct data when sorting a collection', () => {
   });
 });
 
+it('returns the correct data when using an alias for a relationship', () => {
+  const { mockStaticData, meetingNode, attendeeNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendeesWithDifferentAlias: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+        },
+      },
+    },
+  };
+
+  expect(
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toEqual({
+    meeting: expect.objectContaining({
+      id: 'meeting-1',
+      meetingName: 'Meeting 1',
+      attendeesWithDifferentAlias: {
+        nodes: [
+          expect.objectContaining({
+            id: 'attendee-1',
+            firstName: 'John',
+            lastName: 'Doe',
+          }),
+          expect.objectContaining({
+            id: 'attendee-2',
+            firstName: 'Jane',
+            lastName: 'Doe',
+          }),
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: '1',
+          endCursor: '2',
+          totalCount: 2,
+          totalPages: 1,
+        },
+      },
+    }),
+  });
+});
+
 it('throws a helpful error when a related node is not found', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 

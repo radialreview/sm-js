@@ -93,7 +93,7 @@ export function getResponseFromStaticData(opts: {
         [alias]: nodes,
       };
 
-      applyClientSideSortAndFilterToData(queryRecord, data);
+      applyClientSideSortAndFilterToData({ [alias]: queryRecordEntry }, data);
 
       response[alias] = addPaginationData({
         filteredNodes: data[alias],
