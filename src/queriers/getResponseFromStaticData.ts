@@ -27,6 +27,7 @@ export type StaticData = Record<
 export function getResponseFromStaticData(opts: {
   queryRecord: QueryRecord;
   staticData: StaticData;
+  throwErrorOnMissingIds?: boolean;
 }) {
   const { queryRecord, staticData } = opts;
 
@@ -63,12 +64,24 @@ export function getResponseFromStaticData(opts: {
     }
 
     if (id != null) {
+      if (opts.throwErrorOnMissingIds && !staticData[type][id]) {
+        throw new Error(
+          `No static data for node of type ${type} with id ${id}`
+        );
+      }
+
       response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
-      response[alias] = ids.map(id =>
-        agumentNodeWithRelationalData(staticData[type][id])
-      );
+      response[alias] = ids.map(id => {
+        if (opts.throwErrorOnMissingIds && !staticData[type][id]) {
+          throw new Error(
+            `No static data for node of type ${type} with id ${id}`
+          );
+        }
+
+        return agumentNodeWithRelationalData(staticData[type][id]);
+      });
 
       return;
     } else {
@@ -142,6 +155,7 @@ function augmentWithRelational(opts: {
         [alias]: queryRecordEntry,
       },
       staticData: allStaticData,
+      throwErrorOnMissingIds: true,
     });
 
     // when a oneToMany relationship is queried, we must return back a paginated nodes collection

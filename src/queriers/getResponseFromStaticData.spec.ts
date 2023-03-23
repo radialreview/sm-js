@@ -88,7 +88,7 @@ function setupTest() {
   return { meetingNode, teamNode, attendeeNode, mockStaticData };
 }
 
-test('returns null for null queryRecordEntry', () => {
+it('returns null for null queryRecordEntry', () => {
   const { mockStaticData } = setupTest();
 
   expect(
@@ -103,7 +103,7 @@ test('returns null for null queryRecordEntry', () => {
   });
 });
 
-test('returns the correct data when a collection of nodes is requested', () => {
+it('returns the correct data when a collection of nodes is requested', () => {
   const { mockStaticData, meetingNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -143,7 +143,7 @@ test('returns the correct data when a collection of nodes is requested', () => {
   });
 });
 
-test('returns the correct data when nodes are requested by id', () => {
+it('returns the correct data when nodes are requested by id', () => {
   const { mockStaticData, meetingNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -174,7 +174,7 @@ test('returns the correct data when nodes are requested by id', () => {
   });
 });
 
-test('returns the correct data when a node is requested by id', () => {
+it('returns the correct data when a node is requested by id', () => {
   const { mockStaticData, meetingNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -199,7 +199,7 @@ test('returns the correct data when a node is requested by id', () => {
   });
 });
 
-test('returns null when a node is requested by id and not found in static data', () => {
+it('returns null when a node is requested by id and not found in static data', () => {
   const { mockStaticData, meetingNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -221,7 +221,7 @@ test('returns null when a node is requested by id and not found in static data',
   });
 });
 
-test('returns the correct data when a node is requested by id and has relational data accessed', () => {
+it('returns the correct data when a node is requested by id and has relational data accessed', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -334,7 +334,7 @@ test('returns the correct data when a node is requested by id and has relational
   });
 });
 
-test('returns the correct data when switching through pages', () => {
+it('returns the correct data when switching through pages', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -490,7 +490,7 @@ test('returns the correct data when switching through pages', () => {
   });
 });
 
-test('returns the correct data when filtering a collection', () => {
+it('returns the correct data when filtering a collection', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -603,7 +603,7 @@ test('returns the correct data when filtering a collection', () => {
   });
 });
 
-test('returns the correct data when sorting a collection', () => {
+it('returns the correct data when sorting a collection', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
   const queryRecord: QueryRecord = {
@@ -723,4 +723,59 @@ test('returns the correct data when sorting a collection', () => {
       }),
     }),
   });
+});
+
+it('throws a helpful error when a related node is not found', () => {
+  const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'meeting-1',
+      relational: {
+        attendees: {
+          def: attendeeNode,
+          properties: ['id', 'firstName', 'lastName'],
+          _relationshipName: 'attendees',
+          oneToMany: true,
+        },
+        team: {
+          def: teamNode,
+          properties: ['id', 'teamName'],
+          _relationshipName: 'team',
+          oneToOne: true,
+        },
+      },
+    },
+  };
+
+  const mockStaticDataWithNodeInOneToManyRelationship = deepClone(
+    mockStaticData
+  );
+  delete mockStaticDataWithNodeInOneToManyRelationship[attendeeNode.type][
+    'attendee-1'
+  ];
+
+  expect(() =>
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticDataWithNodeInOneToManyRelationship,
+    })
+  ).toThrow('No static data for node of type attendee with id attendee-1');
+
+  const mockStaticDataWithMissingNodeInOneToOneRelationship = deepClone(
+    mockStaticData
+  );
+  delete mockStaticDataWithMissingNodeInOneToOneRelationship[teamNode.type][
+    'team-1'
+  ];
+
+  expect(() =>
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticDataWithMissingNodeInOneToOneRelationship,
+    })
+  ).toThrow('No static data for node of type team with id team-1');
 });
