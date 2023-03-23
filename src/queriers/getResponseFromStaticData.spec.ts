@@ -199,28 +199,6 @@ it('returns the correct data when a node is requested by id', () => {
   });
 });
 
-it('returns null when a node is requested by id and not found in static data', () => {
-  const { mockStaticData, meetingNode } = setupTest();
-
-  const queryRecord: QueryRecord = {
-    meeting: {
-      def: meetingNode,
-      properties: ['id', 'meetingName'],
-      tokenName: DEFAULT_TOKEN_NAME,
-      id: 'bogus',
-    },
-  };
-
-  expect(
-    getResponseFromStaticData({
-      queryRecord,
-      staticData: mockStaticData,
-    })
-  ).toEqual({
-    meeting: null,
-  });
-});
-
 it('returns the correct data when a node is requested by id and has relational data accessed', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
@@ -780,6 +758,26 @@ it('returns the correct data when using an alias for a relationship', () => {
   });
 });
 
+it('throws a helpful error when a node is not found using id', () => {
+  const { mockStaticData, meetingNode } = setupTest();
+
+  const queryRecord: QueryRecord = {
+    meeting: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      id: 'bogus-id',
+    },
+  };
+
+  expect(() =>
+    getResponseFromStaticData({
+      queryRecord,
+      staticData: mockStaticData,
+    })
+  ).toThrow('No static data for node of type meeting with id "bogus-id"');
+});
+
 it('throws a helpful error when a related node is not found', () => {
   const { mockStaticData, meetingNode, attendeeNode, teamNode } = setupTest();
 
@@ -818,7 +816,7 @@ it('throws a helpful error when a related node is not found', () => {
       queryRecord,
       staticData: mockStaticDataWithNodeInOneToManyRelationship,
     })
-  ).toThrow('No static data for node of type attendee with id attendee-1');
+  ).toThrow('No static data for node of type attendee with id "attendee-1"');
 
   const mockStaticDataWithMissingNodeInOneToOneRelationship = deepClone(
     mockStaticData
@@ -832,5 +830,5 @@ it('throws a helpful error when a related node is not found', () => {
       queryRecord,
       staticData: mockStaticDataWithMissingNodeInOneToOneRelationship,
     })
-  ).toThrow('No static data for node of type team with id team-1');
+  ).toThrow('No static data for node of type team with id "team-1"');
 });
