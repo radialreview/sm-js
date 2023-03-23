@@ -6131,11 +6131,11 @@ function getResponseFromStaticData(opts) {
       });
       return;
     } else {
-      var _data;
+      var _data, _applyClientSideSortA;
 
       var nodes = Object.values(staticData[type]).map(agumentNodeWithRelationalData);
       var data = (_data = {}, _data[alias] = nodes, _data);
-      applyClientSideSortAndFilterToData(queryRecord, data);
+      applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = queryRecordEntry, _applyClientSideSortA), data);
       response[alias] = addPaginationData({
         filteredNodes: data[alias],
         queryRecordEntry: queryRecordEntry
@@ -6188,10 +6188,10 @@ function augmentWithRelational(opts) {
     // do that work here
 
     if ('oneToMany' in relational[alias]) {
-      var _alias, _data2, _applyClientSideSortA;
+      var _alias, _data2, _applyClientSideSortA2;
 
       var data = (_data2 = {}, _data2[alias] = (_alias = {}, _alias[NODES_PROPERTY_KEY] = unfilteredResponse[alias], _alias), _data2);
-      applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = relational[alias], _applyClientSideSortA), data);
+      applyClientSideSortAndFilterToData((_applyClientSideSortA2 = {}, _applyClientSideSortA2[alias] = relational[alias], _applyClientSideSortA2), data);
       relationalData[alias] = addPaginationData({
         filteredNodes: data[alias][NODES_PROPERTY_KEY],
         queryRecordEntry: relational[alias]
@@ -6199,11 +6199,11 @@ function augmentWithRelational(opts) {
     } else if ('oneToOne' in relational[alias]) {
       relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
-      var _data4, _applyClientSideSortA2;
+      var _data4, _applyClientSideSortA3;
 
       var _data3 = (_data4 = {}, _data4[alias] = unfilteredResponse[alias], _data4);
 
-      applyClientSideSortAndFilterToData((_applyClientSideSortA2 = {}, _applyClientSideSortA2[alias] = relational[alias], _applyClientSideSortA2), _data3);
+      applyClientSideSortAndFilterToData((_applyClientSideSortA3 = {}, _applyClientSideSortA3[alias] = relational[alias], _applyClientSideSortA3), _data3);
       relationalData[alias] = _data3[alias];
     } else {
       throw new UnreachableCaseError(relational[alias]);
