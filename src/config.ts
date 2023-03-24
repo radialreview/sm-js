@@ -18,6 +18,8 @@ export function getDefaultConfig(): Config {
       logging,
     }),
     generateMockData: false,
+    mockDataType: 'random',
+    staticData: undefined,
     enableQuerySlimming: false,
     paginationFilteringSortingInstance:
       EPaginationFilteringSortingInstance.SERVER,

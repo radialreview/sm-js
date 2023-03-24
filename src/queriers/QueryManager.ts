@@ -41,6 +41,7 @@ import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import { cloneDeep } from 'lodash';
 import { applyClientSideSortAndFilterToData } from './clientSideOperators';
 import { getPrettyPrintedGQL } from '../specUtilities';
+import { getResponseFromStaticData } from './getResponseFromStaticData';
 
 type QueryManagerState = Record<
   string, // the alias for this set of results
@@ -1564,9 +1565,21 @@ async function performQueries(opts: {
   let response;
 
   if (opts.mmGQLInstance.generateMockData) {
-    response = generateMockNodeDataForQueryRecord({
-      queryRecord: opts.queryRecord,
-    });
+    if (opts.mmGQLInstance.mockDataType === 'static') {
+      if (!opts.mmGQLInstance.staticData)
+        throw Error(
+          `Expected staticData to be defined when using static mock data`
+        );
+
+      response = getResponseFromStaticData({
+        queryRecord: opts.queryRecord,
+        staticData: opts.mmGQLInstance.staticData,
+      });
+    } else {
+      response = generateMockNodeDataForQueryRecord({
+        queryRecord: opts.queryRecord,
+      });
+    }
   } else if (opts.mmGQLInstance.enableQuerySlimming) {
     response = await opts.mmGQLInstance.QuerySlimmer.query({
       queryId: opts.queryId,
@@ -1588,14 +1601,18 @@ async function performQueries(opts: {
     response = await opts.mmGQLInstance.gqlClient.query(...params);
   }
 
-  if (
+  // if we are using static mock data, client side filtering and sorting is done in getResponseFromStaticData
+  // because that static data has to be filtered before being paginated
+  const shouldApplyClientSideFilterAndSort =
     opts.mmGQLInstance.paginationFilteringSortingInstance ===
-    EPaginationFilteringSortingInstance.CLIENT
-  ) {
+      EPaginationFilteringSortingInstance.CLIENT &&
+    (!opts.mmGQLInstance.generateMockData ||
+      opts.mmGQLInstance.mockDataType !== 'static');
+  if (shouldApplyClientSideFilterAndSort) {
     // clone the object only if we are running the unit test
     // to simulate that we are receiving new response
     // to prevent mutating the object multiple times when filtering or sorting
-    // resulting into incorrect results in our specs
+    // resulting in incorrect results in our specs
     const filteredAndSortedResponse =
       process.env.NODE_ENV === 'test' ? cloneDeep(response) : response;
 

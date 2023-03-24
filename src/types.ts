@@ -5,6 +5,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer'
+import { StaticData } from './queriers/getResponseFromStaticData';
 
 // inspired by https://fettblog.eu/typescript-match-the-exact-object-shape/
 // with a small change to provide better error messages
@@ -65,6 +66,8 @@ export type Config = {
   gqlClient: IGQLClient;
   plugins?: Array<Plugin>;
   generateMockData: boolean
+  mockDataType: 'random' | 'static' | undefined
+  staticData: StaticData | undefined
   getMockDataDelay?: () => number
   enableQuerySlimming: boolean
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance
@@ -179,6 +182,8 @@ export interface IMMGQL {
   gqlClient: IGQLClient
   plugins: Array<Plugin> | undefined
   generateMockData: boolean | undefined
+  mockDataType: 'random' | 'static' | undefined
+  staticData: StaticData | undefined
   getMockDataDelay: (() => number) | undefined
   enableQuerySlimming: boolean | undefined
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance

@@ -5,6 +5,7 @@ import { createDOProxyGenerator } from './DOProxyGenerator';
 import { generateQuerier, generateSubscriber } from './queriers';
 import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer';
+import { StaticData } from './queriers/getResponseFromStaticData';
 declare type ValidateShape<T, Shape> = T extends Shape ? Exclude<keyof T, keyof Shape> extends never ? T : Shape : Shape;
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
@@ -44,6 +45,8 @@ export declare type Config = {
     gqlClient: IGQLClient;
     plugins?: Array<Plugin>;
     generateMockData: boolean;
+    mockDataType: 'random' | 'static' | undefined;
+    staticData: StaticData | undefined;
     getMockDataDelay?: () => number;
     enableQuerySlimming: boolean;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
@@ -136,6 +139,8 @@ export interface IMMGQL {
     gqlClient: IGQLClient;
     plugins: Array<Plugin> | undefined;
     generateMockData: boolean | undefined;
+    mockDataType: 'random' | 'static' | undefined;
+    staticData: StaticData | undefined;
     getMockDataDelay: (() => number) | undefined;
     enableQuerySlimming: boolean | undefined;
     paginationFilteringSortingInstance: EPaginationFilteringSortingInstance;
