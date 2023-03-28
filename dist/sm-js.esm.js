@@ -6135,15 +6135,15 @@ function getResponseFromStaticData(opts) {
       });
       return;
     } else {
-      var _data2, _applyClientSideSortA;
+      var _alias, _data2, _applyClientSideSortA;
 
       var nodes = Object.values(staticData[type]).map(agumentNodeWithRelationalData);
 
-      var _data = (_data2 = {}, _data2[alias] = nodes, _data2);
+      var _data = (_data2 = {}, _data2[alias] = (_alias = {}, _alias[NODES_PROPERTY_KEY] = nodes, _alias), _data2);
 
       applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = queryRecordEntry, _applyClientSideSortA), _data);
       response[alias] = addPaginationData({
-        filteredNodes: _data[alias],
+        filteredNodes: _data[alias][NODES_PROPERTY_KEY],
         queryRecordEntry: queryRecordEntry
       });
       return;
@@ -6206,7 +6206,7 @@ function augmentWithRelational(opts) {
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
       var _data5, _applyClientSideSortA3;
 
-      var _data4 = (_data5 = {}, _data5[alias] = unfilteredResponse[alias][NODES_PROPERTY_KEY], _data5);
+      var _data4 = (_data5 = {}, _data5[alias] = unfilteredResponse[alias][NODES_PROPERTY_KEY] || [], _data5);
 
       applyClientSideSortAndFilterToData((_applyClientSideSortA3 = {}, _applyClientSideSortA3[alias] = relational[alias], _applyClientSideSortA3), _data4);
       relationalData[alias] = _data4[alias];
