@@ -72,7 +72,7 @@ export function getResponseFromStaticData(opts: {
       response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
-      response[alias] = ids.map(id => {
+      const data = ids.map(id => {
         if (!staticData[type][id]) {
           throw new Error(
             `No static data for node of type ${type} with id "${id}"`
@@ -80,6 +80,11 @@ export function getResponseFromStaticData(opts: {
         }
 
         return agumentNodeWithRelationalData(staticData[type][id]);
+      });
+
+      response[alias] = addPaginationData({
+        filteredNodes: data,
+        queryRecordEntry,
       });
 
       return;
