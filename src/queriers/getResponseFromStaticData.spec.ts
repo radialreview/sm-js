@@ -531,6 +531,14 @@ it('returns the correct data when filtering a collection', () => {
         },
       },
     },
+    meetings: {
+      def: meetingNode,
+      properties: ['id', 'meetingName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+      filter: {
+        meetingName: { eq: 'Meeting 1' },
+      },
+    },
   };
 
   expect(
@@ -588,6 +596,22 @@ it('returns the correct data when filtering a collection', () => {
         },
       }),
     }),
+    meetings: {
+      nodes: [
+        expect.objectContaining({
+          id: 'meeting-1',
+          meetingName: 'Meeting 1',
+        }),
+      ],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: '1',
+        endCursor: '2',
+        totalCount: 1,
+        totalPages: 1,
+      },
+    },
   });
 });
 

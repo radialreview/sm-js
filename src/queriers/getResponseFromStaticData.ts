@@ -94,13 +94,15 @@ export function getResponseFromStaticData(opts: {
       );
 
       const data = {
-        [alias]: nodes,
+        [alias]: {
+          [NODES_PROPERTY_KEY]: nodes,
+        },
       };
 
       applyClientSideSortAndFilterToData({ [alias]: queryRecordEntry }, data);
 
       response[alias] = addPaginationData({
-        filteredNodes: data[alias],
+        filteredNodes: data[alias][NODES_PROPERTY_KEY],
         queryRecordEntry,
       });
       return;
@@ -179,7 +181,7 @@ function augmentWithRelational(opts: {
       relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
       const data = {
-        [alias]: unfilteredResponse[alias][NODES_PROPERTY_KEY],
+        [alias]: unfilteredResponse[alias][NODES_PROPERTY_KEY] || [],
       };
 
       applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
