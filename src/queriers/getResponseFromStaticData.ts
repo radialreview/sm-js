@@ -166,9 +166,7 @@ function augmentWithRelational(opts: {
     // do that work here
     if ('oneToMany' in relational[alias]) {
       const data = {
-        [alias]: {
-          [NODES_PROPERTY_KEY]: unfilteredResponse[alias],
-        },
+        [alias]: unfilteredResponse[alias],
       };
 
       applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
@@ -181,7 +179,7 @@ function augmentWithRelational(opts: {
       relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
       const data = {
-        [alias]: unfilteredResponse[alias],
+        [alias]: unfilteredResponse[alias][NODES_PROPERTY_KEY],
       };
 
       applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);

@@ -161,16 +161,26 @@ it('returns the correct data when nodes are requested by id', () => {
       staticData: mockStaticData,
     })
   ).toEqual({
-    meetings: [
-      expect.objectContaining({
-        id: 'meeting-1',
-        meetingName: 'Meeting 1',
-      }),
-      expect.objectContaining({
-        id: 'meeting-2',
-        meetingName: 'Meeting 2',
-      }),
-    ],
+    meetings: {
+      nodes: [
+        expect.objectContaining({
+          id: 'meeting-1',
+          meetingName: 'Meeting 1',
+        }),
+        expect.objectContaining({
+          id: 'meeting-2',
+          meetingName: 'Meeting 2',
+        }),
+      ],
+      pageInfo: {
+        endCursor: '2',
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: '1',
+        totalCount: 2,
+        totalPages: 1,
+      },
+    },
   });
 });
 
