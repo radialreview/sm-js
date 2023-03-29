@@ -6114,22 +6114,28 @@ function getResponseFromStaticData(opts) {
       response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
-      response[alias] = ids.map(function (id) {
+      var data = ids.map(function (id) {
         if (!staticData[type][id]) {
           throw new Error("No static data for node of type " + type + " with id \"" + id + "\"");
         }
 
         return agumentNodeWithRelationalData(staticData[type][id]);
       });
+      response[alias] = addPaginationData({
+        filteredNodes: data,
+        queryRecordEntry: queryRecordEntry
+      });
       return;
     } else {
-      var _data, _applyClientSideSortA;
+      var _alias, _data2, _applyClientSideSortA;
 
       var nodes = Object.values(staticData[type]).map(agumentNodeWithRelationalData);
-      var data = (_data = {}, _data[alias] = nodes, _data);
-      applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = queryRecordEntry, _applyClientSideSortA), data);
+
+      var _data = (_data2 = {}, _data2[alias] = (_alias = {}, _alias[NODES_PROPERTY_KEY] = nodes, _alias), _data2);
+
+      applyClientSideSortAndFilterToData((_applyClientSideSortA = {}, _applyClientSideSortA[alias] = queryRecordEntry, _applyClientSideSortA), _data);
       response[alias] = addPaginationData({
-        filteredNodes: data[alias],
+        filteredNodes: _data[alias][NODES_PROPERTY_KEY],
         queryRecordEntry: queryRecordEntry
       });
       return;
@@ -6179,9 +6185,9 @@ function augmentWithRelational(opts) {
     // do that work here
 
     if ('oneToMany' in relational[alias]) {
-      var _alias, _data2, _applyClientSideSortA2;
+      var _data3, _applyClientSideSortA2;
 
-      var data = (_data2 = {}, _data2[alias] = (_alias = {}, _alias[NODES_PROPERTY_KEY] = unfilteredResponse[alias], _alias), _data2);
+      var data = (_data3 = {}, _data3[alias] = unfilteredResponse[alias], _data3);
       applyClientSideSortAndFilterToData((_applyClientSideSortA2 = {}, _applyClientSideSortA2[alias] = relational[alias], _applyClientSideSortA2), data);
       relationalData[alias] = addPaginationData({
         filteredNodes: data[alias][NODES_PROPERTY_KEY],
@@ -6190,12 +6196,12 @@ function augmentWithRelational(opts) {
     } else if ('oneToOne' in relational[alias]) {
       relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
-      var _data4, _applyClientSideSortA3;
+      var _data5, _applyClientSideSortA3;
 
-      var _data3 = (_data4 = {}, _data4[alias] = unfilteredResponse[alias], _data4);
+      var _data4 = (_data5 = {}, _data5[alias] = unfilteredResponse[alias][NODES_PROPERTY_KEY] || [], _data5);
 
-      applyClientSideSortAndFilterToData((_applyClientSideSortA3 = {}, _applyClientSideSortA3[alias] = relational[alias], _applyClientSideSortA3), _data3);
-      relationalData[alias] = _data3[alias];
+      applyClientSideSortAndFilterToData((_applyClientSideSortA3 = {}, _applyClientSideSortA3[alias] = relational[alias], _applyClientSideSortA3), _data4);
+      relationalData[alias] = _data4[alias];
     } else {
       throw new UnreachableCaseError(relational[alias]);
     }

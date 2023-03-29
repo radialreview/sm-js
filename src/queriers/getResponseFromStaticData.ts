@@ -72,7 +72,7 @@ export function getResponseFromStaticData(opts: {
       response[alias] = agumentNodeWithRelationalData(staticData[type][id]);
       return;
     } else if (ids != null) {
-      response[alias] = ids.map(id => {
+      const data = ids.map(id => {
         if (!staticData[type][id]) {
           throw new Error(
             `No static data for node of type ${type} with id "${id}"`
@@ -82,6 +82,11 @@ export function getResponseFromStaticData(opts: {
         return agumentNodeWithRelationalData(staticData[type][id]);
       });
 
+      response[alias] = addPaginationData({
+        filteredNodes: data,
+        queryRecordEntry,
+      });
+
       return;
     } else {
       const nodes = Object.values(staticData[type]).map(
@@ -89,13 +94,15 @@ export function getResponseFromStaticData(opts: {
       );
 
       const data = {
-        [alias]: nodes,
+        [alias]: {
+          [NODES_PROPERTY_KEY]: nodes,
+        },
       };
 
       applyClientSideSortAndFilterToData({ [alias]: queryRecordEntry }, data);
 
       response[alias] = addPaginationData({
-        filteredNodes: data[alias],
+        filteredNodes: data[alias][NODES_PROPERTY_KEY],
         queryRecordEntry,
       });
       return;
@@ -161,9 +168,7 @@ function augmentWithRelational(opts: {
     // do that work here
     if ('oneToMany' in relational[alias]) {
       const data = {
-        [alias]: {
-          [NODES_PROPERTY_KEY]: unfilteredResponse[alias],
-        },
+        [alias]: unfilteredResponse[alias],
       };
 
       applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
@@ -176,7 +181,7 @@ function augmentWithRelational(opts: {
       relationalData[alias] = unfilteredResponse[alias];
     } else if ('nonPaginatedOneToMany' in relational[alias]) {
       const data = {
-        [alias]: unfilteredResponse[alias],
+        [alias]: unfilteredResponse[alias][NODES_PROPERTY_KEY] || [],
       };
 
       applyClientSideSortAndFilterToData({ [alias]: relational[alias] }, data);
