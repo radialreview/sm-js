@@ -1275,7 +1275,7 @@ type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<
   ? RemoveNevers<TNodeArgs["TNodeComputedData"]>
   : never;
 
-type ExtractNodeRelationalData<
+export type ExtractNodeRelationalData<
   TNode extends INode
 > = TNode extends INode<infer TNodeArgs>
   // RemoveNevers fixes this bug https://winterinternational.atlassian.net/browse/TTD-1317

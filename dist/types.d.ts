@@ -739,7 +739,7 @@ export declare type ExtractNodeRelationalDataSort<TNode extends INode> = TNode e
     [Tkey in keyof TNodeArgs['TNodeRelationalData']]: TNodeArgs['TNodeRelationalData'][Tkey] extends (IOneToManyQueryBuilder<infer TOneToManyRelationalNode> | INonPaginatedOneToManyQueryBuilder<infer TOneToManyRelationalNode>) ? TOneToManyRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToManyRelationalNode> : never : TNodeArgs['TNodeRelationalData'][Tkey] extends IOneToOneQueryBuilder<infer TOneToOneRelationalNode> ? TOneToOneRelationalNode extends INode<any> ? ExtractNodeSortData<TOneToOneRelationalNode> : never : never;
 }> : never;
 declare type ExtractNodeComputedData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeComputedData"]> : never;
-declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeRelationalData"]> : never;
+export declare type ExtractNodeRelationalData<TNode extends INode> = TNode extends INode<infer TNodeArgs> ? RemoveNevers<TNodeArgs["TNodeRelationalData"]> : never;
 /**
  * a record of all the queries identified in this query definitions
  * looks something like this
