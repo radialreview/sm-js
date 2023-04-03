@@ -3,7 +3,7 @@ import { isObject } from 'lodash';
 import * as data from './dataTypes';
 import { queryDefinition } from './dataTypes';
 import { getQueryRecordFromQueryDefinition } from './queriers/queryDefinitionAdapters';
-import { getDefaultConfig, MMGQL } from '.';
+import { DEFAULT_PAGE_SIZE, getDefaultConfig, MMGQL } from '.';
 
 import {
   IOneToOneQueryBuilder,
@@ -525,7 +525,7 @@ export function convertNodesCollectionValuesToArray<
         },
         clientSidePageInfo: {
           lastQueriedPage: 1,
-          pageSize: 10,
+          pageSize: DEFAULT_PAGE_SIZE,
         },
         onLoadMoreResults: async () => {},
         onGoToNextPage: async () => {},
