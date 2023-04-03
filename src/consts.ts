@@ -29,4 +29,4 @@ export const DEFAULT_NODE_PROPERTIES = {
 export const NODES_PROPERTY_KEY = 'nodes';
 export const PAGE_INFO_PROPERTY_KEY = 'pageInfo';
 export const TOTAL_COUNT_PROPERTY_KEY = 'totalCount';
-export const DEFAULT_PAGE_SIZE = 10;
+export const DEFAULT_PAGE_SIZE = 2000;

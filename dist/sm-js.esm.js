@@ -674,7 +674,7 @@ var DEFAULT_NODE_PROPERTIES = /*#__PURE__*/_extends({}, PROPERTIES_QUERIED_FOR_A
 var NODES_PROPERTY_KEY = 'nodes';
 var PAGE_INFO_PROPERTY_KEY = 'pageInfo';
 var TOTAL_COUNT_PROPERTY_KEY = 'totalCount';
-var DEFAULT_PAGE_SIZE = 10;
+var DEFAULT_PAGE_SIZE = 2000;
 
 function createDOFactory(mmGQLInstance) {
   /**
