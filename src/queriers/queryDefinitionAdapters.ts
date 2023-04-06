@@ -524,8 +524,10 @@ export function getBEFilterString<TNode extends INode>(opts: {
 }) {
   type FilterForBE = {
     key: keyof ValidFilterForNode<TNode>;
-    operator: EStringFilterOperator | ENumberFilterOperator;
-    value: any;
+    operatorValueCombos: Array<{
+      operator: EStringFilterOperator | ENumberFilterOperator;
+      value: any;
+    }>;
   };
   const readyForBE = Object.keys(opts.filter).reduce(
     (acc, current) => {
@@ -539,8 +541,12 @@ export function getBEFilterString<TNode extends INode>(opts: {
       ) {
         filterForBE = {
           key,
-          operator: EStringFilterOperator.eq,
-          value: opts.filter[key],
+          operatorValueCombos: [
+            {
+              operator: EStringFilterOperator.eq,
+              value: opts.filter[key],
+            },
+          ],
         };
       } else {
         if (opts.relational && key in opts.relational) {
@@ -548,26 +554,34 @@ export function getBEFilterString<TNode extends INode>(opts: {
           // filter: { task: { id: { eq: 'some id' } } }
           filterForBE = {
             key,
-            operator: EStringFilterOperator.eq,
-            value: opts.filter[key],
+            operatorValueCombos: [
+              {
+                operator: EStringFilterOperator.eq,
+                value: opts.filter[key],
+              },
+            ],
           };
         } else {
           // format is
-          // filter: { task: { eq: 'some task' }
+          // filter: { task: { eq: 'some task' }, dueDate: { lte: 13412313, gte: 12312313 } }
           const { condition, ...rest } = opts.filter[key];
-          const keys = Object.keys(rest);
-          if (keys.length !== 1) {
-            throw Error('Expected 1 property on this filter object');
-          }
-          const operator = (keys[0] as unknown) as
-            | EStringFilterOperator
-            | ENumberFilterOperator;
-          const value = rest[operator as keyof typeof rest];
+          const operatorValueCombos = Object.keys(rest).reduce(
+            (acc, operator) => {
+              const value = rest[operator as keyof typeof rest];
+              acc.push({
+                operator: operator as
+                  | EStringFilterOperator
+                  | ENumberFilterOperator,
+                value,
+              });
+              return acc;
+            },
+            [] as FilterForBE['operatorValueCombos']
+          );
 
           filterForBE = {
             key,
-            operator,
-            value,
+            operatorValueCombos,
           };
         }
       }
@@ -608,19 +622,36 @@ export function getBEFilterString<TNode extends INode>(opts: {
           const isStringEnum =
             opts.def.data[filter.key].type === DATA_TYPES.stringEnum ||
             opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
-          const value = isStringEnum
-            ? filter.value
-            : wrapInQuotesIfString(filter.value);
 
-          acc += `{${filter.key}: {${filter.operator}: ${value}}}`;
+          const operatorValueCombosStringified = filter.operatorValueCombos.reduce(
+            (acc, operatorValueCombo, index) => {
+              if (index > 0) acc += ', ';
+
+              const value = isStringEnum
+                ? operatorValueCombo.value
+                : wrapInQuotesIfString(operatorValueCombo.value);
+
+              acc += `${operatorValueCombo.operator}: ${value}`;
+              return acc;
+            },
+            ''
+          );
+
+          acc += `{${filter.key}: {${operatorValueCombosStringified}}}`;
         } else {
           // filtering on a prop that's part of a relational query
           if (!opts.relational || !(filter.key in opts.relational)) {
             throw Error(`Invalid filter key: ${filter.key}`);
           }
 
+          if (filter.operatorValueCombos.length > 1) {
+            throw Error(
+              `Invalid filter for relational query: ${filter.key}, more than 1 operatorValue combo found`
+            );
+          }
+
           acc += `{${filter.key}: ${getBEFilterString({
-            filter: filter.value,
+            filter: filter.operatorValueCombos[0].value,
             def: opts.relational[filter.key].def,
             relational: opts.relational[filter.key].relational,
           })}}`;
