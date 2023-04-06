@@ -893,6 +893,48 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
     `);
   });
 
+  it('supports multiple filters per prop', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: getQueryRecordFromQueryDefinition({
+            queryId: 'MyTestQuery',
+            queryDefinitions: {
+              todos: queryDefinition({
+                def: generateTodoNode(mmGQLInstance),
+                map: (() => ({})) as MapFnForNode<TodoNode>,
+                filter: {
+                  dateCreated: { gte: 1, lte: 300 },
+                },
+              }),
+            },
+          }),
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       todos: todos(where: {and: [{dateCreated: {gte: 1, lte: 300}}]}) {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
   it('supports "or" filters', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
 
