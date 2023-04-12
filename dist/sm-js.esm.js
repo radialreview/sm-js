@@ -4355,7 +4355,7 @@ function applyClientSideFilterToData(_ref3) {
             return x.condition === 'or';
           });
           var andConditions = filterProperties.filter(function (x) {
-            return x.condition === 'and';
+            return x.condition === 'and' || x.condition === 'some';
           });
           var hasPassedEveryANDConditions = andConditions.every(function (filter) {
             if (filter.isRelational) {
