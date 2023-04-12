@@ -20,7 +20,8 @@ import {
   SortDirection,
   ValidSortForNode,
   QueryRecord,
-  FilterCondition,
+  NodeFilterCondition,
+  CollectionFilterCondition,
   RelationalQueryRecord,
   RelationalQueryRecordEntry,
   IData,
@@ -142,7 +143,7 @@ export function applyClientSideFilterToData({
       underscoreSeparatedPropName: string;
       propNotInQuery: boolean;
       operators: Array<{ operator: FilterOperator; value: any }>;
-      condition: FilterCondition;
+      condition: NodeFilterCondition | CollectionFilterCondition;
       isRelational: boolean;
       relationalKey?: string;
       oneToOne?: boolean;
@@ -156,7 +157,7 @@ export function applyClientSideFilterToData({
         possibleRelationalKey &&
         queryRecordEntry.relational &&
         queryRecordEntry.relational[possibleRelationalKey];
-      const propertyFilter: FilterValue<any> =
+      const propertyFilter: FilterValue<any, boolean> =
         filterObject[dotSeparatedPropName];
       const operators = (Object.keys(propertyFilter).filter(
         x => x !== 'condition'
@@ -216,7 +217,7 @@ export function applyClientSideFilterToData({
             x => x.condition === 'or'
           );
           const andConditions = filterProperties.filter(
-            x => x.condition === 'and'
+            x => x.condition === 'and' || x.condition === 'some'
           );
 
           const hasPassedEveryANDConditions =
@@ -618,7 +619,7 @@ function getFlattenedNodeFilterObject(opts: {
   const result: Record<
     string,
     Partial<Record<FilterOperator, any>> & {
-      condition: FilterCondition;
+      condition: NodeFilterCondition | CollectionFilterCondition;
     }
   > = {};
 
@@ -630,7 +631,10 @@ function getFlattenedNodeFilterObject(opts: {
   const nodeData = opts.queryRecordEntry.def.data;
 
   for (const filteredProperty in filterObject) {
-    const filterValue = filterObject[filteredProperty] as FilterValue<string>;
+    const filterValue = filterObject[filteredProperty] as FilterValue<
+      string,
+      boolean
+    >;
 
     const isObjectInNodeData =
       nodeData[filteredProperty] &&
@@ -687,7 +691,7 @@ function getFlattenedNodeFilterObject(opts: {
           [EStringFilterOperator.eq]: filterValue,
           condition: 'and',
         } as Partial<Record<FilterOperator, any>> & {
-          condition: FilterCondition;
+          condition: NodeFilterCondition | CollectionFilterCondition;
         };
       }
     }
