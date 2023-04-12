@@ -810,7 +810,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = initialData.id;
+        this.id = String(initialData.id);
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
