@@ -210,7 +210,6 @@ function addPaginationData(opts: {
   const pageInfo: PageInfoFromResults = {
     totalPages: Math.ceil(filteredNodes.length / pageSize),
     hasNextPage: totalPages > pageNumber,
-    totalCount: filteredNodes.length,
     hasPreviousPage: pageNumber > 1,
     endCursor: String(pageNumber + 1),
     startCursor: String(pageNumber),
@@ -224,6 +223,7 @@ function addPaginationData(opts: {
   return {
     [NODES_PROPERTY_KEY]: thisPageOfNodes,
     [PAGE_INFO_PROPERTY_KEY]: pageInfo,
+    totalCount: filteredNodes.length,
   };
 }
 

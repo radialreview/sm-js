@@ -1,9 +1,8 @@
 import { NodesCollectionPageOutOfBoundsException } from './exceptions';
-import { QueryState } from './types';
+import { Maybe, QueryState } from './types';
 
 export type PageInfoFromResults = {
   totalPages: number;
-  totalCount: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   endCursor: string;
@@ -27,6 +26,7 @@ export interface NodesCollectionOpts<T> {
   onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
   items: T[];
   pageInfoFromResults: PageInfoFromResults;
+  totalCount: Maybe<number>;
   clientSidePageInfo: ClientSidePageInfo;
   useServerSidePaginationFilteringSorting: boolean;
 }
@@ -52,10 +52,16 @@ export class NodesCollection<
 
   public loadingState = QueryState.IDLE as QueryState;
   public loadingError = null as any;
+  public totalCount: TNodesCollectionArgs['TIncludeTotalCount'] extends true
+    ? number
+    : undefined;
 
   constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>) {
     this.items = opts.items;
 
+    this.totalCount = opts.totalCount as TNodesCollectionArgs['TIncludeTotalCount'] extends true
+      ? number
+      : undefined;
     this.pageInfoFromResults = opts.pageInfoFromResults;
     this.clientSidePageInfo = opts.clientSidePageInfo;
     this.useServerSidePaginationFilteringSorting =
@@ -88,15 +94,6 @@ export class NodesCollection<
 
   public get totalPages() {
     return this.pageInfoFromResults.totalPages;
-  }
-
-  public get totalCount(): TNodesCollectionArgs['TIncludeTotalCount'] extends true
-    ? number
-    : undefined {
-    return this.pageInfoFromResults
-      .totalCount as TNodesCollectionArgs['TIncludeTotalCount'] extends true
-      ? number
-      : undefined;
   }
 
   public get page() {
@@ -181,7 +178,6 @@ export class NodesCollection<
   // be cached in this class' state
   private setNewClientSidePageInfoAfterClientSidePaginationRequest() {
     this.pageInfoFromResults = {
-      totalCount: this.pageInfoFromResults.totalCount,
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage:
         this.pageInfoFromResults.totalPages >

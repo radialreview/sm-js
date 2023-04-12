@@ -11,13 +11,13 @@ const items = [
 const getMockNodesCollectionConstructorArgs = (): NodesCollectionOpts<typeof items[number]> => ({
   items,
   pageInfoFromResults: {
-    totalCount: 5,
     totalPages: 5,
     hasNextPage: true,
     hasPreviousPage: true,
     endCursor: 'xyz',
     startCursor: 'zyx',
   },
+  totalCount: 5,
   clientSidePageInfo: {
     lastQueriedPage: 1,
     pageSize: 1,
@@ -70,7 +70,7 @@ describe('NodesCollection', () => {
       getMockNodesCollectionConstructorArgs()
     );
     expect(arrayWithPagination.totalCount).toEqual(
-      getMockNodesCollectionConstructorArgs().pageInfoFromResults.totalCount
+      getMockNodesCollectionConstructorArgs().totalCount
     );
   });
 
