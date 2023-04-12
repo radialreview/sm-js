@@ -53,6 +53,7 @@ type QueryManagerStateEntry = {
   idsOrIdInCurrentResult: string | Array<string> | null;
   proxyCache: QueryManagerProxyCache;
   pageInfoFromResults: Maybe<PageInfoFromResults>;
+  totalCount: Maybe<number>;
   clientSidePageInfo: Maybe<ClientSidePageInfo>;
 };
 
@@ -169,6 +170,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         const stateForThisAlias = opts.state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
         const pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
+        const totalCount = stateForThisAlias.totalCount;
         const clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
 
         const resultsAlias = this.removeUnionSuffix(queryAlias);
@@ -189,6 +191,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               items,
               clientSidePageInfo,
               pageInfoFromResults,
+              totalCount,
               // allows the UI to re-render when a nodeCollection's internal state is updated
               onPaginationRequestStateChanged: this.opts.onResultsUpdated,
               onLoadMoreResults: () =>
@@ -308,6 +311,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             pageInfoFromResults: this.getPageInfoFromResponse({
               dataForThisAlias: opts.queryResult[queryAlias],
             }),
+            totalCount: this.getTotalCountFromResponse({
+              dataForThisAlias: opts.queryResult[queryAlias],
+            }),
             clientSidePageInfo: this.getInitialClientSidePageInfo({
               queryRecordEntry: opts.queryRecord[queryAlias],
             }),
@@ -330,6 +336,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       queryAlias: string;
       queryRecord: QueryRecord;
       pageInfoFromResults: Maybe<PageInfoFromResults>;
+      totalCount: Maybe<number>;
       clientSidePageInfo: Maybe<ClientSidePageInfo>;
       aliasPath: Array<string>;
     }): Maybe<QueryManagerStateEntry> {
@@ -376,6 +383,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
               pageInfoFromResults: this.getPageInfoFromResponse({
+                dataForThisAlias: node[relationalAlias],
+              }),
+              totalCount: this.getTotalCountFromResponse({
                 dataForThisAlias: node[relationalAlias],
               }),
               clientSidePageInfo: this.getInitialClientSidePageInfo({
@@ -457,6 +467,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
             pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
           };
         } else {
@@ -470,6 +481,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               return proxyCacheAcc;
             }, {} as QueryManagerProxyCache),
             pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
           };
         }
@@ -482,6 +494,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             }),
           },
           pageInfoFromResults: opts.pageInfoFromResults,
+          totalCount: opts.totalCount,
           clientSidePageInfo: opts.clientSidePageInfo,
         };
       }
@@ -549,6 +562,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           queryRecord: this.queryRecord,
           // @TODO will we get pageInfo in subscription messages?
           pageInfoFromResults: null,
+          totalCount: null,
           clientSidePageInfo: null,
           aliasPath: [subscriptionAlias],
         });
@@ -628,6 +642,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
                   // @TODO will we get pageInfo in subscription messages?
                   pageInfoFromResults: null,
+                  totalCount: null,
                   clientSidePageInfo: null,
                   aliasPath: [...opts.aliasPath, relationalAlias],
                 });
@@ -655,6 +670,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
                       // @TODO will we get pageInfo in subscription messages?
                       pageInfoFromResults: null,
+                      totalCount: null,
                       clientSidePageInfo: null,
                       aliasPath: [...opts.aliasPath, relationalAlias],
                     });
@@ -673,6 +689,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       ],
                       // @TODO will we get pageInfo in subscription messages?
                       pageInfoFromResults: null,
+                      totalCount: null,
                       clientSidePageInfo: null,
                     };
                   } else {
@@ -703,6 +720,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       ],
                       // @TODO will we get pageInfo in subscription messages?
                       pageInfoFromResults: null,
+                      totalCount: null,
                       clientSidePageInfo: null,
                     };
                   }
@@ -800,6 +818,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       dataForThisAlias: any;
     }): Maybe<PageInfoFromResults> {
       return opts.dataForThisAlias?.[PAGE_INFO_PROPERTY_KEY] || null;
+    }
+
+    public getTotalCountFromResponse(opts: {
+      dataForThisAlias: any;
+    }): Maybe<number> {
+      return opts.dataForThisAlias?.totalCount;
     }
 
     public getPageInfoFromResponseForAlias(opts: {
@@ -1882,6 +1906,7 @@ function getEmptyStateEntry(): QueryManagerStateEntry {
     idsOrIdInCurrentResult: null,
     proxyCache: {},
     pageInfoFromResults: null,
+    totalCount: null,
     clientSidePageInfo: null,
   };
 }

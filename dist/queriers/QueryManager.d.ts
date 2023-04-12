@@ -6,6 +6,7 @@ declare type QueryManagerStateEntry = {
     idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
+    totalCount: Maybe<number>;
     clientSidePageInfo: Maybe<ClientSidePageInfo>;
 };
 declare type QueryManagerProxyCache = Record<string, // id of the node
@@ -79,6 +80,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryAlias: string;
             queryRecord: QueryRecord;
             pageInfoFromResults: Maybe<PageInfoFromResults>;
+            totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
         }): Maybe<QueryManagerStateEntry>;
@@ -109,6 +111,9 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getPageInfoFromResponse(opts: {
             dataForThisAlias: any;
         }): Maybe<PageInfoFromResults>;
+        getTotalCountFromResponse(opts: {
+            dataForThisAlias: any;
+        }): Maybe<number>;
         getPageInfoFromResponseForAlias(opts: {
             aliasPath: Array<string>;
             response: Record<string, any>;

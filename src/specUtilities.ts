@@ -175,7 +175,7 @@ export function createMockQueryDefinitions(
   opts: { useIds?: true } & {
     tokenName?: string;
     doNotSuspend?: boolean;
-    todosFilter?: ValidFilterForNode<TodoNode>;
+    todosFilter?: ValidFilterForNode<TodoNode, true>;
   } = {}
 ) {
   let target = {} as QueryDefinitionTarget;
@@ -265,7 +265,6 @@ export const mockUserData = {
 };
 
 const mockPageInfo: PageInfoFromResults = {
-  totalCount: 10,
   hasPreviousPage: true,
   hasNextPage: true,
   endCursor: 'xyz',
@@ -523,6 +522,7 @@ export function convertNodesCollectionValuesToArray<
         pageInfoFromResults: {
           ...mockPageInfo,
         },
+        totalCount: acc[key].length,
         clientSidePageInfo: {
           lastQueriedPage: 1,
           pageSize: DEFAULT_PAGE_SIZE,

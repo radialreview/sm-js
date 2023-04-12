@@ -3447,7 +3447,9 @@ var NodesCollection = /*#__PURE__*/function () {
     this.pagesBeingDisplayed = void 0;
     this.loadingState = exports.QueryState.IDLE;
     this.loadingError = null;
+    this.totalCount = void 0;
     this.items = opts.items;
+    this.totalCount = opts.totalCount;
     this.pageInfoFromResults = opts.pageInfoFromResults;
     this.clientSidePageInfo = opts.clientSidePageInfo;
     this.useServerSidePaginationFilteringSorting = opts.useServerSidePaginationFilteringSorting;
@@ -3697,7 +3699,6 @@ var NodesCollection = /*#__PURE__*/function () {
 
   _proto.setNewClientSidePageInfoAfterClientSidePaginationRequest = function setNewClientSidePageInfoAfterClientSidePaginationRequest() {
     this.pageInfoFromResults = {
-      totalCount: this.pageInfoFromResults.totalCount,
       totalPages: this.pageInfoFromResults.totalPages,
       hasNextPage: this.pageInfoFromResults.totalPages > this.clientSidePageInfo.lastQueriedPage,
       hasPreviousPage: this.clientSidePageInfo.lastQueriedPage > 1,
@@ -3732,11 +3733,6 @@ var NodesCollection = /*#__PURE__*/function () {
     key: "totalPages",
     get: function get() {
       return this.pageInfoFromResults.totalPages;
-    }
-  }, {
-    key: "totalCount",
-    get: function get() {
-      return this.pageInfoFromResults.totalCount;
     }
   }, {
     key: "page",
@@ -4166,8 +4162,7 @@ function generateMockNodeDataForQueryRecord(opts) {
         startCursor: 'yzx',
         hasPreviousPage: false,
         hasNextPage: pageSize < arrayOfMockNodeValues.length,
-        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize),
-        totalCount: arrayOfMockNodeValues.length
+        totalPages: Math.ceil(arrayOfMockNodeValues.length / pageSize)
       };
 
       if (returnValueShouldBeNestedInNodes) {
@@ -6243,13 +6238,12 @@ function addPaginationData(opts) {
   var pageInfo = {
     totalPages: Math.ceil(filteredNodes.length / pageSize),
     hasNextPage: totalPages > pageNumber,
-    totalCount: filteredNodes.length,
     hasPreviousPage: pageNumber > 1,
     endCursor: String(pageNumber + 1),
     startCursor: String(pageNumber)
   };
   var thisPageOfNodes = filteredNodes.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
-  return _ref = {}, _ref[NODES_PROPERTY_KEY] = thisPageOfNodes, _ref[PAGE_INFO_PROPERTY_KEY] = pageInfo, _ref;
+  return _ref = {}, _ref[NODES_PROPERTY_KEY] = thisPageOfNodes, _ref[PAGE_INFO_PROPERTY_KEY] = pageInfo, _ref.totalCount = filteredNodes.length, _ref;
 }
 
 var STATIC_RELATIONAL = '__staticRelational';
@@ -6553,6 +6547,7 @@ function createQueryManager(mmGQLInstance) {
         var stateForThisAlias = opts.state[queryAlias];
         var idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
         var pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
+        var totalCount = stateForThisAlias.totalCount;
         var clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
 
         var resultsAlias = _this2.removeUnionSuffix(queryAlias);
@@ -6572,6 +6567,7 @@ function createQueryManager(mmGQLInstance) {
               items: items,
               clientSidePageInfo: clientSidePageInfo,
               pageInfoFromResults: pageInfoFromResults,
+              totalCount: totalCount,
               // allows the UI to re-render when a nodeCollection's internal state is updated
               onPaginationRequestStateChanged: _this2.opts.onResultsUpdated,
               onLoadMoreResults: function onLoadMoreResults() {
@@ -6682,6 +6678,9 @@ function createQueryManager(mmGQLInstance) {
           pageInfoFromResults: _this4.getPageInfoFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias]
           }),
+          totalCount: _this4.getTotalCountFromResponse({
+            dataForThisAlias: opts.queryResult[queryAlias]
+          }),
           clientSidePageInfo: _this4.getInitialClientSidePageInfo({
             queryRecordEntry: opts.queryRecord[queryAlias]
           }),
@@ -6740,6 +6739,9 @@ function createQueryManager(mmGQLInstance) {
           var cacheEntry = _this5.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
             pageInfoFromResults: _this5.getPageInfoFromResponse({
+              dataForThisAlias: node[relationalAlias]
+            }),
+            totalCount: _this5.getTotalCountFromResponse({
               dataForThisAlias: node[relationalAlias]
             }),
             clientSidePageInfo: _this5.getInitialClientSidePageInfo({
@@ -6804,6 +6806,7 @@ function createQueryManager(mmGQLInstance) {
               return proxyCacheAcc;
             }, {}),
             pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo
           };
         } else {
@@ -6818,6 +6821,7 @@ function createQueryManager(mmGQLInstance) {
               return proxyCacheAcc;
             }, {}),
             pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo
           };
         }
@@ -6830,6 +6834,7 @@ function createQueryManager(mmGQLInstance) {
             node: nodeData
           }), _proxyCache),
           pageInfoFromResults: opts.pageInfoFromResults,
+          totalCount: opts.totalCount,
           clientSidePageInfo: opts.clientSidePageInfo
         };
       }
@@ -6886,6 +6891,7 @@ function createQueryManager(mmGQLInstance) {
           queryRecord: this.queryRecord,
           // @TODO will we get pageInfo in subscription messages?
           pageInfoFromResults: null,
+          totalCount: null,
           clientSidePageInfo: null,
           aliasPath: [subscriptionAlias]
         });
@@ -6935,6 +6941,7 @@ function createQueryManager(mmGQLInstance) {
             queryRecord: relationalQueryRecord,
             // @TODO will we get pageInfo in subscription messages?
             pageInfoFromResults: null,
+            totalCount: null,
             clientSidePageInfo: null,
             aliasPath: [].concat(opts.aliasPath, [relationalAlias])
           });
@@ -6963,6 +6970,7 @@ function createQueryManager(mmGQLInstance) {
                 queryRecord: relationalQueryRecord,
                 // @TODO will we get pageInfo in subscription messages?
                 pageInfoFromResults: null,
+                totalCount: null,
                 clientSidePageInfo: null,
                 aliasPath: [].concat(opts.aliasPath, [relationalAlias])
               });
@@ -6973,6 +6981,7 @@ function createQueryManager(mmGQLInstance) {
                 idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id]),
                 // @TODO will we get pageInfo in subscription messages?
                 pageInfoFromResults: null,
+                totalCount: null,
                 clientSidePageInfo: null
               };
             } else {
@@ -6994,6 +7003,7 @@ function createQueryManager(mmGQLInstance) {
                 idsOrIdInCurrentResult: [].concat(relationalStateAcc[relationalAlias].idsOrIdInCurrentResult, [node.id]),
                 // @TODO will we get pageInfo in subscription messages?
                 pageInfoFromResults: null,
+                totalCount: null,
                 clientSidePageInfo: null
               };
             }
@@ -7046,6 +7056,12 @@ function createQueryManager(mmGQLInstance) {
       var _opts$dataForThisAlia;
 
       return ((_opts$dataForThisAlia = opts.dataForThisAlias) == null ? void 0 : _opts$dataForThisAlia[PAGE_INFO_PROPERTY_KEY]) || null;
+    };
+
+    _proto.getTotalCountFromResponse = function getTotalCountFromResponse(opts) {
+      var _opts$dataForThisAlia2;
+
+      return (_opts$dataForThisAlia2 = opts.dataForThisAlias) == null ? void 0 : _opts$dataForThisAlia2.totalCount;
     };
 
     _proto.getPageInfoFromResponseForAlias = function getPageInfoFromResponseForAlias(opts) {
@@ -7963,6 +7979,7 @@ function getEmptyStateEntry() {
     idsOrIdInCurrentResult: null,
     proxyCache: {},
     pageInfoFromResults: null,
+    totalCount: null,
     clientSidePageInfo: null
   };
 }

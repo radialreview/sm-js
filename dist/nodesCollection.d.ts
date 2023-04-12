@@ -1,7 +1,6 @@
-import { QueryState } from './types';
+import { Maybe, QueryState } from './types';
 export declare type PageInfoFromResults = {
     totalPages: number;
-    totalCount: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
     endCursor: string;
@@ -22,6 +21,7 @@ export interface NodesCollectionOpts<T> {
     onPaginationRequestStateChanged: OnPaginationRequestStateChangedCallback;
     items: T[];
     pageInfoFromResults: PageInfoFromResults;
+    totalCount: Maybe<number>;
     clientSidePageInfo: ClientSidePageInfo;
     useServerSidePaginationFilteringSorting: boolean;
 }
@@ -40,12 +40,12 @@ export declare class NodesCollection<TNodesCollectionArgs extends {
     private pagesBeingDisplayed;
     loadingState: QueryState;
     loadingError: any;
+    totalCount: TNodesCollectionArgs['TIncludeTotalCount'] extends true ? number : undefined;
     constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>);
     get nodes(): TNodesCollectionArgs["TItemType"][];
     get hasNextPage(): boolean;
     get hasPreviousPage(): boolean;
     get totalPages(): number;
-    get totalCount(): TNodesCollectionArgs['TIncludeTotalCount'] extends true ? number : undefined;
     get page(): number;
     loadMore(): Promise<void>;
     goToNextPage(): Promise<void>;

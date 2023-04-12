@@ -877,7 +877,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
 } & {
     tokenName?: string;
     doNotSuspend?: boolean;
-    todosFilter?: ValidFilterForNode<TodoNode>;
+    todosFilter?: ValidFilterForNode<TodoNode, true>;
 }): {
     users: import("./types").UseSubscriptionQueryDefinition<{
         TNode: UserNode;
@@ -2261,30 +2261,30 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         }>;
                     };
                     filter: Partial<Partial<{
-                        task: import("./types").FilterValue<string>;
-                        done: import("./types").FilterValue<boolean>;
-                        assigneeId: import("./types").FilterValue<string>;
-                        meetingId: import("./types").FilterValue<import("./types").Maybe<string>>;
+                        task: import("./types").FilterValue<string, true>;
+                        done: import("./types").FilterValue<boolean, true>;
+                        assigneeId: import("./types").FilterValue<string, true>;
+                        meetingId: import("./types").FilterValue<import("./types").Maybe<string>, true>;
                         settings: Partial<{
-                            archiveAfterMeeting: import("./types").FilterValue<import("./types").Maybe<boolean>>;
+                            archiveAfterMeeting: import("./types").FilterValue<import("./types").Maybe<boolean>, true>;
                             nestedSettings: Partial<{
-                                nestedNestedMaybe: import("./types").FilterValue<import("./types").Maybe<string>>;
+                                nestedNestedMaybe: import("./types").FilterValue<import("./types").Maybe<string>, true>;
                             } | null>;
                             nestedRecord: Partial<{
                                 [x: string]: boolean;
                             } | {
-                                condition?: import("./types").FilterCondition | undefined;
+                                condition?: import("./types").CollectionFilterCondition | undefined;
                             }>;
                         } | null>;
-                        numberProp: import("./types").FilterValue<number>;
-                        enumProp: import("./types").FilterValue<"A" | "B" | "C">;
-                        maybeEnumProp: import("./types").FilterValue<import("./types").Maybe<"A" | "B" | "C">>;
-                        dateCreated: import("./types").FilterValue<number>;
-                        dateLastModified: import("./types").FilterValue<number>;
-                        lastUpdatedClientTimestamp: import("./types").FilterValue<number>;
-                        id: import("./types").FilterValue<string>;
-                        version: import("./types").FilterValue<number>;
-                        lastUpdatedBy: import("./types").FilterValue<string>;
+                        numberProp: import("./types").FilterValue<number, true>;
+                        enumProp: import("./types").FilterValue<"A" | "B" | "C", true>;
+                        maybeEnumProp: import("./types").FilterValue<import("./types").Maybe<"A" | "B" | "C">, true>;
+                        dateCreated: import("./types").FilterValue<number, true>;
+                        dateLastModified: import("./types").FilterValue<number, true>;
+                        lastUpdatedClientTimestamp: import("./types").FilterValue<number, true>;
+                        id: import("./types").FilterValue<string, true>;
+                        version: import("./types").FilterValue<number, true>;
+                        lastUpdatedBy: import("./types").FilterValue<string, true>;
                     }>> | undefined;
                 };
                 TIncludeTotalCount: boolean;
