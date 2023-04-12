@@ -1033,6 +1033,7 @@ test(`query.filter can filter query with "AND" condition using the node's oneToM
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
 });
 
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
 test.skip(`query.filter can filter query with "OR" condition using the node's oneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
@@ -1216,6 +1217,7 @@ test(`query.filter can filter query with "AND" condition using the node's nonPag
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
 });
 
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
 test.skip(`query.filter can filter query with "OR" condition using the node's nonPaginatedOneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
@@ -1287,18 +1289,6 @@ test.skip(`query.filter can filter query with "OR" condition using the node's no
       filter: {
         firstName: { eq: 'User 3', condition: 'or' },
         todos: {
-          // NEED TO MAKE A TASK TO ALLOW THIS TO WORK
-          // RIGHT NOW "SOME" is assumed as an "and" filter
-          // really we need the query lib to support this
-
-          // {
-          //   or: [
-          //     {
-          //       firstName: { eq: 'User 3' },
-          //       todos: { contains: 'Task 6', condition: 'some' }
-          //     },
-          //   ],
-          // }
           task: { contains: 'Task 6', condition: 'some' },
         },
       },
@@ -1403,6 +1393,7 @@ test(`query.filter should throw an error if relational prop is not defined in th
   );
 });
 
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
 test.skip(`query.filter can filter query with "OR" condition using the node's oneToOne relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
@@ -1582,6 +1573,7 @@ test(`query.filter can filter using "OR" condition`, async () => {
   );
 });
 
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
 test.skip(`query.filter can filter relational data using "OR" condition`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
