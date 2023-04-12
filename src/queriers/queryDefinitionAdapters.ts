@@ -19,7 +19,8 @@ import {
   DataDefaultFn,
   IOneToOneQueryBuilderOpts,
   EStringFilterOperator,
-  FilterCondition,
+  NodeFilterCondition,
+  CollectionFilterCondition,
   ENumberFilterOperator,
   ValidSortForNode,
   SortObject,
@@ -518,12 +519,14 @@ function wrapInQuotesIfString(value: any) {
 }
 
 export function getBEFilterString<TNode extends INode>(opts: {
-  filter: ValidFilterForNode<TNode>;
+  filter: ValidFilterForNode<TNode, boolean>;
   def: INode;
   relational?: Record<string, RelationalQueryRecordEntry>;
+  // indicates whether this is a filter that applies to a collection of nodes
+  isCollectionFilter: boolean;
 }) {
   type FilterForBE = {
-    key: keyof ValidFilterForNode<TNode>;
+    key: keyof ValidFilterForNode<TNode, boolean>;
     operatorValueCombos: Array<{
       operator: EStringFilterOperator | ENumberFilterOperator;
       value: any;
@@ -531,7 +534,7 @@ export function getBEFilterString<TNode extends INode>(opts: {
   };
   const readyForBE = Object.keys(opts.filter).reduce(
     (acc, current) => {
-      const key = current as keyof ValidFilterForNode<TNode>;
+      const key = current as keyof ValidFilterForNode<TNode, boolean>;
       let filterForBE: FilterForBE;
       if (
         opts.filter[key] === null ||
@@ -550,8 +553,9 @@ export function getBEFilterString<TNode extends INode>(opts: {
         };
       } else {
         if (opts.relational && key in opts.relational) {
-          // format is
-          // filter: { task: { id: { eq: 'some id' } } }
+          // filter data returned based on data on a relationship
+          // format is this (when querying "meetings", where meetings has a relationship to "todos")
+          // filter: { todos: { task: 'get it done' } }
           filterForBE = {
             key,
             operatorValueCombos: [
@@ -562,6 +566,8 @@ export function getBEFilterString<TNode extends INode>(opts: {
             ],
           };
         } else {
+          // complex filter with potentially not just straight equality checks
+          // that filters against data on the node
           // format is
           // filter: { task: { eq: 'some task' }, dueDate: { lte: 13412313, gte: 12312313 } }
           const { condition, ...rest } = opts.filter[key];
@@ -586,8 +592,12 @@ export function getBEFilterString<TNode extends INode>(opts: {
         }
       }
 
-      const condition = (opts.filter[key]?.condition ||
-        'and') as FilterCondition;
+      const defaultCondition:
+        | NodeFilterCondition
+        | CollectionFilterCondition = opts.isCollectionFilter ? 'some' : 'and';
+      const condition = (opts.filter[key]?.condition || defaultCondition) as
+        | NodeFilterCondition
+        | CollectionFilterCondition;
 
       const conditionArray = acc[condition] || [];
       conditionArray.push(filterForBE);
@@ -599,16 +609,17 @@ export function getBEFilterString<TNode extends INode>(opts: {
     {} as {
       and?: Array<FilterForBE>;
       or?: Array<FilterForBE>;
+      some?: Array<FilterForBE>;
+      all?: Array<FilterForBE>;
+      none?: Array<FilterForBE>;
     }
   );
 
-  if (readyForBE.and?.length === 0) {
-    delete readyForBE.and;
-  }
-
-  if (readyForBE.or?.length === 0) {
-    delete readyForBE.or;
-  }
+  Object.keys(readyForBE).forEach(condition => {
+    if (readyForBE[condition as keyof typeof readyForBE]?.length === 0) {
+      delete readyForBE[condition as keyof typeof readyForBE];
+    }
+  });
 
   return (
     Object.entries(readyForBE).reduce((acc, [condition, filters], index) => {
@@ -654,13 +665,22 @@ export function getBEFilterString<TNode extends INode>(opts: {
             filter: filter.operatorValueCombos[0].value,
             def: opts.relational[filter.key].def,
             relational: opts.relational[filter.key].relational,
+            isCollectionFilter: true,
           })}}`;
         }
 
         return acc;
       }, '');
 
-      acc += `${condition}: [${stringifiedFilters}]`;
+      function wrapInArrayIfNecessary(stringifiedFilters: string) {
+        if (opts.isCollectionFilter) {
+          return stringifiedFilters;
+        } else {
+          return `[${stringifiedFilters}]`;
+        }
+      }
+
+      acc += `${condition}: ${wrapInArrayIfNecessary(stringifiedFilters)}`;
 
       return acc;
     }, '{') + '}'
@@ -729,6 +749,7 @@ function getGetNodeOptions(opts: {
         filter: opts.queryRecordEntry.filter,
         def: opts.queryRecordEntry.def,
         relational: opts.queryRecordEntry.relational,
+        isCollectionFilter: false,
       })}`
     );
   }

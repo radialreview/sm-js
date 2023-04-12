@@ -304,33 +304,33 @@ const stateNode: StateNode = mmGQL.def({
   };
   invalidNestedProp;
 
-  const filter1: ValidFilterForNode<UserNode> = {
+  const filter1: ValidFilterForNode<UserNode, false> = {
     firstName: { contains: 's' },
   };
   filter1;
-  const filter2: ValidFilterForNode<UserNode> = {
+  const filter2: ValidFilterForNode<UserNode, false> = {
     address: { state: { contains: 's' }, nestedInAddress: {} },
   };
   filter2;
-  const filter3: ValidFilterForNode<UserNode> = {
+  const filter3: ValidFilterForNode<UserNode, false> = {
     // @ts-expect-error can't search enums
     recordEnum: { FOO: 'BAR' },
   };
   filter3;
-  const filter4: ValidFilterForNode<UserNode> = {
+  const filter4: ValidFilterForNode<UserNode, false> = {
     // @ts-expect-error can't search arrays
     arrayOfString: ['test'],
   };
   filter4;
-  const filter5: ValidFilterForNode<UserNode> = {
+  const filter5: ValidFilterForNode<UserNode, false> = {
     bool: { eq: true },
   };
   filter5;
-  const filter6: ValidFilterForNode<UserNode> = {
+  const filter6: ValidFilterForNode<UserNode, false> = {
     maybeBool: { eq: null },
   };
   filter6;
-  const filter7: ValidFilterForNode<UserNode> = {
+  const filter7: ValidFilterForNode<UserNode, false> = {
     maybeStr: { eq: null },
   };
   filter7;
@@ -449,6 +449,24 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        todos: userData.todos({ map: ({ task }) => ({ task }) }),
+      }),
+      filter: {
+        firstName: {
+          // @ts-expect-error invalid condition, can only be used with collections
+          condition: 'some',
+          contains: 'Meida',
+        },
+      },
+    }),
+  });
+
   // testing relational filters
   await mmGQL.query({
     users: queryDefinition({
@@ -464,6 +482,23 @@ const stateNode: StateNode = mmGQL.def({
           // @ts-expect-error wrong data type, id is a string
           id: {
             eq: 123,
+          },
+        },
+      },
+    }),
+  });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        todosForThisUser: userData.todos({ map: ({ task }) => ({ task }) }),
+      }),
+      filter: {
+        todosForThisUser: {
+          task: {
+            condition: 'all',
+            contains: 'test',
           },
         },
       },

@@ -120,7 +120,7 @@ function getMockValueForIData(data: IData): MockValuesIDataReturnType {
 }
 
 function getMockDataThatConformsToFilter(opts: {
-  filter: ValidFilterForNode<INode>;
+  filter: ValidFilterForNode<INode, boolean>;
   data: Record<string, IData | DataDefaultFn>;
 }) {
   const { filter, data } = opts;

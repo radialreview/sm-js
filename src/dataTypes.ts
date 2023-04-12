@@ -464,7 +464,7 @@ export const oneToMany = <
       TIncludeTotalCount
     > & {
       _relationshipName: string;
-      filter?: ValidFilterForNode<INode>;
+      filter?: ValidFilterForNode<INode, boolean>;
       sort?: ValidSortForNode<INode>;
     },
     TIncludeTotalCount extends boolean = false
@@ -496,7 +496,7 @@ export const nonPaginatedOneToMany = <
       TIncludeTotalCount
     > & {
       _relationshipName: string;
-      filter?: ValidFilterForNode<INode>;
+      filter?: ValidFilterForNode<INode, boolean>;
       sort?: ValidSortForNode<INode>;
     },
     TIncludeTotalCount extends boolean = false

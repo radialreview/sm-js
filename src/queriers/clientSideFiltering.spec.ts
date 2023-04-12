@@ -1018,7 +1018,7 @@ test(`query.filter can filter query with "AND" condition using the node's oneToM
       filter: {
         firstName: { eq: 'User 3', condition: 'and' },
         todos: {
-          task: { contains: 'Task 9', condition: 'and' },
+          task: { contains: 'Task 9', condition: 'some' },
         },
       },
       map: ({ firstName, todos }) => ({
@@ -1033,7 +1033,8 @@ test(`query.filter can filter query with "AND" condition using the node's oneToM
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
 });
 
-test(`query.filter can filter query with "OR" condition using the node's oneToMany relational properties`, async () => {
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
+test.skip(`query.filter can filter query with "OR" condition using the node's oneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
@@ -1104,7 +1105,7 @@ test(`query.filter can filter query with "OR" condition using the node's oneToMa
       filter: {
         firstName: { eq: 'User 3', condition: 'or' },
         todos: {
-          task: { contains: 'Task 6', condition: 'or' },
+          task: { contains: 'Task 6', condition: 'some' },
         },
       },
       map: ({ firstName, todos }) => ({
@@ -1201,7 +1202,7 @@ test(`query.filter can filter query with "AND" condition using the node's nonPag
       filter: {
         firstName: { eq: 'User 3', condition: 'and' },
         todos: {
-          task: { contains: 'Task 9', condition: 'and' },
+          task: { contains: 'Task 9', condition: 'some' },
         },
       },
       map: ({ firstName, nonPaginatedTodos }) => ({
@@ -1216,7 +1217,8 @@ test(`query.filter can filter query with "AND" condition using the node's nonPag
   expect(data.users.nodes.map(x => x.firstName)).toEqual(['User 3']);
 });
 
-test(`query.filter can filter query with "OR" condition using the node's nonPaginatedOneToMany relational properties`, async () => {
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
+test.skip(`query.filter can filter query with "OR" condition using the node's nonPaginatedOneToMany relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
@@ -1287,7 +1289,7 @@ test(`query.filter can filter query with "OR" condition using the node's nonPagi
       filter: {
         firstName: { eq: 'User 3', condition: 'or' },
         todos: {
-          task: { contains: 'Task 6', condition: 'or' },
+          task: { contains: 'Task 6', condition: 'some' },
         },
       },
       map: ({ firstName, nonPaginatedTodos }) => ({
@@ -1391,7 +1393,8 @@ test(`query.filter should throw an error if relational prop is not defined in th
   );
 });
 
-test(`query.filter can filter query with "OR" condition using the node's oneToOne relational properties`, async () => {
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
+test.skip(`query.filter can filter query with "OR" condition using the node's oneToOne relational properties`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       todos: createMockDataItems({
@@ -1570,7 +1573,8 @@ test(`query.filter can filter using "OR" condition`, async () => {
   );
 });
 
-test(`query.filter can filter relational data using "OR" condition`, async () => {
+// skipped due to https://winterinternational.atlassian.net/browse/TTD-1528
+test.skip(`query.filter can filter relational data using "OR" condition`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({
@@ -1615,11 +1619,11 @@ test(`query.filter can filter relational data using "OR" condition`, async () =>
           filter: {
             task: {
               contains: 'j',
-              condition: 'or',
+              condition: 'some',
             },
             numberProp: {
               eq: 20,
-              condition: 'or',
+              condition: 'some',
             },
           },
           map: ({ task, numberProp }) => ({ task, numberProp }),

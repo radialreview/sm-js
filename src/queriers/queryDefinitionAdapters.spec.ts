@@ -1058,6 +1058,131 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
     `);
   });
 
+  it('supports nested data filters, using "some" as the default filter for oneToMany relationships', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: {
+            users: {
+              def: generateUserNode(mmGQLInstance),
+              properties: ['id'],
+              relational: {
+                todos: {
+                  def: generateTodoNode(mmGQLInstance),
+                  properties: ['id', 'task'],
+                  _relationshipName: 'todos',
+                  oneToMany: true,
+                },
+              },
+              filter: {
+                todos: {
+                  task: 'get it done',
+                },
+              },
+              tokenName: DEFAULT_TOKEN_NAME,
+            },
+          },
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       users: users(where: {and: [{todos: {some: {task: {eq: \\"get it done\\"}}}}]}) {
+         nodes {
+           id
+           todos: todos {
+             nodes {
+               id
+               task
+             }
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
+  it('supports nested data filters, using other conditions for oneToMany relationships', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: {
+            users: {
+              def: generateUserNode(mmGQLInstance),
+              properties: ['id'],
+              relational: {
+                todos: {
+                  def: generateTodoNode(mmGQLInstance),
+                  properties: ['id', 'task'],
+                  _relationshipName: 'todos',
+                  oneToMany: true,
+                },
+              },
+              filter: {
+                todos: {
+                  task: {
+                    condition: 'all',
+                    eq: 'get it done',
+                  },
+                  id: {
+                    condition: 'none',
+                    eq: '1234',
+                  },
+                },
+              },
+              tokenName: DEFAULT_TOKEN_NAME,
+            },
+          },
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       users: users(where: {and: [{todos: {all: {task: {eq: \\"get it done\\"}}, none: {id: {eq: \\"1234\\"}}}}]}) {
+         nodes {
+           id
+           todos: todos {
+             nodes {
+               id
+               task
+             }
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
   it('supports sorting short hand syntax', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
 
