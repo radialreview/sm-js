@@ -1464,8 +1464,6 @@ function wrapInQuotesIfString(value) {
 }
 
 function getBEFilterString(opts) {
-  var _readyForBE$and, _readyForBE$or;
-
   var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
     var _opts$filter$key2;
 
@@ -1482,8 +1480,9 @@ function getBEFilterString(opts) {
       };
     } else {
       if (opts.relational && key in opts.relational) {
-        // format is
-        // filter: { task: { id: { eq: 'some id' } } }
+        // filter data returned based on data on a relationship
+        // format is this (when querying "meetings", where meetings has a relationship to "todos")
+        // filter: { todos: { task: 'get it done' } }
         filterForBE = {
           key: key,
           operatorValueCombos: [{
@@ -1492,6 +1491,8 @@ function getBEFilterString(opts) {
           }]
         };
       } else {
+        // complex filter with potentially not just straight equality checks
+        // that filters against data on the node
         // format is
         // filter: { task: { eq: 'some task' }, dueDate: { lte: 13412313, gte: 12312313 } }
         var _opts$filter$key = opts.filter[key],
@@ -1512,21 +1513,20 @@ function getBEFilterString(opts) {
       }
     }
 
-    var condition = ((_opts$filter$key2 = opts.filter[key]) == null ? void 0 : _opts$filter$key2.condition) || 'and';
+    var defaultCondition = opts.isCollectionFilter ? 'some' : 'and';
+    var condition = ((_opts$filter$key2 = opts.filter[key]) == null ? void 0 : _opts$filter$key2.condition) || defaultCondition;
     var conditionArray = acc[condition] || [];
     conditionArray.push(filterForBE);
     acc[condition] = conditionArray;
     return acc;
   }, {});
+  Object.keys(readyForBE).forEach(function (condition) {
+    var _readyForBE$condition;
 
-  if (((_readyForBE$and = readyForBE.and) == null ? void 0 : _readyForBE$and.length) === 0) {
-    delete readyForBE.and;
-  }
-
-  if (((_readyForBE$or = readyForBE.or) == null ? void 0 : _readyForBE$or.length) === 0) {
-    delete readyForBE.or;
-  }
-
+    if (((_readyForBE$condition = readyForBE[condition]) == null ? void 0 : _readyForBE$condition.length) === 0) {
+      delete readyForBE[condition];
+    }
+  });
   return Object.entries(readyForBE).reduce(function (acc, _ref, index) {
     var condition = _ref[0],
         filters = _ref[1];
@@ -1557,13 +1557,23 @@ function getBEFilterString(opts) {
         acc += "{" + filter.key + ": " + getBEFilterString({
           filter: filter.operatorValueCombos[0].value,
           def: opts.relational[filter.key].def,
-          relational: opts.relational[filter.key].relational
+          relational: opts.relational[filter.key].relational,
+          isCollectionFilter: true
         }) + "}";
       }
 
       return acc;
     }, '');
-    acc += condition + ": [" + stringifiedFilters + "]";
+
+    function wrapInArrayIfNecessary(stringifiedFilters) {
+      if (opts.isCollectionFilter) {
+        return stringifiedFilters;
+      } else {
+        return "[" + stringifiedFilters + "]";
+      }
+    }
+
+    acc += condition + ": " + wrapInArrayIfNecessary(stringifiedFilters);
     return acc;
   }, '{') + '}';
 }
@@ -1612,7 +1622,8 @@ function getGetNodeOptions(opts) {
     options.push("where: " + getBEFilterString({
       filter: opts.queryRecordEntry.filter,
       def: opts.queryRecordEntry.def,
-      relational: opts.queryRecordEntry.relational
+      relational: opts.queryRecordEntry.relational,
+      isCollectionFilter: false
     }));
   }
 
