@@ -15,7 +15,6 @@ import {
   IDOProxy,
   Maybe,
   IMMGQL,
-  IQueryManager,
   QueryRecord,
   BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
@@ -97,7 +96,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
    *       4.2) build proxies for new DOs received + update relational data (recursively) for proxies that had been previously built
    *    5) building the resulting data that is returned by queriers from its cache of proxies
    */
-  return class QueryManager implements IQueryManager {
+  return class QueryManager {
     public state: QueryManagerState = {};
     public queryDefinitions:
       | QueryDefinitions<unknown, unknown, unknown>
