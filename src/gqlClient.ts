@@ -8,7 +8,7 @@ import {
 } from '@apollo/client/core';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
-import { BatchHttpLink } from '@apollo/client/link/batch-http';
+// import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { Config, DocumentNode, IGQLClient } from './types';
 
@@ -54,18 +54,18 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   //   nonBatchedLink
   // );
 
-  const mutationBatchLink = split(
-    operation => operation.getContext().batchedMutation,
-    new BatchHttpLink({
-      uri: gqlClientOpts.httpUrl,
-      credentials: 'include',
-      // no batch max for explicitly batched mutations
-      // to ensure transactional integrity
-      batchMax: Number.MAX_SAFE_INTEGER,
-      batchInterval: 0,
-    }),
-    nonBatchedLink
-  );
+  // const mutationBatchLink = split(
+  //   operation => operation.getContext().batchedMutation,
+  //   new BatchHttpLink({
+  //     uri: gqlClientOpts.httpUrl,
+  //     credentials: 'include',
+  //     // no batch max for explicitly batched mutations
+  //     // to ensure transactional integrity
+  //     batchMax: Number.MAX_SAFE_INTEGER,
+  //     batchInterval: 0,
+  //   }),
+  //   nonBatchedLink
+  // );
 
   const requestLink = split(
     // split based on operation type
@@ -77,7 +77,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       );
     },
     wsLink,
-    mutationBatchLink
+    nonBatchedLink
   );
 
   function getContextWithToken(opts: { token?: string }) {
