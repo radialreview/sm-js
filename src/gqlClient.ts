@@ -54,11 +54,6 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   //   nonBatchedLink
   // );
 
-  // const mutationNonBatchLink = new BatchHttpLink({
-  //   uri: gqlClientOpts.httpUrl,
-  //   credentials: 'include',
-  // });
-
   // const mutationBatchLink = split(
   //   operation => operation.getContext().batchedMutation,
   //   new BatchHttpLink({

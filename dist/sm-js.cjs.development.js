@@ -7780,10 +7780,6 @@ function getGQLCLient(gqlClientOpts) {
   //   }),
   //   nonBatchedLink
   // );
-  // const mutationNonBatchLink = new BatchHttpLink({
-  //   uri: gqlClientOpts.httpUrl,
-  //   credentials: 'include',
-  // });
   // const mutationBatchLink = split(
   //   operation => operation.getContext().batchedMutation,
   //   new BatchHttpLink({
