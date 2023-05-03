@@ -1491,8 +1491,31 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines: headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee: assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
            }
          }
+         
          ...on Updated_Meeting {
            __typename
            id
@@ -1505,66 +1528,9 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            }
          }
          
-         ...on Created_Headline {
+         ...on Deleted_Meeting {
            __typename
            id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Updated_Headline {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-           }
-         }
-         
-         ...on Created_User {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             firstName
-           }
          }
          
          ...on Updated_User {
@@ -1591,6 +1557,40 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              firstName
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
            }
          }
        }
@@ -1643,8 +1643,31 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines: headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee: assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
            }
          }
+         
          ...on Updated_Meeting {
            __typename
            id
@@ -1657,66 +1680,9 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            }
          }
          
-         ...on Created_Headline {
+         ...on Deleted_Meeting {
            __typename
            id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Updated_Headline {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-           }
-         }
-         
-         ...on Created_User {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             firstName
-           }
          }
          
          ...on Updated_User {
@@ -1743,6 +1709,40 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              firstName
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
            }
          }
        }
@@ -1807,8 +1807,31 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines: headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee: assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
            }
          }
+         
          ...on Updated_Meeting {
            __typename
            id
@@ -1821,66 +1844,9 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            }
          }
          
-         ...on Created_Headline {
+         ...on Deleted_Meeting {
            __typename
            id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Updated_Headline {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-           }
-         }
-         
-         ...on Created_User {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             firstName
-           }
          }
          
          ...on Updated_User {
@@ -1909,6 +1875,40 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              firstName
            }
          }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
        }
       }"
     `);
@@ -1925,8 +1925,16 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
+         
          ...on Updated_Headline {
            __typename
            id
@@ -1939,16 +1947,9 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            }
          }
          
-         ...on Created_User {
+         ...on Deleted_Headline {
            __typename
            id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             firstName
-           }
          }
          
          ...on Updated_User {
@@ -2025,7 +2026,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
     });
 
     // Every subscription around headline and user is only declared once below
-    // with the properties being merged together
+    // with the properties being merged together.
+    // The only exception is at the root Created_Meeting subscription
+    // where headlines and duplicateHeadlines cannot easily be combined due
+    // to potentially different aliases being used
     expect(getPrettyPrintedGQL(meetingSubscription)).toMatchInlineSnapshot(`
       "
       subscription MyTestQuery_meeting {
@@ -2039,8 +2043,53 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines: headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee: assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
+             duplicateHeadlines: headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 closed
+                 assignee: assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   lastName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
            }
          }
+         
          ...on Updated_Meeting {
            __typename
            id
@@ -2053,70 +2102,9 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            }
          }
          
-         ...on Created_Headline {
+         ...on Deleted_Meeting {
            __typename
            id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             closed
-           }
-         }
-         
-         ...on Updated_Headline {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             closed
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             closed
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-           }
-         }
-         
-         ...on Created_User {
-           __typename
-           id
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             firstName
-             lastName
-           }
          }
          
          ...on Updated_User {
@@ -2145,6 +2133,74 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              firstName
              lastName
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             closed
+             assignee: assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               lastName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
            }
          }
        }
