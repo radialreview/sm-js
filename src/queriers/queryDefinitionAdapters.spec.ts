@@ -503,8 +503,14 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
+               }        }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
                }
-             }
+             }    }
              pageInfo {
                endCursor
                startCursor
@@ -512,15 +518,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-         }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+         }"
     `);
   });
 
@@ -567,8 +565,14 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
+               }        }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
                }
-             }
+             }    }
              pageInfo {
                endCursor
                startCursor
@@ -576,57 +580,47 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-         }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-       otherAlias: users {
-         nodes {
-           id
-           version
-           lastUpdatedBy
-           type
-           address {
-             state
-             apt {
-               floor
-               number
-             }
-           }
-           todos: todos {
+           otherAlias: users {
              nodes {
                id
                version
                lastUpdatedBy
                type
-               assignee: assignee {
-                 id
-                 version
-                 lastUpdatedBy
-                 type
-                 firstName
+               address {
+                 state
+                 apt {
+                   floor
+                   number
+                 }
                }
-             }
-             pageInfo {
-               endCursor
-               startCursor
-               hasNextPage
-               hasPreviousPage
-             }
-           }
-         }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+               todos: todos {
+                 nodes {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   assignee: assignee {
+                     id
+                     version
+                     lastUpdatedBy
+                     type
+                     firstName
+                   }        }
+                   pageInfo {
+                     endCursor
+                     startCursor
+                     hasNextPage
+                     hasPreviousPage
+                   }
+                 }    }
+                 pageInfo {
+                   endCursor
+                   startCursor
+                   hasNextPage
+                   hasPreviousPage
+                 }
+               }
+             }"
     `);
   });
 
@@ -673,8 +667,14 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
+               }        }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
                }
-             }
+             }    }
              pageInfo {
                endCursor
                startCursor
@@ -682,15 +682,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-         }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+         }"
     `);
   });
 
@@ -726,16 +718,15 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            todos: todos {
              id
+           }    }
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
            }
          }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+       }"
     `);
   });
 
@@ -782,8 +773,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            maybeEnumProp
            dateCreated
            dateLastModified
-           lastUpdatedClientTimestamp
-         }
+         lastUpdatedClientTimestamp    }
          pageInfo {
            endCursor
            startCursor
@@ -840,8 +830,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            maybeEnumProp
            dateCreated
            dateLastModified
-           lastUpdatedClientTimestamp
-         }
+         lastUpdatedClientTimestamp    }
          pageInfo {
            endCursor
            startCursor
@@ -885,8 +874,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -927,8 +915,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -967,8 +954,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1007,8 +993,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1050,8 +1035,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1101,24 +1085,22 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            todos: todos {
              nodes {
                id
-               task
-             }
+             task        }
              pageInfo {
                endCursor
                startCursor
                hasNextPage
                hasPreviousPage
              }
+           }    }
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
            }
          }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+       }"
     `);
   });
 
@@ -1167,24 +1149,22 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            todos: todos {
              nodes {
                id
-               task
-             }
+             task        }
              pageInfo {
                endCursor
                startCursor
                hasNextPage
                hasPreviousPage
              }
+           }    }
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
            }
          }
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+       }"
     `);
   });
 
@@ -1215,8 +1195,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1254,8 +1233,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1296,8 +1274,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1337,8 +1314,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-           type
-         }
+         type    }
          pageInfo {
            endCursor
            startCursor
@@ -1391,8 +1367,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                id
                version
                lastUpdatedBy
-               type
-             }
+             type        }
              totalCount
              pageInfo {
                endCursor
@@ -1400,17 +1375,16 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasNextPage
                hasPreviousPage
              }
+           }    }
+           totalCount
+           pageInfo {
+             endCursor
+             startCursor
+             hasNextPage
+             hasPreviousPage
            }
          }
-         totalCount
-         pageInfo {
-           endCursor
-           startCursor
-           hasNextPage
-           hasPreviousPage
-         }
-       }
-      }"
+       }"
     `);
   });
 });
@@ -1491,14 +1465,14 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
-             headlines: headlines {
+             headlines {
                nodes {
                  id
                  version
                  lastUpdatedBy
                  type
                  title
-                 assignee: assignee {
+                 assignee {
                    id
                    version
                    lastUpdatedBy
@@ -1533,6 +1507,53 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            id
          }
          
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
          ...on Updated_User {
            __typename
            id
@@ -1557,40 +1578,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              firstName
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             assignee: assignee {
-               id
-               version
-               lastUpdatedBy
-               type
-               firstName
-             }
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           id
-           value {
-             id
            }
          }
        }
@@ -1643,14 +1630,14 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
-             headlines: headlines {
+             headlines {
                nodes {
                  id
                  version
                  lastUpdatedBy
                  type
                  title
-                 assignee: assignee {
+                 assignee {
                    id
                    version
                    lastUpdatedBy
@@ -1685,6 +1672,53 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            id
          }
          
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
          ...on Updated_User {
            __typename
            id
@@ -1709,40 +1743,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              firstName
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             assignee: assignee {
-               id
-               version
-               lastUpdatedBy
-               type
-               firstName
-             }
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           id
-           value {
-             id
            }
          }
        }
@@ -1807,14 +1807,14 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
-             headlines: headlines {
+             headlines {
                nodes {
                  id
                  version
                  lastUpdatedBy
                  type
                  title
-                 assignee: assignee {
+                 assignee {
                    id
                    version
                    lastUpdatedBy
@@ -1849,6 +1849,53 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            id
          }
          
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
          ...on Updated_User {
            __typename
            id
@@ -1875,40 +1922,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              firstName
            }
          }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             assignee: assignee {
-               id
-               version
-               lastUpdatedBy
-               type
-               firstName
-             }
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           id
-           value {
-             id
-           }
-         }
        }
       }"
     `);
@@ -1925,7 +1938,7 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
-             assignee: assignee {
+             assignee {
                id
                version
                lastUpdatedBy
@@ -1951,6 +1964,7 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            __typename
            id
          }
+         
          
          ...on Updated_User {
            __typename
@@ -2043,41 +2057,21 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
-             headlines: headlines {
+             headlines {
                nodes {
                  id
                  version
                  lastUpdatedBy
                  type
                  title
-                 assignee: assignee {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   firstName
-                 }
-               }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
-               }
-             }
-             duplicateHeadlines: headlines {
-               nodes {
-                 id
-                 version
-                 lastUpdatedBy
-                 type
                  closed
-                 assignee: assignee {
+                 assignee {
                    id
                    version
                    lastUpdatedBy
                    type
                    lastName
+                   firstName
                  }
                }
                pageInfo {
@@ -2107,6 +2101,56 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
            id
          }
          
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             closed
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             closed
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+               lastName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
          ...on Updated_User {
            __typename
            id
@@ -2133,74 +2177,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              firstName
              lastName
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             title
-             assignee: assignee {
-               id
-               version
-               lastUpdatedBy
-               type
-               firstName
-             }
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           id
-           value {
-             id
-           }
-         }
-         
-         ...on Inserted_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           value {
-             id
-             version
-             lastUpdatedBy
-             type
-             closed
-             assignee: assignee {
-               id
-               version
-               lastUpdatedBy
-               type
-               lastName
-             }
-           }
-         }
-         
-         ...on Removed_Meeting_Headline {
-           __typename
-           target {
-             id
-             property
-           }
-           id
-           value {
-             id
            }
          }
        }
