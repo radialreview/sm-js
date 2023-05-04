@@ -503,14 +503,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
-               }        }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
                }
-             }    }
+             }
              pageInfo {
                endCursor
                startCursor
@@ -518,7 +512,15 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-         }"
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -565,14 +567,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
-               }        }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
                }
-             }    }
+             }
              pageInfo {
                endCursor
                startCursor
@@ -580,47 +576,57 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-           otherAlias: users {
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+       otherAlias: users {
+         nodes {
+           id
+           version
+           lastUpdatedBy
+           type
+           address {
+             state
+             apt {
+               floor
+               number
+             }
+           }
+           todos: todos {
              nodes {
                id
                version
                lastUpdatedBy
                type
-               address {
-                 state
-                 apt {
-                   floor
-                   number
-                 }
+               assignee: assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
                }
-               todos: todos {
-                 nodes {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   assignee: assignee {
-                     id
-                     version
-                     lastUpdatedBy
-                     type
-                     firstName
-                   }        }
-                   pageInfo {
-                     endCursor
-                     startCursor
-                     hasNextPage
-                     hasPreviousPage
-                   }
-                 }    }
-                 pageInfo {
-                   endCursor
-                   startCursor
-                   hasNextPage
-                   hasPreviousPage
-                 }
-               }
-             }"
+             }
+             pageInfo {
+               endCursor
+               startCursor
+               hasNextPage
+               hasPreviousPage
+             }
+           }
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -667,14 +673,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                  lastUpdatedBy
                  type
                  firstName
-               }        }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
                }
-             }    }
+             }
              pageInfo {
                endCursor
                startCursor
@@ -682,7 +682,15 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasPreviousPage
              }
            }
-         }"
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -718,15 +726,16 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            todos: todos {
              id
-           }    }
-           pageInfo {
-             endCursor
-             startCursor
-             hasNextPage
-             hasPreviousPage
            }
          }
-       }"
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -773,7 +782,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            maybeEnumProp
            dateCreated
            dateLastModified
-         lastUpdatedClientTimestamp    }
+           lastUpdatedClientTimestamp
+         }
          pageInfo {
            endCursor
            startCursor
@@ -830,7 +840,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            maybeEnumProp
            dateCreated
            dateLastModified
-         lastUpdatedClientTimestamp    }
+           lastUpdatedClientTimestamp
+         }
          pageInfo {
            endCursor
            startCursor
@@ -874,7 +885,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -915,7 +927,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -954,7 +967,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -993,7 +1007,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1035,7 +1050,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1085,22 +1101,24 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            todos: todos {
              nodes {
                id
-             task        }
+               task
+             }
              pageInfo {
                endCursor
                startCursor
                hasNextPage
                hasPreviousPage
              }
-           }    }
-           pageInfo {
-             endCursor
-             startCursor
-             hasNextPage
-             hasPreviousPage
            }
          }
-       }"
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -1149,22 +1167,24 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            todos: todos {
              nodes {
                id
-             task        }
+               task
+             }
              pageInfo {
                endCursor
                startCursor
                hasNextPage
                hasPreviousPage
              }
-           }    }
-           pageInfo {
-             endCursor
-             startCursor
-             hasNextPage
-             hasPreviousPage
            }
          }
-       }"
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 
@@ -1195,7 +1215,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1233,7 +1254,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1274,7 +1296,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1314,7 +1337,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
            id
            version
            lastUpdatedBy
-         type    }
+           type
+         }
          pageInfo {
            endCursor
            startCursor
@@ -1367,7 +1391,8 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                id
                version
                lastUpdatedBy
-             type        }
+               type
+             }
              totalCount
              pageInfo {
                endCursor
@@ -1375,16 +1400,17 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
                hasNextPage
                hasPreviousPage
              }
-           }    }
-           totalCount
-           pageInfo {
-             endCursor
-             startCursor
-             hasNextPage
-             hasPreviousPage
            }
          }
-       }"
+         totalCount
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
     `);
   });
 });
