@@ -5806,7 +5806,7 @@ function getGQLCLient(gqlClientOpts) {
       reconnect: true,
       wsOptionArguments: [{
         headers: {
-          cookie: gqlClientOpts.getCookie()
+          cookie: (gqlClientOpts.getCookie == null ? void 0 : gqlClientOpts.getCookie()) || null
         }
       }]
     },
