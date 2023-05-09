@@ -63,18 +63,18 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
   //   nonBatchedLink
   // );
 
-  const mutationBatchLink = split(
-    operation => operation.getContext().batchedMutation,
-    new BatchHttpLink({
-      uri: gqlClientOpts.httpUrl,
-      credentials: 'include',
-      // no batch max for explicitly batched mutations
-      // to ensure transactional integrity
-      batchMax: Number.MAX_SAFE_INTEGER,
-      batchInterval: 0,
-    }),
-    nonBatchedLink
-  );
+  // const mutationBatchLink = split(
+  //   operation => operation.getContext().batchedMutation,
+  //   new BatchHttpLink({
+  //     uri: gqlClientOpts.httpUrl,
+  //     credentials: 'include',
+  //     // no batch max for explicitly batched mutations
+  //     // to ensure transactional integrity
+  //     batchMax: Number.MAX_SAFE_INTEGER,
+  //     batchInterval: 0,
+  //   }),
+  //   nonBatchedLink
+  // );
 
   const requestLink = split(
     // split based on operation type
@@ -86,7 +86,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       );
     },
     wsLink,
-    mutationBatchLink
+    nonBatchedLink
   );
 
   function getContextWithAuthorization(opts: {
