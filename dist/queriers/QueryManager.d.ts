@@ -1,5 +1,5 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -22,7 +22,6 @@ declare type QueryManagerOpts = {
     onResultsUpdated(): void;
     onQueryError(error: any): void;
     batchKey: Maybe<string>;
-    getMockDataDelay: Maybe<() => number>;
     onQueryStateChange?: (queryStateChangeOpts: {
         queryIdx: number;
         queryState: QueryState;
@@ -36,15 +35,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         opts: QueryManagerOpts;
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
-        onSubscriptionMessage(opts: {
-            node: Record<string, any>;
-            operation: {
-                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-                path: string;
-            };
-            queryId: string;
-            subscriptionAlias: string;
-        }): void;
+        onSubscriptionMessage(message: SubscriptionMessage): void;
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here

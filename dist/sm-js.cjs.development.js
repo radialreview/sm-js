@@ -11,7 +11,9 @@ var mobx = require('mobx');
 var React = _interopDefault(require('react'));
 var ws = require('@apollo/client/link/ws');
 var http = require('@apollo/client/link/http');
+var batchHttp = require('@apollo/client/link/batch-http');
 var utilities = require('@apollo/client/utilities');
+var WebSocket = _interopDefault(require('isomorphic-ws'));
 var client = require('@apollo/client');
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -1750,7 +1752,7 @@ function getRelationalQueryString(opts) {
         queryRecordEntry: relationalQueryRecordEntry,
         nestLevel: opts.nestLevel + 2,
         useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
-      }),
+      }) + '\n',
       nestLevel: opts.nestLevel + 1,
       includeTotalCount: ((_relationalQueryRecor = relationalQueryRecordEntry.pagination) == null ? void 0 : _relationalQueryRecor.includeTotalCount) || false
     }) : getQueryPropertiesString({
@@ -1785,7 +1787,7 @@ function getOperationFromQueryRecordEntry(opts) {
 function getNodesCollectionQuery(opts) {
   var openNodesFragment = "\n" + getSpaces(opts.nestLevel * 2) + "nodes {";
   var closeFragment = getSpaces(opts.nestLevel * 2) + "}";
-  var nodesFragment = "" + openNodesFragment + opts.propertiesString + "\n" + closeFragment;
+  var nodesFragment = "" + openNodesFragment + opts.propertiesString + closeFragment;
   var totalCountFragment = opts.includeTotalCount ? "\n" + getSpaces(opts.nestLevel * 2) + TOTAL_COUNT_PROPERTY_KEY : '';
   var openPageInfoFragment = "\n" + getSpaces(opts.nestLevel * 2) + PAGE_INFO_PROPERTY_KEY + " {\n";
   var pageInfoProps = ['endCursor', 'startCursor', 'hasNextPage', 'hasPreviousPage'];
@@ -1805,7 +1807,7 @@ function getRootLevelQueryString(opts) {
       queryRecordEntry: opts,
       nestLevel: 3,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
-    }),
+    }) + '\n',
     nestLevel: 2,
     includeTotalCount: ((_opts$pagination = opts.pagination) == null ? void 0 : _opts$pagination.includeTotalCount) || false
   }) : getQueryPropertiesString({
@@ -1848,67 +1850,7 @@ function getDataFromQueryResponsePartial(opts) {
   } else {
     return opts.queryResponsePartial;
   }
-} // will need this when we enable subscriptions
-// const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
-//   queryRecord
-// ).reduce((subscriptionConfigsAcc, alias) => {
-//   const subscriptionName = getSanitizedQueryId({
-//     queryId: opts.queryId + '_' + alias,
-//   });
-//   const queryRecordEntry = queryRecord[alias];
-//   if (!queryRecordEntry) return subscriptionConfigsAcc;
-//   const operation = getOperationFromQueryRecordEntry({
-//     ...queryRecordEntry,
-//     useServerSidePaginationFilteringSorting:
-//       opts.useServerSidePaginationFilteringSorting,
-//   });
-//   const gqlStrings = [
-//     `
-//   subscription ${subscriptionName} {
-//     ${alias}: ${operation} {
-//       node {
-//         ${getQueryPropertiesString({
-//           queryRecordEntry,
-//           nestLevel: 5,
-//           useServerSidePaginationFilteringSorting:
-//             opts.useServerSidePaginationFilteringSorting,
-//         })}
-//       }
-//       operation { action, path }
-//     }
-//   }
-//       `.trim(),
-//   ];
-//   function extractNodeFromSubscriptionMessage(
-//     subscriptionMessage: Record<string, any>
-//   ) {
-//     if (!subscriptionMessage[alias].node) {
-//       throw new UnexpectedSubscriptionMessageException({
-//         subscriptionMessage,
-//         description: 'No "node" found in message',
-//       });
-//     }
-//     return subscriptionMessage[alias].node;
-//   }
-//   function extractOperationFromSubscriptionMessage(
-//     subscriptionMessage: Record<string, any>
-//   ) {
-//     if (!subscriptionMessage[alias].operation) {
-//       throw new UnexpectedSubscriptionMessageException({
-//         subscriptionMessage,
-//         description: 'No "operation" found in message',
-//       });
-//     }
-//     return subscriptionMessage[alias].operation;
-//   }
-//   gqlStrings.forEach(gqlString => {
-//     subscriptionConfigsAcc.push({
-//       alias,
-//       gqlString,
-//       extractNodeFromSubscriptionMessage,
-//       extractOperationFromSubscriptionMessage,
-//     });
-//   });
+} //
 
 function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
@@ -3287,8 +3229,7 @@ function generateQuerier(_ref) {
                     },
                     queryId: queryId,
                     useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
-                    batchKey: (opts == null ? void 0 : opts.batchKey) || null,
-                    getMockDataDelay: (mmGQLInstance == null ? void 0 : mmGQLInstance.getMockDataDelay) || null
+                    batchKey: (opts == null ? void 0 : opts.batchKey) || null
                   });
                 } catch (e) {
                   var error = getError(new Error("Error initializing query manager"), e.stack);
@@ -3389,8 +3330,7 @@ function generateSubscriber(mmGQLInstance) {
                     queryId: queryId,
                     useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
                     batchKey: (opts == null ? void 0 : opts.batchKey) || null,
-                    onQueryStateChange: opts.onQueryManagerQueryStateChange,
-                    getMockDataDelay: (mmGQLInstance == null ? void 0 : mmGQLInstance.getMockDataDelay) || null
+                    onQueryStateChange: opts.onQueryManagerQueryStateChange
                   });
                   handlers.onQueryDefinitionsUpdated = qM.onQueryDefinitionsUpdated;
                 } catch (e) {
@@ -5856,8 +5796,14 @@ function getGQLCLient(gqlClientOpts) {
   var wsLink = new ws.WebSocketLink({
     uri: gqlClientOpts.wsUrl,
     options: {
-      reconnect: true
-    }
+      reconnect: true,
+      wsOptionArguments: [{
+        headers: {
+          cookie: gqlClientOpts.getCookie()
+        }
+      }]
+    },
+    webSocketImpl: WebSocket
   });
   var nonBatchedLink = new http.HttpLink({
     uri: gqlClientOpts.httpUrl,
@@ -5882,60 +5828,36 @@ function getGQLCLient(gqlClientOpts) {
   //   }),
   //   nonBatchedLink
   // );
-  // const mutationBatchLink = split(
-  //   operation => operation.getContext().batchedMutation,
-  //   new BatchHttpLink({
-  //     uri: gqlClientOpts.httpUrl,
-  //     credentials: 'include',
-  //     // no batch max for explicitly batched mutations
-  //     // to ensure transactional integrity
-  //     batchMax: Number.MAX_SAFE_INTEGER,
-  //     batchInterval: 0,
-  //   }),
-  //   nonBatchedLink
-  // );
 
+  var mutationBatchLink = core.split(function (operation) {
+    return operation.getContext().batchedMutation;
+  }, new batchHttp.BatchHttpLink({
+    uri: gqlClientOpts.httpUrl,
+    credentials: 'include',
+    // no batch max for explicitly batched mutations
+    // to ensure transactional integrity
+    batchMax: Number.MAX_SAFE_INTEGER,
+    batchInterval: 0
+  }), nonBatchedLink);
   var requestLink = core.split( // split based on operation type
   function (_ref) {
     var query = _ref.query;
     var definition = utilities.getMainDefinition(query);
     return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
-  }, wsLink, nonBatchedLink);
+  }, wsLink, mutationBatchLink);
 
-  function getContextWithToken(opts) {
+  function getContextWithAuthorization(opts) {
     var headers = {};
 
-    if (opts.token != null && opts.token !== '') {
+    if (opts.cookie != null && opts.cookie !== '') {
+      headers.Cookie = opts.cookie;
+    } else if (opts.token != null && opts.token !== '') {
       headers.Authorization = "Bearer " + opts.token;
     }
 
     return {
       headers: headers
     };
-  }
-
-  function authenticateSubscriptionDocument(opts) {
-    var _opts$gql$loc;
-
-    var documentBody = (_opts$gql$loc = opts.gql.loc) == null ? void 0 : _opts$gql$loc.source.body;
-
-    if (!documentBody) {
-      throw new Error('No documentBody found');
-    }
-
-    var operationsThatRequireToken = ['GetChildren', 'GetReferences', 'GetNodes', 'GetNodesNew', 'GetNodesById'];
-
-    if (operationsThatRequireToken.some(function (operation) {
-      return documentBody == null ? void 0 : documentBody.includes(operation + "(");
-    })) {
-      var documentBodyWithAuthTokensInjected = documentBody;
-      operationsThatRequireToken.forEach(function (operation) {
-        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(new RegExp(operation + "\\((.*)\\)", 'g'), operation + "($1, authToken: \"" + opts.token + "\")");
-      });
-      return core.gql(documentBodyWithAuthTokensInjected);
-    }
-
-    return opts.gql;
   }
 
   var authLink = new core.ApolloLink(function (operation, forward) {
@@ -5983,8 +5905,9 @@ function getGQLCLient(gqlClientOpts) {
                     // allow turning off batching by specifying a null or undefined batchKey
                     // but by default, batch all requests into the same request batch
                     batchKey: 'batchKey' in opts ? opts.batchKey : 'default'
-                  }, getContextWithToken({
-                    token: opts.token
+                  }, getContextWithAuthorization({
+                    token: opts.token,
+                    cookie: opts.cookie
                   }))
                 });
 
@@ -6009,7 +5932,7 @@ function getGQLCLient(gqlClientOpts) {
     }(),
     subscribe: function subscribe(opts) {
       var subscription = baseClient.subscribe({
-        query: authenticateSubscriptionDocument(opts)
+        query: opts.gql
       }).subscribe({
         next: function next(message) {
           gqlClientOpts.logging.gqlClientSubscriptions && console.log('subscription message', JSON.stringify(message, null, 2));
@@ -6038,8 +5961,9 @@ function getGQLCLient(gqlClientOpts) {
                     mutation: mutation,
                     context: _extends({
                       batchedMutation: true
-                    }, getContextWithToken({
-                      token: opts.token
+                    }, getContextWithAuthorization({
+                      token: opts.token,
+                      cookie: opts.cookie
                     }))
                   });
                 }));
@@ -6074,9 +5998,12 @@ function getDefaultConfig() {
   };
   return {
     gqlClient: getGQLCLient({
-      httpUrl: 'http://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      wsUrl: 'ws://bloom-app-loadbalancer-dev-524448015.us-west-2.elb.amazonaws.com/graphql/',
-      logging: logging
+      httpUrl: 'https://dev.bloomgrowth.com/graphql',
+      wsUrl: 'wss://dev.bloomgrowth.com/graphql',
+      logging: logging,
+      getCookie: function getCookie() {
+        return '';
+      }
     }),
     generateMockData: false,
     mockDataType: 'random',
@@ -6438,7 +6365,9 @@ function createQueryManager(mmGQLInstance) {
                                 queryGQL: queryGQL,
                                 queryId: _this.opts.queryId,
                                 batchKey: _this.opts.batchKey,
-                                getMockDataDelay: _this.opts.getMockDataDelay,
+                                getMockDataDelay: mmGQLInstance.getMockDataDelay || function () {
+                                  return 0;
+                                },
                                 tokenName: tokenName,
                                 mmGQLInstance: mmGQLInstance
                               });
@@ -6513,23 +6442,14 @@ function createQueryManager(mmGQLInstance) {
 
     var _proto = QueryManager.prototype;
 
-    _proto.onSubscriptionMessage = function onSubscriptionMessage(opts) {
-      var _data, _queryRecord;
-
+    _proto.onSubscriptionMessage = function onSubscriptionMessage(message) {
       if (!this.queryRecord) throw Error('No query record initialized');
-      var node = opts.node,
-          subscriptionAlias = opts.subscriptionAlias;
-      var queryRecordEntryForThisSubscription = this.queryRecord[subscriptionAlias];
-      this.notifyRepositories({
-        data: (_data = {}, _data[subscriptionAlias] = node, _data),
-        queryRecord: (_queryRecord = {}, _queryRecord[subscriptionAlias] = queryRecordEntryForThisSubscription, _queryRecord)
-      });
-      this.updateProxiesAndStateFromSubscriptionMessage(opts);
-      Object.assign(this.opts.resultsObject, this.getResultsFromState({
-        state: this.state,
-        aliasPath: []
-      }));
-      this.opts.onResultsUpdated();
+      console.log('message', message);
+      throw Error('Not implemented'); // Object.assign(
+      //   this.opts.resultsObject,
+      //   this.getResultsFromState({ state: this.state, aliasPath: [] })
+      // );
+      // this.opts.onResultsUpdated();
     }
     /**
      * Is used to build the root level results for the query, and also to build the relational results
@@ -6643,7 +6563,7 @@ function createQueryManager(mmGQLInstance) {
             }
 
             relationalDataForThisAlias.forEach(function (relationalDataEntry) {
-              var _data2, _queryRecord2;
+              var _data, _queryRecord;
 
               var relationalQuery = relationalQueries[relationalAlias];
 
@@ -6653,8 +6573,8 @@ function createQueryManager(mmGQLInstance) {
               }
 
               _this3.notifyRepositories({
-                data: (_data2 = {}, _data2[relationalAlias] = relationalDataEntry, _data2),
-                queryRecord: (_queryRecord2 = {}, _queryRecord2[relationalAlias] = relationalQuery, _queryRecord2)
+                data: (_data = {}, _data[relationalAlias] = relationalDataEntry, _data),
+                queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord)
               });
             });
           });
@@ -7182,7 +7102,9 @@ function createQueryManager(mmGQLInstance) {
                   batchKey: this.opts.batchKey || null,
                   mmGQLInstance: mmGQLInstance,
                   queryId: this.opts.queryId,
-                  getMockDataDelay: this.opts.getMockDataDelay
+                  getMockDataDelay: mmGQLInstance.getMockDataDelay || function () {
+                    return 0;
+                  }
                 });
 
               case 13:
@@ -7266,7 +7188,9 @@ function createQueryManager(mmGQLInstance) {
                   batchKey: this.opts.batchKey || null,
                   mmGQLInstance: mmGQLInstance,
                   queryId: this.opts.queryId,
-                  getMockDataDelay: this.opts.getMockDataDelay
+                  getMockDataDelay: mmGQLInstance.getMockDataDelay || function () {
+                    return 0;
+                  }
                 });
 
               case 13:
@@ -7350,7 +7274,9 @@ function createQueryManager(mmGQLInstance) {
                   batchKey: this.opts.batchKey || null,
                   mmGQLInstance: mmGQLInstance,
                   queryId: this.opts.queryId,
-                  getMockDataDelay: this.opts.getMockDataDelay
+                  getMockDataDelay: mmGQLInstance.getMockDataDelay || function () {
+                    return 0;
+                  }
                 });
 
               case 13:
