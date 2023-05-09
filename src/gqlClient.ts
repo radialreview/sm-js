@@ -4,13 +4,13 @@ import {
   ApolloLink,
   Observable,
   split,
-  gql,
 } from '@apollo/client/core';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 // import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { Config, DocumentNode, IGQLClient } from './types';
+import { Config, IGQLClient } from './types';
+import WebSocket from 'isomorphic-ws';
 
 require('isomorphic-fetch');
 
@@ -18,6 +18,7 @@ interface IGetGQLClientOpts {
   httpUrl: string;
   wsUrl: string;
   logging: Config['logging'];
+  getCookie?: () => string;
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
@@ -25,7 +26,15 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     uri: gqlClientOpts.wsUrl,
     options: {
       reconnect: true,
+      wsOptionArguments: [
+        {
+          headers: {
+            cookie: gqlClientOpts.getCookie?.() || null,
+          },
+        },
+      ],
     },
+    webSocketImpl: WebSocket,
   });
 
   const nonBatchedLink = new HttpLink({
@@ -80,52 +89,19 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     nonBatchedLink
   );
 
-  function getContextWithToken(opts: { token?: string }) {
+  function getContextWithAuthorization(opts: {
+    token?: string;
+    cookie?: string;
+  }) {
     let headers: Record<string, string> = {};
 
-    if (opts.token != null && opts.token !== '') {
+    if (opts.cookie != null && opts.cookie !== '') {
+      headers.Cookie = opts.cookie;
+    } else if (opts.token != null && opts.token !== '') {
       headers.Authorization = `Bearer ${opts.token}`;
     }
 
     return { headers };
-  }
-
-  function authenticateSubscriptionDocument(opts: {
-    gql: DocumentNode;
-    token?: string;
-  }) {
-    const documentBody = opts.gql.loc?.source.body;
-
-    if (!documentBody) {
-      throw new Error('No documentBody found');
-    }
-
-    const operationsThatRequireToken = [
-      'GetChildren',
-      'GetReferences',
-      'GetNodes',
-      'GetNodesNew',
-      'GetNodesById',
-    ];
-
-    if (
-      operationsThatRequireToken.some(operation =>
-        documentBody?.includes(`${operation}(`)
-      )
-    ) {
-      let documentBodyWithAuthTokensInjected = documentBody;
-
-      operationsThatRequireToken.forEach(operation => {
-        documentBodyWithAuthTokensInjected = documentBodyWithAuthTokensInjected.replace(
-          new RegExp(operation + `\\((.*)\\)`, 'g'),
-          `${operation}($1, authToken: "${opts.token}")`
-        );
-      });
-
-      return gql(documentBodyWithAuthTokensInjected);
-    }
-
-    return opts.gql;
   }
 
   const authLink = new ApolloLink(
@@ -171,8 +147,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           // allow turning off batching by specifying a null or undefined batchKey
           // but by default, batch all requests into the same request batch
           batchKey: 'batchKey' in opts ? opts.batchKey : 'default',
-          ...getContextWithToken({
+          ...getContextWithAuthorization({
             token: opts.token,
+            cookie: opts.cookie,
           }),
         },
       });
@@ -182,7 +159,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     subscribe: opts => {
       const subscription = baseClient
         .subscribe({
-          query: authenticateSubscriptionDocument(opts),
+          query: opts.gql,
         })
         .subscribe({
           next: message => {
@@ -214,7 +191,10 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
             mutation,
             context: {
               batchedMutation: true,
-              ...getContextWithToken({ token: opts.token }),
+              ...getContextWithAuthorization({
+                token: opts.token,
+                cookie: opts.cookie,
+              }),
             },
           })
         )

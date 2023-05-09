@@ -61,30 +61,21 @@ export interface IGQLClient {
     query(opts: {
         gql: DocumentNode;
         token?: string;
+        cookie?: string;
         batchKey?: string;
     }): Promise<any>;
     subscribe(opts: {
         gql: DocumentNode;
         token?: string;
+        cookie?: string;
         onMessage: (message: Record<string, any>) => void;
         onError: (error: any) => void;
     }): SubscriptionCanceller;
     mutate(opts: {
         mutations: Array<DocumentNode>;
         token?: string;
+        cookie?: string;
     }): Promise<any>;
-}
-export interface IQueryManager {
-    onSubscriptionMessage(opts: {
-        node: Record<string, any>;
-        operation: {
-            action: 'UpdateNode' | 'DeleteNode' | 'InsertNode';
-            path: string;
-        };
-        queryId: string;
-        subscriptionAlias: string;
-    }): void;
-    onQueryDefinitionsUpdated(newQueryDefinitions: QueryDefinitions<any, any, any>): Promise<void>;
 }
 export declare type QueryReturn<TQueryDefinitions extends QueryDefinitions> = {
     data: QueryDataReturn<TQueryDefinitions>;
@@ -806,4 +797,18 @@ export declare type RelationalQueryRecord = Record<string, RelationalQueryRecord
 export interface IDOProxy {
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
 }
+export declare type SubscriptionMessage = {
+    data: Record<string, SubscriptionMessageData>;
+};
+export declare type SubscriptionMessageData = {
+    __typename: string;
+    id: string;
+    target?: {
+        id: string | number;
+        property: string;
+    };
+    value?: {
+        id: string;
+    } & Record<string, any>;
+};
 export {};

@@ -69,7 +69,6 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
             mmGQLInstance.paginationFilteringSortingInstance ===
             EPaginationFilteringSortingInstance.SERVER,
           batchKey: opts?.batchKey || null,
-          getMockDataDelay: mmGQLInstance?.getMockDataDelay || null,
         });
       } catch (e) {
         const error = getError(
@@ -184,7 +183,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             EPaginationFilteringSortingInstance.SERVER,
           batchKey: opts?.batchKey || null,
           onQueryStateChange: opts.onQueryManagerQueryStateChange,
-          getMockDataDelay: mmGQLInstance?.getMockDataDelay || null,
         });
 
         handlers.onQueryDefinitionsUpdated = qM.onQueryDefinitionsUpdated;

@@ -24,6 +24,8 @@ import {
   ENumberFilterOperator,
   ValidSortForNode,
   SortObject,
+  DocumentNode,
+  RelationalQueryRecord,
 } from '../types';
 import {
   NODES_PROPERTY_KEY,
@@ -917,12 +919,13 @@ function getRelationalQueryString(opts: {
       `\n${getSpaces(opts.nestLevel * 2)}${alias}: ${operation} {` +
       ('oneToMany' in relationalQueryRecordEntry
         ? getNodesCollectionQuery({
-            propertiesString: getQueryPropertiesString({
-              queryRecordEntry: relationalQueryRecordEntry,
-              nestLevel: opts.nestLevel + 2,
-              useServerSidePaginationFilteringSorting:
-                opts.useServerSidePaginationFilteringSorting,
-            }),
+            propertiesString:
+              getQueryPropertiesString({
+                queryRecordEntry: relationalQueryRecordEntry,
+                nestLevel: opts.nestLevel + 2,
+                useServerSidePaginationFilteringSorting:
+                  opts.useServerSidePaginationFilteringSorting,
+              }) + '\n',
             nestLevel: opts.nestLevel + 1,
             includeTotalCount:
               relationalQueryRecordEntry.pagination?.includeTotalCount || false,
@@ -968,7 +971,7 @@ function getNodesCollectionQuery(opts: {
 }) {
   const openNodesFragment = `\n${getSpaces(opts.nestLevel * 2)}nodes {`;
   const closeFragment = `${getSpaces(opts.nestLevel * 2)}}`;
-  const nodesFragment = `${openNodesFragment}${opts.propertiesString}\n${closeFragment}`;
+  const nodesFragment = `${openNodesFragment}${opts.propertiesString}${closeFragment}`;
 
   const totalCountFragment = opts.includeTotalCount
     ? `\n${getSpaces(opts.nestLevel * 2)}${TOTAL_COUNT_PROPERTY_KEY}`
@@ -1004,12 +1007,13 @@ function getRootLevelQueryString(
     `${
       opts.id == null
         ? getNodesCollectionQuery({
-            propertiesString: getQueryPropertiesString({
-              queryRecordEntry: opts,
-              nestLevel: 3,
-              useServerSidePaginationFilteringSorting:
-                opts.useServerSidePaginationFilteringSorting,
-            }),
+            propertiesString:
+              getQueryPropertiesString({
+                queryRecordEntry: opts,
+                nestLevel: 3,
+                useServerSidePaginationFilteringSorting:
+                  opts.useServerSidePaginationFilteringSorting,
+              }) + '\n',
             nestLevel: 2,
             includeTotalCount: opts.pagination?.includeTotalCount || false,
           })
@@ -1101,75 +1105,546 @@ export function getDataFromQueryResponsePartial(opts: {
   }
 }
 
-// will need this when we enable subscriptions
-// const subscriptionConfigs: Array<SubscriptionConfig> = Object.keys(
-//   queryRecord
-// ).reduce((subscriptionConfigsAcc, alias) => {
-//   const subscriptionName = getSanitizedQueryId({
-//     queryId: opts.queryId + '_' + alias,
-//   });
-//   const queryRecordEntry = queryRecord[alias];
+//
+// subscription stuff starts here
+//
 
-//   if (!queryRecordEntry) return subscriptionConfigsAcc;
+// a query record will initialize n subscriptions, where n is the number of
+// root level aliases on the query record
+export function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
+  queryId: string;
+  queryRecord: QueryRecord;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
+  return Object.keys(opts.queryRecord).reduce(
+    (subscriptionDocRecord, rootAlias) => {
+      const queryRecordEntry = opts.queryRecord[rootAlias];
 
-//   const operation = getOperationFromQueryRecordEntry({
-//     ...queryRecordEntry,
-//     useServerSidePaginationFilteringSorting:
-//       opts.useServerSidePaginationFilteringSorting,
-//   });
+      if (!queryRecordEntry) return subscriptionDocRecord;
 
-//   const gqlStrings = [
-//     `
-//   subscription ${subscriptionName} {
-//     ${alias}: ${operation} {
-//       node {
-//         ${getQueryPropertiesString({
-//           queryRecordEntry,
-//           nestLevel: 5,
-//           useServerSidePaginationFilteringSorting:
-//             opts.useServerSidePaginationFilteringSorting,
-//         })}
-//       }
-//       operation { action, path }
-//     }
-//   }
-//       `.trim(),
-//   ];
+      const subscriptionString = getQueryRecordEntrySubscriptionFragment({
+        queryId: opts.queryId,
+        queryRecordEntry,
+        alias: rootAlias,
+        useServerSidePaginationFilteringSorting:
+          opts.useServerSidePaginationFilteringSorting,
+      });
 
-//   function extractNodeFromSubscriptionMessage(
-//     subscriptionMessage: Record<string, any>
-//   ) {
-//     if (!subscriptionMessage[alias].node) {
-//       throw new UnexpectedSubscriptionMessageException({
-//         subscriptionMessage,
-//         description: 'No "node" found in message',
-//       });
-//     }
+      const docString = `
+      subscription ${getSanitizedQueryId({
+        queryId: `${opts.queryId}_${rootAlias}`,
+      })} {
+        ${subscriptionString}
+      }`;
 
-//     return subscriptionMessage[alias].node;
-//   }
+      const subscriptionDoc = gql(docString);
 
-//   function extractOperationFromSubscriptionMessage(
-//     subscriptionMessage: Record<string, any>
-//   ) {
-//     if (!subscriptionMessage[alias].operation) {
-//       throw new UnexpectedSubscriptionMessageException({
-//         subscriptionMessage,
-//         description: 'No "operation" found in message',
-//       });
-//     }
+      return {
+        ...subscriptionDocRecord,
+        [rootAlias]: subscriptionDoc,
+      };
+    },
+    {} as Record<string, DocumentNode>
+  );
+}
 
-//     return subscriptionMessage[alias].operation;
-//   }
+function getQueryRecordEntrySubscriptionFragment(opts: {
+  queryId: string;
+  queryRecordEntry: QueryRecordEntry;
+  alias: string;
+  useServerSidePaginationFilteringSorting: boolean;
+}) {
+  const operation = getOperationFromQueryRecordEntry({
+    ...opts.queryRecordEntry,
+    useServerSidePaginationFilteringSorting:
+      opts.useServerSidePaginationFilteringSorting,
+  });
 
-//   gqlStrings.forEach(gqlString => {
-//     subscriptionConfigsAcc.push({
-//       alias,
-//       gqlString,
-//       extractNodeFromSubscriptionMessage,
-//       extractOperationFromSubscriptionMessage,
-//     });
-//   });
+  return (
+    `${opts.alias}: ${operation} {` +
+    getQueryRecordEntrySubscriptionFragmentInnerContents({
+      queryRecordEntry: opts.queryRecordEntry,
+    }) +
+    `}`
+  );
+}
+
+function getSubscriptionPropsString(opts: {
+  ownProps: Array<string>;
+  relational: RelationalQueryRecord | undefined;
+}) {
+  const ownPropsString = getSubscriptionOwnPropsString({
+    ownProps: opts.ownProps,
+  });
+
+  const relationalPropsString = opts.relational
+    ? getSubscriptionRelationalPropsString({
+        relational: flattenNestedRelationshipRecords([opts.relational]),
+      })
+    : '';
+
+  return ownPropsString + relationalPropsString;
+}
+
+function getSubscriptionOwnPropsString(opts: { ownProps: Array<string> }) {
+  let propsString = ``;
+  const handledObjectProps: Array<string> = [];
+  propsString += opts.ownProps.reduce((acc, prop) => {
+    if (prop.includes(OBJECT_PROPERTY_SEPARATOR)) {
+      const root = prop.split(OBJECT_PROPERTY_SEPARATOR)[0];
+      if (handledObjectProps.includes(root)) return acc;
+
+      handledObjectProps.push(root);
+
+      acc +=
+        '\n' +
+        getObjectQueryString({
+          previousRoots: [],
+          root,
+          allQueriedProps: opts.ownProps,
+          baseSpacing: 1,
+        });
+      return acc;
+    }
+
+    acc += `\n${prop}`;
+    return acc;
+  }, '');
+
+  return propsString !== '' ? `${propsString}\n` : '';
+}
+
+function getSubscriptionRelationalPropsString(opts: {
+  relational: RelationalQueryRecord;
+}): string {
+  return Object.keys(opts.relational).reduce((acc, alias, index) => {
+    const relationalQueryRecordEntry = opts.relational[alias];
+
+    if (!relationalQueryRecordEntry._relationshipName) {
+      throw Error(
+        `relationalQueryRecordEntry is invalid\n${JSON.stringify(
+          relationalQueryRecordEntry,
+          null,
+          2
+        )}`
+      );
+    }
+
+    const resolver = relationalQueryRecordEntry._relationshipName;
+
+    return (
+      acc +
+      (index > 0 ? `\n` : '') +
+      `${resolver} {` +
+      ('oneToMany' in relationalQueryRecordEntry
+        ? getNodesCollectionQuery({
+            propertiesString: getSubscriptionPropsString({
+              ownProps: relationalQueryRecordEntry.properties,
+              relational: relationalQueryRecordEntry.relational,
+            }),
+            nestLevel: 1,
+            includeTotalCount: !!relationalQueryRecordEntry.pagination
+              ?.includeTotalCount,
+          }) + '\n'
+        : getSubscriptionPropsString({
+            ownProps: relationalQueryRecordEntry.properties,
+            relational: relationalQueryRecordEntry.relational,
+          })) +
+      `}\n`
+    );
+  }, '');
+}
+
+function getQueryRecordEntrySubscriptionFragmentInnerContents(opts: {
+  queryRecordEntry: QueryRecordEntry;
+}) {
+  const ownPropsString = getSubscriptionOwnPropsString({
+    ownProps: opts.queryRecordEntry.properties,
+  });
+
+  const ownPropsAndRelationalString = getSubscriptionPropsString({
+    ownProps: opts.queryRecordEntry.properties,
+    relational: opts.queryRecordEntry.relational,
+  });
+
+  const ownNodeUpdatedString = `...on Updated_${capitalizeFirstLetter(
+    opts.queryRecordEntry.def.type
+  )} {
+      __typename
+      id
+      value {${ownPropsString}}
+  }
+  `;
+
+  const ownNodeCreatedString = `...on Created_${capitalizeFirstLetter(
+    opts.queryRecordEntry.def.type
+  )} {
+      __typename
+      id
+      value {${ownPropsAndRelationalString}}
+  }
+  `;
+
+  const ownNodeDeletedString = `...on Deleted_${capitalizeFirstLetter(
+    opts.queryRecordEntry.def.type
+  )} {
+      __typename
+      id
+  }
+  `;
+
+  const relationalSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
+    queryRecordEntry: opts.queryRecordEntry,
+  });
+
+  const relationalSubscriptionStrings = getRelationalSubscriptionString({
+    relationalSubscriptionMetadatas,
+  });
+
+  return `
+    ${ownNodeCreatedString}
+    ${ownNodeUpdatedString} 
+    ${ownNodeDeletedString}
+    ${relationalSubscriptionStrings}`;
+}
+
+type RelationalSubscriptionMetadata = {
+  relationalType: 'oneToOne' | 'oneToMany';
+  nodeType: string;
+  properties: Array<string>;
+  relational: Record<string, RelationalQueryRecordEntry> | undefined;
+  parentNodeType: string;
+};
+
+/**
+ * Flattens relational queries into an array of RelationalSubscriptionMetadata
+ */
+function getRelationalSubscriptionMetadatas(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+}): Array<RelationalSubscriptionMetadata> {
+  const relationalQueries = opts.queryRecordEntry.relational;
+  if (!relationalQueries) return [];
+
+  const parentNodeType = opts.queryRecordEntry.def.type;
+
+  return Object.keys(relationalQueries).reduce(
+    (subscriptionMetadatas, relationalAlias) => {
+      const relationalQueryRecordEntry = relationalQueries[relationalAlias];
+      if (!relationalQueryRecordEntry) return subscriptionMetadatas;
+
+      const nodeType = relationalQueryRecordEntry.def.type;
+      const { properties, relational } = relationalQueryRecordEntry;
+
+      subscriptionMetadatas.push({
+        relationalType:
+          'oneToOne' in relationalQueryRecordEntry &&
+          relationalQueryRecordEntry.oneToOne
+            ? 'oneToOne'
+            : 'oneToMany',
+        nodeType,
+        properties,
+        relational,
+        parentNodeType,
+      });
+
+      if (relationalQueryRecordEntry.relational) {
+        const nestedSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
+          queryRecordEntry: relationalQueryRecordEntry,
+        });
+        subscriptionMetadatas.push(...nestedSubscriptionMetadatas);
+      }
+
+      return subscriptionMetadatas;
+    },
+    [] as Array<RelationalSubscriptionMetadata>
+  );
+}
+
+/**
+ * Taking the flattened array of relationalSubscriptionMetadata built in getRelationalSubscriptionMetadatas
+ * we build the gql string for the relational subscriptions
+ */
+function getRelationalSubscriptionString(opts: {
+  relationalSubscriptionMetadatas: Array<RelationalSubscriptionMetadata>;
+}) {
+  // When building the gql string for relational subscriptions
+  // we try to not subscribe to the same node, or relation, twice
+  // this record groups the subscriptions by node type, parent node type, and relational type
+  const mergedRecordOfMetadatas = {} as Record<
+    // nodeType
+    string,
+    // we keep an array of all properties for the merged root Updated/Created node subscription fragments
+    // so for example, in the relationship headline.assignee
+    // this would be all the properties that we'd need to subscribe to pertaining the assignee
+    { _allProperties: Array<string> } & Record<
+      // parentNodeType
+      string,
+      // we keen an array of all properties queried in this relationship
+      // for the merged Inserted subscription fragmenet
+      { _allProperties: Array<string> } & Record<
+        // relationalType
+        string,
+        {
+          properties: Array<string>;
+          relational: RelationalQueryRecord | undefined;
+        }
+      >
+    >
+  >;
+
+  opts.relationalSubscriptionMetadatas.forEach(subMetadata => {
+    // initialize the record if it doesn't exist
+    if (!mergedRecordOfMetadatas[subMetadata.nodeType]) {
+      mergedRecordOfMetadatas[subMetadata.nodeType] = {
+        _allProperties: [] as Array<string>,
+      } as typeof mergedRecordOfMetadatas[string];
+    }
+
+    if (
+      !mergedRecordOfMetadatas[subMetadata.nodeType]?.[
+        subMetadata.parentNodeType
+      ]
+    ) {
+      mergedRecordOfMetadatas[subMetadata.nodeType][
+        subMetadata.parentNodeType
+      ] = {
+        _allProperties: [] as Array<string>,
+      } as typeof mergedRecordOfMetadatas[string][string];
+    }
+
+    if (
+      !mergedRecordOfMetadatas[subMetadata.nodeType]?.[
+        subMetadata.parentNodeType
+      ]?.[subMetadata.relationalType]
+    ) {
+      mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][
+        subMetadata.relationalType
+      ] = {
+        properties: [],
+        relational: undefined,
+      };
+    }
+
+    subMetadata.properties.forEach(property => {
+      if (
+        !mergedRecordOfMetadatas[subMetadata.nodeType]._allProperties.includes(
+          property
+        )
+      ) {
+        mergedRecordOfMetadatas[subMetadata.nodeType]._allProperties.push(
+          property
+        );
+      }
+
+      if (
+        !mergedRecordOfMetadatas[subMetadata.nodeType][
+          subMetadata.parentNodeType
+        ][subMetadata.relationalType].properties.includes(property)
+      ) {
+        mergedRecordOfMetadatas[subMetadata.nodeType][
+          subMetadata.parentNodeType
+        ][subMetadata.relationalType].properties.push(property);
+      }
+    });
+
+    if (subMetadata.relational) {
+      const existingRecord =
+        mergedRecordOfMetadatas[subMetadata.nodeType][
+          subMetadata.parentNodeType
+        ][subMetadata.relationalType].relational;
+
+      mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][
+        subMetadata.relationalType
+      ].relational = flattenNestedRelationshipRecords(
+        existingRecord
+          ? [existingRecord, subMetadata.relational]
+          : [subMetadata.relational]
+      );
+    }
+  });
+
+  let subscriptionString = ``;
+  Object.keys(mergedRecordOfMetadatas).forEach(nodeType => {
+    subscriptionString += `
+      ...on Updated_${capitalizeFirstLetter(nodeType)} {
+        __typename
+        id
+        value {${getSubscriptionOwnPropsString({
+          ownProps: mergedRecordOfMetadatas[nodeType]._allProperties,
+        })}}
+      }
+    `;
+
+    Object.keys(mergedRecordOfMetadatas[nodeType]).forEach(parentNodeType => {
+      if (parentNodeType === '_allProperties') return;
+
+      Object.keys(mergedRecordOfMetadatas[nodeType][parentNodeType]).forEach(
+        relationalType => {
+          if (relationalType === '_allProperties') return;
+
+          const ownProps =
+            mergedRecordOfMetadatas[nodeType][parentNodeType][relationalType]
+              .properties;
+          const relational =
+            mergedRecordOfMetadatas[nodeType][parentNodeType][relationalType]
+              .relational;
+          const isOneToMany = relationalType === 'oneToMany';
+          const isOneToOne = relationalType === 'oneToOne';
+
+          subscriptionString += getNestedRelationalSubscriptionString({
+            isOneToMany,
+            isOneToOne,
+            parentNodeType,
+            nodeType,
+            ownProps,
+            relational,
+          });
+        }
+      );
+    });
+  });
+
+  return subscriptionString;
+}
+
+/**
+ * This function takes 2 relationalQueryRecords and flattens/merges them
+ * into a single relationalQueryRecord
+ * it does not take aliases into account, since we don't use them in the subscriptions
+ * we simply rely on the relationship name, and will join together all the properties and relationalQueryRecords
+ * that have the same relationship name
+ */
+function flattenNestedRelationshipRecords(
+  records: Array<RelationalQueryRecord>
+): RelationalQueryRecord {
+  const flattenedRecord = {} as RelationalQueryRecord;
+
+  const handleRelationalQueryRecordEntry = (
+    relationalQueryRecordEntry: RelationalQueryRecordEntry
+  ) => {
+    const { _relationshipName } = relationalQueryRecordEntry;
+
+    if (!flattenedRecord[_relationshipName]) {
+      flattenedRecord[_relationshipName] = {
+        ...relationalQueryRecordEntry,
+        relational: relationalQueryRecordEntry.relational
+          ? flattenNestedRelationshipRecords([
+              relationalQueryRecordEntry.relational,
+            ])
+          : undefined,
+      };
+    } else {
+      const ongoingFlattenedRelationalRecord =
+        flattenedRecord[_relationshipName].relational || {};
+
+      const newProperties = [
+        ...(flattenedRecord[_relationshipName].properties || []),
+      ];
+
+      relationalQueryRecordEntry.properties.forEach(property => {
+        if (!newProperties.includes(property)) {
+          newProperties.push(property);
+        }
+      });
+
+      flattenedRecord[_relationshipName] = {
+        ...flattenedRecord[_relationshipName],
+        properties: newProperties,
+        relational: relationalQueryRecordEntry.relational
+          ? flattenNestedRelationshipRecords([
+              relationalQueryRecordEntry.relational,
+              ongoingFlattenedRelationalRecord,
+            ])
+          : ongoingFlattenedRelationalRecord,
+      };
+    }
+  };
+
+  records.forEach(record => {
+    Object.keys(record).forEach(relationalAlias => {
+      const relationalQueryRecordEntry = record[relationalAlias];
+
+      handleRelationalQueryRecordEntry(relationalQueryRecordEntry);
+    });
+  });
+
+  return flattenedRecord;
+}
+
+function getNestedRelationalSubscriptionString(opts: {
+  isOneToMany: boolean;
+  isOneToOne: boolean;
+  parentNodeType: string;
+  nodeType: string;
+  ownProps: Array<string>;
+  relational: RelationalQueryRecord | undefined;
+}) {
+  let subscriptionString = ``;
+
+  const {
+    isOneToMany,
+    isOneToOne,
+    parentNodeType,
+    nodeType,
+    ownProps,
+    relational,
+  } = opts;
+
+  const propsString = getSubscriptionPropsString({
+    ownProps,
+    relational,
+  });
+
+  if (isOneToMany) {
+    subscriptionString += `
+      ...on Inserted_${capitalizeFirstLetter(
+        parentNodeType
+      )}_${capitalizeFirstLetter(nodeType)} {
+        __typename
+        target {
+          id
+          property
+        }
+        value {${propsString}}
+      }
+    `;
+
+    subscriptionString += `
+      ...on Removed_${capitalizeFirstLetter(
+        parentNodeType
+      )}_${capitalizeFirstLetter(nodeType)} {
+        __typename
+        target {
+          id
+          property
+        }
+        id
+        value {
+          id
+        }
+      }
+    `;
+  } else if (isOneToOne) {
+    subscriptionString += `
+      ...on UpdatedAssociation_${capitalizeFirstLetter(
+        parentNodeType
+      )}_${capitalizeFirstLetter(nodeType)} {
+        __typename
+        target {
+          id
+          property
+        }
+        value {${propsString}}
+      }
+    `;
+  }
+
+  return subscriptionString;
+}
+
+function capitalizeFirstLetter(string: string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
   return opts.queryId.replace(/-/g, '_');

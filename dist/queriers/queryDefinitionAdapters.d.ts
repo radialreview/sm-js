@@ -31,3 +31,8 @@ export declare function getDataFromQueryResponsePartial(opts: {
     queryResponsePartial: Record<string, any>;
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }): any;
+export declare function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
+    queryId: string;
+    queryRecord: QueryRecord;
+    useServerSidePaginationFilteringSorting: boolean;
+}): Record<string, import("graphql/language/ast").DocumentNode>;

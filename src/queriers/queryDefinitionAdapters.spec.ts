@@ -11,6 +11,7 @@ import {
 import {
   getQueryRecordFromQueryDefinition,
   getQueryGQLDocumentFromQueryRecord,
+  getSubscriptionGQLDocumentsFromQueryRecord,
 } from './queryDefinitionAdapters';
 import {
   object,
@@ -19,6 +20,7 @@ import {
   string,
   oneToMany,
   nonPaginatedOneToMany,
+  boolean,
 } from '../dataTypes';
 import { MMGQL } from '..';
 import {
@@ -460,6 +462,9 @@ describe('getQueryRecordFromQueryDefinition', () => {
   });
 });
 
+//
+// query document tests
+//
 describe('getQueryGQLDocumentFromQueryRecord', () => {
   it('creates a valid query from a fetcher config', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
@@ -1410,218 +1415,795 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
   });
 });
 
-// Will bring these back when we enable subscriptions
-// describe('getQueryInfo.subscriptionGQLStrings', () => {
-//   it('creates a valid subscription from a fetcher config', () => {
-//     const mmGQLInstance = new MMGQL(getMockConfig());
-//     expect(
-//       getQueryInfo({
-//         queryId: 'MyTestQuery',
-//         queryDefinitions: createMockQueryDefinitions(mmGQLInstance),
-//         useServerSidePaginationFilteringSorting: true,
-//       }).subscriptionConfigs.map(config => config.gqlString)
-//     ).toMatchInlineSnapshot(`
-//       Array [
-//         "subscription MyTestQuery_users {
-//             users: users {
-//               node {
-//                           id
-//                 version
-//                 lastUpdatedBy
-//                 type
-//                 address
-//                 address__dot__state
-//                 address__dot__apt
-//                 address__dot__apt__dot__floor
-//                 address__dot__apt__dot__number
-//                 todos: todos {
-//                   nodes {
-//                     id
-//                     version
-//                     lastUpdatedBy
-//                     type
-//                     assignee: assignee {
-//                       id
-//                       version
-//                       lastUpdatedBy
-//                       type
-//                       firstName
-//                     }
-//                   }
-//                   totalCount
-//                   pageInfo {
-//                     endCursor
-//                     startCursor
-//                     hasNextPage
-//                     hasPreviousPage
-//                   }
-//                 }
-//               }
-//               operation { action, path }
-//             }
-//           }",
-//       ]
-//     `);
-//   });
+//
+// subscription document tests
+//
+describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
+  const mmGQLInstance = new MMGQL(getMockConfig());
+  const meetingNode = mmGQLInstance.def({
+    type: 'meeting',
+    properties: {
+      name: string,
+    },
+    relational: {
+      headlines: () => oneToMany(headlineNode),
+    },
+  });
 
-//   it('handles multiple aliases', () => {
-//     const mmGQLInstance = new MMGQL(getMockConfig());
-//     expect(
-//       getQueryInfo({
-//         queryId: 'MyTestQuery',
-//         queryDefinitions: {
-//           users: createMockQueryDefinitions(mmGQLInstance).users,
-//           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-//         },
-//         useServerSidePaginationFilteringSorting: true,
-//       }).subscriptionConfigs.map(config => config.gqlString)
-//     ).toMatchInlineSnapshot(`
-//       Array [
-//         "subscription MyTestQuery_users {
-//             users: users {
-//               node {
-//                           id
-//                 version
-//                 lastUpdatedBy
-//                 type
-//                 address
-//                 address__dot__state
-//                 address__dot__apt
-//                 address__dot__apt__dot__floor
-//                 address__dot__apt__dot__number
-//                 todos: todos {
-//                   nodes {
-//                     id
-//                     version
-//                     lastUpdatedBy
-//                     type
-//                     assignee: assignee {
-//                       id
-//                       version
-//                       lastUpdatedBy
-//                       type
-//                       firstName
-//                     }
-//                   }
-//                   totalCount
-//                   pageInfo {
-//                     endCursor
-//                     startCursor
-//                     hasNextPage
-//                     hasPreviousPage
-//                   }
-//                 }
-//               }
-//               operation { action, path }
-//             }
-//           }",
-//         "subscription MyTestQuery_otherAlias {
-//             otherAlias: users {
-//               node {
-//                           id
-//                 version
-//                 lastUpdatedBy
-//                 type
-//                 address
-//                 address__dot__state
-//                 address__dot__apt
-//                 address__dot__apt__dot__floor
-//                 address__dot__apt__dot__number
-//                 todos: todos {
-//                   nodes {
-//                     id
-//                     version
-//                     lastUpdatedBy
-//                     type
-//                     assignee: assignee {
-//                       id
-//                       version
-//                       lastUpdatedBy
-//                       type
-//                       firstName
-//                     }
-//                   }
-//                   totalCount
-//                   pageInfo {
-//                     endCursor
-//                     startCursor
-//                     hasNextPage
-//                     hasPreviousPage
-//                   }
-//                 }
-//               }
-//               operation { action, path }
-//             }
-//           }",
-//       ]
-//     `);
-//   });
+  const userNode = mmGQLInstance.def({
+    type: 'user',
+    properties: {
+      firstName: string,
+      lastName: string,
+    },
+  });
 
-//   it('handles fetching specific ids', () => {
-//     const mmGQLInstance = new MMGQL(getMockConfig());
-//     expect(
-//       getQueryInfo({
-//         queryId: 'MyTestQuery',
-//         queryDefinitions: createMockQueryDefinitions(mmGQLInstance, {
-//           useIds: true,
-//         }),
-//         useServerSidePaginationFilteringSorting: true,
-//       }).subscriptionConfigs.map(config => config.gqlString)
-//     ).toMatchInlineSnapshot(`
-//       Array [
-//         "subscription MyTestQuery_users {
-//             users: users(ids: [\\"mock-id\\"]) {
-//               node {
-//                           id
-//                 version
-//                 lastUpdatedBy
-//                 type
-//                 address
-//                 address__dot__state
-//                 address__dot__apt
-//                 address__dot__apt__dot__floor
-//                 address__dot__apt__dot__number
-//                 todos: todos {
-//                   nodes {
-//                     id
-//                     version
-//                     lastUpdatedBy
-//                     type
-//                     assignee: assignee {
-//                       id
-//                       version
-//                       lastUpdatedBy
-//                       type
-//                       firstName
-//                     }
-//                   }
-//                   totalCount
-//                   pageInfo {
-//                     endCursor
-//                     startCursor
-//                     hasNextPage
-//                     hasPreviousPage
-//                   }
-//                 }
-//               }
-//               operation { action, path }
-//             }
-//           }",
-//       ]
-//     `);
-//   });
+  const headlineNode = mmGQLInstance.def({
+    type: 'headline',
+    properties: {
+      title: string,
+      closed: boolean,
+    },
+    relational: {
+      assignee: () => oneToOne(userNode),
+    },
+  });
 
-//   it('returns a valid gql string', () => {
-//     const mmGQLInstance = new MMGQL(getMockConfig());
-//     expect(() =>
-//       getQueryInfo({
-//         queryId: 'MyTestQuery',
-//         queryDefinitions: {
-//           users: createMockQueryDefinitions(mmGQLInstance).users,
-//           otherAlias: createMockQueryDefinitions(mmGQLInstance).users,
-//         },
-//         useServerSidePaginationFilteringSorting: true,
-//       }).subscriptionConfigs.map(config => gql(config.gqlString))
-//     ).not.toThrow();
-//   });
-// });
+  it('creates valid subscription documents from a query record targeting a collection of nodes', () => {
+    const queryRecord = getQueryRecordFromQueryDefinition({
+      queryId: 'MyTestQuery',
+      queryDefinitions: {
+        meetings: queryDefinition({
+          def: meetingNode,
+          map: ({ name, headlines }) => ({
+            name,
+            headlines: headlines({
+              map: ({ title, assignee }) => ({
+                title,
+                assignee: assignee({
+                  map: ({ firstName }) => ({ firstName }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      },
+    });
+
+    const meetingsSubscription = getPrettyPrintedGQL(
+      getSubscriptionGQLDocumentsFromQueryRecord({
+        queryId: 'MyTestQuery',
+        queryRecord,
+        useServerSidePaginationFilteringSorting: false,
+      }).meetings
+    );
+
+    expect(meetingsSubscription).toMatchInlineSnapshot(`
+      "
+      subscription MyTestQuery_meetings {
+       meetings: meetings {
+         ...on Created_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+             headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
+           }
+         }
+         
+         ...on Updated_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+           }
+         }
+         
+         ...on Deleted_Meeting {
+           __typename
+           id
+         }
+         
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
+         ...on Updated_User {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+         
+         ...on UpdatedAssociation_Headline_User {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+       }
+      }"
+    `);
+  });
+
+  it('creates valid subscription documents from a query record targeting a single node', () => {
+    const queryRecord = getQueryRecordFromQueryDefinition({
+      queryId: 'MyTestQuery',
+      queryDefinitions: {
+        meeting: queryDefinition({
+          def: meetingNode,
+          map: ({ name, headlines }) => ({
+            name,
+            headlines: headlines({
+              map: ({ title, assignee }) => ({
+                title,
+                assignee: assignee({
+                  map: ({ firstName }) => ({ firstName }),
+                }),
+              }),
+            }),
+          }),
+          target: {
+            id: 'mock-meeting-id',
+          },
+        }),
+      },
+    });
+
+    const meetingSubscription = getPrettyPrintedGQL(
+      getSubscriptionGQLDocumentsFromQueryRecord({
+        queryId: 'MyTestQuery',
+        queryRecord,
+        useServerSidePaginationFilteringSorting: false,
+      }).meeting
+    );
+
+    expect(meetingSubscription).toMatchInlineSnapshot(`
+      "
+      subscription MyTestQuery_meeting {
+       meeting: meeting(id: \\"mock-meeting-id\\") {
+         ...on Created_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+             headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
+           }
+         }
+         
+         ...on Updated_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+           }
+         }
+         
+         ...on Deleted_Meeting {
+           __typename
+           id
+         }
+         
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
+         ...on Updated_User {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+         
+         ...on UpdatedAssociation_Headline_User {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+       }
+      }"
+    `);
+  });
+
+  it('creates valid subscription documents when multiple root aliases are used', () => {
+    const queryRecord = getQueryRecordFromQueryDefinition({
+      queryId: 'MyTestQuery',
+      queryDefinitions: {
+        meeting: queryDefinition({
+          def: meetingNode,
+          map: ({ name, headlines }) => ({
+            name,
+            headlines: headlines({
+              map: ({ title, assignee }) => ({
+                title,
+                assignee: assignee({
+                  map: ({ firstName }) => ({ firstName }),
+                }),
+              }),
+            }),
+          }),
+          target: {
+            id: 'mock-meeting-id',
+          },
+        }),
+        headlines: queryDefinition({
+          def: headlineNode,
+          map: ({ title, assignee }) => ({
+            title,
+            assignee: assignee({
+              map: ({ firstName }) => ({
+                firstName,
+              }),
+            }),
+          }),
+        }),
+      },
+    });
+
+    const {
+      meeting: meetingSubscription,
+      headlines: headlinesSubscription,
+    } = getSubscriptionGQLDocumentsFromQueryRecord({
+      queryId: 'MyTestQuery',
+      queryRecord,
+      useServerSidePaginationFilteringSorting: false,
+    });
+
+    expect(getPrettyPrintedGQL(meetingSubscription)).toMatchInlineSnapshot(`
+      "
+      subscription MyTestQuery_meeting {
+       meeting: meeting(id: \\"mock-meeting-id\\") {
+         ...on Created_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+             headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
+           }
+         }
+         
+         ...on Updated_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+           }
+         }
+         
+         ...on Deleted_Meeting {
+           __typename
+           id
+         }
+         
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
+         ...on Updated_User {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+         
+         ...on UpdatedAssociation_Headline_User {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+       }
+      }"
+    `);
+    expect(getPrettyPrintedGQL(headlinesSubscription)).toMatchInlineSnapshot(`
+      "
+      subscription MyTestQuery_headlines {
+       headlines: headlines {
+         ...on Created_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
+           }
+         }
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+           }
+         }
+         
+         ...on Deleted_Headline {
+           __typename
+           id
+         }
+         
+         
+         ...on Updated_User {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+         
+         ...on UpdatedAssociation_Headline_User {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+           }
+         }
+       }
+      }"
+    `);
+  });
+
+  it('avoids creating duplicate subscription documents, when the same node type or relationship is used in the query definition repeatedly', () => {
+    const queryRecord = getQueryRecordFromQueryDefinition({
+      queryId: 'MyTestQuery',
+      queryDefinitions: {
+        meeting: queryDefinition({
+          def: meetingNode,
+          map: ({ name, headlines }) => ({
+            name,
+            headlines: headlines({
+              map: ({ title, assignee }) => ({
+                title,
+                assignee: assignee({
+                  map: ({ firstName }) => ({ firstName }),
+                }),
+              }),
+            }),
+            // same subscription as above but with different properties
+            // replicating what would happen if the UI had 2 different collections of headlines being displayed
+            duplicateHeadlines: headlines({
+              map: ({ closed, assignee }) => ({
+                closed,
+                assignee: assignee({
+                  map: ({ lastName }) => ({ lastName }),
+                }),
+              }),
+            }),
+          }),
+          target: {
+            id: 'mock-meeting-id',
+          },
+        }),
+      },
+    });
+
+    const {
+      meeting: meetingSubscription,
+    } = getSubscriptionGQLDocumentsFromQueryRecord({
+      queryId: 'MyTestQuery',
+      queryRecord,
+      useServerSidePaginationFilteringSorting: false,
+    });
+
+    // Every subscription around headline and user is only declared once below
+    // with the properties being merged together
+    expect(getPrettyPrintedGQL(meetingSubscription)).toMatchInlineSnapshot(`
+      "
+      subscription MyTestQuery_meeting {
+       meeting: meeting(id: \\"mock-meeting-id\\") {
+         ...on Created_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+             headlines {
+               nodes {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 title
+                 closed
+                 assignee {
+                   id
+                   version
+                   lastUpdatedBy
+                   type
+                   lastName
+                   firstName
+                 }
+               }
+               pageInfo {
+                 endCursor
+                 startCursor
+                 hasNextPage
+                 hasPreviousPage
+               }
+             }
+           }
+         }
+         
+         ...on Updated_Meeting {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             name
+           }
+         }
+         
+         ...on Deleted_Meeting {
+           __typename
+           id
+         }
+         
+         
+         ...on Updated_Headline {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             closed
+           }
+         }
+         
+         ...on Inserted_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             title
+             closed
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+               lastName
+             }
+           }
+         }
+         
+         ...on Removed_Meeting_Headline {
+           __typename
+           target {
+             id
+             property
+           }
+           id
+           value {
+             id
+           }
+         }
+         
+         ...on Updated_User {
+           __typename
+           id
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+             lastName
+           }
+         }
+         
+         ...on UpdatedAssociation_Headline_User {
+           __typename
+           target {
+             id
+             property
+           }
+           value {
+             id
+             version
+             lastUpdatedBy
+             type
+             firstName
+             lastName
+           }
+         }
+       }
+      }"
+    `);
+  });
+});
