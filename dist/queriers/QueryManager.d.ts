@@ -35,7 +35,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         opts: QueryManagerOpts;
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
-        onSubscriptionMessage(message: SubscriptionMessage): void;
+        onSubscriptionMessage(_message: SubscriptionMessage): void;
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here

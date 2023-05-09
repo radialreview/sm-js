@@ -6443,9 +6443,8 @@ function createQueryManager(mmGQLInstance) {
 
     var _proto = QueryManager.prototype;
 
-    _proto.onSubscriptionMessage = function onSubscriptionMessage(message) {
+    _proto.onSubscriptionMessage = function onSubscriptionMessage(_message) {
       if (!this.queryRecord) throw Error('No query record initialized');
-      console.log('message', message);
       throw Error('Not implemented'); // Object.assign(
       //   this.opts.resultsObject,
       //   this.getResultsFromState({ state: this.state, aliasPath: [] })
