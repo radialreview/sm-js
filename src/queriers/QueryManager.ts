@@ -28,6 +28,7 @@ import {
   IGQLClient,
   UseSubscriptionQueryDefinitions,
   QueryState,
+  SubscriptionMessage,
 } from '../types';
 import {
   getDataFromQueryResponsePartial,
@@ -50,6 +51,9 @@ type QueryManagerState = Record<
 type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
   idsOrIdInCurrentResult: string | Array<string> | null;
+  // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
+  // NOTE: different aliases may build different proxies for the same node
+  // this is because different aliases may have different fields queried for the same node
   proxyCache: QueryManagerProxyCache;
   pageInfoFromResults: Maybe<PageInfoFromResults>;
   totalCount: Maybe<number>;
@@ -71,12 +75,14 @@ type QueryManagerOpts = {
   useServerSidePaginationFilteringSorting: boolean;
   // an object which will be mutated when a "loadMoreResults" function is called
   // on a node collection
+  // we use a mutable object here so that a query result can be partially updated
+  // since when a "loadMoreResults" function is called, we don't re-request all
+  // of the data for the query, just the data for the node collection
   resultsObject: Object;
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
   onQueryError(error: any): void;
   batchKey: Maybe<string>;
-  getMockDataDelay: Maybe<() => number>;
   onQueryStateChange?: (queryStateChangeOpts: {
     queryIdx: number;
     queryState: QueryState;
@@ -119,38 +125,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public onSubscriptionMessage(opts: {
-      node: Record<string, any>;
-      operation: {
-        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-        path: string;
-      };
-      queryId: string;
-      subscriptionAlias: string;
-    }) {
+    public onSubscriptionMessage(message: SubscriptionMessage) {
       if (!this.queryRecord) throw Error('No query record initialized');
-      const { node, subscriptionAlias } = opts;
-      const queryRecordEntryForThisSubscription = this.queryRecord[
-        subscriptionAlias
-      ];
 
-      this.notifyRepositories({
-        data: {
-          [subscriptionAlias]: node,
-        },
-        queryRecord: {
-          [subscriptionAlias]: queryRecordEntryForThisSubscription,
-        },
-      });
+      console.log('message', message);
+      throw Error('Not implemented');
+      // Object.assign(
+      //   this.opts.resultsObject,
+      //   this.getResultsFromState({ state: this.state, aliasPath: [] })
+      // );
 
-      this.updateProxiesAndStateFromSubscriptionMessage(opts);
-
-      Object.assign(
-        this.opts.resultsObject,
-        this.getResultsFromState({ state: this.state, aliasPath: [] })
-      );
-
-      this.opts.onResultsUpdated();
+      // this.opts.onResultsUpdated();
     }
 
     /**
@@ -949,7 +934,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
         queryId: this.opts.queryId,
-        getMockDataDelay: this.opts.getMockDataDelay,
+        getMockDataDelay: mmGQLInstance.getMockDataDelay || (() => 0),
       });
 
       this.handlePagingEventData({
@@ -1000,7 +985,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
         queryId: this.opts.queryId,
-        getMockDataDelay: this.opts.getMockDataDelay,
+        getMockDataDelay: mmGQLInstance.getMockDataDelay || (() => 0),
       });
 
       this.handlePagingEventData({
@@ -1051,7 +1036,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         batchKey: this.opts.batchKey || null,
         mmGQLInstance,
         queryId: this.opts.queryId,
-        getMockDataDelay: this.opts.getMockDataDelay,
+        getMockDataDelay: mmGQLInstance.getMockDataDelay || (() => 0),
       });
 
       this.handlePagingEventData({
@@ -1284,7 +1269,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   queryGQL,
                   queryId: this.opts.queryId,
                   batchKey: this.opts.batchKey,
-                  getMockDataDelay: this.opts.getMockDataDelay,
+                  getMockDataDelay: mmGQLInstance.getMockDataDelay || (() => 0),
                   tokenName,
                   mmGQLInstance,
                 });
