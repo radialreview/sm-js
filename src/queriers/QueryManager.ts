@@ -125,10 +125,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public onSubscriptionMessage(message: SubscriptionMessage) {
+    public onSubscriptionMessage(_message: SubscriptionMessage) {
       if (!this.queryRecord) throw Error('No query record initialized');
 
-      console.log('message', message);
       throw Error('Not implemented');
       // Object.assign(
       //   this.opts.resultsObject,

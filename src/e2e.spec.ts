@@ -74,7 +74,7 @@ test('makes a query', async () => {
   `);
 });
 
-test.only('starts a subscription', async done => {
+test('starts a subscription', async done => {
   const { gqlClient, cookie } = await setupE2ETests();
 
   gqlClient.subscribe({
