@@ -2066,10 +2066,7 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
     });
 
     // Every subscription around headline and user is only declared once below
-    // with the properties being merged together.
-    // The only exception is at the root Created_Meeting subscription
-    // where headlines and duplicateHeadlines cannot easily be combined due
-    // to potentially different aliases being used
+    // with the properties being merged together
     expect(getPrettyPrintedGQL(meetingSubscription)).toMatchInlineSnapshot(`
       "
       subscription MyTestQuery_meeting {
