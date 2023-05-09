@@ -18,7 +18,7 @@ interface IGetGQLClientOpts {
   httpUrl: string;
   wsUrl: string;
   logging: Config['logging'];
-  getCookie: () => string;
+  getCookie?: () => string;
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
@@ -29,7 +29,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       wsOptionArguments: [
         {
           headers: {
-            cookie: gqlClientOpts.getCookie(),
+            cookie: gqlClientOpts.getCookie?.() || null,
           },
         },
       ],
