@@ -7,7 +7,7 @@ import {
 } from '@apollo/client/core';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
-import { BatchHttpLink } from '@apollo/client/link/batch-http';
+// import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { Config, IGQLClient } from './types';
 import WebSocket from 'isomorphic-ws';
