@@ -42,7 +42,6 @@ export declare class NodesCollection<TNodesCollectionArgs extends {
     loadingError: any;
     totalCount: TNodesCollectionArgs['TIncludeTotalCount'] extends true ? number : undefined;
     constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>);
-    get nodes(): TNodesCollectionArgs["TItemType"][];
     get hasNextPage(): boolean;
     get hasPreviousPage(): boolean;
     get totalPages(): number;

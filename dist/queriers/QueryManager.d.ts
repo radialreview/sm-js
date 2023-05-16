@@ -1,5 +1,5 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage, ValidFilterForNode, INode, ValidSortForNode } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -18,7 +18,7 @@ declare type QueryManagerProxyCacheEntry = {
 declare type QueryManagerOpts = {
     queryId: string;
     useServerSidePaginationFilteringSorting: boolean;
-    resultsObject: Object;
+    resultsObject: Record<string, any>;
     onResultsUpdated(): void;
     onQueryError(error: any): void;
     batchKey: Maybe<string>;
@@ -35,7 +35,34 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         opts: QueryManagerOpts;
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
-        onSubscriptionMessage(_message: SubscriptionMessage): void;
+        subscriptionMessageHandlers: Record<string, (message: SubscriptionMessage) => void>;
+        onSubscriptionMessage(message: SubscriptionMessage): void;
+        getSubscriptionMessageHandlers(opts: {
+            queryRecord: QueryRecord;
+        }): Record<string, (message: SubscriptionMessage) => void>;
+        getSubscriptionHandlersForQueryRecordEntry(opts: {
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            aliasPath: Array<string>;
+        }): {
+            nodeUpdateHandlers: Record<string, {
+                aliasPath: Array<string>;
+                type: 'collection' | 'node';
+                filter: ValidFilterForNode<INode, boolean> | undefined;
+                sort: ValidSortForNode<INode> | undefined;
+            }[]>;
+            nodeCreateHandlers: Record<string, {
+                aliasPath: Array<string>;
+                type: 'collection' | 'node';
+                filter: ValidFilterForNode<INode, boolean> | undefined;
+                sort: ValidSortForNode<INode> | undefined;
+            }[]>;
+            nodeDeleteHandlers: Record<string, {
+                aliasPath: Array<string>;
+                type: 'collection' | 'node';
+                filter: ValidFilterForNode<INode, boolean> | undefined;
+                sort: ValidSortForNode<INode> | undefined;
+            }[]>;
+        };
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here
@@ -75,21 +102,6 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
         }): Maybe<QueryManagerStateEntry>;
-        updateProxiesAndStateFromSubscriptionMessage(opts: {
-            node: any;
-            operation: {
-                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-                path: string;
-            };
-            subscriptionAlias: string;
-        }): void;
-        recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
-            proxy: IDOProxy;
-            newRelationalData: Maybe<Record<string, Array<Record<string, any> | Record<string, any>>>>;
-            relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
-            currentState: QueryManagerProxyCacheEntry;
-            aliasPath: Array<string>;
-        }): QueryManagerProxyCacheEntry;
         getRelationalData(opts: {
             queryRecord: BaseQueryRecordEntry | null;
             node: Record<string, any>;

@@ -36,3 +36,4 @@ export declare function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
     queryRecord: QueryRecord;
     useServerSidePaginationFilteringSorting: boolean;
 }): Record<string, import("graphql/language/ast").DocumentNode>;
+export declare function capitalizeFirstLetter(string: string): string;
