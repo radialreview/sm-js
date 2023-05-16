@@ -9,6 +9,7 @@ import {
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   RELATIONAL_UNION_QUERY_SEPARATOR,
+  TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
 import { DataParsingException, UnreachableCaseError } from '../exceptions';
 import {
@@ -29,6 +30,9 @@ import {
   UseSubscriptionQueryDefinitions,
   QueryState,
   SubscriptionMessage,
+  ValidFilterForNode,
+  INode,
+  ValidSortForNode,
 } from '../types';
 import {
   getDataFromQueryResponsePartial,
@@ -53,7 +57,7 @@ type QueryManagerStateEntry = {
   idsOrIdInCurrentResult: string | Array<string> | null;
   // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
   // NOTE: different aliases may build different proxies for the same node
-  // this is because different aliases may have different fields queried for the same node
+  // this is because different aliases may have different relationships or fields queried for the same node
   proxyCache: QueryManagerProxyCache;
   pageInfoFromResults: Maybe<PageInfoFromResults>;
   totalCount: Maybe<number>;
@@ -78,7 +82,7 @@ type QueryManagerOpts = {
   // we use a mutable object here so that a query result can be partially updated
   // since when a "loadMoreResults" function is called, we don't re-request all
   // of the data for the query, just the data for the node collection
-  resultsObject: Object;
+  resultsObject: Record<string, any>;
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
   onQueryError(error: any): void;
@@ -101,6 +105,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
    *       4.1) notifying DO repositories with the data in those sub messages
    *       4.2) build proxies for new DOs received + update relational data (recursively) for proxies that had been previously built
    *    5) building the resulting data that is returned by queriers from its cache of proxies
+   *    6) triggering minimal queries and extending results when a "loadMoreResults" function is called on a node collection
    */
   return class QueryManager {
     public state: QueryManagerState = {};
@@ -110,6 +115,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
     public queryIdx: number = 0;
+    public subscriptionMessageHandlers: Record<
+      // root level alias
+      string,
+      (message: SubscriptionMessage) => void
+    > = {};
 
     constructor(
       queryDefinitions:
@@ -125,16 +135,295 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public onSubscriptionMessage(_message: SubscriptionMessage) {
+    public onSubscriptionMessage(message: SubscriptionMessage) {
       if (!this.queryRecord) throw Error('No query record initialized');
 
-      throw Error('Not implemented');
-      // Object.assign(
-      //   this.opts.resultsObject,
-      //   this.getResultsFromState({ state: this.state, aliasPath: [] })
-      // );
+      Object.keys(message.data).forEach(rootAlias => {
+        const handler = this.subscriptionMessageHandlers[rootAlias];
+        if (!handler)
+          throw Error(`No subscription message handler found for ${rootAlias}`);
 
-      // this.opts.onResultsUpdated();
+        handler(message);
+
+        this.opts.resultsObject[rootAlias] = this.getResultsFromState({
+          state: this.state,
+          aliasPath: [],
+        })[rootAlias];
+      });
+
+      this.opts.onResultsUpdated();
+    }
+
+    public getSubscriptionMessageHandlers(opts: { queryRecord: QueryRecord }) {
+      const handlers: Record<
+        string,
+        (message: SubscriptionMessage) => void
+      > = {};
+
+      Object.keys(opts.queryRecord).forEach(rootLevelAlias => {
+        const queryRecordEntry = opts.queryRecord[rootLevelAlias];
+        if (!queryRecordEntry) return;
+
+        const {
+          nodeUpdateHandlers,
+          nodeCreateHandlers,
+          nodeDeleteHandlers,
+        } = this.getSubscriptionHandlersForQueryRecordEntry({
+          queryRecordEntry,
+          aliasPath: [rootLevelAlias],
+        });
+
+        handlers[rootLevelAlias] = (message: SubscriptionMessage) => {
+          const messageType = message.data?.[rootLevelAlias]?.__typename;
+          if (!messageType) {
+            throw Error(
+              'Invalid subscription message\n' +
+                JSON.stringify(message, null, 2)
+            );
+          }
+
+          if (messageType.startsWith('Updated_')) {
+            const nodeType = messageType.replace('Updated_', '');
+            const parsedNodeType = lowerCaseFirstLetter(nodeType);
+            if (!nodeUpdateHandlers[parsedNodeType]) {
+              throw Error(`No node update handler found for ${parsedNodeType}`);
+            }
+
+            nodeUpdateHandlers[parsedNodeType].forEach(handler => {
+              const stateEntry = this.state[handler.aliasPath[0]];
+              console.log('state', this.state);
+              if (!stateEntry)
+                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
+
+              const nodeData = message.data[rootLevelAlias].value as {
+                id: string;
+              } & Record<string, any>;
+              // @TODO handle filters/sorts/update totalCount
+              const queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+
+              if (!queryRecordEntry)
+                throw Error(
+                  `No queryRecordEntry found for ${handler.aliasPath[0]}`
+                );
+
+              queryRecordEntry.def.repository.onDataReceived(nodeData);
+            });
+          } else if (messageType.startsWith('Created_')) {
+            const nodeType = messageType.replace('Created_', '');
+            const parsedNodeType = lowerCaseFirstLetter(nodeType);
+
+            if (!nodeCreateHandlers[parsedNodeType]) {
+              throw Error(`No node create handler found for ${parsedNodeType}`);
+            }
+
+            nodeCreateHandlers[parsedNodeType].forEach(handler => {
+              const stateEntry = this.state[handler.aliasPath[0]];
+              if (!stateEntry)
+                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
+
+              const nodeData = message.data[rootLevelAlias].value as {
+                id: string;
+              } & Record<string, any>;
+
+              const queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+
+              if (!queryRecordEntry)
+                throw Error(
+                  `No queryRecordEntry found for ${handler.aliasPath[0]}`
+                );
+
+              queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              const newCacheEntry = this.buildCacheEntry({
+                nodeData,
+                queryAlias: rootLevelAlias,
+                queryRecord: opts.queryRecord,
+                pageInfoFromResults: this.state[handler.aliasPath[0]]
+                  ?.pageInfoFromResults,
+                totalCount: this.state[handler.aliasPath[0]]?.totalCount,
+                clientSidePageInfo: this.state[handler.aliasPath[0]]
+                  ?.clientSidePageInfo,
+                aliasPath: handler.aliasPath,
+              });
+
+              if (!newCacheEntry) throw Error('No new cache entry found');
+
+              if (!stateEntry.idsOrIdInCurrentResult)
+                throw Error('No idsOrIdInCurrentResult found on state entry');
+              if (handler.type === 'collection') {
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                  throw Error('idsOrIdInCurrentResult is not an array');
+
+                if (!stateEntry.totalCount) throw Error('No totalCount found');
+
+                stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
+                stateEntry.totalCount = stateEntry.totalCount + 1;
+              } else {
+                stateEntry.idsOrIdInCurrentResult = nodeData.id;
+              }
+
+              stateEntry.proxyCache[nodeData.id] =
+                newCacheEntry.proxyCache[nodeData.id];
+            });
+          } else if (messageType.startsWith('Deleted_')) {
+            const nodeType = messageType.replace('Deleted_', '');
+            const parsedNodeType = lowerCaseFirstLetter(nodeType);
+
+            if (!nodeDeleteHandlers[parsedNodeType])
+              throw Error(`No node delete handler found for ${parsedNodeType}`);
+
+            nodeDeleteHandlers[parsedNodeType].forEach(handler => {
+              const stateEntry = this.state[handler.aliasPath[0]];
+              if (!stateEntry)
+                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
+
+              const nodeDeleted = message.data[rootLevelAlias].id as string;
+              if (nodeDeleted == null)
+                throw Error('Node deleted message did not include an id');
+
+              if (!stateEntry.idsOrIdInCurrentResult)
+                throw Error('No idsOrIdInCurrentResult found on state entry');
+              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                throw Error('idsOrIdInCurrentResult is not an array');
+              if (!stateEntry.totalCount) throw Error('No totalCount found');
+
+              const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
+                nodeDeleted
+              );
+              if (nodeIdx === -1) return;
+
+              stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
+              stateEntry.totalCount = stateEntry.totalCount - 1;
+            });
+          } else {
+            throw new UnreachableCaseError(
+              message.data[rootLevelAlias].__typename as never
+            );
+          }
+        };
+      });
+
+      return handlers;
+    }
+
+    public getSubscriptionHandlersForQueryRecordEntry(opts: {
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      aliasPath: Array<string>;
+    }) {
+      const { aliasPath, queryRecordEntry } = opts;
+
+      const nodeUpdateHandlers: Record<
+        // node type
+        string,
+        Array<{
+          aliasPath: Array<string>;
+          type: 'collection' | 'node';
+          filter: ValidFilterForNode<INode, boolean> | undefined;
+          sort: ValidSortForNode<INode> | undefined;
+        }>
+      > = {};
+
+      nodeUpdateHandlers[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
+            ? 'collection'
+            : 'node',
+          filter: queryRecordEntry.filter,
+          sort: queryRecordEntry.sort,
+        },
+      ];
+
+      const nodeCreateHandlers: Record<
+        string,
+        Array<{
+          aliasPath: Array<string>;
+          type: 'collection' | 'node';
+          filter: ValidFilterForNode<INode, boolean> | undefined;
+          sort: ValidSortForNode<INode> | undefined;
+        }>
+      > = {};
+
+      nodeCreateHandlers[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
+            ? 'collection'
+            : 'node',
+          filter: queryRecordEntry.filter,
+          sort: queryRecordEntry.sort,
+        },
+      ];
+
+      const nodeDeleteHandlers: Record<
+        string,
+        Array<{
+          aliasPath: Array<string>;
+          type: 'collection' | 'node';
+          filter: ValidFilterForNode<INode, boolean> | undefined;
+          sort: ValidSortForNode<INode> | undefined;
+        }>
+      > = {};
+
+      nodeDeleteHandlers[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
+            ? 'collection'
+            : 'node',
+          filter: queryRecordEntry.filter,
+          sort: queryRecordEntry.sort,
+        },
+      ];
+
+      const relational = queryRecordEntry.relational;
+
+      if (relational) {
+        Object.keys(relational).forEach(relationalAlias => {
+          // gather handlers for relational query record entries
+          // and add them to the handlers for this query record entry
+          const handlers = this.getSubscriptionHandlersForQueryRecordEntry({
+            queryRecordEntry: relational[relationalAlias],
+            aliasPath: [...aliasPath, relationalAlias],
+          });
+
+          Object.keys(handlers.nodeUpdateHandlers).forEach(nodeType => {
+            if (!nodeUpdateHandlers[nodeType])
+              nodeUpdateHandlers[nodeType] =
+                handlers.nodeUpdateHandlers[nodeType];
+            else
+              nodeUpdateHandlers[nodeType].push(
+                ...handlers.nodeUpdateHandlers[nodeType]
+              );
+          });
+
+          Object.keys(handlers.nodeCreateHandlers).forEach(nodeType => {
+            if (!nodeCreateHandlers[nodeType])
+              nodeCreateHandlers[nodeType] =
+                handlers.nodeCreateHandlers[nodeType];
+            else
+              nodeCreateHandlers[nodeType].push(
+                ...handlers.nodeCreateHandlers[nodeType]
+              );
+          });
+
+          Object.keys(handlers.nodeDeleteHandlers).forEach(nodeType => {
+            if (!nodeDeleteHandlers[nodeType])
+              nodeDeleteHandlers[nodeType] =
+                handlers.nodeDeleteHandlers[nodeType];
+            else
+              nodeDeleteHandlers[nodeType].push(
+                ...handlers.nodeDeleteHandlers[nodeType]
+              );
+          });
+        });
+      }
+
+      return {
+        nodeUpdateHandlers,
+        nodeCreateHandlers,
+        nodeDeleteHandlers,
+      };
     }
 
     /**
@@ -483,259 +772,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       }
     }
 
-    public updateProxiesAndStateFromSubscriptionMessage(opts: {
-      node: any;
-      operation: {
-        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-        path: string;
-      };
-      subscriptionAlias: string;
-    }) {
-      if (!this.queryRecord) throw Error('No query record initialized');
-
-      const { node, subscriptionAlias, operation } = opts;
-      if (
-        (operation.action === 'DeleteNode' ||
-          operation.action === 'DeleteEdge') &&
-        operation.path === node.id
-      ) {
-        const idsOrIdInCurrentResult = this.state[subscriptionAlias]
-          .idsOrIdInCurrentResult;
-        if (Array.isArray(idsOrIdInCurrentResult)) {
-          this.state[
-            subscriptionAlias
-          ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
-            id => id !== node.id
-          );
-        } else {
-          this.state[subscriptionAlias].idsOrIdInCurrentResult = null;
-        }
-
-        return;
-      }
-
-      const queryRecordEntryForThisSubscription = this.queryRecord[
-        subscriptionAlias
-      ];
-      this.state[subscriptionAlias] = this.state[subscriptionAlias] || {};
-      const stateForThisAlias = this.state[subscriptionAlias];
-      const nodeId = node.id;
-      const { proxy, relationalState } =
-        stateForThisAlias.proxyCache[nodeId] || {};
-
-      if (proxy) {
-        const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
-          {
-            proxy,
-            newRelationalData: this.getRelationalData({
-              queryRecord: queryRecordEntryForThisSubscription,
-              node: opts.node,
-            }),
-            relationalQueryRecord:
-              queryRecordEntryForThisSubscription?.relational || null,
-            currentState: { proxy, relationalState },
-            aliasPath: [subscriptionAlias],
-          }
-        );
-        stateForThisAlias.proxyCache[nodeId] = newCacheEntry;
-      } else {
-        const cacheEntry = this.buildCacheEntry({
-          nodeData: node,
-          queryAlias: subscriptionAlias,
-          queryRecord: this.queryRecord,
-          // @TODO will we get pageInfo in subscription messages?
-          pageInfoFromResults: null,
-          totalCount: null,
-          clientSidePageInfo: null,
-          aliasPath: [subscriptionAlias],
-        });
-        if (!cacheEntry) return;
-        const { proxyCache } = cacheEntry;
-
-        const newlyGeneratedProxy = proxyCache[node.id];
-
-        if (!newlyGeneratedProxy)
-          throw Error('Expected a newly generated proxy');
-
-        stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
-      }
-
-      if (!queryRecordEntryForThisSubscription) {
-        return;
-      } else if ('id' in queryRecordEntryForThisSubscription) {
-        if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
-          return;
-        }
-
-        this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId;
-      } else {
-        if (
-          (
-            stateForThisAlias.idsOrIdInCurrentResult || ([] as Array<string>)
-          ).includes(nodeId)
-        )
-          return; // don't need to do anything if this id was already in the returned set
-
-        this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = [
-          nodeId, // insert the new node at the start of the array
-          ...(this.state[opts.subscriptionAlias]
-            .idsOrIdInCurrentResult as Array<string>),
-        ];
-      }
-    }
-
-    public recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
-      proxy: IDOProxy;
-      newRelationalData: Maybe<
-        Record<string, Array<Record<string, any> | Record<string, any>>>
-      >;
-      relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
-      currentState: QueryManagerProxyCacheEntry;
-      aliasPath: Array<string>;
-    }): QueryManagerProxyCacheEntry {
-      const {
-        proxy,
-        newRelationalData,
-        currentState,
-        relationalQueryRecord,
-      } = opts;
-      const { relationalState: currentRelationalState } = currentState;
-
-      const newRelationalState = !relationalQueryRecord
-        ? null
-        : Object.keys(relationalQueryRecord).reduce(
-            (relationalStateAcc, relationalAlias) => {
-              if (!newRelationalData || !newRelationalData[relationalAlias]) {
-                return relationalStateAcc;
-              }
-
-              const relationalDataForThisAlias =
-                newRelationalData[relationalAlias];
-              const queryRecordForThisAlias =
-                relationalQueryRecord[relationalAlias];
-
-              const currentStateForThisAlias = !currentRelationalState
-                ? null
-                : currentRelationalState[relationalAlias];
-
-              if (!currentStateForThisAlias) {
-                const cacheEntry = this.buildCacheEntry({
-                  nodeData: relationalDataForThisAlias,
-                  queryAlias: relationalAlias,
-                  queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
-                  // @TODO will we get pageInfo in subscription messages?
-                  pageInfoFromResults: null,
-                  totalCount: null,
-                  clientSidePageInfo: null,
-                  aliasPath: [...opts.aliasPath, relationalAlias],
-                });
-
-                if (!cacheEntry) return relationalStateAcc;
-
-                relationalStateAcc[relationalAlias] = cacheEntry;
-
-                return relationalStateAcc;
-              }
-
-              if (Array.isArray(relationalDataForThisAlias)) {
-                relationalStateAcc[relationalAlias] = relationalStateAcc[
-                  relationalAlias
-                ] || { proxyCache: {}, idsOrIdInCurrentResult: [] };
-
-                relationalDataForThisAlias.forEach(node => {
-                  const existingProxy =
-                    currentStateForThisAlias.proxyCache[node.id]?.proxy;
-
-                  if (!existingProxy) {
-                    const cacheEntry = this.buildCacheEntry({
-                      nodeData: node,
-                      queryAlias: relationalAlias,
-                      queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                      aliasPath: [...opts.aliasPath, relationalAlias],
-                    });
-
-                    if (!cacheEntry) return;
-
-                    relationalStateAcc[relationalAlias] = {
-                      proxyCache: {
-                        ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: cacheEntry.proxyCache[node.id],
-                      },
-                      idsOrIdInCurrentResult: [
-                        ...(relationalStateAcc[relationalAlias]
-                          .idsOrIdInCurrentResult as Array<string>),
-                        node.id,
-                      ],
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                    };
-                  } else {
-                    const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
-                      {
-                        proxy: existingProxy,
-                        newRelationalData: this.getRelationalData({
-                          queryRecord: queryRecordForThisAlias,
-                          node,
-                        }),
-                        relationalQueryRecord:
-                          queryRecordForThisAlias.relational || null,
-                        currentState:
-                          currentStateForThisAlias.proxyCache[node.id],
-                        aliasPath: [...opts.aliasPath, relationalAlias],
-                      }
-                    );
-
-                    relationalStateAcc[relationalAlias] = {
-                      proxyCache: {
-                        ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: newCacheEntry,
-                      },
-                      idsOrIdInCurrentResult: [
-                        ...(relationalStateAcc[relationalAlias]
-                          .idsOrIdInCurrentResult as Array<string>),
-                        node.id,
-                      ],
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                    };
-                  }
-                });
-              } else {
-                throw Error(
-                  `Not implemented. ${JSON.stringify(
-                    relationalDataForThisAlias
-                  )}`
-                );
-              }
-
-              return relationalStateAcc;
-            },
-            {} as QueryManagerState
-          );
-
-      newRelationalState
-        ? proxy.updateRelationalResults(
-            this.getResultsFromState({
-              state: newRelationalState,
-              aliasPath: opts.aliasPath,
-            })
-          )
-        : proxy.updateRelationalResults(null);
-
-      return {
-        proxy,
-        relationalState: newRelationalState,
-      };
-    }
-
     public getRelationalData(opts: {
       queryRecord: BaseQueryRecordEntry | null;
       node: Record<string, any>;
@@ -806,7 +842,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getTotalCountFromResponse(opts: {
       dataForThisAlias: any;
     }): Maybe<number> {
-      return opts.dataForThisAlias?.totalCount;
+      return opts.dataForThisAlias?.[TOTAL_COUNT_PROPERTY_KEY];
     }
 
     public getPageInfoFromResponseForAlias(opts: {
@@ -1203,7 +1239,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             previousNullishResultKeys.length ===
             Object.keys(nullishResults).length
           ) {
-            // if all the results are null, and they were already null last renderdo nothing
+            // if all the results are null, and they were already null last render, do nothing
             // calling the onQueryDefinitionUpdatedResult callback here would cause an infinite loop
             return;
           }
@@ -1237,8 +1273,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       } = getMinimalQueryRecordAndAliasPathsToUpdate();
 
       if (!Object.keys(minimalQueryRecord).length) {
+        // no changes to the query record, so no need to update the results
         return;
       }
+
+      this.subscriptionMessageHandlers = this.getSubscriptionMessageHandlers({
+        queryRecord: this.queryRecord,
+      });
 
       const thisQueryIdx = this.queryIdx++;
 
@@ -1892,4 +1933,7 @@ function getEmptyStateEntry(): QueryManagerStateEntry {
     totalCount: null,
     clientSidePageInfo: null,
   };
+}
+function lowerCaseFirstLetter(nodeType: string) {
+  return nodeType.charAt(0).toLowerCase() + nodeType.slice(1);
 }

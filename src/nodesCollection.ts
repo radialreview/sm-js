@@ -71,16 +71,19 @@ export class NodesCollection<
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
     this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
-  }
 
-  public get nodes() {
-    if (this.useServerSidePaginationFilteringSorting) return this.items;
-    // this is because when doing client side pagination, all the items in this collection are expected to already
-    // be cached in this class' state
-    return getPageResults({
-      items: this.items,
-      pages: this.pagesBeingDisplayed,
-      itemsPerPage: this.clientSidePageInfo.pageSize,
+    Object.defineProperty(this, 'nodes', {
+      enumerable: true,
+      get: () => {
+        if (this.useServerSidePaginationFilteringSorting) return this.items;
+        // this is because when doing client side pagination, all the items in this collection are expected to already
+        // be cached in this class' state
+        return getPageResults({
+          items: this.items,
+          pages: this.pagesBeingDisplayed,
+          itemsPerPage: this.clientSidePageInfo.pageSize,
+        });
+      },
     });
   }
 
