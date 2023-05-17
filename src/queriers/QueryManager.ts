@@ -151,8 +151,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.opts.onResultsUpdated();
     }
 
+    // based on the root query record
+    // return a record of message handlers, one for each root level alias
+    //
     // @TODO
-    // - handle filters/sorts/update totalCount
+    // - remove the aggressive erroring in favor of silent logging
     public getSubscriptionMessageHandlers(opts: { queryRecord: QueryRecord }) {
       const handlers: Record<
         string,
@@ -164,11 +167,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         if (!rootLevelQueryRecordEntry) return;
 
         const {
-          nodeUpdateHandlers,
-          nodeCreateHandlers,
-          nodeDeleteHandlers,
-          nodeInsertHandlers,
-          nodeRemoveHandlers,
+          nodeUpdatePaths,
+          nodeCreatePaths,
+          nodeDeletePaths,
+          nodeInsertPaths,
+          nodeRemovePaths,
+          nodeUpdateAssociationPaths,
         } = this.getSubscriptionEventToCachePathRecords({
           aliasPath: [rootLevelAlias],
           queryRecordEntry: rootLevelQueryRecordEntry,
@@ -186,60 +190,66 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           if (messageType.startsWith('Updated_')) {
             const nodeType = messageType.replace('Updated_', '');
-            const parsedNodeType = lowerCaseFirstLetter(nodeType);
-            if (!nodeUpdateHandlers[parsedNodeType]) {
-              throw Error(`No node update handler found for ${parsedNodeType}`);
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+            if (!nodeUpdatePaths[lowerCaseNodeType]) {
+              throw Error(
+                `No node update handler found for ${lowerCaseNodeType}`
+              );
             }
 
-            nodeUpdateHandlers[parsedNodeType].forEach(handler => {
-              const nodeData = message.data[rootLevelAlias].value as {
-                id: string;
-              } & Record<string, any>;
-              const queryRecordEntry = handler.queryRecordEntry;
+            const nodeData = message.data[rootLevelAlias].value as {
+              id: string;
+            } & Record<string, any>;
+
+            nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
+              const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
                 throw Error(
-                  `No queryRecordEntry found for ${handler.aliasPath[0]}`
+                  `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
               queryRecordEntry.def.repository.onDataReceived(nodeData);
             });
           } else if (messageType.startsWith('Created_')) {
             const nodeType = messageType.replace('Created_', '');
-            const parsedNodeType = lowerCaseFirstLetter(nodeType);
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
 
-            if (!nodeCreateHandlers[parsedNodeType]) {
-              throw Error(`No node create handler found for ${parsedNodeType}`);
+            if (!nodeCreatePaths[lowerCaseNodeType]) {
+              throw Error(
+                `No node create handler found for ${lowerCaseNodeType}`
+              );
             }
 
-            nodeCreateHandlers[parsedNodeType].forEach(handler => {
-              const stateEntry = this.state[handler.aliasPath[0]];
+            nodeCreatePaths[lowerCaseNodeType].forEach(path => {
+              const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
-                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
+                throw Error(`No state entry found for ${path.aliasPath[0]}`);
 
               const nodeData = message.data[rootLevelAlias].value as {
                 id: string;
               } & Record<string, any>;
 
-              const queryRecordEntry = handler.queryRecordEntry;
+              const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
                 throw Error(
-                  `No queryRecordEntry found for ${handler.aliasPath[0]}`
+                  `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
               queryRecordEntry.def.repository.onDataReceived(nodeData);
 
               const newCacheEntry = this.buildCacheEntry({
+                aliasPath: path.aliasPath,
                 nodeData,
                 queryAlias: rootLevelAlias,
                 queryRecord: opts.queryRecord,
-                pageInfoFromResults: this.state[handler.aliasPath[0]]
-                  ?.pageInfoFromResults,
-                totalCount: this.state[handler.aliasPath[0]]?.totalCount,
-                clientSidePageInfo: this.state[handler.aliasPath[0]]
-                  ?.clientSidePageInfo,
-                aliasPath: handler.aliasPath,
+                // page info is not required
+                // in this case, all we need to get back is the proxy for a specific node
+                // and we mutate the state paging info directly as needed
+                pageInfoFromResults: null,
+                totalCount: null,
+                clientSidePageInfo: null,
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -253,7 +263,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 if (!stateEntry.totalCount) throw Error('No totalCount found');
 
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
-                stateEntry.totalCount = stateEntry.totalCount + 1;
+                stateEntry.totalCount++;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -263,18 +273,20 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             });
           } else if (messageType.startsWith('Deleted_')) {
             const nodeType = messageType.replace('Deleted_', '');
-            const parsedNodeType = lowerCaseFirstLetter(nodeType);
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
 
-            if (!nodeDeleteHandlers[parsedNodeType])
-              throw Error(`No node delete handler found for ${parsedNodeType}`);
+            if (!nodeDeletePaths[lowerCaseNodeType])
+              throw Error(
+                `No node delete handler found for ${lowerCaseNodeType}`
+              );
 
-            nodeDeleteHandlers[parsedNodeType].forEach(handler => {
-              const stateEntry = this.state[handler.aliasPath[0]];
+            nodeDeletePaths[lowerCaseNodeType].forEach(path => {
+              const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
-                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
+                throw Error(`No state entry found for ${path.aliasPath[0]}`);
 
-              const nodeDeleted = message.data[rootLevelAlias].id as string;
-              if (nodeDeleted == null)
+              const nodeDeletedId = message.data[rootLevelAlias].id as string;
+              if (nodeDeletedId == null)
                 throw Error('Node deleted message did not include an id');
 
               if (!stateEntry.idsOrIdInCurrentResult)
@@ -284,12 +296,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               if (!stateEntry.totalCount) throw Error('No totalCount found');
 
               const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
-                nodeDeleted
+                nodeDeletedId
               );
               if (nodeIdx === -1) return;
 
               stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
-              stateEntry.totalCount = stateEntry.totalCount - 1;
+              delete stateEntry.proxyCache[nodeDeletedId];
+              stateEntry.totalCount--;
             });
           } else if (messageType.startsWith('Inserted_')) {
             const {
@@ -299,14 +312,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               messageType
             );
 
-            if (!nodeInsertHandlers[`${parentNodeType}.${childNodeType}`]) {
+            if (!nodeInsertPaths[`${parentNodeType}.${childNodeType}`]) {
               throw Error(
                 `No node insert handler found for ${parentNodeType}.${childNodeType}`
               );
             }
 
-            nodeInsertHandlers[`${parentNodeType}.${childNodeType}`].forEach(
-              handler => {
+            nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
+              path => {
                 const parentId = message.data[rootLevelAlias].target?.id;
                 const parentRelationshipWhichWasInsertedInto =
                   message.data[rootLevelAlias].target?.property;
@@ -317,7 +330,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                     'No parentRelationshipWhichWasInsertedInto found'
                   );
 
-                const { parentQueryRecordEntry } = handler;
+                const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
                   throw Error(`No parentQueryRecord found for ${messageType}`);
                 if (!parentQueryRecordEntry.relational)
@@ -329,20 +342,20 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   id: string;
                 } & Record<string, any>;
 
-                handler.queryRecordEntry.def.repository.onDataReceived(
+                path.queryRecordEntry.def.repository.onDataReceived(
                   nodeInsertedData
                 );
 
                 const relationalAlias =
-                  handler.aliasPath[handler.aliasPath.length - 1];
+                  path.aliasPath[path.aliasPath.length - 1];
                 const newCacheEntry = this.buildCacheEntry({
                   nodeData: nodeInsertedData,
                   queryAlias: relationalAlias,
                   queryRecord: parentQueryRecordEntry.relational,
-                  aliasPath: handler.aliasPath,
-                  // since this message is about a single node being inserted
-                  // there is no associated page info
-                  // @TODO double check this assumption
+                  aliasPath: path.aliasPath,
+                  // page info is not required
+                  // in this case, all we need to get back is the proxy for a specific node
+                  // and we mutate the state paging info directly as needed
                   pageInfoFromResults: null,
                   totalCount: null,
                   clientSidePageInfo: null,
@@ -352,7 +365,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
-                    aliasPath: handler.aliasPath,
+                    aliasPath: path.aliasPath,
                   }
                 );
 
@@ -374,7 +387,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
-                  stateEntry.totalCount = stateEntry.totalCount + 1;
+                  stateEntry.totalCount++;
 
                   if (!parentProxy) throw Error('No parent proxy found');
 
@@ -383,7 +396,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       state: {
                         [relationalAlias]: stateEntry,
                       },
-                      aliasPath: handler.aliasPath,
+                      aliasPath: path.aliasPath,
                     })
                   );
                 });
@@ -397,25 +410,22 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               messageType
             );
 
-            if (!nodeRemoveHandlers[`${parentNodeType}.${childNodeType}`]) {
+            if (!nodeRemovePaths[`${parentNodeType}.${childNodeType}`])
               throw Error(
                 `No node remove handler found for ${parentNodeType}.${childNodeType}`
               );
-            }
 
-            nodeInsertHandlers[`${parentNodeType}.${childNodeType}`].forEach(
-              handler => {
+            nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
+              path => {
                 const parentId = message.data[rootLevelAlias].target?.id;
-                const parentRelationshipWhichWasInsertedInto =
+                const parentRelationshipWhichWasRemovedFrom =
                   message.data[rootLevelAlias].target?.property;
 
                 if (!parentId) throw Error('No parentId found');
-                if (!parentRelationshipWhichWasInsertedInto)
-                  throw Error(
-                    'No parentRelationshipWhichWasInsertedInto found'
-                  );
+                if (!parentRelationshipWhichWasRemovedFrom)
+                  throw Error('No parentRelationshipWhichWasRemovedFrom found');
 
-                const { parentQueryRecordEntry } = handler;
+                const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
                   throw Error(`No parentQueryRecord found for ${messageType}`);
                 if (!parentQueryRecordEntry.relational)
@@ -428,11 +438,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   | number;
 
                 const relationalAlias =
-                  handler.aliasPath[handler.aliasPath.length - 1];
+                  path.aliasPath[path.aliasPath.length - 1];
 
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
-                    aliasPath: handler.aliasPath,
+                    aliasPath: path.aliasPath,
                   }
                 );
 
@@ -462,7 +472,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
                   stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
                   delete stateEntry.proxyCache[nodeRemovedId];
-                  stateEntry.totalCount = stateEntry.totalCount - 1;
+                  stateEntry.totalCount--;
 
                   if (!parentProxy) throw Error('No parent proxy found');
 
@@ -471,12 +481,103 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       state: {
                         [relationalAlias]: stateEntry,
                       },
-                      aliasPath: handler.aliasPath,
+                      aliasPath: path.aliasPath,
                     })
                   );
                 });
               }
             );
+          } else if (messageType.startsWith('UpdatedAssociation_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (
+              !nodeUpdateAssociationPaths[`${parentNodeType}.${childNodeType}`]
+            ) {
+              throw Error(
+                `No node update association handler found for ${parentNodeType}.${childNodeType}`
+              );
+            }
+
+            nodeUpdateAssociationPaths[
+              `${parentNodeType}.${childNodeType}`
+            ].forEach(path => {
+              const parentId = message.data[rootLevelAlias].target?.id;
+              const parentRelationshipWhichWasInsertedInto =
+                message.data[rootLevelAlias].target?.property;
+
+              if (!parentId) throw Error('No parentId found');
+              if (!parentRelationshipWhichWasInsertedInto)
+                throw Error('No parentRelationshipWhichWasInsertedInto found');
+
+              const { parentQueryRecordEntry } = path;
+              if (!parentQueryRecordEntry)
+                throw Error(`No parentQueryRecord found for ${messageType}`);
+              if (!parentQueryRecordEntry.relational)
+                throw Error(
+                  `No parentQueryRecordEntry.relational found for ${messageType}`
+                );
+
+              const nodeAssociatedData = message.data[rootLevelAlias].value as {
+                id: string;
+              } & Record<string, any>;
+
+              path.queryRecordEntry.def.repository.onDataReceived(
+                nodeAssociatedData
+              );
+
+              const relationalAlias = path.aliasPath[path.aliasPath.length - 1];
+              const newCacheEntry = this.buildCacheEntry({
+                nodeData: nodeAssociatedData,
+                queryAlias: relationalAlias,
+                queryRecord: parentQueryRecordEntry.relational,
+                aliasPath: path.aliasPath,
+                // page info is not required
+                // in this case, all we need to get back is the proxy for a specific node
+                // and we mutate the state paging info directly as needed
+                pageInfoFromResults: null,
+                totalCount: null,
+                clientSidePageInfo: null,
+              });
+
+              if (!newCacheEntry) throw Error('No new cache entry found');
+
+              const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                {
+                  aliasPath: path.aliasPath,
+                }
+              );
+
+              if (
+                !cacheEntriesWhichRequireUpdate ||
+                cacheEntriesWhichRequireUpdate.length === 0
+              )
+                throw Error('No parent cache entries found');
+
+              cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                const stateEntry = stateCacheEntry.leafStateEntry;
+                const parentProxy = stateCacheEntry.parentProxy;
+
+                stateEntry.idsOrIdInCurrentResult = nodeAssociatedData.id;
+                stateEntry.proxyCache[nodeAssociatedData.id] =
+                  newCacheEntry.proxyCache[nodeAssociatedData.id];
+
+                if (!parentProxy) throw Error('No parent proxy found');
+
+                parentProxy.updateRelationalResults(
+                  this.getResultsFromState({
+                    state: {
+                      [relationalAlias]: stateEntry,
+                    },
+                    aliasPath: path.aliasPath,
+                  })
+                );
+              });
+            });
           } else {
             throw new UnreachableCaseError(
               message.data[rootLevelAlias].__typename as never
@@ -488,6 +589,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return handlers;
     }
 
+    // for a given alias path (example: ['users', 'todos'])
+    // return string based paths to the cache entries that are affected by each subscription message type
     public getSubscriptionEventToCachePathRecords(opts: {
       aliasPath: Array<string>;
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
@@ -518,9 +621,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         }>
       >;
 
-      const nodeUpdateHandlers: SubscriptionEventToCachePathRecord = {};
+      const nodeUpdatePaths: SubscriptionEventToCachePathRecord = {};
 
-      nodeUpdateHandlers[queryRecordEntry.def.type] = [
+      nodeUpdatePaths[queryRecordEntry.def.type] = [
         {
           aliasPath,
           queryRecordEntry,
@@ -528,9 +631,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         },
       ];
 
-      const nodeCreateHandlers: SubscriptionEventToCachePathRecord = {};
+      const nodeCreatePaths: SubscriptionEventToCachePathRecord = {};
 
-      nodeCreateHandlers[queryRecordEntry.def.type] = [
+      nodeCreatePaths[queryRecordEntry.def.type] = [
         {
           aliasPath,
           queryRecordEntry,
@@ -538,9 +641,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         },
       ];
 
-      const nodeDeleteHandlers: SubscriptionEventToCachePathRecord = {};
+      const nodeDeletePaths: SubscriptionEventToCachePathRecord = {};
 
-      nodeDeleteHandlers[queryRecordEntry.def.type] = [
+      nodeDeletePaths[queryRecordEntry.def.type] = [
         {
           aliasPath,
           queryRecordEntry,
@@ -548,8 +651,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         },
       ];
 
-      const nodeInsertHandlers: SubscriptionEventToCachePathRecord = {};
-      const nodeRemoveHandlers: SubscriptionEventToCachePathRecord = {};
+      const nodeInsertPaths: SubscriptionEventToCachePathRecord = {};
+      const nodeRemovePaths: SubscriptionEventToCachePathRecord = {};
+      const nodeUpdateAssociationPaths: SubscriptionEventToCachePathRecord = {};
 
       if (
         parentQueryRecordEntry &&
@@ -557,7 +661,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           ('nonPaginatedOneToMany' in queryRecordEntry &&
             queryRecordEntry.nonPaginatedOneToMany))
       ) {
-        nodeInsertHandlers[
+        nodeInsertPaths[
           `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
         ] = [
           {
@@ -567,7 +671,17 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           },
         ];
 
-        nodeRemoveHandlers[
+        nodeRemovePaths[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+      } else if (parentQueryRecordEntry) {
+        nodeUpdateAssociationPaths[
           `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
         ] = [
           {
@@ -581,11 +695,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const relational = queryRecordEntry.relational;
 
       const toBeReturned = {
-        nodeUpdateHandlers,
-        nodeCreateHandlers,
-        nodeDeleteHandlers,
-        nodeInsertHandlers,
-        nodeRemoveHandlers,
+        nodeUpdatePaths,
+        nodeCreatePaths,
+        nodeDeletePaths,
+        nodeInsertPaths,
+        nodeRemovePaths,
+        nodeUpdateAssociationPaths,
       };
 
       if (relational) {
