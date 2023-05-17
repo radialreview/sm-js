@@ -1,5 +1,5 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage, ValidFilterForNode, INode, ValidSortForNode } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -47,20 +47,17 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             nodeUpdateHandlers: Record<string, {
                 aliasPath: Array<string>;
                 type: 'collection' | 'node';
-                filter: ValidFilterForNode<INode, boolean> | undefined;
-                sort: ValidSortForNode<INode> | undefined;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             }[]>;
             nodeCreateHandlers: Record<string, {
                 aliasPath: Array<string>;
                 type: 'collection' | 'node';
-                filter: ValidFilterForNode<INode, boolean> | undefined;
-                sort: ValidSortForNode<INode> | undefined;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             }[]>;
             nodeDeleteHandlers: Record<string, {
                 aliasPath: Array<string>;
                 type: 'collection' | 'node';
-                filter: ValidFilterForNode<INode, boolean> | undefined;
-                sort: ValidSortForNode<INode> | undefined;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             }[]>;
         };
         /**

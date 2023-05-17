@@ -6497,11 +6497,11 @@ function createQueryManager(mmGQLInstance) {
 
       var handlers = {};
       Object.keys(opts.queryRecord).forEach(function (rootLevelAlias) {
-        var queryRecordEntry = opts.queryRecord[rootLevelAlias];
-        if (!queryRecordEntry) return;
+        var rootLevelQueryRecordEntry = opts.queryRecord[rootLevelAlias];
+        if (!rootLevelQueryRecordEntry) return;
 
         var _this3$getSubscriptio = _this3.getSubscriptionHandlersForQueryRecordEntry({
-          queryRecordEntry: queryRecordEntry,
+          queryRecordEntry: rootLevelQueryRecordEntry,
           aliasPath: [rootLevelAlias]
         }),
             nodeUpdateHandlers = _this3$getSubscriptio.nodeUpdateHandlers,
@@ -6526,12 +6526,9 @@ function createQueryManager(mmGQLInstance) {
             }
 
             nodeUpdateHandlers[parsedNodeType].forEach(function (handler) {
-              var stateEntry = _this3.state[handler.aliasPath[0]];
-              console.log('state', _this3.state);
-              if (!stateEntry) throw Error("No state entry found for " + handler.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value; // @TODO handle filters/sorts/update totalCount
 
-              var queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+              var queryRecordEntry = handler.queryRecordEntry;
               if (!queryRecordEntry) throw Error("No queryRecordEntry found for " + handler.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
             });
@@ -6550,7 +6547,7 @@ function createQueryManager(mmGQLInstance) {
               var stateEntry = _this3.state[handler.aliasPath[0]];
               if (!stateEntry) throw Error("No state entry found for " + handler.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value;
-              var queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+              var queryRecordEntry = handler.queryRecordEntry;
               if (!queryRecordEntry) throw Error("No queryRecordEntry found for " + handler.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
 
@@ -6617,8 +6614,7 @@ function createQueryManager(mmGQLInstance) {
         type: queryRecordEntryReturnsArrayOfData({
           queryRecordEntry: queryRecordEntry
         }) ? 'collection' : 'node',
-        filter: queryRecordEntry.filter,
-        sort: queryRecordEntry.sort
+        queryRecordEntry: queryRecordEntry
       }];
       var nodeCreateHandlers = {};
       nodeCreateHandlers[queryRecordEntry.def.type] = [{
@@ -6626,8 +6622,7 @@ function createQueryManager(mmGQLInstance) {
         type: queryRecordEntryReturnsArrayOfData({
           queryRecordEntry: queryRecordEntry
         }) ? 'collection' : 'node',
-        filter: queryRecordEntry.filter,
-        sort: queryRecordEntry.sort
+        queryRecordEntry: queryRecordEntry
       }];
       var nodeDeleteHandlers = {};
       nodeDeleteHandlers[queryRecordEntry.def.type] = [{
@@ -6635,8 +6630,7 @@ function createQueryManager(mmGQLInstance) {
         type: queryRecordEntryReturnsArrayOfData({
           queryRecordEntry: queryRecordEntry
         }) ? 'collection' : 'node',
-        filter: queryRecordEntry.filter,
-        sort: queryRecordEntry.sort
+        queryRecordEntry: queryRecordEntry
       }];
       var relational = queryRecordEntry.relational;
 
