@@ -1555,7 +1555,7 @@ describe('subscription handling', () => {
   /**
    * Start tests for collection nested within a single node query
    */
-  it.only('handles an "UPDATED" subscription message related to a node that was queried within a relational collection, nested within a single node query', done => {
+  it('handles an "UPDATED" subscription message related to a node that was queried within a relational collection, nested within a single node query', done => {
     const mockUsersCollection = {
       [NODES_PROPERTY_KEY]: [
         {
@@ -1628,22 +1628,24 @@ describe('subscription handling', () => {
       },
     });
 
-    const expectedUpdatedUsersCollection = {
+    const expectedUpdatedUsersCollectionWithFirstNameOnly = {
       [NODES_PROPERTY_KEY]: [
         {
           id: 'mock-user-id-1',
           firstName: 'mock-user-name-1-updated',
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+    };
+
+    const expectedUpdatedUsersCollectionWithLastNameOnly = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          id: 'mock-user-id-1',
           lastName: 'mock-user-last-name-1-updated',
         },
       ],
       [TOTAL_COUNT_PROPERTY_KEY]: 1,
-      [PAGE_INFO_PROPERTY_KEY]: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: 'mock-user-id-1',
-        endCursor: 'mock-user-id-1',
-        totalPages: 1,
-      },
     };
 
     runSubscriptionTest({
@@ -1658,8 +1660,8 @@ describe('subscription handling', () => {
           id: 'mock-todo-id-1',
           task: 'mock-task-1',
           done: false,
-          users: expectedUpdatedUsersCollection,
-          usersCopy: expectedUpdatedUsersCollection,
+          users: expectedUpdatedUsersCollectionWithFirstNameOnly,
+          usersCopy: expectedUpdatedUsersCollectionWithLastNameOnly,
         },
       },
     });

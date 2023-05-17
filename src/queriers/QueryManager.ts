@@ -30,9 +30,6 @@ import {
   UseSubscriptionQueryDefinitions,
   QueryState,
   SubscriptionMessage,
-  ValidFilterForNode,
-  INode,
-  ValidSortForNode,
 } from '../types';
 import {
   getDataFromQueryResponsePartial,
@@ -161,15 +158,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       > = {};
 
       Object.keys(opts.queryRecord).forEach(rootLevelAlias => {
-        const queryRecordEntry = opts.queryRecord[rootLevelAlias];
-        if (!queryRecordEntry) return;
+        const rootLevelQueryRecordEntry = opts.queryRecord[rootLevelAlias];
+        if (!rootLevelQueryRecordEntry) return;
 
         const {
           nodeUpdateHandlers,
           nodeCreateHandlers,
           nodeDeleteHandlers,
         } = this.getSubscriptionHandlersForQueryRecordEntry({
-          queryRecordEntry,
+          queryRecordEntry: rootLevelQueryRecordEntry,
           aliasPath: [rootLevelAlias],
         });
 
@@ -190,16 +187,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             }
 
             nodeUpdateHandlers[parsedNodeType].forEach(handler => {
-              const stateEntry = this.state[handler.aliasPath[0]];
-              console.log('state', this.state);
-              if (!stateEntry)
-                throw Error(`No state entry found for ${handler.aliasPath[0]}`);
-
               const nodeData = message.data[rootLevelAlias].value as {
                 id: string;
               } & Record<string, any>;
               // @TODO handle filters/sorts/update totalCount
-              const queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+              const queryRecordEntry = handler.queryRecordEntry;
 
               if (!queryRecordEntry)
                 throw Error(
@@ -225,7 +217,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 id: string;
               } & Record<string, any>;
 
-              const queryRecordEntry = opts.queryRecord[handler.aliasPath[0]];
+              const queryRecordEntry = handler.queryRecordEntry;
 
               if (!queryRecordEntry)
                 throw Error(
@@ -318,8 +310,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         Array<{
           aliasPath: Array<string>;
           type: 'collection' | 'node';
-          filter: ValidFilterForNode<INode, boolean> | undefined;
-          sort: ValidSortForNode<INode> | undefined;
+          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }>
       > = {};
 
@@ -329,8 +320,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
             ? 'collection'
             : 'node',
-          filter: queryRecordEntry.filter,
-          sort: queryRecordEntry.sort,
+          queryRecordEntry,
         },
       ];
 
@@ -339,8 +329,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         Array<{
           aliasPath: Array<string>;
           type: 'collection' | 'node';
-          filter: ValidFilterForNode<INode, boolean> | undefined;
-          sort: ValidSortForNode<INode> | undefined;
+          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }>
       > = {};
 
@@ -350,8 +339,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
             ? 'collection'
             : 'node',
-          filter: queryRecordEntry.filter,
-          sort: queryRecordEntry.sort,
+          queryRecordEntry,
         },
       ];
 
@@ -360,8 +348,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         Array<{
           aliasPath: Array<string>;
           type: 'collection' | 'node';
-          filter: ValidFilterForNode<INode, boolean> | undefined;
-          sort: ValidSortForNode<INode> | undefined;
+          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }>
       > = {};
 
@@ -371,8 +358,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
             ? 'collection'
             : 'node',
-          filter: queryRecordEntry.filter,
-          sort: queryRecordEntry.sort,
+          queryRecordEntry,
         },
       ];
 
