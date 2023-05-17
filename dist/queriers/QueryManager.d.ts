@@ -40,26 +40,48 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getSubscriptionMessageHandlers(opts: {
             queryRecord: QueryRecord;
         }): Record<string, (message: SubscriptionMessage) => void>;
-        getSubscriptionHandlersForQueryRecordEntry(opts: {
-            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+        getSubscriptionEventToCachePathRecords(opts: {
             aliasPath: Array<string>;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
         }): {
             nodeUpdateHandlers: Record<string, {
                 aliasPath: Array<string>;
-                type: 'collection' | 'node';
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeCreateHandlers: Record<string, {
                 aliasPath: Array<string>;
-                type: 'collection' | 'node';
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeDeleteHandlers: Record<string, {
                 aliasPath: Array<string>;
-                type: 'collection' | 'node';
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeInsertHandlers: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeRemoveHandlers: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
         };
+        getStateCacheEntriesForAliasPath(opts: {
+            aliasPath: Array<string>;
+            parentProxy?: IDOProxy | null;
+            previousStateEntries?: Array<{
+                leafStateEntry: QueryManagerStateEntry;
+                parentProxy: IDOProxy | null;
+            }>;
+        }): Array<{
+            leafStateEntry: QueryManagerStateEntry;
+            parentProxy: IDOProxy | null;
+        }>;
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here
@@ -93,7 +115,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
             queryAlias: string;
-            queryRecord: QueryRecord;
+            queryRecord: QueryRecord | RelationalQueryRecord;
             pageInfoFromResults: Maybe<PageInfoFromResults>;
             totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
