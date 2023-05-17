@@ -151,6 +151,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.opts.onResultsUpdated();
     }
 
+    // @TODO
+    // - handle filters/sorts/update totalCount
     public getSubscriptionMessageHandlers(opts: { queryRecord: QueryRecord }) {
       const handlers: Record<
         string,
@@ -165,9 +167,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           nodeUpdateHandlers,
           nodeCreateHandlers,
           nodeDeleteHandlers,
-        } = this.getSubscriptionHandlersForQueryRecordEntry({
-          queryRecordEntry: rootLevelQueryRecordEntry,
+          nodeInsertHandlers,
+          nodeRemoveHandlers,
+        } = this.getSubscriptionEventToCachePathRecords({
           aliasPath: [rootLevelAlias],
+          queryRecordEntry: rootLevelQueryRecordEntry,
+          parentQueryRecordEntry: null,
         });
 
         handlers[rootLevelAlias] = (message: SubscriptionMessage) => {
@@ -190,7 +195,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const nodeData = message.data[rootLevelAlias].value as {
                 id: string;
               } & Record<string, any>;
-              // @TODO handle filters/sorts/update totalCount
               const queryRecordEntry = handler.queryRecordEntry;
 
               if (!queryRecordEntry)
@@ -242,7 +246,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               if (!stateEntry.idsOrIdInCurrentResult)
                 throw Error('No idsOrIdInCurrentResult found on state entry');
-              if (handler.type === 'collection') {
+              if (queryRecordEntryReturnsArrayOfData({ queryRecordEntry })) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
                   throw Error('idsOrIdInCurrentResult is not an array');
 
@@ -287,6 +291,192 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
               stateEntry.totalCount = stateEntry.totalCount - 1;
             });
+          } else if (messageType.startsWith('Inserted_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (!nodeInsertHandlers[`${parentNodeType}.${childNodeType}`]) {
+              throw Error(
+                `No node insert handler found for ${parentNodeType}.${childNodeType}`
+              );
+            }
+
+            nodeInsertHandlers[`${parentNodeType}.${childNodeType}`].forEach(
+              handler => {
+                const parentId = message.data[rootLevelAlias].target?.id;
+                const parentRelationshipWhichWasInsertedInto =
+                  message.data[rootLevelAlias].target?.property;
+
+                if (!parentId) throw Error('No parentId found');
+                if (!parentRelationshipWhichWasInsertedInto)
+                  throw Error(
+                    'No parentRelationshipWhichWasInsertedInto found'
+                  );
+
+                const { parentQueryRecordEntry } = handler;
+                if (!parentQueryRecordEntry)
+                  throw Error(`No parentQueryRecord found for ${messageType}`);
+                if (!parentQueryRecordEntry.relational)
+                  throw Error(
+                    `No parentQueryRecordEntry.relational found for ${messageType}`
+                  );
+
+                const nodeInsertedData = message.data[rootLevelAlias].value as {
+                  id: string;
+                } & Record<string, any>;
+
+                handler.queryRecordEntry.def.repository.onDataReceived(
+                  nodeInsertedData
+                );
+
+                const relationalAlias =
+                  handler.aliasPath[handler.aliasPath.length - 1];
+                const newCacheEntry = this.buildCacheEntry({
+                  nodeData: nodeInsertedData,
+                  queryAlias: relationalAlias,
+                  queryRecord: parentQueryRecordEntry.relational,
+                  aliasPath: handler.aliasPath,
+                  // since this message is about a single node being inserted
+                  // there is no associated page info
+                  // @TODO double check this assumption
+                  pageInfoFromResults: null,
+                  totalCount: null,
+                  clientSidePageInfo: null,
+                });
+
+                if (!newCacheEntry) throw Error('No new cache entry found');
+
+                const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                  {
+                    aliasPath: handler.aliasPath,
+                  }
+                );
+
+                if (
+                  !cacheEntriesWhichRequireUpdate ||
+                  cacheEntriesWhichRequireUpdate.length === 0
+                )
+                  throw Error('No parent cache entries found');
+
+                cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                  const stateEntry = stateCacheEntry.leafStateEntry;
+                  const parentProxy = stateCacheEntry.parentProxy;
+
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    throw Error('idsOrIdInCurrentResult is not an array');
+                  if (!stateEntry.totalCount)
+                    throw Error('No totalCount found');
+
+                  stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
+                  stateEntry.proxyCache[nodeInsertedData.id] =
+                    newCacheEntry.proxyCache[nodeInsertedData.id];
+                  stateEntry.totalCount = stateEntry.totalCount + 1;
+
+                  if (!parentProxy) throw Error('No parent proxy found');
+
+                  parentProxy.updateRelationalResults(
+                    this.getResultsFromState({
+                      state: {
+                        [relationalAlias]: stateEntry,
+                      },
+                      aliasPath: handler.aliasPath,
+                    })
+                  );
+                });
+              }
+            );
+          } else if (messageType.startsWith('Removed_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (!nodeRemoveHandlers[`${parentNodeType}.${childNodeType}`]) {
+              throw Error(
+                `No node remove handler found for ${parentNodeType}.${childNodeType}`
+              );
+            }
+
+            nodeInsertHandlers[`${parentNodeType}.${childNodeType}`].forEach(
+              handler => {
+                const parentId = message.data[rootLevelAlias].target?.id;
+                const parentRelationshipWhichWasInsertedInto =
+                  message.data[rootLevelAlias].target?.property;
+
+                if (!parentId) throw Error('No parentId found');
+                if (!parentRelationshipWhichWasInsertedInto)
+                  throw Error(
+                    'No parentRelationshipWhichWasInsertedInto found'
+                  );
+
+                const { parentQueryRecordEntry } = handler;
+                if (!parentQueryRecordEntry)
+                  throw Error(`No parentQueryRecord found for ${messageType}`);
+                if (!parentQueryRecordEntry.relational)
+                  throw Error(
+                    `No parentQueryRecordEntry.relational found for ${messageType}`
+                  );
+
+                const nodeRemovedId = message.data[rootLevelAlias].id as
+                  | string
+                  | number;
+
+                const relationalAlias =
+                  handler.aliasPath[handler.aliasPath.length - 1];
+
+                const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                  {
+                    aliasPath: handler.aliasPath,
+                  }
+                );
+
+                if (
+                  !cacheEntriesWhichRequireUpdate ||
+                  cacheEntriesWhichRequireUpdate.length === 0
+                )
+                  throw Error('No parent cache entries found');
+
+                cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                  const stateEntry = stateCacheEntry.leafStateEntry;
+                  const parentProxy = stateCacheEntry.parentProxy;
+
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    throw Error('idsOrIdInCurrentResult is not an array');
+                  if (!stateEntry.totalCount)
+                    throw Error('No totalCount found');
+
+                  const indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(
+                    id => id === nodeRemovedId
+                  );
+
+                  if (indexOfRemovedId === -1)
+                    throw Error(
+                      `Could not find index of removed id ${nodeRemovedId}`
+                    );
+
+                  stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
+                  delete stateEntry.proxyCache[nodeRemovedId];
+                  stateEntry.totalCount = stateEntry.totalCount - 1;
+
+                  if (!parentProxy) throw Error('No parent proxy found');
+
+                  parentProxy.updateRelationalResults(
+                    this.getResultsFromState({
+                      state: {
+                        [relationalAlias]: stateEntry,
+                      },
+                      aliasPath: handler.aliasPath,
+                    })
+                  );
+                });
+              }
+            );
           } else {
             throw new UnreachableCaseError(
               message.data[rootLevelAlias].__typename as never
@@ -298,118 +488,208 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return handlers;
     }
 
-    public getSubscriptionHandlersForQueryRecordEntry(opts: {
-      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+    public getSubscriptionEventToCachePathRecords(opts: {
       aliasPath: Array<string>;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      parentQueryRecordEntry:
+        | QueryRecordEntry
+        | RelationalQueryRecordEntry
+        | null;
     }) {
-      const { aliasPath, queryRecordEntry } = opts;
+      const { aliasPath, queryRecordEntry, parentQueryRecordEntry } = opts;
 
-      const nodeUpdateHandlers: Record<
-        // node type
+      type SubscriptionEventToCachePathRecord = Record<
+        // node type for messages that pertain a single node
+        // or a string like 'parent.child' for messages that pertain to a relationship
         string,
         Array<{
+          // An alias path is used instead of a direct pointer to the cache
+          // this is because in some cases, we will want to modify state entries that do no exist
+          // at the time of the subscription handler creation.
+          // For example, I may be subscribed to a query that returns a list of users and their todos.
+          // While the subscription is action, a new user may be created, and that new user may get some todos assigned to them.
+          // With a direct memory pointer approach, there would be no way to update the state entry for the new user.
           aliasPath: Array<string>;
-          type: 'collection' | 'node';
           queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+          parentQueryRecordEntry:
+            | QueryRecordEntry
+            | RelationalQueryRecordEntry
+            | null;
         }>
-      > = {};
+      >;
+
+      const nodeUpdateHandlers: SubscriptionEventToCachePathRecord = {};
 
       nodeUpdateHandlers[queryRecordEntry.def.type] = [
         {
           aliasPath,
-          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
-            ? 'collection'
-            : 'node',
           queryRecordEntry,
+          parentQueryRecordEntry,
         },
       ];
 
-      const nodeCreateHandlers: Record<
-        string,
-        Array<{
-          aliasPath: Array<string>;
-          type: 'collection' | 'node';
-          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-        }>
-      > = {};
+      const nodeCreateHandlers: SubscriptionEventToCachePathRecord = {};
 
       nodeCreateHandlers[queryRecordEntry.def.type] = [
         {
           aliasPath,
-          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
-            ? 'collection'
-            : 'node',
           queryRecordEntry,
+          parentQueryRecordEntry,
         },
       ];
 
-      const nodeDeleteHandlers: Record<
-        string,
-        Array<{
-          aliasPath: Array<string>;
-          type: 'collection' | 'node';
-          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-        }>
-      > = {};
+      const nodeDeleteHandlers: SubscriptionEventToCachePathRecord = {};
 
       nodeDeleteHandlers[queryRecordEntry.def.type] = [
         {
           aliasPath,
-          type: queryRecordEntryReturnsArrayOfData({ queryRecordEntry })
-            ? 'collection'
-            : 'node',
           queryRecordEntry,
+          parentQueryRecordEntry,
         },
       ];
 
+      const nodeInsertHandlers: SubscriptionEventToCachePathRecord = {};
+      const nodeRemoveHandlers: SubscriptionEventToCachePathRecord = {};
+
+      if (
+        parentQueryRecordEntry &&
+        (('oneToMany' in queryRecordEntry && queryRecordEntry.oneToMany) ||
+          ('nonPaginatedOneToMany' in queryRecordEntry &&
+            queryRecordEntry.nonPaginatedOneToMany))
+      ) {
+        nodeInsertHandlers[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+
+        nodeRemoveHandlers[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+      }
+
       const relational = queryRecordEntry.relational;
+
+      const toBeReturned = {
+        nodeUpdateHandlers,
+        nodeCreateHandlers,
+        nodeDeleteHandlers,
+        nodeInsertHandlers,
+        nodeRemoveHandlers,
+      };
 
       if (relational) {
         Object.keys(relational).forEach(relationalAlias => {
-          // gather handlers for relational query record entries
-          // and add them to the handlers for this query record entry
-          const handlers = this.getSubscriptionHandlersForQueryRecordEntry({
-            queryRecordEntry: relational[relationalAlias],
+          const nestedHandlers = this.getSubscriptionEventToCachePathRecords({
             aliasPath: [...aliasPath, relationalAlias],
+            queryRecordEntry: relational[relationalAlias],
+            parentQueryRecordEntry: queryRecordEntry,
           });
 
-          Object.keys(handlers.nodeUpdateHandlers).forEach(nodeType => {
-            if (!nodeUpdateHandlers[nodeType])
-              nodeUpdateHandlers[nodeType] =
-                handlers.nodeUpdateHandlers[nodeType];
-            else
-              nodeUpdateHandlers[nodeType].push(
-                ...handlers.nodeUpdateHandlers[nodeType]
-              );
-          });
+          Object.keys(nestedHandlers).forEach(nestedHandlerType => {
+            const handlerType = nestedHandlerType as keyof ReturnType<
+              QueryManager['getSubscriptionEventToCachePathRecords']
+            >;
+            const nestedHandlersForThisEventType = nestedHandlers[handlerType];
 
-          Object.keys(handlers.nodeCreateHandlers).forEach(nodeType => {
-            if (!nodeCreateHandlers[nodeType])
-              nodeCreateHandlers[nodeType] =
-                handlers.nodeCreateHandlers[nodeType];
-            else
-              nodeCreateHandlers[nodeType].push(
-                ...handlers.nodeCreateHandlers[nodeType]
-              );
-          });
-
-          Object.keys(handlers.nodeDeleteHandlers).forEach(nodeType => {
-            if (!nodeDeleteHandlers[nodeType])
-              nodeDeleteHandlers[nodeType] =
-                handlers.nodeDeleteHandlers[nodeType];
-            else
-              nodeDeleteHandlers[nodeType].push(
-                ...handlers.nodeDeleteHandlers[nodeType]
-              );
+            Object.keys(nestedHandlersForThisEventType).forEach(
+              nestedHandlerKey => {
+                if (!toBeReturned[handlerType][nestedHandlerKey]) {
+                  toBeReturned[handlerType][nestedHandlerKey] =
+                    nestedHandlersForThisEventType[nestedHandlerKey];
+                } else {
+                  toBeReturned[handlerType][nestedHandlerKey].push(
+                    ...nestedHandlersForThisEventType[nestedHandlerKey]
+                  );
+                }
+              }
+            );
           });
         });
       }
 
-      return {
-        nodeUpdateHandlers,
-        nodeCreateHandlers,
-        nodeDeleteHandlers,
+      return toBeReturned;
+    }
+
+    public getStateCacheEntriesForAliasPath(opts: {
+      aliasPath: Array<string>;
+      parentProxy?: IDOProxy | null;
+      previousStateEntries?: Array<{
+        leafStateEntry: QueryManagerStateEntry;
+        parentProxy: IDOProxy | null;
+      }>;
+    }): Array<{
+      leafStateEntry: QueryManagerStateEntry;
+      parentProxy: IDOProxy | null;
+    }> {
+      const { aliasPath } = opts;
+      const [firstAlias, ...restOfAliasPath] = aliasPath;
+
+      const getStateEntriesForFirstAlias = (): Array<{
+        leafStateEntry: QueryManagerStateEntry;
+        parentProxy: IDOProxy | null;
+      }> => {
+        if (opts.previousStateEntries) {
+          return opts.previousStateEntries.reduce(
+            (acc, stateEntry) => {
+              Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
+                nodeId => {
+                  const proxyCacheEntry =
+                    stateEntry.leafStateEntry.proxyCache[nodeId];
+                  const relationalStateForAlias =
+                    proxyCacheEntry.relationalState?.[firstAlias];
+                  if (!relationalStateForAlias)
+                    throw Error(
+                      `No relational state found for alias path "${firstAlias}"`
+                    );
+
+                  acc.push({
+                    leafStateEntry: relationalStateForAlias,
+                    parentProxy: proxyCacheEntry.proxy,
+                  });
+                }
+              );
+
+              return acc;
+            },
+            [] as Array<{
+              leafStateEntry: QueryManagerStateEntry;
+              parentProxy: IDOProxy | null;
+            }>
+          );
+        } else {
+          if (!this.state[firstAlias])
+            throw Error(`No state entry found for alias path "${firstAlias}`);
+
+          return [
+            {
+              leafStateEntry: this.state[firstAlias],
+              parentProxy: null,
+            },
+          ];
+        }
       };
+
+      const stateEntriesForFirstAlias = getStateEntriesForFirstAlias();
+
+      if (restOfAliasPath.length === 0) {
+        return stateEntriesForFirstAlias;
+      } else {
+        return this.getStateCacheEntriesForAliasPath({
+          aliasPath: restOfAliasPath,
+          previousStateEntries: stateEntriesForFirstAlias,
+        });
+      }
     }
 
     /**
@@ -592,7 +872,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public buildCacheEntry(opts: {
       nodeData: Record<string, any> | Array<Record<string, any>>;
       queryAlias: string;
-      queryRecord: QueryRecord;
+      queryRecord: QueryRecord | RelationalQueryRecord;
       pageInfoFromResults: Maybe<PageInfoFromResults>;
       totalCount: Maybe<number>;
       clientSidePageInfo: Maybe<ClientSidePageInfo>;
@@ -1922,4 +2202,18 @@ function getEmptyStateEntry(): QueryManagerStateEntry {
 }
 function lowerCaseFirstLetter(nodeType: string) {
   return nodeType.charAt(0).toLowerCase() + nodeType.slice(1);
+}
+
+function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+  messageTypeName: string
+) {
+  const split = messageTypeName.split('_');
+  if (split.length !== 3) {
+    throw Error(`Invalid inserted subscription message "${messageTypeName}"`);
+  }
+
+  return {
+    parentNodeType: lowerCaseFirstLetter(split[1]),
+    childNodeType: lowerCaseFirstLetter(split[2]),
+  };
 }
