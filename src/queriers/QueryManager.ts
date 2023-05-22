@@ -1704,7 +1704,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           this.unsubRecord[rootLevelAlias] = subscribe({
             queryGQL: subscriptionGQLDocs[rootLevelAlias],
-            onError: this.opts.onSubscriptionError,
+            // @TODO revert after done testing
+            // onError: this.opts.onSubscriptionError,
+            onError: error => {
+              console.error('sub error', error);
+            },
             onMessage: this.subscriptionMessageHandlers[rootLevelAlias],
             mmGQLInstance: mmGQLInstance,
           });
