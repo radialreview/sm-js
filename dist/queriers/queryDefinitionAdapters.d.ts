@@ -30,6 +30,7 @@ export declare function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 export declare function getDataFromQueryResponsePartial(opts: {
     queryResponsePartial: Record<string, any>;
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+    collectionsIncludePagingInfo: boolean;
 }): any;
 export declare function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
     queryId: string;

@@ -1852,7 +1852,7 @@ function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) {
 function getDataFromQueryResponsePartial(opts) {
   if (!opts.queryRecordEntry) return null;
 
-  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts)) {
+  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) && opts.collectionsIncludePagingInfo) {
     return opts.queryResponsePartial[NODES_PROPERTY_KEY];
   } else {
     return opts.queryResponsePartial;
@@ -6919,7 +6919,8 @@ function createQueryManager(mmGQLInstance) {
                 // and we mutate the state paging info directly as needed
                 pageInfoFromResults: null,
                 totalCount: null,
-                clientSidePageInfo: null
+                clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -6992,7 +6993,8 @@ function createQueryManager(mmGQLInstance) {
                 // and we mutate the state paging info directly as needed
                 pageInfoFromResults: null,
                 totalCount: null,
-                clientSidePageInfo: null
+                clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -7098,7 +7100,8 @@ function createQueryManager(mmGQLInstance) {
                 // and we mutate the state paging info directly as needed
                 pageInfoFromResults: null,
                 totalCount: null,
-                clientSidePageInfo: null
+                clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -7353,7 +7356,8 @@ function createQueryManager(mmGQLInstance) {
         if (!queryRecordEntry) return;
         var dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry: queryRecordEntry,
-          queryResponsePartial: opts.data[queryAlias]
+          queryResponsePartial: opts.data[queryAlias],
+          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
         });
         if (dataForThisAlias == null) return;
         var nodeRepository = queryRecordEntry.def.repository;
@@ -7390,7 +7394,8 @@ function createQueryManager(mmGQLInstance) {
 
               _this8.notifyRepositories({
                 data: (_data = {}, _data[relationalAlias] = relationalDataEntry, _data),
-                queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord)
+                queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord),
+                collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
               });
             });
           });
@@ -7410,7 +7415,8 @@ function createQueryManager(mmGQLInstance) {
         var cacheEntry = _this9.buildCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
             queryResponsePartial: opts.queryResult[queryAlias],
-            queryRecordEntry: opts.queryRecord[queryAlias]
+            queryRecordEntry: opts.queryRecord[queryAlias],
+            collectionsIncludePagingInfo: true
           }),
           pageInfoFromResults: _this9.getPageInfoFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias]
@@ -7423,7 +7429,8 @@ function createQueryManager(mmGQLInstance) {
           }),
           queryRecord: opts.queryRecord,
           queryAlias: queryAlias,
-          aliasPath: [queryAlias]
+          aliasPath: [queryAlias],
+          collectionsIncludePagingInfo: true
         });
 
         if (!cacheEntry) return resultingStateAcc;
@@ -7436,7 +7443,8 @@ function createQueryManager(mmGQLInstance) {
       var _this10 = this;
 
       var nodeData = opts.nodeData,
-          queryAlias = opts.queryAlias;
+          queryAlias = opts.queryAlias,
+          collectionsIncludePagingInfo = opts.collectionsIncludePagingInfo;
       var queryRecord = opts.queryRecord;
       var queryRecordEntry = queryRecord[opts.queryAlias];
 
@@ -7456,11 +7464,12 @@ function createQueryManager(mmGQLInstance) {
       var buildRelationalStateForNode = function buildRelationalStateForNode(node) {
         if (!relational) return null;
         return Object.keys(relational).reduce(function (relationalStateAcc, relationalAlias) {
-          var _extends2;
+          var _relational$relationa, _extends2;
 
           var relationalDataForThisAlias = getDataFromQueryResponsePartial({
             queryResponsePartial: node[relationalAlias],
-            queryRecordEntry: relational[relationalAlias]
+            queryRecordEntry: relational[relationalAlias],
+            collectionsIncludePagingInfo: collectionsIncludePagingInfo
           });
 
           if (!relationalDataForThisAlias) {
@@ -7473,20 +7482,30 @@ function createQueryManager(mmGQLInstance) {
             id: node.id
           });
 
+          var pageInfoFromResults = collectionsIncludePagingInfo ? _this10.getPageInfoFromResponse({
+            dataForThisAlias: node[relationalAlias]
+          }) : {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: 'mock-start-cursor-should-not-be-used',
+            endCursor: 'mock-end-cursor-should-not-be-used',
+            totalPages: node[relationalAlias].length / (((_relational$relationa = relational[relationalAlias].pagination) == null ? void 0 : _relational$relationa.itemsPerPage) || DEFAULT_PAGE_SIZE)
+          };
+          var totalCount = collectionsIncludePagingInfo ? _this10.getTotalCountFromResponse({
+            dataForThisAlias: node[relationalAlias]
+          }) : node[relationalAlias].length;
+
           var cacheEntry = _this10.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
-            pageInfoFromResults: _this10.getPageInfoFromResponse({
-              dataForThisAlias: node[relationalAlias]
-            }),
-            totalCount: _this10.getTotalCountFromResponse({
-              dataForThisAlias: node[relationalAlias]
-            }),
+            pageInfoFromResults: pageInfoFromResults,
+            totalCount: totalCount,
             clientSidePageInfo: _this10.getInitialClientSidePageInfo({
               queryRecordEntry: relational[relationalAlias]
             }),
             queryAlias: relationalAlias,
             queryRecord: relational,
-            aliasPath: [].concat(aliasPath, [relationalAlias])
+            aliasPath: [].concat(aliasPath, [relationalAlias]),
+            collectionsIncludePagingInfo: collectionsIncludePagingInfo
           });
 
           if (!cacheEntry) return relationalStateAcc;
@@ -7575,14 +7594,6 @@ function createQueryManager(mmGQLInstance) {
           clientSidePageInfo: opts.clientSidePageInfo
         };
       }
-    };
-
-    _proto.getRelationalData = function getRelationalData(opts) {
-      if (!opts.queryRecord) return null;
-      return opts.queryRecord.relational ? Object.keys(opts.queryRecord.relational).reduce(function (relationalDataAcc, relationalAlias) {
-        relationalDataAcc[relationalAlias] = opts.node[relationalAlias];
-        return relationalDataAcc;
-      }, {}) : null;
     };
 
     _proto.removeUnionSuffix = function removeUnionSuffix(alias) {
@@ -8005,7 +8016,8 @@ function createQueryManager(mmGQLInstance) {
     _proto.handlePagingEventData = function handlePagingEventData(opts) {
       this.notifyRepositories({
         data: opts.newData,
-        queryRecord: opts.queryRecord
+        queryRecord: opts.queryRecord,
+        collectionsIncludePagingInfo: true
       });
       var newState = this.getNewStateFromQueryResult({
         queryResult: opts.newData,
@@ -8034,7 +8046,8 @@ function createQueryManager(mmGQLInstance) {
 
       this.notifyRepositories({
         data: opts.queryResult,
-        queryRecord: opts.minimalQueryRecord
+        queryRecord: opts.minimalQueryRecord,
+        collectionsIncludePagingInfo: true
       });
       var newState = this.getNewStateFromQueryResult({
         queryResult: opts.queryResult,

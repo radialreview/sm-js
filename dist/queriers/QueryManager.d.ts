@@ -1,5 +1,5 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -112,6 +112,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: {
                 [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
             };
+            collectionsIncludePagingInfo: boolean;
         }): void;
         /**
          * Gets the initial state for this manager from the initial query results
@@ -129,11 +130,8 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
+            collectionsIncludePagingInfo: boolean;
         }): Maybe<QueryManagerStateEntry>;
-        getRelationalData(opts: {
-            queryRecord: BaseQueryRecordEntry | null;
-            node: Record<string, any>;
-        }): Record<string, any> | null;
         removeUnionSuffix(alias: string): string;
         getApplicableRelationalQueries(opts: {
             relationalQueries: Record<string, RelationalQueryRecordEntry>;
