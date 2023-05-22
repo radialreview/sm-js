@@ -1575,9 +1575,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -1740,9 +1737,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -1917,9 +1911,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -2169,9 +2160,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {

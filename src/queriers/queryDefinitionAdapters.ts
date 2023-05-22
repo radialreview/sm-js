@@ -1615,9 +1615,6 @@ function getNestedRelationalSubscriptionString(opts: {
           property
         }
         id
-        value {
-          id
-        }
       }
     `;
   } else if (isOneToOne) {

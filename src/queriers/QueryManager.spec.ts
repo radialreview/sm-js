@@ -2106,9 +2106,6 @@ describe('subscription handling', () => {
       },
       id: 'mock-user-id-2',
       valueNodeType: userNode.type,
-      value: {
-        id: 'mock-user-id-2',
-      },
     });
 
     runSubscriptionTest({
@@ -2427,9 +2424,6 @@ describe('subscription handling', () => {
       },
       id: 'mock-user-id-2',
       valueNodeType: userNode.type,
-      value: {
-        id: 'mock-user-id-2',
-      },
     });
 
     runSubscriptionTest({
