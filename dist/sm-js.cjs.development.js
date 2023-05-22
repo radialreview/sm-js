@@ -1918,8 +1918,6 @@ function getSubscriptionOwnPropsString(opts) {
 
 function getSubscriptionRelationalPropsString(opts) {
   return Object.keys(opts.relational).reduce(function (acc, alias, index) {
-    var _relationalQueryRecor2;
-
     var relationalQueryRecordEntry = opts.relational[alias];
 
     if (!relationalQueryRecordEntry._relationshipName) {
@@ -1927,17 +1925,10 @@ function getSubscriptionRelationalPropsString(opts) {
     }
 
     var resolver = relationalQueryRecordEntry._relationshipName;
-    return acc + (index > 0 ? "\n" : '') + (resolver + " {") + ('oneToMany' in relationalQueryRecordEntry ? getNodesCollectionQuery({
-      propertiesString: getSubscriptionPropsString({
-        ownProps: relationalQueryRecordEntry.properties,
-        relational: relationalQueryRecordEntry.relational
-      }),
-      nestLevel: 1,
-      includeTotalCount: !!((_relationalQueryRecor2 = relationalQueryRecordEntry.pagination) != null && _relationalQueryRecor2.includeTotalCount)
-    }) + '\n' : getSubscriptionPropsString({
+    return acc + (index > 0 ? "\n" : '') + (resolver + " {") + getSubscriptionPropsString({
       ownProps: relationalQueryRecordEntry.properties,
       relational: relationalQueryRecordEntry.relational
-    })) + "}\n";
+    }) + "}\n";
   }, '');
 }
 
