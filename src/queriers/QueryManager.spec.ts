@@ -39,6 +39,7 @@ test('QueryManager handles a query result and returns the expected data', done =
     >,
     {
       queryId: 'MockQueryId',
+      subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       resultsObject,
       onResultsUpdated: () => {
@@ -52,6 +53,7 @@ test('QueryManager handles a query result and returns the expected data', done =
         done();
       },
       onQueryError: e => done(e),
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -117,10 +119,12 @@ test('QueryManager will query a minimum set of results when a fitler/sorting/pag
     },
     {
       queryId: 'MockQueryId',
+      subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       resultsObject,
       onResultsUpdated: () => {},
       onQueryError: () => {},
+      onSubscriptionError: () => {},
       batchKey: null,
     }
   );
@@ -255,6 +259,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
         return;
       },
       onQueryError: e => done(e),
+      subscribe: false,
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -393,6 +399,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
         return;
       },
       onQueryError: e => done(e),
+      subscribe: false,
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -927,7 +935,7 @@ describe('subscription handling', () => {
     return expect.objectContaining(
       Object.keys(obj).reduce((acc, key) => {
         const valueAtKey = obj[key];
-        if (typeof valueAtKey != null && typeof valueAtKey === 'object')
+        if (valueAtKey != null && typeof valueAtKey === 'object')
           acc[key] = deepExpectContaining(valueAtKey);
         else if (Array.isArray(valueAtKey)) {
           acc[key] = valueAtKey.map(deepExpectContaining);
@@ -972,6 +980,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           opts.done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => opts.done(e),
         batchKey: null,
       }
     );
@@ -1427,6 +1437,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1516,6 +1528,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1858,6 +1872,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1968,6 +1984,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -2516,6 +2534,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -2647,6 +2667,8 @@ describe('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );

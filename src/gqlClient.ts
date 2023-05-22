@@ -11,6 +11,7 @@ import { HttpLink } from '@apollo/client/link/http';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { Config, IGQLClient } from './types';
 import WebSocket from 'isomorphic-ws';
+import { getPrettyPrintedGQL } from './specUtilities';
 
 require('isomorphic-fetch');
 
@@ -22,17 +23,21 @@ interface IGetGQLClientOpts {
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
+  const wsOptions: Record<string, any> = {
+    credentials: 'include',
+  };
+
+  if (gqlClientOpts.getCookie) {
+    wsOptions.headers = {
+      cookie: gqlClientOpts.getCookie(),
+    };
+  }
+
   const wsLink = new WebSocketLink({
     uri: gqlClientOpts.wsUrl,
     options: {
       reconnect: true,
-      wsOptionArguments: [
-        {
-          headers: {
-            cookie: gqlClientOpts.getCookie?.() || null,
-          },
-        },
-      ],
+      wsOptionArguments: [wsOptions],
     },
     webSocketImpl: WebSocket,
   });
@@ -157,6 +162,10 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return data;
     },
     subscribe: opts => {
+      if (gqlClientOpts.logging.gqlClientSubscriptions) {
+        console.log('subscribing', getPrettyPrintedGQL(opts.gql));
+      }
+
       const subscription = baseClient
         .subscribe({
           query: opts.gql,

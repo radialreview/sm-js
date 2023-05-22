@@ -1126,8 +1126,6 @@ export function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
         queryId: opts.queryId,
         queryRecordEntry,
         alias: rootAlias,
-        useServerSidePaginationFilteringSorting:
-          opts.useServerSidePaginationFilteringSorting,
       });
 
       const docString = `
@@ -1152,12 +1150,10 @@ function getQueryRecordEntrySubscriptionFragment(opts: {
   queryId: string;
   queryRecordEntry: QueryRecordEntry;
   alias: string;
-  useServerSidePaginationFilteringSorting: boolean;
 }) {
   const operation = getOperationFromQueryRecordEntry({
     ...opts.queryRecordEntry,
-    useServerSidePaginationFilteringSorting:
-      opts.useServerSidePaginationFilteringSorting,
+    useServerSidePaginationFilteringSorting: false,
   });
 
   return (

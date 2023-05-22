@@ -7,7 +7,6 @@ import {
   SubscriptionOpts,
   SubscriptionMeta,
   EPaginationFilteringSortingInstance,
-  SubscriptionCanceller,
 } from '../types';
 
 let queryIdx = 0;
@@ -45,6 +44,7 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
 
       try {
         new mmGQLInstance.QueryManager(queryDefinitions, {
+          subscribe: false,
           resultsObject: dataToReturn,
           onResultsUpdated: () => {
             res({ data: dataToReturn, error: undefined });
@@ -63,6 +63,11 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
             }
 
             rej(error);
+          },
+          onSubscriptionError: () => {
+            throw new Error(
+              `Should neven happen, query method does not subscribe`
+            );
           },
           queryId,
           useServerSidePaginationFilteringSorting:
@@ -130,13 +135,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     return new Promise<ReturnType>((res, rej) => {
       const dataToReturn = {} as QueryDataReturn<TQueryDefinitions>;
 
-      let subCancellers: Array<SubscriptionCanceller> = [];
-
-      function unsub() {
-        subCancellers.forEach(subCanceller => subCanceller());
-        subCancellers.length = 0;
-      }
-
       const handlers = {
         onQueryDefinitionsUpdated: (
           _: QueryDefinitions<any, any, any>
@@ -148,10 +146,11 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       try {
         const qM = new mmGQLInstance.QueryManager(queryDefinitions, {
           resultsObject: dataToReturn,
+          subscribe: true,
           onResultsUpdated: () => {
             res({
               data: dataToReturn,
-              unsub,
+              unsub: () => qM.unsub(),
               onQueryDefinitionsUpdated: newQueryDefinitions =>
                 handlers.onQueryDefinitionsUpdated(newQueryDefinitions),
               error: undefined,
@@ -168,7 +167,26 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
               opts.onError(error);
               res({
                 data: dataToReturn,
-                unsub,
+                unsub: () => qM.unsub(),
+                onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                error: e,
+              } as ReturnType);
+              return;
+            }
+
+            rej(error);
+          },
+          onSubscriptionError: e => {
+            const error = getError(
+              new Error(`Error subscribing to data`),
+              (e as any).stack
+            );
+
+            if (opts.onError) {
+              opts.onError(error);
+              res({
+                data: dataToReturn,
+                unsub: () => qM.unsub(),
                 onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
                 error: e,
               } as ReturnType);
@@ -196,7 +214,15 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
           opts.onError(error);
           res(({
             data: dataToReturn,
-            unsub,
+            unsub: () => {
+              const error = getError(
+                new Error(
+                  `unsub called when there was an error initializing query manager`
+                ),
+                (e as any).stack
+              );
+              throw error;
+            },
             onQueryDefinitionsUpdated: () => {
               const error = getError(
                 new Error(

@@ -35,6 +35,7 @@ import {
   getDataFromQueryResponsePartial,
   getQueryGQLDocumentFromQueryRecord,
   getQueryRecordFromQueryDefinition,
+  getSubscriptionGQLDocumentsFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
 import { extend } from '../dataUtilities';
@@ -73,6 +74,7 @@ type QueryManagerProxyCacheEntry = {
 
 type QueryManagerOpts = {
   queryId: string;
+  subscribe: boolean;
   useServerSidePaginationFilteringSorting: boolean;
   // an object which will be mutated when a "loadMoreResults" function is called
   // on a node collection
@@ -83,6 +85,7 @@ type QueryManagerOpts = {
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
   onQueryError(error: any): void;
+  onSubscriptionError(error: any): void;
   batchKey: Maybe<string>;
   onQueryStateChange?: (queryStateChangeOpts: {
     queryIdx: number;
@@ -116,6 +119,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       // root level alias
       string,
       (message: SubscriptionMessage) => void
+    > = {};
+    public unsubRecord: Record<
+      // root level alis
+      string,
+      () => void
     > = {};
 
     constructor(
@@ -805,6 +813,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           previousStateEntries: stateEntriesForFirstAlias,
         });
       }
+    }
+
+    public unsub() {
+      Object.keys(this.unsubRecord).forEach(rootLevelAlias => {
+        this.unsubRecord[rootLevelAlias]();
+      });
     }
 
     /**
@@ -1658,9 +1672,44 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return;
       }
 
-      this.subscriptionMessageHandlers = this.getSubscriptionMessageHandlers({
-        queryRecord: this.queryRecord,
-      });
+      if (this.opts.subscribe) {
+        this.subscriptionMessageHandlers = this.getSubscriptionMessageHandlers({
+          queryRecord: this.queryRecord,
+        });
+
+        const subscriptionGQLDocs = getSubscriptionGQLDocumentsFromQueryRecord({
+          queryId: this.opts.queryId,
+          queryRecord: minimalQueryRecord,
+          useServerSidePaginationFilteringSorting: this.opts
+            .useServerSidePaginationFilteringSorting,
+        });
+
+        Object.keys(minimalQueryRecord).forEach(rootLevelAlias => {
+          if (this.unsubRecord[rootLevelAlias]) {
+            // this query changed
+            // unsubscribe from the previous query definition
+            // and re-establish the subscription with the new query definition below
+            this.unsubRecord[rootLevelAlias]();
+          }
+
+          if (!subscriptionGQLDocs[rootLevelAlias])
+            throw Error(
+              `No subscription GQL document found for root level alias ${rootLevelAlias}`
+            );
+
+          if (!this.subscriptionMessageHandlers[rootLevelAlias])
+            throw Error(
+              `No subscription message handler found for root level alias ${rootLevelAlias}`
+            );
+
+          this.unsubRecord[rootLevelAlias] = subscribe({
+            queryGQL: subscriptionGQLDocs[rootLevelAlias],
+            onError: this.opts.onSubscriptionError,
+            onMessage: this.subscriptionMessageHandlers[rootLevelAlias],
+            mmGQLInstance: mmGQLInstance,
+          });
+        });
+      }
 
       const thisQueryIdx = this.queryIdx++;
 
@@ -2058,6 +2107,25 @@ async function performQueries(opts: {
     console.log('query response', JSON.stringify(response, null, 2));
   }
   return response;
+}
+
+function subscribe(opts: {
+  queryGQL: DocumentNode;
+  mmGQLInstance: IMMGQL;
+  onMessage: (message: SubscriptionMessage) => void;
+  onError: (error: any) => void;
+}) {
+  if (opts.mmGQLInstance.generateMockData) {
+    return () => {
+      // purposely no-op
+    };
+  }
+
+  return opts.mmGQLInstance.gqlClient.subscribe({
+    gql: opts.queryGQL,
+    onMessage: opts.onMessage,
+    onError: opts.onError,
+  });
 }
 
 /**

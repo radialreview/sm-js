@@ -55,6 +55,7 @@ export class NodesCollection<
   public totalCount: TNodesCollectionArgs['TIncludeTotalCount'] extends true
     ? number
     : undefined;
+  public nodes: TNodesCollectionArgs['TItemType'][];
 
   constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>) {
     this.items = opts.items;
@@ -72,6 +73,10 @@ export class NodesCollection<
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
     this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
 
+    // just to silence TS, the getter is defined below
+    this.nodes = [];
+    // defined this way as opposed to a getter because we want it to be enumerable
+    // for our tests which do an equality check on the entire results object
     Object.defineProperty(this, 'nodes', {
       enumerable: true,
       get: () => {
