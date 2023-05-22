@@ -538,7 +538,10 @@ export function getBEFilterString<TNode extends INode>(opts: {
     (acc, current) => {
       const key = current as keyof ValidFilterForNode<TNode, boolean>;
       let filterForBE: FilterForBE;
-      if (
+
+      if (opts.filter[key] === undefined) {
+        return acc;
+      } else if (
         opts.filter[key] === null ||
         typeof opts.filter[key] === 'string' ||
         typeof opts.filter[key] === 'number' ||
