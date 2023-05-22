@@ -6716,7 +6716,11 @@ function createQueryManager(mmGQLInstance) {
                       if (!_this.subscriptionMessageHandlers[rootLevelAlias]) throw Error("No subscription message handler found for root level alias " + rootLevelAlias);
                       _this.unsubRecord[rootLevelAlias] = subscribe({
                         queryGQL: subscriptionGQLDocs[rootLevelAlias],
-                        onError: _this.opts.onSubscriptionError,
+                        // @TODO revert after done testing
+                        // onError: this.opts.onSubscriptionError,
+                        onError: function onError(error) {
+                          console.error('sub error', error);
+                        },
                         onMessage: _this.subscriptionMessageHandlers[rootLevelAlias],
                         mmGQLInstance: mmGQLInstance
                       });
