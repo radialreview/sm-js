@@ -1095,10 +1095,14 @@ export function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 export function getDataFromQueryResponsePartial(opts: {
   queryResponsePartial: Record<string, any>;
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+  collectionsIncludePagingInfo: boolean;
 }) {
   if (!opts.queryRecordEntry) return null;
 
-  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts)) {
+  if (
+    queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) &&
+    opts.collectionsIncludePagingInfo
+  ) {
     return opts.queryResponsePartial[NODES_PROPERTY_KEY];
   } else {
     return opts.queryResponsePartial;

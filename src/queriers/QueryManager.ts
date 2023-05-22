@@ -17,7 +17,6 @@ import {
   Maybe,
   IMMGQL,
   QueryRecord,
-  BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
   QueryRecordEntry,
   DocumentNode,
@@ -258,6 +257,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 pageInfoFromResults: null,
                 totalCount: null,
                 clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false,
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -367,6 +367,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   pageInfoFromResults: null,
                   totalCount: null,
                   clientSidePageInfo: null,
+                  collectionsIncludePagingInfo: false,
                 });
 
                 if (!newCacheEntry) throw Error('No new cache entry found');
@@ -550,6 +551,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 pageInfoFromResults: null,
                 totalCount: null,
                 clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false,
               });
 
               if (!newCacheEntry) throw Error('No new cache entry found');
@@ -902,6 +904,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       queryRecord: {
         [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
       };
+      collectionsIncludePagingInfo: boolean;
     }) {
       Object.keys(opts.queryRecord).forEach(queryAlias => {
         const queryRecordEntry = opts.queryRecord[queryAlias];
@@ -911,6 +914,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         const dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry,
           queryResponsePartial: opts.data[queryAlias],
+          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
         });
 
         if (dataForThisAlias == null) return;
@@ -953,6 +957,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 queryRecord: {
                   [relationalAlias]: relationalQuery,
                 },
+                collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
               });
             });
           });
@@ -974,6 +979,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeData: getDataFromQueryResponsePartial({
               queryResponsePartial: opts.queryResult[queryAlias],
               queryRecordEntry: opts.queryRecord[queryAlias],
+              collectionsIncludePagingInfo: true,
             }),
             pageInfoFromResults: this.getPageInfoFromResponse({
               dataForThisAlias: opts.queryResult[queryAlias],
@@ -987,6 +993,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             queryRecord: opts.queryRecord,
             queryAlias,
             aliasPath: [queryAlias],
+            collectionsIncludePagingInfo: true,
           });
 
           if (!cacheEntry) return resultingStateAcc;
@@ -1006,8 +1013,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       totalCount: Maybe<number>;
       clientSidePageInfo: Maybe<ClientSidePageInfo>;
       aliasPath: Array<string>;
+      // in subscription messages, the collections are not wrapped in {nodes: items} and include paging info
+      // instead, we get back the items directly, and no paging info
+      collectionsIncludePagingInfo: boolean;
     }): Maybe<QueryManagerStateEntry> {
-      const { nodeData, queryAlias } = opts;
+      const { nodeData, queryAlias, collectionsIncludePagingInfo } = opts;
       const queryRecord = opts.queryRecord;
       const queryRecordEntry = queryRecord[opts.queryAlias];
 
@@ -1035,6 +1045,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const relationalDataForThisAlias = getDataFromQueryResponsePartial({
               queryResponsePartial: node[relationalAlias],
               queryRecordEntry: relational[relationalAlias],
+              collectionsIncludePagingInfo,
             });
 
             if (!relationalDataForThisAlias) {
@@ -1047,20 +1058,38 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               id: node.id,
             });
 
+            const pageInfoFromResults = collectionsIncludePagingInfo
+              ? this.getPageInfoFromResponse({
+                  dataForThisAlias: node[relationalAlias],
+                })
+              : {
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                  startCursor: 'mock-start-cursor-should-not-be-used',
+                  endCursor: 'mock-end-cursor-should-not-be-used',
+                  totalPages:
+                    node[relationalAlias].length /
+                    (relational[relationalAlias].pagination?.itemsPerPage ||
+                      DEFAULT_PAGE_SIZE),
+                };
+
+            const totalCount = collectionsIncludePagingInfo
+              ? this.getTotalCountFromResponse({
+                  dataForThisAlias: node[relationalAlias],
+                })
+              : node[relationalAlias].length;
+
             const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
-              pageInfoFromResults: this.getPageInfoFromResponse({
-                dataForThisAlias: node[relationalAlias],
-              }),
-              totalCount: this.getTotalCountFromResponse({
-                dataForThisAlias: node[relationalAlias],
-              }),
+              pageInfoFromResults,
+              totalCount,
               clientSidePageInfo: this.getInitialClientSidePageInfo({
                 queryRecordEntry: relational[relationalAlias],
               }),
               queryAlias: relationalAlias,
               queryRecord: (relational as unknown) as QueryRecord,
               aliasPath: [...aliasPath, relationalAlias],
+              collectionsIncludePagingInfo,
             });
             if (!cacheEntry) return relationalStateAcc;
 
@@ -1165,24 +1194,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           clientSidePageInfo: opts.clientSidePageInfo,
         };
       }
-    }
-
-    public getRelationalData(opts: {
-      queryRecord: BaseQueryRecordEntry | null;
-      node: Record<string, any>;
-    }) {
-      if (!opts.queryRecord) return null;
-
-      return opts.queryRecord.relational
-        ? Object.keys(opts.queryRecord.relational).reduce(
-            (relationalDataAcc, relationalAlias) => {
-              relationalDataAcc[relationalAlias] = opts.node[relationalAlias];
-
-              return relationalDataAcc;
-            },
-            {} as Record<string, any>
-          )
-        : null;
     }
 
     public removeUnionSuffix(alias: string) {
@@ -1581,6 +1592,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.notifyRepositories({
         data: opts.newData,
         queryRecord: opts.queryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       const newState = this.getNewStateFromQueryResult({
@@ -1792,6 +1804,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       const newState = this.getNewStateFromQueryResult({

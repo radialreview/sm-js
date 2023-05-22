@@ -1247,15 +1247,9 @@ describe('subscription handling', () => {
           task: 'mock-task-3',
           done: false,
           assignee: mockUsersWithoutLastName[0],
-          users: {
-            ...mockUsersCollection,
-            [NODES_PROPERTY_KEY]: mockUsersWithoutLastName,
-          },
+          users: mockUsersWithoutLastName,
           assigneeCopy: mockUsersWithoutFirstName[0],
-          usersCopy: {
-            ...mockUsersCollection,
-            [NODES_PROPERTY_KEY]: mockUsersWithoutFirstName,
-          },
+          usersCopy: mockUsersWithoutFirstName,
         },
       }),
       expectedResultsObject: {
