@@ -17,10 +17,12 @@ declare type QueryManagerProxyCacheEntry = {
 };
 declare type QueryManagerOpts = {
     queryId: string;
+    subscribe: boolean;
     useServerSidePaginationFilteringSorting: boolean;
     resultsObject: Record<string, any>;
     onResultsUpdated(): void;
     onQueryError(error: any): void;
+    onSubscriptionError(error: any): void;
     batchKey: Maybe<string>;
     onQueryStateChange?: (queryStateChangeOpts: {
         queryIdx: number;
@@ -36,6 +38,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
         subscriptionMessageHandlers: Record<string, (message: SubscriptionMessage) => void>;
+        unsubRecord: Record<string, () => void>;
         onSubscriptionMessage(message: SubscriptionMessage): void;
         getSubscriptionMessageHandlers(opts: {
             queryRecord: QueryRecord;
@@ -87,6 +90,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             leafStateEntry: QueryManagerStateEntry;
             parentProxy: IDOProxy | null;
         }>;
+        unsub(): void;
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here

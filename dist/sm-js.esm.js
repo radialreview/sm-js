@@ -1858,6 +1858,293 @@ function getDataFromQueryResponsePartial(opts) {
     return opts.queryResponsePartial;
   }
 } //
+// subscription stuff starts here
+//
+// a query record will initialize n subscriptions, where n is the number of
+// root level aliases on the query record
+
+function getSubscriptionGQLDocumentsFromQueryRecord(opts) {
+  return Object.keys(opts.queryRecord).reduce(function (subscriptionDocRecord, rootAlias) {
+    var _extends2;
+
+    var queryRecordEntry = opts.queryRecord[rootAlias];
+    if (!queryRecordEntry) return subscriptionDocRecord;
+    var subscriptionString = getQueryRecordEntrySubscriptionFragment({
+      queryId: opts.queryId,
+      queryRecordEntry: queryRecordEntry,
+      alias: rootAlias
+    });
+    var docString = "\n      subscription " + getSanitizedQueryId({
+      queryId: opts.queryId + "_" + rootAlias
+    }) + " {\n        " + subscriptionString + "\n      }";
+    var subscriptionDoc = gql(docString);
+    return _extends({}, subscriptionDocRecord, (_extends2 = {}, _extends2[rootAlias] = subscriptionDoc, _extends2));
+  }, {});
+}
+
+function getQueryRecordEntrySubscriptionFragment(opts) {
+  var operation = getOperationFromQueryRecordEntry(_extends({}, opts.queryRecordEntry, {
+    useServerSidePaginationFilteringSorting: false
+  }));
+  return opts.alias + ": " + operation + " {" + getQueryRecordEntrySubscriptionFragmentInnerContents({
+    queryRecordEntry: opts.queryRecordEntry
+  }) + "}";
+}
+
+function getSubscriptionPropsString(opts) {
+  var ownPropsString = getSubscriptionOwnPropsString({
+    ownProps: opts.ownProps
+  });
+  var relationalPropsString = opts.relational ? getSubscriptionRelationalPropsString({
+    relational: flattenNestedRelationshipRecords([opts.relational])
+  }) : '';
+  return ownPropsString + relationalPropsString;
+}
+
+function getSubscriptionOwnPropsString(opts) {
+  var propsString = "";
+  var handledObjectProps = [];
+  propsString += opts.ownProps.reduce(function (acc, prop) {
+    if (prop.includes(OBJECT_PROPERTY_SEPARATOR)) {
+      var root = prop.split(OBJECT_PROPERTY_SEPARATOR)[0];
+      if (handledObjectProps.includes(root)) return acc;
+      handledObjectProps.push(root);
+      acc += '\n' + getObjectQueryString({
+        previousRoots: [],
+        root: root,
+        allQueriedProps: opts.ownProps,
+        baseSpacing: 1
+      });
+      return acc;
+    }
+
+    acc += "\n" + prop;
+    return acc;
+  }, '');
+  return propsString !== '' ? propsString + "\n" : '';
+}
+
+function getSubscriptionRelationalPropsString(opts) {
+  return Object.keys(opts.relational).reduce(function (acc, alias, index) {
+    var _relationalQueryRecor2;
+
+    var relationalQueryRecordEntry = opts.relational[alias];
+
+    if (!relationalQueryRecordEntry._relationshipName) {
+      throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
+    }
+
+    var resolver = relationalQueryRecordEntry._relationshipName;
+    return acc + (index > 0 ? "\n" : '') + (resolver + " {") + ('oneToMany' in relationalQueryRecordEntry ? getNodesCollectionQuery({
+      propertiesString: getSubscriptionPropsString({
+        ownProps: relationalQueryRecordEntry.properties,
+        relational: relationalQueryRecordEntry.relational
+      }),
+      nestLevel: 1,
+      includeTotalCount: !!((_relationalQueryRecor2 = relationalQueryRecordEntry.pagination) != null && _relationalQueryRecor2.includeTotalCount)
+    }) + '\n' : getSubscriptionPropsString({
+      ownProps: relationalQueryRecordEntry.properties,
+      relational: relationalQueryRecordEntry.relational
+    })) + "}\n";
+  }, '');
+}
+
+function getQueryRecordEntrySubscriptionFragmentInnerContents(opts) {
+  var ownPropsString = getSubscriptionOwnPropsString({
+    ownProps: opts.queryRecordEntry.properties
+  });
+  var ownPropsAndRelationalString = getSubscriptionPropsString({
+    ownProps: opts.queryRecordEntry.properties,
+    relational: opts.queryRecordEntry.relational
+  });
+  var ownNodeUpdatedString = "...on Updated_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsString + "}\n  }\n  ";
+  var ownNodeCreatedString = "...on Created_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsAndRelationalString + "}\n  }\n  ";
+  var ownNodeDeletedString = "...on Deleted_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n  }\n  ";
+  var relationalSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
+    queryRecordEntry: opts.queryRecordEntry
+  });
+  var relationalSubscriptionStrings = getRelationalSubscriptionString({
+    relationalSubscriptionMetadatas: relationalSubscriptionMetadatas
+  });
+  return "\n    " + ownNodeCreatedString + "\n    " + ownNodeUpdatedString + " \n    " + ownNodeDeletedString + "\n    " + relationalSubscriptionStrings;
+}
+/**
+ * Flattens relational queries into an array of RelationalSubscriptionMetadata
+ */
+
+
+function getRelationalSubscriptionMetadatas(opts) {
+  var relationalQueries = opts.queryRecordEntry.relational;
+  if (!relationalQueries) return [];
+  var parentNodeType = opts.queryRecordEntry.def.type;
+  return Object.keys(relationalQueries).reduce(function (subscriptionMetadatas, relationalAlias) {
+    var relationalQueryRecordEntry = relationalQueries[relationalAlias];
+    if (!relationalQueryRecordEntry) return subscriptionMetadatas;
+    var nodeType = relationalQueryRecordEntry.def.type;
+    var properties = relationalQueryRecordEntry.properties,
+        relational = relationalQueryRecordEntry.relational;
+    subscriptionMetadatas.push({
+      relationalType: 'oneToOne' in relationalQueryRecordEntry && relationalQueryRecordEntry.oneToOne ? 'oneToOne' : 'oneToMany',
+      nodeType: nodeType,
+      properties: properties,
+      relational: relational,
+      parentNodeType: parentNodeType
+    });
+
+    if (relationalQueryRecordEntry.relational) {
+      var nestedSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
+        queryRecordEntry: relationalQueryRecordEntry
+      });
+      subscriptionMetadatas.push.apply(subscriptionMetadatas, nestedSubscriptionMetadatas);
+    }
+
+    return subscriptionMetadatas;
+  }, []);
+}
+/**
+ * Taking the flattened array of relationalSubscriptionMetadata built in getRelationalSubscriptionMetadatas
+ * we build the gql string for the relational subscriptions
+ */
+
+
+function getRelationalSubscriptionString(opts) {
+  // When building the gql string for relational subscriptions
+  // we try to not subscribe to the same node, or relation, twice
+  // this record groups the subscriptions by node type, parent node type, and relational type
+  var mergedRecordOfMetadatas = {};
+  opts.relationalSubscriptionMetadatas.forEach(function (subMetadata) {
+    var _mergedRecordOfMetada, _mergedRecordOfMetada2, _mergedRecordOfMetada3;
+
+    // initialize the record if it doesn't exist
+    if (!mergedRecordOfMetadatas[subMetadata.nodeType]) {
+      mergedRecordOfMetadatas[subMetadata.nodeType] = {
+        _allProperties: []
+      };
+    }
+
+    if (!((_mergedRecordOfMetada = mergedRecordOfMetadatas[subMetadata.nodeType]) != null && _mergedRecordOfMetada[subMetadata.parentNodeType])) {
+      mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType] = {
+        _allProperties: []
+      };
+    }
+
+    if (!((_mergedRecordOfMetada2 = mergedRecordOfMetadatas[subMetadata.nodeType]) != null && (_mergedRecordOfMetada3 = _mergedRecordOfMetada2[subMetadata.parentNodeType]) != null && _mergedRecordOfMetada3[subMetadata.relationalType])) {
+      mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType] = {
+        properties: [],
+        relational: undefined
+      };
+    }
+
+    subMetadata.properties.forEach(function (property) {
+      if (!mergedRecordOfMetadatas[subMetadata.nodeType]._allProperties.includes(property)) {
+        mergedRecordOfMetadatas[subMetadata.nodeType]._allProperties.push(property);
+      }
+
+      if (!mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].properties.includes(property)) {
+        mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].properties.push(property);
+      }
+    });
+
+    if (subMetadata.relational) {
+      var existingRecord = mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].relational;
+      mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].relational = flattenNestedRelationshipRecords(existingRecord ? [existingRecord, subMetadata.relational] : [subMetadata.relational]);
+    }
+  });
+  var subscriptionString = "";
+  Object.keys(mergedRecordOfMetadatas).forEach(function (nodeType) {
+    subscriptionString += "\n      ...on Updated_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        id\n        value {" + getSubscriptionOwnPropsString({
+      ownProps: mergedRecordOfMetadatas[nodeType]._allProperties
+    }) + "}\n      }\n    ";
+    Object.keys(mergedRecordOfMetadatas[nodeType]).forEach(function (parentNodeType) {
+      if (parentNodeType === '_allProperties') return;
+      Object.keys(mergedRecordOfMetadatas[nodeType][parentNodeType]).forEach(function (relationalType) {
+        if (relationalType === '_allProperties') return;
+        var ownProps = mergedRecordOfMetadatas[nodeType][parentNodeType][relationalType].properties;
+        var relational = mergedRecordOfMetadatas[nodeType][parentNodeType][relationalType].relational;
+        var isOneToMany = relationalType === 'oneToMany';
+        var isOneToOne = relationalType === 'oneToOne';
+        subscriptionString += getNestedRelationalSubscriptionString({
+          isOneToMany: isOneToMany,
+          isOneToOne: isOneToOne,
+          parentNodeType: parentNodeType,
+          nodeType: nodeType,
+          ownProps: ownProps,
+          relational: relational
+        });
+      });
+    });
+  });
+  return subscriptionString;
+}
+/**
+ * This function takes 2 relationalQueryRecords and flattens/merges them
+ * into a single relationalQueryRecord
+ * it does not take aliases into account, since we don't use them in the subscriptions
+ * we simply rely on the relationship name, and will join together all the properties and relationalQueryRecords
+ * that have the same relationship name
+ */
+
+
+function flattenNestedRelationshipRecords(records) {
+  var flattenedRecord = {};
+
+  var handleRelationalQueryRecordEntry = function handleRelationalQueryRecordEntry(relationalQueryRecordEntry) {
+    var _relationshipName = relationalQueryRecordEntry._relationshipName;
+
+    if (!flattenedRecord[_relationshipName]) {
+      flattenedRecord[_relationshipName] = _extends({}, relationalQueryRecordEntry, {
+        relational: relationalQueryRecordEntry.relational ? flattenNestedRelationshipRecords([relationalQueryRecordEntry.relational]) : undefined
+      });
+    } else {
+      var ongoingFlattenedRelationalRecord = flattenedRecord[_relationshipName].relational || {};
+      var newProperties = [].concat(flattenedRecord[_relationshipName].properties || []);
+      relationalQueryRecordEntry.properties.forEach(function (property) {
+        if (!newProperties.includes(property)) {
+          newProperties.push(property);
+        }
+      });
+      flattenedRecord[_relationshipName] = _extends({}, flattenedRecord[_relationshipName], {
+        properties: newProperties,
+        relational: relationalQueryRecordEntry.relational ? flattenNestedRelationshipRecords([relationalQueryRecordEntry.relational, ongoingFlattenedRelationalRecord]) : ongoingFlattenedRelationalRecord
+      });
+    }
+  };
+
+  records.forEach(function (record) {
+    Object.keys(record).forEach(function (relationalAlias) {
+      var relationalQueryRecordEntry = record[relationalAlias];
+      handleRelationalQueryRecordEntry(relationalQueryRecordEntry);
+    });
+  });
+  return flattenedRecord;
+}
+
+function getNestedRelationalSubscriptionString(opts) {
+  var subscriptionString = "";
+  var isOneToMany = opts.isOneToMany,
+      isOneToOne = opts.isOneToOne,
+      parentNodeType = opts.parentNodeType,
+      nodeType = opts.nodeType,
+      ownProps = opts.ownProps,
+      relational = opts.relational;
+  var propsString = getSubscriptionPropsString({
+    ownProps: ownProps,
+    relational: relational
+  });
+
+  if (isOneToMany) {
+    subscriptionString += "\n      ...on Inserted_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        value {" + propsString + "}\n      }\n    ";
+    subscriptionString += "\n      ...on Removed_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        id\n        value {\n          id\n        }\n      }\n    ";
+  } else if (isOneToOne) {
+    subscriptionString += "\n      ...on UpdatedAssociation_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        value {" + propsString + "}\n      }\n    ";
+  }
+
+  return subscriptionString;
+}
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 function getSanitizedQueryId(opts) {
   return opts.queryId.replace(/-/g, '_');
@@ -3235,6 +3522,7 @@ function generateQuerier(_ref) {
 
                 try {
                   new mmGQLInstance.QueryManager(queryDefinitions, {
+                    subscribe: false,
                     resultsObject: dataToReturn,
                     onResultsUpdated: function onResultsUpdated() {
                       res({
@@ -3258,6 +3546,9 @@ function generateQuerier(_ref) {
                       }
 
                       rej(error);
+                    },
+                    onSubscriptionError: function onSubscriptionError() {
+                      throw new Error("Should neven happen, query method does not subscribe");
                     },
                     queryId: queryId,
                     useServerSidePaginationFilteringSorting: mmGQLInstance.paginationFilteringSortingInstance === EPaginationFilteringSortingInstance.SERVER,
@@ -3312,15 +3603,6 @@ function generateSubscriber(mmGQLInstance) {
               queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
               return _context2.abrupt("return", new Promise(function (res, rej) {
                 var dataToReturn = {};
-                var subCancellers = [];
-
-                function unsub() {
-                  subCancellers.forEach(function (subCanceller) {
-                    return subCanceller();
-                  });
-                  subCancellers.length = 0;
-                }
-
                 var handlers = {
                   onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(_) {
                     throw Error('onQueryDefinitionsUpdated not initialized');
@@ -3330,10 +3612,13 @@ function generateSubscriber(mmGQLInstance) {
                 try {
                   var qM = new mmGQLInstance.QueryManager(queryDefinitions, {
                     resultsObject: dataToReturn,
+                    subscribe: true,
                     onResultsUpdated: function onResultsUpdated() {
                       res({
                         data: dataToReturn,
-                        unsub: unsub,
+                        unsub: function unsub() {
+                          return qM.unsub();
+                        },
                         onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(newQueryDefinitions) {
                           return handlers.onQueryDefinitionsUpdated(newQueryDefinitions);
                         },
@@ -3350,7 +3635,27 @@ function generateSubscriber(mmGQLInstance) {
                         opts.onError(error);
                         res({
                           data: dataToReturn,
-                          unsub: unsub,
+                          unsub: function unsub() {
+                            return qM.unsub();
+                          },
+                          onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                          error: e
+                        });
+                        return;
+                      }
+
+                      rej(error);
+                    },
+                    onSubscriptionError: function onSubscriptionError(e) {
+                      var error = getError(new Error("Error subscribing to data"), e.stack);
+
+                      if (opts.onError) {
+                        opts.onError(error);
+                        res({
+                          data: dataToReturn,
+                          unsub: function unsub() {
+                            return qM.unsub();
+                          },
                           onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
                           error: e
                         });
@@ -3372,7 +3677,10 @@ function generateSubscriber(mmGQLInstance) {
                     opts.onError(error);
                     res({
                       data: dataToReturn,
-                      unsub: unsub,
+                      unsub: function unsub() {
+                        var error = getError(new Error("unsub called when there was an error initializing query manager"), e.stack);
+                        throw error;
+                      },
                       onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated() {
                         var error = getError(new Error("onQueryDefinitionsUpdated called when there was an error initializing query manager"), e.stack);
                         throw error;
@@ -3421,6 +3729,7 @@ var NodesCollection = /*#__PURE__*/function () {
     this.loadingState = QueryState.IDLE;
     this.loadingError = null;
     this.totalCount = void 0;
+    this.nodes = void 0;
     this.items = opts.items;
     this.totalCount = opts.totalCount;
     this.pageInfoFromResults = opts.pageInfoFromResults;
@@ -3430,7 +3739,11 @@ var NodesCollection = /*#__PURE__*/function () {
     this.onLoadMoreResults = opts.onLoadMoreResults;
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
-    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
+    this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged; // just to silence TS, the getter is defined below
+
+    this.nodes = []; // defined this way as opposed to a getter because we want it to be enumerable
+    // for our tests which do an equality check on the entire results object
+
     Object.defineProperty(this, 'nodes', {
       enumerable: true,
       get: function get() {
@@ -5828,15 +6141,21 @@ function getQueryDefinitionStateManager(opts) {
 require('isomorphic-fetch');
 
 function getGQLCLient(gqlClientOpts) {
+  var wsOptions = {
+    credentials: 'include'
+  };
+
+  if (gqlClientOpts.getCookie) {
+    wsOptions.headers = {
+      cookie: gqlClientOpts.getCookie()
+    };
+  }
+
   var wsLink = new WebSocketLink({
     uri: gqlClientOpts.wsUrl,
     options: {
       reconnect: true,
-      wsOptionArguments: [{
-        headers: {
-          cookie: (gqlClientOpts.getCookie == null ? void 0 : gqlClientOpts.getCookie()) || null
-        }
-      }]
+      wsOptionArguments: [wsOptions]
     },
     webSocketImpl: WebSocket
   });
@@ -5968,6 +6287,10 @@ function getGQLCLient(gqlClientOpts) {
       return query;
     }(),
     subscribe: function subscribe(opts) {
+      if (gqlClientOpts.logging.gqlClientSubscriptions) {
+        console.log('subscribing', getPrettyPrintedGQL(opts.gql));
+      }
+
       var subscription = baseClient.subscribe({
         query: opts.gql
       }).subscribe({
@@ -6300,10 +6623,11 @@ function createQueryManager(mmGQLInstance) {
       this.queryRecord = null;
       this.queryIdx = 0;
       this.subscriptionMessageHandlers = {};
+      this.unsubRecord = {};
 
       this.onQueryDefinitionsUpdated = /*#__PURE__*/function () {
         var _ref = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(newQueryDefinitionRecord) {
-          var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
+          var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, subscriptionGQLDocs, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
 
           return runtime_1.wrap(function _callee2$(_context2) {
             while (1) {
@@ -6371,9 +6695,34 @@ function createQueryManager(mmGQLInstance) {
                   return _context2.abrupt("return");
 
                 case 16:
-                  _this.subscriptionMessageHandlers = _this.getSubscriptionMessageHandlers({
-                    queryRecord: _this.queryRecord
-                  });
+                  if (_this.opts.subscribe) {
+                    _this.subscriptionMessageHandlers = _this.getSubscriptionMessageHandlers({
+                      queryRecord: _this.queryRecord
+                    });
+                    subscriptionGQLDocs = getSubscriptionGQLDocumentsFromQueryRecord({
+                      queryId: _this.opts.queryId,
+                      queryRecord: minimalQueryRecord,
+                      useServerSidePaginationFilteringSorting: _this.opts.useServerSidePaginationFilteringSorting
+                    });
+                    Object.keys(minimalQueryRecord).forEach(function (rootLevelAlias) {
+                      if (_this.unsubRecord[rootLevelAlias]) {
+                        // this query changed
+                        // unsubscribe from the previous query definition
+                        // and re-establish the subscription with the new query definition below
+                        _this.unsubRecord[rootLevelAlias]();
+                      }
+
+                      if (!subscriptionGQLDocs[rootLevelAlias]) throw Error("No subscription GQL document found for root level alias " + rootLevelAlias);
+                      if (!_this.subscriptionMessageHandlers[rootLevelAlias]) throw Error("No subscription message handler found for root level alias " + rootLevelAlias);
+                      _this.unsubRecord[rootLevelAlias] = subscribe({
+                        queryGQL: subscriptionGQLDocs[rootLevelAlias],
+                        onError: _this.opts.onSubscriptionError,
+                        onMessage: _this.subscriptionMessageHandlers[rootLevelAlias],
+                        mmGQLInstance: mmGQLInstance
+                      });
+                    });
+                  }
+
                   thisQueryIdx = _this.queryIdx++;
                   _this.opts.onQueryStateChange == null ? void 0 : _this.opts.onQueryStateChange({
                     queryIdx: thisQueryIdx,
@@ -6914,6 +7263,14 @@ function createQueryManager(mmGQLInstance) {
           previousStateEntries: stateEntriesForFirstAlias
         });
       }
+    };
+
+    _proto.unsub = function unsub() {
+      var _this6 = this;
+
+      Object.keys(this.unsubRecord).forEach(function (rootLevelAlias) {
+        _this6.unsubRecord[rootLevelAlias]();
+      });
     }
     /**
      * Is used to build the root level results for the query, and also to build the relational results
@@ -6926,7 +7283,7 @@ function createQueryManager(mmGQLInstance) {
     ;
 
     _proto.getResultsFromState = function getResultsFromState(opts) {
-      var _this6 = this;
+      var _this7 = this;
 
       return Object.keys(opts.state).reduce(function (resultsAcc, queryAlias) {
         var stateForThisAlias = opts.state[queryAlias];
@@ -6935,7 +7292,7 @@ function createQueryManager(mmGQLInstance) {
         var totalCount = stateForThisAlias.totalCount;
         var clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
 
-        var resultsAlias = _this6.removeUnionSuffix(queryAlias);
+        var resultsAlias = _this7.removeUnionSuffix(queryAlias);
 
         if (Array.isArray(idsOrId)) {
           if (!clientSidePageInfo) {
@@ -6954,26 +7311,26 @@ function createQueryManager(mmGQLInstance) {
               pageInfoFromResults: pageInfoFromResults,
               totalCount: totalCount,
               // allows the UI to re-render when a nodeCollection's internal state is updated
-              onPaginationRequestStateChanged: _this6.opts.onResultsUpdated,
+              onPaginationRequestStateChanged: _this7.opts.onResultsUpdated,
               onLoadMoreResults: function onLoadMoreResults() {
-                return _this6.onLoadMoreResults({
+                return _this7.onLoadMoreResults({
                   aliasPath: aliasPath,
                   previousEndCursor: pageInfoFromResults.endCursor
                 });
               },
               onGoToNextPage: function onGoToNextPage() {
-                return _this6.onGoToNextPage({
+                return _this7.onGoToNextPage({
                   aliasPath: aliasPath,
                   previousEndCursor: pageInfoFromResults.endCursor
                 });
               },
               onGoToPreviousPage: function onGoToPreviousPage() {
-                return _this6.onGoToPreviousPage({
+                return _this7.onGoToPreviousPage({
                   aliasPath: aliasPath,
                   previousStartCursor: pageInfoFromResults.startCursor
                 });
               },
-              useServerSidePaginationFilteringSorting: _this6.opts.useServerSidePaginationFilteringSorting
+              useServerSidePaginationFilteringSorting: _this7.opts.useServerSidePaginationFilteringSorting
             });
           } else {
             resultsAcc[resultsAlias] = items;
@@ -6994,7 +7351,7 @@ function createQueryManager(mmGQLInstance) {
     ;
 
     _proto.notifyRepositories = function notifyRepositories(opts) {
-      var _this7 = this;
+      var _this8 = this;
 
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
@@ -7036,7 +7393,7 @@ function createQueryManager(mmGQLInstance) {
                 if (node && node.type !== relationalQuery.def.type) return;
               }
 
-              _this7.notifyRepositories({
+              _this8.notifyRepositories({
                 data: (_data = {}, _data[relationalAlias] = relationalDataEntry, _data),
                 queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord)
               });
@@ -7052,21 +7409,21 @@ function createQueryManager(mmGQLInstance) {
     ;
 
     _proto.getNewStateFromQueryResult = function getNewStateFromQueryResult(opts) {
-      var _this8 = this;
+      var _this9 = this;
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
-        var cacheEntry = _this8.buildCacheEntry({
+        var cacheEntry = _this9.buildCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
             queryResponsePartial: opts.queryResult[queryAlias],
             queryRecordEntry: opts.queryRecord[queryAlias]
           }),
-          pageInfoFromResults: _this8.getPageInfoFromResponse({
+          pageInfoFromResults: _this9.getPageInfoFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias]
           }),
-          totalCount: _this8.getTotalCountFromResponse({
+          totalCount: _this9.getTotalCountFromResponse({
             dataForThisAlias: opts.queryResult[queryAlias]
           }),
-          clientSidePageInfo: _this8.getInitialClientSidePageInfo({
+          clientSidePageInfo: _this9.getInitialClientSidePageInfo({
             queryRecordEntry: opts.queryRecord[queryAlias]
           }),
           queryRecord: opts.queryRecord,
@@ -7081,7 +7438,7 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.buildCacheEntry = function buildCacheEntry(opts) {
-      var _this9 = this;
+      var _this10 = this;
 
       var nodeData = opts.nodeData,
           queryAlias = opts.queryAlias;
@@ -7116,20 +7473,20 @@ function createQueryManager(mmGQLInstance) {
             return relationalStateAcc;
           }
 
-          var aliasPath = _this9.addIdToLastEntryInAliasPath({
+          var aliasPath = _this10.addIdToLastEntryInAliasPath({
             aliasPath: opts.aliasPath,
             id: node.id
           });
 
-          var cacheEntry = _this9.buildCacheEntry({
+          var cacheEntry = _this10.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
-            pageInfoFromResults: _this9.getPageInfoFromResponse({
+            pageInfoFromResults: _this10.getPageInfoFromResponse({
               dataForThisAlias: node[relationalAlias]
             }),
-            totalCount: _this9.getTotalCountFromResponse({
+            totalCount: _this10.getTotalCountFromResponse({
               dataForThisAlias: node[relationalAlias]
             }),
-            clientSidePageInfo: _this9.getInitialClientSidePageInfo({
+            clientSidePageInfo: _this10.getInitialClientSidePageInfo({
               queryRecordEntry: relational[relationalAlias]
             }),
             queryAlias: relationalAlias,
@@ -7138,19 +7495,19 @@ function createQueryManager(mmGQLInstance) {
           });
 
           if (!cacheEntry) return relationalStateAcc;
-          return _extends({}, relationalStateAcc, (_extends2 = {}, _extends2[_this9.removeUnionSuffix(relationalAlias)] = cacheEntry, _extends2));
+          return _extends({}, relationalStateAcc, (_extends2 = {}, _extends2[_this10.removeUnionSuffix(relationalAlias)] = cacheEntry, _extends2));
         }, {});
       };
 
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildCacheEntryOpts) {
         var relationalState = buildRelationalStateForNode(buildCacheEntryOpts.node);
         var nodeRepository = queryRecordEntry.def.repository;
-        var relationalQueries = relational ? _this9.getApplicableRelationalQueries({
+        var relationalQueries = relational ? _this10.getApplicableRelationalQueries({
           relationalQueries: relational,
           nodeData: buildCacheEntryOpts.node
         }) : null;
 
-        var aliasPath = _this9.addIdToLastEntryInAliasPath({
+        var aliasPath = _this10.addIdToLastEntryInAliasPath({
           aliasPath: opts.aliasPath,
           id: buildCacheEntryOpts.node.id
         });
@@ -7159,8 +7516,8 @@ function createQueryManager(mmGQLInstance) {
           node: queryRecordEntry.def,
           allPropertiesQueried: queryRecordEntry.properties,
           relationalQueries: relationalQueries,
-          queryId: _this9.opts.queryId,
-          relationalResults: !relationalState ? null : _this9.getResultsFromState({
+          queryId: _this10.opts.queryId,
+          relationalResults: !relationalState ? null : _this10.getResultsFromState({
             state: relationalState,
             aliasPath: aliasPath
           }),
@@ -7238,7 +7595,7 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.getApplicableRelationalQueries = function getApplicableRelationalQueries(opts) {
-      var _this10 = this;
+      var _this11 = this;
 
       return Object.keys(opts.relationalQueries).reduce(function (acc, relationalQueryAlias) {
         var _extends3, _extends4;
@@ -7249,7 +7606,7 @@ function createQueryManager(mmGQLInstance) {
         // and ensures that the correct node definition is used when building the decorated results for this query/subscription
 
         if (firstResult && firstResult.type !== opts.relationalQueries[relationalQueryAlias].def.type) return acc;
-        return _extends({}, acc, (_extends4 = {}, _extends4[_this10.removeUnionSuffix(relationalQueryAlias)] = opts.relationalQueries[relationalQueryAlias], _extends4));
+        return _extends({}, acc, (_extends4 = {}, _extends4[_this11.removeUnionSuffix(relationalQueryAlias)] = opts.relationalQueries[relationalQueryAlias], _extends4));
       }, {});
     };
 
@@ -7678,7 +8035,7 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.onQueryDefinitionUpdatedResult = function onQueryDefinitionUpdatedResult(opts) {
-      var _this11 = this;
+      var _this12 = this;
 
       this.notifyRepositories({
         data: opts.queryResult,
@@ -7691,20 +8048,20 @@ function createQueryManager(mmGQLInstance) {
 
       if (opts.aliasPathsToUpdate) {
         opts.aliasPathsToUpdate.forEach(function (aliasPath) {
-          _this11.extendStateObject({
+          _this12.extendStateObject({
             aliasPath: aliasPath,
             originalAliasPath: aliasPath,
-            state: _this11.state,
+            state: _this12.state,
             newState: newState,
             mergeStrategy: 'REPLACE'
           });
         });
       } else {
         Object.keys(newState).forEach(function (newStateAlias) {
-          _this11.extendStateObject({
+          _this12.extendStateObject({
             aliasPath: [newStateAlias],
             originalAliasPath: [newStateAlias],
-            state: _this11.state,
+            state: _this12.state,
             newState: newState,
             mergeStrategy: 'REPLACE'
           });
@@ -7847,29 +8204,6 @@ function getNullishResults(queryDefinitions) {
 function performQueries(_x6) {
   return _performQueries.apply(this, arguments);
 }
-/**
- * Given a previousQueryRecord and a nextQueryRecord,
- * returns the minimal query record required to perform the next query
- *
- * For now, does not account for a change in the properties being queried
- * It only looks at the filter, sort and pagination parameters being used
- *
- * If any of those were updated, the query for that data will be performed
- *
- * Recursion: does it have to handle query changes in related data?
- * The answer is yes, ideally. However, what if the user had loaded more results on the parent list,
- * previous to updating the filter/sorting/pagination on the child list?
- *
- * In this case, we would have to load the relational results for which the query was updated
- * for each item of the parent list that had been loaded so far, which could be a lot of data.
- * Not just that, it would be impossible to request that in a single query, which means this
- * function would have to inherit the additional complexity of returning multiple queries
- * and then the function calling this function would have to handle that as well.
- *
- * Because of that, any update to the filter/sorting/pagination of a child list query will result in
- * a full query starting at the root of the query record
- */
-
 
 function _performQueries() {
   _performQueries = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee6(opts) {
@@ -7995,6 +8329,42 @@ function _performQueries() {
   }));
   return _performQueries.apply(this, arguments);
 }
+
+function subscribe(opts) {
+  if (opts.mmGQLInstance.generateMockData) {
+    return function () {// purposely no-op
+    };
+  }
+
+  return opts.mmGQLInstance.gqlClient.subscribe({
+    gql: opts.queryGQL,
+    onMessage: opts.onMessage,
+    onError: opts.onError
+  });
+}
+/**
+ * Given a previousQueryRecord and a nextQueryRecord,
+ * returns the minimal query record required to perform the next query
+ *
+ * For now, does not account for a change in the properties being queried
+ * It only looks at the filter, sort and pagination parameters being used
+ *
+ * If any of those were updated, the query for that data will be performed
+ *
+ * Recursion: does it have to handle query changes in related data?
+ * The answer is yes, ideally. However, what if the user had loaded more results on the parent list,
+ * previous to updating the filter/sorting/pagination on the child list?
+ *
+ * In this case, we would have to load the relational results for which the query was updated
+ * for each item of the parent list that had been loaded so far, which could be a lot of data.
+ * Not just that, it would be impossible to request that in a single query, which means this
+ * function would have to inherit the additional complexity of returning multiple queries
+ * and then the function calling this function would have to handle that as well.
+ *
+ * Because of that, any update to the filter/sorting/pagination of a child list query will result in
+ * a full query starting at the root of the query record
+ */
+
 
 function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
   var nextQueryRecord = opts.nextQueryRecord,
