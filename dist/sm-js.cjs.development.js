@@ -2126,7 +2126,7 @@ function getNestedRelationalSubscriptionString(opts) {
 
   if (isOneToMany) {
     subscriptionString += "\n      ...on Inserted_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        value {" + propsString + "}\n      }\n    ";
-    subscriptionString += "\n      ...on Removed_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        id\n        value {\n          id\n        }\n      }\n    ";
+    subscriptionString += "\n      ...on Removed_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        id\n      }\n    ";
   } else if (isOneToOne) {
     subscriptionString += "\n      ...on UpdatedAssociation_" + capitalizeFirstLetter(parentNodeType) + "_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        target {\n          id\n          property\n        }\n        value {" + propsString + "}\n      }\n    ";
   }
