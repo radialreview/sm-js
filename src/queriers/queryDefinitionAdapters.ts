@@ -1232,20 +1232,10 @@ function getSubscriptionRelationalPropsString(opts: {
       acc +
       (index > 0 ? `\n` : '') +
       `${resolver} {` +
-      ('oneToMany' in relationalQueryRecordEntry
-        ? getNodesCollectionQuery({
-            propertiesString: getSubscriptionPropsString({
-              ownProps: relationalQueryRecordEntry.properties,
-              relational: relationalQueryRecordEntry.relational,
-            }),
-            nestLevel: 1,
-            includeTotalCount: !!relationalQueryRecordEntry.pagination
-              ?.includeTotalCount,
-          }) + '\n'
-        : getSubscriptionPropsString({
-            ownProps: relationalQueryRecordEntry.properties,
-            relational: relationalQueryRecordEntry.relational,
-          })) +
+      getSubscriptionPropsString({
+        ownProps: relationalQueryRecordEntry.properties,
+        relational: relationalQueryRecordEntry.relational,
+      }) +
       `}\n`
     );
   }, '');
