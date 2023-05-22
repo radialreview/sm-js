@@ -8308,19 +8308,24 @@ function _performQueries() {
             return _context6.abrupt("return", filteredAndSortedResponse);
 
           case 27:
-            _context6.next = 29;
+            if (!opts.mmGQLInstance.generateMockData) {
+              _context6.next = 30;
+              break;
+            }
+
+            _context6.next = 30;
             return new Promise(function (res) {
               return setTimeout(res, (opts.getMockDataDelay == null ? void 0 : opts.getMockDataDelay()) || 0);
             });
 
-          case 29:
+          case 30:
             if (opts.mmGQLInstance.logging.gqlClientQueries) {
               console.log('query response', JSON.stringify(response, null, 2));
             }
 
             return _context6.abrupt("return", response);
 
-          case 31:
+          case 32:
           case "end":
             return _context6.stop();
         }
