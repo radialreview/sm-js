@@ -2102,7 +2102,10 @@ async function performQueries(opts: {
     return filteredAndSortedResponse;
   }
 
-  await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
+  if (opts.mmGQLInstance.generateMockData) {
+    await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
+  }
+
   if (opts.mmGQLInstance.logging.gqlClientQueries) {
     console.log('query response', JSON.stringify(response, null, 2));
   }
