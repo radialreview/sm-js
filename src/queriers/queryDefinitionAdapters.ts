@@ -490,8 +490,12 @@ export function getQueryRecordFromQueryDefinition<
           throw Error('Invalid id in target.id');
         }
 
-        (queryRecordEntry as QueryRecordEntry & { id: string }).id =
-          queryDefinition.target.id;
+        const idAsNumber = Number(queryDefinition.target.id);
+        const isNumber = idAsNumber !== NaN;
+
+        (queryRecordEntry as QueryRecordEntry & { id: string }).id = isNumber
+          ? idAsNumber
+          : queryDefinition.target.id;
       }
     }
 
@@ -512,7 +516,7 @@ export function getQueryRecordFromQueryDefinition<
 }
 
 function getIdsString(ids: Array<string>) {
-  return `[${ids.map(id => `"${id}"`).join(',')}]`;
+  return `[${ids.map(id => JSON.stringify(id)).join(',')}]`;
 }
 
 function wrapInQuotesIfString(value: any) {
@@ -949,7 +953,7 @@ function getOperationFromQueryRecordEntry(
   if ('ids' in opts && opts.ids != null) {
     operation = `${nodeType}s(ids: ${getIdsString(opts.ids)})`;
   } else if ('id' in opts && opts.id != null) {
-    operation = `${nodeType}(id: "${opts.id}")`;
+    operation = `${nodeType}(id: ${JSON.stringify(opts.id)})`;
   } else {
     const options = getGetNodeOptions({
       queryRecordEntry: opts,
