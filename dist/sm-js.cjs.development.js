@@ -1924,7 +1924,9 @@ function getSubscriptionRelationalPropsString(opts) {
       throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
     }
 
-    var resolver = relationalQueryRecordEntry._relationshipName;
+    var resolver = relationalQueryRecordEntry._relationshipName.endsWith('_nonPaginated') ? // if this is a nonPaginated relationship, we need to remove the nonPaginated suffix
+    // since collections in subscriptions are non paginated by default
+    relationalQueryRecordEntry._relationshipName.replace("_nonPaginated", "") : relationalQueryRecordEntry._relationshipName;
     return acc + (index > 0 ? "\n" : '') + (resolver + " {") + getSubscriptionPropsString({
       ownProps: relationalQueryRecordEntry.properties,
       relational: relationalQueryRecordEntry.relational
@@ -7444,7 +7446,7 @@ function createQueryManager(mmGQLInstance) {
         return getEmptyStateEntry();
       }
 
-      var relational = queryRecordEntry.relational; // if the query alias includes a relational union query separator
+      var relationalQueryRecord = queryRecordEntry.relational; // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
       // this means that the result node likely matches a different type in that union
 
@@ -7454,13 +7456,13 @@ function createQueryManager(mmGQLInstance) {
       }
 
       var buildRelationalStateForNode = function buildRelationalStateForNode(node) {
-        if (!relational) return null;
-        return Object.keys(relational).reduce(function (relationalStateAcc, relationalAlias) {
-          var _relational$relationa, _extends2;
+        if (!relationalQueryRecord) return null;
+        return Object.keys(relationalQueryRecord).reduce(function (relationalStateAcc, relationalAlias) {
+          var _relationalQueryRecor, _extends2;
 
           var relationalDataForThisAlias = getDataFromQueryResponsePartial({
             queryResponsePartial: node[relationalAlias],
-            queryRecordEntry: relational[relationalAlias],
+            queryRecordEntry: relationalQueryRecord[relationalAlias],
             collectionsIncludePagingInfo: collectionsIncludePagingInfo
           });
 
@@ -7481,21 +7483,21 @@ function createQueryManager(mmGQLInstance) {
             hasPreviousPage: false,
             startCursor: 'mock-start-cursor-should-not-be-used',
             endCursor: 'mock-end-cursor-should-not-be-used',
-            totalPages: node[relationalAlias].length / (((_relational$relationa = relational[relationalAlias].pagination) == null ? void 0 : _relational$relationa.itemsPerPage) || DEFAULT_PAGE_SIZE)
+            totalPages: Math.ceil(relationalDataForThisAlias.length / (((_relationalQueryRecor = relationalQueryRecord[relationalAlias].pagination) == null ? void 0 : _relationalQueryRecor.itemsPerPage) || DEFAULT_PAGE_SIZE))
           };
           var totalCount = collectionsIncludePagingInfo ? _this10.getTotalCountFromResponse({
             dataForThisAlias: node[relationalAlias]
-          }) : node[relationalAlias].length;
+          }) : relationalDataForThisAlias.length;
 
           var cacheEntry = _this10.buildCacheEntry({
             nodeData: relationalDataForThisAlias,
             pageInfoFromResults: pageInfoFromResults,
             totalCount: totalCount,
             clientSidePageInfo: _this10.getInitialClientSidePageInfo({
-              queryRecordEntry: relational[relationalAlias]
+              queryRecordEntry: relationalQueryRecord[relationalAlias]
             }),
             queryAlias: relationalAlias,
-            queryRecord: relational,
+            queryRecord: relationalQueryRecord,
             aliasPath: [].concat(aliasPath, [relationalAlias]),
             collectionsIncludePagingInfo: collectionsIncludePagingInfo
           });
@@ -7508,8 +7510,8 @@ function createQueryManager(mmGQLInstance) {
       var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildCacheEntryOpts) {
         var relationalState = buildRelationalStateForNode(buildCacheEntryOpts.node);
         var nodeRepository = queryRecordEntry.def.repository;
-        var relationalQueries = relational ? _this10.getApplicableRelationalQueries({
-          relationalQueries: relational,
+        var relationalQueries = relationalQueryRecord ? _this10.getApplicableRelationalQueries({
+          relationalQueries: relationalQueryRecord,
           nodeData: buildCacheEntryOpts.node
         }) : null;
 

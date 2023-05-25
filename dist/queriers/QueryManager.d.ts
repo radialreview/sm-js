@@ -134,9 +134,9 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): Maybe<QueryManagerStateEntry>;
         removeUnionSuffix(alias: string): string;
         getApplicableRelationalQueries(opts: {
-            relationalQueries: Record<string, RelationalQueryRecordEntry>;
+            relationalQueries: RelationalQueryRecord;
             nodeData: Record<string, any>;
-        }): Record<string, RelationalQueryRecordEntry>;
+        }): RelationalQueryRecord;
         getPageInfoFromResponse(opts: {
             dataForThisAlias: any;
         }): Maybe<PageInfoFromResults>;
