@@ -1025,7 +1025,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return getEmptyStateEntry();
       }
 
-      const { relational } = queryRecordEntry;
+      const { relational: relationalQueryRecord } = queryRecordEntry;
 
       // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
@@ -1038,13 +1038,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const buildRelationalStateForNode = (
         node: Record<string, any>
       ): Maybe<QueryManagerState> => {
-        if (!relational) return null;
+        if (!relationalQueryRecord) return null;
 
-        return Object.keys(relational).reduce(
+        return Object.keys(relationalQueryRecord).reduce(
           (relationalStateAcc, relationalAlias) => {
             const relationalDataForThisAlias = getDataFromQueryResponsePartial({
               queryResponsePartial: node[relationalAlias],
-              queryRecordEntry: relational[relationalAlias],
+              queryRecordEntry: relationalQueryRecord[relationalAlias],
               collectionsIncludePagingInfo,
             });
 
@@ -1067,27 +1067,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   hasPreviousPage: false,
                   startCursor: 'mock-start-cursor-should-not-be-used',
                   endCursor: 'mock-end-cursor-should-not-be-used',
-                  totalPages:
-                    node[relationalAlias].length /
-                    (relational[relationalAlias].pagination?.itemsPerPage ||
-                      DEFAULT_PAGE_SIZE),
+                  totalPages: Math.ceil(
+                    relationalDataForThisAlias.length /
+                      (relationalQueryRecord[relationalAlias].pagination
+                        ?.itemsPerPage || DEFAULT_PAGE_SIZE)
+                  ),
                 };
 
             const totalCount = collectionsIncludePagingInfo
               ? this.getTotalCountFromResponse({
                   dataForThisAlias: node[relationalAlias],
                 })
-              : node[relationalAlias].length;
+              : relationalDataForThisAlias.length;
 
             const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
               pageInfoFromResults,
               totalCount,
               clientSidePageInfo: this.getInitialClientSidePageInfo({
-                queryRecordEntry: relational[relationalAlias],
+                queryRecordEntry: relationalQueryRecord[relationalAlias],
               }),
               queryAlias: relationalAlias,
-              queryRecord: (relational as unknown) as QueryRecord,
+              queryRecord: relationalQueryRecord,
               aliasPath: [...aliasPath, relationalAlias],
               collectionsIncludePagingInfo,
             });
@@ -1109,9 +1110,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           buildCacheEntryOpts.node
         );
         const nodeRepository = queryRecordEntry.def.repository;
-        const relationalQueries = relational
+        const relationalQueries = relationalQueryRecord
           ? this.getApplicableRelationalQueries({
-              relationalQueries: relational,
+              relationalQueries: relationalQueryRecord,
               nodeData: buildCacheEntryOpts.node,
             })
           : null;
@@ -1203,7 +1204,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getApplicableRelationalQueries(opts: {
-      relationalQueries: Record<string, RelationalQueryRecordEntry>;
+      relationalQueries: RelationalQueryRecord;
       nodeData: Record<string, any>;
     }) {
       return Object.keys(opts.relationalQueries).reduce(
@@ -1235,7 +1236,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               .relationalQueries[relationalQueryAlias],
           };
         },
-        {} as Record<string, RelationalQueryRecordEntry>
+        {} as RelationalQueryRecord
       );
     }
 

@@ -1230,7 +1230,16 @@ function getSubscriptionRelationalPropsString(opts: {
       );
     }
 
-    const resolver = relationalQueryRecordEntry._relationshipName;
+    const resolver = relationalQueryRecordEntry._relationshipName.endsWith(
+      '_nonPaginated'
+    )
+      ? // if this is a nonPaginated relationship, we need to remove the nonPaginated suffix
+        // since collections in subscriptions are non paginated by default
+        relationalQueryRecordEntry._relationshipName.replace(
+          `_nonPaginated`,
+          ``
+        )
+      : relationalQueryRecordEntry._relationshipName;
 
     return (
       acc +
