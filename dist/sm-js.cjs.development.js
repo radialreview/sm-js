@@ -1431,7 +1431,9 @@ function getQueryRecordFromQueryDefinition(opts) {
           throw Error('Invalid id in target.id');
         }
 
-        queryRecordEntry.id = queryDefinition.target.id;
+        var idAsNumber = Number(queryDefinition.target.id);
+        var isNumber = idAsNumber !== NaN;
+        queryRecordEntry.id = isNumber ? idAsNumber : queryDefinition.target.id;
       }
     }
 
@@ -1454,7 +1456,7 @@ function getQueryRecordFromQueryDefinition(opts) {
 
 function getIdsString(ids) {
   return "[" + ids.map(function (id) {
-    return "\"" + id + "\"";
+    return JSON.stringify(id);
   }).join(',') + "]";
 }
 
@@ -1769,7 +1771,7 @@ function getOperationFromQueryRecordEntry(opts) {
   if ('ids' in opts && opts.ids != null) {
     operation = nodeType + "s(ids: " + getIdsString(opts.ids) + ")";
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: \"" + opts.id + "\")";
+    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
   } else {
     var options = getGetNodeOptions({
       queryRecordEntry: opts,
