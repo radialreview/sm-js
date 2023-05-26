@@ -1692,7 +1692,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         const subscriptionGQLDocs = getSubscriptionGQLDocumentsFromQueryRecord({
           queryId: this.opts.queryId,
-          queryRecord: minimalQueryRecord,
+          queryRecord: this.queryRecord,
           useServerSidePaginationFilteringSorting: this.opts
             .useServerSidePaginationFilteringSorting,
         });
