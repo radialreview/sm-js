@@ -1439,9 +1439,7 @@ function getQueryRecordFromQueryDefinition(opts) {
           throw Error('Invalid id in target.id');
         }
 
-        var idAsNumber = Number(queryDefinition.target.id);
-        var isNumber = idAsNumber !== NaN;
-        queryRecordEntry.id = isNumber ? idAsNumber : queryDefinition.target.id;
+        queryRecordEntry.id = queryDefinition.target.id;
       }
     }
 
@@ -1464,7 +1462,7 @@ function getQueryRecordFromQueryDefinition(opts) {
 
 function getIdsString(ids) {
   return "[" + ids.map(function (id) {
-    return JSON.stringify(id);
+    return "\"" + id + "\"";
   }).join(',') + "]";
 }
 
@@ -1779,7 +1777,7 @@ function getOperationFromQueryRecordEntry(opts) {
   if ('ids' in opts && opts.ids != null) {
     operation = nodeType + "s(ids: " + getIdsString(opts.ids) + ")";
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
+    operation = nodeType + "(id: \"" + opts.id + "\")";
   } else {
     var options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -1934,9 +1932,7 @@ function getSubscriptionRelationalPropsString(opts) {
       throw Error("relationalQueryRecordEntry is invalid\n" + JSON.stringify(relationalQueryRecordEntry, null, 2));
     }
 
-    var resolver = relationalQueryRecordEntry._relationshipName.endsWith('_nonPaginated') ? // if this is a nonPaginated relationship, we need to remove the nonPaginated suffix
-    // since collections in subscriptions are non paginated by default
-    relationalQueryRecordEntry._relationshipName.replace("_nonPaginated", "") : relationalQueryRecordEntry._relationshipName;
+    var resolver = relationalQueryRecordEntry._relationshipName;
     return acc + (index > 0 ? "\n" : '') + (resolver + " {") + getSubscriptionPropsString({
       ownProps: relationalQueryRecordEntry.properties,
       relational: relationalQueryRecordEntry.relational
