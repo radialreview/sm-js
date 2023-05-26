@@ -9,7 +9,7 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 // import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { Config, IGQLClient } from './types';
+import { Config, IGQLClient, SubscriptionMessage } from './types';
 import WebSocket from 'isomorphic-ws';
 import { getPrettyPrintedGQL } from './specUtilities';
 
@@ -181,7 +181,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)
               );
-            else opts.onMessage(message.data);
+            else opts.onMessage(message as SubscriptionMessage);
           },
           error: opts.onError,
         });
