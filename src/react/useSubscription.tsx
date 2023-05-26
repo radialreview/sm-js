@@ -411,6 +411,7 @@ function getQueryDefinitionStateManager<
 
     const suspendPromise = opts.context.mmGQLInstance
       .subscribe(queryDefinitions, {
+        queryId: subscriptionId,
         onQueryManagerQueryStateChange: onQueryManagerQueryStateChange,
         batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
         onData: ({ results: newResults }) => {
