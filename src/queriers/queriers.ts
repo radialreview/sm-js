@@ -151,8 +151,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             res({
               data: dataToReturn,
               unsub: () => qM.unsub(),
-              onQueryDefinitionsUpdated: newQueryDefinitions =>
-                handlers.onQueryDefinitionsUpdated(newQueryDefinitions),
+              onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
               error: undefined,
             } as ReturnType);
             opts.onData({ results: dataToReturn });
@@ -168,7 +167,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
               res({
                 data: dataToReturn,
                 unsub: () => qM.unsub(),
-                onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
                 error: e,
               } as ReturnType);
               return;
@@ -187,7 +186,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
               res({
                 data: dataToReturn,
                 unsub: () => qM.unsub(),
-                onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
                 error: e,
               } as ReturnType);
               return;

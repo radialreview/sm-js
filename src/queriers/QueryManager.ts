@@ -1722,7 +1722,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             onError: error => {
               console.error('sub error', error);
             },
-            onMessage: this.subscriptionMessageHandlers[rootLevelAlias],
+            onMessage: this.onSubscriptionMessage,
             mmGQLInstance: mmGQLInstance,
           });
         });
