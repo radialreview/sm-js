@@ -39,7 +39,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         queryIdx: number;
         subscriptionMessageHandlers: Record<string, (message: SubscriptionMessage) => void>;
         unsubRecord: Record<string, () => void>;
-        onSubscriptionMessage(message: SubscriptionMessage): void;
+        onSubscriptionMessage: (message: SubscriptionMessage) => void;
         getSubscriptionMessageHandlers(opts: {
             queryRecord: QueryRecord;
         }): Record<string, (message: SubscriptionMessage) => void>;
