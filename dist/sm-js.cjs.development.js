@@ -6287,7 +6287,7 @@ function getGQLCLient(gqlClientOpts) {
       }).subscribe({
         next: function next(message) {
           gqlClientOpts.logging.gqlClientSubscriptions && console.log('subscription message', JSON.stringify(message, null, 2));
-          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message.data);
+          if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message);
         },
         error: opts.onError
       });
