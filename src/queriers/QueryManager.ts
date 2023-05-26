@@ -139,7 +139,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public onSubscriptionMessage(message: SubscriptionMessage) {
+    public onSubscriptionMessage = (message: SubscriptionMessage) => {
       if (!this.queryRecord) throw Error('No query record initialized');
 
       Object.keys(message.data).forEach(rootAlias => {
@@ -156,7 +156,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
 
       this.opts.onResultsUpdated();
-    }
+    };
 
     // based on the root query record
     // return a record of message handlers, one for each root level alias
