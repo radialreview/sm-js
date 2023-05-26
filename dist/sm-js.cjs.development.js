@@ -5699,20 +5699,23 @@ var MMGQLProvider = function MMGQLProvider(props) {
   var updateSubscriptionInfo = React.useCallback(function (subscriptionId, subInfo) {
     ongoingSubscriptionRecord.current[subscriptionId] = _extends({}, ongoingSubscriptionRecord.current[subscriptionId], subInfo);
   }, []);
-  var scheduleCleanup = React.useCallback(function (subscriptionId) {
-    function cleanup() {
-      var existingContextSubscription = ongoingSubscriptionRecord.current[subscriptionId];
-
-      if (existingContextSubscription) {
-        existingContextSubscription.unsub && existingContextSubscription.unsub();
-        delete ongoingSubscriptionRecord.current[subscriptionId];
-      }
-    }
-
+  var scheduleCleanup = React.useCallback(function () {
+    // function cleanup() {
+    //   const existingContextSubscription =
+    //     ongoingSubscriptionRecord.current[subscriptionId];
+    //   if (existingContextSubscription) {
+    //     existingContextSubscription.unsub &&
+    //       existingContextSubscription.unsub();
+    //     delete ongoingSubscriptionRecord.current[subscriptionId];
+    //   }
+    // }
     if (props.subscriptionTTLMs != null) {
-      cleanupTimeoutRecord.current[subscriptionId] = setTimeout(cleanup, props.subscriptionTTLMs);
+      console.log('cleaning up after', props.subscriptionTTLMs); // cleanupTimeoutRecord.current[subscriptionId] = setTimeout(
+      //   cleanup,
+      //   props.subscriptionTTLMs
+      // );
     } else {
-      cleanup();
+      console.log('cleaning up'); // cleanup();
     }
   }, [props.subscriptionTTLMs]);
   var cancelCleanup = React.useCallback(function (subscriptionId) {
