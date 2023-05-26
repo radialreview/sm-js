@@ -6700,7 +6700,7 @@ function createQueryManager(mmGQLInstance) {
                     });
                     subscriptionGQLDocs = getSubscriptionGQLDocumentsFromQueryRecord({
                       queryId: _this.opts.queryId,
-                      queryRecord: minimalQueryRecord,
+                      queryRecord: _this.queryRecord,
                       useServerSidePaginationFilteringSorting: _this.opts.useServerSidePaginationFilteringSorting
                     });
                     Object.keys(minimalQueryRecord).forEach(function (rootLevelAlias) {
