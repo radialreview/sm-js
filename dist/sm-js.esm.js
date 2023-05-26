@@ -2138,7 +2138,11 @@ function capitalizeFirstLetter(string) {
 }
 
 function getSanitizedQueryId(opts) {
-  return opts.queryId.replace(/-/g, '_').replace(/ /g, '_').replace(/\//g, '_').replace(/\\/g, '_').replace(/\./g, '_');
+  // take a string that looks like this
+  // at BloomSideNav (webpack-internal:///./pages/layout/sideNav/sideNav.tsx:92:75)suspendDisabled_user
+  // and sanitize it so it's a valid gql operation name
+  var queryId = opts.queryId;
+  return queryId.replace(/ /g, '_').replace(/\(/g, '_').replace(/\)/g, '_').replace(/\./g, '_').replace(/-/g, '_').replace(/,/g, '_').replace(/:/g, '_').replace(/'/g, '_').replace(/"/g, '_').replace(/@/g, '_').replace(/\//g, '_').replace(/\\/g, '_').replace(/\?/g, '_').replace(/!/g, '_').replace(/#/g, '_').replace(/\$/g, '_').replace(/%/g, '_').replace(/\^/g, '_').replace(/&/g, '_').replace(/\*/g, '_').replace(/\+/g, '_').replace(/=/g, '_').replace(/\|/g, '_');
 }
 
 function createDOProxyGenerator(mmGQLInstance) {
