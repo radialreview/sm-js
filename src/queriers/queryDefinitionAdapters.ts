@@ -1634,5 +1634,10 @@ export function capitalizeFirstLetter(string: string) {
 }
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
-  return opts.queryId.replace(/-/g, '_');
+  return opts.queryId
+    .replace(/-/g, '_')
+    .replace(/ /g, '_')
+    .replace(/\//g, '_')
+    .replace(/\\/g, '_')
+    .replace(/\./g, '_');
 }
