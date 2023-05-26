@@ -3614,9 +3614,7 @@ function generateSubscriber(mmGQLInstance) {
                         unsub: function unsub() {
                           return qM.unsub();
                         },
-                        onQueryDefinitionsUpdated: function onQueryDefinitionsUpdated(newQueryDefinitions) {
-                          return handlers.onQueryDefinitionsUpdated(newQueryDefinitions);
-                        },
+                        onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
                         error: undefined
                       });
                       opts.onData({
@@ -3633,7 +3631,7 @@ function generateSubscriber(mmGQLInstance) {
                           unsub: function unsub() {
                             return qM.unsub();
                           },
-                          onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                          onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
                           error: e
                         });
                         return;
@@ -3651,7 +3649,7 @@ function generateSubscriber(mmGQLInstance) {
                           unsub: function unsub() {
                             return qM.unsub();
                           },
-                          onQueryDefinitionsUpdated: qM.onQueryDefinitionsUpdated,
+                          onQueryDefinitionsUpdated: handlers.onQueryDefinitionsUpdated,
                           error: e
                         });
                         return;
@@ -5965,7 +5963,7 @@ function getQueryDefinitionStateManager(opts) {
         throw Error('onQueryDefinitionsUpdated is not defined');
       }
 
-      stateForThisSubscription.onQueryDefinitionsUpdated(subOpts.queryDefinitions);
+      stateForThisSubscription.onQueryDefinitionsUpdated(queryDefinitions);
       return stateForThisSubscription.suspendPromise;
     }
 
@@ -5980,7 +5978,7 @@ function getQueryDefinitionStateManager(opts) {
     function onError(error) {
       var _opts$context$ongoing2;
 
-      opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+      opts.context.updateSubscriptionInfo(parentSubscriptionId, {
         error: error
       });
       (_opts$context$ongoing2 = opts.context.ongoingSubscriptionRecord[parentSubscriptionId]) == null ? void 0 : _opts$context$ongoing2.onQueryStateChange == null ? void 0 : _opts$context$ongoing2.onQueryStateChange();
@@ -6024,11 +6022,11 @@ function getQueryDefinitionStateManager(opts) {
     var suspendPromise = opts.context.mmGQLInstance.subscribe(queryDefinitions, {
       queryId: subscriptionId,
       onQueryManagerQueryStateChange: onQueryManagerQueryStateChange,
-      batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+      batchKey: suspend ? 'suspended' : 'non-suspended',
       onData: function onData(_ref2) {
         var newResults = _ref2.results;
         var contextForThisParentSub = opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
-        opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+        opts.context.updateSubscriptionInfo(parentSubscriptionId, {
           data: _extends({}, contextForThisParentSub.data, newResults)
         });
         contextForThisParentSub.onQueryStateChange == null ? void 0 : contextForThisParentSub.onQueryStateChange();
@@ -6720,7 +6718,7 @@ function createQueryManager(mmGQLInstance) {
                         onError: function onError(error) {
                           console.error('sub error', error);
                         },
-                        onMessage: _this.subscriptionMessageHandlers[rootLevelAlias],
+                        onMessage: _this.onSubscriptionMessage,
                         mmGQLInstance: mmGQLInstance
                       });
                     });
