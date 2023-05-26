@@ -1634,10 +1634,33 @@ export function capitalizeFirstLetter(string: string) {
 }
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
-  return opts.queryId
-    .replace(/-/g, '_')
+  // take a string that looks like this
+  // at BloomSideNav (webpack-internal:///./pages/layout/sideNav/sideNav.tsx:92:75)suspendDisabled_user
+  // and sanitize it so it's a valid gql operation name
+  const { queryId } = opts;
+
+  return queryId
     .replace(/ /g, '_')
+    .replace(/\(/g, '_')
+    .replace(/\)/g, '_')
+    .replace(/\./g, '_')
+    .replace(/-/g, '_')
+    .replace(/,/g, '_')
+    .replace(/:/g, '_')
+    .replace(/'/g, '_')
+    .replace(/"/g, '_')
+    .replace(/@/g, '_')
     .replace(/\//g, '_')
     .replace(/\\/g, '_')
-    .replace(/\./g, '_');
+    .replace(/\?/g, '_')
+    .replace(/!/g, '_')
+    .replace(/#/g, '_')
+    .replace(/\$/g, '_')
+    .replace(/%/g, '_')
+    .replace(/\^/g, '_')
+    .replace(/&/g, '_')
+    .replace(/\*/g, '_')
+    .replace(/\+/g, '_')
+    .replace(/=/g, '_')
+    .replace(/\|/g, '_');
 }
