@@ -2138,7 +2138,7 @@ function capitalizeFirstLetter(string) {
 }
 
 function getSanitizedQueryId(opts) {
-  return opts.queryId.replace(/-/g, '_');
+  return opts.queryId.replace(/-/g, '_').replace(/ /g, '_').replace(/\//g, '_').replace(/\\/g, '_').replace(/\./g, '_');
 }
 
 function createDOProxyGenerator(mmGQLInstance) {
