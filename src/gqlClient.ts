@@ -162,7 +162,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return data;
     },
     subscribe: opts => {
-      if (gqlClientOpts.logging.gqlClientSubscriptions) {
+      if (gqlClientOpts.logging.gqlSubscriptions) {
         console.log('subscribing', getPrettyPrintedGQL(opts.gql));
       }
 
@@ -172,7 +172,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         })
         .subscribe({
           next: message => {
-            gqlClientOpts.logging.gqlClientSubscriptions &&
+            gqlClientOpts.logging.gqlSubscriptions &&
               console.log(
                 'subscription message',
                 JSON.stringify(message, null, 2)
@@ -189,7 +189,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return () => subscription.unsubscribe();
     },
     mutate: async opts => {
-      gqlClientOpts.logging.gqlClientMutations &&
+      gqlClientOpts.logging.gqlMutations &&
         console.log(
           'mutations',
           opts.mutations.map(mutation => mutation.loc?.source.body)

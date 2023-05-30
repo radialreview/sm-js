@@ -73,9 +73,10 @@ export type Config = {
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance
   logging: {
     querySlimming: boolean
-    gqlClientQueries: boolean
-    gqlClientMutations: boolean
-    gqlClientSubscriptions: boolean
+    gqlQueries: boolean
+    gqlMutations: boolean
+    gqlSubscriptions: boolean
+    gqlSubscriptionErrors: boolean
   }
 };
 

@@ -80,28 +80,29 @@ export const MMGQLProvider = (props: {
     []
   );
 
-  const scheduleCleanup: IContext['scheduleCleanup'] = React.useCallback(() => {
-    // function cleanup() {
-    //   const existingContextSubscription =
-    //     ongoingSubscriptionRecord.current[subscriptionId];
-    //   if (existingContextSubscription) {
-    //     existingContextSubscription.unsub &&
-    //       existingContextSubscription.unsub();
-    //     delete ongoingSubscriptionRecord.current[subscriptionId];
-    //   }
-    // }
+  const scheduleCleanup: IContext['scheduleCleanup'] = React.useCallback(
+    (subscriptionId: string) => {
+      function cleanup() {
+        const existingContextSubscription =
+          ongoingSubscriptionRecord.current[subscriptionId];
+        if (existingContextSubscription) {
+          existingContextSubscription.unsub &&
+            existingContextSubscription.unsub();
+          delete ongoingSubscriptionRecord.current[subscriptionId];
+        }
+      }
 
-    if (props.subscriptionTTLMs != null) {
-      console.log('cleaning up after', props.subscriptionTTLMs);
-      // cleanupTimeoutRecord.current[subscriptionId] = setTimeout(
-      //   cleanup,
-      //   props.subscriptionTTLMs
-      // );
-    } else {
-      console.log('cleaning up');
-      // cleanup();
-    }
-  }, [props.subscriptionTTLMs]);
+      if (props.subscriptionTTLMs != null) {
+        cleanupTimeoutRecord.current[subscriptionId] = setTimeout(
+          cleanup,
+          props.subscriptionTTLMs
+        );
+      } else {
+        cleanup();
+      }
+    },
+    [props.subscriptionTTLMs]
+  );
 
   const cancelCleanup: IContext['cancelCleanup'] = React.useCallback(
     subscriptionId => {
