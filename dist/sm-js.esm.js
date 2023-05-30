@@ -6883,7 +6883,7 @@ function createQueryManager(mmGQLInstance) {
           var messageType = (_message$data = message.data) == null ? void 0 : (_message$data$rootLev = _message$data[rootLevelAlias]) == null ? void 0 : _message$data$rootLev.__typename;
 
           if (!messageType) {
-            _this2.logSubscriptionError('Invalid subscription message\n' + JSON.stringify(message, null, 2));
+            return _this2.logSubscriptionError('Invalid subscription message\n' + JSON.stringify(message, null, 2));
           }
 
           if (messageType.startsWith('Updated_')) {
@@ -6891,13 +6891,13 @@ function createQueryManager(mmGQLInstance) {
             var lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
 
             if (!nodeUpdatePaths[lowerCaseNodeType]) {
-              _this2.logSubscriptionError("No node update handler found for " + lowerCaseNodeType);
+              return _this2.logSubscriptionError("No node update handler found for " + lowerCaseNodeType);
             }
 
             var nodeData = message.data[rootLevelAlias].value;
             nodeUpdatePaths[lowerCaseNodeType].forEach(function (path) {
               var queryRecordEntry = path.queryRecordEntry;
-              if (!queryRecordEntry) _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
+              if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
             });
           } else if (messageType.startsWith('Created_')) {
@@ -6905,16 +6905,14 @@ function createQueryManager(mmGQLInstance) {
 
             var _lowerCaseNodeType = lowerCaseFirstLetter(_nodeType);
 
-            if (!nodeCreatePaths[_lowerCaseNodeType]) {
-              _this2.logSubscriptionError("No node create handler found for " + _lowerCaseNodeType);
-            }
+            if (!nodeCreatePaths[_lowerCaseNodeType]) return _this2.logSubscriptionError("No node create handler found for " + _lowerCaseNodeType);
 
             nodeCreatePaths[_lowerCaseNodeType].forEach(function (path) {
               var stateEntry = _this2.state[path.aliasPath[0]];
-              if (!stateEntry) _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
+              if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value;
               var queryRecordEntry = path.queryRecordEntry;
-              if (!queryRecordEntry) _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
+              if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
 
               var newCacheEntry = _this2.buildCacheEntry({
@@ -6931,29 +6929,14 @@ function createQueryManager(mmGQLInstance) {
                 collectionsIncludePagingInfo: false
               });
 
-              if (!newCacheEntry) {
-                _this2.logSubscriptionError('No new cache entry found');
-
-                return;
-              }
-
-              if (!stateEntry.idsOrIdInCurrentResult) _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
+              if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
+              if (!stateEntry.idsOrIdInCurrentResult) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
 
               if (queryRecordEntryReturnsArrayOfData({
                 queryRecordEntry: queryRecordEntry
               })) {
-                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                  _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-
-                  return;
-                }
-
-                if (stateEntry.totalCount == null) {
-                  _this2.logSubscriptionError('No totalCount found');
-
-                  return;
-                }
-
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
+                if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
                 stateEntry.totalCount++;
               } else {
@@ -6967,26 +6950,15 @@ function createQueryManager(mmGQLInstance) {
 
             var _lowerCaseNodeType2 = lowerCaseFirstLetter(_nodeType2);
 
-            if (!nodeDeletePaths[_lowerCaseNodeType2]) _this2.logSubscriptionError("No node delete handler found for " + _lowerCaseNodeType2);
+            if (!nodeDeletePaths[_lowerCaseNodeType2]) return _this2.logSubscriptionError("No node delete handler found for " + _lowerCaseNodeType2);
 
             nodeDeletePaths[_lowerCaseNodeType2].forEach(function (path) {
               var stateEntry = _this2.state[path.aliasPath[0]];
-              if (!stateEntry) _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
+              if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeDeletedId = message.data[rootLevelAlias].id;
-              if (nodeDeletedId == null) _this2.logSubscriptionError('Node deleted message did not include an id');
-
-              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-
-                return;
-              }
-
-              if (stateEntry.totalCount == null) {
-                _this2.logSubscriptionError('No totalCount found');
-
-                return;
-              }
-
+              if (nodeDeletedId == null) return _this2.logSubscriptionError('Node deleted message did not include an id');
+              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
+              if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
               var nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(nodeDeletedId);
               if (nodeIdx === -1) return;
               stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
@@ -6998,31 +6970,17 @@ function createQueryManager(mmGQLInstance) {
                 parentNodeType = _getNodeTypeAndParent.parentNodeType,
                 childNodeType = _getNodeTypeAndParent.childNodeType;
 
-            if (!nodeInsertPaths[parentNodeType + "." + childNodeType]) {
-              _this2.logSubscriptionError("No node insert handler found for " + parentNodeType + "." + childNodeType);
-            }
-
+            if (!nodeInsertPaths[parentNodeType + "." + childNodeType]) return _this2.logSubscriptionError("No node insert handler found for " + parentNodeType + "." + childNodeType);
             nodeInsertPaths[parentNodeType + "." + childNodeType].forEach(function (path) {
               var _message$data$rootLev2, _message$data$rootLev3;
 
               var parentId = (_message$data$rootLev2 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev2.id;
               var parentRelationshipWhichWasInsertedInto = (_message$data$rootLev3 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev3.property;
-              if (!parentId) _this2.logSubscriptionError('No parentId found');
-              if (!parentRelationshipWhichWasInsertedInto) _this2.logSubscriptionError('No parentRelationshipWhichWasInsertedInto found');
+              if (!parentId) return _this2.logSubscriptionError('No parentId found');
+              if (!parentRelationshipWhichWasInsertedInto) return _this2.logSubscriptionError('No parentRelationshipWhichWasInsertedInto found');
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
-
-              if (!parentQueryRecordEntry) {
-                _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
-
-                return;
-              }
-
-              if (!parentQueryRecordEntry.relational) {
-                _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
-
-                return;
-              }
-
+              if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
+              if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
               var nodeInsertedData = message.data[rootLevelAlias].value;
               path.queryRecordEntry.def.repository.onDataReceived(nodeInsertedData);
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
@@ -7041,45 +6999,24 @@ function createQueryManager(mmGQLInstance) {
                 collectionsIncludePagingInfo: false
               });
 
-              if (!newCacheEntry) {
-                _this2.logSubscriptionError('No new cache entry found');
-
-                return;
-              }
+              if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath
               });
 
-              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) _this2.logSubscriptionError('No parent cache entries found');
+              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
               cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
                 var _state;
 
                 var stateEntry = stateCacheEntry.leafStateEntry;
                 var parentProxy = stateCacheEntry.parentProxy;
-
-                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                  _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-
-                  return;
-                }
-
-                if (stateEntry.totalCount == null) {
-                  _this2.logSubscriptionError('No totalCount found');
-
-                  return;
-                }
-
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
+                if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
                 stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                 stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
                 stateEntry.totalCount++;
-
-                if (!parentProxy) {
-                  _this2.logSubscriptionError('No parent proxy found');
-
-                  return;
-                }
-
+                if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state = {}, _state[relationalAlias] = stateEntry, _state),
                   aliasPath: path.aliasPath
@@ -7091,29 +7028,18 @@ function createQueryManager(mmGQLInstance) {
                 _parentNodeType = _getNodeTypeAndParent2.parentNodeType,
                 _childNodeType = _getNodeTypeAndParent2.childNodeType;
 
-            if (!nodeRemovePaths[_parentNodeType + "." + _childNodeType]) _this2.logSubscriptionError("No node remove handler found for " + _parentNodeType + "." + _childNodeType);
+            if (!nodeRemovePaths[_parentNodeType + "." + _childNodeType]) return _this2.logSubscriptionError("No node remove handler found for " + _parentNodeType + "." + _childNodeType);
 
             nodeRemovePaths[_parentNodeType + "." + _childNodeType].forEach(function (path) {
               var _message$data$rootLev4, _message$data$rootLev5;
 
               var parentId = (_message$data$rootLev4 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev4.id;
               var parentRelationshipWhichWasRemovedFrom = (_message$data$rootLev5 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev5.property;
-              if (!parentId) _this2.logSubscriptionError('No parentId found');
-              if (!parentRelationshipWhichWasRemovedFrom) _this2.logSubscriptionError('No parentRelationshipWhichWasRemovedFrom found');
+              if (!parentId) return _this2.logSubscriptionError('No parentId found');
+              if (!parentRelationshipWhichWasRemovedFrom) return _this2.logSubscriptionError('No parentRelationshipWhichWasRemovedFrom found');
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
-
-              if (!parentQueryRecordEntry) {
-                _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
-
-                return;
-              }
-
-              if (!parentQueryRecordEntry.relational) {
-                _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
-
-                return;
-              }
-
+              if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
+              if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
               var nodeRemovedId = message.data[rootLevelAlias].id;
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
 
@@ -7121,39 +7047,22 @@ function createQueryManager(mmGQLInstance) {
                 aliasPath: path.aliasPath
               });
 
-              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) _this2.logSubscriptionError('No parent cache entries found');
+              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
               cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
                 var _state2;
 
                 var stateEntry = stateCacheEntry.leafStateEntry;
                 var parentProxy = stateCacheEntry.parentProxy;
-
-                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                  _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-
-                  return;
-                }
-
-                if (stateEntry.totalCount == null) {
-                  _this2.logSubscriptionError('No totalCount found');
-
-                  return;
-                }
-
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
+                if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
                 var indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(function (id) {
                   return id === nodeRemovedId;
                 });
-                if (indexOfRemovedId === -1) _this2.logSubscriptionError("Could not find index of removed id " + nodeRemovedId);
+                if (indexOfRemovedId === -1) return _this2.logSubscriptionError("Could not find index of removed id " + nodeRemovedId);
                 stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
                 delete stateEntry.proxyCache[nodeRemovedId];
                 stateEntry.totalCount--;
-
-                if (!parentProxy) {
-                  _this2.logSubscriptionError('No parent proxy found');
-
-                  return;
-                }
-
+                if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state2 = {}, _state2[relationalAlias] = stateEntry, _state2),
                   aliasPath: path.aliasPath
@@ -7165,31 +7074,18 @@ function createQueryManager(mmGQLInstance) {
                 _parentNodeType2 = _getNodeTypeAndParent3.parentNodeType,
                 _childNodeType2 = _getNodeTypeAndParent3.childNodeType;
 
-            if (!nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2]) {
-              _this2.logSubscriptionError("No node update association handler found for " + _parentNodeType2 + "." + _childNodeType2);
-            }
+            if (!nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2]) return _this2.logSubscriptionError("No node update association handler found for " + _parentNodeType2 + "." + _childNodeType2);
 
             nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2].forEach(function (path) {
               var _message$data$rootLev6, _message$data$rootLev7;
 
               var parentId = (_message$data$rootLev6 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev6.id;
               var parentRelationshipWhichWasInsertedInto = (_message$data$rootLev7 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev7.property;
-              if (!parentId) _this2.logSubscriptionError('No parentId found');
-              if (!parentRelationshipWhichWasInsertedInto) _this2.logSubscriptionError('No parentRelationshipWhichWasInsertedInto found');
+              if (!parentId) return _this2.logSubscriptionError('No parentId found');
+              if (!parentRelationshipWhichWasInsertedInto) return _this2.logSubscriptionError('No parentRelationshipWhichWasInsertedInto found');
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
-
-              if (!parentQueryRecordEntry) {
-                _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
-
-                return;
-              }
-
-              if (!parentQueryRecordEntry.relational) {
-                _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
-
-                return;
-              }
-
+              if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
+              if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
               var nodeAssociatedData = message.data[rootLevelAlias].value;
               path.queryRecordEntry.def.repository.onDataReceived(nodeAssociatedData);
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
@@ -7208,22 +7104,13 @@ function createQueryManager(mmGQLInstance) {
                 collectionsIncludePagingInfo: false
               });
 
-              if (!newCacheEntry) {
-                _this2.logSubscriptionError('No new cache entry found');
-
-                return;
-              }
+              if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath
               });
 
-              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) {
-                _this2.logSubscriptionError('No parent cache entries found');
-
-                return;
-              }
-
+              if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
               cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
                 var _state3;
 
@@ -7231,13 +7118,7 @@ function createQueryManager(mmGQLInstance) {
                 var parentProxy = stateCacheEntry.parentProxy;
                 stateEntry.idsOrIdInCurrentResult = nodeAssociatedData.id;
                 stateEntry.proxyCache[nodeAssociatedData.id] = newCacheEntry.proxyCache[nodeAssociatedData.id];
-
-                if (!parentProxy) {
-                  _this2.logSubscriptionError('No parent proxy found');
-
-                  return;
-                }
-
+                if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state3 = {}, _state3[relationalAlias] = stateEntry, _state3),
                   aliasPath: path.aliasPath
