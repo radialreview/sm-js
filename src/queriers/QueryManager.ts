@@ -195,7 +195,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         handlers[rootLevelAlias] = (message: SubscriptionMessage) => {
           const messageType = message.data?.[rootLevelAlias]?.__typename;
           if (!messageType) {
-            this.logSubscriptionError(
+            return this.logSubscriptionError(
               'Invalid subscription message\n' +
                 JSON.stringify(message, null, 2)
             );
@@ -205,7 +205,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const nodeType = messageType.replace('Updated_', '');
             const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
             if (!nodeUpdatePaths[lowerCaseNodeType]) {
-              this.logSubscriptionError(
+              return this.logSubscriptionError(
                 `No node update handler found for ${lowerCaseNodeType}`
               );
             }
@@ -218,7 +218,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
@@ -228,16 +228,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const nodeType = messageType.replace('Created_', '');
             const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
 
-            if (!nodeCreatePaths[lowerCaseNodeType]) {
-              this.logSubscriptionError(
+            if (!nodeCreatePaths[lowerCaseNodeType])
+              return this.logSubscriptionError(
                 `No node create handler found for ${lowerCaseNodeType}`
               );
-            }
 
             nodeCreatePaths[lowerCaseNodeType].forEach(path => {
               const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   `No state entry found for ${path.aliasPath[0]}`
                 );
 
@@ -248,7 +247,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
@@ -268,27 +267,21 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 collectionsIncludePagingInfo: false,
               });
 
-              if (!newCacheEntry) {
-                this.logSubscriptionError('No new cache entry found');
-                return;
-              }
+              if (!newCacheEntry)
+                return this.logSubscriptionError('No new cache entry found');
 
               if (!stateEntry.idsOrIdInCurrentResult)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   'No idsOrIdInCurrentResult found on state entry'
                 );
               if (queryRecordEntryReturnsArrayOfData({ queryRecordEntry })) {
-                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                  this.logSubscriptionError(
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                  return this.logSubscriptionError(
                     'idsOrIdInCurrentResult is not an array'
                   );
-                  return;
-                }
 
-                if (stateEntry.totalCount == null) {
-                  this.logSubscriptionError('No totalCount found');
-                  return;
-                }
+                if (stateEntry.totalCount == null)
+                  return this.logSubscriptionError('No totalCount found');
 
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
                 stateEntry.totalCount++;
@@ -304,33 +297,30 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
 
             if (!nodeDeletePaths[lowerCaseNodeType])
-              this.logSubscriptionError(
+              return this.logSubscriptionError(
                 `No node delete handler found for ${lowerCaseNodeType}`
               );
 
             nodeDeletePaths[lowerCaseNodeType].forEach(path => {
               const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   `No state entry found for ${path.aliasPath[0]}`
                 );
 
               const nodeDeletedId = message.data[rootLevelAlias].id as string;
               if (nodeDeletedId == null)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   'Node deleted message did not include an id'
                 );
 
-              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                this.logSubscriptionError(
+              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                return this.logSubscriptionError(
                   'idsOrIdInCurrentResult is not an array'
                 );
-                return;
-              }
-              if (stateEntry.totalCount == null) {
-                this.logSubscriptionError('No totalCount found');
-                return;
-              }
+
+              if (stateEntry.totalCount == null)
+                return this.logSubscriptionError('No totalCount found');
 
               const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
                 nodeDeletedId
@@ -349,11 +339,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               messageType
             );
 
-            if (!nodeInsertPaths[`${parentNodeType}.${childNodeType}`]) {
-              this.logSubscriptionError(
+            if (!nodeInsertPaths[`${parentNodeType}.${childNodeType}`])
+              return this.logSubscriptionError(
                 `No node insert handler found for ${parentNodeType}.${childNodeType}`
               );
-            }
 
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
@@ -361,25 +350,22 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const parentRelationshipWhichWasInsertedInto =
                   message.data[rootLevelAlias].target?.property;
 
-                if (!parentId) this.logSubscriptionError('No parentId found');
+                if (!parentId)
+                  return this.logSubscriptionError('No parentId found');
                 if (!parentRelationshipWhichWasInsertedInto)
-                  this.logSubscriptionError(
+                  return this.logSubscriptionError(
                     'No parentRelationshipWhichWasInsertedInto found'
                   );
 
                 const { parentQueryRecordEntry } = path;
-                if (!parentQueryRecordEntry) {
-                  this.logSubscriptionError(
+                if (!parentQueryRecordEntry)
+                  return this.logSubscriptionError(
                     `No parentQueryRecord found for ${messageType}`
                   );
-                  return;
-                }
-                if (!parentQueryRecordEntry.relational) {
-                  this.logSubscriptionError(
+                if (!parentQueryRecordEntry.relational)
+                  return this.logSubscriptionError(
                     `No parentQueryRecordEntry.relational found for ${messageType}`
                   );
-                  return;
-                }
 
                 const nodeInsertedData = message.data[rootLevelAlias].value as {
                   id: string;
@@ -405,10 +391,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   collectionsIncludePagingInfo: false,
                 });
 
-                if (!newCacheEntry) {
-                  this.logSubscriptionError('No new cache entry found');
-                  return;
-                }
+                if (!newCacheEntry)
+                  return this.logSubscriptionError('No new cache entry found');
 
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
@@ -420,32 +404,29 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   !cacheEntriesWhichRequireUpdate ||
                   cacheEntriesWhichRequireUpdate.length === 0
                 )
-                  this.logSubscriptionError('No parent cache entries found');
+                  return this.logSubscriptionError(
+                    'No parent cache entries found'
+                  );
 
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                   const stateEntry = stateCacheEntry.leafStateEntry;
                   const parentProxy = stateCacheEntry.parentProxy;
 
-                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                    this.logSubscriptionError(
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    return this.logSubscriptionError(
                       'idsOrIdInCurrentResult is not an array'
                     );
-                    return;
-                  }
-                  if (stateEntry.totalCount == null) {
-                    this.logSubscriptionError('No totalCount found');
-                    return;
-                  }
+
+                  if (stateEntry.totalCount == null)
+                    return this.logSubscriptionError('No totalCount found');
 
                   stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
                   stateEntry.totalCount++;
 
-                  if (!parentProxy) {
-                    this.logSubscriptionError('No parent proxy found');
-                    return;
-                  }
+                  if (!parentProxy)
+                    return this.logSubscriptionError('No parent proxy found');
 
                   parentProxy.updateRelationalResults(
                     this.getResultsFromState({
@@ -467,7 +448,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             );
 
             if (!nodeRemovePaths[`${parentNodeType}.${childNodeType}`])
-              this.logSubscriptionError(
+              return this.logSubscriptionError(
                 `No node remove handler found for ${parentNodeType}.${childNodeType}`
               );
 
@@ -477,25 +458,23 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const parentRelationshipWhichWasRemovedFrom =
                   message.data[rootLevelAlias].target?.property;
 
-                if (!parentId) this.logSubscriptionError('No parentId found');
+                if (!parentId)
+                  return this.logSubscriptionError('No parentId found');
                 if (!parentRelationshipWhichWasRemovedFrom)
-                  this.logSubscriptionError(
+                  return this.logSubscriptionError(
                     'No parentRelationshipWhichWasRemovedFrom found'
                   );
 
                 const { parentQueryRecordEntry } = path;
-                if (!parentQueryRecordEntry) {
-                  this.logSubscriptionError(
+                if (!parentQueryRecordEntry)
+                  return this.logSubscriptionError(
                     `No parentQueryRecord found for ${messageType}`
                   );
-                  return;
-                }
-                if (!parentQueryRecordEntry.relational) {
-                  this.logSubscriptionError(
+
+                if (!parentQueryRecordEntry.relational)
+                  return this.logSubscriptionError(
                     `No parentQueryRecordEntry.relational found for ${messageType}`
                   );
-                  return;
-                }
 
                 const nodeRemovedId = message.data[rootLevelAlias].id as
                   | string
@@ -514,29 +493,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   !cacheEntriesWhichRequireUpdate ||
                   cacheEntriesWhichRequireUpdate.length === 0
                 )
-                  this.logSubscriptionError('No parent cache entries found');
+                  return this.logSubscriptionError(
+                    'No parent cache entries found'
+                  );
 
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                   const stateEntry = stateCacheEntry.leafStateEntry;
                   const parentProxy = stateCacheEntry.parentProxy;
 
-                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) {
-                    this.logSubscriptionError(
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    return this.logSubscriptionError(
                       'idsOrIdInCurrentResult is not an array'
                     );
-                    return;
-                  }
-                  if (stateEntry.totalCount == null) {
-                    this.logSubscriptionError('No totalCount found');
-                    return;
-                  }
+
+                  if (stateEntry.totalCount == null)
+                    return this.logSubscriptionError('No totalCount found');
 
                   const indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(
                     id => id === nodeRemovedId
                   );
 
                   if (indexOfRemovedId === -1)
-                    this.logSubscriptionError(
+                    return this.logSubscriptionError(
                       `Could not find index of removed id ${nodeRemovedId}`
                     );
 
@@ -544,10 +522,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   delete stateEntry.proxyCache[nodeRemovedId];
                   stateEntry.totalCount--;
 
-                  if (!parentProxy) {
-                    this.logSubscriptionError('No parent proxy found');
-                    return;
-                  }
+                  if (!parentProxy)
+                    return this.logSubscriptionError('No parent proxy found');
 
                   parentProxy.updateRelationalResults(
                     this.getResultsFromState({
@@ -570,11 +546,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             if (
               !nodeUpdateAssociationPaths[`${parentNodeType}.${childNodeType}`]
-            ) {
-              this.logSubscriptionError(
+            )
+              return this.logSubscriptionError(
                 `No node update association handler found for ${parentNodeType}.${childNodeType}`
               );
-            }
 
             nodeUpdateAssociationPaths[
               `${parentNodeType}.${childNodeType}`
@@ -583,25 +558,23 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const parentRelationshipWhichWasInsertedInto =
                 message.data[rootLevelAlias].target?.property;
 
-              if (!parentId) this.logSubscriptionError('No parentId found');
+              if (!parentId)
+                return this.logSubscriptionError('No parentId found');
               if (!parentRelationshipWhichWasInsertedInto)
-                this.logSubscriptionError(
+                return this.logSubscriptionError(
                   'No parentRelationshipWhichWasInsertedInto found'
                 );
 
               const { parentQueryRecordEntry } = path;
-              if (!parentQueryRecordEntry) {
-                this.logSubscriptionError(
+              if (!parentQueryRecordEntry)
+                return this.logSubscriptionError(
                   `No parentQueryRecord found for ${messageType}`
                 );
-                return;
-              }
-              if (!parentQueryRecordEntry.relational) {
-                this.logSubscriptionError(
+
+              if (!parentQueryRecordEntry.relational)
+                return this.logSubscriptionError(
                   `No parentQueryRecordEntry.relational found for ${messageType}`
                 );
-                return;
-              }
 
               const nodeAssociatedData = message.data[rootLevelAlias].value as {
                 id: string;
@@ -626,10 +599,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 collectionsIncludePagingInfo: false,
               });
 
-              if (!newCacheEntry) {
-                this.logSubscriptionError('No new cache entry found');
-                return;
-              }
+              if (!newCacheEntry)
+                return this.logSubscriptionError('No new cache entry found');
 
               const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                 {
@@ -640,10 +611,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               if (
                 !cacheEntriesWhichRequireUpdate ||
                 cacheEntriesWhichRequireUpdate.length === 0
-              ) {
-                this.logSubscriptionError('No parent cache entries found');
-                return;
-              }
+              )
+                return this.logSubscriptionError(
+                  'No parent cache entries found'
+                );
 
               cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                 const stateEntry = stateCacheEntry.leafStateEntry;
@@ -653,10 +624,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 stateEntry.proxyCache[nodeAssociatedData.id] =
                   newCacheEntry.proxyCache[nodeAssociatedData.id];
 
-                if (!parentProxy) {
-                  this.logSubscriptionError('No parent proxy found');
-                  return;
-                }
+                if (!parentProxy)
+                  return this.logSubscriptionError('No parent proxy found');
 
                 parentProxy.updateRelationalResults(
                   this.getResultsFromState({
