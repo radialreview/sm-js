@@ -1470,7 +1470,9 @@ function getBEFilterString(opts) {
     var key = current;
     var filterForBE;
 
-    if (opts.filter[key] === null || typeof opts.filter[key] === 'string' || typeof opts.filter[key] === 'number' || typeof opts.filter[key] === 'boolean') {
+    if (opts.filter[key] === undefined) {
+      return acc;
+    } else if (opts.filter[key] === null || typeof opts.filter[key] === 'string' || typeof opts.filter[key] === 'number' || typeof opts.filter[key] === 'boolean') {
       filterForBE = {
         key: key,
         operatorValueCombos: [{
