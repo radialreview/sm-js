@@ -166,9 +166,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     // based on the root query record
     // return a record of message handlers, one for each root level alias
-    //
-    // @TODO
-    // - remove the aggressive erroring in favor of silent logging
     public getSubscriptionMessageHandlers(opts: { queryRecord: QueryRecord }) {
       const handlers: Record<
         string,
