@@ -6856,9 +6856,6 @@ function createQueryManager(mmGQLInstance) {
 
     // based on the root query record
     // return a record of message handlers, one for each root level alias
-    //
-    // @TODO
-    // - remove the aggressive erroring in favor of silent logging
     _proto.getSubscriptionMessageHandlers = function getSubscriptionMessageHandlers(opts) {
       var _this2 = this;
 
