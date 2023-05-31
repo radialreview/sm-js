@@ -6714,15 +6714,9 @@ function createQueryManager(mmGQLInstance) {
                       useServerSidePaginationFilteringSorting: _this.opts.useServerSidePaginationFilteringSorting
                     });
                     Object.keys(minimalQueryRecord).forEach(function (rootLevelAlias) {
-                      if (_this.unsubRecord[rootLevelAlias]) {
-                        // this query changed
-                        // unsubscribe from the previous query definition
-                        // and re-establish the subscription with the new query definition below
-                        _this.unsubRecord[rootLevelAlias]();
-                      }
-
                       if (!subscriptionGQLDocs[rootLevelAlias]) throw Error("No subscription GQL document found for root level alias " + rootLevelAlias);
                       if (!_this.subscriptionMessageHandlers[rootLevelAlias]) throw Error("No subscription message handler found for root level alias " + rootLevelAlias);
+                      var existingSubCanceller = _this.unsubRecord[rootLevelAlias];
                       _this.unsubRecord[rootLevelAlias] = subscribe({
                         queryGQL: subscriptionGQLDocs[rootLevelAlias],
                         // @TODO revert after done testing
@@ -6733,6 +6727,14 @@ function createQueryManager(mmGQLInstance) {
                         onMessage: _this.onSubscriptionMessage,
                         mmGQLInstance: mmGQLInstance
                       });
+
+                      if (existingSubCanceller) {
+                        // this query changed
+                        // cancel the previous query definition subscription
+                        // it's important that this happens after the new subscription is created
+                        // otherwise some subscription messages may be missed
+                        existingSubCanceller();
+                      }
                     });
                   }
 
