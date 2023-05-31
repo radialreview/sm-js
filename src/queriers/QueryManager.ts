@@ -666,7 +666,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           // this is because in some cases, we will want to modify state entries that do no exist
           // at the time of the subscription handler creation.
           // For example, I may be subscribed to a query that returns a list of users and their todos.
-          // While the subscription is action, a new user may be created, and that new user may get some todos assigned to them.
+          // While the subscription is active, a new user may be created, and that new user may get some todos assigned to them.
           // With a direct memory pointer approach, there would be no way to update the state entry for the new user.
           aliasPath: Array<string>;
           queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;

@@ -1031,17 +1031,6 @@ function getRootLevelQueryString(
   );
 }
 
-export type SubscriptionConfig = {
-  alias: string;
-  gqlString: string;
-  extractNodeFromSubscriptionMessage: (
-    subscriptionMessage: Record<string, any>
-  ) => any;
-  extractOperationFromSubscriptionMessage: (
-    subscriptionMessage: Record<string, any>
-  ) => any;
-};
-
 export function getQueryGQLDocumentFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
@@ -1311,6 +1300,7 @@ type RelationalSubscriptionMetadata = {
 
 /**
  * Flattens relational queries into an array of RelationalSubscriptionMetadata
+ * See the comments in getRelationalSubscriptionString to understand why
  */
 function getRelationalSubscriptionMetadatas(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
