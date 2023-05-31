@@ -1745,12 +1745,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         Object.keys(minimalQueryRecord).forEach(rootLevelAlias => {
           if (!subscriptionGQLDocs[rootLevelAlias])
-            throw Error(
+            return this.logSubscriptionError(
               `No subscription GQL document found for root level alias ${rootLevelAlias}`
             );
 
           if (!this.subscriptionMessageHandlers[rootLevelAlias])
-            throw Error(
+            return this.logSubscriptionError(
               `No subscription message handler found for root level alias ${rootLevelAlias}`
             );
 
@@ -1758,10 +1758,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           this.unsubRecord[rootLevelAlias] = subscribe({
             queryGQL: subscriptionGQLDocs[rootLevelAlias],
-            // @TODO revert after done testing
+            // @TODO revert after BE no longer throwing errors for missing fields in subs
             // onError: this.opts.onSubscriptionError,
             onError: error => {
-              console.error('sub error', error);
+              this.logSubscriptionError(error);
             },
             onMessage: this.onSubscriptionMessage,
             mmGQLInstance: mmGQLInstance,
