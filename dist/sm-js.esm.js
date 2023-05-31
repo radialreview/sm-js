@@ -1963,6 +1963,7 @@ function getQueryRecordEntrySubscriptionFragmentInnerContents(opts) {
 }
 /**
  * Flattens relational queries into an array of RelationalSubscriptionMetadata
+ * See the comments in getRelationalSubscriptionString to understand why
  */
 
 

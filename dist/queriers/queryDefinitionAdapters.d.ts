@@ -10,12 +10,6 @@ export declare function getBEFilterString<TNode extends INode>(opts: {
     relational?: Record<string, RelationalQueryRecordEntry>;
     isCollectionFilter: boolean;
 }): string;
-export declare type SubscriptionConfig = {
-    alias: string;
-    gqlString: string;
-    extractNodeFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
-    extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
-};
 export declare function getQueryGQLDocumentFromQueryRecord(opts: {
     queryId: string;
     queryRecord: QueryRecord;
