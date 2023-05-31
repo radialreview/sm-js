@@ -1744,13 +1744,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         });
 
         Object.keys(minimalQueryRecord).forEach(rootLevelAlias => {
-          if (this.unsubRecord[rootLevelAlias]) {
-            // this query changed
-            // unsubscribe from the previous query definition
-            // and re-establish the subscription with the new query definition below
-            this.unsubRecord[rootLevelAlias]();
-          }
-
           if (!subscriptionGQLDocs[rootLevelAlias])
             throw Error(
               `No subscription GQL document found for root level alias ${rootLevelAlias}`
@@ -1760,6 +1753,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             throw Error(
               `No subscription message handler found for root level alias ${rootLevelAlias}`
             );
+
+          const existingSubCanceller = this.unsubRecord[rootLevelAlias];
 
           this.unsubRecord[rootLevelAlias] = subscribe({
             queryGQL: subscriptionGQLDocs[rootLevelAlias],
@@ -1771,6 +1766,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             onMessage: this.onSubscriptionMessage,
             mmGQLInstance: mmGQLInstance,
           });
+
+          if (existingSubCanceller) {
+            // this query changed
+            // cancel the previous query definition subscription
+            // it's important that this happens after the new subscription is created
+            // otherwise some subscription messages may be missed
+            existingSubCanceller();
+          }
         });
       }
 
