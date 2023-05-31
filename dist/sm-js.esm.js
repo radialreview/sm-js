@@ -6722,15 +6722,15 @@ function createQueryManager(mmGQLInstance) {
                       useServerSidePaginationFilteringSorting: _this.opts.useServerSidePaginationFilteringSorting
                     });
                     Object.keys(minimalQueryRecord).forEach(function (rootLevelAlias) {
-                      if (!subscriptionGQLDocs[rootLevelAlias]) throw Error("No subscription GQL document found for root level alias " + rootLevelAlias);
-                      if (!_this.subscriptionMessageHandlers[rootLevelAlias]) throw Error("No subscription message handler found for root level alias " + rootLevelAlias);
+                      if (!subscriptionGQLDocs[rootLevelAlias]) return _this.logSubscriptionError("No subscription GQL document found for root level alias " + rootLevelAlias);
+                      if (!_this.subscriptionMessageHandlers[rootLevelAlias]) return _this.logSubscriptionError("No subscription message handler found for root level alias " + rootLevelAlias);
                       var existingSubCanceller = _this.unsubRecord[rootLevelAlias];
                       _this.unsubRecord[rootLevelAlias] = subscribe({
                         queryGQL: subscriptionGQLDocs[rootLevelAlias],
-                        // @TODO revert after done testing
+                        // @TODO revert after BE no longer throwing errors for missing fields in subs
                         // onError: this.opts.onSubscriptionError,
                         onError: function onError(error) {
-                          console.error('sub error', error);
+                          _this.logSubscriptionError(error);
                         },
                         onMessage: _this.onSubscriptionMessage,
                         mmGQLInstance: mmGQLInstance
