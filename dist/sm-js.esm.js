@@ -3516,7 +3516,7 @@ function generateQuerier(_ref) {
               };
 
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || startStack.split('\n')[1] || "query" + queryIdx++;
               return _context.abrupt("return", new Promise(function (res, rej) {
                 var dataToReturn = {};
 
@@ -3600,7 +3600,7 @@ function generateSubscriber(mmGQLInstance) {
               };
 
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || startStack.split('\n')[1] || "query" + queryIdx++;
               return _context2.abrupt("return", new Promise(function (res, rej) {
                 var dataToReturn = {};
                 var handlers = {
@@ -4910,7 +4910,8 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     if (relational != null) {
       var dataForThisAlias = getDataFromQueryResponsePartial({
         queryResponsePartial: data[alias],
-        queryRecordEntry: queryRecordEntry
+        queryRecordEntry: queryRecordEntry,
+        collectionsIncludePagingInfo: true
       });
 
       if (Array.isArray(dataForThisAlias)) {
