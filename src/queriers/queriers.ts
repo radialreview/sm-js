@@ -26,7 +26,8 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
     opts?: QueryOpts<TQueryDefinitions>
   ): Promise<QueryReturn<TQueryDefinitions>> {
     const startStack = new Error().stack as string;
-    const queryId = opts?.queryId || `query${queryIdx++}`;
+    const queryId =
+      opts?.queryId || startStack.split('\n')[1] || `query${queryIdx++}`;
 
     function getError(error: any, stack?: string) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
@@ -119,7 +120,8 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
       : { data: QueryDataReturn<TQueryDefinitions> } & SubscriptionMeta;
 
     const startStack = new Error().stack as string;
-    const queryId = opts?.queryId || `query${queryIdx++}`;
+    const queryId =
+      opts?.queryId || startStack.split('\n')[1] || `query${queryIdx++}`;
 
     function getError(error: any, stack?: string) {
       // https://pavelevstigneev.medium.com/capture-javascript-async-stack-traces-870d1b9f6d39
