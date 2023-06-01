@@ -1630,30 +1630,8 @@ function getSanitizedQueryId(opts: { queryId: string }): string {
   // take a string that looks like this
   // at BloomSideNav (webpack-internal:///./pages/layout/sideNav/sideNav.tsx:92:75)suspendDisabled_user
   // and sanitize it so it's a valid gql operation name
-  const { queryId } = opts;
-
-  return queryId
-    .replace(/ /g, '_')
-    .replace(/\(/g, '_')
-    .replace(/\)/g, '_')
-    .replace(/\./g, '_')
-    .replace(/-/g, '_')
-    .replace(/,/g, '_')
-    .replace(/:/g, '_')
-    .replace(/'/g, '_')
-    .replace(/"/g, '_')
-    .replace(/@/g, '_')
-    .replace(/\//g, '_')
-    .replace(/\\/g, '_')
-    .replace(/\?/g, '_')
-    .replace(/!/g, '_')
-    .replace(/#/g, '_')
-    .replace(/\$/g, '_')
-    .replace(/%/g, '_')
-    .replace(/\^/g, '_')
-    .replace(/&/g, '_')
-    .replace(/\*/g, '_')
-    .replace(/\+/g, '_')
-    .replace(/=/g, '_')
-    .replace(/\|/g, '_');
+  // by replacing any character that isn't a word character (alphanumeric or underscore) with an underscore.
+  // example output:
+  // at_BloomSideNav__webpack_internal______pages_layout_sideNav_sideNav_tsx_92_75_suspendDisabled_user
+  return opts.queryId.replace(/\W/g, '_');
 }
