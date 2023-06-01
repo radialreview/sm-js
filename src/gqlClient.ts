@@ -9,8 +9,9 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { HttpLink } from '@apollo/client/link/http';
 // import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { Config, IGQLClient } from './types';
+import { Config, IGQLClient, SubscriptionMessage } from './types';
 import WebSocket from 'isomorphic-ws';
+import { getPrettyPrintedGQL } from './specUtilities';
 
 require('isomorphic-fetch');
 
@@ -22,17 +23,21 @@ interface IGetGQLClientOpts {
 }
 
 export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
+  const wsOptions: Record<string, any> = {
+    credentials: 'include',
+  };
+
+  if (gqlClientOpts.getCookie) {
+    wsOptions.headers = {
+      cookie: gqlClientOpts.getCookie(),
+    };
+  }
+
   const wsLink = new WebSocketLink({
     uri: gqlClientOpts.wsUrl,
     options: {
       reconnect: true,
-      wsOptionArguments: [
-        {
-          headers: {
-            cookie: gqlClientOpts.getCookie?.() || null,
-          },
-        },
-      ],
+      wsOptionArguments: [wsOptions],
     },
     webSocketImpl: WebSocket,
   });
@@ -157,13 +162,17 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return data;
     },
     subscribe: opts => {
+      if (gqlClientOpts.logging.gqlSubscriptions) {
+        console.log('subscribing', getPrettyPrintedGQL(opts.gql));
+      }
+
       const subscription = baseClient
         .subscribe({
           query: opts.gql,
         })
         .subscribe({
           next: message => {
-            gqlClientOpts.logging.gqlClientSubscriptions &&
+            gqlClientOpts.logging.gqlSubscriptions &&
               console.log(
                 'subscription message',
                 JSON.stringify(message, null, 2)
@@ -172,7 +181,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)
               );
-            else opts.onMessage(message.data);
+            else opts.onMessage(message as SubscriptionMessage);
           },
           error: opts.onError,
         });
@@ -180,7 +189,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       return () => subscription.unsubscribe();
     },
     mutate: async opts => {
-      gqlClientOpts.logging.gqlClientMutations &&
+      gqlClientOpts.logging.gqlMutations &&
         console.log(
           'mutations',
           opts.mutations.map(mutation => mutation.loc?.source.body)

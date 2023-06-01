@@ -95,10 +95,10 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         // This gives better json stringify results
         // by preventing attempts to get properties which are not
         // guaranteed to be up to date
+
         if (
           opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
-          (opts.relationalQueries &&
-            Object.keys(opts.relationalQueries).includes(key)) ||
+          opts.relationalResults?.hasOwnProperty(key) ||
           Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
         ) {
           return {
@@ -134,6 +134,29 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
       get: (target, key: string) => {
         if (key === 'updateRelationalResults') {
           return (newRelationalResults: Maybe<TRelationalResults>) => {
+            if (newRelationalResults) {
+              relationalResults &&
+                Object.keys(relationalResults).forEach(key => {
+                  Object.defineProperty(proxy, key, {
+                    enumerable: false,
+                    get: () => {
+                      throw new NotUpToDateException({
+                        propName: key,
+                        queryId: opts.queryId,
+                        nodeType: opts.node.type,
+                      });
+                    },
+                  });
+                });
+
+              Object.keys(newRelationalResults).forEach(key => {
+                Object.defineProperty(proxy, key, {
+                  enumerable: true,
+                  configurable: true,
+                });
+              });
+            }
+
             relationalResults = {
               ...relationalResults,
               ...newRelationalResults,
@@ -146,9 +169,6 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
           opts.relationalQueries &&
           Object.keys(relationalResults).includes(key)
         ) {
-          if ('oneToOne' in opts.relationalQueries[key]) {
-            return relationalResults[key];
-          }
           return relationalResults[key];
         }
 
@@ -200,6 +220,14 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         return target[key];
       },
     }) as NodeDO & TRelationalResults & IDOProxy;
+
+    opts.relationalResults &&
+      Object.keys(opts.relationalResults).forEach(key => {
+        Object.defineProperty(proxy, key, {
+          enumerable: true,
+          configurable: true,
+        });
+      });
 
     return proxy;
   };

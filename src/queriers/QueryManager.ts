@@ -9,6 +9,7 @@ import {
   NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   RELATIONAL_UNION_QUERY_SEPARATOR,
+  TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
 import { DataParsingException, UnreachableCaseError } from '../exceptions';
 import {
@@ -16,7 +17,6 @@ import {
   Maybe,
   IMMGQL,
   QueryRecord,
-  BaseQueryRecordEntry,
   RelationalQueryRecordEntry,
   QueryRecordEntry,
   DocumentNode,
@@ -34,6 +34,7 @@ import {
   getDataFromQueryResponsePartial,
   getQueryGQLDocumentFromQueryRecord,
   getQueryRecordFromQueryDefinition,
+  getSubscriptionGQLDocumentsFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
 import { extend } from '../dataUtilities';
@@ -53,7 +54,7 @@ type QueryManagerStateEntry = {
   idsOrIdInCurrentResult: string | Array<string> | null;
   // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
   // NOTE: different aliases may build different proxies for the same node
-  // this is because different aliases may have different fields queried for the same node
+  // this is because different aliases may have different relationships or fields queried for the same node
   proxyCache: QueryManagerProxyCache;
   pageInfoFromResults: Maybe<PageInfoFromResults>;
   totalCount: Maybe<number>;
@@ -72,16 +73,18 @@ type QueryManagerProxyCacheEntry = {
 
 type QueryManagerOpts = {
   queryId: string;
+  subscribe: boolean;
   useServerSidePaginationFilteringSorting: boolean;
   // an object which will be mutated when a "loadMoreResults" function is called
   // on a node collection
   // we use a mutable object here so that a query result can be partially updated
   // since when a "loadMoreResults" function is called, we don't re-request all
   // of the data for the query, just the data for the node collection
-  resultsObject: Object;
+  resultsObject: Record<string, any>;
   // A callback that is executed when the resultsObject above is mutated
   onResultsUpdated(): void;
   onQueryError(error: any): void;
+  onSubscriptionError(error: any): void;
   batchKey: Maybe<string>;
   onQueryStateChange?: (queryStateChangeOpts: {
     queryIdx: number;
@@ -101,6 +104,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
    *       4.1) notifying DO repositories with the data in those sub messages
    *       4.2) build proxies for new DOs received + update relational data (recursively) for proxies that had been previously built
    *    5) building the resulting data that is returned by queriers from its cache of proxies
+   *    6) triggering minimal queries and extending results when a "loadMoreResults" function is called on a node collection
    */
   return class QueryManager {
     public state: QueryManagerState = {};
@@ -110,6 +114,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
     public queryIdx: number = 0;
+    public subscriptionMessageHandlers: Record<
+      // root level alias
+      string,
+      (message: SubscriptionMessage) => void
+    > = {};
+    public unsubRecord: Record<
+      // root level alis
+      string,
+      () => void
+    > = {};
 
     constructor(
       queryDefinitions:
@@ -125,16 +139,734 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public onSubscriptionMessage(_message: SubscriptionMessage) {
+    public onSubscriptionMessage = (message: SubscriptionMessage) => {
       if (!this.queryRecord) throw Error('No query record initialized');
 
-      throw Error('Not implemented');
-      // Object.assign(
-      //   this.opts.resultsObject,
-      //   this.getResultsFromState({ state: this.state, aliasPath: [] })
-      // );
+      Object.keys(message.data).forEach(rootAlias => {
+        const handler = this.subscriptionMessageHandlers[rootAlias];
+        if (!handler)
+          throw Error(`No subscription message handler found for ${rootAlias}`);
 
-      // this.opts.onResultsUpdated();
+        handler(message);
+
+        this.opts.resultsObject[rootAlias] = this.getResultsFromState({
+          state: this.state,
+          aliasPath: [],
+        })[rootAlias];
+      });
+
+      this.opts.onResultsUpdated();
+    };
+
+    public logSubscriptionError = (error: string) => {
+      if (mmGQLInstance.logging.gqlSubscriptionErrors) {
+        console.error(error);
+      }
+    };
+
+    // based on the root query record
+    // return a record of message handlers, one for each root level alias
+    public getSubscriptionMessageHandlers(opts: { queryRecord: QueryRecord }) {
+      const handlers: Record<
+        string,
+        (message: SubscriptionMessage) => void
+      > = {};
+
+      Object.keys(opts.queryRecord).forEach(rootLevelAlias => {
+        const rootLevelQueryRecordEntry = opts.queryRecord[rootLevelAlias];
+        if (!rootLevelQueryRecordEntry) return;
+
+        const {
+          nodeUpdatePaths,
+          nodeCreatePaths,
+          nodeDeletePaths,
+          nodeInsertPaths,
+          nodeRemovePaths,
+          nodeUpdateAssociationPaths,
+        } = this.getSubscriptionEventToCachePathRecords({
+          aliasPath: [rootLevelAlias],
+          queryRecordEntry: rootLevelQueryRecordEntry,
+          parentQueryRecordEntry: null,
+        });
+
+        handlers[rootLevelAlias] = (message: SubscriptionMessage) => {
+          const messageType = message.data?.[rootLevelAlias]?.__typename;
+          if (!messageType) {
+            return this.logSubscriptionError(
+              'Invalid subscription message\n' +
+                JSON.stringify(message, null, 2)
+            );
+          }
+
+          if (messageType.startsWith('Updated_')) {
+            const nodeType = messageType.replace('Updated_', '');
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+            if (!nodeUpdatePaths[lowerCaseNodeType]) {
+              return this.logSubscriptionError(
+                `No node update handler found for ${lowerCaseNodeType}`
+              );
+            }
+
+            const nodeData = message.data[rootLevelAlias].value as {
+              id: string;
+            } & Record<string, any>;
+
+            nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
+              const queryRecordEntry = path.queryRecordEntry;
+
+              if (!queryRecordEntry)
+                return this.logSubscriptionError(
+                  `No queryRecordEntry found for ${path.aliasPath[0]}`
+                );
+
+              queryRecordEntry.def.repository.onDataReceived(nodeData);
+            });
+          } else if (messageType.startsWith('Created_')) {
+            const nodeType = messageType.replace('Created_', '');
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+
+            if (!nodeCreatePaths[lowerCaseNodeType])
+              return this.logSubscriptionError(
+                `No node create handler found for ${lowerCaseNodeType}`
+              );
+
+            nodeCreatePaths[lowerCaseNodeType].forEach(path => {
+              const stateEntry = this.state[path.aliasPath[0]];
+              if (!stateEntry)
+                return this.logSubscriptionError(
+                  `No state entry found for ${path.aliasPath[0]}`
+                );
+
+              const nodeData = message.data[rootLevelAlias].value as {
+                id: string;
+              } & Record<string, any>;
+
+              const queryRecordEntry = path.queryRecordEntry;
+
+              if (!queryRecordEntry)
+                return this.logSubscriptionError(
+                  `No queryRecordEntry found for ${path.aliasPath[0]}`
+                );
+
+              queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              const newCacheEntry = this.buildCacheEntry({
+                aliasPath: path.aliasPath,
+                nodeData,
+                queryAlias: rootLevelAlias,
+                queryRecord: opts.queryRecord,
+                // page info is not required
+                // in this case, all we need to get back is the proxy for a specific node
+                // and we mutate the state paging info directly as needed
+                pageInfoFromResults: null,
+                totalCount: null,
+                clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false,
+              });
+
+              if (!newCacheEntry)
+                return this.logSubscriptionError('No new cache entry found');
+
+              if (!stateEntry.idsOrIdInCurrentResult)
+                return this.logSubscriptionError(
+                  'No idsOrIdInCurrentResult found on state entry'
+                );
+              if (queryRecordEntryReturnsArrayOfData({ queryRecordEntry })) {
+                if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                  return this.logSubscriptionError(
+                    'idsOrIdInCurrentResult is not an array'
+                  );
+
+                if (stateEntry.totalCount == null)
+                  return this.logSubscriptionError('No totalCount found');
+
+                stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
+                stateEntry.totalCount++;
+              } else {
+                stateEntry.idsOrIdInCurrentResult = nodeData.id;
+              }
+
+              stateEntry.proxyCache[nodeData.id] =
+                newCacheEntry.proxyCache[nodeData.id];
+            });
+          } else if (messageType.startsWith('Deleted_')) {
+            const nodeType = messageType.replace('Deleted_', '');
+            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+
+            if (!nodeDeletePaths[lowerCaseNodeType])
+              return this.logSubscriptionError(
+                `No node delete handler found for ${lowerCaseNodeType}`
+              );
+
+            nodeDeletePaths[lowerCaseNodeType].forEach(path => {
+              const stateEntry = this.state[path.aliasPath[0]];
+              if (!stateEntry)
+                return this.logSubscriptionError(
+                  `No state entry found for ${path.aliasPath[0]}`
+                );
+
+              const nodeDeletedId = message.data[rootLevelAlias].id as string;
+              if (nodeDeletedId == null)
+                return this.logSubscriptionError(
+                  'Node deleted message did not include an id'
+                );
+
+              if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                return this.logSubscriptionError(
+                  'idsOrIdInCurrentResult is not an array'
+                );
+
+              if (stateEntry.totalCount == null)
+                return this.logSubscriptionError('No totalCount found');
+
+              const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
+                nodeDeletedId
+              );
+              if (nodeIdx === -1) return;
+
+              stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
+              delete stateEntry.proxyCache[nodeDeletedId];
+              stateEntry.totalCount--;
+            });
+          } else if (messageType.startsWith('Inserted_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (!nodeInsertPaths[`${parentNodeType}.${childNodeType}`])
+              return this.logSubscriptionError(
+                `No node insert handler found for ${parentNodeType}.${childNodeType}`
+              );
+
+            nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
+              path => {
+                const parentId = message.data[rootLevelAlias].target?.id;
+                const parentRelationshipWhichWasInsertedInto =
+                  message.data[rootLevelAlias].target?.property;
+
+                if (!parentId)
+                  return this.logSubscriptionError('No parentId found');
+                if (!parentRelationshipWhichWasInsertedInto)
+                  return this.logSubscriptionError(
+                    'No parentRelationshipWhichWasInsertedInto found'
+                  );
+
+                const { parentQueryRecordEntry } = path;
+                if (!parentQueryRecordEntry)
+                  return this.logSubscriptionError(
+                    `No parentQueryRecord found for ${messageType}`
+                  );
+                if (!parentQueryRecordEntry.relational)
+                  return this.logSubscriptionError(
+                    `No parentQueryRecordEntry.relational found for ${messageType}`
+                  );
+
+                const nodeInsertedData = message.data[rootLevelAlias].value as {
+                  id: string;
+                } & Record<string, any>;
+
+                path.queryRecordEntry.def.repository.onDataReceived(
+                  nodeInsertedData
+                );
+
+                const relationalAlias =
+                  path.aliasPath[path.aliasPath.length - 1];
+                const newCacheEntry = this.buildCacheEntry({
+                  nodeData: nodeInsertedData,
+                  queryAlias: relationalAlias,
+                  queryRecord: parentQueryRecordEntry.relational,
+                  aliasPath: path.aliasPath,
+                  // page info is not required
+                  // in this case, all we need to get back is the proxy for a specific node
+                  // and we mutate the state paging info directly as needed
+                  pageInfoFromResults: null,
+                  totalCount: null,
+                  clientSidePageInfo: null,
+                  collectionsIncludePagingInfo: false,
+                });
+
+                if (!newCacheEntry)
+                  return this.logSubscriptionError('No new cache entry found');
+
+                const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                  {
+                    aliasPath: path.aliasPath,
+                  }
+                );
+
+                if (
+                  !cacheEntriesWhichRequireUpdate ||
+                  cacheEntriesWhichRequireUpdate.length === 0
+                )
+                  return this.logSubscriptionError(
+                    'No parent cache entries found'
+                  );
+
+                cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                  const stateEntry = stateCacheEntry.leafStateEntry;
+                  const parentProxy = stateCacheEntry.parentProxy;
+
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    return this.logSubscriptionError(
+                      'idsOrIdInCurrentResult is not an array'
+                    );
+
+                  if (stateEntry.totalCount == null)
+                    return this.logSubscriptionError('No totalCount found');
+
+                  stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
+                  stateEntry.proxyCache[nodeInsertedData.id] =
+                    newCacheEntry.proxyCache[nodeInsertedData.id];
+                  stateEntry.totalCount++;
+
+                  if (!parentProxy)
+                    return this.logSubscriptionError('No parent proxy found');
+
+                  parentProxy.updateRelationalResults(
+                    this.getResultsFromState({
+                      state: {
+                        [relationalAlias]: stateEntry,
+                      },
+                      aliasPath: path.aliasPath,
+                    })
+                  );
+                });
+              }
+            );
+          } else if (messageType.startsWith('Removed_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (!nodeRemovePaths[`${parentNodeType}.${childNodeType}`])
+              return this.logSubscriptionError(
+                `No node remove handler found for ${parentNodeType}.${childNodeType}`
+              );
+
+            nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
+              path => {
+                const parentId = message.data[rootLevelAlias].target?.id;
+                const parentRelationshipWhichWasRemovedFrom =
+                  message.data[rootLevelAlias].target?.property;
+
+                if (!parentId)
+                  return this.logSubscriptionError('No parentId found');
+                if (!parentRelationshipWhichWasRemovedFrom)
+                  return this.logSubscriptionError(
+                    'No parentRelationshipWhichWasRemovedFrom found'
+                  );
+
+                const { parentQueryRecordEntry } = path;
+                if (!parentQueryRecordEntry)
+                  return this.logSubscriptionError(
+                    `No parentQueryRecord found for ${messageType}`
+                  );
+
+                if (!parentQueryRecordEntry.relational)
+                  return this.logSubscriptionError(
+                    `No parentQueryRecordEntry.relational found for ${messageType}`
+                  );
+
+                const nodeRemovedId = message.data[rootLevelAlias].id as
+                  | string
+                  | number;
+
+                const relationalAlias =
+                  path.aliasPath[path.aliasPath.length - 1];
+
+                const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                  {
+                    aliasPath: path.aliasPath,
+                  }
+                );
+
+                if (
+                  !cacheEntriesWhichRequireUpdate ||
+                  cacheEntriesWhichRequireUpdate.length === 0
+                )
+                  return this.logSubscriptionError(
+                    'No parent cache entries found'
+                  );
+
+                cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                  const stateEntry = stateCacheEntry.leafStateEntry;
+                  const parentProxy = stateCacheEntry.parentProxy;
+
+                  if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
+                    return this.logSubscriptionError(
+                      'idsOrIdInCurrentResult is not an array'
+                    );
+
+                  if (stateEntry.totalCount == null)
+                    return this.logSubscriptionError('No totalCount found');
+
+                  const indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(
+                    id => id === nodeRemovedId
+                  );
+
+                  if (indexOfRemovedId === -1)
+                    return this.logSubscriptionError(
+                      `Could not find index of removed id ${nodeRemovedId}`
+                    );
+
+                  stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
+                  delete stateEntry.proxyCache[nodeRemovedId];
+                  stateEntry.totalCount--;
+
+                  if (!parentProxy)
+                    return this.logSubscriptionError('No parent proxy found');
+
+                  parentProxy.updateRelationalResults(
+                    this.getResultsFromState({
+                      state: {
+                        [relationalAlias]: stateEntry,
+                      },
+                      aliasPath: path.aliasPath,
+                    })
+                  );
+                });
+              }
+            );
+          } else if (messageType.startsWith('UpdatedAssociation_')) {
+            const {
+              parentNodeType,
+              childNodeType,
+            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+              messageType
+            );
+
+            if (
+              !nodeUpdateAssociationPaths[`${parentNodeType}.${childNodeType}`]
+            )
+              return this.logSubscriptionError(
+                `No node update association handler found for ${parentNodeType}.${childNodeType}`
+              );
+
+            nodeUpdateAssociationPaths[
+              `${parentNodeType}.${childNodeType}`
+            ].forEach(path => {
+              const parentId = message.data[rootLevelAlias].target?.id;
+              const parentRelationshipWhichWasInsertedInto =
+                message.data[rootLevelAlias].target?.property;
+
+              if (!parentId)
+                return this.logSubscriptionError('No parentId found');
+              if (!parentRelationshipWhichWasInsertedInto)
+                return this.logSubscriptionError(
+                  'No parentRelationshipWhichWasInsertedInto found'
+                );
+
+              const { parentQueryRecordEntry } = path;
+              if (!parentQueryRecordEntry)
+                return this.logSubscriptionError(
+                  `No parentQueryRecord found for ${messageType}`
+                );
+
+              if (!parentQueryRecordEntry.relational)
+                return this.logSubscriptionError(
+                  `No parentQueryRecordEntry.relational found for ${messageType}`
+                );
+
+              const nodeAssociatedData = message.data[rootLevelAlias].value as {
+                id: string;
+              } & Record<string, any>;
+
+              path.queryRecordEntry.def.repository.onDataReceived(
+                nodeAssociatedData
+              );
+
+              const relationalAlias = path.aliasPath[path.aliasPath.length - 1];
+              const newCacheEntry = this.buildCacheEntry({
+                nodeData: nodeAssociatedData,
+                queryAlias: relationalAlias,
+                queryRecord: parentQueryRecordEntry.relational,
+                aliasPath: path.aliasPath,
+                // page info is not required
+                // in this case, all we need to get back is the proxy for a specific node
+                // and we mutate the state paging info directly as needed
+                pageInfoFromResults: null,
+                totalCount: null,
+                clientSidePageInfo: null,
+                collectionsIncludePagingInfo: false,
+              });
+
+              if (!newCacheEntry)
+                return this.logSubscriptionError('No new cache entry found');
+
+              const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                {
+                  aliasPath: path.aliasPath,
+                }
+              );
+
+              if (
+                !cacheEntriesWhichRequireUpdate ||
+                cacheEntriesWhichRequireUpdate.length === 0
+              )
+                return this.logSubscriptionError(
+                  'No parent cache entries found'
+                );
+
+              cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                const stateEntry = stateCacheEntry.leafStateEntry;
+                const parentProxy = stateCacheEntry.parentProxy;
+
+                stateEntry.idsOrIdInCurrentResult = nodeAssociatedData.id;
+                stateEntry.proxyCache[nodeAssociatedData.id] =
+                  newCacheEntry.proxyCache[nodeAssociatedData.id];
+
+                if (!parentProxy)
+                  return this.logSubscriptionError('No parent proxy found');
+
+                parentProxy.updateRelationalResults(
+                  this.getResultsFromState({
+                    state: {
+                      [relationalAlias]: stateEntry,
+                    },
+                    aliasPath: path.aliasPath,
+                  })
+                );
+              });
+            });
+          } else {
+            throw new UnreachableCaseError(
+              message.data[rootLevelAlias].__typename as never
+            );
+          }
+        };
+      });
+
+      return handlers;
+    }
+
+    // for a given alias path (example: ['users', 'todos'])
+    // return string based paths to the cache entries that are affected by each subscription message type
+    public getSubscriptionEventToCachePathRecords(opts: {
+      aliasPath: Array<string>;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      parentQueryRecordEntry:
+        | QueryRecordEntry
+        | RelationalQueryRecordEntry
+        | null;
+    }) {
+      const { aliasPath, queryRecordEntry, parentQueryRecordEntry } = opts;
+
+      type SubscriptionEventToCachePathRecord = Record<
+        // node type for messages that pertain a single node
+        // or a string like 'parent.child' for messages that pertain to a relationship
+        string,
+        Array<{
+          // An alias path is used instead of a direct pointer to the cache
+          // this is because in some cases, we will want to modify state entries that do no exist
+          // at the time of the subscription handler creation.
+          // For example, I may be subscribed to a query that returns a list of users and their todos.
+          // While the subscription is active, a new user may be created, and that new user may get some todos assigned to them.
+          // With a direct memory pointer approach, there would be no way to update the state entry for the new user.
+          aliasPath: Array<string>;
+          queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+          parentQueryRecordEntry:
+            | QueryRecordEntry
+            | RelationalQueryRecordEntry
+            | null;
+        }>
+      >;
+
+      const nodeUpdatePaths: SubscriptionEventToCachePathRecord = {};
+
+      nodeUpdatePaths[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          queryRecordEntry,
+          parentQueryRecordEntry,
+        },
+      ];
+
+      const nodeCreatePaths: SubscriptionEventToCachePathRecord = {};
+
+      nodeCreatePaths[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          queryRecordEntry,
+          parentQueryRecordEntry,
+        },
+      ];
+
+      const nodeDeletePaths: SubscriptionEventToCachePathRecord = {};
+
+      nodeDeletePaths[queryRecordEntry.def.type] = [
+        {
+          aliasPath,
+          queryRecordEntry,
+          parentQueryRecordEntry,
+        },
+      ];
+
+      const nodeInsertPaths: SubscriptionEventToCachePathRecord = {};
+      const nodeRemovePaths: SubscriptionEventToCachePathRecord = {};
+      const nodeUpdateAssociationPaths: SubscriptionEventToCachePathRecord = {};
+
+      if (
+        parentQueryRecordEntry &&
+        (('oneToMany' in queryRecordEntry && queryRecordEntry.oneToMany) ||
+          ('nonPaginatedOneToMany' in queryRecordEntry &&
+            queryRecordEntry.nonPaginatedOneToMany))
+      ) {
+        nodeInsertPaths[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+
+        nodeRemovePaths[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+      } else if (parentQueryRecordEntry) {
+        nodeUpdateAssociationPaths[
+          `${parentQueryRecordEntry.def.type}.${queryRecordEntry.def.type}`
+        ] = [
+          {
+            aliasPath,
+            queryRecordEntry,
+            parentQueryRecordEntry,
+          },
+        ];
+      }
+
+      const relational = queryRecordEntry.relational;
+
+      const toBeReturned = {
+        nodeUpdatePaths,
+        nodeCreatePaths,
+        nodeDeletePaths,
+        nodeInsertPaths,
+        nodeRemovePaths,
+        nodeUpdateAssociationPaths,
+      };
+
+      if (relational) {
+        Object.keys(relational).forEach(relationalAlias => {
+          const nestedHandlers = this.getSubscriptionEventToCachePathRecords({
+            aliasPath: [...aliasPath, relationalAlias],
+            queryRecordEntry: relational[relationalAlias],
+            parentQueryRecordEntry: queryRecordEntry,
+          });
+
+          Object.keys(nestedHandlers).forEach(nestedHandlerType => {
+            const handlerType = nestedHandlerType as keyof ReturnType<
+              QueryManager['getSubscriptionEventToCachePathRecords']
+            >;
+            const nestedHandlersForThisEventType = nestedHandlers[handlerType];
+
+            Object.keys(nestedHandlersForThisEventType).forEach(
+              nestedHandlerKey => {
+                if (!toBeReturned[handlerType][nestedHandlerKey]) {
+                  toBeReturned[handlerType][nestedHandlerKey] =
+                    nestedHandlersForThisEventType[nestedHandlerKey];
+                } else {
+                  toBeReturned[handlerType][nestedHandlerKey].push(
+                    ...nestedHandlersForThisEventType[nestedHandlerKey]
+                  );
+                }
+              }
+            );
+          });
+        });
+      }
+
+      return toBeReturned;
+    }
+
+    public getStateCacheEntriesForAliasPath(opts: {
+      aliasPath: Array<string>;
+      parentProxy?: IDOProxy | null;
+      previousStateEntries?: Array<{
+        leafStateEntry: QueryManagerStateEntry;
+        parentProxy: IDOProxy | null;
+      }>;
+    }): Array<{
+      leafStateEntry: QueryManagerStateEntry;
+      parentProxy: IDOProxy | null;
+    }> {
+      const { aliasPath } = opts;
+      const [firstAlias, ...restOfAliasPath] = aliasPath;
+
+      const getStateEntriesForFirstAlias = (): Array<{
+        leafStateEntry: QueryManagerStateEntry;
+        parentProxy: IDOProxy | null;
+      }> => {
+        if (opts.previousStateEntries) {
+          return opts.previousStateEntries.reduce(
+            (acc, stateEntry) => {
+              Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
+                nodeId => {
+                  const proxyCacheEntry =
+                    stateEntry.leafStateEntry.proxyCache[nodeId];
+                  const relationalStateForAlias =
+                    proxyCacheEntry.relationalState?.[firstAlias];
+                  if (!relationalStateForAlias)
+                    throw Error(
+                      `No relational state found for alias path "${firstAlias}"`
+                    );
+
+                  acc.push({
+                    leafStateEntry: relationalStateForAlias,
+                    parentProxy: proxyCacheEntry.proxy,
+                  });
+                }
+              );
+
+              return acc;
+            },
+            [] as Array<{
+              leafStateEntry: QueryManagerStateEntry;
+              parentProxy: IDOProxy | null;
+            }>
+          );
+        } else {
+          if (!this.state[firstAlias])
+            throw Error(`No state entry found for alias path "${firstAlias}`);
+
+          return [
+            {
+              leafStateEntry: this.state[firstAlias],
+              parentProxy: null,
+            },
+          ];
+        }
+      };
+
+      const stateEntriesForFirstAlias = getStateEntriesForFirstAlias();
+
+      if (restOfAliasPath.length === 0) {
+        return stateEntriesForFirstAlias;
+      } else {
+        return this.getStateCacheEntriesForAliasPath({
+          aliasPath: restOfAliasPath,
+          previousStateEntries: stateEntriesForFirstAlias,
+        });
+      }
+    }
+
+    public unsub() {
+      Object.keys(this.unsubRecord).forEach(rootLevelAlias => {
+        this.unsubRecord[rootLevelAlias]();
+      });
     }
 
     /**
@@ -218,6 +950,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       queryRecord: {
         [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
       };
+      collectionsIncludePagingInfo: boolean;
     }) {
       Object.keys(opts.queryRecord).forEach(queryAlias => {
         const queryRecordEntry = opts.queryRecord[queryAlias];
@@ -227,6 +960,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         const dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry,
           queryResponsePartial: opts.data[queryAlias],
+          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
         });
 
         if (dataForThisAlias == null) return;
@@ -269,6 +1003,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 queryRecord: {
                   [relationalAlias]: relationalQuery,
                 },
+                collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
               });
             });
           });
@@ -290,6 +1025,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeData: getDataFromQueryResponsePartial({
               queryResponsePartial: opts.queryResult[queryAlias],
               queryRecordEntry: opts.queryRecord[queryAlias],
+              collectionsIncludePagingInfo: true,
             }),
             pageInfoFromResults: this.getPageInfoFromResponse({
               dataForThisAlias: opts.queryResult[queryAlias],
@@ -303,6 +1039,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             queryRecord: opts.queryRecord,
             queryAlias,
             aliasPath: [queryAlias],
+            collectionsIncludePagingInfo: true,
           });
 
           if (!cacheEntry) return resultingStateAcc;
@@ -317,13 +1054,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public buildCacheEntry(opts: {
       nodeData: Record<string, any> | Array<Record<string, any>>;
       queryAlias: string;
-      queryRecord: QueryRecord;
+      queryRecord: QueryRecord | RelationalQueryRecord;
       pageInfoFromResults: Maybe<PageInfoFromResults>;
       totalCount: Maybe<number>;
       clientSidePageInfo: Maybe<ClientSidePageInfo>;
       aliasPath: Array<string>;
+      // in subscription messages, the collections are not wrapped in {nodes: items} and include paging info
+      // instead, we get back the items directly, and no paging info
+      collectionsIncludePagingInfo: boolean;
     }): Maybe<QueryManagerStateEntry> {
-      const { nodeData, queryAlias } = opts;
+      const { nodeData, queryAlias, collectionsIncludePagingInfo } = opts;
       const queryRecord = opts.queryRecord;
       const queryRecordEntry = queryRecord[opts.queryAlias];
 
@@ -331,7 +1071,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return getEmptyStateEntry();
       }
 
-      const { relational } = queryRecordEntry;
+      const { relational: relationalQueryRecord } = queryRecordEntry;
 
       // if the query alias includes a relational union query separator
       // and the first item in the array of results has a type that does not match the type of the node def in this query record
@@ -344,13 +1084,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const buildRelationalStateForNode = (
         node: Record<string, any>
       ): Maybe<QueryManagerState> => {
-        if (!relational) return null;
+        if (!relationalQueryRecord) return null;
 
-        return Object.keys(relational).reduce(
+        return Object.keys(relationalQueryRecord).reduce(
           (relationalStateAcc, relationalAlias) => {
             const relationalDataForThisAlias = getDataFromQueryResponsePartial({
               queryResponsePartial: node[relationalAlias],
-              queryRecordEntry: relational[relationalAlias],
+              queryRecordEntry: relationalQueryRecord[relationalAlias],
+              collectionsIncludePagingInfo,
             });
 
             if (!relationalDataForThisAlias) {
@@ -363,20 +1104,39 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               id: node.id,
             });
 
+            const pageInfoFromResults = collectionsIncludePagingInfo
+              ? this.getPageInfoFromResponse({
+                  dataForThisAlias: node[relationalAlias],
+                })
+              : {
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                  startCursor: 'mock-start-cursor-should-not-be-used',
+                  endCursor: 'mock-end-cursor-should-not-be-used',
+                  totalPages: Math.ceil(
+                    relationalDataForThisAlias.length /
+                      (relationalQueryRecord[relationalAlias].pagination
+                        ?.itemsPerPage || DEFAULT_PAGE_SIZE)
+                  ),
+                };
+
+            const totalCount = collectionsIncludePagingInfo
+              ? this.getTotalCountFromResponse({
+                  dataForThisAlias: node[relationalAlias],
+                })
+              : relationalDataForThisAlias.length;
+
             const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
-              pageInfoFromResults: this.getPageInfoFromResponse({
-                dataForThisAlias: node[relationalAlias],
-              }),
-              totalCount: this.getTotalCountFromResponse({
-                dataForThisAlias: node[relationalAlias],
-              }),
+              pageInfoFromResults,
+              totalCount,
               clientSidePageInfo: this.getInitialClientSidePageInfo({
-                queryRecordEntry: relational[relationalAlias],
+                queryRecordEntry: relationalQueryRecord[relationalAlias],
               }),
               queryAlias: relationalAlias,
-              queryRecord: (relational as unknown) as QueryRecord,
+              queryRecord: relationalQueryRecord,
               aliasPath: [...aliasPath, relationalAlias],
+              collectionsIncludePagingInfo,
             });
             if (!cacheEntry) return relationalStateAcc;
 
@@ -396,9 +1156,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           buildCacheEntryOpts.node
         );
         const nodeRepository = queryRecordEntry.def.repository;
-        const relationalQueries = relational
+        const relationalQueries = relationalQueryRecord
           ? this.getApplicableRelationalQueries({
-              relationalQueries: relational,
+              relationalQueries: relationalQueryRecord,
               nodeData: buildCacheEntryOpts.node,
             })
           : null;
@@ -483,277 +1243,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       }
     }
 
-    public updateProxiesAndStateFromSubscriptionMessage(opts: {
-      node: any;
-      operation: {
-        action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-        path: string;
-      };
-      subscriptionAlias: string;
-    }) {
-      if (!this.queryRecord) throw Error('No query record initialized');
-
-      const { node, subscriptionAlias, operation } = opts;
-      if (
-        (operation.action === 'DeleteNode' ||
-          operation.action === 'DeleteEdge') &&
-        operation.path === node.id
-      ) {
-        const idsOrIdInCurrentResult = this.state[subscriptionAlias]
-          .idsOrIdInCurrentResult;
-        if (Array.isArray(idsOrIdInCurrentResult)) {
-          this.state[
-            subscriptionAlias
-          ].idsOrIdInCurrentResult = idsOrIdInCurrentResult.filter(
-            id => id !== node.id
-          );
-        } else {
-          this.state[subscriptionAlias].idsOrIdInCurrentResult = null;
-        }
-
-        return;
-      }
-
-      const queryRecordEntryForThisSubscription = this.queryRecord[
-        subscriptionAlias
-      ];
-      this.state[subscriptionAlias] = this.state[subscriptionAlias] || {};
-      const stateForThisAlias = this.state[subscriptionAlias];
-      const nodeId = node.id;
-      const { proxy, relationalState } =
-        stateForThisAlias.proxyCache[nodeId] || {};
-
-      if (proxy) {
-        const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
-          {
-            proxy,
-            newRelationalData: this.getRelationalData({
-              queryRecord: queryRecordEntryForThisSubscription,
-              node: opts.node,
-            }),
-            relationalQueryRecord:
-              queryRecordEntryForThisSubscription?.relational || null,
-            currentState: { proxy, relationalState },
-            aliasPath: [subscriptionAlias],
-          }
-        );
-        stateForThisAlias.proxyCache[nodeId] = newCacheEntry;
-      } else {
-        const cacheEntry = this.buildCacheEntry({
-          nodeData: node,
-          queryAlias: subscriptionAlias,
-          queryRecord: this.queryRecord,
-          // @TODO will we get pageInfo in subscription messages?
-          pageInfoFromResults: null,
-          totalCount: null,
-          clientSidePageInfo: null,
-          aliasPath: [subscriptionAlias],
-        });
-        if (!cacheEntry) return;
-        const { proxyCache } = cacheEntry;
-
-        const newlyGeneratedProxy = proxyCache[node.id];
-
-        if (!newlyGeneratedProxy)
-          throw Error('Expected a newly generated proxy');
-
-        stateForThisAlias.proxyCache[nodeId] = proxyCache[node.id];
-      }
-
-      if (!queryRecordEntryForThisSubscription) {
-        return;
-      } else if ('id' in queryRecordEntryForThisSubscription) {
-        if ((stateForThisAlias.idsOrIdInCurrentResult as string) === nodeId) {
-          return;
-        }
-
-        this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = nodeId;
-      } else {
-        if (
-          (
-            stateForThisAlias.idsOrIdInCurrentResult || ([] as Array<string>)
-          ).includes(nodeId)
-        )
-          return; // don't need to do anything if this id was already in the returned set
-
-        this.state[opts.subscriptionAlias].idsOrIdInCurrentResult = [
-          nodeId, // insert the new node at the start of the array
-          ...(this.state[opts.subscriptionAlias]
-            .idsOrIdInCurrentResult as Array<string>),
-        ];
-      }
-    }
-
-    public recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
-      proxy: IDOProxy;
-      newRelationalData: Maybe<
-        Record<string, Array<Record<string, any> | Record<string, any>>>
-      >;
-      relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
-      currentState: QueryManagerProxyCacheEntry;
-      aliasPath: Array<string>;
-    }): QueryManagerProxyCacheEntry {
-      const {
-        proxy,
-        newRelationalData,
-        currentState,
-        relationalQueryRecord,
-      } = opts;
-      const { relationalState: currentRelationalState } = currentState;
-
-      const newRelationalState = !relationalQueryRecord
-        ? null
-        : Object.keys(relationalQueryRecord).reduce(
-            (relationalStateAcc, relationalAlias) => {
-              if (!newRelationalData || !newRelationalData[relationalAlias]) {
-                return relationalStateAcc;
-              }
-
-              const relationalDataForThisAlias =
-                newRelationalData[relationalAlias];
-              const queryRecordForThisAlias =
-                relationalQueryRecord[relationalAlias];
-
-              const currentStateForThisAlias = !currentRelationalState
-                ? null
-                : currentRelationalState[relationalAlias];
-
-              if (!currentStateForThisAlias) {
-                const cacheEntry = this.buildCacheEntry({
-                  nodeData: relationalDataForThisAlias,
-                  queryAlias: relationalAlias,
-                  queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
-                  // @TODO will we get pageInfo in subscription messages?
-                  pageInfoFromResults: null,
-                  totalCount: null,
-                  clientSidePageInfo: null,
-                  aliasPath: [...opts.aliasPath, relationalAlias],
-                });
-
-                if (!cacheEntry) return relationalStateAcc;
-
-                relationalStateAcc[relationalAlias] = cacheEntry;
-
-                return relationalStateAcc;
-              }
-
-              if (Array.isArray(relationalDataForThisAlias)) {
-                relationalStateAcc[relationalAlias] = relationalStateAcc[
-                  relationalAlias
-                ] || { proxyCache: {}, idsOrIdInCurrentResult: [] };
-
-                relationalDataForThisAlias.forEach(node => {
-                  const existingProxy =
-                    currentStateForThisAlias.proxyCache[node.id]?.proxy;
-
-                  if (!existingProxy) {
-                    const cacheEntry = this.buildCacheEntry({
-                      nodeData: node,
-                      queryAlias: relationalAlias,
-                      queryRecord: (relationalQueryRecord as unknown) as QueryRecord,
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                      aliasPath: [...opts.aliasPath, relationalAlias],
-                    });
-
-                    if (!cacheEntry) return;
-
-                    relationalStateAcc[relationalAlias] = {
-                      proxyCache: {
-                        ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: cacheEntry.proxyCache[node.id],
-                      },
-                      idsOrIdInCurrentResult: [
-                        ...(relationalStateAcc[relationalAlias]
-                          .idsOrIdInCurrentResult as Array<string>),
-                        node.id,
-                      ],
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                    };
-                  } else {
-                    const newCacheEntry = this.recursivelyUpdateProxyAndReturnNewCacheEntry(
-                      {
-                        proxy: existingProxy,
-                        newRelationalData: this.getRelationalData({
-                          queryRecord: queryRecordForThisAlias,
-                          node,
-                        }),
-                        relationalQueryRecord:
-                          queryRecordForThisAlias.relational || null,
-                        currentState:
-                          currentStateForThisAlias.proxyCache[node.id],
-                        aliasPath: [...opts.aliasPath, relationalAlias],
-                      }
-                    );
-
-                    relationalStateAcc[relationalAlias] = {
-                      proxyCache: {
-                        ...relationalStateAcc[relationalAlias].proxyCache,
-                        [node.id]: newCacheEntry,
-                      },
-                      idsOrIdInCurrentResult: [
-                        ...(relationalStateAcc[relationalAlias]
-                          .idsOrIdInCurrentResult as Array<string>),
-                        node.id,
-                      ],
-                      // @TODO will we get pageInfo in subscription messages?
-                      pageInfoFromResults: null,
-                      totalCount: null,
-                      clientSidePageInfo: null,
-                    };
-                  }
-                });
-              } else {
-                throw Error(
-                  `Not implemented. ${JSON.stringify(
-                    relationalDataForThisAlias
-                  )}`
-                );
-              }
-
-              return relationalStateAcc;
-            },
-            {} as QueryManagerState
-          );
-
-      newRelationalState
-        ? proxy.updateRelationalResults(
-            this.getResultsFromState({
-              state: newRelationalState,
-              aliasPath: opts.aliasPath,
-            })
-          )
-        : proxy.updateRelationalResults(null);
-
-      return {
-        proxy,
-        relationalState: newRelationalState,
-      };
-    }
-
-    public getRelationalData(opts: {
-      queryRecord: BaseQueryRecordEntry | null;
-      node: Record<string, any>;
-    }) {
-      if (!opts.queryRecord) return null;
-
-      return opts.queryRecord.relational
-        ? Object.keys(opts.queryRecord.relational).reduce(
-            (relationalDataAcc, relationalAlias) => {
-              relationalDataAcc[relationalAlias] = opts.node[relationalAlias];
-
-              return relationalDataAcc;
-            },
-            {} as Record<string, any>
-          )
-        : null;
-    }
-
     public removeUnionSuffix(alias: string) {
       if (alias.includes(RELATIONAL_UNION_QUERY_SEPARATOR))
         return alias.split(RELATIONAL_UNION_QUERY_SEPARATOR)[0];
@@ -761,7 +1250,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     }
 
     public getApplicableRelationalQueries(opts: {
-      relationalQueries: Record<string, RelationalQueryRecordEntry>;
+      relationalQueries: RelationalQueryRecord;
       nodeData: Record<string, any>;
     }) {
       return Object.keys(opts.relationalQueries).reduce(
@@ -793,7 +1282,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               .relationalQueries[relationalQueryAlias],
           };
         },
-        {} as Record<string, RelationalQueryRecordEntry>
+        {} as RelationalQueryRecord
       );
     }
 
@@ -806,7 +1295,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getTotalCountFromResponse(opts: {
       dataForThisAlias: any;
     }): Maybe<number> {
-      return opts.dataForThisAlias?.totalCount;
+      return opts.dataForThisAlias?.[TOTAL_COUNT_PROPERTY_KEY];
     }
 
     public getPageInfoFromResponseForAlias(opts: {
@@ -1150,6 +1639,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.notifyRepositories({
         data: opts.newData,
         queryRecord: opts.queryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       const newState = this.getNewStateFromQueryResult({
@@ -1203,7 +1693,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             previousNullishResultKeys.length ===
             Object.keys(nullishResults).length
           ) {
-            // if all the results are null, and they were already null last renderdo nothing
+            // if all the results are null, and they were already null last render, do nothing
             // calling the onQueryDefinitionUpdatedResult callback here would cause an infinite loop
             return;
           }
@@ -1237,7 +1727,54 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       } = getMinimalQueryRecordAndAliasPathsToUpdate();
 
       if (!Object.keys(minimalQueryRecord).length) {
+        // no changes to the query record, so no need to update the results
         return;
+      }
+
+      if (this.opts.subscribe) {
+        this.subscriptionMessageHandlers = this.getSubscriptionMessageHandlers({
+          queryRecord: this.queryRecord,
+        });
+
+        const subscriptionGQLDocs = getSubscriptionGQLDocumentsFromQueryRecord({
+          queryId: this.opts.queryId,
+          queryRecord: this.queryRecord,
+          useServerSidePaginationFilteringSorting: this.opts
+            .useServerSidePaginationFilteringSorting,
+        });
+
+        Object.keys(minimalQueryRecord).forEach(rootLevelAlias => {
+          if (!subscriptionGQLDocs[rootLevelAlias])
+            return this.logSubscriptionError(
+              `No subscription GQL document found for root level alias ${rootLevelAlias}`
+            );
+
+          if (!this.subscriptionMessageHandlers[rootLevelAlias])
+            return this.logSubscriptionError(
+              `No subscription message handler found for root level alias ${rootLevelAlias}`
+            );
+
+          const existingSubCanceller = this.unsubRecord[rootLevelAlias];
+
+          this.unsubRecord[rootLevelAlias] = subscribe({
+            queryGQL: subscriptionGQLDocs[rootLevelAlias],
+            // @TODO revert after BE no longer throwing errors for missing fields in subs
+            // onError: this.opts.onSubscriptionError,
+            onError: error => {
+              this.logSubscriptionError(error);
+            },
+            onMessage: this.onSubscriptionMessage,
+            mmGQLInstance: mmGQLInstance,
+          });
+
+          if (existingSubCanceller) {
+            // this query changed
+            // cancel the previous query definition subscription
+            // it's important that this happens after the new subscription is created
+            // otherwise some subscription messages may be missed
+            existingSubCanceller();
+          }
+        });
       }
 
       const thisQueryIdx = this.queryIdx++;
@@ -1317,6 +1854,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       const newState = this.getNewStateFromQueryResult({
@@ -1561,7 +2099,7 @@ async function performQueries(opts: {
   batchKey: Maybe<string>;
   getMockDataDelay: Maybe<() => number>;
 }) {
-  if (opts.mmGQLInstance.logging.gqlClientQueries) {
+  if (opts.mmGQLInstance.logging.gqlQueries) {
     console.log('performing query', getPrettyPrintedGQL(opts.queryGQL));
   }
 
@@ -1631,11 +2169,33 @@ async function performQueries(opts: {
     return filteredAndSortedResponse;
   }
 
-  await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
-  if (opts.mmGQLInstance.logging.gqlClientQueries) {
+  if (opts.mmGQLInstance.generateMockData) {
+    await new Promise(res => setTimeout(res, opts.getMockDataDelay?.() || 0));
+  }
+
+  if (opts.mmGQLInstance.logging.gqlQueries) {
     console.log('query response', JSON.stringify(response, null, 2));
   }
   return response;
+}
+
+function subscribe(opts: {
+  queryGQL: DocumentNode;
+  mmGQLInstance: IMMGQL;
+  onMessage: (message: SubscriptionMessage) => void;
+  onError: (error: any) => void;
+}) {
+  if (opts.mmGQLInstance.generateMockData) {
+    return () => {
+      // purposely no-op
+    };
+  }
+
+  return opts.mmGQLInstance.gqlClient.subscribe({
+    gql: opts.queryGQL,
+    onMessage: opts.onMessage,
+    onError: opts.onError,
+  });
 }
 
 /**
@@ -1891,5 +2451,22 @@ function getEmptyStateEntry(): QueryManagerStateEntry {
     pageInfoFromResults: null,
     totalCount: null,
     clientSidePageInfo: null,
+  };
+}
+function lowerCaseFirstLetter(nodeType: string) {
+  return nodeType.charAt(0).toLowerCase() + nodeType.slice(1);
+}
+
+function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
+  messageTypeName: string
+) {
+  const split = messageTypeName.split('_');
+  if (split.length !== 3) {
+    throw Error(`Invalid inserted subscription message "${messageTypeName}"`);
+  }
+
+  return {
+    parentNodeType: lowerCaseFirstLetter(split[1]),
+    childNodeType: lowerCaseFirstLetter(split[2]),
   };
 }

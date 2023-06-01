@@ -14,6 +14,7 @@ import {
   QueryRecordEntry,
   RelationalQueryRecordEntry,
   SubscriptionMessage,
+  UseSubscriptionQueryDefinitions,
 } from '../types';
 import { getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery } from './QueryManager';
 import { oneToMany, queryDefinition } from '../dataTypes';
@@ -24,6 +25,7 @@ import {
   TOTAL_COUNT_PROPERTY_KEY,
 } from '../consts';
 import { deepClone } from '../dataUtilities';
+import { capitalizeFirstLetter } from './queryDefinitionAdapters';
 
 test('QueryManager handles a query result and returns the expected data', done => {
   const mmGQLInstance = new MMGQL(getMockConfig());
@@ -37,6 +39,7 @@ test('QueryManager handles a query result and returns the expected data', done =
     >,
     {
       queryId: 'MockQueryId',
+      subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       resultsObject,
       onResultsUpdated: () => {
@@ -50,6 +53,7 @@ test('QueryManager handles a query result and returns the expected data', done =
         done();
       },
       onQueryError: e => done(e),
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -115,10 +119,12 @@ test('QueryManager will query a minimum set of results when a fitler/sorting/pag
     },
     {
       queryId: 'MockQueryId',
+      subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       resultsObject,
       onResultsUpdated: () => {},
       onQueryError: () => {},
+      onSubscriptionError: () => {},
       batchKey: null,
     }
   );
@@ -253,6 +259,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
         return;
       },
       onQueryError: e => done(e),
+      subscribe: false,
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -391,6 +399,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
         return;
       },
       onQueryError: e => done(e),
+      subscribe: false,
+      onSubscriptionError: e => done(e),
       batchKey: null,
     }
   );
@@ -880,13 +890,19 @@ function getMockSubscriptionMessage(opts: {
 }) {
   let typeNameString = `${opts.type}_`;
 
-  if (opts.type === 'UpdatedAssociation') {
+  if (
+    opts.type === 'UpdatedAssociation' ||
+    opts.type === 'Inserted' ||
+    opts.type === 'Removed'
+  ) {
     if (!opts.targetNodeType) throw Error('targetNodeType must be provided');
     if (!opts.valueNodeType) throw Error('valueNodeType must be provided');
-    typeNameString += `${opts.targetNodeType}_${opts.valueNodeType}`;
+    typeNameString += `${capitalizeFirstLetter(
+      opts.targetNodeType
+    )}_${capitalizeFirstLetter(opts.valueNodeType)}`;
   } else {
     if (!opts.valueNodeType) throw Error('valueNodeType must be provided');
-    typeNameString += opts.valueNodeType;
+    typeNameString += capitalizeFirstLetter(opts.valueNodeType);
   }
 
   return {
@@ -908,8 +924,69 @@ function getMockSubscriptionMessage(opts: {
  *   in a query that requests meeting.attendees and meeting.attendeesCopy (for pagination, filtering, or sorting purposes)
  *   the subscription system must combine the two relational accessors into a single subscription
  *   that will update both meeting.attendees and meeting.attendeesCopy. These tests verify that this is the case.
+ *
+ * @TODO
+ * - add conditions that verify relationships between the same node types with different resolvers
+ * - add conditions that verify relationships between nodes of the same type (directly recursive relationships, example user -> user)
+ * - add conditions to relationship tests that verify that nodes with ids that should be unaffected by the subscription are not updated
  */
-describe.skip('subscription handling', () => {
+describe('subscription handling', () => {
+  function deepExpectContaining(obj: Record<string, any>) {
+    return expect.objectContaining(
+      Object.keys(obj).reduce((acc, key) => {
+        const valueAtKey = obj[key];
+        if (valueAtKey != null && typeof valueAtKey === 'object')
+          acc[key] = deepExpectContaining(valueAtKey);
+        else if (Array.isArray(valueAtKey)) {
+          acc[key] = valueAtKey.map(deepExpectContaining);
+        } else acc[key] = valueAtKey;
+
+        return acc;
+      }, {} as Record<string, any>)
+    );
+  }
+
+  function runSubscriptionTest(opts: {
+    mmGQLInstance: MMGQL;
+    queryDefinitions: UseSubscriptionQueryDefinitions<
+      unknown,
+      unknown,
+      unknown,
+      unknown
+    >;
+    done: (error?: any) => void;
+    subscriptionMessage: SubscriptionMessage;
+    expectedResultsObject: Record<string, any>;
+  }) {
+    const resultsObject = {};
+    let index = 0;
+    const queryManager = new opts.mmGQLInstance.QueryManager(
+      opts.queryDefinitions,
+      {
+        queryId: 'Test_Query',
+        useServerSidePaginationFilteringSorting: false,
+        resultsObject,
+        onResultsUpdated: () => {
+          if (index === 0) {
+            index++;
+            queryManager.onSubscriptionMessage(opts.subscriptionMessage);
+          } else {
+            expect(resultsObject).toEqual(
+              deepExpectContaining(opts.expectedResultsObject)
+            );
+            return opts.done();
+          }
+        },
+        onQueryError: e => {
+          opts.done(e);
+        },
+        subscribe: true,
+        onSubscriptionError: e => opts.done(e),
+        batchKey: null,
+      }
+    );
+  }
+
   /**
    * Start tests root level single node
    */
@@ -918,6 +995,8 @@ describe.skip('subscription handling', () => {
       getMockConfig({
         getMockData: () => ({
           todo: {
+            type: 'todo',
+            version: 1,
             id: 'mock-todo-id-1',
             task: 'mock-task-1',
             done: false,
@@ -937,42 +1016,31 @@ describe.skip('subscription handling', () => {
       },
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
         todo: todoQueryDefinition,
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todo',
+        type: 'Updated',
+        valueNodeType: todoNode.type,
+        id: 'mock-todo-id-1',
+        value: {
+          id: 'mock-todo-id-1',
+          version: 1,
+          type: 'todo',
+          task: 'mock-task-1-updated',
+          done: true,
         },
-        batchKey: null,
-      }
-    );
-
-    const mockSubscriptionMessage = getMockSubscriptionMessage({
-      alias: 'todo',
-      type: 'Updated',
-      valueNodeType: todoNode.type,
-      id: 'mock-todo-id-1',
-      value: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1-updated',
-        done: true,
-      },
-    });
-
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todo: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1-updated',
-        done: true,
+      }),
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1-updated',
+          done: true,
+        },
       },
     });
   });
@@ -987,11 +1055,15 @@ describe.skip('subscription handling', () => {
           todos: {
             [NODES_PROPERTY_KEY]: [
               {
+                type: 'todo',
+                version: 1,
                 id: 'mock-todo-id-1',
                 task: 'mock-task-1',
                 done: false,
               },
               {
+                type: 'todo',
+                version: 1,
                 id: 'mock-todo-id-2',
                 task: 'mock-task-2',
                 done: false,
@@ -1018,58 +1090,40 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
-    const mockSubscriptionMessage = getMockSubscriptionMessage({
-      alias: 'todos',
-      type: 'Updated',
-      valueNodeType: todoNode.type,
-      id: 'mock-todo-id-1',
-      value: {
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Updated',
+        valueNodeType: todoNode.type,
         id: 'mock-todo-id-1',
-        task: 'mock-task-1-updated',
-        done: true,
-      },
-    });
-
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1-updated',
-            done: true,
-          },
-          {
-            id: 'mock-todo-id-2',
-            task: 'mock-task-2',
-            done: false,
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 2,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+        value: {
+          id: 'mock-todo-id-1',
+          version: 1,
+          type: 'todo',
+          task: 'mock-task-1-updated',
+          done: true,
+        },
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1-updated',
+              done: true,
+            },
+            {
+              id: 'mock-todo-id-2',
+              task: 'mock-task-2',
+              done: false,
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 2,
         },
       },
     });
@@ -1078,16 +1132,30 @@ describe.skip('subscription handling', () => {
   it('handles a "CREATED" subscription message related to a node within a root collection', done => {
     const mockUsers = [
       {
+        type: 'user',
+        version: 1,
         id: 'mock-user-id-1',
         firstName: 'mock-first-name-1',
         lastName: 'mock-last-name-1',
       },
       {
+        type: 'user',
+        version: 1,
         id: 'mock-user-id-2',
         firstName: 'mock-first-name-2',
         lastName: 'mock-last-name-2',
       },
     ];
+
+    const mockUsersWithoutFirstName = mockUsers.map(user => {
+      const { firstName, ...rest } = user;
+      return rest;
+    });
+
+    const mockUsersWithoutLastName = mockUsers.map(user => {
+      const { lastName, ...rest } = user;
+      return rest;
+    });
 
     const mockUsersCollection = {
       [NODES_PROPERTY_KEY]: mockUsers,
@@ -1104,10 +1172,12 @@ describe.skip('subscription handling', () => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
-          todo: {
+          todos: {
             [NODES_PROPERTY_KEY]: [
               {
+                type: 'todo',
                 id: 'mock-todo-id-1',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
                 assignee: mockUsers[0],
@@ -1116,7 +1186,9 @@ describe.skip('subscription handling', () => {
                 usersCopy: mockUsersCollection,
               },
               {
+                type: 'todo',
                 id: 'mock-todo-id-2',
+                version: 1,
                 task: 'mock-task-2',
                 done: false,
                 assignee: mockUsers[0],
@@ -1158,77 +1230,84 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
-    const mockSubscriptionMessage = getMockSubscriptionMessage({
-      alias: 'todos',
-      type: 'Created',
-      valueNodeType: todoNode.type,
-      id: 'mock-todo-id-3',
-      value: {
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Created',
+        valueNodeType: todoNode.type,
         id: 'mock-todo-id-3',
-        task: 'mock-task-3',
-        done: false,
-        assignee: mockUsers[0],
-        users: mockUsersCollection,
-      },
-    });
-
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1-updated',
-            done: true,
-            assignee: mockUsers[0],
-            assigneeCopy: mockUsers[0],
-            users: mockUsersCollection,
-            usersCopy: mockUsersCollection,
-          },
-          {
-            id: 'mock-todo-id-2',
-            task: 'mock-task-2',
-            done: false,
-            assignee: mockUsers[0],
-            assigneeCopy: mockUsers[0],
-            users: mockUsersCollection,
-            usersCopy: mockUsersCollection,
-          },
-          {
-            id: 'mock-todo-id-3',
-            task: 'mock-task-3',
-            done: false,
-            assignee: mockUsers[0],
-            assigneeCopy: mockUsers[0],
-            users: mockUsersCollection,
-            usersCopy: mockUsersCollection,
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 3,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+        value: {
+          type: 'todo',
+          id: 'mock-todo-id-3',
+          task: 'mock-task-3',
+          done: false,
+          assignee: mockUsersWithoutLastName[0],
+          users: mockUsersWithoutLastName,
+          assigneeCopy: mockUsersWithoutFirstName[0],
+          usersCopy: mockUsersWithoutFirstName,
+        },
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              assignee: mockUsersWithoutLastName[0],
+              assigneeCopy: mockUsersWithoutFirstName[0],
+              users: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutLastName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+              usersCopy: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutFirstName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+            },
+            {
+              id: 'mock-todo-id-2',
+              task: 'mock-task-2',
+              done: false,
+              assignee: mockUsersWithoutLastName[0],
+              assigneeCopy: mockUsersWithoutFirstName[0],
+              users: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutLastName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+              usersCopy: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutFirstName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+            },
+            {
+              id: 'mock-todo-id-3',
+              task: 'mock-task-3',
+              done: false,
+              assignee: mockUsersWithoutLastName[0],
+              assigneeCopy: mockUsersWithoutFirstName[0],
+              users: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutLastName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+              usersCopy: {
+                [NODES_PROPERTY_KEY]: mockUsersWithoutFirstName,
+                [TOTAL_COUNT_PROPERTY_KEY]:
+                  mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 3,
         },
       },
     });
@@ -1238,15 +1317,19 @@ describe.skip('subscription handling', () => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
-          todo: {
+          todos: {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
               },
               {
                 id: 'mock-todo-id-2',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-2',
                 done: false,
               },
@@ -1272,54 +1355,34 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
-    const mockSubscriptionMessage = getMockSubscriptionMessage({
-      alias: 'todos',
-      type: 'Deleted',
-      valueNodeType: todoNode.type,
-      id: 'mock-todo-id-2',
-    });
-
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1-updated',
-            done: true,
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Deleted',
+        valueNodeType: todoNode.type,
+        id: 'mock-todo-id-2',
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });
   });
 
-  it('correctly filters data from subscription messages related to a root level collection', done => {
+  it.skip('correctly filters data from subscription messages related to a root level collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -1368,6 +1431,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1408,7 +1473,7 @@ describe.skip('subscription handling', () => {
     });
   });
 
-  it('correctly sorts data from subscription messages related to a root level collection', done => {
+  it.skip('correctly sorts data from subscription messages related to a root level collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -1457,6 +1522,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1509,6 +1576,8 @@ describe.skip('subscription handling', () => {
       [NODES_PROPERTY_KEY]: [
         {
           id: 'mock-user-id-1',
+          type: 'user',
+          version: 1,
           firstName: 'mock-user-name-1',
           lastName: 'mock-user-last-name-1',
         },
@@ -1528,6 +1597,8 @@ describe.skip('subscription handling', () => {
         getMockData: () => ({
           todo: {
             id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
             task: 'mock-task-1',
             done: false,
             users: mockUsersCollection,
@@ -1559,23 +1630,6 @@ describe.skip('subscription handling', () => {
       },
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todo: todoQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todo',
       type: 'Updated',
@@ -1583,19 +1637,61 @@ describe.skip('subscription handling', () => {
       id: 'mock-user-id-1',
       value: {
         id: 'mock-user-id-1',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-1-updated',
         lastName: 'mock-user-last-name-1-updated',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    const expectedUpdatedUsersCollection = {
+    const expectedUpdatedUsersCollectionWithFirstNameOnly = {
       [NODES_PROPERTY_KEY]: [
         {
           id: 'mock-user-id-1',
           firstName: 'mock-user-name-1-updated',
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+    };
+
+    const expectedUpdatedUsersCollectionWithLastNameOnly = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          id: 'mock-user-id-1',
           lastName: 'mock-user-last-name-1-updated',
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+    };
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          users: expectedUpdatedUsersCollectionWithFirstNameOnly,
+          usersCopy: expectedUpdatedUsersCollectionWithLastNameOnly,
+        },
+      },
+    });
+  });
+
+  it('handles an "INSERTED" subscription message related to a node that was queried within a relational collection, nested within a single node query', done => {
+    const mockUsersCollection = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          id: 'mock-user-id-1',
+          type: 'user',
+          version: 1,
+          firstName: 'mock-user-name-1',
+          lastName: 'mock-user-last-name-1',
         },
       ],
       [TOTAL_COUNT_PROPERTY_KEY]: 1,
@@ -1608,41 +1704,17 @@ describe.skip('subscription handling', () => {
       },
     };
 
-    expect(resultsObject).toEqual({
-      todo: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1',
-        done: false,
-        users: expectedUpdatedUsersCollection,
-        usersCopy: expectedUpdatedUsersCollection,
-      },
-    });
-  });
-
-  it('handles an "INSERTED" subscription message related to a node that was queried within a relational collection, nested within a single node query', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
           todo: {
             id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
             task: 'mock-task-1',
             done: false,
-            users: {
-              [NODES_PROPERTY_KEY]: [
-                {
-                  id: 'mock-user-id-1',
-                  firstName: 'mock-user-name-1',
-                },
-              ],
-              [TOTAL_COUNT_PROPERTY_KEY]: 1,
-              [PAGE_INFO_PROPERTY_KEY]: {
-                hasNextPage: false,
-                hasPreviousPage: false,
-                startCursor: 'mock-user-id-1',
-                endCursor: 'mock-user-id-1',
-                totalPages: 1,
-              },
-            },
+            users: mockUsersCollection,
+            usersCopy: mockUsersCollection,
           },
         }),
       })
@@ -1659,28 +1731,16 @@ describe.skip('subscription handling', () => {
             firstName,
           }),
         }),
+        usersCopy: users({
+          map: ({ lastName }) => ({
+            lastName,
+          }),
+        }),
       }),
       target: {
         id: 'mock-todo-id-1',
       },
     });
-
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todo: todoQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
 
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todo',
@@ -1694,42 +1754,57 @@ describe.skip('subscription handling', () => {
       valueNodeType: userNode.type,
       value: {
         id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-2',
+        lastName: 'mock-user-last-name-2',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todo: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1',
-        done: false,
-        users: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-user-id-1',
-              firstName: 'mock-user-name-1',
-            },
-            {
-              id: 'mock-user-id-2',
-              firstName: 'mock-user-name-2',
-            },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 2,
-          [PAGE_INFO_PROPERTY_KEY]: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: 'mock-user-id-1',
-            endCursor: 'mock-user-id-2',
-            totalPages: 1,
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          users: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
+              },
+              {
+                id: 'mock-user-id-2',
+                firstName: 'mock-user-name-2',
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+          },
+          usersCopy: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-user-id-1',
+                lastName: 'mock-user-last-name-1',
+              },
+              {
+                id: 'mock-user-id-2',
+                lastName: 'mock-user-last-name-2',
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
           },
         },
       },
     });
   });
 
-  it('correctly filters data from subscription messages related to a collection, nested within a single node query', done => {
+  it.skip('correctly filters data from subscription messages related to a collection, nested within a single node query', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -1791,6 +1866,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1839,7 +1916,7 @@ describe.skip('subscription handling', () => {
     });
   });
 
-  it('correctly sorts data from subscription messages related to a collection, nested within a single node query', done => {
+  it.skip('correctly sorts data from subscription messages related to a collection, nested within a single node query', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -1901,6 +1978,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -1961,16 +2040,22 @@ describe.skip('subscription handling', () => {
         getMockData: () => ({
           todo: {
             id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
             task: 'mock-task-1',
             done: false,
             users: {
               [NODES_PROPERTY_KEY]: [
                 {
                   id: 'mock-user-id-1',
+                  type: 'user',
+                  version: 1,
                   firstName: 'mock-user-name-1',
                 },
                 {
                   id: 'mock-user-id-2',
+                  type: 'user',
+                  version: 1,
                   firstName: 'mock-user-name-2',
                 },
               ],
@@ -2005,23 +2090,6 @@ describe.skip('subscription handling', () => {
       },
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todo: todoQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todo',
       type: 'Removed',
@@ -2032,32 +2100,28 @@ describe.skip('subscription handling', () => {
       },
       id: 'mock-user-id-2',
       valueNodeType: userNode.type,
-      value: {
-        id: 'mock-user-id-2',
-      },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todo: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1',
-        done: false,
-        users: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-user-id-1',
-              firstName: 'mock-user-name-1',
-            },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
-          [PAGE_INFO_PROPERTY_KEY]: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: 'mock-user-id-1',
-            endCursor: 'mock-user-id-1',
-            totalPages: 1,
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          users: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 1,
           },
         },
       },
@@ -2072,12 +2136,16 @@ describe.skip('subscription handling', () => {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
                 users: {
                   [NODES_PROPERTY_KEY]: [
                     {
                       id: 'mock-user-id-1',
+                      type: 'user',
+                      version: 1,
                       firstName: 'mock-user-name-1',
                     },
                   ],
@@ -2119,23 +2187,6 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todos: todosQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todos',
       type: 'Updated',
@@ -2143,44 +2194,38 @@ describe.skip('subscription handling', () => {
       id: 'mock-user-id-1',
       value: {
         id: 'mock-user-id-1',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-1-updated',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1',
-            done: false,
-            users: {
-              [NODES_PROPERTY_KEY]: [
-                {
-                  id: 'mock-user-id-1',
-                  firstName: 'mock-user-name-1-updated',
-                },
-              ],
-              [TOTAL_COUNT_PROPERTY_KEY]: 1,
-              [PAGE_INFO_PROPERTY_KEY]: {
-                hasNextPage: false,
-                hasPreviousPage: false,
-                startCursor: 'mock-user-id-1',
-                endCursor: 'mock-user-id-1',
-                totalPages: 1,
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    id: 'mock-user-id-1',
+                    firstName: 'mock-user-name-1-updated',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
               },
             },
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });
@@ -2194,12 +2239,16 @@ describe.skip('subscription handling', () => {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
                 users: {
                   [NODES_PROPERTY_KEY]: [
                     {
                       id: 'mock-user-id-1',
+                      type: 'user',
+                      version: 1,
                       firstName: 'mock-user-name-1',
                     },
                   ],
@@ -2241,23 +2290,6 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todos: todosQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todos',
       type: 'Inserted',
@@ -2270,48 +2302,42 @@ describe.skip('subscription handling', () => {
       valueNodeType: userNode.type,
       value: {
         id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-2',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1',
-            done: false,
-            users: {
-              [NODES_PROPERTY_KEY]: [
-                {
-                  id: 'mock-user-id-1',
-                  firstName: 'mock-user-name-1-updated',
-                },
-                {
-                  id: 'mock-user-id-2',
-                  firstName: 'mock-user-name-2',
-                },
-              ],
-              [TOTAL_COUNT_PROPERTY_KEY]: 2,
-              [PAGE_INFO_PROPERTY_KEY]: {
-                hasNextPage: false,
-                hasPreviousPage: false,
-                startCursor: 'mock-user-id-1',
-                endCursor: 'mock-user-id-1',
-                totalPages: 1,
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    id: 'mock-user-id-1',
+                    firstName: 'mock-user-name-1',
+                  },
+                  {
+                    id: 'mock-user-id-2',
+                    firstName: 'mock-user-name-2',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 2,
               },
             },
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });
@@ -2325,16 +2351,22 @@ describe.skip('subscription handling', () => {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
                 users: {
                   [NODES_PROPERTY_KEY]: [
                     {
                       id: 'mock-user-id-1',
+                      type: 'user',
+                      version: 1,
                       firstName: 'mock-user-name-1',
                     },
                     {
                       id: 'mock-user-id-2',
+                      type: 'user',
+                      version: 1,
                       firstName: 'mock-user-name-2',
                     },
                   ],
@@ -2376,23 +2408,6 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todos: todosQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todos',
       type: 'Removed',
@@ -2403,51 +2418,40 @@ describe.skip('subscription handling', () => {
       },
       id: 'mock-user-id-2',
       valueNodeType: userNode.type,
-      value: {
-        id: 'mock-user-id-2',
-      },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1',
-            done: false,
-            users: {
-              [NODES_PROPERTY_KEY]: [
-                {
-                  id: 'mock-user-id-1',
-                  firstName: 'mock-user-name-1-updated',
-                },
-              ],
-              [TOTAL_COUNT_PROPERTY_KEY]: 1,
-              [PAGE_INFO_PROPERTY_KEY]: {
-                hasNextPage: false,
-                hasPreviousPage: false,
-                startCursor: 'mock-user-id-1',
-                endCursor: 'mock-user-id-1',
-                totalPages: 1,
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    id: 'mock-user-id-1',
+                    firstName: 'mock-user-name-1',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
               },
             },
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });
   });
 
-  it('correctly filters data from subscription messages related to a collection nested within a collection', done => {
+  it.skip('correctly filters data from subscription messages related to a collection nested within a collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -2518,6 +2522,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -2578,7 +2584,7 @@ describe.skip('subscription handling', () => {
     });
   });
 
-  it('correctly sorts data from subscription messages related to a collection nested within a collection', done => {
+  it.skip('correctly sorts data from subscription messages related to a collection nested within a collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -2649,6 +2655,8 @@ describe.skip('subscription handling', () => {
         onQueryError: e => {
           done(e);
         },
+        subscribe: true,
+        onSubscriptionError: e => done(e),
         batchKey: null,
       }
     );
@@ -2722,9 +2730,13 @@ describe.skip('subscription handling', () => {
         getMockData: () => ({
           todo: {
             id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
             task: 'mock-task-1',
             done: false,
             assignee: {
+              type: 'user',
+              version: 1,
               id: 'mock-user-id-1',
               firstName: 'mock-user-name-1',
             },
@@ -2745,24 +2757,10 @@ describe.skip('subscription handling', () => {
           }),
         }),
       }),
-    });
-
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todo: todoQueryDefinition,
+      target: {
+        id: 'mock-todo-id-1',
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
+    });
 
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todo',
@@ -2776,20 +2774,28 @@ describe.skip('subscription handling', () => {
       valueNodeType: userNode.type,
       value: {
         id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-2',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todo: {
-        id: 'mock-todo-id-1',
-        task: 'mock-task-1',
-        done: false,
-        assignee: {
-          id: 'mock-user-id-2',
-          firstName: 'mock-user-name-2',
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          assignee: {
+            id: 'mock-user-id-2',
+            firstName: 'mock-user-name-2',
+          },
         },
       },
     });
@@ -2806,10 +2812,14 @@ describe.skip('subscription handling', () => {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
                 assignee: {
                   id: 'mock-user-id-1',
+                  type: 'user',
+                  version: 1,
                   firstName: 'mock-user-name-1',
                 },
               },
@@ -2841,23 +2851,6 @@ describe.skip('subscription handling', () => {
       }),
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
-        todos: todosQueryDefinition,
-      },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        batchKey: null,
-      }
-    );
-
     const mockSubscriptionMessage = getMockSubscriptionMessage({
       alias: 'todos',
       type: 'UpdatedAssociation',
@@ -2870,32 +2863,33 @@ describe.skip('subscription handling', () => {
       valueNodeType: userNode.type,
       value: {
         id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
         firstName: 'mock-user-name-2',
       },
     });
 
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1',
-            done: false,
-            assignee: {
-              id: 'mock-user-id-2',
-              firstName: 'mock-user-name-2',
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              assignee: {
+                id: 'mock-user-id-2',
+                firstName: 'mock-user-name-2',
+              },
             },
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });

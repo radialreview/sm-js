@@ -10,12 +10,6 @@ export declare function getBEFilterString<TNode extends INode>(opts: {
     relational?: Record<string, RelationalQueryRecordEntry>;
     isCollectionFilter: boolean;
 }): string;
-export declare type SubscriptionConfig = {
-    alias: string;
-    gqlString: string;
-    extractNodeFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
-    extractOperationFromSubscriptionMessage: (subscriptionMessage: Record<string, any>) => any;
-};
 export declare function getQueryGQLDocumentFromQueryRecord(opts: {
     queryId: string;
     queryRecord: QueryRecord;
@@ -30,9 +24,11 @@ export declare function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 export declare function getDataFromQueryResponsePartial(opts: {
     queryResponsePartial: Record<string, any>;
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+    collectionsIncludePagingInfo: boolean;
 }): any;
 export declare function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
     queryId: string;
     queryRecord: QueryRecord;
     useServerSidePaginationFilteringSorting: boolean;
 }): Record<string, import("graphql/language/ast").DocumentNode>;
+export declare function capitalizeFirstLetter(string: string): string;

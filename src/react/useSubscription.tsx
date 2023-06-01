@@ -343,9 +343,7 @@ function getQueryDefinitionStateManager<
       if (!stateForThisSubscription.onQueryDefinitionsUpdated) {
         throw Error('onQueryDefinitionsUpdated is not defined');
       }
-      stateForThisSubscription.onQueryDefinitionsUpdated(
-        subOpts.queryDefinitions
-      );
+      stateForThisSubscription.onQueryDefinitionsUpdated(queryDefinitions);
 
       return stateForThisSubscription.suspendPromise;
     }
@@ -361,7 +359,7 @@ function getQueryDefinitionStateManager<
     ]?.onQueryStateChange?.();
 
     function onError(error: any) {
-      opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+      opts.context.updateSubscriptionInfo(parentSubscriptionId, {
         error,
       });
       opts.context.ongoingSubscriptionRecord[
@@ -411,13 +409,14 @@ function getQueryDefinitionStateManager<
 
     const suspendPromise = opts.context.mmGQLInstance
       .subscribe(queryDefinitions, {
+        queryId: subscriptionId,
         onQueryManagerQueryStateChange: onQueryManagerQueryStateChange,
-        batchKey: subOpts.suspend ? 'suspended' : 'non-suspended',
+        batchKey: suspend ? 'suspended' : 'non-suspended',
         onData: ({ results: newResults }) => {
           const contextForThisParentSub =
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
-          opts.context.updateSubscriptionInfo(subOpts.parentSubscriptionId, {
+          opts.context.updateSubscriptionInfo(parentSubscriptionId, {
             data: {
               ...contextForThisParentSub.data,
               ...newResults,

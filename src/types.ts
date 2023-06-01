@@ -73,9 +73,10 @@ export type Config = {
   paginationFilteringSortingInstance: EPaginationFilteringSortingInstance
   logging: {
     querySlimming: boolean
-    gqlClientQueries: boolean
-    gqlClientMutations: boolean
-    gqlClientSubscriptions: boolean
+    gqlQueries: boolean
+    gqlMutations: boolean
+    gqlSubscriptions: boolean
+    gqlSubscriptionErrors: boolean
   }
 };
 
@@ -90,7 +91,7 @@ export interface IGQLClient {
     gql: DocumentNode;
     token?: string;
     cookie?: string;
-    onMessage: (message: Record<string, any>) => void;
+    onMessage: (message: SubscriptionMessage) => void;
     onError: (error: any) => void;
   }): SubscriptionCanceller;
   mutate(opts: {

@@ -81,7 +81,7 @@ export const MMGQLProvider = (props: {
   );
 
   const scheduleCleanup: IContext['scheduleCleanup'] = React.useCallback(
-    subscriptionId => {
+    (subscriptionId: string) => {
       function cleanup() {
         const existingContextSubscription =
           ongoingSubscriptionRecord.current[subscriptionId];

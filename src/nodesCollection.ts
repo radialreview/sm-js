@@ -55,6 +55,7 @@ export class NodesCollection<
   public totalCount: TNodesCollectionArgs['TIncludeTotalCount'] extends true
     ? number
     : undefined;
+  public nodes: TNodesCollectionArgs['TItemType'][];
 
   constructor(opts: NodesCollectionOpts<TNodesCollectionArgs['TItemType']>) {
     this.items = opts.items;
@@ -71,16 +72,23 @@ export class NodesCollection<
     this.onGoToNextPage = opts.onGoToNextPage;
     this.onGoToPreviousPage = opts.onGoToPreviousPage;
     this.onPaginationRequestStateChanged = opts.onPaginationRequestStateChanged;
-  }
 
-  public get nodes() {
-    if (this.useServerSidePaginationFilteringSorting) return this.items;
-    // this is because when doing client side pagination, all the items in this collection are expected to already
-    // be cached in this class' state
-    return getPageResults({
-      items: this.items,
-      pages: this.pagesBeingDisplayed,
-      itemsPerPage: this.clientSidePageInfo.pageSize,
+    // just to silence TS, the getter is defined below
+    this.nodes = [];
+    // defined this way as opposed to a getter because we want it to be enumerable
+    // for our tests which do an equality check on the entire results object
+    Object.defineProperty(this, 'nodes', {
+      enumerable: true,
+      get: () => {
+        if (this.useServerSidePaginationFilteringSorting) return this.items;
+        // this is because when doing client side pagination, all the items in this collection are expected to already
+        // be cached in this class' state
+        return getPageResults({
+          items: this.items,
+          pages: this.pagesBeingDisplayed,
+          itemsPerPage: this.clientSidePageInfo.pageSize,
+        });
+      },
     });
   }
 

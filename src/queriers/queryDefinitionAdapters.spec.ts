@@ -1492,25 +1492,17 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              name
              headlines {
-               nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
                  id
                  version
                  lastUpdatedBy
                  type
-                 title
-                 assignee {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   firstName
-                 }
-               }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
+                 firstName
                }
              }
            }
@@ -1575,9 +1567,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -1657,25 +1646,17 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              name
              headlines {
-               nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
                  id
                  version
                  lastUpdatedBy
                  type
-                 title
-                 assignee {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   firstName
-                 }
-               }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
+                 firstName
                }
              }
            }
@@ -1740,9 +1721,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -1834,25 +1812,17 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              name
              headlines {
-               nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
                  id
                  version
                  lastUpdatedBy
                  type
-                 title
-                 assignee {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   firstName
-                 }
-               }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
+                 firstName
                }
              }
            }
@@ -1917,9 +1887,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {
@@ -2081,27 +2048,19 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              name
              headlines {
-               nodes {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               closed
+               assignee {
                  id
                  version
                  lastUpdatedBy
                  type
-                 title
-                 closed
-                 assignee {
-                   id
-                   version
-                   lastUpdatedBy
-                   type
-                   lastName
-                   firstName
-                 }
-               }
-               pageInfo {
-                 endCursor
-                 startCursor
-                 hasNextPage
-                 hasPreviousPage
+                 lastName
+                 firstName
                }
              }
            }
@@ -2169,9 +2128,6 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              property
            }
            id
-           value {
-             id
-           }
          }
          
          ...on Updated_User {

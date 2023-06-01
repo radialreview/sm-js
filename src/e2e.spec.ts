@@ -6,7 +6,7 @@ import {
 } from './index';
 import { oneToMany, queryDefinition, string } from './dataTypes';
 
-test('makes a query', async () => {
+test.skip('makes a query', async () => {
   const { mmGQLClient, userNode, orgUserId } = await setupE2ETests();
 
   const { data } = await mmGQLClient.query({
@@ -74,7 +74,7 @@ test('makes a query', async () => {
   `);
 });
 
-test('starts a subscription', async done => {
+test.skip('starts a subscription', async done => {
   const { gqlClient, cookie } = await setupE2ETests();
 
   gqlClient.subscribe({

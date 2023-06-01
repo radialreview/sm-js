@@ -1,5 +1,5 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, BaseQueryRecordEntry, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
@@ -17,10 +17,12 @@ declare type QueryManagerProxyCacheEntry = {
 };
 declare type QueryManagerOpts = {
     queryId: string;
+    subscribe: boolean;
     useServerSidePaginationFilteringSorting: boolean;
-    resultsObject: Object;
+    resultsObject: Record<string, any>;
     onResultsUpdated(): void;
     onQueryError(error: any): void;
+    onSubscriptionError(error: any): void;
     batchKey: Maybe<string>;
     onQueryStateChange?: (queryStateChangeOpts: {
         queryIdx: number;
@@ -35,7 +37,61 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         opts: QueryManagerOpts;
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
-        onSubscriptionMessage(_message: SubscriptionMessage): void;
+        subscriptionMessageHandlers: Record<string, (message: SubscriptionMessage) => void>;
+        unsubRecord: Record<string, () => void>;
+        onSubscriptionMessage: (message: SubscriptionMessage) => void;
+        logSubscriptionError: (error: string) => void;
+        getSubscriptionMessageHandlers(opts: {
+            queryRecord: QueryRecord;
+        }): Record<string, (message: SubscriptionMessage) => void>;
+        getSubscriptionEventToCachePathRecords(opts: {
+            aliasPath: Array<string>;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+        }): {
+            nodeUpdatePaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeCreatePaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeDeletePaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeInsertPaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeRemovePaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+            nodeUpdateAssociationPaths: Record<string, {
+                aliasPath: Array<string>;
+                queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+                parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+            }[]>;
+        };
+        getStateCacheEntriesForAliasPath(opts: {
+            aliasPath: Array<string>;
+            parentProxy?: IDOProxy | null;
+            previousStateEntries?: Array<{
+                leafStateEntry: QueryManagerStateEntry;
+                parentProxy: IDOProxy | null;
+            }>;
+        }): Array<{
+            leafStateEntry: QueryManagerStateEntry;
+            parentProxy: IDOProxy | null;
+        }>;
+        unsub(): void;
         /**
          * Is used to build the root level results for the query, and also to build the relational results
          * used by each proxy, which is why "state" is a param here
@@ -57,6 +113,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: {
                 [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
             };
+            collectionsIncludePagingInfo: boolean;
         }): void;
         /**
          * Gets the initial state for this manager from the initial query results
@@ -69,36 +126,18 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
             queryAlias: string;
-            queryRecord: QueryRecord;
+            queryRecord: QueryRecord | RelationalQueryRecord;
             pageInfoFromResults: Maybe<PageInfoFromResults>;
             totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
+            collectionsIncludePagingInfo: boolean;
         }): Maybe<QueryManagerStateEntry>;
-        updateProxiesAndStateFromSubscriptionMessage(opts: {
-            node: any;
-            operation: {
-                action: 'UpdateNode' | 'DeleteNode' | 'InsertNode' | 'DeleteEdge';
-                path: string;
-            };
-            subscriptionAlias: string;
-        }): void;
-        recursivelyUpdateProxyAndReturnNewCacheEntry(opts: {
-            proxy: IDOProxy;
-            newRelationalData: Maybe<Record<string, Array<Record<string, any> | Record<string, any>>>>;
-            relationalQueryRecord: Maybe<Record<string, RelationalQueryRecordEntry>>;
-            currentState: QueryManagerProxyCacheEntry;
-            aliasPath: Array<string>;
-        }): QueryManagerProxyCacheEntry;
-        getRelationalData(opts: {
-            queryRecord: BaseQueryRecordEntry | null;
-            node: Record<string, any>;
-        }): Record<string, any> | null;
         removeUnionSuffix(alias: string): string;
         getApplicableRelationalQueries(opts: {
-            relationalQueries: Record<string, RelationalQueryRecordEntry>;
+            relationalQueries: RelationalQueryRecord;
             nodeData: Record<string, any>;
-        }): Record<string, RelationalQueryRecordEntry>;
+        }): RelationalQueryRecord;
         getPageInfoFromResponse(opts: {
             dataForThisAlias: any;
         }): Maybe<PageInfoFromResults>;

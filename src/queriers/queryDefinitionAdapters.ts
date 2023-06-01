@@ -1031,17 +1031,6 @@ function getRootLevelQueryString(
   );
 }
 
-export type SubscriptionConfig = {
-  alias: string;
-  gqlString: string;
-  extractNodeFromSubscriptionMessage: (
-    subscriptionMessage: Record<string, any>
-  ) => any;
-  extractOperationFromSubscriptionMessage: (
-    subscriptionMessage: Record<string, any>
-  ) => any;
-};
-
 export function getQueryGQLDocumentFromQueryRecord(opts: {
   queryId: string;
   queryRecord: QueryRecord;
@@ -1098,10 +1087,14 @@ export function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 export function getDataFromQueryResponsePartial(opts: {
   queryResponsePartial: Record<string, any>;
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
+  collectionsIncludePagingInfo: boolean;
 }) {
   if (!opts.queryRecordEntry) return null;
 
-  if (queryRecordEntryReturnsArrayOfDataNestedInNodes(opts)) {
+  if (
+    queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) &&
+    opts.collectionsIncludePagingInfo
+  ) {
     return opts.queryResponsePartial[NODES_PROPERTY_KEY];
   } else {
     return opts.queryResponsePartial;
@@ -1129,8 +1122,6 @@ export function getSubscriptionGQLDocumentsFromQueryRecord(opts: {
         queryId: opts.queryId,
         queryRecordEntry,
         alias: rootAlias,
-        useServerSidePaginationFilteringSorting:
-          opts.useServerSidePaginationFilteringSorting,
       });
 
       const docString = `
@@ -1155,12 +1146,10 @@ function getQueryRecordEntrySubscriptionFragment(opts: {
   queryId: string;
   queryRecordEntry: QueryRecordEntry;
   alias: string;
-  useServerSidePaginationFilteringSorting: boolean;
 }) {
   const operation = getOperationFromQueryRecordEntry({
     ...opts.queryRecordEntry,
-    useServerSidePaginationFilteringSorting:
-      opts.useServerSidePaginationFilteringSorting,
+    useServerSidePaginationFilteringSorting: false,
   });
 
   return (
@@ -1239,20 +1228,10 @@ function getSubscriptionRelationalPropsString(opts: {
       acc +
       (index > 0 ? `\n` : '') +
       `${resolver} {` +
-      ('oneToMany' in relationalQueryRecordEntry
-        ? getNodesCollectionQuery({
-            propertiesString: getSubscriptionPropsString({
-              ownProps: relationalQueryRecordEntry.properties,
-              relational: relationalQueryRecordEntry.relational,
-            }),
-            nestLevel: 1,
-            includeTotalCount: !!relationalQueryRecordEntry.pagination
-              ?.includeTotalCount,
-          }) + '\n'
-        : getSubscriptionPropsString({
-            ownProps: relationalQueryRecordEntry.properties,
-            relational: relationalQueryRecordEntry.relational,
-          })) +
+      getSubscriptionPropsString({
+        ownProps: relationalQueryRecordEntry.properties,
+        relational: relationalQueryRecordEntry.relational,
+      }) +
       `}\n`
     );
   }, '');
@@ -1321,6 +1300,7 @@ type RelationalSubscriptionMetadata = {
 
 /**
  * Flattens relational queries into an array of RelationalSubscriptionMetadata
+ * See the comments in getRelationalSubscriptionString to understand why
  */
 function getRelationalSubscriptionMetadatas(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
@@ -1622,9 +1602,6 @@ function getNestedRelationalSubscriptionString(opts: {
           property
         }
         id
-        value {
-          id
-        }
       }
     `;
   } else if (isOneToOne) {
@@ -1645,10 +1622,16 @@ function getNestedRelationalSubscriptionString(opts: {
   return subscriptionString;
 }
 
-function capitalizeFirstLetter(string: string) {
+export function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function getSanitizedQueryId(opts: { queryId: string }): string {
-  return opts.queryId.replace(/-/g, '_');
+  // take a string that looks like this
+  // at BloomSideNav (webpack-internal:///./pages/layout/sideNav/sideNav.tsx:92:75)suspendDisabled_user
+  // and sanitize it so it's a valid gql operation name
+  // by replacing any character that isn't a word character (alphanumeric or underscore) with an underscore.
+  // example output:
+  // at_BloomSideNav__webpack_internal______pages_layout_sideNav_sideNav_tsx_92_75_suspendDisabled_user
+  return opts.queryId.replace(/\W/g, '_');
 }
