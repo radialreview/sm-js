@@ -290,6 +290,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
+                // needs to be ok with null totalCount, because it is sometimes not queried
                 if (stateEntry.totalCount != null) {
                   stateEntry.totalCount++;
                 }
