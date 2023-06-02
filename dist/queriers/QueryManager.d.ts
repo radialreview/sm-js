@@ -87,6 +87,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
                 leafStateEntry: QueryManagerStateEntry;
                 parentProxy: IDOProxy | null;
             }>;
+            idFilter?: string | number;
         }): Array<{
             leafStateEntry: QueryManagerStateEntry;
             parentProxy: IDOProxy | null;
