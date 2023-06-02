@@ -819,7 +819,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             (acc, stateEntry) => {
               Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
                 nodeId => {
-                  if (opts.idFilter != null) {
+                  // if we are at the end of the alias path, we want to apply the id filter
+                  // otherwise, we want to return all state entries for this alias
+                  const shouldApplyIdFilter = restOfAliasPath.length === 0;
+
+                  if (shouldApplyIdFilter && opts.idFilter != null) {
                     const nodeIdAsNumber = Number(nodeId);
 
                     // since we store node ids as strings
