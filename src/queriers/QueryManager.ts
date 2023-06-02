@@ -797,7 +797,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     public getStateCacheEntriesForAliasPath(opts: {
       aliasPath: Array<string>;
-      parentProxy?: IDOProxy | null;
       previousStateEntries?: Array<{
         leafStateEntry: QueryManagerStateEntry;
         parentProxy: IDOProxy | null;
@@ -866,6 +865,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
           previousStateEntries: stateEntriesForFirstAlias,
+          idFilter: opts.idFilter,
         });
       }
     }
