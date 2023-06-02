@@ -394,6 +394,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
+                    idFilter: parentId,
                   }
                 );
 
@@ -483,6 +484,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
+                    idFilter: parentId,
                   }
                 );
 
@@ -602,6 +604,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                 {
                   aliasPath: path.aliasPath,
+                  idFilter: parentId,
                 }
               );
 
@@ -799,6 +802,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         leafStateEntry: QueryManagerStateEntry;
         parentProxy: IDOProxy | null;
       }>;
+      // when provided, only state entries that match this id will be returned
+      idFilter?: string | number;
     }): Array<{
       leafStateEntry: QueryManagerStateEntry;
       parentProxy: IDOProxy | null;
@@ -815,6 +820,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             (acc, stateEntry) => {
               Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
                 nodeId => {
+                  if (opts.idFilter != null && nodeId !== opts.idFilter) return;
+
                   const proxyCacheEntry =
                     stateEntry.leafStateEntry.proxyCache[nodeId];
                   const relationalStateForAlias =
