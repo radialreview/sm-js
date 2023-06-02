@@ -7235,7 +7235,17 @@ function createQueryManager(mmGQLInstance) {
             Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(function (nodeId) {
               var _proxyCacheEntry$rela;
 
-              if (opts.idFilter != null && nodeId !== opts.idFilter) return;
+              if (opts.idFilter != null) {
+                var nodeIdAsNumber = Number(nodeId); // since we store node ids as strings
+                // but the message from BE may include the id as a number
+
+                if (typeof opts.idFilter === 'number' && nodeIdAsNumber !== opts.idFilter) {
+                  return;
+                } else if (typeof opts.idFilter === 'string' && nodeId !== opts.idFilter) {
+                  return;
+                }
+              }
+
               var proxyCacheEntry = stateEntry.leafStateEntry.proxyCache[nodeId];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
