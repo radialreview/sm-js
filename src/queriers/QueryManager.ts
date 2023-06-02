@@ -352,18 +352,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 `No node insert handler found for ${parentNodeType}.${childNodeType}`
               );
 
+            const parentId = message.data[rootLevelAlias].target?.id;
+            const propertyName = message.data[rootLevelAlias].target?.property;
+            const parentRelationshipWhichWasUpdated = propertyName
+              ? camelCasePropertyName(propertyName)
+              : null;
+
+            if (!parentId)
+              return this.logSubscriptionError('No parentId found');
+            if (!parentRelationshipWhichWasUpdated)
+              return this.logSubscriptionError(
+                'No parentRelationshipWhichWasUpdated found'
+              );
+
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
-                const parentId = message.data[rootLevelAlias].target?.id;
-                const parentRelationshipWhichWasInsertedInto =
-                  message.data[rootLevelAlias].target?.property;
-
-                if (!parentId)
-                  return this.logSubscriptionError('No parentId found');
-                if (!parentRelationshipWhichWasInsertedInto)
-                  return this.logSubscriptionError(
-                    'No parentRelationshipWhichWasInsertedInto found'
-                  );
+                if (
+                  !('_relationshipName' in path.queryRecordEntry) ||
+                  path.queryRecordEntry._relationshipName !==
+                    parentRelationshipWhichWasUpdated
+                ) {
+                  return;
+                }
 
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
@@ -466,18 +476,29 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 `No node remove handler found for ${parentNodeType}.${childNodeType}`
               );
 
+            const parentId = message.data[rootLevelAlias].target?.id;
+
+            const propertyName = message.data[rootLevelAlias].target?.property;
+            const parentRelationshipWhichWasUpdated = propertyName
+              ? camelCasePropertyName(propertyName)
+              : null;
+
+            if (!parentId)
+              return this.logSubscriptionError('No parentId found');
+            if (!parentRelationshipWhichWasUpdated)
+              return this.logSubscriptionError(
+                'No parentRelationshipWhichWasUpdated found'
+              );
+
             nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
-                const parentId = message.data[rootLevelAlias].target?.id;
-                const parentRelationshipWhichWasRemovedFrom =
-                  message.data[rootLevelAlias].target?.property;
-
-                if (!parentId)
-                  return this.logSubscriptionError('No parentId found');
-                if (!parentRelationshipWhichWasRemovedFrom)
-                  return this.logSubscriptionError(
-                    'No parentRelationshipWhichWasRemovedFrom found'
-                  );
+                if (
+                  !('_relationshipName' in path.queryRecordEntry) ||
+                  path.queryRecordEntry._relationshipName !==
+                    parentRelationshipWhichWasUpdated
+                ) {
+                  return;
+                }
 
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
@@ -565,19 +586,29 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 `No node update association handler found for ${parentNodeType}.${childNodeType}`
               );
 
+            const parentId = message.data[rootLevelAlias].target?.id;
+            const propertyName = message.data[rootLevelAlias].target?.property;
+            const parentRelationshipWhichWasUpdated = propertyName
+              ? camelCasePropertyName(propertyName)
+              : null;
+
+            if (!parentId)
+              return this.logSubscriptionError('No parentId found');
+            if (!parentRelationshipWhichWasUpdated)
+              return this.logSubscriptionError(
+                'No parentRelationshipWhichWasUpdated found'
+              );
+
             nodeUpdateAssociationPaths[
               `${parentNodeType}.${childNodeType}`
             ].forEach(path => {
-              const parentId = message.data[rootLevelAlias].target?.id;
-              const parentRelationshipWhichWasInsertedInto =
-                message.data[rootLevelAlias].target?.property;
-
-              if (!parentId)
-                return this.logSubscriptionError('No parentId found');
-              if (!parentRelationshipWhichWasInsertedInto)
-                return this.logSubscriptionError(
-                  'No parentRelationshipWhichWasInsertedInto found'
-                );
+              if (
+                !('_relationshipName' in path.queryRecordEntry) ||
+                path.queryRecordEntry._relationshipName !==
+                  parentRelationshipWhichWasUpdated
+              ) {
+                return;
+              }
 
               const { parentQueryRecordEntry } = path;
               if (!parentQueryRecordEntry)
@@ -594,63 +625,83 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 id: string;
               } & Record<string, any>;
 
-              path.queryRecordEntry.def.repository.onDataReceived(
-                nodeAssociatedData
-              );
-
               const relationalAlias = path.aliasPath[path.aliasPath.length - 1];
-              const newCacheEntry = this.buildCacheEntry({
-                nodeData: nodeAssociatedData,
-                queryAlias: relationalAlias,
-                queryRecord: parentQueryRecordEntry.relational,
-                aliasPath: path.aliasPath,
-                // page info is not required
-                // in this case, all we need to get back is the proxy for a specific node
-                // and we mutate the state paging info directly as needed
-                pageInfoFromResults: null,
-                totalCount: null,
-                clientSidePageInfo: null,
-                collectionsIncludePagingInfo: false,
-              });
 
-              if (!newCacheEntry)
-                return this.logSubscriptionError('No new cache entry found');
+              let newRelationalStateEntry:
+                | QueryManagerStateEntry
+                | null
+                | undefined = undefined;
+              if (nodeAssociatedData) {
+                path.queryRecordEntry.def.repository.onDataReceived(
+                  nodeAssociatedData
+                );
 
-              const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
-                {
+                const newCacheEntry = this.buildCacheEntry({
+                  nodeData: nodeAssociatedData,
+                  queryAlias: relationalAlias,
+                  queryRecord: parentQueryRecordEntry.relational,
                   aliasPath: path.aliasPath,
-                  idFilter: parentId,
-                }
-              );
+                  // page info is not required
+                  // in this case, all we need to get back is the proxy for a specific node
+                  // and we mutate the state paging info directly as needed
+                  pageInfoFromResults: null,
+                  totalCount: null,
+                  clientSidePageInfo: null,
+                  collectionsIncludePagingInfo: false,
+                });
 
-              if (
-                !cacheEntriesWhichRequireUpdate ||
-                cacheEntriesWhichRequireUpdate.length === 0
-              )
-                return this.logSubscriptionError(
-                  'No parent cache entries found'
-                );
+                if (!newCacheEntry)
+                  return this.logSubscriptionError('No new cache entry found');
 
-              cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
-                const stateEntry = stateCacheEntry.leafStateEntry;
-                const parentProxy = stateCacheEntry.parentProxy;
+                newRelationalStateEntry = newCacheEntry;
+              } else if (nodeAssociatedData === null) {
+                // must be a strict null check, and not loose
+                // since we may receive messages with an undefined `value`, which should not set this relationship to null
+                newRelationalStateEntry = null;
+              }
 
-                stateEntry.idsOrIdInCurrentResult = nodeAssociatedData.id;
-                stateEntry.proxyCache[nodeAssociatedData.id] =
-                  newCacheEntry.proxyCache[nodeAssociatedData.id];
-
-                if (!parentProxy)
-                  return this.logSubscriptionError('No parent proxy found');
-
-                parentProxy.updateRelationalResults(
-                  this.getResultsFromState({
-                    state: {
-                      [relationalAlias]: stateEntry,
-                    },
+              if (newRelationalStateEntry !== undefined) {
+                const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                  {
                     aliasPath: path.aliasPath,
-                  })
+                    idFilter: parentId,
+                  }
                 );
-              });
+
+                if (
+                  !cacheEntriesWhichRequireUpdate ||
+                  cacheEntriesWhichRequireUpdate.length === 0
+                )
+                  return this.logSubscriptionError(
+                    'No parent cache entries found'
+                  );
+
+                cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
+                  const stateEntry = stateCacheEntry.leafStateEntry;
+                  const parentProxy = stateCacheEntry.parentProxy;
+
+                  stateEntry.idsOrIdInCurrentResult = nodeAssociatedData
+                    ? nodeAssociatedData.id
+                    : null;
+
+                  if (nodeAssociatedData && newRelationalStateEntry) {
+                    stateEntry.proxyCache[nodeAssociatedData.id] =
+                      newRelationalStateEntry.proxyCache[nodeAssociatedData.id];
+                  }
+
+                  if (!parentProxy)
+                    return this.logSubscriptionError('No parent proxy found');
+
+                  parentProxy.updateRelationalResults(
+                    this.getResultsFromState({
+                      state: {
+                        [relationalAlias]: stateEntry,
+                      },
+                      aliasPath: path.aliasPath,
+                    })
+                  );
+                });
+              }
             });
           } else {
             throw new UnreachableCaseError(
@@ -687,6 +738,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           // While the subscription is active, a new user may be created, and that new user may get some todos assigned to them.
           // With a direct memory pointer approach, there would be no way to update the state entry for the new user.
           aliasPath: Array<string>;
+          relationalAlias?: string;
           queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
           parentQueryRecordEntry:
             | QueryRecordEntry
@@ -2511,4 +2563,19 @@ function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
     parentNodeType: lowerCaseFirstLetter(split[1]),
     childNodeType: lowerCaseFirstLetter(split[2]),
   };
+}
+
+function camelCasePropertyName(property: string) {
+  // Takes a property name in the format "SOME_PROPERTY_NAME"
+  // and returns "somePropertyName"
+  // taking into account that some properties may already be camel cased
+  // and should not be modified
+  if (property === property.toLowerCase()) return property;
+
+  const split = property.split('_');
+  if (split.length === 1) return property;
+  return split.reduce((acc, curr, i) => {
+    if (i === 0) return curr.toLowerCase();
+    return acc + curr.charAt(0).toUpperCase() + curr.slice(1).toLowerCase();
+  }, '');
 }

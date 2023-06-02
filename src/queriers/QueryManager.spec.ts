@@ -886,7 +886,7 @@ function getMockSubscriptionMessage(opts: {
     property: string;
   };
   valueNodeType?: string;
-  value?: { id: string | number } & Record<string, any>;
+  value?: ({ id: string | number } & Record<string, any>) | null;
 }) {
   let typeNameString = `${opts.type}_`;
 
@@ -2796,6 +2796,75 @@ describe('subscription handling', () => {
             id: 'mock-user-id-2',
             firstName: 'mock-user-name-2',
           },
+        },
+      },
+    });
+  });
+
+  it('handles an "UPDATED_ASSOCIATION" subscription message related to a oneToOne relationship nested within a single node query, where the value is set to null', done => {
+    const mmGQLInstance = new MMGQL(
+      getMockConfig({
+        getMockData: () => ({
+          todo: {
+            id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
+            task: 'mock-task-1',
+            done: false,
+            assignee: {
+              type: 'user',
+              version: 1,
+              id: 'mock-user-id-1',
+              firstName: 'mock-user-name-1',
+            },
+          },
+        }),
+      })
+    );
+    const userNode = generateUserNode(mmGQLInstance);
+    const todoNode = generateTodoNode(mmGQLInstance, userNode);
+    const todoQueryDefinition = queryDefinition({
+      def: todoNode,
+      map: ({ task, done, assignee }) => ({
+        task,
+        done,
+        assignee: assignee({
+          map: ({ firstName }) => ({
+            firstName,
+          }),
+        }),
+      }),
+      target: {
+        id: 'mock-todo-id-1',
+      },
+    });
+
+    const mockSubscriptionMessage = getMockSubscriptionMessage({
+      alias: 'todo',
+      type: 'UpdatedAssociation',
+      targetNodeType: todoNode.type,
+      target: {
+        id: 'mock-todo-id-1',
+        property: 'assignee',
+      },
+      id: 'mock-user-id-2',
+      valueNodeType: userNode.type,
+      value: null,
+    });
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          assignee: null,
         },
       },
     });
