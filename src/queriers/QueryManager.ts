@@ -211,6 +211,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               id: string;
             } & Record<string, any>;
 
+            if (!nodeData) {
+              // This can be removed once BE only notifies about events that the subscription requests
+              return this.logSubscriptionError(
+                `No node data found for ${messageType}`
+              );
+            }
+
             nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
               const queryRecordEntry = path.queryRecordEntry;
 
@@ -240,6 +247,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const nodeData = message.data[rootLevelAlias].value as {
                 id: string;
               } & Record<string, any>;
+
+              if (!nodeData)
+                return this.logSubscriptionError(
+                  `No node data found for ${messageType}`
+                );
 
               const queryRecordEntry = path.queryRecordEntry;
 
@@ -277,11 +289,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                     'idsOrIdInCurrentResult is not an array'
                   );
 
-                if (stateEntry.totalCount == null)
-                  return this.logSubscriptionError('No totalCount found');
-
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
-                stateEntry.totalCount++;
+                // needs to be ok with null totalCount, because it is sometimes not queried
+                if (stateEntry.totalCount != null) {
+                  stateEntry.totalCount++;
+                }
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -316,9 +328,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   'idsOrIdInCurrentResult is not an array'
                 );
 
-              if (stateEntry.totalCount == null)
-                return this.logSubscriptionError('No totalCount found');
-
               const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
                 nodeDeletedId
               );
@@ -326,7 +335,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
               delete stateEntry.proxyCache[nodeDeletedId];
-              stateEntry.totalCount--;
+              if (stateEntry.totalCount != null) {
+                stateEntry.totalCount--;
+              }
             });
           } else if (messageType.startsWith('Inserted_')) {
             const {
@@ -367,6 +378,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const nodeInsertedData = message.data[rootLevelAlias].value as {
                   id: string;
                 } & Record<string, any>;
+
+                if (!nodeInsertedData) {
+                  return this.logSubscriptionError(
+                    `No node inserted data found for ${messageType}`
+                  );
+                }
 
                 path.queryRecordEntry.def.repository.onDataReceived(
                   nodeInsertedData
@@ -415,13 +432,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       'idsOrIdInCurrentResult is not an array'
                     );
 
-                  if (stateEntry.totalCount == null)
-                    return this.logSubscriptionError('No totalCount found');
-
                   stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
-                  stateEntry.totalCount++;
+                  if (stateEntry.totalCount != null) {
+                    stateEntry.totalCount++;
+                  }
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
@@ -505,9 +521,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       'idsOrIdInCurrentResult is not an array'
                     );
 
-                  if (stateEntry.totalCount == null)
-                    return this.logSubscriptionError('No totalCount found');
-
                   const indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(
                     id => id === nodeRemovedId
                   );
@@ -519,7 +532,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
                   stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
                   delete stateEntry.proxyCache[nodeRemovedId];
-                  stateEntry.totalCount--;
+                  if (stateEntry.totalCount != null) {
+                    stateEntry.totalCount--;
+                  }
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
