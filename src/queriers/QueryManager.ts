@@ -381,7 +381,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 } & Record<string, any>;
 
                 if (!nodeInsertedData) {
-                  // This can be removed once BE only notifies about events that the subscription requests
                   return this.logSubscriptionError(
                     `No node inserted data found for ${messageType}`
                   );
@@ -434,13 +433,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       'idsOrIdInCurrentResult is not an array'
                     );
 
-                  if (stateEntry.totalCount == null)
-                    return this.logSubscriptionError('No totalCount found');
-
                   stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
-                  stateEntry.totalCount++;
+                  if (stateEntry.totalCount != null) {
+                    stateEntry.totalCount++;
+                  }
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
@@ -524,9 +522,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       'idsOrIdInCurrentResult is not an array'
                     );
 
-                  if (stateEntry.totalCount == null)
-                    return this.logSubscriptionError('No totalCount found');
-
                   const indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(
                     id => id === nodeRemovedId
                   );
@@ -538,7 +533,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
                   stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
                   delete stateEntry.proxyCache[nodeRemovedId];
-                  stateEntry.totalCount--;
+                  if (stateEntry.totalCount != null) {
+                    stateEntry.totalCount--;
+                  }
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
