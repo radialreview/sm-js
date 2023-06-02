@@ -738,7 +738,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           // While the subscription is active, a new user may be created, and that new user may get some todos assigned to them.
           // With a direct memory pointer approach, there would be no way to update the state entry for the new user.
           aliasPath: Array<string>;
-          relationalAlias?: string;
           queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
           parentQueryRecordEntry:
             | QueryRecordEntry
