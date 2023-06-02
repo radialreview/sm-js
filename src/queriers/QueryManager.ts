@@ -2573,9 +2573,11 @@ function camelCasePropertyName(property: string) {
   if (property === property.toLowerCase()) return property;
 
   const split = property.split('_');
-  if (split.length === 1) return property;
+  if (split.length === 1) return property.toLowerCase();
   return split.reduce((acc, curr, i) => {
     if (i === 0) return curr.toLowerCase();
-    return acc + curr.charAt(0).toUpperCase() + curr.slice(1).toLowerCase();
+    return `${acc}${curr.charAt(0).toUpperCase()}${curr
+      .slice(1)
+      .toLowerCase()}`;
   }, '');
 }
