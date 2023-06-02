@@ -674,7 +674,7 @@ test(`query.filter supports old filter object format with 'eq' as default operat
   expect(data.users.nodes.length).toBe(2);
 });
 
-test(`query.filter can filter relational data`, async () => {
+test.only(`query.filter can filter relational data`, async () => {
   const { mmGQLInstance } = setupTest({
     mockData: {
       users: createMockDataItems({

@@ -573,6 +573,7 @@ export function applyClientSideSortAndFilterToData(
       const dataForThisAlias = getDataFromQueryResponsePartial({
         queryResponsePartial: data[alias],
         queryRecordEntry,
+        collectionsIncludePagingInfo: true,
       });
 
       if (Array.isArray(dataForThisAlias)) {

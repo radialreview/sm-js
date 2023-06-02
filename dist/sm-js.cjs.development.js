@@ -3508,7 +3508,7 @@ function generateQuerier(_ref) {
               };
 
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || startStack.split('\n')[1] || "query" + queryIdx++;
               return _context.abrupt("return", new Promise(function (res, rej) {
                 var dataToReturn = {};
 
@@ -3592,7 +3592,7 @@ function generateSubscriber(mmGQLInstance) {
               };
 
               startStack = new Error().stack;
-              queryId = (opts == null ? void 0 : opts.queryId) || "query" + queryIdx++;
+              queryId = (opts == null ? void 0 : opts.queryId) || startStack.split('\n')[1] || "query" + queryIdx++;
               return _context2.abrupt("return", new Promise(function (res, rej) {
                 var dataToReturn = {};
                 var handlers = {
@@ -4902,7 +4902,8 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     if (relational != null) {
       var dataForThisAlias = getDataFromQueryResponsePartial({
         queryResponsePartial: data[alias],
-        queryRecordEntry: queryRecordEntry
+        queryRecordEntry: queryRecordEntry,
+        collectionsIncludePagingInfo: true
       });
 
       if (Array.isArray(dataForThisAlias)) {
@@ -6998,7 +6999,8 @@ function createQueryManager(mmGQLInstance) {
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
-                aliasPath: path.aliasPath
+                aliasPath: path.aliasPath,
+                idFilter: parentId
               });
 
               if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
@@ -7040,7 +7042,8 @@ function createQueryManager(mmGQLInstance) {
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
-                aliasPath: path.aliasPath
+                aliasPath: path.aliasPath,
+                idFilter: parentId
               });
 
               if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
@@ -7103,7 +7106,8 @@ function createQueryManager(mmGQLInstance) {
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
-                aliasPath: path.aliasPath
+                aliasPath: path.aliasPath,
+                idFilter: parentId
               });
 
               if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
@@ -7228,6 +7232,21 @@ function createQueryManager(mmGQLInstance) {
             Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(function (nodeId) {
               var _proxyCacheEntry$rela;
 
+              // if we are at the end of the alias path, we want to apply the id filter
+              // otherwise, we want to return all state entries for this alias
+              var shouldApplyIdFilter = restOfAliasPath.length === 0;
+
+              if (shouldApplyIdFilter && opts.idFilter != null) {
+                var nodeIdAsNumber = Number(nodeId); // since we store node ids as strings
+                // but the message from BE may include the id as a number
+
+                if (typeof opts.idFilter === 'number' && nodeIdAsNumber !== opts.idFilter) {
+                  return;
+                } else if (typeof opts.idFilter === 'string' && nodeId !== opts.idFilter) {
+                  return;
+                }
+              }
+
               var proxyCacheEntry = stateEntry.leafStateEntry.proxyCache[nodeId];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
@@ -7254,7 +7273,8 @@ function createQueryManager(mmGQLInstance) {
       } else {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
-          previousStateEntries: stateEntriesForFirstAlias
+          previousStateEntries: stateEntriesForFirstAlias,
+          idFilter: opts.idFilter
         });
       }
     };

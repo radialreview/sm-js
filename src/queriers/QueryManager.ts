@@ -394,6 +394,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
+                    idFilter: parentId,
                   }
                 );
 
@@ -483,6 +484,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
+                    idFilter: parentId,
                   }
                 );
 
@@ -602,6 +604,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                 {
                   aliasPath: path.aliasPath,
+                  idFilter: parentId,
                 }
               );
 
@@ -794,11 +797,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     public getStateCacheEntriesForAliasPath(opts: {
       aliasPath: Array<string>;
-      parentProxy?: IDOProxy | null;
       previousStateEntries?: Array<{
         leafStateEntry: QueryManagerStateEntry;
         parentProxy: IDOProxy | null;
       }>;
+      // when provided, only state entries that match this id will be returned
+      idFilter?: string | number;
     }): Array<{
       leafStateEntry: QueryManagerStateEntry;
       parentProxy: IDOProxy | null;
@@ -815,6 +819,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             (acc, stateEntry) => {
               Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
                 nodeId => {
+                  // if we are at the end of the alias path, we want to apply the id filter
+                  // otherwise, we want to return all state entries for this alias
+                  const shouldApplyIdFilter = restOfAliasPath.length === 0;
+
+                  if (shouldApplyIdFilter && opts.idFilter != null) {
+                    const nodeIdAsNumber = Number(nodeId);
+
+                    // since we store node ids as strings
+                    // but the message from BE may include the id as a number
+                    if (
+                      typeof opts.idFilter === 'number' &&
+                      nodeIdAsNumber !== opts.idFilter
+                    ) {
+                      return;
+                    } else if (
+                      typeof opts.idFilter === 'string' &&
+                      nodeId !== opts.idFilter
+                    ) {
+                      return;
+                    }
+                  }
+
                   const proxyCacheEntry =
                     stateEntry.leafStateEntry.proxyCache[nodeId];
                   const relationalStateForAlias =
@@ -859,6 +885,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
           previousStateEntries: stateEntriesForFirstAlias,
+          idFilter: opts.idFilter,
         });
       }
     }
