@@ -6988,7 +6988,6 @@ function createQueryManager(mmGQLInstance) {
               var nodeInsertedData = message.data[rootLevelAlias].value;
 
               if (!nodeInsertedData) {
-                // This can be removed once BE only notifies about events that the subscription requests
                 return _this2.logSubscriptionError("No node inserted data found for " + messageType);
               }
 
