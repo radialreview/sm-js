@@ -6914,6 +6914,7 @@ function createQueryManager(mmGQLInstance) {
               var stateEntry = _this2.state[path.aliasPath[0]];
               if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value;
+              if (!nodeData) return _this2.logSubscriptionError("No node data found for " + messageType);
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
