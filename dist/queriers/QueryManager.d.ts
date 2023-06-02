@@ -51,31 +51,37 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): {
             nodeUpdatePaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeCreatePaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeDeletePaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeInsertPaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeRemovePaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
             nodeUpdateAssociationPaths: Record<string, {
                 aliasPath: Array<string>;
+                relationalAlias?: string | undefined;
                 queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
