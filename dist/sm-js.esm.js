@@ -4564,7 +4564,6 @@ function applyClientSideFilterToData(_ref3) {
   var filterObject = getFlattenedNodeFilterObject({
     queryRecordEntry: queryRecordEntry
   });
-  console.log('filter', filterObject);
 
   if (filterObject && data[alias]) {
     var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
@@ -4598,7 +4597,6 @@ function applyClientSideFilterToData(_ref3) {
         nonPaginatedOneToMany: relational && 'nonPaginatedOneToMany' in relational || undefined
       };
     });
-    console.log('filter props', JSON.stringify(filterProperties, null, 2));
 
     if (filterProperties.length > 0) {
       var pathToDataArray = "" + alias;
@@ -4891,7 +4889,6 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     var queryRecordEntry = queryRecord[alias];
 
     if (queryRecordEntry != null && queryRecordEntry.filter) {
-      console.log('data', data);
       applyClientSideFilterToData({
         queryRecordEntry: queryRecordEntry,
         data: data,
