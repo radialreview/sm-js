@@ -82,7 +82,6 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         };
         getStateCacheEntriesForAliasPath(opts: {
             aliasPath: Array<string>;
-            parentProxy?: IDOProxy | null;
             previousStateEntries?: Array<{
                 leafStateEntry: QueryManagerStateEntry;
                 parentProxy: IDOProxy | null;

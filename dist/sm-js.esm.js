@@ -7270,7 +7270,8 @@ function createQueryManager(mmGQLInstance) {
       } else {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
-          previousStateEntries: stateEntriesForFirstAlias
+          previousStateEntries: stateEntriesForFirstAlias,
+          idFilter: opts.idFilter
         });
       }
     };
