@@ -7030,10 +7030,13 @@ function createQueryManager(mmGQLInstance) {
                 var stateEntry = stateCacheEntry.leafStateEntry;
                 var parentProxy = stateCacheEntry.parentProxy;
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-                if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
                 stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                 stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
-                stateEntry.totalCount++;
+
+                if (stateEntry.totalCount != null) {
+                  stateEntry.totalCount++;
+                }
+
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state = {}, _state[relationalAlias] = stateEntry, _state),
@@ -7073,14 +7076,17 @@ function createQueryManager(mmGQLInstance) {
                 var stateEntry = stateCacheEntry.leafStateEntry;
                 var parentProxy = stateCacheEntry.parentProxy;
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-                if (stateEntry.totalCount == null) return _this2.logSubscriptionError('No totalCount found');
                 var indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(function (id) {
                   return id === nodeRemovedId;
                 });
                 if (indexOfRemovedId === -1) return _this2.logSubscriptionError("Could not find index of removed id " + nodeRemovedId);
                 stateEntry.idsOrIdInCurrentResult.splice(indexOfRemovedId, 1);
                 delete stateEntry.proxyCache[nodeRemovedId];
-                stateEntry.totalCount--;
+
+                if (stateEntry.totalCount != null) {
+                  stateEntry.totalCount--;
+                }
+
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state2 = {}, _state2[relationalAlias] = stateEntry, _state2),
