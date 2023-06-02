@@ -137,8 +137,6 @@ export function applyClientSideFilterToData({
     queryRecordEntry,
   });
 
-  console.log('filter', filterObject);
-
   if (filterObject && data[alias]) {
     const filterProperties: Array<{
       dotSeparatedPropName: string;
@@ -193,7 +191,6 @@ export function applyClientSideFilterToData({
       };
     });
 
-    console.log('filter props', JSON.stringify(filterProperties, null, 2));
     if (filterProperties.length > 0) {
       let pathToDataArray = `${alias}`;
       if (
@@ -555,7 +552,6 @@ export function applyClientSideSortAndFilterToData(
     const queryRecordEntry = queryRecord[alias];
 
     if (queryRecordEntry?.filter) {
-      console.log('data', data);
       applyClientSideFilterToData({
         queryRecordEntry,
         data,
