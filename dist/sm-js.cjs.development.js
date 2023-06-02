@@ -7235,7 +7235,11 @@ function createQueryManager(mmGQLInstance) {
             Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(function (nodeId) {
               var _proxyCacheEntry$rela;
 
-              if (opts.idFilter != null) {
+              // if we are at the end of the alias path, we want to apply the id filter
+              // otherwise, we want to return all state entries for this alias
+              var shouldApplyIdFilter = restOfAliasPath.length === 0;
+
+              if (shouldApplyIdFilter && opts.idFilter != null) {
                 var nodeIdAsNumber = Number(nodeId); // since we store node ids as strings
                 // but the message from BE may include the id as a number
 
