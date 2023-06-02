@@ -211,6 +211,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               id: string;
             } & Record<string, any>;
 
+            if (!nodeData) {
+              // This can be removed once BE only notifies about events that the subscription requests
+              return this.logSubscriptionError(
+                `No node data found for ${messageType}`
+              );
+            }
+
             nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
               const queryRecordEntry = path.queryRecordEntry;
 
@@ -367,6 +374,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const nodeInsertedData = message.data[rootLevelAlias].value as {
                   id: string;
                 } & Record<string, any>;
+
+                if (!nodeInsertedData) {
+                  // This can be removed once BE only notifies about events that the subscription requests
+                  return this.logSubscriptionError(
+                    `No node inserted data found for ${messageType}`
+                  );
+                }
 
                 path.queryRecordEntry.def.repository.onDataReceived(
                   nodeInsertedData
