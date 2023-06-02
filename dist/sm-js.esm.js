@@ -6900,6 +6900,12 @@ function createQueryManager(mmGQLInstance) {
             }
 
             var nodeData = message.data[rootLevelAlias].value;
+
+            if (!nodeData) {
+              // This can be removed once BE only notifies about events that the subscription requests
+              return _this2.logSubscriptionError("No node data found for " + messageType);
+            }
+
             nodeUpdatePaths[lowerCaseNodeType].forEach(function (path) {
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
@@ -6987,6 +6993,12 @@ function createQueryManager(mmGQLInstance) {
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
               var nodeInsertedData = message.data[rootLevelAlias].value;
+
+              if (!nodeInsertedData) {
+                // This can be removed once BE only notifies about events that the subscription requests
+                return _this2.logSubscriptionError("No node inserted data found for " + messageType);
+              }
+
               path.queryRecordEntry.def.repository.onDataReceived(nodeInsertedData);
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
 
