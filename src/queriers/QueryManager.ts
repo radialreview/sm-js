@@ -819,7 +819,23 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             (acc, stateEntry) => {
               Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
                 nodeId => {
-                  if (opts.idFilter != null && nodeId !== opts.idFilter) return;
+                  if (opts.idFilter != null) {
+                    const nodeIdAsNumber = Number(nodeId);
+
+                    // since we store node ids as strings
+                    // but the message from BE may include the id as a number
+                    if (
+                      typeof opts.idFilter === 'number' &&
+                      nodeIdAsNumber !== opts.idFilter
+                    ) {
+                      return;
+                    } else if (
+                      typeof opts.idFilter === 'string' &&
+                      nodeId !== opts.idFilter
+                    ) {
+                      return;
+                    }
+                  }
 
                   const proxyCacheEntry =
                     stateEntry.leafStateEntry.proxyCache[nodeId];
