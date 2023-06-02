@@ -6948,7 +6948,7 @@ function createQueryManager(mmGQLInstance) {
                 queryRecordEntry: queryRecordEntry
               })) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-                stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
+                stateEntry.idsOrIdInCurrentResult.push(nodeData.id); // needs to be ok with null totalCount, because it is sometimes not queried
 
                 if (stateEntry.totalCount != null) {
                   stateEntry.totalCount++;
