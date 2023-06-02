@@ -248,6 +248,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 id: string;
               } & Record<string, any>;
 
+              if (!nodeData)
+                return this.logSubscriptionError(
+                  `No node data found for ${messageType}`
+                );
+
               const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
