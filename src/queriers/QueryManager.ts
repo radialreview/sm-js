@@ -289,11 +289,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                     'idsOrIdInCurrentResult is not an array'
                   );
 
-                if (stateEntry.totalCount == null)
-                  return this.logSubscriptionError('No totalCount found');
-
                 stateEntry.idsOrIdInCurrentResult.push(nodeData.id);
-                stateEntry.totalCount++;
+                if (stateEntry.totalCount != null) {
+                  stateEntry.totalCount++;
+                }
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -328,9 +327,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   'idsOrIdInCurrentResult is not an array'
                 );
 
-              if (stateEntry.totalCount == null)
-                return this.logSubscriptionError('No totalCount found');
-
               const nodeIdx = stateEntry.idsOrIdInCurrentResult.indexOf(
                 nodeDeletedId
               );
@@ -338,7 +334,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               stateEntry.idsOrIdInCurrentResult.splice(nodeIdx, 1);
               delete stateEntry.proxyCache[nodeDeletedId];
-              stateEntry.totalCount--;
+              if (stateEntry.totalCount != null) {
+                stateEntry.totalCount--;
+              }
             });
           } else if (messageType.startsWith('Inserted_')) {
             const {
