@@ -482,7 +482,7 @@ export const oneToMany = <
       filter: queryBuilderOpts.filter,
       queryBuilderOpts,
     };
-  }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord, TMapFn>;
+  }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 };
 
 export const nonPaginatedOneToMany = <
