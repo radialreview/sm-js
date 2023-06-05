@@ -6745,8 +6745,14 @@ function createQueryManager(mmGQLInstance) {
                         // cancel the previous query definition subscription
                         // it's important that this happens after the new subscription is created
                         // otherwise some subscription messages may be missed
+                        //
+                        // this will happen for example if a subscription gets notified of a message that alters the queryDefinition
+                        // which then causes the subscription to be cancelled and a new one to be created
+                        // if the cancellation happens before all messages pertaining that event are received
+                        // some messages may be missed
                         setTimeout(function () {
-                          existingSubCanceller();
+                          existingSubCanceller(); // long enough that all messages pertaining a certain even should definitely be received
+                          // not so long that we end up with lots of dead active subscriptions
                         }, 5000);
                       }
                     });
