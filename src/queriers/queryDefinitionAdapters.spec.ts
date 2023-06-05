@@ -1188,6 +1188,57 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
     `);
   });
 
+  it('supports nested data filters for oneToOne relationships', () => {
+    const mmGQLInstance = new MMGQL(getMockConfig());
+
+    expect(
+      getPrettyPrintedGQL(
+        getQueryGQLDocumentFromQueryRecord({
+          queryId: 'MyTestQuery',
+          queryRecord: {
+            users: {
+              def: generateUserNode(mmGQLInstance),
+              properties: ['id'],
+              relational: {
+                todo: {
+                  def: generateTodoNode(mmGQLInstance),
+                  properties: ['id', 'task'],
+                  _relationshipName: 'todo',
+                  oneToOne: true,
+                },
+              },
+              filter: {
+                todo: {
+                  task: 'get it done',
+                },
+              },
+              tokenName: DEFAULT_TOKEN_NAME,
+            },
+          },
+          useServerSidePaginationFilteringSorting: true,
+        }) as DocumentNode
+      )
+    ).toMatchInlineSnapshot(`
+      "query MyTestQuery {
+       users: users(where: {and: [{todo: {task: {eq: \\"get it done\\"}}}]}) {
+         nodes {
+           id
+           todo: todo {
+             id
+             task
+           }
+         }
+         pageInfo {
+           endCursor
+           startCursor
+           hasNextPage
+           hasPreviousPage
+         }
+       }
+      }"
+    `);
+  });
+
   it('supports sorting short hand syntax', () => {
     const mmGQLInstance = new MMGQL(getMockConfig());
 

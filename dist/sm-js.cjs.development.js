@@ -1556,12 +1556,32 @@ function getBEFilterString(opts) {
           throw Error("Invalid filter for relational query: " + filter.key + ", more than 1 operatorValue combo found");
         }
 
-        acc += "{" + filter.key + ": " + getBEFilterString({
-          filter: filter.operatorValueCombos[0].value,
-          def: opts.relational[filter.key].def,
-          relational: opts.relational[filter.key].relational,
-          isCollectionFilter: true
-        }) + "}";
+        var isCollectionFilter = queryRecordEntryReturnsArrayOfData({
+          queryRecordEntry: opts.relational[filter.key]
+        });
+        var relatedNodeDef = opts.relational[filter.key].def;
+
+        if (isCollectionFilter) {
+          acc += "{" + filter.key + ": " + getBEFilterString({
+            filter: filter.operatorValueCombos[0].value,
+            def: relatedNodeDef,
+            relational: opts.relational[filter.key].relational,
+            isCollectionFilter: true
+          }) + "}";
+        } else {
+          var _operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
+            if (index > 0) acc += ', ';
+            Object.keys(operatorValueCombo.value).forEach(function (key) {
+              var valueAtThiskey = operatorValueCombo.value[key];
+              var isStringEnum = relatedNodeDef.data[key].type === exports.DATA_TYPES.stringEnum || relatedNodeDef.data[key].type === exports.DATA_TYPES.maybeStringEnum;
+              var value = isStringEnum ? valueAtThiskey : wrapInQuotesIfString(valueAtThiskey);
+              acc += key + ": {" + operatorValueCombo.operator + ": " + value + "}";
+            });
+            return acc;
+          }, '');
+
+          acc += "{" + filter.key + ": {" + _operatorValueCombosStringified + "}}";
+        }
       }
 
       return acc;
@@ -1835,7 +1855,7 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
   return core.gql(queryString);
 }
 function queryRecordEntryReturnsArrayOfData(opts) {
-  return opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry);
+  return !!(opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry));
 }
 function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) {
   return opts.queryRecordEntry && queryRecordEntryReturnsArrayOfData(opts) && !('nonPaginatedOneToMany' in opts.queryRecordEntry);

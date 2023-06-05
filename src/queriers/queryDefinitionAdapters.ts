@@ -523,7 +523,7 @@ function wrapInQuotesIfString(value: any) {
 export function getBEFilterString<TNode extends INode>(opts: {
   filter: ValidFilterForNode<TNode, boolean>;
   def: INode;
-  relational?: Record<string, RelationalQueryRecordEntry>;
+  relational?: RelationalQueryRecord;
   // indicates whether this is a filter that applies to a collection of nodes
   isCollectionFilter: boolean;
 }) {
@@ -666,12 +666,45 @@ export function getBEFilterString<TNode extends INode>(opts: {
             );
           }
 
-          acc += `{${filter.key}: ${getBEFilterString({
-            filter: filter.operatorValueCombos[0].value,
-            def: opts.relational[filter.key].def,
-            relational: opts.relational[filter.key].relational,
-            isCollectionFilter: true,
-          })}}`;
+          const isCollectionFilter = queryRecordEntryReturnsArrayOfData({
+            queryRecordEntry: opts.relational[filter.key],
+          });
+
+          const relatedNodeDef = opts.relational[filter.key].def;
+
+          if (isCollectionFilter) {
+            acc += `{${filter.key}: ${getBEFilterString({
+              filter: filter.operatorValueCombos[0].value,
+              def: relatedNodeDef,
+              relational: opts.relational[filter.key].relational,
+              isCollectionFilter: true,
+            })}}`;
+          } else {
+            const operatorValueCombosStringified = filter.operatorValueCombos.reduce(
+              (acc, operatorValueCombo, index) => {
+                if (index > 0) acc += ', ';
+
+                Object.keys(operatorValueCombo.value).forEach(key => {
+                  const valueAtThiskey = operatorValueCombo.value[key];
+                  const isStringEnum =
+                    relatedNodeDef.data[key].type === DATA_TYPES.stringEnum ||
+                    relatedNodeDef.data[key].type ===
+                      DATA_TYPES.maybeStringEnum;
+
+                  const value = isStringEnum
+                    ? valueAtThiskey
+                    : wrapInQuotesIfString(valueAtThiskey);
+
+                  acc += `${key}: {${operatorValueCombo.operator}: ${value}}`;
+                });
+
+                return acc;
+              },
+              ''
+            );
+
+            acc += `{${filter.key}: {${operatorValueCombosStringified}}}`;
+          }
         }
 
         return acc;
@@ -1063,8 +1096,8 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
-}) {
-  return (
+}): boolean {
+  return !!(
     opts.queryRecordEntry &&
     (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) &&
     !('oneToOne' in opts.queryRecordEntry)
