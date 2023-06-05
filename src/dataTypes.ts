@@ -454,14 +454,18 @@ export const oneToMany = <
     | INode
     | Maybe<INode>
     | Record<string, INode>
-    | Maybe<Record<string, INode>>
+    | Maybe<Record<string, INode>>,
+  TMapFn extends TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode>
+    ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
+    : never
 >(
   def: NonNullable<TTargetNodeOrTargetNodeRecord>
 ) => {
   return (<
     TQueryBuilderOpts extends IOneToManyQueryBuilderOpts<
       TTargetNodeOrTargetNodeRecord,
-      TIncludeTotalCount
+      TIncludeTotalCount,
+      TMapFn
     > & {
       _relationshipName: string;
       filter?: ValidFilterForNode<INode, boolean>;
@@ -478,7 +482,7 @@ export const oneToMany = <
       filter: queryBuilderOpts.filter,
       queryBuilderOpts,
     };
-  }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
+  }) as IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord, TMapFn>;
 };
 
 export const nonPaginatedOneToMany = <
