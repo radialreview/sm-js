@@ -1865,7 +1865,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             // cancel the previous query definition subscription
             // it's important that this happens after the new subscription is created
             // otherwise some subscription messages may be missed
-            existingSubCanceller();
+            setTimeout(() => {
+              existingSubCanceller();
+            }, 5000);
           }
         });
       }
