@@ -1,4 +1,4 @@
-import { INode, RelationalQueryRecordEntry, QueryDefinitions, QueryRecord, QueryRecordEntry, ValidFilterForNode } from '../types';
+import { INode, RelationalQueryRecordEntry, QueryDefinitions, QueryRecord, QueryRecordEntry, ValidFilterForNode, RelationalQueryRecord } from '../types';
 export declare const OBJECT_PROPERTY_SEPARATOR = "__dot__";
 export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryDefinitionTarget, TQueryDefinitions extends QueryDefinitions<TNode, TMapFn, TQueryDefinitionTarget>>(opts: {
     queryId: string;
@@ -7,7 +7,7 @@ export declare function getQueryRecordFromQueryDefinition<TNode, TMapFn, TQueryD
 export declare function getBEFilterString<TNode extends INode>(opts: {
     filter: ValidFilterForNode<TNode, boolean>;
     def: INode;
-    relational?: Record<string, RelationalQueryRecordEntry>;
+    relational?: RelationalQueryRecord;
     isCollectionFilter: boolean;
 }): string;
 export declare function getQueryGQLDocumentFromQueryRecord(opts: {
@@ -17,7 +17,7 @@ export declare function getQueryGQLDocumentFromQueryRecord(opts: {
 }): import("graphql/language/ast").DocumentNode | null;
 export declare function queryRecordEntryReturnsArrayOfData(opts: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
-}): boolean | null;
+}): boolean;
 export declare function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
 }): boolean | null;
