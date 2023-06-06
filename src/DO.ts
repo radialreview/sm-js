@@ -12,6 +12,7 @@ import {
   NodeRelationalQueryBuilder,
   INode,
   DATA_TYPES,
+  MapFn,
 } from './types';
 
 export function createDOFactory(mmGQLInstance: IMMGQL) {
@@ -467,6 +468,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
             TNodeRelationalData: TNodeRelationalData;
           }>;
           TIncludeTotalCount: boolean;
+          TMapFn: MapFn<any>;
         }>;
       }) {
         Object.defineProperty(this, opts.relationshipName, {
