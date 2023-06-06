@@ -224,7 +224,7 @@ export function applyClientSideFilterToData({
             andConditions.every(filter => {
               if (filter.isRelational) {
                 return filter.operators.every(({ operator, value }) => {
-                  if (filter.oneToOne === true) {
+                  if (filter.oneToOne) {
                     const itemValue = filter.relationalKey
                       ? getValueWithUnderscoreSeparatedPropName({
                           item: item[filter.relationalKey],
@@ -238,7 +238,7 @@ export function applyClientSideFilterToData({
                       filterValue: value,
                       itemValue,
                     });
-                  } else if (filter.nonPaginatedOneToMany === true) {
+                  } else if (filter.nonPaginatedOneToMany) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey] || []
                       : [];
@@ -249,7 +249,7 @@ export function applyClientSideFilterToData({
                       underscoreSeparatedPropName:
                         filter.underscoreSeparatedPropName,
                     });
-                  } else if (filter.oneToMany === true) {
+                  } else if (filter.oneToMany) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
                       : [];
@@ -288,7 +288,7 @@ export function applyClientSideFilterToData({
             orConditions.some(filter => {
               if (filter.isRelational) {
                 return filter.operators.some(({ operator, value }) => {
-                  if (filter.oneToOne === true) {
+                  if (filter.oneToOne) {
                     const itemValue = filter.relationalKey
                       ? getValueWithUnderscoreSeparatedPropName({
                           item: item[filter.relationalKey],
@@ -302,7 +302,7 @@ export function applyClientSideFilterToData({
                       filterValue: value,
                       itemValue,
                     });
-                  } else if (filter.nonPaginatedOneToMany === true) {
+                  } else if (filter.nonPaginatedOneToMany) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey] || []
                       : [];
@@ -313,7 +313,7 @@ export function applyClientSideFilterToData({
                       underscoreSeparatedPropName:
                         filter.underscoreSeparatedPropName,
                     });
-                  } else if (filter.oneToMany === true) {
+                  } else if (filter.oneToMany) {
                     const relationalItems: Array<any> = filter.relationalKey
                       ? item[filter.relationalKey][NODES_PROPERTY_KEY] || []
                       : [];
@@ -586,6 +586,64 @@ export function applyClientSideSortAndFilterToData(
     }
   });
 }
+
+/**
+ * Note: Must apply filters and sorts after receiving created, inserted, removed, updated, updatedAssociation events.
+ * 
+ * - Should we re-use the client side filtering logic that exists in the code base today?
+ * The potentially issue is that it would be a very heavy handed approach to solving the problem of subscriptions not including filtering and sorting.
+ * The algo traverses the entire tree of data and runs the filtering and sorting alogrythm to every part of that tree which includes a filter in the query definition.
+ * 
+ * This would mean that, for example, if we receive a message about an issue being archived when within our meeting page,
+ * we would have to run our filtering and sorting algo on the collection of todos, headlines, metrics, and all their scores, etc.
+ * Potentially traversing thousands of items unnecessarily.
+ * 
+ * - What would be the alternative?
+ * Using the information included in the subscription message which tells us which node was updated, created, etc, and run
+ * the sorting and filtering algos on just the bits of state that could be affected by this event.
+ * 
+ * - What would that look like?
+ * For a created event, we would look at the node type, find all root level aliases which target that node type,
+ * and run the filtering and sorting algos on those root level aliases after adding the new node to the data tree.
+ * 
+ * For an inserted event, we would look at the id of the parent node, find all aliases which include that id
+ * in their returned data and run the filtering and sorting algos on those aliases, after adding the new node to the data tree.
+ * We would then need to find all aliases which include the id of the inserted node in their returned data and run the filtering and sorting algos on those aliases.
+ * For example, a todo may be inserted into a meeting, and the meeting may then become visible/hidden, and the todo itself may not be visible due to the filtering setup.
+ * 
+ * 
+ * 
+ * For a removed event, we would look at the id of the parent node, find all aliases which include that id
+ * in their returned data and run the filtering and sorting algos on those aliases, after removing the node from the data tree.
+ * There is no need to re-run filtering or sorting on aliases that include the removed node's id in their returned data, as the node is no longer in the tree
+ * and the rest of the results should be unaffected.
+ * 
+ * For an updated event, we would look at the id of the node, find all aliases which include that id in their returned data
+ * and run the filtering and sorting algos on those aliases.
+ * 
+ * 
+ * Of course, all filtering and sorting can be skipped if no filtering and sorting params are defined in the queryRecord
+ * for those aliases.
+ * 
+ * Known edge cases:
+ * 
+ * 1) Lets say that I'm looking at a query like:
+ *   meetings
+ *     todos
+ * 
+ * and the query is filtering meetings which include a todo with a certain id.
+ * If that todo is added to a meeting, I may have to add a meeting to the results set that was not previously there.
+ * Unfortunately, if I don't already have this meeting's data from the query results, either because the query itself
+ * included filtered results, or because the meeting is new, the lib has no way of adding this meeting to the results set.
+ * 
+ * 
+/*
+
+ 
+
+
+
+
 
 /**
  * Returns flattened keys of the filter object
