@@ -127,8 +127,8 @@ export function generateTodoNode(
     properties: todoProperties,
     relational: {
       assignee: () => data.oneToOne<UserNode>(userNode),
-      users: () => data.oneToMany<UserNode>(userNode),
-      nonPaginatedUsers: () => data.nonPaginatedOneToMany<UserNode>(userNode),
+      users: () => data.oneToMany(userNode),
+      nonPaginatedUsers: () => data.nonPaginatedOneToMany(userNode),
     },
   }) as TodoNode;
 
@@ -441,9 +441,10 @@ export function getMockConfig(opts?: {
     enableQuerySlimming: opts?.enableQuerySlimming ?? false,
     logging: {
       querySlimming: false,
-      gqlClientQueries: false,
-      gqlClientMutations: false,
-      gqlClientSubscriptions: false,
+      gqlQueries: false,
+      gqlMutations: false,
+      gqlSubscriptions: false,
+      gqlSubscriptionErrors: false,
       ...opts?.logging,
     },
     paginationFilteringSortingInstance:

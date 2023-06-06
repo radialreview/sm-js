@@ -577,7 +577,7 @@ export type IOneToManyQueryBuilderOpts<
 
 type SingleNodeTypeOneToManyQueryBuilderOpts<TNode extends INode, TIncludeTotalCount extends boolean ,TMapFn extends MapFnForNode<TNode>> = {
       map: TMapFn;
-      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn }>
+      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn }, true>
       pagination?: IQueryPagination<TIncludeTotalCount>
       sort?: ValidSortForNode<TNode>
   }
@@ -819,8 +819,8 @@ export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
-export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined }>  = 
-  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], false>
+export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined }, TIsCollectionFilter extends boolean = false>  = 
+  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TIsCollectionFilter>
 
 export type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
