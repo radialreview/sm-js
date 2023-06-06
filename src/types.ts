@@ -577,7 +577,7 @@ export type IOneToManyQueryBuilderOpts<
 
 type SingleNodeTypeOneToManyQueryBuilderOpts<TNode extends INode, TIncludeTotalCount extends boolean ,TMapFn extends MapFnForNode<TNode>> = {
       map: TMapFn;
-      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn }, true>
+      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn, TIsCollectionFilter: true }>
       pagination?: IQueryPagination<TIncludeTotalCount>
       sort?: ValidSortForNode<TNode>
   }
@@ -819,8 +819,8 @@ export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
-export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined }, TIsCollectionFilter extends boolean = false>  = 
-  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TIsCollectionFilter>
+export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined, TIsCollectionFilter: boolean }>  = 
+  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TFilterTypeForQueryArgs['TIsCollectionFilter']>
 
 export type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
@@ -834,7 +834,7 @@ export type QueryDefinition<
 > = { 
   def: TQueryDefinitionArgs["TNode"];
   map: TQueryDefinitionArgs["TMapFn"];
-  filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode']}>
+  filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode'], TIsCollectionFilter: false}>
   sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>
   target?: TQueryDefinitionArgs["TQueryDefinitionTarget"]
   pagination?: IQueryPagination<TQueryDefinitionArgs["TIncludeTotalCount"]>

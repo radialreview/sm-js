@@ -401,7 +401,8 @@ declare type SingleNodeTypeOneToManyQueryBuilderOpts<TNode extends INode, TInclu
     filter?: FilterTypeForQuery<{
         TNode: TNode;
         TMapFn: TMapFn;
-    }, true>;
+        TIsCollectionFilter: true;
+    }>;
     pagination?: IQueryPagination<TIncludeTotalCount>;
     sort?: ValidSortForNode<TNode>;
 };
@@ -538,7 +539,8 @@ export declare type QueryDefinitionTarget = {
 export declare type FilterTypeForQuery<TFilterTypeForQueryArgs extends {
     TNode: INode;
     TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined;
-}, TIsCollectionFilter extends boolean = false> = ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TIsCollectionFilter>;
+    TIsCollectionFilter: boolean;
+}> = ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TFilterTypeForQueryArgs['TIsCollectionFilter']>;
 export declare type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode>;
 export declare type QueryDefinition<TQueryDefinitionArgs extends {
     TNode: INode;
@@ -551,6 +553,7 @@ export declare type QueryDefinition<TQueryDefinitionArgs extends {
     filter?: FilterTypeForQuery<{
         TMapFn: TQueryDefinitionArgs['TMapFn'];
         TNode: TQueryDefinitionArgs['TNode'];
+        TIsCollectionFilter: false;
     }>;
     sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>;
     target?: TQueryDefinitionArgs["TQueryDefinitionTarget"];
