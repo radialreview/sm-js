@@ -144,7 +144,10 @@ export declare const oneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any
 }>, import("./types").NodeDO> | Record<string, INode<any, import("./types").NodeComputedFns<{
     TNodeData: any;
     TNodeComputedData: any;
-}>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
+}>, import("./types").NodeDO>> | null, TMapFn extends TTargetNodeOrTargetNodeRecord extends Maybe<INode<any, import("./types").NodeComputedFns<{
+    TNodeData: any;
+    TNodeComputedData: any;
+}>, import("./types").NodeDO>> ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> : never>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => IOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 export declare const nonPaginatedOneToMany: <TTargetNodeOrTargetNodeRecord extends INode<any, import("./types").NodeComputedFns<{
     TNodeData: any;
     TNodeComputedData: any;

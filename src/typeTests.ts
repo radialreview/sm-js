@@ -492,6 +492,32 @@ const stateNode: StateNode = mmGQL.def({
     users: queryDefinition({
       def: userNode,
       map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        todosForThisUser: userData.todos({
+          map: ({ task, assignee, assignees }) => ({
+            task,
+            assignee: assignee({
+              map: ({ firstName }) => ({ firstName }),
+            }),
+            assignees: assignees({
+              map: ({ firstName }) => ({ firstName }),
+            }),
+          }),
+          filter: {
+            assignee: {
+              firstName: 'test',
+            },
+          },
+        }),
+      }),
+    }),
+  });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
         todosForThisUser: userData.todos({ map: ({ task }) => ({ task }) }),
       }),
       filter: {
