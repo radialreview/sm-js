@@ -154,7 +154,10 @@ export declare const nonPaginatedOneToMany: <TTargetNodeOrTargetNodeRecord exten
 }>, import("./types").NodeDO> | Record<string, INode<any, import("./types").NodeComputedFns<{
     TNodeData: any;
     TNodeComputedData: any;
-}>, import("./types").NodeDO>> | null>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => INonPaginatedOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
+}>, import("./types").NodeDO>> | null, TMapFn extends TTargetNodeOrTargetNodeRecord extends Maybe<INode<any, import("./types").NodeComputedFns<{
+    TNodeData: any;
+    TNodeComputedData: any;
+}>, import("./types").NodeDO>> ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> : never>(def: NonNullable<TTargetNodeOrTargetNodeRecord>) => INonPaginatedOneToManyQueryBuilder<TTargetNodeOrTargetNodeRecord>;
 export declare function queryDefinition<TNode extends INode, TMapFn extends MapFnForNode<TNode> | undefined, TQueryDefinitionTarget extends QueryDefinitionTarget, TUseSubscriptionQueryDefinitionOpts extends UseSubscriptionQueryDefinitionOpts, TIncludeTotalCount extends boolean>(queryDefinition: UseSubscriptionQueryDefinition<{
     TNode: TNode;
     TMapFn: TMapFn;

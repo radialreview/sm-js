@@ -83,7 +83,7 @@ function getMapFnReturn(opts: {
   return opts.mapFn
     ? (opts.mapFn(mapFnOpts) as Record<
         string,
-        IData | MapFn<any> | NodeRelationalQuery<INode>
+        IData | MapFn<any> | NodeRelationalQuery<INode, MapFn<any>>
       >)
     : opts.properties;
 }
@@ -228,7 +228,8 @@ function getRelationalQueries(opts: {
       return acc;
     } else {
       const relationalQuery = mapFnReturn[alias] as NodeRelationalQuery<
-        INode | Record<string, INode>
+        INode | Record<string, INode>,
+        MapFn<any>
       >;
 
       /**
