@@ -4,9 +4,10 @@ import { Config, EPaginationFilteringSortingInstance } from './types';
 export function getDefaultConfig(): Config {
   const logging: Config['logging'] = {
     querySlimming: false,
-    gqlClientQueries: false,
-    gqlClientMutations: false,
-    gqlClientSubscriptions: false,
+    gqlQueries: false,
+    gqlMutations: false,
+    gqlSubscriptions: false,
+    gqlSubscriptionErrors: false,
   };
 
   return {

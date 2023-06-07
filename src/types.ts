@@ -532,7 +532,7 @@ export type NodeRelationalQueryBuilder<
 export type NodeRelationalQuery<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>, TMapFn extends TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> : never> =
   | IOneToOneQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any }>
   | IOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any, TIncludeTotalCount: any, TMapFn: TMapFn }>
-  | INonPaginatedOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any }>
+  | INonPaginatedOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: any, TIncludeTotalCount: any, TMapFn: TMapFn }>
 
 export type IOneToOneQueryBuilderOpts<TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>> =
   TTargetNodeOrTargetNodeRecord extends INode
@@ -577,7 +577,7 @@ export type IOneToManyQueryBuilderOpts<
 
 type SingleNodeTypeOneToManyQueryBuilderOpts<TNode extends INode, TIncludeTotalCount extends boolean ,TMapFn extends MapFnForNode<TNode>> = {
       map: TMapFn;
-      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn }>
+      filter?: FilterTypeForQuery<{ TNode: TNode, TMapFn: TMapFn, TIsCollectionFilter: true }>
       pagination?: IQueryPagination<TIncludeTotalCount>
       sort?: ValidSortForNode<TNode>
   }
@@ -612,30 +612,36 @@ export interface IOneToManyQuery<
 
 export type INonPaginatedOneToManyQueryBuilderOpts<
   TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
-  TOpts = TTargetNodeOrTargetNodeRecord extends INode
+  TIncludeTotalCount extends boolean,
+  TMapFn extends TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> :  never
+> = TTargetNodeOrTargetNodeRecord extends INode
+? SingleNodeTypeOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount, TMapFn>
+: TTargetNodeOrTargetNodeRecord extends Record<string, INode>
   ? {
-      map: MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>;
-      filter?: ValidFilterForNode<NonNullable<TTargetNodeOrTargetNodeRecord>, true>
-      sort?: ValidSortForNode<NonNullable<TTargetNodeOrTargetNodeRecord>>
+    [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
   }
-  : TTargetNodeOrTargetNodeRecord extends Record<string, INode>
-    ? {
-      [Tkey in keyof TTargetNodeOrTargetNodeRecord]: { map: MapFnForNode<TTargetNodeOrTargetNodeRecord[Tkey]> }
-    }
-    : never
-> = TOpts
+  : never
     
 export interface INonPaginatedOneToManyQueryBuilder<
       TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string, INode>>,
 > {
-  <TQueryBuilderOpts extends INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>(
-    queryBuilderOpts: ValidateShape<TQueryBuilderOpts,  INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord>>
-  ): INonPaginatedOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts }>;
+  <
+    TIncludeTotalCount extends boolean,
+    TMapFn extends TTargetNodeOrTargetNodeRecord extends INode | Maybe<INode> ? MapFnForNode<NonNullable<TTargetNodeOrTargetNodeRecord>> :  never,
+    TQueryBuilderOpts extends INonPaginatedOneToManyQueryBuilderOpts<
+      TTargetNodeOrTargetNodeRecord,
+      TIncludeTotalCount,
+      TMapFn
+    >>(
+    queryBuilderOpts: ValidateShape<TQueryBuilderOpts, INonPaginatedOneToManyQueryBuilderOpts<TTargetNodeOrTargetNodeRecord, TIncludeTotalCount, TMapFn>>
+  ): INonPaginatedOneToManyQuery<{ TTargetNodeOrTargetNodeRecord: TTargetNodeOrTargetNodeRecord, TQueryBuilderOpts: TQueryBuilderOpts, TIncludeTotalCount: TIncludeTotalCount, TMapFn: TMapFn }>;
 }
 export interface INonPaginatedOneToManyQuery<
   TNonPaginatedOneToManyQueryArgs extends {
     TTargetNodeOrTargetNodeRecord: INode | Maybe<INode> | Record<string, INode> | Maybe<Record<string,INode>>,
-    TQueryBuilderOpts: INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+    TIncludeTotalCount: boolean,
+    TMapFn: TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode | Maybe<INode> ? MapFnForNode<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> : never,
+    TQueryBuilderOpts: IOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'], TNonPaginatedOneToManyQueryArgs['TIncludeTotalCount'], TNonPaginatedOneToManyQueryArgs['TMapFn']>
   }
 > {
   _relational: RELATIONAL_TYPES.nonPaginatedOneToMany;
@@ -813,8 +819,8 @@ export type QueryDefinitionTarget =
   | { id: string, allowNullResult?: boolean }
   | { ids: Array<string> }
     
-export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined }>  = 
-  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], false>
+export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined, TIsCollectionFilter: boolean }>  = 
+  ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TFilterTypeForQueryArgs['TIsCollectionFilter']>
 
 export type SortObjectForNode<TNode extends INode> = ValidSortForNode<TNode> 
 // The config needed by a query to get one or multiple nodes of a single type
@@ -828,7 +834,7 @@ export type QueryDefinition<
 > = { 
   def: TQueryDefinitionArgs["TNode"];
   map: TQueryDefinitionArgs["TMapFn"];
-  filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode']}>
+  filter?: FilterTypeForQuery<{TMapFn: TQueryDefinitionArgs['TMapFn'], TNode: TQueryDefinitionArgs['TNode'], TIsCollectionFilter: false}>
   sort?: SortObjectForNode<TQueryDefinitionArgs["TNode"]>
   target?: TQueryDefinitionArgs["TQueryDefinitionTarget"]
   pagination?: IQueryPagination<TQueryDefinitionArgs["TIncludeTotalCount"]>
@@ -1194,14 +1200,14 @@ type ExtractQueriedDataFromNonPaginatedOneToManyQuery<
   TNonPaginatedOneToManyQuery extends INonPaginatedOneToManyQuery<infer TNonPaginatedOneToManyQueryArgs>
     ? IsMaybe<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']> extends true
       ? TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<INode>
-        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>>
+        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TNonPaginatedOneToManyQueryArgs["TIncludeTotalCount"], TNonPaginatedOneToManyQueryArgs['TMapFn']>
           ? Maybe<Array<ExtractQueriedDataFromMapFn<
             TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'],
             NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
           >>>
           : never
         : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Maybe<Record<string, INode>>
-          ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>> 
+          ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TNonPaginatedOneToManyQueryArgs["TIncludeTotalCount"], TNonPaginatedOneToManyQueryArgs['TMapFn']>
             ? Maybe<Array<ExtractResultsUnionFromOneToOneQueryBuilder<
               NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>,
               TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'],
@@ -1210,14 +1216,14 @@ type ExtractQueriedDataFromNonPaginatedOneToManyQuery<
             : never
           : never
       : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends INode
-        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TNonPaginatedOneToManyQueryArgs["TIncludeTotalCount"], TNonPaginatedOneToManyQueryArgs['TMapFn']>
           ? Array<ExtractQueriedDataFromMapFn<
             TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts']['map'],
             TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']
           >>
           : never
         : TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'] extends Record<string, INode>
-        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>
+        ? TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'] extends INonPaginatedOneToManyQueryBuilderOpts<NonNullable<TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord']>, TNonPaginatedOneToManyQueryArgs["TIncludeTotalCount"], TNonPaginatedOneToManyQueryArgs['TMapFn']>
             ? Array<ExtractResultsUnionFromOneToOneQueryBuilder<
                 TNonPaginatedOneToManyQueryArgs['TTargetNodeOrTargetNodeRecord'],
                 TNonPaginatedOneToManyQueryArgs['TQueryBuilderOpts'],

@@ -130,6 +130,7 @@ const userProperties = {
 const userRelational = {
   todos: () => oneToMany(todoNode),
   state: () => oneToOne(stateNode),
+  todos_nonPaginated: () => nonPaginatedOneToMany(todoNode),
 };
 
 type UserNode = INode<{
@@ -138,6 +139,7 @@ type UserNode = INode<{
   TNodeComputedData: { fullName: string; avatar: string };
   TNodeRelationalData: {
     todos: IOneToManyQueryBuilder<TodoNode>;
+    todos_nonPaginated: INonPaginatedOneToManyQueryBuilder<TodoNode>;
     state: IOneToOneQueryBuilder<StateNode>;
   };
 }>;
@@ -507,6 +509,36 @@ const stateNode: StateNode = mmGQL.def({
           filter: {
             assignee: {
               firstName: 'test',
+            },
+          },
+        }),
+      }),
+    }),
+  });
+
+  await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+        firstName: userData.firstName,
+        todosForThisUser: userData.todos_nonPaginated({
+          map: ({ task, assignee, assignees }) => ({
+            task,
+            assignee: assignee({
+              map: ({ firstName }) => ({ firstName }),
+            }),
+            assignees: assignees({
+              map: ({ firstName }) => ({ firstName }),
+            }),
+          }),
+          filter: {
+            assignee: {
+              firstName: 'test',
+            },
+            assignees: {
+              //@ts-expect-error Type 'true' is not assignable to type 'FilterValue<string, true> | undefined'.
+              firstName: true,
             },
           },
         }),
