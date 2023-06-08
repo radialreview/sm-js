@@ -4758,6 +4758,180 @@ function applyClientSideFilterToData(_ref3) {
     }
   }
 }
+/**
+ * Returns flattened keys of the filter object
+ *
+ * ```
+ * getFlattenedNodeFilterObject({
+ *  settings: {
+ *    time: {_lte: Date.now()},
+ *    nested: {
+ *      prop: {_contains: "text"}
+ *    }
+ *  },
+ *  firstName: {_eq: 'John'}
+ * })
+ * ```
+ *
+ * Returns
+ *
+ * ```
+ * {
+ *  "settings.time": {_lte: Date.now()},
+ *  "settings.nested.prop": {_contains: "text"},
+ *  "firstName": {_eq: 'John'}
+ * }
+ * ```
+ *
+ * As opposed to `getFlattenedNodeFilterObject` this function does not take relationship filters into account
+ */
+
+function getFlattenedSubscriptionFilter(opts) {
+  var result = {};
+  var filterObject = opts.queryRecordEntry.filter;
+  if (!filterObject) return result;
+  var queriedRelations = opts.queryRecordEntry.relational;
+  var nodeData = opts.queryRecordEntry.def.data;
+
+  var _loop = function _loop(filteredProperty) {
+    var filterValue = filterObject[filteredProperty];
+    var isAQueriedRelationalProp = queriedRelations && queriedRelations[filteredProperty] != null; // If the filter is targeting a relational property, we skip it
+    // this is because subscription filters are not applied to relational data
+
+    if (isAQueriedRelationalProp) return "continue";
+    var isObjectInNodeData = nodeData[filteredProperty] && (nodeData[filteredProperty].type === exports.DATA_TYPES.object || nodeData[filteredProperty].type === exports.DATA_TYPES.maybeObject);
+    var filterIsTargettingNestedObjectOrRelationalData = lodash.isObject(filterValue) && isObjectInNodeData;
+
+    if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
+      var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
+        def: _extends({}, opts.queryRecordEntry.def, {
+          data: nodeData[filteredProperty].boxedValue
+        }),
+        properties: opts.queryRecordEntry.properties.filter(function (prop) {
+          return prop.startsWith(filteredProperty);
+        }).map(function (prop) {
+          var _prop$split = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split.slice(1);
+
+          return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+        }),
+        filter: filterValue
+      });
+
+      var flatObject = getFlattenedSubscriptionFilter({
+        queryRecordEntry: queryRecordEntry
+      });
+      Object.keys(flatObject).forEach(function (key) {
+        result[filteredProperty + '.' + key] = flatObject[key];
+      });
+    } else {
+      if (lodash.isObject(filterValue)) {
+        result[filteredProperty] = _extends({}, filterValue, {
+          condition: filterValue.condition || 'and'
+        });
+      } else if (filterValue !== undefined) {
+        var _result$filteredPrope;
+
+        result[filteredProperty] = (_result$filteredPrope = {}, _result$filteredPrope[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope.condition = 'and', _result$filteredPrope);
+      }
+    }
+  };
+
+  for (var filteredProperty in filterObject) {
+    var _ret = _loop(filteredProperty);
+
+    if (_ret === "continue") continue;
+  }
+
+  return result;
+}
+
+function getIdsThatPassFilter(_ref8) {
+  var queryRecordEntry = _ref8.queryRecordEntry,
+      data = _ref8.data;
+  var filterObject = getFlattenedSubscriptionFilter({
+    queryRecordEntry: queryRecordEntry
+  });
+  var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
+    var propertyFilter = filterObject[dotSeparatedPropName];
+    var operators = Object.keys(propertyFilter).filter(function (x) {
+      return x !== 'condition';
+    }).map(function (operator) {
+      return {
+        operator: operator,
+        value: propertyFilter[operator]
+      };
+    });
+    var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+    var propNotInQuery = !queryRecordEntry.properties.includes(underscoreSeparatedPropName);
+    return {
+      dotSeparatedPropName: dotSeparatedPropName,
+      underscoreSeparatedPropName: underscoreSeparatedPropName,
+      propNotInQuery: propNotInQuery,
+      operators: operators,
+      condition: propertyFilter.condition
+    };
+  });
+  if (!filterProperties.length) return data.map(function (item) {
+    return item.id;
+  });
+  return data.filter(function (item) {
+    var propertyNotInQuery = filterProperties.find(function (x) {
+      return x.propNotInQuery;
+    });
+
+    if (!!propertyNotInQuery) {
+      throw new FilterPropertyNotDefinedInQueryException({
+        filterPropName: propertyNotInQuery.dotSeparatedPropName
+      });
+    }
+
+    var andConditions = filterProperties.filter(function (x) {
+      return x.condition === 'and' || x.condition === 'some';
+    });
+    var hasPassedEveryANDConditions = andConditions.every(function (filter) {
+      var itemValue = getValueWithUnderscoreSeparatedPropName({
+        item: item,
+        underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+      });
+      return filter.operators.every(function (_ref9) {
+        var operator = _ref9.operator,
+            value = _ref9.value;
+        return checkFilter({
+          operator: operator,
+          filterValue: value,
+          itemValue: itemValue
+        });
+      });
+    }) || andConditions.length === 0;
+
+    if (!hasPassedEveryANDConditions) {
+      return false;
+    }
+
+    var orConditions = filterProperties.filter(function (x) {
+      return x.condition === 'or';
+    });
+    var hasPassedSomeORConditions = orConditions.some(function (filter) {
+      var itemValue = getValueWithUnderscoreSeparatedPropName({
+        item: item,
+        underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+      });
+      return filter.operators.some(function (_ref10) {
+        var operator = _ref10.operator,
+            value = _ref10.value;
+        return checkFilter({
+          operator: operator,
+          filterValue: value,
+          itemValue: itemValue
+        });
+      });
+    }) || orConditions.length === 0;
+    return hasPassedEveryANDConditions && hasPassedSomeORConditions;
+  }).map(function (item) {
+    return item.id;
+  });
+}
 
 function getSortPosition(first, second, ascending) {
   // equal items sort equally
@@ -4816,11 +4990,11 @@ function getItemSortValue(item, underscoreSeparatedPropertyPath) {
   return Number(value) || value;
 }
 
-function applyClientSideSortToData(_ref8) {
-  var queryRecordEntry = _ref8.queryRecordEntry,
-      data = _ref8.data,
-      alias = _ref8.alias,
-      queryRecordEntrySort = _ref8.sort;
+function applyClientSideSortToData(_ref11) {
+  var queryRecordEntry = _ref11.queryRecordEntry,
+      data = _ref11.data,
+      alias = _ref11.alias,
+      queryRecordEntrySort = _ref11.sort;
   var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
 
   if (sortObject && data[alias]) {
@@ -4937,64 +5111,6 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
   });
 }
 /**
- * Note: Must apply filters and sorts after receiving created, inserted, removed, updated, updatedAssociation events.
- *
- * - Should we re-use the client side filtering logic that exists in the code base today?
- * The potentially issue is that it would be a very heavy handed approach to solving the problem of subscriptions not including filtering and sorting.
- * The algo traverses the entire tree of data and runs the filtering and sorting alogrythm to every part of that tree which includes a filter in the query definition.
- *
- * This would mean that, for example, if we receive a message about an issue being archived when within our meeting page,
- * we would have to run our filtering and sorting algo on the collection of todos, headlines, metrics, and all their scores, etc.
- * Potentially traversing thousands of items unnecessarily.
- *
- * - What would be the alternative?
- * Using the information included in the subscription message which tells us which node was updated, created, etc, and run
- * the sorting and filtering algos on just the bits of state that could be affected by this event.
- *
- * - What would that look like?
- * For a created event, we would look at the node type, find all root level aliases which target that node type,
- * and run the filtering and sorting algos on those root level aliases after adding the new node to the data tree.
- *
- * For an inserted event, we would look at the id of the parent node, find all aliases which include that id
- * in their returned data and run the filtering and sorting algos on those aliases, after adding the new node to the data tree.
- * We would then need to find all aliases which include the id of the inserted node in their returned data and run the filtering and sorting algos on those aliases.
- * For example, a todo may be inserted into a meeting, and the meeting may then become visible/hidden, and the todo itself may not be visible due to the filtering setup.
- *
- *
- *
- * For a removed event, we would look at the id of the parent node, find all aliases which include that id
- * in their returned data and run the filtering and sorting algos on those aliases, after removing the node from the data tree.
- * There is no need to re-run filtering or sorting on aliases that include the removed node's id in their returned data, as the node is no longer in the tree
- * and the rest of the results should be unaffected.
- *
- * For an updated event, we would look at the id of the node, find all aliases which include that id in their returned data
- * and run the filtering and sorting algos on those aliases.
- *
- *
- * Of course, all filtering and sorting can be skipped if no filtering and sorting params are defined in the queryRecord
- * for those aliases.
- *
- * Known edge cases:
- *
- * 1) Lets say that I'm looking at a query like:
- *   meetings
- *     todos
- *
- * and the query is filtering meetings which include a todo with a certain id.
- * If that todo is added to a meeting, I may have to add a meeting to the results set that was not previously there.
- * Unfortunately, if I don't already have this meeting's data from the query results, either because the query itself
- * included filtered results, or because the meeting is new, the lib has no way of adding this meeting to the results set.
- *
- *
-/*
-
- 
-
-
-
-
-
-/**
  * Returns flattened keys of the filter object
  *
  * ```
@@ -5029,7 +5145,7 @@ function getFlattenedNodeFilterObject(opts) {
   var queriedRelations = opts.queryRecordEntry.relational;
   var nodeData = opts.queryRecordEntry.def.data;
 
-  var _loop = function _loop(filteredProperty) {
+  var _loop2 = function _loop2(filteredProperty) {
     var filterValue = filterObject[filteredProperty];
     var isObjectInNodeData = nodeData[filteredProperty] && (nodeData[filteredProperty].type === exports.DATA_TYPES.object || nodeData[filteredProperty].type === exports.DATA_TYPES.maybeObject);
     var isAQueriedRelationalProp = queriedRelations ? queriedRelations[filteredProperty] != null : false;
@@ -5043,8 +5159,8 @@ function getFlattenedNodeFilterObject(opts) {
         properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
           return prop.startsWith(filteredProperty);
         }).map(function (prop) {
-          var _prop$split = prop.split(OBJECT_PROPERTY_SEPARATOR),
-              remainingPath = _prop$split.slice(1);
+          var _prop$split2 = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split2.slice(1);
 
           return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
         }) : queriedRelations[filteredProperty].properties,
@@ -5063,15 +5179,15 @@ function getFlattenedNodeFilterObject(opts) {
           condition: filterValue.condition || 'and'
         });
       } else if (filterValue !== undefined) {
-        var _result$filteredPrope;
+        var _result$filteredPrope2;
 
-        result[filteredProperty] = (_result$filteredPrope = {}, _result$filteredPrope[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope.condition = 'and', _result$filteredPrope);
+        result[filteredProperty] = (_result$filteredPrope2 = {}, _result$filteredPrope2[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope2.condition = 'and', _result$filteredPrope2);
       }
     }
   };
 
   for (var filteredProperty in filterObject) {
-    _loop(filteredProperty);
+    _loop2(filteredProperty);
   }
 
   return result;
@@ -7022,6 +7138,7 @@ function createQueryManager(mmGQLInstance) {
 
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
               if (!stateEntry.idsOrIdInCurrentResult) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
+              stateEntry.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
 
               if (queryRecordEntryReturnsArrayOfData({
                 queryRecordEntry: queryRecordEntry
@@ -7032,11 +7149,19 @@ function createQueryManager(mmGQLInstance) {
                 if (stateEntry.totalCount != null) {
                   stateEntry.totalCount++;
                 }
+
+                var ids = getIdsThatPassFilter({
+                  queryRecordEntry: queryRecordEntry,
+                  data: Object.values(stateEntry.proxyCache).map(function (_ref4) {
+                    var proxy = _ref4.proxy;
+                    return proxy;
+                  })
+                });
+                stateEntry.idsOrIdInCurrentResult = ids;
+                stateEntry.totalCount = ids.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
-
-              stateEntry.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
             });
           } else if (messageType.startsWith('Deleted_')) {
             var _nodeType2 = messageType.replace('Deleted_', '');
@@ -8343,9 +8468,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref4) {
-    var alias = _ref4[0],
-        queryRecordEntry = _ref4[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref5) {
+    var alias = _ref5[0],
+        queryRecordEntry = _ref5[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -8354,9 +8479,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref5) {
-    var alias = _ref5[0],
-        queryDefinition = _ref5[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
+    var alias = _ref6[0],
+        queryDefinition = _ref6[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -8364,9 +8489,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
-    var key = _ref6[0],
-        queryDefinition = _ref6[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
+    var key = _ref7[0],
+        queryDefinition = _ref7[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -8547,9 +8672,9 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       previousQueryRecord = opts.previousQueryRecord;
   var minimalQueryRecord = {};
   var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref7) {
-    var alias = _ref7[0],
-        nextQueryRecordEntry = _ref7[1];
+  Object.entries(nextQueryRecord).forEach(function (_ref8) {
+    var alias = _ref8[0],
+        nextQueryRecordEntry = _ref8[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
@@ -8632,9 +8757,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref8) {
-      var key = _ref8[0],
-          nextRelationalQueryRecordEntry = _ref8[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref9) {
+      var key = _ref9[0],
+          nextRelationalQueryRecordEntry = _ref9[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -8661,9 +8786,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref9) {
-    var key = _ref9[0],
-        nextQueryRecordEntry = _ref9[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref10) {
+    var key = _ref10[0],
+        nextQueryRecordEntry = _ref10[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {
