@@ -40,7 +40,10 @@ import {
 import { extend } from '../dataUtilities';
 import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import { cloneDeep } from 'lodash';
-import { applyClientSideSortAndFilterToData } from './clientSideOperators';
+import {
+  applyClientSideSortAndFilterToData,
+  getIdsThatPassFilter,
+} from './clientSideOperators';
 import { getPrettyPrintedGQL } from '../specUtilities';
 import { getResponseFromStaticData } from './getResponseFromStaticData';
 
@@ -283,6 +286,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 return this.logSubscriptionError(
                   'No idsOrIdInCurrentResult found on state entry'
                 );
+
+              stateEntry.proxyCache[nodeData.id] =
+                newCacheEntry.proxyCache[nodeData.id];
+
               if (queryRecordEntryReturnsArrayOfData({ queryRecordEntry })) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
                   return this.logSubscriptionError(
@@ -294,12 +301,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 if (stateEntry.totalCount != null) {
                   stateEntry.totalCount++;
                 }
+
+                const ids = getIdsThatPassFilter({
+                  queryRecordEntry,
+                  data: Object.values(stateEntry.proxyCache).map(
+                    ({ proxy }) => proxy
+                  ),
+                });
+
+                stateEntry.idsOrIdInCurrentResult = ids;
+                stateEntry.totalCount = ids.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
-
-              stateEntry.proxyCache[nodeData.id] =
-                newCacheEntry.proxyCache[nodeData.id];
             });
           } else if (messageType.startsWith('Deleted_')) {
             const nodeType = messageType.replace('Deleted_', '');

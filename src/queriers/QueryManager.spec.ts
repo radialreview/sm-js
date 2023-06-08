@@ -1382,7 +1382,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it.skip('correctly filters data from subscription messages related to a root level collection', done => {
+  it('correctly filters data from subscription messages related to a root level collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -1390,6 +1390,8 @@ describe('subscription handling', () => {
             [NODES_PROPERTY_KEY]: [
               {
                 id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
                 task: 'mock-task-1',
                 done: false,
               },
@@ -1418,56 +1420,36 @@ describe('subscription handling', () => {
       },
     });
 
-    const resultsObject = {};
-    const queryManager = new mmGQLInstance.QueryManager(
-      {
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      {
-        queryId: 'Test_Query',
-        useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {},
-        onQueryError: e => {
-          done(e);
-        },
-        subscribe: true,
-        onSubscriptionError: e => done(e),
-        batchKey: null,
-      }
-    );
-
-    const mockSubscriptionMessage = getMockSubscriptionMessage({
-      alias: 'todos',
-      type: 'Created',
-      id: 'mock-todo-id-2',
-      valueNodeType: todoNode.type,
-      value: {
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Created',
         id: 'mock-todo-id-2',
-        task: 'mock-task-2',
-        // This should be filtered out
-        done: true,
-      },
-    });
-
-    queryManager.onSubscriptionMessage(mockSubscriptionMessage);
-
-    expect(resultsObject).toEqual({
-      todos: {
-        [NODES_PROPERTY_KEY]: [
-          {
-            id: 'mock-todo-id-1',
-            task: 'mock-task-1',
-            done: false,
-          },
-        ],
-        [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        [PAGE_INFO_PROPERTY_KEY]: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: 'mock-todo-id-1',
-          endCursor: 'mock-todo-id-1',
-          totalPages: 1,
+        valueNodeType: todoNode.type,
+        value: {
+          id: 'mock-todo-id-2',
+          type: 'todo',
+          version: 1,
+          task: 'mock-task-2',
+          // This should be filtered out
+          done: true,
+        },
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 1,
         },
       },
     });
