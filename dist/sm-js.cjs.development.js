@@ -4580,7 +4580,8 @@ function applyClientSideFilterToData(_ref3) {
       data = _ref3.data,
       alias = _ref3.alias;
   var filterObject = getFlattenedNodeFilterObject({
-    queryRecordEntry: queryRecordEntry
+    queryRecordEntry: queryRecordEntry,
+    skipRelationalFilters: false
   });
 
   if (filterObject && data[alias]) {
@@ -4764,99 +4765,12 @@ function applyClientSideFilterToData(_ref3) {
     }
   }
 }
-/**
- * Returns flattened keys of the filter object
- *
- * ```
- * getFlattenedNodeFilterObject({
- *  settings: {
- *    time: {_lte: Date.now()},
- *    nested: {
- *      prop: {_contains: "text"}
- *    }
- *  },
- *  firstName: {_eq: 'John'}
- * })
- * ```
- *
- * Returns
- *
- * ```
- * {
- *  "settings.time": {_lte: Date.now()},
- *  "settings.nested.prop": {_contains: "text"},
- *  "firstName": {_eq: 'John'}
- * }
- * ```
- *
- * As opposed to `getFlattenedNodeFilterObject` this function does not take relationship filters into account
- */
-
-function getFlattenedSubscriptionFilter(opts) {
-  var result = {};
-  var filterObject = opts.queryRecordEntry.filter;
-  if (!filterObject) return result;
-  var queriedRelations = opts.queryRecordEntry.relational;
-  var nodeData = opts.queryRecordEntry.def.data;
-
-  var _loop = function _loop(filteredProperty) {
-    var filterValue = filterObject[filteredProperty];
-    var isAQueriedRelationalProp = queriedRelations && queriedRelations[filteredProperty] != null; // If the filter is targeting a relational property, we skip it
-    // this is because subscription filters are not applied to relational data
-
-    if (isAQueriedRelationalProp) return "continue";
-    var isObjectInNodeData = nodeData[filteredProperty] && (nodeData[filteredProperty].type === exports.DATA_TYPES.object || nodeData[filteredProperty].type === exports.DATA_TYPES.maybeObject);
-    var filterIsTargettingNestedObjectOrRelationalData = lodash.isObject(filterValue) && isObjectInNodeData;
-
-    if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
-      var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
-        def: _extends({}, opts.queryRecordEntry.def, {
-          data: nodeData[filteredProperty].boxedValue
-        }),
-        properties: opts.queryRecordEntry.properties.filter(function (prop) {
-          return prop.startsWith(filteredProperty);
-        }).map(function (prop) {
-          var _prop$split = prop.split(OBJECT_PROPERTY_SEPARATOR),
-              remainingPath = _prop$split.slice(1);
-
-          return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
-        }),
-        filter: filterValue
-      });
-
-      var flatObject = getFlattenedSubscriptionFilter({
-        queryRecordEntry: queryRecordEntry
-      });
-      Object.keys(flatObject).forEach(function (key) {
-        result[filteredProperty + '.' + key] = flatObject[key];
-      });
-    } else {
-      if (lodash.isObject(filterValue)) {
-        result[filteredProperty] = _extends({}, filterValue, {
-          condition: filterValue.condition || 'and'
-        });
-      } else if (filterValue !== undefined) {
-        var _result$filteredPrope;
-
-        result[filteredProperty] = (_result$filteredPrope = {}, _result$filteredPrope[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope.condition = 'and', _result$filteredPrope);
-      }
-    }
-  };
-
-  for (var filteredProperty in filterObject) {
-    var _ret = _loop(filteredProperty);
-
-    if (_ret === "continue") continue;
-  }
-
-  return result;
-}
-
 function getIdsThatPassFilter(_ref8) {
   var queryRecordEntry = _ref8.queryRecordEntry,
       data = _ref8.data;
-  var filterObject = getFlattenedSubscriptionFilter({
-    queryRecordEntry: queryRecordEntry
+  var filterObject = getFlattenedNodeFilterObject({
+    queryRecordEntry: queryRecordEntry,
+    skipRelationalFilters: true
   });
   var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
     var propertyFilter = filterObject[dotSeparatedPropName];
@@ -4938,6 +4852,62 @@ function getIdsThatPassFilter(_ref8) {
     return item.id;
   });
 }
+function getSortedIds(_ref11) {
+  var queryRecordEntry = _ref11.queryRecordEntry,
+      data = _ref11.data;
+  if (!queryRecordEntry.sort) return data.map(function (item) {
+    return item.id;
+  });
+  var sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntry.sort,
+    skipRelationalSorts: true
+  });
+  var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
+    var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+    var propNotInQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
+    return {
+      dotSeparatedPropName: dotSeparatedPropName,
+      underscoreSeparatedPropName: underscoreSeparatedPropName,
+      propNotInQuery: propNotInQuery,
+      priority: sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+      direction: sortObject[dotSeparatedPropName].direction || 'asc'
+    };
+  }), function (x) {
+    return x.priority;
+  }, 'asc');
+  var sortPropertiesNotDefinedInQuery = sorting.filter(function (i) {
+    return i.propNotInQuery;
+  });
+
+  if (sortPropertiesNotDefinedInQuery.length > 0) {
+    throw new SortPropertyNotDefinedInQueryException({
+      sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName
+    });
+  }
+
+  return data.sort(function (first, second) {
+    return sorting.map(function (sort) {
+      return getSortPosition(getNodeSortPropertyValue({
+        node: first,
+        direction: sort.direction,
+        underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+        isRelational: false,
+        oneToMany: false,
+        nonPaginatedOneToMany: false
+      }), getNodeSortPropertyValue({
+        node: second,
+        direction: sort.direction,
+        underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+        isRelational: false,
+        oneToMany: false
+      }), sort.direction === 'asc');
+    }).reduce(function (acc, current) {
+      return acc || current;
+    }, undefined);
+  }).map(function (item) {
+    return item.id;
+  });
+}
 
 function getSortPosition(first, second, ascending) {
   // equal items sort equally
@@ -4996,12 +4966,15 @@ function getItemSortValue(item, underscoreSeparatedPropertyPath) {
   return Number(value) || value;
 }
 
-function applyClientSideSortToData(_ref11) {
-  var queryRecordEntry = _ref11.queryRecordEntry,
-      data = _ref11.data,
-      alias = _ref11.alias,
-      queryRecordEntrySort = _ref11.sort;
-  var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
+function applyClientSideSortToData(_ref12) {
+  var queryRecordEntry = _ref12.queryRecordEntry,
+      data = _ref12.data,
+      alias = _ref12.alias,
+      queryRecordEntrySort = _ref12.sort;
+  var sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntrySort,
+    skipRelationalSorts: false
+  });
 
   if (sortObject && data[alias]) {
     var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
@@ -5151,11 +5124,15 @@ function getFlattenedNodeFilterObject(opts) {
   var queriedRelations = opts.queryRecordEntry.relational;
   var nodeData = opts.queryRecordEntry.def.data;
 
-  var _loop2 = function _loop2(filteredProperty) {
+  var _loop = function _loop(filteredProperty) {
     var filterValue = filterObject[filteredProperty];
     var isObjectInNodeData = nodeData[filteredProperty] && (nodeData[filteredProperty].type === exports.DATA_TYPES.object || nodeData[filteredProperty].type === exports.DATA_TYPES.maybeObject);
     var isAQueriedRelationalProp = queriedRelations ? queriedRelations[filteredProperty] != null : false;
     var filterIsTargettingNestedObjectOrRelationalData = lodash.isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
+
+    if (filterIsTargettingNestedObjectOrRelationalData && opts.skipRelationalFilters) {
+      return "continue";
+    }
 
     if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
       var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
@@ -5165,8 +5142,8 @@ function getFlattenedNodeFilterObject(opts) {
         properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
           return prop.startsWith(filteredProperty);
         }).map(function (prop) {
-          var _prop$split2 = prop.split(OBJECT_PROPERTY_SEPARATOR),
-              remainingPath = _prop$split2.slice(1);
+          var _prop$split = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split.slice(1);
 
           return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
         }) : queriedRelations[filteredProperty].properties,
@@ -5174,7 +5151,8 @@ function getFlattenedNodeFilterObject(opts) {
       });
 
       var flatObject = getFlattenedNodeFilterObject({
-        queryRecordEntry: queryRecordEntry
+        queryRecordEntry: queryRecordEntry,
+        skipRelationalFilters: opts.skipRelationalFilters
       });
       Object.keys(flatObject).forEach(function (key) {
         result[filteredProperty + '.' + key] = flatObject[key];
@@ -5185,30 +5163,35 @@ function getFlattenedNodeFilterObject(opts) {
           condition: filterValue.condition || 'and'
         });
       } else if (filterValue !== undefined) {
-        var _result$filteredPrope2;
+        var _result$filteredPrope;
 
-        result[filteredProperty] = (_result$filteredPrope2 = {}, _result$filteredPrope2[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope2.condition = 'and', _result$filteredPrope2);
+        result[filteredProperty] = (_result$filteredPrope = {}, _result$filteredPrope[exports.EStringFilterOperator.eq] = filterValue, _result$filteredPrope.condition = 'and', _result$filteredPrope);
       }
     }
   };
 
   for (var filteredProperty in filterObject) {
-    _loop2(filteredProperty);
+    var _ret = _loop(filteredProperty);
+
+    if (_ret === "continue") continue;
   }
 
   return result;
 }
 
-function getFlattenedNodeSortObject(sorting) {
+function getFlattenedNodeSortObject(opts) {
   var result = {};
 
-  for (var i in sorting) {
-    var sortObject = sorting;
+  for (var i in opts.sort) {
+    var sortObject = opts.sort;
     var value = sortObject[i];
     var valueIsNotASortObject = lodash.isObject(value) && !Object.keys(value).includes('direction');
 
     if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
-      var flatObject = getFlattenedNodeSortObject(value);
+      var flatObject = getFlattenedNodeSortObject({
+        sort: value,
+        skipRelationalSorts: opts.skipRelationalSorts
+      });
 
       for (var x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
@@ -7111,6 +7094,37 @@ function createQueryManager(mmGQLInstance) {
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              var stateEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
+                aliasPath: path.aliasPath,
+                idFilter: nodeData.id
+              });
+
+              stateEntriesWhichRequireUpdate.forEach(function (_ref4) {
+                var stateEntryWhichMayRequireUpdate = _ref4.leafStateEntry;
+                var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+                if (Array.isArray(currentIds)) {
+                  var filteredIds = getIdsThatPassFilter({
+                    queryRecordEntry: path.queryRecordEntry,
+                    // it's important to retain the order we acquired from the query
+                    // in case no client side sorting/filtering is applied
+                    // so that we don't accidentally change the order of the results
+                    // when we receive a subscription message
+                    data: currentIds.map(function (id) {
+                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+                    })
+                  });
+                  var filteredAndSortedIds = getSortedIds({
+                    queryRecordEntry: path.queryRecordEntry,
+                    data: filteredIds.map(function (id) {
+                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+                    })
+                  });
+                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+                  stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
+                }
+              });
             });
           } else if (messageType.startsWith('Created_')) {
             var _nodeType = messageType.replace('Created_', '');
@@ -7156,15 +7170,25 @@ function createQueryManager(mmGQLInstance) {
                   stateEntry.totalCount++;
                 }
 
-                var ids = getIdsThatPassFilter({
+                var currentIds = stateEntry.idsOrIdInCurrentResult;
+                var filteredIds = getIdsThatPassFilter({
                   queryRecordEntry: queryRecordEntry,
-                  data: Object.values(stateEntry.proxyCache).map(function (_ref4) {
-                    var proxy = _ref4.proxy;
-                    return proxy;
+                  // it's important to retain the order we acquired from the query
+                  // in case no client side sorting/filtering is applied
+                  // so that we don't accidentally change the order of the results
+                  // when we receive a subscription message
+                  data: currentIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
                   })
                 });
-                stateEntry.idsOrIdInCurrentResult = ids;
-                stateEntry.totalCount = ids.length;
+                var filteredAndSortedIds = getSortedIds({
+                  queryRecordEntry: queryRecordEntry,
+                  data: filteredIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -7251,11 +7275,25 @@ function createQueryManager(mmGQLInstance) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
                 stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                 stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
-
-                if (stateEntry.totalCount != null) {
-                  stateEntry.totalCount++;
-                }
-
+                var currentIds = stateEntry.idsOrIdInCurrentResult;
+                var filteredIds = getIdsThatPassFilter({
+                  queryRecordEntry: path.queryRecordEntry,
+                  // it's important to retain the order we acquired from the query
+                  // in case no client side sorting/filtering is applied
+                  // so that we don't accidentally change the order of the results
+                  // when we receive a subscription message
+                  data: currentIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                var filteredAndSortedIds = getSortedIds({
+                  queryRecordEntry: path.queryRecordEntry,
+                  data: filteredIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                stateEntry.totalCount = filteredAndSortedIds.length;
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state = {}, _state[relationalAlias] = stateEntry, _state),

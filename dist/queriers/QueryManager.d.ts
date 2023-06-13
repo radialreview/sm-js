@@ -3,7 +3,7 @@ import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, Query
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | Array<string> | null;
+    idsOrIdInCurrentResult: string | number | Array<string | number> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
