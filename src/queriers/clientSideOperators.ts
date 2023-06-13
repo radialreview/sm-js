@@ -135,6 +135,7 @@ export function applyClientSideFilterToData({
 }) {
   const filterObject = getFlattenedNodeFilterObject({
     queryRecordEntry,
+    skipRelationalFilters: false,
   });
 
   if (filterObject && data[alias]) {
@@ -353,116 +354,6 @@ export function applyClientSideFilterToData({
   }
 }
 
-/**
- * Returns flattened keys of the filter object
- *
- * ```
- * getFlattenedNodeFilterObject({
- *  settings: {
- *    time: {_lte: Date.now()},
- *    nested: {
- *      prop: {_contains: "text"}
- *    }
- *  },
- *  firstName: {_eq: 'John'}
- * })
- * ```
- *
- * Returns
- *
- * ```
- * {
- *  "settings.time": {_lte: Date.now()},
- *  "settings.nested.prop": {_contains: "text"},
- *  "firstName": {_eq: 'John'}
- * }
- * ```
- *
- * As opposed to `getFlattenedNodeFilterObject` this function does not take relationship filters into account
- */
-function getFlattenedSubscriptionFilter(opts: {
-  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-}) {
-  const result: Record<
-    string,
-    Partial<Record<FilterOperator, any>> & {
-      condition: NodeFilterCondition | CollectionFilterCondition;
-    }
-  > = {};
-
-  const filterObject = opts.queryRecordEntry.filter;
-
-  if (!filterObject) return result;
-
-  const queriedRelations = opts.queryRecordEntry.relational;
-  const nodeData = opts.queryRecordEntry.def.data;
-
-  for (const filteredProperty in filterObject) {
-    const filterValue = filterObject[filteredProperty] as FilterValue<
-      string,
-      boolean
-    >;
-
-    const isAQueriedRelationalProp =
-      queriedRelations && queriedRelations[filteredProperty] != null;
-
-    // If the filter is targeting a relational property, we skip it
-    // this is because subscription filters are not applied to relational data
-    if (isAQueriedRelationalProp) continue;
-
-    const isObjectInNodeData =
-      nodeData[filteredProperty] &&
-      ((nodeData[filteredProperty] as IData).type === DATA_TYPES.object ||
-        (nodeData[filteredProperty] as IData).type === DATA_TYPES.maybeObject);
-
-    const filterIsTargettingNestedObjectOrRelationalData =
-      isObject(filterValue) && isObjectInNodeData;
-
-    if (
-      typeof filterValue == 'object' &&
-      filterValue !== null &&
-      filterIsTargettingNestedObjectOrRelationalData
-    ) {
-      const queryRecordEntry = {
-        ...opts.queryRecordEntry,
-        def: {
-          ...opts.queryRecordEntry.def,
-          data: nodeData[filteredProperty].boxedValue,
-        },
-        properties: opts.queryRecordEntry.properties
-          .filter(prop => prop.startsWith(filteredProperty))
-          .map(prop => {
-            const [, ...remainingPath] = prop.split(OBJECT_PROPERTY_SEPARATOR);
-            return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
-          }),
-        filter: filterValue,
-      };
-
-      const flatObject = getFlattenedSubscriptionFilter({
-        queryRecordEntry,
-      });
-      Object.keys(flatObject).forEach(key => {
-        result[filteredProperty + '.' + key] = flatObject[key];
-      });
-    } else {
-      if (isObject(filterValue)) {
-        result[filteredProperty] = {
-          ...filterValue,
-          condition: filterValue.condition || 'and',
-        };
-      } else if (filterValue !== undefined) {
-        result[filteredProperty] = {
-          [EStringFilterOperator.eq]: filterValue,
-          condition: 'and',
-        } as Partial<Record<FilterOperator, any>> & {
-          condition: NodeFilterCondition | CollectionFilterCondition;
-        };
-      }
-    }
-  }
-  return result;
-}
-
 export function getIdsThatPassFilter({
   queryRecordEntry,
   data,
@@ -470,8 +361,9 @@ export function getIdsThatPassFilter({
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   data: Array<any>;
 }): Array<string> {
-  const filterObject = getFlattenedSubscriptionFilter({
+  const filterObject = getFlattenedNodeFilterObject({
     queryRecordEntry,
+    skipRelationalFilters: true,
   });
 
   const filterProperties: Array<{
@@ -566,6 +458,88 @@ export function getIdsThatPassFilter({
     .map(item => item.id);
 }
 
+export function getSortedIds({
+  queryRecordEntry,
+  data,
+}: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  data: Array<{ id: string | number }>;
+}) {
+  if (!queryRecordEntry.sort) return data.map(item => item.id);
+
+  const sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntry.sort,
+    skipRelationalSorts: true,
+  });
+
+  const sorting = orderBy(
+    Object.keys(sortObject).map<{
+      dotSeparatedPropName: string;
+      underscoreSeparatedPropName: string;
+      propNotInQuery: boolean;
+      priority?: number;
+      direction: SortDirection;
+    }>((dotSeparatedPropName, index) => {
+      const underscoreSeparatedPropName = dotSeparatedPropName.replaceAll(
+        '.',
+        OBJECT_PROPERTY_SEPARATOR
+      );
+
+      const propNotInQuery =
+        queryRecordEntry.properties.includes(underscoreSeparatedPropName) ===
+        false;
+
+      return {
+        dotSeparatedPropName,
+        underscoreSeparatedPropName,
+        propNotInQuery,
+        priority:
+          sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+        direction: sortObject[dotSeparatedPropName].direction || 'asc',
+      };
+    }),
+    x => x.priority,
+    'asc'
+  );
+
+  const sortPropertiesNotDefinedInQuery = sorting.filter(i => i.propNotInQuery);
+
+  if (sortPropertiesNotDefinedInQuery.length > 0) {
+    throw new SortPropertyNotDefinedInQueryException({
+      sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName,
+    });
+  }
+
+  return data
+    .sort((first, second) => {
+      return sorting
+        .map(sort => {
+          return getSortPosition(
+            getNodeSortPropertyValue({
+              node: first,
+              direction: sort.direction,
+              underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+              isRelational: false,
+              oneToMany: false,
+              nonPaginatedOneToMany: false,
+            }),
+            getNodeSortPropertyValue({
+              node: second,
+              direction: sort.direction,
+              underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+              isRelational: false,
+              oneToMany: false,
+            }),
+            sort.direction === 'asc'
+          );
+        })
+        .reduce((acc, current) => {
+          return acc || current;
+        }, undefined as never);
+    })
+    .map(item => item.id);
+}
+
 function getSortPosition(
   first: string | number,
   second: string | number,
@@ -652,7 +626,10 @@ export function applyClientSideSortToData({
   data: any;
   alias: string;
 }) {
-  const sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
+  const sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntrySort,
+    skipRelationalSorts: false,
+  });
   if (sortObject && data[alias]) {
     const sorting = orderBy(
       Object.keys(sortObject).map<{
@@ -829,6 +806,7 @@ export function applyClientSideSortAndFilterToData(
  */
 function getFlattenedNodeFilterObject(opts: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+  skipRelationalFilters: boolean;
 }) {
   const result: Record<
     string,
@@ -862,6 +840,13 @@ function getFlattenedNodeFilterObject(opts: {
       isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
 
     if (
+      filterIsTargettingNestedObjectOrRelationalData &&
+      opts.skipRelationalFilters
+    ) {
+      continue;
+    }
+
+    if (
       typeof filterValue == 'object' &&
       filterValue !== null &&
       filterIsTargettingNestedObjectOrRelationalData
@@ -890,6 +875,7 @@ function getFlattenedNodeFilterObject(opts: {
 
       const flatObject = getFlattenedNodeFilterObject({
         queryRecordEntry,
+        skipRelationalFilters: opts.skipRelationalFilters,
       });
       Object.keys(flatObject).forEach(key => {
         result[filteredProperty + '.' + key] = flatObject[key];
@@ -913,13 +899,14 @@ function getFlattenedNodeFilterObject(opts: {
   return result;
 }
 
-function getFlattenedNodeSortObject<TNode extends INode>(
-  sorting: ValidSortForNode<TNode>
-) {
+function getFlattenedNodeSortObject<TNode extends INode>(opts: {
+  sort: ValidSortForNode<TNode>;
+  skipRelationalSorts: boolean;
+}) {
   const result: Record<string, SortObject> = {};
 
-  for (const i in sorting) {
-    const sortObject = sorting as Record<string, any>;
+  for (const i in opts.sort) {
+    const sortObject = opts.sort as Record<string, any>;
     const value = sortObject[i];
     const valueIsNotASortObject =
       isObject(value) && !Object.keys(value).includes('direction');
@@ -928,7 +915,10 @@ function getFlattenedNodeSortObject<TNode extends INode>(
       sortObject[i] !== null &&
       valueIsNotASortObject
     ) {
-      const flatObject = getFlattenedNodeSortObject(value);
+      const flatObject = getFlattenedNodeSortObject({
+        sort: value,
+        skipRelationalSorts: opts.skipRelationalSorts,
+      });
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
 

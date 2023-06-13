@@ -1356,6 +1356,7 @@ export type QueryRecord = Record<string, QueryRecordEntry | null>;
 export type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>
 
 export interface IDOProxy {
+  id: string | number
   updateRelationalResults(
     newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>
   ): void;

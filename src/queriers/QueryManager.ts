@@ -43,6 +43,7 @@ import { cloneDeep } from 'lodash';
 import {
   applyClientSideSortAndFilterToData,
   getIdsThatPassFilter,
+  getSortedIds,
 } from './clientSideOperators';
 import { getPrettyPrintedGQL } from '../specUtilities';
 import { getResponseFromStaticData } from './getResponseFromStaticData';
@@ -54,7 +55,7 @@ type QueryManagerState = Record<
 
 type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
-  idsOrIdInCurrentResult: string | Array<string> | null;
+  idsOrIdInCurrentResult: string | number | Array<string | number> | null;
   // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
   // NOTE: different aliases may build different proxies for the same node
   // this is because different aliases may have different relationships or fields queried for the same node
@@ -230,6 +231,46 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 );
 
               queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              const stateEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
+                {
+                  aliasPath: path.aliasPath,
+                  idFilter: nodeData.id,
+                }
+              );
+
+              stateEntriesWhichRequireUpdate.forEach(
+                ({ leafStateEntry: stateEntryWhichMayRequireUpdate }) => {
+                  const currentIds =
+                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+                  if (Array.isArray(currentIds)) {
+                    const filteredIds = getIdsThatPassFilter({
+                      queryRecordEntry: path.queryRecordEntry,
+                      // it's important to retain the order we acquired from the query
+                      // in case no client side sorting/filtering is applied
+                      // so that we don't accidentally change the order of the results
+                      // when we receive a subscription message
+                      data: currentIds.map(
+                        id =>
+                          stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
+                      ),
+                    });
+
+                    const filteredAndSortedIds = getSortedIds({
+                      queryRecordEntry: path.queryRecordEntry,
+                      data: filteredIds.map(
+                        id =>
+                          stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
+                      ),
+                    });
+
+                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+                    stateEntryWhichMayRequireUpdate.totalCount =
+                      filteredAndSortedIds.length;
+                  }
+                }
+              );
             });
           } else if (messageType.startsWith('Created_')) {
             const nodeType = messageType.replace('Created_', '');
@@ -302,15 +343,23 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.totalCount++;
                 }
 
-                const ids = getIdsThatPassFilter({
+                const currentIds = stateEntry.idsOrIdInCurrentResult;
+                const filteredIds = getIdsThatPassFilter({
                   queryRecordEntry,
-                  data: Object.values(stateEntry.proxyCache).map(
-                    ({ proxy }) => proxy
-                  ),
+                  // it's important to retain the order we acquired from the query
+                  // in case no client side sorting/filtering is applied
+                  // so that we don't accidentally change the order of the results
+                  // when we receive a subscription message
+                  data: currentIds.map(id => stateEntry.proxyCache[id].proxy),
                 });
 
-                stateEntry.idsOrIdInCurrentResult = ids;
-                stateEntry.totalCount = ids.length;
+                const filteredAndSortedIds = getSortedIds({
+                  queryRecordEntry,
+                  data: filteredIds.map(id => stateEntry.proxyCache[id].proxy),
+                });
+
+                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -459,9 +508,26 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
-                  if (stateEntry.totalCount != null) {
-                    stateEntry.totalCount++;
-                  }
+
+                  const currentIds = stateEntry.idsOrIdInCurrentResult;
+                  const filteredIds = getIdsThatPassFilter({
+                    queryRecordEntry: path.queryRecordEntry,
+                    // it's important to retain the order we acquired from the query
+                    // in case no client side sorting/filtering is applied
+                    // so that we don't accidentally change the order of the results
+                    // when we receive a subscription message
+                    data: currentIds.map(id => stateEntry.proxyCache[id].proxy),
+                  });
+
+                  const filteredAndSortedIds = getSortedIds({
+                    queryRecordEntry: path.queryRecordEntry,
+                    data: filteredIds.map(
+                      id => stateEntry.proxyCache[id].proxy
+                    ),
+                  });
+
+                  stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                  stateEntry.totalCount = filteredAndSortedIds.length;
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
