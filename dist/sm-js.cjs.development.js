@@ -4580,7 +4580,8 @@ function applyClientSideFilterToData(_ref3) {
       data = _ref3.data,
       alias = _ref3.alias;
   var filterObject = getFlattenedNodeFilterObject({
-    queryRecordEntry: queryRecordEntry
+    queryRecordEntry: queryRecordEntry,
+    skipRelationalFilters: false
   });
 
   if (filterObject && data[alias]) {
@@ -4653,7 +4654,7 @@ function applyClientSideFilterToData(_ref3) {
                 var operator = _ref4.operator,
                     value = _ref4.value;
 
-                if (filter.oneToOne === true) {
+                if (filter.oneToOne) {
                   var itemValue = filter.relationalKey ? getValueWithUnderscoreSeparatedPropName({
                     item: item[filter.relationalKey],
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
@@ -4663,7 +4664,7 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     itemValue: itemValue
                   });
-                } else if (filter.nonPaginatedOneToMany === true) {
+                } else if (filter.nonPaginatedOneToMany) {
                   var relationalItems = filter.relationalKey ? item[filter.relationalKey] || [] : [];
                   return checkRelationalItems({
                     relationalItems: relationalItems,
@@ -4671,7 +4672,7 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
                   });
-                } else if (filter.oneToMany === true) {
+                } else if (filter.oneToMany) {
                   var _relationalItems = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
 
                   return checkRelationalItems({
@@ -4711,7 +4712,7 @@ function applyClientSideFilterToData(_ref3) {
                 var operator = _ref6.operator,
                     value = _ref6.value;
 
-                if (filter.oneToOne === true) {
+                if (filter.oneToOne) {
                   var itemValue = filter.relationalKey ? getValueWithUnderscoreSeparatedPropName({
                     item: item[filter.relationalKey],
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
@@ -4721,7 +4722,7 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     itemValue: itemValue
                   });
-                } else if (filter.nonPaginatedOneToMany === true) {
+                } else if (filter.nonPaginatedOneToMany) {
                   var relationalItems = filter.relationalKey ? item[filter.relationalKey] || [] : [];
                   return checkRelationalItems({
                     relationalItems: relationalItems,
@@ -4729,7 +4730,7 @@ function applyClientSideFilterToData(_ref3) {
                     filterValue: value,
                     underscoreSeparatedPropName: filter.underscoreSeparatedPropName
                   });
-                } else if (filter.oneToMany === true) {
+                } else if (filter.oneToMany) {
                   var _relationalItems2 = filter.relationalKey ? item[filter.relationalKey][NODES_PROPERTY_KEY] || [] : [];
 
                   return checkRelationalItems({
@@ -4763,6 +4764,149 @@ function applyClientSideFilterToData(_ref3) {
       });
     }
   }
+}
+function getIdsThatPassFilter(_ref8) {
+  var queryRecordEntry = _ref8.queryRecordEntry,
+      data = _ref8.data;
+  var filterObject = getFlattenedNodeFilterObject({
+    queryRecordEntry: queryRecordEntry,
+    skipRelationalFilters: true
+  });
+  var filterProperties = Object.keys(filterObject).map(function (dotSeparatedPropName) {
+    var propertyFilter = filterObject[dotSeparatedPropName];
+    var operators = Object.keys(propertyFilter).filter(function (x) {
+      return x !== 'condition';
+    }).map(function (operator) {
+      return {
+        operator: operator,
+        value: propertyFilter[operator]
+      };
+    });
+    var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+    var propNotInQuery = !queryRecordEntry.properties.includes(underscoreSeparatedPropName);
+    return {
+      dotSeparatedPropName: dotSeparatedPropName,
+      underscoreSeparatedPropName: underscoreSeparatedPropName,
+      propNotInQuery: propNotInQuery,
+      operators: operators,
+      condition: propertyFilter.condition
+    };
+  });
+  if (!filterProperties.length) return data.map(function (item) {
+    return item.id;
+  });
+  return data.filter(function (item) {
+    var propertyNotInQuery = filterProperties.find(function (x) {
+      return x.propNotInQuery;
+    });
+
+    if (!!propertyNotInQuery) {
+      throw new FilterPropertyNotDefinedInQueryException({
+        filterPropName: propertyNotInQuery.dotSeparatedPropName
+      });
+    }
+
+    var andConditions = filterProperties.filter(function (x) {
+      return x.condition === 'and' || x.condition === 'some';
+    });
+    var hasPassedEveryANDConditions = andConditions.every(function (filter) {
+      var itemValue = getValueWithUnderscoreSeparatedPropName({
+        item: item,
+        underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+      });
+      return filter.operators.every(function (_ref9) {
+        var operator = _ref9.operator,
+            value = _ref9.value;
+        return checkFilter({
+          operator: operator,
+          filterValue: value,
+          itemValue: itemValue
+        });
+      });
+    }) || andConditions.length === 0;
+
+    if (!hasPassedEveryANDConditions) {
+      return false;
+    }
+
+    var orConditions = filterProperties.filter(function (x) {
+      return x.condition === 'or';
+    });
+    var hasPassedSomeORConditions = orConditions.some(function (filter) {
+      var itemValue = getValueWithUnderscoreSeparatedPropName({
+        item: item,
+        underscoreSeparatedPropName: filter.underscoreSeparatedPropName
+      });
+      return filter.operators.some(function (_ref10) {
+        var operator = _ref10.operator,
+            value = _ref10.value;
+        return checkFilter({
+          operator: operator,
+          filterValue: value,
+          itemValue: itemValue
+        });
+      });
+    }) || orConditions.length === 0;
+    return hasPassedEveryANDConditions && hasPassedSomeORConditions;
+  }).map(function (item) {
+    return item.id;
+  });
+}
+function getSortedIds(_ref11) {
+  var queryRecordEntry = _ref11.queryRecordEntry,
+      data = _ref11.data;
+  if (!queryRecordEntry.sort) return data.map(function (item) {
+    return item.id;
+  });
+  var sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntry.sort,
+    skipRelationalSorts: true
+  });
+  var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
+    var underscoreSeparatedPropName = dotSeparatedPropName.replaceAll('.', OBJECT_PROPERTY_SEPARATOR);
+    var propNotInQuery = queryRecordEntry.properties.includes(underscoreSeparatedPropName) === false;
+    return {
+      dotSeparatedPropName: dotSeparatedPropName,
+      underscoreSeparatedPropName: underscoreSeparatedPropName,
+      propNotInQuery: propNotInQuery,
+      priority: sortObject[dotSeparatedPropName].priority || (index + 1) * 10000,
+      direction: sortObject[dotSeparatedPropName].direction || 'asc'
+    };
+  }), function (x) {
+    return x.priority;
+  }, 'asc');
+  var sortPropertiesNotDefinedInQuery = sorting.filter(function (i) {
+    return i.propNotInQuery;
+  });
+
+  if (sortPropertiesNotDefinedInQuery.length > 0) {
+    throw new SortPropertyNotDefinedInQueryException({
+      sortPropName: sortPropertiesNotDefinedInQuery[0].dotSeparatedPropName
+    });
+  }
+
+  return data.sort(function (first, second) {
+    return sorting.map(function (sort) {
+      return getSortPosition(getNodeSortPropertyValue({
+        node: first,
+        direction: sort.direction,
+        underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+        isRelational: false,
+        oneToMany: false,
+        nonPaginatedOneToMany: false
+      }), getNodeSortPropertyValue({
+        node: second,
+        direction: sort.direction,
+        underscoreSeparatedPropName: sort.underscoreSeparatedPropName,
+        isRelational: false,
+        oneToMany: false
+      }), sort.direction === 'asc');
+    }).reduce(function (acc, current) {
+      return acc || current;
+    }, undefined);
+  }).map(function (item) {
+    return item.id;
+  });
 }
 
 function getSortPosition(first, second, ascending) {
@@ -4822,12 +4966,15 @@ function getItemSortValue(item, underscoreSeparatedPropertyPath) {
   return Number(value) || value;
 }
 
-function applyClientSideSortToData(_ref8) {
-  var queryRecordEntry = _ref8.queryRecordEntry,
-      data = _ref8.data,
-      alias = _ref8.alias,
-      queryRecordEntrySort = _ref8.sort;
-  var sortObject = getFlattenedNodeSortObject(queryRecordEntrySort);
+function applyClientSideSortToData(_ref12) {
+  var queryRecordEntry = _ref12.queryRecordEntry,
+      data = _ref12.data,
+      alias = _ref12.alias,
+      queryRecordEntrySort = _ref12.sort;
+  var sortObject = getFlattenedNodeSortObject({
+    sort: queryRecordEntrySort,
+    skipRelationalSorts: false
+  });
 
   if (sortObject && data[alias]) {
     var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
@@ -4983,6 +5130,10 @@ function getFlattenedNodeFilterObject(opts) {
     var isAQueriedRelationalProp = queriedRelations ? queriedRelations[filteredProperty] != null : false;
     var filterIsTargettingNestedObjectOrRelationalData = lodash.isObject(filterValue) && (isAQueriedRelationalProp || isObjectInNodeData);
 
+    if (filterIsTargettingNestedObjectOrRelationalData && opts.skipRelationalFilters) {
+      return "continue";
+    }
+
     if (typeof filterValue == 'object' && filterValue !== null && filterIsTargettingNestedObjectOrRelationalData) {
       var queryRecordEntry = _extends({}, opts.queryRecordEntry, {
         def: isObjectInNodeData ? _extends({}, opts.queryRecordEntry.def, {
@@ -5000,7 +5151,8 @@ function getFlattenedNodeFilterObject(opts) {
       });
 
       var flatObject = getFlattenedNodeFilterObject({
-        queryRecordEntry: queryRecordEntry
+        queryRecordEntry: queryRecordEntry,
+        skipRelationalFilters: opts.skipRelationalFilters
       });
       Object.keys(flatObject).forEach(function (key) {
         result[filteredProperty + '.' + key] = flatObject[key];
@@ -5019,22 +5171,27 @@ function getFlattenedNodeFilterObject(opts) {
   };
 
   for (var filteredProperty in filterObject) {
-    _loop(filteredProperty);
+    var _ret = _loop(filteredProperty);
+
+    if (_ret === "continue") continue;
   }
 
   return result;
 }
 
-function getFlattenedNodeSortObject(sorting) {
+function getFlattenedNodeSortObject(opts) {
   var result = {};
 
-  for (var i in sorting) {
-    var sortObject = sorting;
+  for (var i in opts.sort) {
+    var sortObject = opts.sort;
     var value = sortObject[i];
     var valueIsNotASortObject = lodash.isObject(value) && !Object.keys(value).includes('direction');
 
     if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
-      var flatObject = getFlattenedNodeSortObject(value);
+      var flatObject = getFlattenedNodeSortObject({
+        sort: value,
+        skipRelationalSorts: opts.skipRelationalSorts
+      });
 
       for (var x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
@@ -6937,6 +7094,37 @@ function createQueryManager(mmGQLInstance) {
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
               queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              var stateEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
+                aliasPath: path.aliasPath,
+                idFilter: nodeData.id
+              });
+
+              stateEntriesWhichRequireUpdate.forEach(function (_ref4) {
+                var stateEntryWhichMayRequireUpdate = _ref4.leafStateEntry;
+                var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+                if (Array.isArray(currentIds)) {
+                  var filteredIds = getIdsThatPassFilter({
+                    queryRecordEntry: path.queryRecordEntry,
+                    // it's important to retain the order we acquired from the query
+                    // in case no client side sorting/filtering is applied
+                    // so that we don't accidentally change the order of the results
+                    // when we receive a subscription message
+                    data: currentIds.map(function (id) {
+                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+                    })
+                  });
+                  var filteredAndSortedIds = getSortedIds({
+                    queryRecordEntry: path.queryRecordEntry,
+                    data: filteredIds.map(function (id) {
+                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+                    })
+                  });
+                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+                  stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
+                }
+              });
             });
           } else if (messageType.startsWith('Created_')) {
             var _nodeType = messageType.replace('Created_', '');
@@ -6970,6 +7158,7 @@ function createQueryManager(mmGQLInstance) {
 
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
               if (!stateEntry.idsOrIdInCurrentResult) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
+              stateEntry.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
 
               if (queryRecordEntryReturnsArrayOfData({
                 queryRecordEntry: queryRecordEntry
@@ -6980,11 +7169,29 @@ function createQueryManager(mmGQLInstance) {
                 if (stateEntry.totalCount != null) {
                   stateEntry.totalCount++;
                 }
+
+                var currentIds = stateEntry.idsOrIdInCurrentResult;
+                var filteredIds = getIdsThatPassFilter({
+                  queryRecordEntry: queryRecordEntry,
+                  // it's important to retain the order we acquired from the query
+                  // in case no client side sorting/filtering is applied
+                  // so that we don't accidentally change the order of the results
+                  // when we receive a subscription message
+                  data: currentIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                var filteredAndSortedIds = getSortedIds({
+                  queryRecordEntry: queryRecordEntry,
+                  data: filteredIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
-
-              stateEntry.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
             });
           } else if (messageType.startsWith('Deleted_')) {
             var _nodeType2 = messageType.replace('Deleted_', '');
@@ -7068,11 +7275,25 @@ function createQueryManager(mmGQLInstance) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
                 stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                 stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
-
-                if (stateEntry.totalCount != null) {
-                  stateEntry.totalCount++;
-                }
-
+                var currentIds = stateEntry.idsOrIdInCurrentResult;
+                var filteredIds = getIdsThatPassFilter({
+                  queryRecordEntry: path.queryRecordEntry,
+                  // it's important to retain the order we acquired from the query
+                  // in case no client side sorting/filtering is applied
+                  // so that we don't accidentally change the order of the results
+                  // when we receive a subscription message
+                  data: currentIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                var filteredAndSortedIds = getSortedIds({
+                  queryRecordEntry: path.queryRecordEntry,
+                  data: filteredIds.map(function (id) {
+                    return stateEntry.proxyCache[id].proxy;
+                  })
+                });
+                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
+                stateEntry.totalCount = filteredAndSortedIds.length;
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state = {}, _state[relationalAlias] = stateEntry, _state),
@@ -8291,9 +8512,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref4) {
-    var alias = _ref4[0],
-        queryRecordEntry = _ref4[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref5) {
+    var alias = _ref5[0],
+        queryRecordEntry = _ref5[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -8302,9 +8523,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref5) {
-    var alias = _ref5[0],
-        queryDefinition = _ref5[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
+    var alias = _ref6[0],
+        queryDefinition = _ref6[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -8312,9 +8533,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
-    var key = _ref6[0],
-        queryDefinition = _ref6[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
+    var key = _ref7[0],
+        queryDefinition = _ref7[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -8495,9 +8716,9 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       previousQueryRecord = opts.previousQueryRecord;
   var minimalQueryRecord = {};
   var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref7) {
-    var alias = _ref7[0],
-        nextQueryRecordEntry = _ref7[1];
+  Object.entries(nextQueryRecord).forEach(function (_ref8) {
+    var alias = _ref8[0],
+        nextQueryRecordEntry = _ref8[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
@@ -8580,9 +8801,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref8) {
-      var key = _ref8[0],
-          nextRelationalQueryRecordEntry = _ref8[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref9) {
+      var key = _ref9[0],
+          nextRelationalQueryRecordEntry = _ref9[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -8609,9 +8830,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref9) {
-    var key = _ref9[0],
-        nextQueryRecordEntry = _ref9[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref10) {
+    var key = _ref10[0],
+        nextQueryRecordEntry = _ref10[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {
