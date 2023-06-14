@@ -4859,7 +4859,7 @@ function getSortedIds(_ref11) {
     return item.id;
   });
   var sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntry.sort,
+    queryRecordEntry: queryRecordEntry,
     skipRelationalSorts: true
   });
   var sorting = lodash.orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
@@ -4969,10 +4969,9 @@ function getItemSortValue(item, underscoreSeparatedPropertyPath) {
 function applyClientSideSortToData(_ref12) {
   var queryRecordEntry = _ref12.queryRecordEntry,
       data = _ref12.data,
-      alias = _ref12.alias,
-      queryRecordEntrySort = _ref12.sort;
+      alias = _ref12.alias;
   var sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntrySort,
+    queryRecordEntry: queryRecordEntry,
     skipRelationalSorts: false
   });
 
@@ -5064,7 +5063,6 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     if (queryRecordEntry != null && queryRecordEntry.sort) {
       applyClientSideSortToData({
         queryRecordEntry: queryRecordEntry,
-        sort: queryRecordEntry.sort,
         data: data,
         alias: alias
       });
@@ -5180,33 +5178,66 @@ function getFlattenedNodeFilterObject(opts) {
 }
 
 function getFlattenedNodeSortObject(opts) {
+  var queryRecordEntry = opts.queryRecordEntry;
   var result = {};
+  var sort = queryRecordEntry.sort;
+  var nodeData = queryRecordEntry.def.data;
+  var queriedRelations = queryRecordEntry.relational;
+  if (!sort) return result;
 
-  for (var i in opts.sort) {
-    var sortObject = opts.sort;
-    var value = sortObject[i];
+  var _loop2 = function _loop2(sortKey) {
+    var sortObject = sort;
+    var value = sortObject[sortKey];
     var valueIsNotASortObject = lodash.isObject(value) && !Object.keys(value).includes('direction');
+    var isObjectInNodeData = nodeData[sortKey] && (nodeData[sortKey].type === exports.DATA_TYPES.object || nodeData[sortKey].type === exports.DATA_TYPES.maybeObject);
+    var isAQueriedRelationalProp = queriedRelations ? queriedRelations[sortKey] != null : false;
+    var sortIsTargettingNestedObjectOrRelationalData = lodash.isObject(value) && (isAQueriedRelationalProp || isObjectInNodeData);
 
-    if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
+    if (sortIsTargettingNestedObjectOrRelationalData && opts.skipRelationalSorts) {
+      return "continue";
+    }
+
+    if (typeof sortObject[sortKey] == 'object' && sortObject[sortKey] !== null && valueIsNotASortObject) {
+      var _queryRecordEntry = _extends({}, opts.queryRecordEntry, {
+        def: isObjectInNodeData ? _extends({}, opts.queryRecordEntry.def, {
+          data: nodeData[sortKey].boxedValue
+        }) : queriedRelations[sortKey].def,
+        properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
+          return prop.startsWith(sortKey);
+        }).map(function (prop) {
+          var _prop$split2 = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split2.slice(1);
+
+          return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+        }) : queriedRelations[sortKey].properties,
+        sort: value
+      });
+
       var flatObject = getFlattenedNodeSortObject({
-        sort: value,
+        queryRecordEntry: _queryRecordEntry,
         skipRelationalSorts: opts.skipRelationalSorts
       });
 
       for (var x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
-        result[i + '.' + x] = flatObject[x];
+        result[sortKey + '.' + x] = flatObject[x];
       }
     } else {
       if (lodash.isObject(value)) {
-        result[i] = value;
+        result[sortKey] = value;
       } else if (value !== undefined) {
         var filter = {
           direction: value
         };
-        result[i] = filter;
+        result[sortKey] = filter;
       }
     }
+  };
+
+  for (var sortKey in sort) {
+    var _ret2 = _loop2(sortKey);
+
+    if (_ret2 === "continue") continue;
   }
 
   return result;
@@ -6849,7 +6880,7 @@ function createQueryManager(mmGQLInstance) {
         }
       };
 
-      this.getQueryRecordEntryUsesRelationshipOrIsRoot = function (opts) {
+      this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot = function (opts) {
         var queryRecordEntry = opts.queryRecordEntry,
             relationshipName = opts.relationshipName;
         return !('_relationshipName' in queryRecordEntry) || queryRecordEntry._relationshipName !== relationshipName;
@@ -7230,7 +7261,7 @@ function createQueryManager(mmGQLInstance) {
             if (!parentId) return _this2.logSubscriptionError('No parentId found');
             if (!parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
             nodeInsertPaths[parentNodeType + "." + childNodeType].forEach(function (path) {
-              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+              if (_this2.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                 queryRecordEntry: path.queryRecordEntry,
                 relationshipName: parentRelationshipWhichWasUpdated
               })) return;
@@ -7308,7 +7339,7 @@ function createQueryManager(mmGQLInstance) {
             if (!_parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
             nodeRemovePaths[_parentNodeType + "." + _childNodeType].forEach(function (path) {
-              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+              if (_this2.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                 queryRecordEntry: path.queryRecordEntry,
                 relationshipName: _parentRelationshipWhichWasUpdated
               })) return;
@@ -7367,7 +7398,7 @@ function createQueryManager(mmGQLInstance) {
             if (!_parentRelationshipWhichWasUpdated2) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
             nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2].forEach(function (path) {
-              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+              if (_this2.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                 queryRecordEntry: path.queryRecordEntry,
                 relationshipName: _parentRelationshipWhichWasUpdated2
               })) return;

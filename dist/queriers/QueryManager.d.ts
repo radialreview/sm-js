@@ -48,7 +48,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }) => void;
-        getQueryRecordEntryUsesRelationshipOrIsRoot: (opts: {
+        getQueryRecordEntryDoesNotUseRelationshipOrIsRoot: (opts: {
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             relationshipName: string;
         }) => boolean;
