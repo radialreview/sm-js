@@ -3,7 +3,7 @@ import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, Query
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | number | Array<string | number> | null;
+    idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
@@ -48,6 +48,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }) => void;
+        getQueryRecordEntryUsesRelationshipOrIsRoot: (opts: {
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            relationshipName: string;
+        }) => boolean;
         getSubscriptionEventToCachePathRecords(opts: {
             aliasPath: Array<string>;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
@@ -90,7 +94,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
                 leafStateEntry: QueryManagerStateEntry;
                 parentProxy: IDOProxy | null;
             }>;
-            idFilter?: string | number;
+            idFilter?: string;
         }): Array<{
             leafStateEntry: QueryManagerStateEntry;
             parentProxy: IDOProxy | null;

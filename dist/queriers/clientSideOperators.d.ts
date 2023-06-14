@@ -11,9 +11,9 @@ export declare function getIdsThatPassFilter({ queryRecordEntry, data, }: {
 export declare function getSortedIds({ queryRecordEntry, data, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     data: Array<{
-        id: string | number;
+        id: string;
     }>;
-}): (string | number)[];
+}): string[];
 export declare function applyClientSideSortToData({ queryRecordEntry, data, alias, sort: queryRecordEntrySort, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     sort: ValidSortForNode<INode>;

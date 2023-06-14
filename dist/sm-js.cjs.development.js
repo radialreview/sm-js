@@ -6849,6 +6849,12 @@ function createQueryManager(mmGQLInstance) {
         }
       };
 
+      this.getQueryRecordEntryUsesRelationshipOrIsRoot = function (opts) {
+        var queryRecordEntry = opts.queryRecordEntry,
+            relationshipName = opts.relationshipName;
+        return !('_relationshipName' in queryRecordEntry) || queryRecordEntry._relationshipName !== relationshipName;
+      };
+
       this.onQueryDefinitionsUpdated = /*#__PURE__*/function () {
         var _ref = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(newQueryDefinitionRecord) {
           var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, subscriptionGQLDocs, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
@@ -7224,10 +7230,10 @@ function createQueryManager(mmGQLInstance) {
             if (!parentId) return _this2.logSubscriptionError('No parentId found');
             if (!parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
             nodeInsertPaths[parentNodeType + "." + childNodeType].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== parentRelationshipWhichWasUpdated) {
-                return;
-              }
-
+              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                queryRecordEntry: path.queryRecordEntry,
+                relationshipName: parentRelationshipWhichWasUpdated
+              })) return;
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -7302,10 +7308,10 @@ function createQueryManager(mmGQLInstance) {
             if (!_parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
             nodeRemovePaths[_parentNodeType + "." + _childNodeType].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== _parentRelationshipWhichWasUpdated) {
-                return;
-              }
-
+              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                queryRecordEntry: path.queryRecordEntry,
+                relationshipName: _parentRelationshipWhichWasUpdated
+              })) return;
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -7361,10 +7367,10 @@ function createQueryManager(mmGQLInstance) {
             if (!_parentRelationshipWhichWasUpdated2) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
             nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== _parentRelationshipWhichWasUpdated2) {
-                return;
-              }
-
+              if (!_this2.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                queryRecordEntry: path.queryRecordEntry,
+                relationshipName: _parentRelationshipWhichWasUpdated2
+              })) return;
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -7429,7 +7435,8 @@ function createQueryManager(mmGQLInstance) {
         };
       });
       return handlers;
-    };
+    } // @TODO leave link explaining why this is necessary
+    ;
 
     // for a given alias path (example: ['users', 'todos'])
     // return string based paths to the cache entries that are affected by each subscription message type
