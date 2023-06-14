@@ -241,34 +241,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               stateEntriesWhichRequireUpdate.forEach(
                 ({ leafStateEntry: stateEntryWhichMayRequireUpdate }) => {
-                  const currentIds =
-                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
-
-                  if (Array.isArray(currentIds)) {
-                    const filteredIds = getIdsThatPassFilter({
-                      queryRecordEntry: path.queryRecordEntry,
-                      // it's important to retain the order we acquired from the query
-                      // in case no client side sorting/filtering is applied
-                      // so that we don't accidentally change the order of the results
-                      // when we receive a subscription message
-                      data: currentIds.map(
-                        id =>
-                          stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
-                      ),
-                    });
-
-                    const filteredAndSortedIds = getSortedIds({
-                      queryRecordEntry: path.queryRecordEntry,
-                      data: filteredIds.map(
-                        id =>
-                          stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
-                      ),
-                    });
-
-                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
-                    stateEntryWhichMayRequireUpdate.totalCount =
-                      filteredAndSortedIds.length;
-                  }
+                  this.applyClientSideFilterAndSortToState({
+                    stateEntryWhichMayRequireUpdate,
+                    queryRecordEntry: path.queryRecordEntry,
+                  });
                 }
               );
             });
@@ -343,23 +319,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.totalCount++;
                 }
 
-                const currentIds = stateEntry.idsOrIdInCurrentResult;
-                const filteredIds = getIdsThatPassFilter({
-                  queryRecordEntry,
-                  // it's important to retain the order we acquired from the query
-                  // in case no client side sorting/filtering is applied
-                  // so that we don't accidentally change the order of the results
-                  // when we receive a subscription message
-                  data: currentIds.map(id => stateEntry.proxyCache[id].proxy),
+                this.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntry,
+                  queryRecordEntry: path.queryRecordEntry,
                 });
-
-                const filteredAndSortedIds = getSortedIds({
-                  queryRecordEntry,
-                  data: filteredIds.map(id => stateEntry.proxyCache[id].proxy),
-                });
-
-                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -509,25 +472,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.proxyCache[nodeInsertedData.id] =
                     newCacheEntry.proxyCache[nodeInsertedData.id];
 
-                  const currentIds = stateEntry.idsOrIdInCurrentResult;
-                  const filteredIds = getIdsThatPassFilter({
+                  this.applyClientSideFilterAndSortToState({
+                    stateEntryWhichMayRequireUpdate: stateEntry,
                     queryRecordEntry: path.queryRecordEntry,
-                    // it's important to retain the order we acquired from the query
-                    // in case no client side sorting/filtering is applied
-                    // so that we don't accidentally change the order of the results
-                    // when we receive a subscription message
-                    data: currentIds.map(id => stateEntry.proxyCache[id].proxy),
                   });
-
-                  const filteredAndSortedIds = getSortedIds({
-                    queryRecordEntry: path.queryRecordEntry,
-                    data: filteredIds.map(
-                      id => stateEntry.proxyCache[id].proxy
-                    ),
-                  });
-
-                  stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                  stateEntry.totalCount = filteredAndSortedIds.length;
 
                   if (!parentProxy)
                     return this.logSubscriptionError('No parent proxy found');
@@ -793,6 +741,38 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       return handlers;
     }
+
+    applyClientSideFilterAndSortToState = (opts: {
+      stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+    }) => {
+      const { stateEntryWhichMayRequireUpdate, queryRecordEntry } = opts;
+      const currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+      if (Array.isArray(currentIds)) {
+        const filteredIds = getIdsThatPassFilter({
+          queryRecordEntry,
+          // it's important to retain the order we acquired from the query
+          // in case no client side sorting/filtering is applied
+          // so that we don't accidentally change the order of the results
+          // when we receive a subscription message
+          data: currentIds.map(
+            id => stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
+          ),
+        });
+
+        const filteredAndSortedIds = getSortedIds({
+          queryRecordEntry,
+          data: filteredIds.map(
+            id => stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
+          ),
+        });
+
+        stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+        stateEntryWhichMayRequireUpdate.totalCount =
+          filteredAndSortedIds.length;
+      }
+    };
 
     // for a given alias path (example: ['users', 'todos'])
     // return string based paths to the cache entries that are affected by each subscription message type
