@@ -6790,7 +6790,7 @@ function createQueryManager(mmGQLInstance) {
    *    6) triggering minimal queries and extending results when a "loadMoreResults" function is called on a node collection
    */
   return /*#__PURE__*/function () {
-    function QueryManager(queryDefinitions, opts) {
+    function QueryManager(queryDefinitions, _opts) {
       var _this = this;
 
       this.state = {};
@@ -6819,6 +6819,33 @@ function createQueryManager(mmGQLInstance) {
       this.logSubscriptionError = function (error) {
         if (mmGQLInstance.logging.gqlSubscriptionErrors) {
           console.error(error);
+        }
+      };
+
+      this.applyClientSideFilterAndSortToState = function (opts) {
+        var stateEntryWhichMayRequireUpdate = opts.stateEntryWhichMayRequireUpdate,
+            queryRecordEntry = opts.queryRecordEntry;
+        var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+        if (Array.isArray(currentIds)) {
+          var filteredIds = getIdsThatPassFilter({
+            queryRecordEntry: queryRecordEntry,
+            // it's important to retain the order we acquired from the query
+            // in case no client side sorting/filtering is applied
+            // so that we don't accidentally change the order of the results
+            // when we receive a subscription message
+            data: currentIds.map(function (id) {
+              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+            })
+          });
+          var filteredAndSortedIds = getSortedIds({
+            queryRecordEntry: queryRecordEntry,
+            data: filteredIds.map(function (id) {
+              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+            })
+          });
+          stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+          stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
         }
       };
 
@@ -7036,7 +7063,7 @@ function createQueryManager(mmGQLInstance) {
       }();
 
       this.queryDefinitions = queryDefinitions;
-      this.opts = opts;
+      this.opts = _opts;
       this.onQueryDefinitionsUpdated(this.queryDefinitions)["catch"](function (e) {
         _this.opts.onQueryError(e);
       });
@@ -7102,28 +7129,11 @@ function createQueryManager(mmGQLInstance) {
 
               stateEntriesWhichRequireUpdate.forEach(function (_ref4) {
                 var stateEntryWhichMayRequireUpdate = _ref4.leafStateEntry;
-                var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
 
-                if (Array.isArray(currentIds)) {
-                  var filteredIds = getIdsThatPassFilter({
-                    queryRecordEntry: path.queryRecordEntry,
-                    // it's important to retain the order we acquired from the query
-                    // in case no client side sorting/filtering is applied
-                    // so that we don't accidentally change the order of the results
-                    // when we receive a subscription message
-                    data: currentIds.map(function (id) {
-                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
-                    })
-                  });
-                  var filteredAndSortedIds = getSortedIds({
-                    queryRecordEntry: path.queryRecordEntry,
-                    data: filteredIds.map(function (id) {
-                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
-                    })
-                  });
-                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
-                  stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
-                }
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntryWhichMayRequireUpdate,
+                  queryRecordEntry: path.queryRecordEntry
+                });
               });
             });
           } else if (messageType.startsWith('Created_')) {
@@ -7170,25 +7180,10 @@ function createQueryManager(mmGQLInstance) {
                   stateEntry.totalCount++;
                 }
 
-                var currentIds = stateEntry.idsOrIdInCurrentResult;
-                var filteredIds = getIdsThatPassFilter({
-                  queryRecordEntry: queryRecordEntry,
-                  // it's important to retain the order we acquired from the query
-                  // in case no client side sorting/filtering is applied
-                  // so that we don't accidentally change the order of the results
-                  // when we receive a subscription message
-                  data: currentIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntry,
+                  queryRecordEntry: path.queryRecordEntry
                 });
-                var filteredAndSortedIds = getSortedIds({
-                  queryRecordEntry: queryRecordEntry,
-                  data: filteredIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
-                });
-                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
@@ -7275,25 +7270,12 @@ function createQueryManager(mmGQLInstance) {
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
                 stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
                 stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
-                var currentIds = stateEntry.idsOrIdInCurrentResult;
-                var filteredIds = getIdsThatPassFilter({
-                  queryRecordEntry: path.queryRecordEntry,
-                  // it's important to retain the order we acquired from the query
-                  // in case no client side sorting/filtering is applied
-                  // so that we don't accidentally change the order of the results
-                  // when we receive a subscription message
-                  data: currentIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
+
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntry,
+                  queryRecordEntry: path.queryRecordEntry
                 });
-                var filteredAndSortedIds = getSortedIds({
-                  queryRecordEntry: path.queryRecordEntry,
-                  data: filteredIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
-                });
-                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                stateEntry.totalCount = filteredAndSortedIds.length;
+
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
                   state: (_state = {}, _state[relationalAlias] = stateEntry, _state),
@@ -7447,10 +7429,10 @@ function createQueryManager(mmGQLInstance) {
         };
       });
       return handlers;
-    } // for a given alias path (example: ['users', 'todos'])
-    // return string based paths to the cache entries that are affected by each subscription message type
-    ;
+    };
 
+    // for a given alias path (example: ['users', 'todos'])
+    // return string based paths to the cache entries that are affected by each subscription message type
     _proto.getSubscriptionEventToCachePathRecords = function getSubscriptionEventToCachePathRecords(opts) {
       var _this3 = this;
 

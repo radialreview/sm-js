@@ -44,6 +44,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getSubscriptionMessageHandlers(opts: {
             queryRecord: QueryRecord;
         }): Record<string, (message: SubscriptionMessage) => void>;
+        applyClientSideFilterAndSortToState: (opts: {
+            stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+        }) => void;
         getSubscriptionEventToCachePathRecords(opts: {
             aliasPath: Array<string>;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
