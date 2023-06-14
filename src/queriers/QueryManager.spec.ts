@@ -882,11 +882,11 @@ function getMockSubscriptionMessage(opts: {
   targetNodeType?: string;
   id: string;
   target?: {
-    id: string | number;
+    id: string;
     property: string;
   };
   valueNodeType?: string;
-  value?: ({ id: string | number } & Record<string, any>) | null;
+  value?: ({ id: string } & Record<string, any>) | null;
 }) {
   let typeNameString = `${opts.type}_`;
 

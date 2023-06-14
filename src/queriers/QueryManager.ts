@@ -55,7 +55,7 @@ type QueryManagerState = Record<
 
 type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
-  idsOrIdInCurrentResult: string | number | Array<string | number> | null;
+  idsOrIdInCurrentResult: string | Array<string> | null;
   // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
   // NOTE: different aliases may build different proxies for the same node
   // this is because different aliases may have different relationships or fields queried for the same node
@@ -394,12 +394,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
                 if (
-                  !('_relationshipName' in path.queryRecordEntry) ||
-                  path.queryRecordEntry._relationshipName !==
-                    parentRelationshipWhichWasUpdated
-                ) {
+                  !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                    queryRecordEntry: path.queryRecordEntry,
+                    relationshipName: parentRelationshipWhichWasUpdated,
+                  })
+                )
                   return;
-                }
 
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
@@ -521,12 +521,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
                 if (
-                  !('_relationshipName' in path.queryRecordEntry) ||
-                  path.queryRecordEntry._relationshipName !==
-                    parentRelationshipWhichWasUpdated
-                ) {
+                  !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                    queryRecordEntry: path.queryRecordEntry,
+                    relationshipName: parentRelationshipWhichWasUpdated,
+                  })
+                )
                   return;
-                }
 
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
@@ -631,12 +631,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               `${parentNodeType}.${childNodeType}`
             ].forEach(path => {
               if (
-                !('_relationshipName' in path.queryRecordEntry) ||
-                path.queryRecordEntry._relationshipName !==
-                  parentRelationshipWhichWasUpdated
-              ) {
+                !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                  queryRecordEntry: path.queryRecordEntry,
+                  relationshipName: parentRelationshipWhichWasUpdated,
+                })
+              )
                 return;
-              }
 
               const { parentQueryRecordEntry } = path;
               if (!parentQueryRecordEntry)
@@ -742,6 +742,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return handlers;
     }
 
+    // @TODO leave link explaining why this is necessary
     applyClientSideFilterAndSortToState = (opts: {
       stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
@@ -772,6 +773,19 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         stateEntryWhichMayRequireUpdate.totalCount =
           filteredAndSortedIds.length;
       }
+    };
+
+    // When we receive a sub message about a relationship update (Inserted, Removed, UpdatedAssociation)
+    // we also receive the name of the relationship that was updated
+    getQueryRecordEntryUsesRelationshipOrIsRoot = (opts: {
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      relationshipName: string;
+    }) => {
+      const { queryRecordEntry, relationshipName } = opts;
+      return (
+        !('_relationshipName' in queryRecordEntry) ||
+        queryRecordEntry._relationshipName !== relationshipName
+      );
     };
 
     // for a given alias path (example: ['users', 'todos'])
@@ -928,7 +942,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         parentProxy: IDOProxy | null;
       }>;
       // when provided, only state entries that match this id will be returned
-      idFilter?: string | number;
+      idFilter?: string;
     }): Array<{
       leafStateEntry: QueryManagerStateEntry;
       parentProxy: IDOProxy | null;

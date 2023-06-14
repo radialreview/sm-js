@@ -463,7 +463,7 @@ export function getSortedIds({
   data,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  data: Array<{ id: string | number }>;
+  data: Array<{ id: string }>;
 }) {
   if (!queryRecordEntry.sort) return data.map(item => item.id);
 
