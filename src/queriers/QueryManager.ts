@@ -394,7 +394,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
                 if (
-                  !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                  this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                     queryRecordEntry: path.queryRecordEntry,
                     relationshipName: parentRelationshipWhichWasUpdated,
                   })
@@ -521,7 +521,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
                 if (
-                  !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                  this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                     queryRecordEntry: path.queryRecordEntry,
                     relationshipName: parentRelationshipWhichWasUpdated,
                   })
@@ -631,7 +631,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               `${parentNodeType}.${childNodeType}`
             ].forEach(path => {
               if (
-                !this.getQueryRecordEntryUsesRelationshipOrIsRoot({
+                this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                   queryRecordEntry: path.queryRecordEntry,
                   relationshipName: parentRelationshipWhichWasUpdated,
                 })
@@ -776,8 +776,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     };
 
     // When we receive a sub message about a relationship update (Inserted, Removed, UpdatedAssociation)
-    // we also receive the name of the relationship that was updated
-    getQueryRecordEntryUsesRelationshipOrIsRoot = (opts: {
+    // we need to find all the cache entries that are affected by this update
+    // and update their results
+    // The function that returns potential paths to update for a given subscription message by its typeName
+    // does not take into account the relationship that was updated
+    // For example, I may have a todo.user relationship for todo.assignee and todo.owner
+    // and both of these queryRecord entries would be potentially affected by a todo.user subscription message
+    // so we need to filter out the paths that do not use the relationship that was updated
+    getQueryRecordEntryDoesNotUseRelationshipOrIsRoot = (opts: {
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
       relationshipName: string;
     }) => {
