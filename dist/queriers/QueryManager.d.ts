@@ -88,16 +88,39 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
         };
+        /**
+         * Returns all state entries for a given alias path,
+         * taking the targetsFilter into consideration when they are provided
+         *
+         * For example, may be called with
+         * aliasPath: ['users','todos']
+         * and a targetsFilter: [{id: 'user1-id', property: 'TODOS'}]
+         * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
+         *
+         * in that case, if that property is found in the queryRecordEntry
+         * should return the stateCacheEntry for any alias using the relationship "todos" for the user with the id 'user-id-1'
+         *
+         *
+         * May also be called with a path like ['users']
+         * and no targetsFilter
+         * for Created and Deleted type events.
+         *
+         * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
+         */
         getStateCacheEntriesForAliasPath(opts: {
             aliasPath: Array<string>;
-            previousStateEntries?: Array<{
-                leafStateEntry: QueryManagerStateEntry;
-                parentProxy: IDOProxy | null;
+            pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            targetsFilter?: Array<{
+                id: string;
+                property: string;
             }>;
-            idFilter?: string;
+            previousStateEntries?: Array<{
+                targetStateEntry: QueryManagerStateEntry;
+                relationalStateEntry: Maybe<QueryManagerStateEntry>;
+            }>;
         }): Array<{
-            leafStateEntry: QueryManagerStateEntry;
-            parentProxy: IDOProxy | null;
+            targetStateEntry: QueryManagerStateEntry;
+            relationalStateEntry: Maybe<QueryManagerStateEntry>;
         }>;
         unsub(): void;
         /**
