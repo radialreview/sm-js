@@ -222,6 +222,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               );
             }
 
+            const targets = message.data[rootLevelAlias].targets;
+
+            if (!targets) {
+              return this.logSubscriptionError(
+                `No targets found in the message\n${JSON.stringify(
+                  message,
+                  null,
+                  2
+                )}`
+              );
+            }
+
             nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
               const queryRecordEntry = path.queryRecordEntry;
 
@@ -235,16 +247,32 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const stateEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                 {
                   aliasPath: path.aliasPath,
-                  idFilter: nodeData.id,
+                  pathEndQueryRecordEntry: queryRecordEntry,
+                  targetsFilter: targets,
                 }
               );
 
+              console.log(
+                'state',
+                JSON.stringify(stateEntriesWhichRequireUpdate, null, 2)
+              );
+
               stateEntriesWhichRequireUpdate.forEach(
-                ({ leafStateEntry: stateEntryWhichMayRequireUpdate }) => {
+                ({ targetStateEntry, relationalStateEntry }) => {
                   this.applyClientSideFilterAndSortToState({
-                    stateEntryWhichMayRequireUpdate,
+                    stateEntryWhichMayRequireUpdate:
+                      relationalStateEntry || targetStateEntry,
                     queryRecordEntry: path.queryRecordEntry,
                   });
+
+                  console.log(
+                    'new state',
+                    JSON.stringify(
+                      relationalStateEntry || targetStateEntry,
+                      null,
+                      2
+                    )
+                  );
                 }
               );
             });
@@ -386,13 +414,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             if (!parentId)
               return this.logSubscriptionError('No parentId found');
-            if (!parentRelationshipWhichWasUpdated)
+            if (!parentRelationshipWhichWasUpdated || !propertyName)
               return this.logSubscriptionError(
                 'No parentRelationshipWhichWasUpdated found'
               );
 
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
+                // @TODO can maybe remove this, since now getStateCacheEntriesForAliasPath looks at relationship name?
                 if (
                   this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                     queryRecordEntry: path.queryRecordEntry,
@@ -447,7 +476,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
-                    idFilter: parentId,
+                    pathEndQueryRecordEntry: path.queryRecordEntry,
+                    targetsFilter: [
+                      {
+                        id: parentId,
+                        property: propertyName,
+                      },
+                    ],
                   }
                 );
 
@@ -460,8 +495,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
-                  const stateEntry = stateCacheEntry.leafStateEntry;
-                  const parentProxy = stateCacheEntry.parentProxy;
+                  const stateEntry = stateCacheEntry.relationalStateEntry;
+                  const parentProxy =
+                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+
+                  if (!stateEntry)
+                    return this.logSubscriptionError('No state entry found');
 
                   if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
                     return this.logSubscriptionError(
@@ -513,7 +552,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             if (!parentId)
               return this.logSubscriptionError('No parentId found');
-            if (!parentRelationshipWhichWasUpdated)
+            if (!parentRelationshipWhichWasUpdated || !propertyName)
               return this.logSubscriptionError(
                 'No parentRelationshipWhichWasUpdated found'
               );
@@ -549,7 +588,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
-                    idFilter: parentId,
+                    pathEndQueryRecordEntry: path.queryRecordEntry,
+                    targetsFilter: [
+                      {
+                        id: parentId,
+                        property: propertyName,
+                      },
+                    ],
                   }
                 );
 
@@ -562,8 +607,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
-                  const stateEntry = stateCacheEntry.leafStateEntry;
-                  const parentProxy = stateCacheEntry.parentProxy;
+                  const stateEntry = stateCacheEntry.relationalStateEntry;
+                  const parentProxy =
+                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+
+                  if (!stateEntry)
+                    return this.logSubscriptionError('No state entry found');
 
                   if (!Array.isArray(stateEntry.idsOrIdInCurrentResult))
                     return this.logSubscriptionError(
@@ -622,7 +671,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             if (!parentId)
               return this.logSubscriptionError('No parentId found');
-            if (!parentRelationshipWhichWasUpdated)
+            if (!parentRelationshipWhichWasUpdated || !propertyName)
               return this.logSubscriptionError(
                 'No parentRelationshipWhichWasUpdated found'
               );
@@ -692,7 +741,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 const cacheEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                   {
                     aliasPath: path.aliasPath,
-                    idFilter: parentId,
+                    pathEndQueryRecordEntry: path.queryRecordEntry,
+                    targetsFilter: [
+                      {
+                        id: parentId,
+                        property: propertyName,
+                      },
+                    ],
                   }
                 );
 
@@ -705,8 +760,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
-                  const stateEntry = stateCacheEntry.leafStateEntry;
-                  const parentProxy = stateCacheEntry.parentProxy;
+                  const stateEntry = stateCacheEntry.relationalStateEntry;
+                  const parentProxy =
+                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+
+                  if (!stateEntry)
+                    return this.logSubscriptionError('No state entry found');
 
                   stateEntry.idsOrIdInCurrentResult = nodeAssociatedData
                     ? nodeAssociatedData.id
@@ -941,73 +1000,137 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return toBeReturned;
     }
 
+    /**
+     * Returns all state entries for a given alias path,
+     * taking the targetsFilter into consideration when they are provided
+     *
+     * For example, may be called with
+     * aliasPath: ['users','todos']
+     * and a targetsFilter: [{id: 'user1-id', property: 'TODOS'}]
+     * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
+     *
+     * in that case, if that property is found in the queryRecordEntry
+     * should return the stateCacheEntry for any alias using the relationship "todos" for the user with the id 'user-id-1'
+     *
+     *
+     * May also be called with a path like ['users']
+     * and no targetsFilter
+     * for Created and Deleted type events.
+     *
+     * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
+     */
     public getStateCacheEntriesForAliasPath(opts: {
       aliasPath: Array<string>;
+      // query record entry for the end of this path
+      // used to check against the properties in the targetsFilter
+      // if one is provided
+      pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      targetsFilter?: Array<{ id: string; property: string }>;
       previousStateEntries?: Array<{
-        leafStateEntry: QueryManagerStateEntry;
-        parentProxy: IDOProxy | null;
+        // the target state entry which has a property that is potentially getting updated
+        // for example, this could be the `users` collection of results, if a user has a new todo
+        targetStateEntry: QueryManagerStateEntry;
+        // the relational state entry for the node that was updated/inserted/removed
+        // and is related to the target above
+        // in the example used above, this would be the entry for user.todos
+        // for the user with the id matching the one found in the targetFilter
+        relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }>;
-      // when provided, only state entries that match this id will be returned
-      idFilter?: string;
     }): Array<{
-      leafStateEntry: QueryManagerStateEntry;
-      parentProxy: IDOProxy | null;
+      targetStateEntry: QueryManagerStateEntry;
+      relationalStateEntry: Maybe<QueryManagerStateEntry>;
     }> {
-      const { aliasPath } = opts;
+      const {
+        aliasPath,
+        pathEndQueryRecordEntry,
+        targetsFilter,
+        previousStateEntries,
+      } = opts;
       const [firstAlias, ...restOfAliasPath] = aliasPath;
 
+      if (targetsFilter) {
+        if (!('_relationshipName' in pathEndQueryRecordEntry)) {
+          throw Error(
+            'TargetsFilter provided but no relationship found in pathEndQueryRecordEntry'
+          );
+        }
+
+        // at the end of this path, if the relationshipName used was not one included in any of the properties
+        // within the targetsFilter
+        // then that means that state entries at the end of this path will not be affected
+        // and we can safely return []
+        if (
+          !targetsFilter.some(
+            target =>
+              camelCasePropertyName(target.property) ===
+              pathEndQueryRecordEntry._relationshipName
+          )
+        ) {
+          return [];
+        }
+      }
+
       const getStateEntriesForFirstAlias = (): Array<{
-        leafStateEntry: QueryManagerStateEntry;
-        parentProxy: IDOProxy | null;
+        targetStateEntry: QueryManagerStateEntry;
+        relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }> => {
-        if (opts.previousStateEntries) {
-          return opts.previousStateEntries.reduce(
+        if (previousStateEntries) {
+          return previousStateEntries.reduce(
             (acc, stateEntry) => {
-              Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(
-                nodeId => {
-                  // if we are at the end of the alias path, we want to apply the id filter
-                  // otherwise, we want to return all state entries for this alias
-                  const shouldApplyIdFilter = restOfAliasPath.length === 0;
+              const stateEntryToIterate =
+                stateEntry.relationalStateEntry || stateEntry.targetStateEntry;
 
-                  if (shouldApplyIdFilter && opts.idFilter != null) {
-                    const nodeIdAsNumber = Number(nodeId);
+              if (!stateEntryToIterate) return acc;
 
+              // if we are at the end of the alias path, we want to apply the id filter
+              // otherwise, we want to return all state entries for this alias
+              const shouldApplyIdFilter = restOfAliasPath.length === 0;
+
+              Object.keys(stateEntryToIterate.proxyCache).forEach(nodeId => {
+                if (shouldApplyIdFilter && targetsFilter != null) {
+                  const nodeIdAsNumber = Number(nodeId);
+
+                  const matchesSomeIdInTargets = targetsFilter.find(target => {
                     // since we store node ids as strings
                     // but the message from BE may include the id as a number
                     if (
-                      typeof opts.idFilter === 'number' &&
-                      nodeIdAsNumber !== opts.idFilter
+                      typeof target.id === 'number' &&
+                      nodeIdAsNumber === target.id
                     ) {
-                      return;
+                      return true;
                     } else if (
-                      typeof opts.idFilter === 'string' &&
-                      nodeId !== opts.idFilter
+                      typeof target.id === 'string' &&
+                      nodeId === target.id
                     ) {
-                      return;
+                      return true;
                     }
-                  }
 
-                  const proxyCacheEntry =
-                    stateEntry.leafStateEntry.proxyCache[nodeId];
-                  const relationalStateForAlias =
-                    proxyCacheEntry.relationalState?.[firstAlias];
-                  if (!relationalStateForAlias)
-                    throw Error(
-                      `No relational state found for alias path "${firstAlias}"`
-                    );
-
-                  acc.push({
-                    leafStateEntry: relationalStateForAlias,
-                    parentProxy: proxyCacheEntry.proxy,
+                    return false;
                   });
+
+                  if (!matchesSomeIdInTargets) return;
                 }
-              );
+
+                const proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
+
+                const relationalStateForAlias =
+                  proxyCacheEntry.relationalState?.[firstAlias];
+                if (!relationalStateForAlias)
+                  throw Error(
+                    `No relational state found for alias path "${firstAlias}"`
+                  );
+
+                acc.push({
+                  targetStateEntry: stateEntryToIterate,
+                  relationalStateEntry: relationalStateForAlias,
+                });
+              });
 
               return acc;
             },
             [] as Array<{
-              leafStateEntry: QueryManagerStateEntry;
-              parentProxy: IDOProxy | null;
+              targetStateEntry: QueryManagerStateEntry;
+              relationalStateEntry: Maybe<QueryManagerStateEntry>;
             }>
           );
         } else {
@@ -1016,8 +1139,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           return [
             {
-              leafStateEntry: this.state[firstAlias],
-              parentProxy: null,
+              targetStateEntry: this.state[firstAlias],
+              relationalStateEntry: null,
             },
           ];
         }
@@ -1031,7 +1154,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
           previousStateEntries: stateEntriesForFirstAlias,
-          idFilter: opts.idFilter,
+          pathEndQueryRecordEntry,
+          targetsFilter,
         });
       }
     }
