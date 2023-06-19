@@ -16,9 +16,7 @@ import {
   FilterValue,
   FilterOperator,
   QueryRecordEntry,
-  INode,
   SortDirection,
-  ValidSortForNode,
   QueryRecord,
   NodeFilterCondition,
   CollectionFilterCondition,
@@ -463,12 +461,12 @@ export function getSortedIds({
   data,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  data: Array<{ id: string | number }>;
+  data: Array<{ id: string }>;
 }) {
   if (!queryRecordEntry.sort) return data.map(item => item.id);
 
   const sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntry.sort,
+    queryRecordEntry,
     skipRelationalSorts: true,
   });
 
@@ -619,15 +617,13 @@ export function applyClientSideSortToData({
   queryRecordEntry,
   data,
   alias,
-  sort: queryRecordEntrySort,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  sort: ValidSortForNode<INode>;
   data: any;
   alias: string;
 }) {
   const sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntrySort,
+    queryRecordEntry,
     skipRelationalSorts: false,
   });
   if (sortObject && data[alias]) {
@@ -752,7 +748,6 @@ export function applyClientSideSortAndFilterToData(
     if (queryRecordEntry?.sort) {
       applyClientSideSortToData({
         queryRecordEntry,
-        sort: queryRecordEntry.sort as ValidSortForNode<INode>,
         data,
         alias,
       });
@@ -899,39 +894,87 @@ function getFlattenedNodeFilterObject(opts: {
   return result;
 }
 
-function getFlattenedNodeSortObject<TNode extends INode>(opts: {
-  sort: ValidSortForNode<TNode>;
+function getFlattenedNodeSortObject(opts: {
+  queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
   skipRelationalSorts: boolean;
 }) {
+  const { queryRecordEntry } = opts;
   const result: Record<string, SortObject> = {};
 
-  for (const i in opts.sort) {
-    const sortObject = opts.sort as Record<string, any>;
-    const value = sortObject[i];
+  const sort = queryRecordEntry.sort;
+  const nodeData = queryRecordEntry.def.data;
+  const queriedRelations = queryRecordEntry.relational;
+
+  if (!sort) return result;
+
+  for (const sortKey in sort) {
+    const sortObject = sort as Record<string, any>;
+    const value = sortObject[sortKey];
     const valueIsNotASortObject =
       isObject(value) && !Object.keys(value).includes('direction');
+
+    const isObjectInNodeData =
+      nodeData[sortKey] &&
+      ((nodeData[sortKey] as IData).type === DATA_TYPES.object ||
+        (nodeData[sortKey] as IData).type === DATA_TYPES.maybeObject);
+    const isAQueriedRelationalProp = queriedRelations
+      ? queriedRelations[sortKey] != null
+      : false;
+
+    const sortIsTargettingNestedObjectOrRelationalData =
+      isObject(value) && (isAQueriedRelationalProp || isObjectInNodeData);
+
     if (
-      typeof sortObject[i] == 'object' &&
-      sortObject[i] !== null &&
+      sortIsTargettingNestedObjectOrRelationalData &&
+      opts.skipRelationalSorts
+    ) {
+      continue;
+    }
+
+    if (
+      typeof sortObject[sortKey] == 'object' &&
+      sortObject[sortKey] !== null &&
       valueIsNotASortObject
     ) {
-      const flatObject = getFlattenedNodeSortObject({
+      const queryRecordEntry = {
+        ...opts.queryRecordEntry,
+        def: isObjectInNodeData
+          ? {
+              ...opts.queryRecordEntry.def,
+              data: nodeData[sortKey].boxedValue,
+            }
+          : (queriedRelations as RelationalQueryRecord)[sortKey].def,
+        properties: isObjectInNodeData
+          ? opts.queryRecordEntry.properties
+              .filter(prop => prop.startsWith(sortKey))
+              .map(prop => {
+                const [, ...remainingPath] = prop.split(
+                  OBJECT_PROPERTY_SEPARATOR
+                );
+                return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+              })
+          : (queriedRelations as RelationalQueryRecord)[sortKey].properties,
         sort: value,
+      };
+
+      const flatObject = getFlattenedNodeSortObject({
+        queryRecordEntry,
         skipRelationalSorts: opts.skipRelationalSorts,
       });
+
       for (const x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
 
-        result[i + '.' + x] = flatObject[x];
+        result[sortKey + '.' + x] = flatObject[x];
       }
     } else {
       if (isObject(value)) {
-        result[i] = value as SortObject;
+        result[sortKey] = value as SortObject;
       } else if (value !== undefined) {
         const filter: SortObject = {
           direction: value,
         };
-        result[i] = filter;
+        result[sortKey] = filter;
       }
     }
   }

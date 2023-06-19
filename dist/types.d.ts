@@ -809,7 +809,7 @@ export declare type RelationalQueryRecordEntry = {
 export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
-    id: string | number;
+    id: string;
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
 }
 export declare type SubscriptionMessage = {
@@ -819,9 +819,13 @@ export declare type SubscriptionMessageData = {
     __typename: string;
     id: string;
     target?: {
-        id: string | number;
+        id: string;
         property: string;
     };
+    targets?: Array<{
+        id: string;
+        property: string;
+    }>;
     value?: {
         id: string;
     } & Record<string, any>;

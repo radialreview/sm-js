@@ -882,11 +882,17 @@ function getMockSubscriptionMessage(opts: {
   targetNodeType?: string;
   id: string;
   target?: {
-    id: string | number;
+    id: string;
     property: string;
   };
+  targets?: [
+    {
+      id: string;
+      property: string;
+    }
+  ];
   valueNodeType?: string;
-  value?: ({ id: string | number } & Record<string, any>) | null;
+  value?: ({ id: string } & Record<string, any>) | null;
 }) {
   let typeNameString = `${opts.type}_`;
 
@@ -911,6 +917,7 @@ function getMockSubscriptionMessage(opts: {
         __typename: typeNameString,
         id: opts.id,
         target: opts.target,
+        targets: opts.targets,
         value: opts.value,
       },
     },
@@ -931,19 +938,53 @@ function getMockSubscriptionMessage(opts: {
  * - add conditions to relationship tests that verify that nodes with ids that should be unaffected by the subscription are not updated
  */
 describe('subscription handling', () => {
-  function deepExpectContaining(obj: Record<string, any>) {
-    return expect.objectContaining(
-      Object.keys(obj).reduce((acc, key) => {
-        const valueAtKey = obj[key];
-        if (valueAtKey != null && typeof valueAtKey === 'object')
-          acc[key] = deepExpectContaining(valueAtKey);
-        else if (Array.isArray(valueAtKey)) {
-          acc[key] = valueAtKey.map(deepExpectContaining);
-        } else acc[key] = valueAtKey;
+  function expectDeepMatch(
+    obj1: Record<string, any>,
+    obj2: Record<string, any>,
+    keyPath?: Array<string>
+  ) {
+    function MismatchError(
+      path: Array<string>,
+      expectedValue: any,
+      actualValue: any
+    ) {
+      return new Error(
+        `Mismatch at ${path.join('.')} (expected: ${JSON.stringify(
+          expectedValue
+        )}, actual: ${JSON.stringify(actualValue)})`
+      );
+    }
 
-        return acc;
-      }, {} as Record<string, any>)
-    );
+    Object.keys(obj1).forEach(key => {
+      const newKeyPath = [...(keyPath || []), key];
+
+      const value = obj1[key];
+      if (Array.isArray(value)) {
+        if (!Array.isArray(obj2[key])) {
+          throw MismatchError(newKeyPath, value, obj2[key]);
+        }
+
+        value.forEach((item, index) => {
+          const newKeyPathWithIndex = [...newKeyPath, String(index)];
+
+          if (!obj2[key][index]) {
+            throw MismatchError(newKeyPathWithIndex, item, obj2[key][index]);
+          }
+
+          expectDeepMatch(item, obj2[key][index], newKeyPathWithIndex);
+        });
+      } else if (typeof obj1[key] === 'object' && obj1[key] != null) {
+        if (obj2[key] == null || typeof obj2[key] !== 'object') {
+          throw MismatchError(newKeyPath, value, obj2[key]);
+        }
+
+        expectDeepMatch(obj1[key], obj2[key], newKeyPath);
+      } else {
+        if (obj1[key] !== obj2[key]) {
+          throw MismatchError(newKeyPath, value, obj2[key]);
+        }
+      }
+    });
   }
 
   function runSubscriptionTest(opts: {
@@ -971,10 +1012,13 @@ describe('subscription handling', () => {
             index++;
             queryManager.onSubscriptionMessage(opts.subscriptionMessage);
           } else {
-            expect(resultsObject).toEqual(
-              deepExpectContaining(opts.expectedResultsObject)
-            );
-            return opts.done();
+            try {
+              expectDeepMatch(opts.expectedResultsObject, resultsObject);
+              return opts.done();
+            } catch (e) {
+              opts.done(e);
+              throw e;
+            }
           }
         },
         onQueryError: e => {
@@ -985,6 +1029,46 @@ describe('subscription handling', () => {
         batchKey: null,
       }
     );
+  }
+
+  function runSubscriptionTests(opts: {
+    mmGQLInstance: MMGQL;
+    queryDefinitions: UseSubscriptionQueryDefinitions<
+      unknown,
+      unknown,
+      unknown,
+      unknown
+    >;
+    done: (error?: any) => void;
+    tests: Array<{
+      subscriptionMessage: SubscriptionMessage;
+      expectedResultsObject: Record<string, any>;
+    }>;
+  }) {
+    let testsDone = 0;
+    let testFailed = false;
+    for (const [testIndex, test] of opts.tests.entries()) {
+      runSubscriptionTest({
+        mmGQLInstance: opts.mmGQLInstance,
+        queryDefinitions: opts.queryDefinitions,
+        done: e => {
+          if (!e) {
+            testsDone++;
+            if (testsDone === opts.tests.length) {
+              opts.done();
+            }
+          } else {
+            if (!testFailed) {
+              testFailed = true;
+              e.message = `Failed test index: ${testIndex}. Message: ${e.message}`;
+              opts.done(e);
+            }
+          }
+        },
+        subscriptionMessage: test.subscriptionMessage,
+        expectedResultsObject: test.expectedResultsObject,
+      });
+    }
   }
 
   /**
@@ -1420,38 +1504,103 @@ describe('subscription handling', () => {
       },
     });
 
-    runSubscriptionTest({
+    runSubscriptionTests({
       mmGQLInstance,
       queryDefinitions: {
         todos: todosQueryDefinition,
       },
       done,
-      subscriptionMessage: getMockSubscriptionMessage({
-        alias: 'todos',
-        type: 'Created',
-        id: 'mock-todo-id-2',
-        valueNodeType: todoNode.type,
-        value: {
-          id: 'mock-todo-id-2',
-          type: 'todo',
-          version: 1,
-          task: 'mock-task-2',
-          // This should be filtered out
-          done: true,
+      tests: [
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should be filtered out
+              done: true,
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
         },
-      }),
-      expectedResultsObject: {
-        todos: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-todo-id-1',
-              task: 'mock-task-1',
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should not be filtered out
               done: false,
             },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+                {
+                  id: 'mock-todo-id-2',
+                  task: 'mock-task-2',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 2,
+            },
+          },
         },
-      },
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Created',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should be filtered out
+              done: true,
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
+        },
+      ],
     });
   });
 
@@ -1599,6 +1748,12 @@ describe('subscription handling', () => {
       type: 'Updated',
       valueNodeType: userNode.type,
       id: 'mock-user-id-1',
+      targets: [
+        {
+          id: 'mock-todo-id-1',
+          property: 'users',
+        },
+      ],
       value: {
         id: 'mock-user-id-1',
         type: 'user',
@@ -2124,6 +2279,12 @@ describe('subscription handling', () => {
       type: 'Updated',
       valueNodeType: userNode.type,
       id: 'mock-user-id-1',
+      targets: [
+        {
+          id: 'mock-todo-id-1',
+          property: 'users',
+        },
+      ],
       value: {
         id: 'mock-user-id-1',
         type: 'user',
@@ -2513,8 +2674,14 @@ describe('subscription handling', () => {
                       version: 1,
                       firstName: 'mock-user-name-1',
                     },
+                    {
+                      id: 'mock-user-id-2',
+                      type: 'user',
+                      version: 1,
+                      firstName: 'mock-user-name-2',
+                    },
                   ],
-                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                  [TOTAL_COUNT_PROPERTY_KEY]: 2,
                   [PAGE_INFO_PROPERTY_KEY]: {
                     hasNextPage: false,
                     hasPreviousPage: false,
@@ -2555,56 +2722,109 @@ describe('subscription handling', () => {
       }),
     });
 
-    // @TODO add test for UPDATED respecting sorts/filters
-    runSubscriptionTest({
+    runSubscriptionTests({
       mmGQLInstance,
       done,
       queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      subscriptionMessage: getMockSubscriptionMessage({
-        alias: 'todos',
-        type: 'Inserted',
-        targetNodeType: todoNode.type,
-        target: {
-          id: 'mock-todo-id-1',
-          property: 'users',
-        },
-        id: 'mock-user-id-0',
-        valueNodeType: userNode.type,
-        value: {
-          id: 'mock-user-id-0',
-          type: 'user',
-          version: 1,
-          // first name that does not conform to filter
-          firstName: 'mock-user-name-0',
-        },
-      }),
-      expectedResultsObject: {
-        todos: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-todo-id-1',
-              task: 'mock-task-1',
-              done: false,
-              users: {
-                [NODES_PROPERTY_KEY]: [
-                  {
-                    id: 'mock-user-id-0',
-                    firstName: 'mock-user-name-0',
-                  },
-                  {
-                    id: 'mock-user-id-1',
-                    firstName: 'mock-user-name-1',
-                  },
-                ],
-                [TOTAL_COUNT_PROPERTY_KEY]: 2,
+      tests: [
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            targets: [
+              {
+                id: 'mock-todo-id-1',
+                property: 'users',
               },
+            ],
+            id: 'mock-user-id-2',
+            valueNodeType: userNode.type,
+            value: {
+              id: 'mock-user-id-2',
+              type: 'user',
+              version: 1,
+              // first name that should sort it first
+              firstName: 'mock-user-name-0',
             },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                  users: {
+                    [NODES_PROPERTY_KEY]: [
+                      {
+                        id: 'mock-user-id-2',
+                        firstName: 'mock-user-name-0',
+                      },
+                      {
+                        id: 'mock-user-id-1',
+                        firstName: 'mock-user-name-1',
+                      },
+                    ],
+                    [TOTAL_COUNT_PROPERTY_KEY]: 2,
+                  },
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
         },
-      },
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Inserted',
+            targetNodeType: todoNode.type,
+            target: {
+              id: 'mock-todo-id-1',
+              property: 'users',
+            },
+            id: 'mock-user-id-0',
+            valueNodeType: userNode.type,
+            value: {
+              id: 'mock-user-id-0',
+              type: 'user',
+              version: 1,
+              // first name that does should sort it first
+              firstName: 'mock-user-name-0',
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                  users: {
+                    [NODES_PROPERTY_KEY]: [
+                      {
+                        id: 'mock-user-id-0',
+                        firstName: 'mock-user-name-0',
+                      },
+                      {
+                        id: 'mock-user-id-1',
+                        firstName: 'mock-user-name-1',
+                      },
+                      {
+                        id: 'mock-user-id-2',
+                        firstName: 'mock-user-name-2',
+                      },
+                    ],
+                    [TOTAL_COUNT_PROPERTY_KEY]: 3,
+                  },
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
+        },
+      ],
     });
   });
 
