@@ -48,10 +48,6 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }) => void;
-        getQueryRecordEntryDoesNotUseRelationshipOrIsRoot: (opts: {
-            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-            relationshipName: string;
-        }) => boolean;
         getSubscriptionEventToCachePathRecords(opts: {
             aliasPath: Array<string>;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
