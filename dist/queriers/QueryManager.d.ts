@@ -90,11 +90,11 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         };
         /**
          * Returns all state entries for a given alias path,
-         * taking the targetsFilter into consideration when they are provided
+         * taking the parentFilters into consideration when they are provided
          *
          * For example, may be called with
          * aliasPath: ['users','todos']
-         * and a targetsFilter: [{id: 'user1-id', property: 'TODOS'}]
+         * and a parentFilters: [{id: 'user1-id', property: 'TODOS'}]
          * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
          *
          * in that case, if that property is found in the queryRecordEntry
@@ -102,7 +102,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
          *
          *
          * May also be called with a path like ['users']
-         * and no targetsFilter
+         * and no parentFilters
          * for Created and Deleted type events.
          *
          * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
@@ -110,17 +110,20 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getStateCacheEntriesForAliasPath(opts: {
             aliasPath: Array<string>;
             pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-            targetsFilter?: Array<{
+            parentFilters?: Array<{
                 id: string;
                 property: string;
             }>;
             previousStateEntries?: Array<{
-                targetStateEntry: QueryManagerStateEntry;
+                parentStateEntry: QueryManagerStateEntry;
+                idOfAffectedParent: string | null;
                 relationalStateEntry: Maybe<QueryManagerStateEntry>;
             }>;
         }): Array<{
-            targetStateEntry: QueryManagerStateEntry;
-            relationalStateEntry: Maybe<QueryManagerStateEntry>;
+            parentStateEntry: QueryManagerStateEntry;
+            idOfAffectedParent: string | null;
+            relationalAlias: string | null;
+            relationalStateEntry: QueryManagerStateEntry | null;
         }>;
         unsub(): void;
         /**
