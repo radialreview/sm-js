@@ -477,15 +477,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
               (path, i) => {
-                // @TODO can maybe remove this, since now getStateCacheEntriesForAliasPath looks at relationship name?
-                if (
-                  this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
-                    queryRecordEntry: path.queryRecordEntry,
-                    relationshipName: parentRelationshipWhichWasUpdated,
-                  })
-                )
-                  return;
-
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
                   return this.logSubscriptionError(
@@ -620,14 +611,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             nodeRemovePaths[`${parentNodeType}.${childNodeType}`].forEach(
               path => {
-                if (
-                  this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
-                    queryRecordEntry: path.queryRecordEntry,
-                    relationshipName: parentRelationshipWhichWasUpdated,
-                  })
-                )
-                  return;
-
                 const { parentQueryRecordEntry } = path;
                 if (!parentQueryRecordEntry)
                   return this.logSubscriptionError(
@@ -735,14 +718,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             nodeUpdateAssociationPaths[
               `${parentNodeType}.${childNodeType}`
             ].forEach((path, i) => {
-              if (
-                this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
-                  queryRecordEntry: path.queryRecordEntry,
-                  relationshipName: parentRelationshipWhichWasUpdated,
-                })
-              )
-                return;
-
               const { parentQueryRecordEntry } = path;
               if (!parentQueryRecordEntry)
                 return this.logSubscriptionError(
@@ -892,25 +867,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         stateEntryWhichMayRequireUpdate.totalCount =
           filteredAndSortedIds.length;
       }
-    };
-
-    // When we receive a sub message about a relationship update (Inserted, Removed, UpdatedAssociation)
-    // we need to find all the cache entries that are affected by this update
-    // and update their results
-    // The function that returns potential paths to update for a given subscription message by its typeName
-    // does not take into account the relationship that was updated
-    // For example, I may have a todo.user relationship for todo.assignee and todo.owner
-    // and both of these queryRecord entries would be potentially affected by a todo.user subscription message
-    // so we need to filter out the paths that do not use the relationship that was updated
-    getQueryRecordEntryDoesNotUseRelationshipOrIsRoot = (opts: {
-      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-      relationshipName: string;
-    }) => {
-      const { queryRecordEntry, relationshipName } = opts;
-      return (
-        !('_relationshipName' in queryRecordEntry) ||
-        queryRecordEntry._relationshipName !== relationshipName
-      );
     };
 
     // for a given alias path (example: ['users', 'todos'])
