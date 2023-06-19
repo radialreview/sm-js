@@ -1375,7 +1375,6 @@ export type SubscriptionMessageData = {
   },
   targets?: Array<{
     id: string
-    type: string
     property: string
   }>
   value?: {id: string} & Record<string,any>

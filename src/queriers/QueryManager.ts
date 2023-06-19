@@ -224,17 +224,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             const targets = message.data[rootLevelAlias].targets;
 
-            if (!targets) {
-              return this.logSubscriptionError(
-                `No targets found in the message\n${JSON.stringify(
-                  message,
-                  null,
-                  2
-                )}`
-              );
-            }
-
-            nodeUpdatePaths[lowerCaseNodeType].forEach(path => {
+            nodeUpdatePaths[lowerCaseNodeType].forEach((path, i) => {
               const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
@@ -242,37 +232,54 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
-              queryRecordEntry.def.repository.onDataReceived(nodeData);
+              if (i === 0) {
+                // we don't need to call this for every path
+                // since it's targeting the same node repository instance
+                queryRecordEntry.def.repository.onDataReceived(nodeData);
+              }
 
               const stateEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
                 {
                   aliasPath: path.aliasPath,
                   pathEndQueryRecordEntry: queryRecordEntry,
-                  targetsFilter: targets,
+                  parentFilters: targets,
                 }
               );
 
-              console.log(
-                'state',
-                JSON.stringify(stateEntriesWhichRequireUpdate, null, 2)
-              );
-
               stateEntriesWhichRequireUpdate.forEach(
-                ({ targetStateEntry, relationalStateEntry }) => {
+                ({
+                  parentStateEntry,
+                  idOfAffectedParent,
+                  relationalAlias,
+                  relationalStateEntry,
+                }) => {
+                  const stateEntryWhichMayRequireUpdate =
+                    relationalStateEntry || parentStateEntry;
+
                   this.applyClientSideFilterAndSortToState({
-                    stateEntryWhichMayRequireUpdate:
-                      relationalStateEntry || targetStateEntry,
+                    stateEntryWhichMayRequireUpdate,
                     queryRecordEntry: path.queryRecordEntry,
                   });
 
-                  console.log(
-                    'new state',
-                    JSON.stringify(
-                      relationalStateEntry || targetStateEntry,
-                      null,
-                      2
-                    )
-                  );
+                  if (
+                    idOfAffectedParent != null &&
+                    relationalAlias &&
+                    relationalStateEntry
+                  ) {
+                    const parentProxy =
+                      parentStateEntry.proxyCache[idOfAffectedParent]?.proxy;
+
+                    if (parentProxy) {
+                      parentProxy.updateRelationalResults(
+                        this.getResultsFromState({
+                          state: {
+                            [relationalAlias]: relationalStateEntry,
+                          },
+                          aliasPath: path.aliasPath,
+                        })
+                      );
+                    }
+                  }
                 }
               );
             });
@@ -285,7 +292,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 `No node create handler found for ${lowerCaseNodeType}`
               );
 
-            nodeCreatePaths[lowerCaseNodeType].forEach(path => {
+            nodeCreatePaths[lowerCaseNodeType].forEach((path, i) => {
               const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
                 return this.logSubscriptionError(
@@ -308,7 +315,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   `No queryRecordEntry found for ${path.aliasPath[0]}`
                 );
 
-              queryRecordEntry.def.repository.onDataReceived(nodeData);
+              if (i === 0) {
+                // we don't need to call this for every path
+                // since it's targeting the same node repository instance
+                queryRecordEntry.def.repository.onDataReceived(nodeData);
+              }
 
               const newCacheEntry = this.buildCacheEntry({
                 aliasPath: path.aliasPath,
@@ -420,7 +431,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               );
 
             nodeInsertPaths[`${parentNodeType}.${childNodeType}`].forEach(
-              path => {
+              (path, i) => {
                 // @TODO can maybe remove this, since now getStateCacheEntriesForAliasPath looks at relationship name?
                 if (
                   this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
@@ -450,9 +461,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
                 }
 
-                path.queryRecordEntry.def.repository.onDataReceived(
-                  nodeInsertedData
-                );
+                if (i === 0) {
+                  // we don't need to call this for every path
+                  // since it's targeting the same node repository instance
+                  path.queryRecordEntry.def.repository.onDataReceived(
+                    nodeInsertedData
+                  );
+                }
 
                 const relationalAlias =
                   path.aliasPath[path.aliasPath.length - 1];
@@ -477,7 +492,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   {
                     aliasPath: path.aliasPath,
                     pathEndQueryRecordEntry: path.queryRecordEntry,
-                    targetsFilter: [
+                    parentFilters: [
                       {
                         id: parentId,
                         property: propertyName,
@@ -497,7 +512,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                   const stateEntry = stateCacheEntry.relationalStateEntry;
                   const parentProxy =
-                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+                    stateCacheEntry.parentStateEntry.proxyCache[parentId].proxy;
 
                   if (!stateEntry)
                     return this.logSubscriptionError('No state entry found');
@@ -589,7 +604,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   {
                     aliasPath: path.aliasPath,
                     pathEndQueryRecordEntry: path.queryRecordEntry,
-                    targetsFilter: [
+                    parentFilters: [
                       {
                         id: parentId,
                         property: propertyName,
@@ -609,7 +624,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                   const stateEntry = stateCacheEntry.relationalStateEntry;
                   const parentProxy =
-                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+                    stateCacheEntry.parentStateEntry.proxyCache[parentId].proxy;
 
                   if (!stateEntry)
                     return this.logSubscriptionError('No state entry found');
@@ -678,7 +693,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             nodeUpdateAssociationPaths[
               `${parentNodeType}.${childNodeType}`
-            ].forEach(path => {
+            ].forEach((path, i) => {
               if (
                 this.getQueryRecordEntryDoesNotUseRelationshipOrIsRoot({
                   queryRecordEntry: path.queryRecordEntry,
@@ -709,9 +724,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 | null
                 | undefined = undefined;
               if (nodeAssociatedData) {
-                path.queryRecordEntry.def.repository.onDataReceived(
-                  nodeAssociatedData
-                );
+                if (i === 0) {
+                  // we don't need to call this for every path
+                  // since it's targeting the same node repository instance
+                  path.queryRecordEntry.def.repository.onDataReceived(
+                    nodeAssociatedData
+                  );
+                }
 
                 const newCacheEntry = this.buildCacheEntry({
                   nodeData: nodeAssociatedData,
@@ -742,7 +761,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   {
                     aliasPath: path.aliasPath,
                     pathEndQueryRecordEntry: path.queryRecordEntry,
-                    targetsFilter: [
+                    parentFilters: [
                       {
                         id: parentId,
                         property: propertyName,
@@ -762,7 +781,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 cacheEntriesWhichRequireUpdate.forEach(stateCacheEntry => {
                   const stateEntry = stateCacheEntry.relationalStateEntry;
                   const parentProxy =
-                    stateCacheEntry.targetStateEntry.proxyCache[parentId].proxy;
+                    stateCacheEntry.parentStateEntry.proxyCache[parentId].proxy;
 
                   if (!stateEntry)
                     return this.logSubscriptionError('No state entry found');
@@ -1002,11 +1021,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     /**
      * Returns all state entries for a given alias path,
-     * taking the targetsFilter into consideration when they are provided
+     * taking the parentFilters into consideration when they are provided
      *
      * For example, may be called with
      * aliasPath: ['users','todos']
-     * and a targetsFilter: [{id: 'user1-id', property: 'TODOS'}]
+     * and a parentFilters: [{id: 'user1-id', property: 'TODOS'}]
      * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
      *
      * in that case, if that property is found in the queryRecordEntry
@@ -1014,7 +1033,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
      *
      *
      * May also be called with a path like ['users']
-     * and no targetsFilter
+     * and no parentFilters
      * for Created and Deleted type events.
      *
      * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
@@ -1022,47 +1041,67 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getStateCacheEntriesForAliasPath(opts: {
       aliasPath: Array<string>;
       // query record entry for the end of this path
-      // used to check against the properties in the targetsFilter
+      // used to check against the properties in the parentFilters
       // if one is provided
       pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-      targetsFilter?: Array<{ id: string; property: string }>;
+      parentFilters?: Array<{ id: string; property: string }>;
       previousStateEntries?: Array<{
-        // the target state entry which has a property that is potentially getting updated
-        // for example, this could be the `users` collection of results, if a user has a new todo
-        targetStateEntry: QueryManagerStateEntry;
-        // the relational state entry for the node that was updated/inserted/removed
-        // and is related to the target above
-        // in the example used above, this would be the entry for user.todos
-        // for the user with the id matching the one found in the targetFilter
+        parentStateEntry: QueryManagerStateEntry;
+        idOfAffectedParent: string | null;
         relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }>;
     }): Array<{
-      targetStateEntry: QueryManagerStateEntry;
-      relationalStateEntry: Maybe<QueryManagerStateEntry>;
+      // the parent state entry which has a property that is potentially getting updated
+      // for example, this could be the `users` collection of results, if a user has a new todo
+      parentStateEntry: QueryManagerStateEntry;
+      // The entire state entry may be affected if it's a root state entry
+      // otherwise idOfTheAffectedParent will be set
+      idOfAffectedParent: string | null;
+      relationalAlias: string | null;
+      // the relational state entry for the node that was updated/inserted/removed
+      // and is related to the target above
+      // in the example used above, this would be the entry for user.todos
+      // for the user with the id matching the one found in the targetFilter
+      //
+      // is null when aliasPath has length 1
+      // since it is a message that affects a root level results set
+      relationalStateEntry: QueryManagerStateEntry | null;
     }> {
       const {
         aliasPath,
         pathEndQueryRecordEntry,
-        targetsFilter,
+        parentFilters,
         previousStateEntries,
       } = opts;
       const [firstAlias, ...restOfAliasPath] = aliasPath;
 
-      if (targetsFilter) {
+      // this is an event that affects a root level result set
+      if (!previousStateEntries && restOfAliasPath.length === 0) {
+        return [
+          {
+            parentStateEntry: this.state[firstAlias],
+            idOfAffectedParent: null,
+            relationalAlias: null,
+            relationalStateEntry: null,
+          },
+        ];
+      }
+
+      if (parentFilters) {
         if (!('_relationshipName' in pathEndQueryRecordEntry)) {
           throw Error(
-            'TargetsFilter provided but no relationship found in pathEndQueryRecordEntry'
+            'parentFilters provided but no relationship found in pathEndQueryRecordEntry'
           );
         }
 
         // at the end of this path, if the relationshipName used was not one included in any of the properties
-        // within the targetsFilter
+        // within the parentFilters
         // then that means that state entries at the end of this path will not be affected
         // and we can safely return []
         if (
-          !targetsFilter.some(
-            target =>
-              camelCasePropertyName(target.property) ===
+          !parentFilters.some(
+            parentFilter =>
+              camelCasePropertyName(parentFilter.property) ===
               pathEndQueryRecordEntry._relationshipName
           )
         ) {
@@ -1071,14 +1110,16 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       }
 
       const getStateEntriesForFirstAlias = (): Array<{
-        targetStateEntry: QueryManagerStateEntry;
+        parentStateEntry: QueryManagerStateEntry;
+        idOfAffectedParent: string | null;
+        relationalAlias: string | null;
         relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }> => {
         if (previousStateEntries) {
           return previousStateEntries.reduce(
             (acc, stateEntry) => {
               const stateEntryToIterate =
-                stateEntry.relationalStateEntry || stateEntry.targetStateEntry;
+                stateEntry.relationalStateEntry || stateEntry.parentStateEntry;
 
               if (!stateEntryToIterate) return acc;
 
@@ -1087,26 +1128,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const shouldApplyIdFilter = restOfAliasPath.length === 0;
 
               Object.keys(stateEntryToIterate.proxyCache).forEach(nodeId => {
-                if (shouldApplyIdFilter && targetsFilter != null) {
+                if (shouldApplyIdFilter && parentFilters != null) {
                   const nodeIdAsNumber = Number(nodeId);
 
-                  const matchesSomeIdInTargets = targetsFilter.find(target => {
-                    // since we store node ids as strings
-                    // but the message from BE may include the id as a number
-                    if (
-                      typeof target.id === 'number' &&
-                      nodeIdAsNumber === target.id
-                    ) {
-                      return true;
-                    } else if (
-                      typeof target.id === 'string' &&
-                      nodeId === target.id
-                    ) {
-                      return true;
-                    }
+                  const matchesSomeIdInTargets = parentFilters.find(
+                    parentFilter => {
+                      // since we store node ids as strings
+                      // but the message from BE may include the id as a number
+                      if (
+                        typeof parentFilter.id === 'number' &&
+                        nodeIdAsNumber === parentFilter.id
+                      ) {
+                        return true;
+                      } else if (
+                        typeof parentFilter.id === 'string' &&
+                        nodeId === parentFilter.id
+                      ) {
+                        return true;
+                      }
 
-                    return false;
-                  });
+                      return false;
+                    }
+                  );
 
                   if (!matchesSomeIdInTargets) return;
                 }
@@ -1121,7 +1164,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 acc.push({
-                  targetStateEntry: stateEntryToIterate,
+                  parentStateEntry: stateEntryToIterate,
+                  idOfAffectedParent: nodeId,
+                  relationalAlias: firstAlias,
                   relationalStateEntry: relationalStateForAlias,
                 });
               });
@@ -1129,8 +1174,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               return acc;
             },
             [] as Array<{
-              targetStateEntry: QueryManagerStateEntry;
-              relationalStateEntry: Maybe<QueryManagerStateEntry>;
+              parentStateEntry: QueryManagerStateEntry;
+              idOfAffectedParent: string | null;
+              relationalAlias: string | null;
+              relationalStateEntry: QueryManagerStateEntry | null;
             }>
           );
         } else {
@@ -1139,7 +1186,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           return [
             {
-              targetStateEntry: this.state[firstAlias],
+              parentStateEntry: this.state[firstAlias],
+              idOfAffectedParent: null,
+              relationalAlias: null,
               relationalStateEntry: null,
             },
           ];
@@ -1155,7 +1204,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           aliasPath: restOfAliasPath,
           previousStateEntries: stateEntriesForFirstAlias,
           pathEndQueryRecordEntry,
-          targetsFilter,
+          parentFilters,
         });
       }
     }

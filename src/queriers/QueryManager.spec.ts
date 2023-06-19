@@ -888,7 +888,6 @@ function getMockSubscriptionMessage(opts: {
   targets?: [
     {
       id: string;
-      type: string;
       property: string;
     }
   ];
@@ -944,13 +943,25 @@ describe('subscription handling', () => {
     obj2: Record<string, any>,
     keyPath?: Array<string>
   ) {
+    function MismatchError(
+      path: Array<string>,
+      expectedValue: any,
+      actualValue: any
+    ) {
+      return new Error(
+        `Mismatch at ${path.join('.')} (expected: ${JSON.stringify(
+          expectedValue
+        )}, actual: ${JSON.stringify(actualValue)})`
+      );
+    }
+
     Object.keys(obj1).forEach(key => {
       const newKeyPath = [...(keyPath || []), key];
 
       const value = obj1[key];
       if (Array.isArray(value)) {
         if (!Array.isArray(obj2[key])) {
-          throw Error(`Mismatch at ${newKeyPath.join(',')}`);
+          throw MismatchError(newKeyPath, value, obj2[key]);
         }
 
         value.forEach((item, index) => {
@@ -961,13 +972,13 @@ describe('subscription handling', () => {
         });
       } else if (typeof obj1[key] === 'object' && obj1[key] != null) {
         if (obj2[key] == null || typeof obj2[key] !== 'object') {
-          throw Error(`Mismatch at ${newKeyPath.join('.')}`);
+          throw MismatchError(newKeyPath, value, obj2[key]);
         }
 
         expectDeepMatch(obj1[key], obj2[key], newKeyPath);
       } else {
         if (obj1[key] !== obj2[key]) {
-          throw Error(`Mismatch at ${newKeyPath.join('.')}`);
+          throw MismatchError(newKeyPath, value, obj2[key]);
         }
       }
     });
@@ -1002,7 +1013,6 @@ describe('subscription handling', () => {
               expectDeepMatch(opts.expectedResultsObject, resultsObject);
               return opts.done();
             } catch (e) {
-              console.error(JSON.stringify(resultsObject, null, 2));
               throw e;
             }
           }
@@ -1629,6 +1639,12 @@ describe('subscription handling', () => {
       type: 'Updated',
       valueNodeType: userNode.type,
       id: 'mock-user-id-1',
+      targets: [
+        {
+          id: 'mock-todo-id-1',
+          property: 'users',
+        },
+      ],
       value: {
         id: 'mock-user-id-1',
         type: 'user',
@@ -2154,6 +2170,12 @@ describe('subscription handling', () => {
       type: 'Updated',
       valueNodeType: userNode.type,
       id: 'mock-user-id-1',
+      targets: [
+        {
+          id: 'mock-todo-id-1',
+          property: 'users',
+        },
+      ],
       value: {
         id: 'mock-user-id-1',
         type: 'user',
@@ -2637,7 +2659,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it.only('correctly sorts data from subscription messages related to a collection nested within a collection, for an Updated type message', done => {
+  it('correctly sorts data from subscription messages related to a collection nested within a collection, for an Updated type message', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -2717,7 +2739,6 @@ describe('subscription handling', () => {
         targets: [
           {
             id: 'mock-todo-id-1',
-            type: todoNode.type,
             property: 'users',
           },
         ],
