@@ -7177,7 +7177,9 @@ function createQueryManager(mmGQLInstance) {
               var stateEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath,
                 pathEndQueryRecordEntry: queryRecordEntry,
-                parentFilters: targets
+                // This || [] can be removed once the backend is guaranteed to include targets
+                // in every Update type message
+                parentFilters: targets || []
               });
 
               stateEntriesWhichRequireUpdate.forEach(function (_ref4) {
@@ -7186,6 +7188,32 @@ function createQueryManager(mmGQLInstance) {
                     relationalAlias = _ref4.relationalAlias,
                     relationalStateEntry = _ref4.relationalStateEntry;
                 var stateEntryWhichMayRequireUpdate = relationalStateEntry || parentStateEntry;
+
+                if (!stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id]) {
+                  var _path$parentQueryReco;
+
+                  var newCacheEntry = _this2.buildCacheEntry({
+                    nodeData: nodeData,
+                    queryAlias: relationalAlias || rootLevelAlias,
+                    queryRecord: relationalStateEntry ? (_path$parentQueryReco = path.parentQueryRecordEntry) == null ? void 0 : _path$parentQueryReco.relational : _this2.queryRecord,
+                    aliasPath: path.aliasPath,
+                    // page info is not required
+                    // in this case, all we need to get back is the proxy for a specific node
+                    // and we mutate the state paging info directly as needed
+                    pageInfoFromResults: null,
+                    totalCount: null,
+                    clientSidePageInfo: null,
+                    collectionsIncludePagingInfo: false
+                  });
+
+                  if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
+                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult || !Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
+                  stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
+
+                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(nodeData.id)) {
+                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(nodeData.id);
+                  }
+                }
 
                 _this2.applyClientSideFilterAndSortToState({
                   stateEntryWhichMayRequireUpdate: stateEntryWhichMayRequireUpdate,
@@ -7348,8 +7376,11 @@ function createQueryManager(mmGQLInstance) {
                 var parentProxy = stateCacheEntry.parentStateEntry.proxyCache[parentId].proxy;
                 if (!stateEntry) return _this2.logSubscriptionError('No state entry found');
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-                stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
-                stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
+
+                if (!stateEntry.idsOrIdInCurrentResult.includes(nodeInsertedData.id)) {
+                  stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
+                  stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
+                }
 
                 _this2.applyClientSideFilterAndSortToState({
                   stateEntryWhichMayRequireUpdate: stateEntry,
@@ -7647,20 +7678,20 @@ function createQueryManager(mmGQLInstance) {
         }];
       }
 
-      if (parentFilters) {
-        if (!('_relationshipName' in pathEndQueryRecordEntry)) {
-          throw Error('parentFilters provided but no relationship found in pathEndQueryRecordEntry');
-        } // at the end of this path, if the relationshipName used was not one included in any of the properties
-        // within the parentFilters
-        // then that means that state entries at the end of this path will not be affected
-        // and we can safely return []
+      if (!parentFilters) throw Error('parentFilters must be provided for non root level events');
+
+      if (!('_relationshipName' in pathEndQueryRecordEntry)) {
+        throw Error('parentFilters provided but no relationship found in pathEndQueryRecordEntry');
+      } // at the end of this path, if the relationshipName used was not one included in any of the properties
+      // within the parentFilters
+      // then that means that state entries at the end of this path will not be affected
+      // and we can safely return []
 
 
-        if (!parentFilters.some(function (parentFilter) {
-          return camelCasePropertyName(parentFilter.property) === pathEndQueryRecordEntry._relationshipName;
-        })) {
-          return [];
-        }
+      if (!parentFilters.some(function (parentFilter) {
+        return camelCasePropertyName(parentFilter.property) === pathEndQueryRecordEntry._relationshipName;
+      })) {
+        return [];
       }
 
       var getStateEntriesForFirstAlias = function getStateEntriesForFirstAlias() {
@@ -7674,7 +7705,7 @@ function createQueryManager(mmGQLInstance) {
             Object.keys(stateEntryToIterate.proxyCache).forEach(function (nodeId) {
               var _proxyCacheEntry$rela;
 
-              if (shouldApplyIdFilter && parentFilters != null) {
+              if (shouldApplyIdFilter) {
                 var nodeIdAsNumber = Number(nodeId);
                 var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
                   // since we store node ids as strings
