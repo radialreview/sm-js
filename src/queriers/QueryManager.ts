@@ -836,7 +836,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return handlers;
     }
 
-    // @TODO leave link explaining why this is necessary
+    // https://github.com/radialreview/sm-js/wiki/Dev-docs/_edit#client-side-filtering-and-sorting
     applyClientSideFilterAndSortToState = (opts: {
       stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
