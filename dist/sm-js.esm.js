@@ -7147,12 +7147,13 @@ function createQueryManager(mmGQLInstance) {
             return _this2.logSubscriptionError('Invalid subscription message\n' + JSON.stringify(message, null, 2));
           }
 
-          if (messageType.startsWith('Updated_')) {
-            var nodeType = messageType.replace('Updated_', '');
-            var lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+          var messageMeta = getMessageMetaFromType(messageType);
 
-            if (!nodeUpdatePaths[lowerCaseNodeType]) {
-              return _this2.logSubscriptionError("No node update handler found for " + lowerCaseNodeType);
+          if (messageMeta.type === 'Updated') {
+            var nodeType = messageMeta.nodeType;
+
+            if (!nodeUpdatePaths[nodeType]) {
+              return _this2.logSubscriptionError("No node update handler found for " + nodeType);
             }
 
             var nodeData = message.data[rootLevelAlias].value;
@@ -7163,7 +7164,7 @@ function createQueryManager(mmGQLInstance) {
             }
 
             var targets = message.data[rootLevelAlias].targets;
-            nodeUpdatePaths[lowerCaseNodeType].forEach(function (path, i) {
+            nodeUpdatePaths[nodeType].forEach(function (path, i) {
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
 
@@ -7207,14 +7208,11 @@ function createQueryManager(mmGQLInstance) {
                 }
               });
             });
-          } else if (messageType.startsWith('Created_')) {
-            var _nodeType = messageType.replace('Created_', '');
+          } else if (messageMeta.type === 'Created') {
+            var _nodeType = messageMeta.nodeType;
+            if (!nodeCreatePaths[_nodeType]) return _this2.logSubscriptionError("No node create handler found for " + _nodeType);
 
-            var _lowerCaseNodeType = lowerCaseFirstLetter(_nodeType);
-
-            if (!nodeCreatePaths[_lowerCaseNodeType]) return _this2.logSubscriptionError("No node create handler found for " + _lowerCaseNodeType);
-
-            nodeCreatePaths[_lowerCaseNodeType].forEach(function (path, i) {
+            nodeCreatePaths[_nodeType].forEach(function (path, i) {
               var stateEntry = _this2.state[path.aliasPath[0]];
               if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value;
@@ -7264,14 +7262,11 @@ function createQueryManager(mmGQLInstance) {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
             });
-          } else if (messageType.startsWith('Deleted_')) {
-            var _nodeType2 = messageType.replace('Deleted_', '');
+          } else if (messageMeta.type === 'Deleted') {
+            var _nodeType2 = messageMeta.nodeType;
+            if (!nodeDeletePaths[_nodeType2]) return _this2.logSubscriptionError("No node delete handler found for " + _nodeType2);
 
-            var _lowerCaseNodeType2 = lowerCaseFirstLetter(_nodeType2);
-
-            if (!nodeDeletePaths[_lowerCaseNodeType2]) return _this2.logSubscriptionError("No node delete handler found for " + _lowerCaseNodeType2);
-
-            nodeDeletePaths[_lowerCaseNodeType2].forEach(function (path) {
+            nodeDeletePaths[_nodeType2].forEach(function (path) {
               var stateEntry = _this2.state[path.aliasPath[0]];
               if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeDeletedId = message.data[rootLevelAlias].id;
@@ -7286,13 +7281,11 @@ function createQueryManager(mmGQLInstance) {
                 stateEntry.totalCount--;
               }
             });
-          } else if (messageType.startsWith('Inserted_')) {
+          } else if (messageMeta.type === 'Inserted') {
             var _message$data$rootLev2, _message$data$rootLev3;
 
-            var _getNodeTypeAndParent = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                parentNodeType = _getNodeTypeAndParent.parentNodeType,
-                childNodeType = _getNodeTypeAndParent.childNodeType;
-
+            var parentNodeType = messageMeta.parentNodeType,
+                childNodeType = messageMeta.childNodeType;
             if (!nodeInsertPaths[parentNodeType + "." + childNodeType]) return _this2.logSubscriptionError("No node insert handler found for " + parentNodeType + "." + childNodeType);
             var parentId = (_message$data$rootLev2 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev2.id;
             var propertyName = (_message$data$rootLev3 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev3.property;
@@ -7370,13 +7363,11 @@ function createQueryManager(mmGQLInstance) {
                 }));
               });
             });
-          } else if (messageType.startsWith('Removed_')) {
+          } else if (messageMeta.type === 'Removed') {
             var _message$data$rootLev4, _message$data$rootLev5;
 
-            var _getNodeTypeAndParent2 = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                _parentNodeType = _getNodeTypeAndParent2.parentNodeType,
-                _childNodeType = _getNodeTypeAndParent2.childNodeType;
-
+            var _parentNodeType = messageMeta.parentNodeType,
+                _childNodeType = messageMeta.childNodeType;
             if (!nodeRemovePaths[_parentNodeType + "." + _childNodeType]) return _this2.logSubscriptionError("No node remove handler found for " + _parentNodeType + "." + _childNodeType);
 
             var _parentId = (_message$data$rootLev4 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev4.id;
@@ -7434,13 +7425,11 @@ function createQueryManager(mmGQLInstance) {
                 }));
               });
             });
-          } else if (messageType.startsWith('UpdatedAssociation_')) {
+          } else if (messageMeta.type === 'UpdatedAssociation') {
             var _message$data$rootLev6, _message$data$rootLev7;
 
-            var _getNodeTypeAndParent3 = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                _parentNodeType2 = _getNodeTypeAndParent3.parentNodeType,
-                _childNodeType2 = _getNodeTypeAndParent3.childNodeType;
-
+            var _parentNodeType2 = messageMeta.parentNodeType,
+                _childNodeType2 = messageMeta.childNodeType;
             if (!nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2]) return _this2.logSubscriptionError("No node update association handler found for " + _parentNodeType2 + "." + _childNodeType2);
 
             var _parentId2 = (_message$data$rootLev6 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev6.id;
@@ -9064,6 +9053,47 @@ function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageTypeName)
     parentNodeType: lowerCaseFirstLetter(split[1]),
     childNodeType: lowerCaseFirstLetter(split[2])
   };
+}
+
+function getMessageMetaFromType(messageType) {
+  var type;
+  var isSingleNodeMessage = false;
+  var isRelationshipMessage = false;
+
+  if (messageType.startsWith('Updated_')) {
+    type = 'Updated';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Created_')) {
+    type = 'Created';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Deleted_')) {
+    type = 'Deleted';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Inserted_')) {
+    type = 'Inserted';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('Removed_')) {
+    type = 'Removed';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('UpdatedAssociation_')) {
+    type = 'UpdatedAssociation';
+    isRelationshipMessage = true;
+  } else {
+    throw new UnreachableCaseError(messageType);
+  }
+
+  if (isSingleNodeMessage) {
+    return {
+      type: type,
+      nodeType: lowerCaseFirstLetter(messageType.split('_')[1])
+    };
+  } else if (isRelationshipMessage) {
+    return _extends({
+      type: type
+    }, getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType));
+  } else {
+    throw new UnreachableCaseError(messageType);
+  }
 }
 
 function camelCasePropertyName(property) {
