@@ -243,7 +243,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 {
                   aliasPath: path.aliasPath,
                   pathEndQueryRecordEntry: queryRecordEntry,
-                  parentFilters: targets,
+                  // This || [] can be removed once the backend is guaranteed to include targets
+                  // in every Update type message
+                  parentFilters: targets || [],
                 }
               );
 
@@ -256,6 +258,55 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 }) => {
                   const stateEntryWhichMayRequireUpdate =
                     relationalStateEntry || parentStateEntry;
+
+                  if (
+                    !stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id]
+                  ) {
+                    const newCacheEntry = this.buildCacheEntry({
+                      nodeData: nodeData,
+                      queryAlias: relationalAlias || rootLevelAlias,
+                      queryRecord: relationalStateEntry
+                        ? (path.parentQueryRecordEntry
+                            ?.relational as RelationalQueryRecord)
+                        : (this.queryRecord as QueryRecord),
+                      aliasPath: path.aliasPath,
+                      // page info is not required
+                      // in this case, all we need to get back is the proxy for a specific node
+                      // and we mutate the state paging info directly as needed
+                      pageInfoFromResults: null,
+                      totalCount: null,
+                      clientSidePageInfo: null,
+                      collectionsIncludePagingInfo: false,
+                    });
+
+                    if (!newCacheEntry)
+                      return this.logSubscriptionError(
+                        'No new cache entry found'
+                      );
+
+                    if (
+                      !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult ||
+                      !Array.isArray(
+                        stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult
+                      )
+                    )
+                      return this.logSubscriptionError(
+                        'No idsOrIdInCurrentResult found on state entry'
+                      );
+
+                    stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] =
+                      newCacheEntry.proxyCache[nodeData.id];
+
+                    if (
+                      !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(
+                        nodeData.id
+                      )
+                    ) {
+                      stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(
+                        nodeData.id
+                      );
+                    }
+                  }
 
                   this.applyClientSideFilterAndSortToState({
                     stateEntryWhichMayRequireUpdate,
@@ -516,9 +567,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       'idsOrIdInCurrentResult is not an array'
                     );
 
-                  stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
-                  stateEntry.proxyCache[nodeInsertedData.id] =
-                    newCacheEntry.proxyCache[nodeInsertedData.id];
+                  if (
+                    !stateEntry.idsOrIdInCurrentResult.includes(
+                      nodeInsertedData.id
+                    )
+                  ) {
+                    stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
+                    stateEntry.proxyCache[nodeInsertedData.id] =
+                      newCacheEntry.proxyCache[nodeInsertedData.id];
+                  }
 
                   this.applyClientSideFilterAndSortToState({
                     stateEntryWhichMayRequireUpdate: stateEntry,
@@ -1071,26 +1128,27 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         ];
       }
 
-      if (parentFilters) {
-        if (!('_relationshipName' in pathEndQueryRecordEntry)) {
-          throw Error(
-            'parentFilters provided but no relationship found in pathEndQueryRecordEntry'
-          );
-        }
+      if (!parentFilters)
+        throw Error('parentFilters must be provided for non root level events');
 
-        // at the end of this path, if the relationshipName used was not one included in any of the properties
-        // within the parentFilters
-        // then that means that state entries at the end of this path will not be affected
-        // and we can safely return []
-        if (
-          !parentFilters.some(
-            parentFilter =>
-              camelCasePropertyName(parentFilter.property) ===
-              pathEndQueryRecordEntry._relationshipName
-          )
-        ) {
-          return [];
-        }
+      if (!('_relationshipName' in pathEndQueryRecordEntry)) {
+        throw Error(
+          'parentFilters provided but no relationship found in pathEndQueryRecordEntry'
+        );
+      }
+
+      // at the end of this path, if the relationshipName used was not one included in any of the properties
+      // within the parentFilters
+      // then that means that state entries at the end of this path will not be affected
+      // and we can safely return []
+      if (
+        !parentFilters.some(
+          parentFilter =>
+            camelCasePropertyName(parentFilter.property) ===
+            pathEndQueryRecordEntry._relationshipName
+        )
+      ) {
+        return [];
       }
 
       const getStateEntriesForFirstAlias = (): Array<{
@@ -1112,7 +1170,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               const shouldApplyIdFilter = restOfAliasPath.length === 0;
 
               Object.keys(stateEntryToIterate.proxyCache).forEach(nodeId => {
-                if (shouldApplyIdFilter && parentFilters != null) {
+                if (shouldApplyIdFilter) {
                   const nodeIdAsNumber = Number(nodeId);
 
                   const matchesSomeIdInTargets = parentFilters.find(

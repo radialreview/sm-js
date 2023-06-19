@@ -965,10 +965,13 @@ describe('subscription handling', () => {
         }
 
         value.forEach((item, index) => {
-          expectDeepMatch(item, obj2[key][index], [
-            ...newKeyPath,
-            String(index),
-          ]);
+          const newKeyPathWithIndex = [...newKeyPath, String(index)];
+
+          if (!obj2[key][index]) {
+            throw MismatchError(newKeyPathWithIndex, item, obj2[key][index]);
+          }
+
+          expectDeepMatch(item, obj2[key][index], newKeyPathWithIndex);
         });
       } else if (typeof obj1[key] === 'object' && obj1[key] != null) {
         if (obj2[key] == null || typeof obj2[key] !== 'object') {
@@ -1013,6 +1016,7 @@ describe('subscription handling', () => {
               expectDeepMatch(opts.expectedResultsObject, resultsObject);
               return opts.done();
             } catch (e) {
+              opts.done(e);
               throw e;
             }
           }
@@ -1025,6 +1029,46 @@ describe('subscription handling', () => {
         batchKey: null,
       }
     );
+  }
+
+  function runSubscriptionTests(opts: {
+    mmGQLInstance: MMGQL;
+    queryDefinitions: UseSubscriptionQueryDefinitions<
+      unknown,
+      unknown,
+      unknown,
+      unknown
+    >;
+    done: (error?: any) => void;
+    tests: Array<{
+      subscriptionMessage: SubscriptionMessage;
+      expectedResultsObject: Record<string, any>;
+    }>;
+  }) {
+    let testsDone = 0;
+    let testFailed = false;
+    for (const [testIndex, test] of opts.tests.entries()) {
+      runSubscriptionTest({
+        mmGQLInstance: opts.mmGQLInstance,
+        queryDefinitions: opts.queryDefinitions,
+        done: e => {
+          if (!e) {
+            testsDone++;
+            if (testsDone === opts.tests.length) {
+              opts.done();
+            }
+          } else {
+            if (!testFailed) {
+              testFailed = true;
+              e.message = `Failed test index: ${testIndex}. Message: ${e.message}`;
+              opts.done(e);
+            }
+          }
+        },
+        subscriptionMessage: test.subscriptionMessage,
+        expectedResultsObject: test.expectedResultsObject,
+      });
+    }
   }
 
   /**
@@ -1425,6 +1469,9 @@ describe('subscription handling', () => {
   it('correctly filters data from subscription messages related to a root level collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
+        logging: {
+          gqlSubscriptionErrors: true,
+        },
         getMockData: () => ({
           todos: {
             [NODES_PROPERTY_KEY]: [
@@ -1460,38 +1507,103 @@ describe('subscription handling', () => {
       },
     });
 
-    runSubscriptionTest({
+    runSubscriptionTests({
       mmGQLInstance,
       queryDefinitions: {
         todos: todosQueryDefinition,
       },
       done,
-      subscriptionMessage: getMockSubscriptionMessage({
-        alias: 'todos',
-        type: 'Created',
-        id: 'mock-todo-id-2',
-        valueNodeType: todoNode.type,
-        value: {
-          id: 'mock-todo-id-2',
-          type: 'todo',
-          version: 1,
-          task: 'mock-task-2',
-          // This should be filtered out
-          done: true,
+      tests: [
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should be filtered out
+              done: true,
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
         },
-      }),
-      expectedResultsObject: {
-        todos: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-todo-id-1',
-              task: 'mock-task-1',
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should not be filtered out
               done: false,
             },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+                {
+                  id: 'mock-todo-id-2',
+                  task: 'mock-task-2',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 2,
+            },
+          },
         },
-      },
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Created',
+            id: 'mock-todo-id-2',
+            valueNodeType: todoNode.type,
+            value: {
+              id: 'mock-todo-id-2',
+              type: 'todo',
+              version: 1,
+              task: 'mock-task-2',
+              // This should be filtered out
+              done: true,
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
+        },
+      ],
     });
   });
 
@@ -2545,121 +2657,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it('correctly sorts data from subscription messages related to a collection nested within a collection, for an Inserted type message', done => {
-    const mmGQLInstance = new MMGQL(
-      getMockConfig({
-        getMockData: () => ({
-          todos: {
-            [NODES_PROPERTY_KEY]: [
-              {
-                id: 'mock-todo-id-1',
-                type: 'todo',
-                version: 1,
-                task: 'mock-task-1',
-                done: false,
-                users: {
-                  [NODES_PROPERTY_KEY]: [
-                    {
-                      id: 'mock-user-id-1',
-                      type: 'user',
-                      version: 1,
-                      firstName: 'mock-user-name-1',
-                    },
-                  ],
-                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
-                  [PAGE_INFO_PROPERTY_KEY]: {
-                    hasNextPage: false,
-                    hasPreviousPage: false,
-                    startCursor: 'mock-user-id-1',
-                    endCursor: 'mock-user-id-1',
-                    totalPages: 1,
-                  },
-                },
-              },
-            ],
-            [TOTAL_COUNT_PROPERTY_KEY]: 1,
-            [PAGE_INFO_PROPERTY_KEY]: {
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor: 'mock-todo-id-1',
-              endCursor: 'mock-todo-id-1',
-              totalPages: 1,
-            },
-          },
-        }),
-      })
-    );
-    const userNode = generateUserNode(mmGQLInstance);
-    const todoNode = generateTodoNode(mmGQLInstance, userNode);
-    const todosQueryDefinition = queryDefinition({
-      def: todoNode,
-      map: ({ task, done, users }) => ({
-        task,
-        done,
-        users: users({
-          map: ({ firstName }) => ({
-            firstName,
-          }),
-          sort: {
-            firstName: 'asc',
-          },
-        }),
-      }),
-    });
-
-    runSubscriptionTest({
-      mmGQLInstance,
-      done,
-      queryDefinitions: {
-        todos: todosQueryDefinition,
-      },
-      subscriptionMessage: getMockSubscriptionMessage({
-        alias: 'todos',
-        type: 'Inserted',
-        targetNodeType: todoNode.type,
-        target: {
-          id: 'mock-todo-id-1',
-          property: 'users',
-        },
-        id: 'mock-user-id-0',
-        valueNodeType: userNode.type,
-        value: {
-          id: 'mock-user-id-0',
-          type: 'user',
-          version: 1,
-          // first name that does should sort it first
-          firstName: 'mock-user-name-0',
-        },
-      }),
-      expectedResultsObject: {
-        todos: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-todo-id-1',
-              task: 'mock-task-1',
-              done: false,
-              users: {
-                [NODES_PROPERTY_KEY]: [
-                  {
-                    id: 'mock-user-id-0',
-                    firstName: 'mock-user-name-0',
-                  },
-                  {
-                    id: 'mock-user-id-1',
-                    firstName: 'mock-user-name-1',
-                  },
-                ],
-                [TOTAL_COUNT_PROPERTY_KEY]: 2,
-              },
-            },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
-        },
-      },
-    });
-  });
-
-  it('correctly sorts data from subscription messages related to a collection nested within a collection, for an Updated type message', done => {
+  it('correctly sorts data from subscription messages related to a collection nested within a collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
         getMockData: () => ({
@@ -2727,56 +2725,109 @@ describe('subscription handling', () => {
       }),
     });
 
-    runSubscriptionTest({
+    runSubscriptionTests({
       mmGQLInstance,
       done,
       queryDefinitions: {
         todos: todosQueryDefinition,
       },
-      subscriptionMessage: getMockSubscriptionMessage({
-        alias: 'todos',
-        type: 'Updated',
-        targets: [
-          {
-            id: 'mock-todo-id-1',
-            property: 'users',
-          },
-        ],
-        id: 'mock-user-id-2',
-        valueNodeType: userNode.type,
-        value: {
-          id: 'mock-user-id-2',
-          type: 'user',
-          version: 1,
-          // first name that should sort it first
-          firstName: 'mock-user-name-0',
-        },
-      }),
-      expectedResultsObject: {
-        todos: {
-          [NODES_PROPERTY_KEY]: [
-            {
-              id: 'mock-todo-id-1',
-              task: 'mock-task-1',
-              done: false,
-              users: {
-                [NODES_PROPERTY_KEY]: [
-                  {
-                    id: 'mock-user-id-2',
-                    firstName: 'mock-user-name-0',
-                  },
-                  {
-                    id: 'mock-user-id-1',
-                    firstName: 'mock-user-name-1',
-                  },
-                ],
-                [TOTAL_COUNT_PROPERTY_KEY]: 2,
+      tests: [
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Updated',
+            targets: [
+              {
+                id: 'mock-todo-id-1',
+                property: 'users',
               },
+            ],
+            id: 'mock-user-id-2',
+            valueNodeType: userNode.type,
+            value: {
+              id: 'mock-user-id-2',
+              type: 'user',
+              version: 1,
+              // first name that should sort it first
+              firstName: 'mock-user-name-0',
             },
-          ],
-          [TOTAL_COUNT_PROPERTY_KEY]: 1,
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                  users: {
+                    [NODES_PROPERTY_KEY]: [
+                      {
+                        id: 'mock-user-id-2',
+                        firstName: 'mock-user-name-0',
+                      },
+                      {
+                        id: 'mock-user-id-1',
+                        firstName: 'mock-user-name-1',
+                      },
+                    ],
+                    [TOTAL_COUNT_PROPERTY_KEY]: 2,
+                  },
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
         },
-      },
+        {
+          subscriptionMessage: getMockSubscriptionMessage({
+            alias: 'todos',
+            type: 'Inserted',
+            targetNodeType: todoNode.type,
+            target: {
+              id: 'mock-todo-id-1',
+              property: 'users',
+            },
+            id: 'mock-user-id-0',
+            valueNodeType: userNode.type,
+            value: {
+              id: 'mock-user-id-0',
+              type: 'user',
+              version: 1,
+              // first name that does should sort it first
+              firstName: 'mock-user-name-0',
+            },
+          }),
+          expectedResultsObject: {
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-1',
+                  task: 'mock-task-1',
+                  done: false,
+                  users: {
+                    [NODES_PROPERTY_KEY]: [
+                      {
+                        id: 'mock-user-id-0',
+                        firstName: 'mock-user-name-0',
+                      },
+                      {
+                        id: 'mock-user-id-1',
+                        firstName: 'mock-user-name-1',
+                      },
+                      {
+                        id: 'mock-user-id-2',
+                        firstName: 'mock-user-name-2',
+                      },
+                    ],
+                    [TOTAL_COUNT_PROPERTY_KEY]: 3,
+                  },
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
+          },
+        },
+      ],
     });
   });
 
