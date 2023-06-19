@@ -1469,9 +1469,6 @@ describe('subscription handling', () => {
   it('correctly filters data from subscription messages related to a root level collection', done => {
     const mmGQLInstance = new MMGQL(
       getMockConfig({
-        logging: {
-          gqlSubscriptionErrors: true,
-        },
         getMockData: () => ({
           todos: {
             [NODES_PROPERTY_KEY]: [
