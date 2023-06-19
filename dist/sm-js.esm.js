@@ -7531,7 +7531,7 @@ function createQueryManager(mmGQLInstance) {
         };
       });
       return handlers;
-    } // @TODO leave link explaining why this is necessary
+    } // https://github.com/radialreview/sm-js/wiki/Dev-docs/_edit#client-side-filtering-and-sorting
     ;
 
     // for a given alias path (example: ['users', 'todos'])
