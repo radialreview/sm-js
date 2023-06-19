@@ -202,12 +202,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             );
           }
 
-          if (messageType.startsWith('Updated_')) {
-            const nodeType = messageType.replace('Updated_', '');
-            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
-            if (!nodeUpdatePaths[lowerCaseNodeType]) {
+          const messageMeta = getMessageMetaFromType(messageType);
+
+          if (messageMeta.type === 'Updated') {
+            const nodeType = messageMeta.nodeType;
+            if (!nodeUpdatePaths[nodeType]) {
               return this.logSubscriptionError(
-                `No node update handler found for ${lowerCaseNodeType}`
+                `No node update handler found for ${nodeType}`
               );
             }
 
@@ -224,7 +225,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
             const targets = message.data[rootLevelAlias].targets;
 
-            nodeUpdatePaths[lowerCaseNodeType].forEach((path, i) => {
+            nodeUpdatePaths[nodeType].forEach((path, i) => {
               const queryRecordEntry = path.queryRecordEntry;
 
               if (!queryRecordEntry)
@@ -283,16 +284,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 }
               );
             });
-          } else if (messageType.startsWith('Created_')) {
-            const nodeType = messageType.replace('Created_', '');
-            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+          } else if (messageMeta.type === 'Created') {
+            const nodeType = messageMeta.nodeType;
 
-            if (!nodeCreatePaths[lowerCaseNodeType])
+            if (!nodeCreatePaths[nodeType])
               return this.logSubscriptionError(
-                `No node create handler found for ${lowerCaseNodeType}`
+                `No node create handler found for ${nodeType}`
               );
 
-            nodeCreatePaths[lowerCaseNodeType].forEach((path, i) => {
+            nodeCreatePaths[nodeType].forEach((path, i) => {
               const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
                 return this.logSubscriptionError(
@@ -366,16 +366,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
             });
-          } else if (messageType.startsWith('Deleted_')) {
-            const nodeType = messageType.replace('Deleted_', '');
-            const lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+          } else if (messageMeta.type === 'Deleted') {
+            const nodeType = messageMeta.nodeType;
 
-            if (!nodeDeletePaths[lowerCaseNodeType])
+            if (!nodeDeletePaths[nodeType])
               return this.logSubscriptionError(
-                `No node delete handler found for ${lowerCaseNodeType}`
+                `No node delete handler found for ${nodeType}`
               );
 
-            nodeDeletePaths[lowerCaseNodeType].forEach(path => {
+            nodeDeletePaths[nodeType].forEach(path => {
               const stateEntry = this.state[path.aliasPath[0]];
               if (!stateEntry)
                 return this.logSubscriptionError(
@@ -404,13 +403,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 stateEntry.totalCount--;
               }
             });
-          } else if (messageType.startsWith('Inserted_')) {
-            const {
-              parentNodeType,
-              childNodeType,
-            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
-              messageType
-            );
+          } else if (messageMeta.type === 'Inserted') {
+            const { parentNodeType, childNodeType } = messageMeta;
 
             if (!nodeInsertPaths[`${parentNodeType}.${childNodeType}`])
               return this.logSubscriptionError(
@@ -545,13 +539,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 });
               }
             );
-          } else if (messageType.startsWith('Removed_')) {
-            const {
-              parentNodeType,
-              childNodeType,
-            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
-              messageType
-            );
+          } else if (messageMeta.type === 'Removed') {
+            const { parentNodeType, childNodeType } = messageMeta;
 
             if (!nodeRemovePaths[`${parentNodeType}.${childNodeType}`])
               return this.logSubscriptionError(
@@ -663,13 +652,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 });
               }
             );
-          } else if (messageType.startsWith('UpdatedAssociation_')) {
-            const {
-              parentNodeType,
-              childNodeType,
-            } = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
-              messageType
-            );
+          } else if (messageMeta.type === 'UpdatedAssociation') {
+            const { parentNodeType, childNodeType } = messageMeta;
 
             if (
               !nodeUpdateAssociationPaths[`${parentNodeType}.${childNodeType}`]
@@ -2824,6 +2808,59 @@ function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(
     parentNodeType: lowerCaseFirstLetter(split[1]),
     childNodeType: lowerCaseFirstLetter(split[2]),
   };
+}
+
+function getMessageMetaFromType(messageType: string) {
+  type SingleNodeMessageMeta = {
+    type: 'Updated' | 'Created' | 'Deleted';
+    nodeType: string;
+  };
+
+  type RelationshipMessageMeta = {
+    type: 'Inserted' | 'Removed' | 'UpdatedAssociation';
+    parentNodeType: string;
+    childNodeType: string;
+  };
+
+  let type: SingleNodeMessageMeta['type'] | RelationshipMessageMeta['type'];
+  let isSingleNodeMessage = false;
+  let isRelationshipMessage = false;
+
+  if (messageType.startsWith('Updated_')) {
+    type = 'Updated';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Created_')) {
+    type = 'Created';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Deleted_')) {
+    type = 'Deleted';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Inserted_')) {
+    type = 'Inserted';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('Removed_')) {
+    type = 'Removed';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('UpdatedAssociation_')) {
+    type = 'UpdatedAssociation';
+    isRelationshipMessage = true;
+  } else {
+    throw new UnreachableCaseError(messageType as never);
+  }
+
+  if (isSingleNodeMessage) {
+    return {
+      type,
+      nodeType: lowerCaseFirstLetter(messageType.split('_')[1]),
+    } as SingleNodeMessageMeta;
+  } else if (isRelationshipMessage) {
+    return {
+      type,
+      ...getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
+    } as RelationshipMessageMeta;
+  } else {
+    throw new UnreachableCaseError(messageType as never);
+  }
 }
 
 function camelCasePropertyName(property: string) {
