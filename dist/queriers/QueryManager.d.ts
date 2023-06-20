@@ -3,7 +3,7 @@ import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, Query
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | number | Array<string | number> | null;
+    idsOrIdInCurrentResult: string | Array<string> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
@@ -44,6 +44,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getSubscriptionMessageHandlers(opts: {
             queryRecord: QueryRecord;
         }): Record<string, (message: SubscriptionMessage) => void>;
+        applyClientSideFilterAndSortToState: (opts: {
+            stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+        }) => void;
         getSubscriptionEventToCachePathRecords(opts: {
             aliasPath: Array<string>;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
@@ -80,16 +84,42 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
                 parentQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
             }[]>;
         };
+        /**
+         * Returns all state entries for a given alias path,
+         * taking the parentFilters into consideration when they are provided
+         *
+         * For example, may be called with
+         * aliasPath: ['users','todos']
+         * and a parentFilters: [{id: 'user1-id', property: 'TODOS'}]
+         * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
+         *
+         * in that case, if that property is found in the queryRecordEntry
+         * should return the stateCacheEntry for any alias using the relationship "todos" for the user with the id 'user-id-1'
+         *
+         *
+         * May also be called with a path like ['users']
+         * and no parentFilters
+         * for Created and Deleted type events.
+         *
+         * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
+         */
         getStateCacheEntriesForAliasPath(opts: {
             aliasPath: Array<string>;
-            previousStateEntries?: Array<{
-                leafStateEntry: QueryManagerStateEntry;
-                parentProxy: IDOProxy | null;
+            pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            parentFilters?: Array<{
+                id: string;
+                property: string;
             }>;
-            idFilter?: string | number;
+            previousStateEntries?: Array<{
+                parentStateEntry: QueryManagerStateEntry;
+                idOfAffectedParent: string | null;
+                relationalStateEntry: Maybe<QueryManagerStateEntry>;
+            }>;
         }): Array<{
-            leafStateEntry: QueryManagerStateEntry;
-            parentProxy: IDOProxy | null;
+            parentStateEntry: QueryManagerStateEntry;
+            idOfAffectedParent: string | null;
+            relationalAlias: string | null;
+            relationalStateEntry: QueryManagerStateEntry | null;
         }>;
         unsub(): void;
         /**

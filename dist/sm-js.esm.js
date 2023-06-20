@@ -4867,7 +4867,7 @@ function getSortedIds(_ref11) {
     return item.id;
   });
   var sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntry.sort,
+    queryRecordEntry: queryRecordEntry,
     skipRelationalSorts: true
   });
   var sorting = orderBy(Object.keys(sortObject).map(function (dotSeparatedPropName, index) {
@@ -4977,10 +4977,9 @@ function getItemSortValue(item, underscoreSeparatedPropertyPath) {
 function applyClientSideSortToData(_ref12) {
   var queryRecordEntry = _ref12.queryRecordEntry,
       data = _ref12.data,
-      alias = _ref12.alias,
-      queryRecordEntrySort = _ref12.sort;
+      alias = _ref12.alias;
   var sortObject = getFlattenedNodeSortObject({
-    sort: queryRecordEntrySort,
+    queryRecordEntry: queryRecordEntry,
     skipRelationalSorts: false
   });
 
@@ -5072,7 +5071,6 @@ function applyClientSideSortAndFilterToData(queryRecord, data) {
     if (queryRecordEntry != null && queryRecordEntry.sort) {
       applyClientSideSortToData({
         queryRecordEntry: queryRecordEntry,
-        sort: queryRecordEntry.sort,
         data: data,
         alias: alias
       });
@@ -5188,33 +5186,66 @@ function getFlattenedNodeFilterObject(opts) {
 }
 
 function getFlattenedNodeSortObject(opts) {
+  var queryRecordEntry = opts.queryRecordEntry;
   var result = {};
+  var sort = queryRecordEntry.sort;
+  var nodeData = queryRecordEntry.def.data;
+  var queriedRelations = queryRecordEntry.relational;
+  if (!sort) return result;
 
-  for (var i in opts.sort) {
-    var sortObject = opts.sort;
-    var value = sortObject[i];
+  var _loop2 = function _loop2(sortKey) {
+    var sortObject = sort;
+    var value = sortObject[sortKey];
     var valueIsNotASortObject = isObject(value) && !Object.keys(value).includes('direction');
+    var isObjectInNodeData = nodeData[sortKey] && (nodeData[sortKey].type === DATA_TYPES.object || nodeData[sortKey].type === DATA_TYPES.maybeObject);
+    var isAQueriedRelationalProp = queriedRelations ? queriedRelations[sortKey] != null : false;
+    var sortIsTargettingNestedObjectOrRelationalData = isObject(value) && (isAQueriedRelationalProp || isObjectInNodeData);
 
-    if (typeof sortObject[i] == 'object' && sortObject[i] !== null && valueIsNotASortObject) {
+    if (sortIsTargettingNestedObjectOrRelationalData && opts.skipRelationalSorts) {
+      return "continue";
+    }
+
+    if (typeof sortObject[sortKey] == 'object' && sortObject[sortKey] !== null && valueIsNotASortObject) {
+      var _queryRecordEntry = _extends({}, opts.queryRecordEntry, {
+        def: isObjectInNodeData ? _extends({}, opts.queryRecordEntry.def, {
+          data: nodeData[sortKey].boxedValue
+        }) : queriedRelations[sortKey].def,
+        properties: isObjectInNodeData ? opts.queryRecordEntry.properties.filter(function (prop) {
+          return prop.startsWith(sortKey);
+        }).map(function (prop) {
+          var _prop$split2 = prop.split(OBJECT_PROPERTY_SEPARATOR),
+              remainingPath = _prop$split2.slice(1);
+
+          return remainingPath.join(OBJECT_PROPERTY_SEPARATOR);
+        }) : queriedRelations[sortKey].properties,
+        sort: value
+      });
+
       var flatObject = getFlattenedNodeSortObject({
-        sort: value,
+        queryRecordEntry: _queryRecordEntry,
         skipRelationalSorts: opts.skipRelationalSorts
       });
 
       for (var x in flatObject) {
         if (!flatObject.hasOwnProperty(x)) continue;
-        result[i + '.' + x] = flatObject[x];
+        result[sortKey + '.' + x] = flatObject[x];
       }
     } else {
       if (isObject(value)) {
-        result[i] = value;
+        result[sortKey] = value;
       } else if (value !== undefined) {
         var filter = {
           direction: value
         };
-        result[i] = filter;
+        result[sortKey] = filter;
       }
     }
+  };
+
+  for (var sortKey in sort) {
+    var _ret2 = _loop2(sortKey);
+
+    if (_ret2 === "continue") continue;
   }
 
   return result;
@@ -5478,7 +5509,7 @@ function createQueryManager(mmGQLInstance) {
    *    6) triggering minimal queries and extending results when a "loadMoreResults" function is called on a node collection
    */
   return /*#__PURE__*/function () {
-    function QueryManager(queryDefinitions, opts) {
+    function QueryManager(queryDefinitions, _opts) {
       var _this = this;
 
       this.state = {};
@@ -5507,6 +5538,33 @@ function createQueryManager(mmGQLInstance) {
       this.logSubscriptionError = function (error) {
         if (mmGQLInstance.logging.gqlSubscriptionErrors) {
           console.error(error);
+        }
+      };
+
+      this.applyClientSideFilterAndSortToState = function (opts) {
+        var stateEntryWhichMayRequireUpdate = opts.stateEntryWhichMayRequireUpdate,
+            queryRecordEntry = opts.queryRecordEntry;
+        var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+
+        if (Array.isArray(currentIds)) {
+          var filteredIds = getIdsThatPassFilter({
+            queryRecordEntry: queryRecordEntry,
+            // it's important to retain the order we acquired from the query
+            // in case no client side sorting/filtering is applied
+            // so that we don't accidentally change the order of the results
+            // when we receive a subscription message
+            data: currentIds.map(function (id) {
+              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+            })
+          });
+          var filteredAndSortedIds = getSortedIds({
+            queryRecordEntry: queryRecordEntry,
+            data: filteredIds.map(function (id) {
+              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+            })
+          });
+          stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
+          stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
         }
       };
 
@@ -5724,7 +5782,7 @@ function createQueryManager(mmGQLInstance) {
       }();
 
       this.queryDefinitions = queryDefinitions;
-      this.opts = opts;
+      this.opts = _opts;
       this.onQueryDefinitionsUpdated(this.queryDefinitions)["catch"](function (e) {
         _this.opts.onQueryError(e);
       });
@@ -5763,12 +5821,13 @@ function createQueryManager(mmGQLInstance) {
             return _this2.logSubscriptionError('Invalid subscription message\n' + JSON.stringify(message, null, 2));
           }
 
-          if (messageType.startsWith('Updated_')) {
-            var nodeType = messageType.replace('Updated_', '');
-            var lowerCaseNodeType = lowerCaseFirstLetter(nodeType);
+          var messageMeta = getMessageMetaFromType(messageType);
 
-            if (!nodeUpdatePaths[lowerCaseNodeType]) {
-              return _this2.logSubscriptionError("No node update handler found for " + lowerCaseNodeType);
+          if (messageMeta.type === 'Updated') {
+            var nodeType = messageMeta.nodeType;
+
+            if (!nodeUpdatePaths[nodeType]) {
+              return _this2.logSubscriptionError("No node update handler found for " + nodeType);
             }
 
             var nodeData = message.data[rootLevelAlias].value;
@@ -5778,57 +5837,96 @@ function createQueryManager(mmGQLInstance) {
               return _this2.logSubscriptionError("No node data found for " + messageType);
             }
 
-            nodeUpdatePaths[lowerCaseNodeType].forEach(function (path) {
+            var targets = message.data[rootLevelAlias].targets;
+            nodeUpdatePaths[nodeType].forEach(function (path, i) {
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
-              queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              if (i === 0) {
+                // we don't need to call this for every path
+                // since it's targeting the same node repository instance
+                queryRecordEntry.def.repository.onDataReceived(nodeData);
+              }
 
               var stateEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath,
-                idFilter: nodeData.id
+                pathEndQueryRecordEntry: queryRecordEntry,
+                // This || [] can be removed once the backend is guaranteed to include targets
+                // in every Update type message
+                parentFilters: targets || []
               });
 
               stateEntriesWhichRequireUpdate.forEach(function (_ref4) {
-                var stateEntryWhichMayRequireUpdate = _ref4.leafStateEntry;
-                var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
+                var parentStateEntry = _ref4.parentStateEntry,
+                    idOfAffectedParent = _ref4.idOfAffectedParent,
+                    relationalAlias = _ref4.relationalAlias,
+                    relationalStateEntry = _ref4.relationalStateEntry;
+                var stateEntryWhichMayRequireUpdate = relationalStateEntry || parentStateEntry;
 
-                if (Array.isArray(currentIds)) {
-                  var filteredIds = getIdsThatPassFilter({
-                    queryRecordEntry: path.queryRecordEntry,
-                    // it's important to retain the order we acquired from the query
-                    // in case no client side sorting/filtering is applied
-                    // so that we don't accidentally change the order of the results
-                    // when we receive a subscription message
-                    data: currentIds.map(function (id) {
-                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
-                    })
+                if (!stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id]) {
+                  var _path$parentQueryReco;
+
+                  var newCacheEntry = _this2.buildCacheEntry({
+                    nodeData: nodeData,
+                    queryAlias: relationalAlias || rootLevelAlias,
+                    queryRecord: relationalStateEntry ? (_path$parentQueryReco = path.parentQueryRecordEntry) == null ? void 0 : _path$parentQueryReco.relational : _this2.queryRecord,
+                    aliasPath: path.aliasPath,
+                    // page info is not required
+                    // in this case, all we need to get back is the proxy for a specific node
+                    // and we mutate the state paging info directly as needed
+                    pageInfoFromResults: null,
+                    totalCount: null,
+                    clientSidePageInfo: null,
+                    collectionsIncludePagingInfo: false
                   });
-                  var filteredAndSortedIds = getSortedIds({
-                    queryRecordEntry: path.queryRecordEntry,
-                    data: filteredIds.map(function (id) {
-                      return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
-                    })
-                  });
-                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
-                  stateEntryWhichMayRequireUpdate.totalCount = filteredAndSortedIds.length;
+
+                  if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
+                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult || !Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
+                  stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
+
+                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(nodeData.id)) {
+                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(nodeData.id);
+                  }
+                }
+
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntryWhichMayRequireUpdate,
+                  queryRecordEntry: path.queryRecordEntry
+                });
+
+                if (idOfAffectedParent != null && relationalAlias && relationalStateEntry) {
+                  var _parentStateEntry$pro;
+
+                  var parentProxy = (_parentStateEntry$pro = parentStateEntry.proxyCache[idOfAffectedParent]) == null ? void 0 : _parentStateEntry$pro.proxy;
+
+                  if (parentProxy) {
+                    var _state;
+
+                    parentProxy.updateRelationalResults(_this2.getResultsFromState({
+                      state: (_state = {}, _state[relationalAlias] = relationalStateEntry, _state),
+                      aliasPath: path.aliasPath
+                    }));
+                  }
                 }
               });
             });
-          } else if (messageType.startsWith('Created_')) {
-            var _nodeType = messageType.replace('Created_', '');
+          } else if (messageMeta.type === 'Created') {
+            var _nodeType = messageMeta.nodeType;
+            if (!nodeCreatePaths[_nodeType]) return _this2.logSubscriptionError("No node create handler found for " + _nodeType);
 
-            var _lowerCaseNodeType = lowerCaseFirstLetter(_nodeType);
-
-            if (!nodeCreatePaths[_lowerCaseNodeType]) return _this2.logSubscriptionError("No node create handler found for " + _lowerCaseNodeType);
-
-            nodeCreatePaths[_lowerCaseNodeType].forEach(function (path) {
+            nodeCreatePaths[_nodeType].forEach(function (path, i) {
               var stateEntry = _this2.state[path.aliasPath[0]];
               if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeData = message.data[rootLevelAlias].value;
               if (!nodeData) return _this2.logSubscriptionError("No node data found for " + messageType);
               var queryRecordEntry = path.queryRecordEntry;
               if (!queryRecordEntry) return _this2.logSubscriptionError("No queryRecordEntry found for " + path.aliasPath[0]);
-              queryRecordEntry.def.repository.onDataReceived(nodeData);
+
+              if (i === 0) {
+                // we don't need to call this for every path
+                // since it's targeting the same node repository instance
+                queryRecordEntry.def.repository.onDataReceived(nodeData);
+              }
 
               var newCacheEntry = _this2.buildCacheEntry({
                 aliasPath: path.aliasPath,
@@ -5858,37 +5956,19 @@ function createQueryManager(mmGQLInstance) {
                   stateEntry.totalCount++;
                 }
 
-                var currentIds = stateEntry.idsOrIdInCurrentResult;
-                var filteredIds = getIdsThatPassFilter({
-                  queryRecordEntry: queryRecordEntry,
-                  // it's important to retain the order we acquired from the query
-                  // in case no client side sorting/filtering is applied
-                  // so that we don't accidentally change the order of the results
-                  // when we receive a subscription message
-                  data: currentIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntry,
+                  queryRecordEntry: path.queryRecordEntry
                 });
-                var filteredAndSortedIds = getSortedIds({
-                  queryRecordEntry: queryRecordEntry,
-                  data: filteredIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
-                });
-                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                stateEntry.totalCount = filteredAndSortedIds.length;
               } else {
                 stateEntry.idsOrIdInCurrentResult = nodeData.id;
               }
             });
-          } else if (messageType.startsWith('Deleted_')) {
-            var _nodeType2 = messageType.replace('Deleted_', '');
+          } else if (messageMeta.type === 'Deleted') {
+            var _nodeType2 = messageMeta.nodeType;
+            if (!nodeDeletePaths[_nodeType2]) return _this2.logSubscriptionError("No node delete handler found for " + _nodeType2);
 
-            var _lowerCaseNodeType2 = lowerCaseFirstLetter(_nodeType2);
-
-            if (!nodeDeletePaths[_lowerCaseNodeType2]) return _this2.logSubscriptionError("No node delete handler found for " + _lowerCaseNodeType2);
-
-            nodeDeletePaths[_lowerCaseNodeType2].forEach(function (path) {
+            nodeDeletePaths[_nodeType2].forEach(function (path) {
               var stateEntry = _this2.state[path.aliasPath[0]];
               if (!stateEntry) return _this2.logSubscriptionError("No state entry found for " + path.aliasPath[0]);
               var nodeDeletedId = message.data[rootLevelAlias].id;
@@ -5903,24 +5983,18 @@ function createQueryManager(mmGQLInstance) {
                 stateEntry.totalCount--;
               }
             });
-          } else if (messageType.startsWith('Inserted_')) {
+          } else if (messageMeta.type === 'Inserted') {
             var _message$data$rootLev2, _message$data$rootLev3;
 
-            var _getNodeTypeAndParent = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                parentNodeType = _getNodeTypeAndParent.parentNodeType,
-                childNodeType = _getNodeTypeAndParent.childNodeType;
-
+            var parentNodeType = messageMeta.parentNodeType,
+                childNodeType = messageMeta.childNodeType;
             if (!nodeInsertPaths[parentNodeType + "." + childNodeType]) return _this2.logSubscriptionError("No node insert handler found for " + parentNodeType + "." + childNodeType);
             var parentId = (_message$data$rootLev2 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev2.id;
             var propertyName = (_message$data$rootLev3 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev3.property;
             var parentRelationshipWhichWasUpdated = propertyName ? camelCasePropertyName(propertyName) : null;
             if (!parentId) return _this2.logSubscriptionError('No parentId found');
-            if (!parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
-            nodeInsertPaths[parentNodeType + "." + childNodeType].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== parentRelationshipWhichWasUpdated) {
-                return;
-              }
-
+            if (!parentRelationshipWhichWasUpdated || !propertyName) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
+            nodeInsertPaths[parentNodeType + "." + childNodeType].forEach(function (path, i) {
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -5930,7 +6004,12 @@ function createQueryManager(mmGQLInstance) {
                 return _this2.logSubscriptionError("No node inserted data found for " + messageType);
               }
 
-              path.queryRecordEntry.def.repository.onDataReceived(nodeInsertedData);
+              if (i === 0) {
+                // we don't need to call this for every path
+                // since it's targeting the same node repository instance
+                path.queryRecordEntry.def.repository.onDataReceived(nodeInsertedData);
+              }
+
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
 
               var newCacheEntry = _this2.buildCacheEntry({
@@ -5951,51 +6030,44 @@ function createQueryManager(mmGQLInstance) {
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath,
-                idFilter: parentId
+                pathEndQueryRecordEntry: path.queryRecordEntry,
+                parentFilters: [{
+                  id: parentId,
+                  property: propertyName
+                }]
               });
 
               if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
               cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
-                var _state;
+                var _state2;
 
-                var stateEntry = stateCacheEntry.leafStateEntry;
-                var parentProxy = stateCacheEntry.parentProxy;
+                var stateEntry = stateCacheEntry.relationalStateEntry;
+                var parentProxy = stateCacheEntry.parentStateEntry.proxyCache[parentId].proxy;
+                if (!stateEntry) return _this2.logSubscriptionError('No state entry found');
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
-                stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
-                stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
-                var currentIds = stateEntry.idsOrIdInCurrentResult;
-                var filteredIds = getIdsThatPassFilter({
-                  queryRecordEntry: path.queryRecordEntry,
-                  // it's important to retain the order we acquired from the query
-                  // in case no client side sorting/filtering is applied
-                  // so that we don't accidentally change the order of the results
-                  // when we receive a subscription message
-                  data: currentIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
+
+                if (!stateEntry.idsOrIdInCurrentResult.includes(nodeInsertedData.id)) {
+                  stateEntry.idsOrIdInCurrentResult.push(nodeInsertedData.id);
+                  stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
+                }
+
+                _this2.applyClientSideFilterAndSortToState({
+                  stateEntryWhichMayRequireUpdate: stateEntry,
+                  queryRecordEntry: path.queryRecordEntry
                 });
-                var filteredAndSortedIds = getSortedIds({
-                  queryRecordEntry: path.queryRecordEntry,
-                  data: filteredIds.map(function (id) {
-                    return stateEntry.proxyCache[id].proxy;
-                  })
-                });
-                stateEntry.idsOrIdInCurrentResult = filteredAndSortedIds;
-                stateEntry.totalCount = filteredAndSortedIds.length;
+
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
-                  state: (_state = {}, _state[relationalAlias] = stateEntry, _state),
+                  state: (_state2 = {}, _state2[relationalAlias] = stateEntry, _state2),
                   aliasPath: path.aliasPath
                 }));
               });
             });
-          } else if (messageType.startsWith('Removed_')) {
+          } else if (messageMeta.type === 'Removed') {
             var _message$data$rootLev4, _message$data$rootLev5;
 
-            var _getNodeTypeAndParent2 = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                _parentNodeType = _getNodeTypeAndParent2.parentNodeType,
-                _childNodeType = _getNodeTypeAndParent2.childNodeType;
-
+            var _parentNodeType = messageMeta.parentNodeType,
+                _childNodeType = messageMeta.childNodeType;
             if (!nodeRemovePaths[_parentNodeType + "." + _childNodeType]) return _this2.logSubscriptionError("No node remove handler found for " + _parentNodeType + "." + _childNodeType);
 
             var _parentId = (_message$data$rootLev4 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev4.id;
@@ -6005,13 +6077,9 @@ function createQueryManager(mmGQLInstance) {
             var _parentRelationshipWhichWasUpdated = _propertyName ? camelCasePropertyName(_propertyName) : null;
 
             if (!_parentId) return _this2.logSubscriptionError('No parentId found');
-            if (!_parentRelationshipWhichWasUpdated) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
+            if (!_parentRelationshipWhichWasUpdated || !_propertyName) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
             nodeRemovePaths[_parentNodeType + "." + _childNodeType].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== _parentRelationshipWhichWasUpdated) {
-                return;
-              }
-
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -6020,15 +6088,20 @@ function createQueryManager(mmGQLInstance) {
 
               var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                 aliasPath: path.aliasPath,
-                idFilter: _parentId
+                pathEndQueryRecordEntry: path.queryRecordEntry,
+                parentFilters: [{
+                  id: _parentId,
+                  property: _propertyName
+                }]
               });
 
               if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
               cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
-                var _state2;
+                var _state3;
 
-                var stateEntry = stateCacheEntry.leafStateEntry;
-                var parentProxy = stateCacheEntry.parentProxy;
+                var stateEntry = stateCacheEntry.relationalStateEntry;
+                var parentProxy = stateCacheEntry.parentStateEntry.proxyCache[_parentId].proxy;
+                if (!stateEntry) return _this2.logSubscriptionError('No state entry found');
                 if (!Array.isArray(stateEntry.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('idsOrIdInCurrentResult is not an array');
                 var indexOfRemovedId = stateEntry.idsOrIdInCurrentResult.findIndex(function (id) {
                   return id === nodeRemovedId;
@@ -6043,18 +6116,16 @@ function createQueryManager(mmGQLInstance) {
 
                 if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                 parentProxy.updateRelationalResults(_this2.getResultsFromState({
-                  state: (_state2 = {}, _state2[relationalAlias] = stateEntry, _state2),
+                  state: (_state3 = {}, _state3[relationalAlias] = stateEntry, _state3),
                   aliasPath: path.aliasPath
                 }));
               });
             });
-          } else if (messageType.startsWith('UpdatedAssociation_')) {
+          } else if (messageMeta.type === 'UpdatedAssociation') {
             var _message$data$rootLev6, _message$data$rootLev7;
 
-            var _getNodeTypeAndParent3 = getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType),
-                _parentNodeType2 = _getNodeTypeAndParent3.parentNodeType,
-                _childNodeType2 = _getNodeTypeAndParent3.childNodeType;
-
+            var _parentNodeType2 = messageMeta.parentNodeType,
+                _childNodeType2 = messageMeta.childNodeType;
             if (!nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2]) return _this2.logSubscriptionError("No node update association handler found for " + _parentNodeType2 + "." + _childNodeType2);
 
             var _parentId2 = (_message$data$rootLev6 = message.data[rootLevelAlias].target) == null ? void 0 : _message$data$rootLev6.id;
@@ -6064,13 +6135,9 @@ function createQueryManager(mmGQLInstance) {
             var _parentRelationshipWhichWasUpdated2 = _propertyName2 ? camelCasePropertyName(_propertyName2) : null;
 
             if (!_parentId2) return _this2.logSubscriptionError('No parentId found');
-            if (!_parentRelationshipWhichWasUpdated2) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
+            if (!_parentRelationshipWhichWasUpdated2 || !_propertyName2) return _this2.logSubscriptionError('No parentRelationshipWhichWasUpdated found');
 
-            nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2].forEach(function (path) {
-              if (!('_relationshipName' in path.queryRecordEntry) || path.queryRecordEntry._relationshipName !== _parentRelationshipWhichWasUpdated2) {
-                return;
-              }
-
+            nodeUpdateAssociationPaths[_parentNodeType2 + "." + _childNodeType2].forEach(function (path, i) {
               var parentQueryRecordEntry = path.parentQueryRecordEntry;
               if (!parentQueryRecordEntry) return _this2.logSubscriptionError("No parentQueryRecord found for " + messageType);
               if (!parentQueryRecordEntry.relational) return _this2.logSubscriptionError("No parentQueryRecordEntry.relational found for " + messageType);
@@ -6079,7 +6146,11 @@ function createQueryManager(mmGQLInstance) {
               var newRelationalStateEntry = undefined;
 
               if (nodeAssociatedData) {
-                path.queryRecordEntry.def.repository.onDataReceived(nodeAssociatedData);
+                if (i === 0) {
+                  // we don't need to call this for every path
+                  // since it's targeting the same node repository instance
+                  path.queryRecordEntry.def.repository.onDataReceived(nodeAssociatedData);
+                }
 
                 var newCacheEntry = _this2.buildCacheEntry({
                   nodeData: nodeAssociatedData,
@@ -6106,15 +6177,20 @@ function createQueryManager(mmGQLInstance) {
               if (newRelationalStateEntry !== undefined) {
                 var cacheEntriesWhichRequireUpdate = _this2.getStateCacheEntriesForAliasPath({
                   aliasPath: path.aliasPath,
-                  idFilter: _parentId2
+                  pathEndQueryRecordEntry: path.queryRecordEntry,
+                  parentFilters: [{
+                    id: _parentId2,
+                    property: _propertyName2
+                  }]
                 });
 
                 if (!cacheEntriesWhichRequireUpdate || cacheEntriesWhichRequireUpdate.length === 0) return _this2.logSubscriptionError('No parent cache entries found');
                 cacheEntriesWhichRequireUpdate.forEach(function (stateCacheEntry) {
-                  var _state3;
+                  var _state4;
 
-                  var stateEntry = stateCacheEntry.leafStateEntry;
-                  var parentProxy = stateCacheEntry.parentProxy;
+                  var stateEntry = stateCacheEntry.relationalStateEntry;
+                  var parentProxy = stateCacheEntry.parentStateEntry.proxyCache[_parentId2].proxy;
+                  if (!stateEntry) return _this2.logSubscriptionError('No state entry found');
                   stateEntry.idsOrIdInCurrentResult = nodeAssociatedData ? nodeAssociatedData.id : null;
 
                   if (nodeAssociatedData && newRelationalStateEntry) {
@@ -6123,7 +6199,7 @@ function createQueryManager(mmGQLInstance) {
 
                   if (!parentProxy) return _this2.logSubscriptionError('No parent proxy found');
                   parentProxy.updateRelationalResults(_this2.getResultsFromState({
-                    state: (_state3 = {}, _state3[relationalAlias] = stateEntry, _state3),
+                    state: (_state4 = {}, _state4[relationalAlias] = stateEntry, _state4),
                     aliasPath: path.aliasPath
                   }));
                 });
@@ -6135,10 +6211,11 @@ function createQueryManager(mmGQLInstance) {
         };
       });
       return handlers;
-    } // for a given alias path (example: ['users', 'todos'])
-    // return string based paths to the cache entries that are affected by each subscription message type
+    } // https://github.com/radialreview/sm-js/wiki/Dev-docs/_edit#client-side-filtering-and-sorting
     ;
 
+    // for a given alias path (example: ['users', 'todos'])
+    // return string based paths to the cache entries that are affected by each subscription message type
     _proto.getSubscriptionEventToCachePathRecords = function getSubscriptionEventToCachePathRecords(opts) {
       var _this3 = this;
 
@@ -6221,42 +6298,98 @@ function createQueryManager(mmGQLInstance) {
       }
 
       return toBeReturned;
-    };
+    }
+    /**
+     * Returns all state entries for a given alias path,
+     * taking the parentFilters into consideration when they are provided
+     *
+     * For example, may be called with
+     * aliasPath: ['users','todos']
+     * and a parentFilters: [{id: 'user1-id', property: 'TODOS'}]
+     * for Updated, Inserted, Removed, Deleted, UpdatedAssociation type events
+     *
+     * in that case, if that property is found in the queryRecordEntry
+     * should return the stateCacheEntry for any alias using the relationship "todos" for the user with the id 'user-id-1'
+     *
+     *
+     * May also be called with a path like ['users']
+     * and no parentFilters
+     * for Created and Deleted type events.
+     *
+     * in that case, should return the root level stateCacheEntry for that alias (this.state['users'])
+     */
+    ;
 
     _proto.getStateCacheEntriesForAliasPath = function getStateCacheEntriesForAliasPath(opts) {
       var _this4 = this;
 
-      var aliasPath = opts.aliasPath;
+      var aliasPath = opts.aliasPath,
+          pathEndQueryRecordEntry = opts.pathEndQueryRecordEntry,
+          parentFilters = opts.parentFilters,
+          previousStateEntries = opts.previousStateEntries;
       var firstAlias = aliasPath[0],
-          restOfAliasPath = aliasPath.slice(1);
+          restOfAliasPath = aliasPath.slice(1); // this is an event that affects a root level result set
+
+      if (!previousStateEntries && restOfAliasPath.length === 0) {
+        return [{
+          parentStateEntry: this.state[firstAlias],
+          idOfAffectedParent: null,
+          relationalAlias: null,
+          relationalStateEntry: null
+        }];
+      }
+
+      if (!parentFilters) throw Error('parentFilters must be provided for non root level events');
+
+      if (!('_relationshipName' in pathEndQueryRecordEntry)) {
+        throw Error('parentFilters provided but no relationship found in pathEndQueryRecordEntry');
+      } // at the end of this path, if the relationshipName used was not one included in any of the properties
+      // within the parentFilters
+      // then that means that state entries at the end of this path will not be affected
+      // and we can safely return []
+
+
+      if (!parentFilters.some(function (parentFilter) {
+        return camelCasePropertyName(parentFilter.property) === pathEndQueryRecordEntry._relationshipName;
+      })) {
+        return [];
+      }
 
       var getStateEntriesForFirstAlias = function getStateEntriesForFirstAlias() {
-        if (opts.previousStateEntries) {
-          return opts.previousStateEntries.reduce(function (acc, stateEntry) {
-            Object.keys(stateEntry.leafStateEntry.proxyCache).forEach(function (nodeId) {
+        if (previousStateEntries) {
+          return previousStateEntries.reduce(function (acc, stateEntry) {
+            var stateEntryToIterate = stateEntry.relationalStateEntry || stateEntry.parentStateEntry;
+            if (!stateEntryToIterate) return acc; // if we are at the end of the alias path, we want to apply the id filter
+            // otherwise, we want to return all state entries for this alias
+
+            var shouldApplyIdFilter = restOfAliasPath.length === 0;
+            Object.keys(stateEntryToIterate.proxyCache).forEach(function (nodeId) {
               var _proxyCacheEntry$rela;
 
-              // if we are at the end of the alias path, we want to apply the id filter
-              // otherwise, we want to return all state entries for this alias
-              var shouldApplyIdFilter = restOfAliasPath.length === 0;
+              if (shouldApplyIdFilter) {
+                var nodeIdAsNumber = Number(nodeId);
+                var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
+                  // since we store node ids as strings
+                  // but the message from BE may include the id as a number
+                  if (typeof parentFilter.id === 'number' && nodeIdAsNumber === parentFilter.id) {
+                    return true;
+                  } else if (typeof parentFilter.id === 'string' && nodeId === parentFilter.id) {
+                    return true;
+                  }
 
-              if (shouldApplyIdFilter && opts.idFilter != null) {
-                var nodeIdAsNumber = Number(nodeId); // since we store node ids as strings
-                // but the message from BE may include the id as a number
-
-                if (typeof opts.idFilter === 'number' && nodeIdAsNumber !== opts.idFilter) {
-                  return;
-                } else if (typeof opts.idFilter === 'string' && nodeId !== opts.idFilter) {
-                  return;
-                }
+                  return false;
+                });
+                if (!matchesSomeIdInTargets) return;
               }
 
-              var proxyCacheEntry = stateEntry.leafStateEntry.proxyCache[nodeId];
+              var proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
               acc.push({
-                leafStateEntry: relationalStateForAlias,
-                parentProxy: proxyCacheEntry.proxy
+                parentStateEntry: stateEntryToIterate,
+                idOfAffectedParent: nodeId,
+                relationalAlias: firstAlias,
+                relationalStateEntry: relationalStateForAlias
               });
             });
             return acc;
@@ -6264,8 +6397,10 @@ function createQueryManager(mmGQLInstance) {
         } else {
           if (!_this4.state[firstAlias]) throw Error("No state entry found for alias path \"" + firstAlias);
           return [{
-            leafStateEntry: _this4.state[firstAlias],
-            parentProxy: null
+            parentStateEntry: _this4.state[firstAlias],
+            idOfAffectedParent: null,
+            relationalAlias: null,
+            relationalStateEntry: null
           }];
         }
       };
@@ -6278,7 +6413,8 @@ function createQueryManager(mmGQLInstance) {
         return this.getStateCacheEntriesForAliasPath({
           aliasPath: restOfAliasPath,
           previousStateEntries: stateEntriesForFirstAlias,
-          idFilter: opts.idFilter
+          pathEndQueryRecordEntry: pathEndQueryRecordEntry,
+          parentFilters: parentFilters
         });
       }
     };
@@ -7119,7 +7255,7 @@ function createQueryManager(mmGQLInstance) {
       if (!existingStateForFirstAlias && newStateForFirstAlias) opts.state[firstAliasWithoutId] = newStateForFirstAlias;
 
       if (remainingPath.length === 0) {
-        var _opts$parentProxy, _state4;
+        var _opts$parentProxy, _state5;
 
         if (existingStateForFirstAlias) {
           existingStateForFirstAlias.pageInfoFromResults = newStateForFirstAlias.pageInfoFromResults;
@@ -7140,7 +7276,7 @@ function createQueryManager(mmGQLInstance) {
         }
 
         (_opts$parentProxy = opts.parentProxy) == null ? void 0 : _opts$parentProxy.updateRelationalResults(this.getResultsFromState({
-          state: (_state4 = {}, _state4[firstAliasWithoutId] = opts.state[firstAliasWithoutId], _state4),
+          state: (_state5 = {}, _state5[firstAliasWithoutId] = opts.state[firstAliasWithoutId], _state5),
           aliasPath: opts.originalAliasPath
         }));
       } else {
@@ -7609,6 +7745,47 @@ function getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageTypeName)
     parentNodeType: lowerCaseFirstLetter(split[1]),
     childNodeType: lowerCaseFirstLetter(split[2])
   };
+}
+
+function getMessageMetaFromType(messageType) {
+  var type;
+  var isSingleNodeMessage = false;
+  var isRelationshipMessage = false;
+
+  if (messageType.startsWith('Updated_')) {
+    type = 'Updated';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Created_')) {
+    type = 'Created';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Deleted_')) {
+    type = 'Deleted';
+    isSingleNodeMessage = true;
+  } else if (messageType.startsWith('Inserted_')) {
+    type = 'Inserted';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('Removed_')) {
+    type = 'Removed';
+    isRelationshipMessage = true;
+  } else if (messageType.startsWith('UpdatedAssociation_')) {
+    type = 'UpdatedAssociation';
+    isRelationshipMessage = true;
+  } else {
+    throw new UnreachableCaseError(messageType);
+  }
+
+  if (isSingleNodeMessage) {
+    return {
+      type: type,
+      nodeType: lowerCaseFirstLetter(messageType.split('_')[1])
+    };
+  } else if (isRelationshipMessage) {
+    return _extends({
+      type: type
+    }, getNodeTypeAndParentNodeTypeFromRelationshipSubMessage(messageType));
+  } else {
+    throw new UnreachableCaseError(messageType);
+  }
 }
 
 function camelCasePropertyName(property) {
