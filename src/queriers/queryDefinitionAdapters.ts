@@ -459,12 +459,12 @@ export function getQueryRecordFromQueryDefinition<
       }
     }
 
-    const queryRecordEntry = {
+    const queryRecordEntry: QueryRecordEntry = {
       def: nodeDef,
       properties: queriedProps,
       relational,
       allowNullResult,
-      tokenName,
+      tokenName: tokenName || null,
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -482,6 +482,14 @@ export function getQueryRecordFromQueryDefinition<
 
         (queryRecordEntry as QueryRecordEntry & { ids: Array<string> }).ids =
           queryDefinition.target.ids;
+
+        // https://winterinternational.atlassian.net/browse/TTD-1458
+        // we use a filter to get nodes by their ids
+        queryRecordEntry.filter = {
+          id: {
+            in: queryDefinition.target.ids,
+          },
+        };
       }
       if ('id' in queryDefinition.target) {
         if (
@@ -510,10 +518,6 @@ export function getQueryRecordFromQueryDefinition<
     queryRecord[queryDefinitionsAlias] = queryRecordEntry as QueryRecordEntry;
   });
   return queryRecord;
-}
-
-function getIdsString(ids: Array<string>) {
-  return `[${ids.map(id => `"${id}"`).join(',')}]`;
 }
 
 function wrapInQuotesIfString(value: any) {
@@ -647,6 +651,15 @@ export function getBEFilterString<TNode extends INode>(opts: {
               const value = isStringEnum
                 ? operatorValueCombo.value
                 : wrapInQuotesIfString(operatorValueCombo.value);
+
+              if (Array.isArray(operatorValueCombo.value)) {
+                // if the value is an array, we need to wrap each value in quotes
+                // and wrap the whole thing in brackets
+                acc += `${operatorValueCombo.operator}: [${value
+                  .map(JSON.stringify)
+                  .join(',')}]`;
+                return acc;
+              }
 
               acc += `${operatorValueCombo.operator}: ${value}`;
               return acc;
@@ -984,7 +997,12 @@ function getOperationFromQueryRecordEntry(
   const nodeType = opts.def.type;
   let operation: string;
   if ('ids' in opts && opts.ids != null) {
-    operation = `${nodeType}s(ids: ${getIdsString(opts.ids)})`;
+    const options = getGetNodeOptions({
+      queryRecordEntry: opts,
+      useServerSidePaginationFilteringSorting:
+        opts.useServerSidePaginationFilteringSorting,
+    });
+    operation = `${nodeType}s(${options})`;
   } else if ('id' in opts && opts.id != null) {
     operation = `${nodeType}(id: "${opts.id}")`;
   } else {

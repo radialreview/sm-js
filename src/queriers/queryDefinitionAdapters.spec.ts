@@ -648,7 +648,7 @@ describe('getQueryGQLDocumentFromQueryRecord', () => {
       )
     ).toMatchInlineSnapshot(`
       "query MyTestQuery {
-       users: users(ids: [\\"mock-id\\"]) {
+       users: users(where: {and: [{id: {in: [\\"mock-id\\"]}}]}) {
          nodes {
            id
            version
