@@ -1412,7 +1412,7 @@ function getQueryRecordFromQueryDefinition(opts) {
       properties: queriedProps,
       relational: relational,
       allowNullResult: allowNullResult,
-      tokenName: tokenName
+      tokenName: tokenName || null
     };
 
     if ('target' in queryDefinition && queryDefinition.target != null) {
@@ -1423,7 +1423,14 @@ function getQueryRecordFromQueryDefinition(opts) {
           throw Error('Invalid id in target.ids');
         }
 
-        queryRecordEntry.ids = queryDefinition.target.ids;
+        queryRecordEntry.ids = queryDefinition.target.ids; // https://winterinternational.atlassian.net/browse/TTD-1458
+        // we use a filter to get nodes by their ids
+
+        queryRecordEntry.filter = {
+          id: {
+            "in": queryDefinition.target.ids
+          }
+        };
       }
 
       if ('id' in queryDefinition.target) {
@@ -1450,12 +1457,6 @@ function getQueryRecordFromQueryDefinition(opts) {
     queryRecord[queryDefinitionsAlias] = queryRecordEntry;
   });
   return queryRecord;
-}
-
-function getIdsString(ids) {
-  return "[" + ids.map(function (id) {
-    return "\"" + id + "\"";
-  }).join(',') + "]";
 }
 
 function wrapInQuotesIfString(value) {
@@ -1542,6 +1543,14 @@ function getBEFilterString(opts) {
         var operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
           if (index > 0) acc += ', ';
           var value = isStringEnum ? operatorValueCombo.value : wrapInQuotesIfString(operatorValueCombo.value);
+
+          if (Array.isArray(operatorValueCombo.value)) {
+            // if the value is an array, we need to wrap each value in quotes
+            // and wrap the whole thing in brackets
+            acc += operatorValueCombo.operator + ": [" + value.map(JSON.stringify).join(',') + "]";
+            return acc;
+          }
+
           acc += operatorValueCombo.operator + ": " + value;
           return acc;
         }, '');
@@ -1789,15 +1798,20 @@ function getOperationFromQueryRecordEntry(opts) {
   var operation;
 
   if ('ids' in opts && opts.ids != null) {
-    operation = nodeType + "s(ids: " + getIdsString(opts.ids) + ")";
-  } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: \"" + opts.id + "\")";
-  } else {
     var options = getGetNodeOptions({
       queryRecordEntry: opts,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
+  } else if ('id' in opts && opts.id != null) {
+    operation = nodeType + "(id: \"" + opts.id + "\")";
+  } else {
+    var _options = getGetNodeOptions({
+      queryRecordEntry: opts,
+      useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
+    });
+
+    operation = nodeType + "s" + (_options !== '' ? "(" + _options + ")" : '');
   }
 
   return operation;
@@ -8023,6 +8037,19 @@ function createQueryManager(mmGQLInstance) {
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
+            proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node: node
+              });
+              return proxyCacheAcc;
+            }, {}),
+            pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
+            clientSidePageInfo: opts.clientSidePageInfo
+          };
+        } else if ('ids' in queryRecordEntry) {
+          return {
+            idsOrIdInCurrentResult: queryRecordEntry.ids,
             proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
               proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
                 node: node

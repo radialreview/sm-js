@@ -697,6 +697,22 @@ const stateNode: StateNode = mmGQL.def({
   byIdWithNullResult.data.user?.bogus as string;
   byIdWithNullResult.data.user?.id as string;
 
+  const byIds = await mmGQL.query({
+    users: queryDefinition({
+      def: userNode,
+      map: userData => ({
+        id: userData.id,
+      }),
+      target: {
+        ids: ['some-user-id'],
+      },
+    }),
+  });
+
+  byIds.data.users.nodes[0].id as string;
+  // @ts-expect-error
+  byIds.data.users.nodes[0].bogus as string;
+
   const withMapFnFromObjectOmitted = await mmGQL.query({
     users: queryDefinition({
       def: userNode,

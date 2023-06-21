@@ -1557,6 +1557,20 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
           };
+        } else if ('ids' in queryRecordEntry) {
+          return {
+            idsOrIdInCurrentResult: queryRecordEntry.ids as Array<string>,
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
+
+              return proxyCacheAcc;
+            }, {} as QueryManagerProxyCache),
+            pageInfoFromResults: opts.pageInfoFromResults,
+            totalCount: opts.totalCount,
+            clientSidePageInfo: opts.clientSidePageInfo,
+          };
         } else {
           return {
             idsOrIdInCurrentResult: opts.nodeData.map(node => node.id),
