@@ -1802,7 +1802,7 @@ function getOperationFromQueryRecordEntry(opts) {
       queryRecordEntry: opts,
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     });
-    operation = nodeType + "s(" + options + ")";
+    operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
     operation = nodeType + "(id: \"" + opts.id + "\")";
   } else {
