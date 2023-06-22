@@ -85,7 +85,7 @@ describe('data.DO', () => {
     const { doInstance } = generateDOInstance<
       'mock-type',
       typeof properties,
-      { dropdownOpt: { value: string; display: string } },
+      { dropdownOpt: { value: string | number; display: string } },
       {}
     >({
       properties,

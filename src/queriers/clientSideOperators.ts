@@ -461,7 +461,7 @@ export function getSortedIds({
   data,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  data: Array<{ id: string }>;
+  data: Array<{ id: string | number }>;
 }) {
   if (!queryRecordEntry.sort) return data.map(item => item.id);
 
