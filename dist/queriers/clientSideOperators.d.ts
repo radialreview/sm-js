@@ -1,4 +1,4 @@
-import { QueryRecordEntry, QueryRecord, RelationalQueryRecord, RelationalQueryRecordEntry } from '../types';
+import { QueryRecordEntry, QueryRecord, RelationalQueryRecord, RelationalQueryRecordEntry, Id } from '../types';
 export declare function applyClientSideFilterToData({ queryRecordEntry, data, alias, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     data: any;
@@ -11,9 +11,9 @@ export declare function getIdsThatPassFilter({ queryRecordEntry, data, }: {
 export declare function getSortedIds({ queryRecordEntry, data, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     data: Array<{
-        id: string | number;
+        id: Id;
     }>;
-}): (string | number)[];
+}): Id[];
 export declare function applyClientSideSortToData({ queryRecordEntry, data, alias, }: {
     queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     data: any;

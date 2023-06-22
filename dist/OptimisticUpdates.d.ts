@@ -1,4 +1,4 @@
-import { NodeDO } from './types';
+import { Id, NodeDO } from './types';
 /**
  * This class is responsible for handling all logic pertaining optimistic updates.
  *
@@ -37,14 +37,14 @@ export declare class OptimisticUpdatesOrchestrator {
     onDODeleted: (DO: NodeDO) => void;
     onPersistedDataReceived: (opts: {
         data: {
-            id: string | number;
+            id: Id;
             version: number;
             lastUpdatedBy: string;
         } & Record<string, any>;
         applyUpdateToDO: () => void;
     }) => void;
     onUpdateRequested: (update: {
-        id: string | number;
+        id: Id;
         payload: Record<string, any>;
     }) => {
         onUpdateSuccessful: () => void;

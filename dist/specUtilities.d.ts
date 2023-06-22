@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder, Id } from './types';
 import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
@@ -865,7 +865,7 @@ export declare function generateDOInstance<TNodeType extends string, TNodeData e
     }>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
     initialData: {
-        id: string | number;
+        id: Id;
         version: number;
     } & Record<string, any>;
 }): {
@@ -2954,10 +2954,10 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
             }>;
         };
         TQueryDefinitionTarget: {
-            id: string | number;
+            id: Id;
             allowNullResult?: boolean | undefined;
         } | {
-            ids: (string | number)[];
+            ids: Id[];
         };
         TUseSubscriptionQueryDefinitionOpts: {
             doNotSuspend: boolean | undefined;
@@ -3108,7 +3108,7 @@ export declare function convertNodesCollectionValuesToArray<T extends Record<str
 }): Record<string, any>;
 export declare function createMockDataItems<T>(opts: {
     sampleMockData: T & {
-        id: string | number;
+        id: Id;
     };
     items: Array<Partial<any>>;
     pageInfo?: Partial<PageInfoFromResults>;
@@ -3122,7 +3122,7 @@ export declare function createMockDataItems<T>(opts: {
 };
 export declare function createNonPaginatedMockDataItems<T>(opts: {
     sampleMockData: T & {
-        id: string | number;
+        id: Id;
     };
     items: Array<Partial<any>>;
 }): (T & {

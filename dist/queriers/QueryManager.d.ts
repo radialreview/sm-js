@@ -1,9 +1,9 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage, Id } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | number | Array<string | number> | null;
+    idsOrIdInCurrentResult: Id | Array<Id> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
@@ -107,7 +107,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
             pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             parentFilters?: Array<{
-                id: string | number;
+                id: Id;
                 property: string;
             }>;
             previousStateEntries?: Array<{
@@ -238,7 +238,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): void;
         addIdToLastEntryInAliasPath(opts: {
             aliasPath: Array<string>;
-            id: string | number;
+            id: Id;
         }): string[];
         /**
          * Removes the id from the alias if it exists
