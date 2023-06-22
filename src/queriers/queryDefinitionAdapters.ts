@@ -1005,7 +1005,7 @@ function getOperationFromQueryRecordEntry(
     });
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   } else if ('id' in opts && opts.id != null) {
-    operation = `${nodeType}(id: "${opts.id}")`;
+    operation = `${nodeType}(id: ${JSON.stringify(opts.id)})`;
   } else {
     const options = getGetNodeOptions({
       queryRecordEntry: opts,
