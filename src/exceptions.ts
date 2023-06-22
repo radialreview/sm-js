@@ -51,7 +51,7 @@ export class ImpliedNodePropertyException extends Error {
 }
 
 export class NotCachedException extends Error {
-  constructor(opts: { nodeType: string; id: string }) {
+  constructor(opts: { nodeType: string; id: string | number }) {
     super(
       `NotCached exception - Attempted to get the node with the type "${opts.nodeType}" and id "${opts.id}" but it was not cached.`
     );

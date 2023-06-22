@@ -55,7 +55,7 @@ type QueryManagerState = Record<
 
 type QueryManagerStateEntry = {
   // which id or ids represent the most up to date results for this alias, used in conjunction with proxyCache to build a returned data set
-  idsOrIdInCurrentResult: string | Array<string> | null;
+  idsOrIdInCurrentResult: string | number | Array<string | number> | null;
   // proxy cache is used to keep track of the proxies that have been built for this specific part of the query
   // NOTE: different aliases may build different proxies for the same node
   // this is because different aliases may have different relationships or fields queried for the same node
@@ -213,7 +213,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             }
 
             const nodeData = message.data[rootLevelAlias].value as {
-              id: string;
+              id: string | number;
             } & Record<string, any>;
 
             if (!nodeData) {
@@ -351,7 +351,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 );
 
               const nodeData = message.data[rootLevelAlias].value as {
-                id: string;
+                id: string | number;
               } & Record<string, any>;
 
               if (!nodeData)
@@ -488,7 +488,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
 
                 const nodeInsertedData = message.data[rootLevelAlias].value as {
-                  id: string;
+                  id: string | number;
                 } & Record<string, any>;
 
                 if (!nodeInsertedData) {
@@ -730,7 +730,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 );
 
               const nodeAssociatedData = message.data[rootLevelAlias].value as {
-                id: string;
+                id: string | number;
               } & Record<string, any>;
 
               const relationalAlias = path.aliasPath[path.aliasPath.length - 1];
@@ -1041,7 +1041,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       // used to check against the properties in the parentFilters
       // if one is provided
       pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-      parentFilters?: Array<{ id: string; property: string }>;
+      parentFilters?: Array<{ id: string | number; property: string }>;
       previousStateEntries?: Array<{
         parentStateEntry: QueryManagerStateEntry;
         idOfAffectedParent: string | null;
@@ -1590,7 +1590,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return {
           idsOrIdInCurrentResult: opts.nodeData.id,
           proxyCache: {
-            [(nodeData as { id: string }).id]: buildProxyCacheEntryForNode({
+            [(nodeData as { id: string | number })
+              .id]: buildProxyCacheEntryForNode({
               node: nodeData,
             }),
           },
@@ -2359,7 +2360,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     public addIdToLastEntryInAliasPath(opts: {
       aliasPath: Array<string>;
-      id: string;
+      id: string | number;
     }) {
       const aliasPath = [...opts.aliasPath];
       aliasPath[aliasPath.length - 1] = addIdToAliasPathEntry({
@@ -2805,7 +2806,10 @@ function stringifyQueryRecordEntry(opts: {
   });
 }
 
-function addIdToAliasPathEntry(opts: { aliasPathEntry: string; id: string }) {
+function addIdToAliasPathEntry(opts: {
+  aliasPathEntry: string;
+  id: string | number;
+}) {
   return `${opts.aliasPathEntry}[${opts.id}]`;
 }
 

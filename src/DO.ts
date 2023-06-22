@@ -41,7 +41,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
     return class DO implements TDOClass {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
-      public id: string;
+      public id: string | number;
       public lastUpdatedBy: string;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
@@ -50,12 +50,12 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
       constructor(
         initialData: DeepPartial<TNodeData> & {
           version: number;
-          id: string;
+          id: string | number;
           lastUpdatedBy: string;
         }
       ) {
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
         if (initialData.version != null) {
           this.version = Number(initialData.version);

@@ -892,7 +892,7 @@ function getMockSubscriptionMessage(opts: {
     }
   ];
   valueNodeType?: string;
-  value?: ({ id: string } & Record<string, any>) | null;
+  value?: ({ id: string | number } & Record<string, any>) | null;
 }) {
   let typeNameString = `${opts.type}_`;
 
@@ -1047,24 +1047,26 @@ describe('subscription handling', () => {
   }) {
     let testsDone = 0;
     let testFailed = false;
+    function onTestDone(e: any, testIndex: number) {
+      if (!e) {
+        testsDone++;
+        if (testsDone === opts.tests.length) {
+          opts.done();
+        }
+      } else {
+        if (!testFailed) {
+          testFailed = true;
+          e.message = `Failed test index: ${testIndex}. Message: ${e.message}`;
+          opts.done(e);
+        }
+      }
+    }
+
     for (const [testIndex, test] of opts.tests.entries()) {
       runSubscriptionTest({
         mmGQLInstance: opts.mmGQLInstance,
         queryDefinitions: opts.queryDefinitions,
-        done: e => {
-          if (!e) {
-            testsDone++;
-            if (testsDone === opts.tests.length) {
-              opts.done();
-            }
-          } else {
-            if (!testFailed) {
-              testFailed = true;
-              e.message = `Failed test index: ${testIndex}. Message: ${e.message}`;
-              opts.done(e);
-            }
-          }
-        },
+        done: e => onTestDone(e, testIndex),
         subscriptionMessage: test.subscriptionMessage,
         expectedResultsObject: test.expectedResultsObject,
       });

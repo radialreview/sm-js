@@ -192,6 +192,40 @@ number.optional = new Data<{
   TBoxedValue: undefined;
 }>;
 
+export const stringOrNumber = (
+  defaultValue: string | number
+): IData<{
+  TValue: string | number;
+  TParsedValue: string | number;
+  TBoxedValue: undefined;
+}> =>
+  new Data<{
+    TValue: string | number;
+    TParsedValue: string | number;
+    TBoxedValue: undefined;
+  }>({
+    type: DATA_TYPES.stringOrNumber,
+    parser: value => value,
+    defaultValue,
+    isOptional: false,
+  });
+
+stringOrNumber._default = stringOrNumber('');
+
+stringOrNumber.optional = new Data<{
+  TValue: Maybe<string | number>;
+  TParsedValue: Maybe<string | number>;
+  TBoxedValue: undefined;
+}>({
+  type: DATA_TYPES.maybeStringOrNumber,
+  parser: value => value,
+  isOptional: true,
+}) as IData<{
+  TValue: Maybe<string>;
+  TParsedValue: Maybe<string>;
+  TBoxedValue: undefined;
+}>;
+
 export const boolean = <TDefaultValue extends boolean>(
   defaultValue?: TDefaultValue
 ) => {

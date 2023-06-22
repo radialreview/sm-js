@@ -22,7 +22,7 @@ export function RepositoryFactory<
   };
   DOClass: new (initialData?: Record<string, any>) => NodeDO;
   onDataReceived(opts: {
-    data: { id: string } & Record<string, any>;
+    data: { id: string | number } & Record<string, any>;
     applyUpdateToDO: () => void;
   }): void;
   onDOConstructed?(DO: NodeDO): void;
@@ -36,7 +36,7 @@ export function RepositoryFactory<
     private cached: Record<string, NodeDO> = {};
 
     public onDataReceived(
-      data: { id: string; type: string } & Record<string, any>
+      data: { id: string | number; type: string } & Record<string, any>
     ) {
       if (opts.def.type !== data.type) {
         throw Error(
@@ -65,7 +65,7 @@ export function RepositoryFactory<
       });
     }
 
-    public byId(id: string) {
+    public byId(id: string | number) {
       const cached = this.cached[id];
 
       if (!cached) {
@@ -78,7 +78,7 @@ export function RepositoryFactory<
       return cached;
     }
 
-    public onNodeDeleted(id: string) {
+    public onNodeDeleted(id: string | number) {
       if (this.cached[id]) {
         if (opts.onDODeleted) {
           opts.onDODeleted(this.cached[id]);
@@ -96,7 +96,7 @@ export function RepositoryFactory<
       TNodeData extends Record<string, IData | DataDefaultFn>
     >(
       receivedData: any
-    ): { id: string; version: number } & DeepPartial<
+    ): { id: string | number; version: number } & DeepPartial<
       GetAllAvailableNodeDataType<{
         TNodeData: TNodeData;
         TNodeComputedData: {};
@@ -121,7 +121,7 @@ export function RepositoryFactory<
 
         parsed[key as keyof TNodeData] = receivedData[key];
         return parsed;
-      }, {} as { id: string; version: number } & DeepPartial<GetAllAvailableNodeDataType<{ TNodeData: TNodeData; TNodeComputedData: {} }>>);
+      }, {} as { id: string | number; version: number } & DeepPartial<GetAllAvailableNodeDataType<{ TNodeData: TNodeData; TNodeComputedData: {} }>>);
     }
   }
 

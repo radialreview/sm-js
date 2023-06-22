@@ -499,7 +499,7 @@ export function getQueryRecordFromQueryDefinition<
           throw Error('Invalid id in target.id');
         }
 
-        (queryRecordEntry as QueryRecordEntry & { id: string }).id =
+        (queryRecordEntry as QueryRecordEntry & { id: string | number }).id =
           queryDefinition.target.id;
       }
     }

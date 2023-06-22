@@ -149,7 +149,10 @@ function augmentWithRelational(opts: {
 
     const queryRecordEntry: QueryRecordEntry = {
       def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id:
+        typeof idOrIds === 'string' || typeof idOrIds === 'number'
+          ? idOrIds
+          : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties,
       relational: relationalDataForThisRelationalData,

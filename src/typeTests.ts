@@ -11,6 +11,7 @@ import {
   oneToMany,
   oneToOne,
   nonPaginatedOneToMany,
+  stringOrNumber,
 } from './dataTypes';
 import {
   ExtractQueriedDataFromMapFn,
@@ -33,7 +34,7 @@ import {
  */
 const mmGQL = new MMGQL(getDefaultConfig());
 const todoProperties = {
-  id: string,
+  id: stringOrNumber,
   task: string,
   dueDate: number,
   assigneeId: string,
@@ -110,7 +111,7 @@ const meetingNode: MeetingNode = mmGQL.def({
 });
 
 const userProperties = {
-  id: string,
+  id: stringOrNumber,
   firstName: string,
   lastName: string,
   bool: boolean(true),
@@ -159,7 +160,7 @@ const userNode: UserNode = mmGQL.def({
 });
 
 const meetingGuestProperties = {
-  id: string,
+  id: stringOrNumber,
   firstName: string,
 };
 type MeetingGuestNode = INode<{
@@ -414,9 +415,9 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  targetOmmissionResults.data.users.nodes[0].id as string;
+  targetOmmissionResults.data.users.nodes[0].id as string | number;
   // @ts-expect-error invalid type
-  targetOmmissionResults.data.users.nodes[0].id as number;
+  targetOmmissionResults.data.users.nodes[0].id as Function;
   // @ts-expect-error not queried
   targetOmmissionResults.data.users.nodes[0].notqueried as number;
   // @ts-expect-error not queried
@@ -481,9 +482,9 @@ const stateNode: StateNode = mmGQL.def({
           task: {
             contains: 'test',
           },
-          // @ts-expect-error wrong data type, id is a string
           id: {
-            eq: 123,
+            // @ts-expect-error wrong data type, id is a string
+            eq: {},
           },
         },
       },
@@ -578,7 +579,7 @@ const stateNode: StateNode = mmGQL.def({
 
   validTargetWithFilters.data.users.nodes[0].id as string;
   // @ts-expect-error invalid type
-  validTargetWithFilters.data.users.nodes[0].id as number;
+  validTargetWithFilters.data.users.nodes[0].id as Function;
   // @ts-expect-error not queried
   validTargetWithFilters.data.users.nodes[0].notqueried as number;
 

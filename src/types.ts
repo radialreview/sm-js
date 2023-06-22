@@ -468,7 +468,7 @@ export interface IDOMethods {
 }
 
 export interface IDOAccessors {
-  id: string
+  id: string | number
   version: number
   lastUpdatedBy: string
   persistedData: Record<string,any>
@@ -657,6 +657,8 @@ export enum DATA_TYPES {
   maybeStringEnum = 'mSE',
   number = 'n',
   maybeNumber = 'mN',
+  stringOrNumber = 'sON',
+  maybeStringOrNumber = 'mSON',
   boolean = 'b',
   maybeBoolean = 'mB',
   object = 'o',
@@ -699,9 +701,9 @@ export type NodeRelationalQueryBuilderRecord = Record<
 >;
 
 export interface INodeRepository {
-  byId(id: string): NodeDO;
-  onDataReceived(data: { id: string } & Record<string, any>): void;
-  onNodeDeleted(id: string): void;
+  byId(id: string | number): NodeDO;
+  onDataReceived(data: { id: string | number } & Record<string, any>): void;
+  onNodeDeleted(id: string | number): void;
 }
 
 export enum EStringFilterOperator {
@@ -816,8 +818,8 @@ export type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
 }> 
 
 export type QueryDefinitionTarget =
-  | { id: string, allowNullResult?: boolean }
-  | { ids: Array<string> }
+  | { id: string | number, allowNullResult?: boolean }
+  | { ids: Array<string | number> }
     
 export type FilterTypeForQuery<TFilterTypeForQueryArgs extends { TNode: INode, TMapFn: MapFnForNode<TFilterTypeForQueryArgs['TNode']> | undefined, TIsCollectionFilter: boolean }>  = 
   ValidFilterForMapFnRelationalResults<TFilterTypeForQueryArgs> & ValidFilterForNode<TFilterTypeForQueryArgs['TNode'], TFilterTypeForQueryArgs['TIsCollectionFilter']>
@@ -921,7 +923,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
     TQueryDefinition extends { def: infer TNode; map: infer TMapFn }
     ? TNode extends INode
       ? TMapFn extends MapFnForNode<TNode>
-        ? TQueryDefinition extends { target?: { id: string } }
+        ? TQueryDefinition extends { target?: { id: string | number } }
           ? TQueryDefinition extends { target?: { allowNullResult: true } }
             ? Maybe<ExtractQueriedDataFromMapFn<TMapFn, TNode>>
             : ExtractQueriedDataFromMapFn<TMapFn, TNode>
@@ -935,7 +937,7 @@ export type GetResultingDataFromQueryDefinition<TQueryDefinition extends QueryDe
   : TQueryDefinition extends { def: INode } // full query definition provided, but map function omitted // return the entirety of the node's data
   ? TQueryDefinition extends { def: infer TNode }
     ? TNode extends INode
-      ? TQueryDefinition extends { target?: { id: string } }
+      ? TQueryDefinition extends { target?: { id: string | number } }
         ? GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }> & DataExpectedOnAllNodeResults<TNode>
         : NodesCollectionWithCorrectTotalCountParam<{
             TItemType: GetAllAvailableNodeDataType<{ TNodeData: ExtractNodeData<TNode>, TNodeComputedData: ExtractNodeComputedData<TNode> }>  & DataExpectedOnAllNodeResults<TNode>,
@@ -1340,8 +1342,8 @@ export type BaseQueryRecordEntry = {
 export type QueryRecordEntry = BaseQueryRecordEntry & {
   tokenName: Maybe<string>
   pagination?: IQueryPagination<boolean>
-  ids?: Array<string> 
-  id?: string
+  ids?: Array<string | number> 
+  id?: string | number
   allowNullResult?: boolean
 }
 
@@ -1356,7 +1358,7 @@ export type QueryRecord = Record<string, QueryRecordEntry | null>;
 export type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>
 
 export interface IDOProxy {
-  id: string
+  id: string | number
   updateRelationalResults(
     newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>
   ): void;
@@ -1368,14 +1370,14 @@ export type SubscriptionMessage = {
 
 export type SubscriptionMessageData = {
   __typename: string,
-  id:  string
+  id:  string | number
   target?: {
-    id: string,
+    id: string | number,
     property: string
   },
   targets?: Array<{
-    id: string
+    id: string | number
     property: string
   }>
-  value?: {id: string} & Record<string,any>
+  value?: {id: string | number} & Record<string,any>
 }

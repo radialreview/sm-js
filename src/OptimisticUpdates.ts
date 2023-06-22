@@ -51,10 +51,11 @@ export class OptimisticUpdatesOrchestrator {
   };
 
   public onPersistedDataReceived = (opts: {
-    data: { id: string; version: number; lastUpdatedBy: string } & Record<
-      string,
-      any
-    >;
+    data: {
+      id: string | number;
+      version: number;
+      lastUpdatedBy: string;
+    } & Record<string, any>;
     applyUpdateToDO: () => void;
   }) => {
     const nodeId = opts.data.id;
@@ -69,7 +70,7 @@ export class OptimisticUpdatesOrchestrator {
   };
 
   public onUpdateRequested = (update: {
-    id: string;
+    id: string | number;
     payload: Record<string, any>;
   }) => {
     const DO = this.getDOById(update.id);
@@ -116,7 +117,7 @@ export class OptimisticUpdatesOrchestrator {
     };
   };
 
-  private handleUpdateFailed(opts: { updateIdx: number; id: string }) {
+  private handleUpdateFailed(opts: { updateIdx: number; id: string | number }) {
     const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
     const wasLastTriggeredUpdate =
       inFlightRequestsForThisNode.length === opts.updateIdx + 1;
@@ -150,18 +151,21 @@ export class OptimisticUpdatesOrchestrator {
     this.cleanupIfNoInFlightRequests(opts.id);
   }
 
-  private handleUpdateSuccessful(opts: { updateIdx: number; id: string }) {
+  private handleUpdateSuccessful(opts: {
+    updateIdx: number;
+    id: string | number;
+  }) {
     const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
     inFlightRequestsForThisNode.splice(opts.updateIdx, 1);
     this.cleanupIfNoInFlightRequests(opts.id);
   }
 
-  private getDOById(id: string): Maybe<NodeDO> {
+  private getDOById(id: string | number): Maybe<NodeDO> {
     const DO = this.DOsById[id];
     return DO;
   }
 
-  private cleanupIfNoInFlightRequests(id: string) {
+  private cleanupIfNoInFlightRequests(id: string | number) {
     if (!this.inFlightRequestsById[id].length) {
       delete this.lastKnownPersistedDataById[id];
       delete this.inFlightRequestsById[id];
