@@ -521,11 +521,6 @@ export function getQueryRecordFromQueryDefinition<
   return queryRecord;
 }
 
-function wrapInQuotesIfString(value: any) {
-  if (typeof value === 'string') return `"${value}"`;
-  return value;
-}
-
 export function getBEFilterString<TNode extends INode>(opts: {
   filter: ValidFilterForNode<TNode, boolean>;
   def: INode;
@@ -651,7 +646,7 @@ export function getBEFilterString<TNode extends INode>(opts: {
 
               const value = isStringEnum
                 ? operatorValueCombo.value
-                : wrapInQuotesIfString(operatorValueCombo.value);
+                : JSON.stringify(operatorValueCombo.value);
 
               if (Array.isArray(operatorValueCombo.value)) {
                 // if the value is an array, we need to wrap each value in quotes
@@ -708,7 +703,7 @@ export function getBEFilterString<TNode extends INode>(opts: {
 
                   const value = isStringEnum
                     ? valueAtThiskey
-                    : wrapInQuotesIfString(valueAtThiskey);
+                    : JSON.stringify(valueAtThiskey);
 
                   acc += `${key}: {${operatorValueCombo.operator}: ${value}}`;
                 });
@@ -1005,7 +1000,7 @@ function getOperationFromQueryRecordEntry(
     });
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   } else if ('id' in opts && opts.id != null) {
-    operation = `${nodeType}(id: ${JSON.stringify(opts.id)})`;
+    operation = `${nodeType}(id: "${opts.id}")`;
   } else {
     const options = getGetNodeOptions({
       queryRecordEntry: opts,
