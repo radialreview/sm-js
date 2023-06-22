@@ -13,6 +13,7 @@ import {
   INode,
   DATA_TYPES,
   MapFn,
+  Id,
 } from './types';
 
 export function createDOFactory(mmGQLInstance: IMMGQL) {
@@ -41,7 +42,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
     return class DO implements TDOClass {
       public parsedData: DeepPartial<TNodeData>;
       public version: number = -1;
-      public id: string | number;
+      public id: Id;
       public lastUpdatedBy: string;
       public persistedData: Record<string, any> = {};
       private _defaults: Record<keyof TNodeData, any>;
@@ -50,7 +51,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
       constructor(
         initialData: DeepPartial<TNodeData> & {
           version: number;
-          id: string | number;
+          id: Id;
           lastUpdatedBy: string;
         }
       ) {

@@ -2,7 +2,7 @@
 // by calling DO.setUpToDateData({ [propName]: true })
 // or DO.setUpToDateData({ nested: { [propName]: true } })
 // this is done automatically by data fetchers, smQuery and smSubscribe
-import { FilterOperator } from './types';
+import { FilterOperator, Id } from './types';
 // so this error should only occur when data is accessed but was never queried or is not currently being subscribed to (is cached only)
 export class NotUpToDateException extends Error {
   public propName: string;
@@ -51,7 +51,7 @@ export class ImpliedNodePropertyException extends Error {
 }
 
 export class NotCachedException extends Error {
-  constructor(opts: { nodeType: string; id: string | number }) {
+  constructor(opts: { nodeType: string; id: Id }) {
     super(
       `NotCached exception - Attempted to get the node with the type "${opts.nodeType}" and id "${opts.id}" but it was not cached.`
     );

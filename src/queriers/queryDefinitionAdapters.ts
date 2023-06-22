@@ -26,6 +26,7 @@ import {
   SortObject,
   DocumentNode,
   RelationalQueryRecord,
+  Id,
 } from '../types';
 import {
   NODES_PROPERTY_KEY,
@@ -499,7 +500,7 @@ export function getQueryRecordFromQueryDefinition<
           throw Error('Invalid id in target.id');
         }
 
-        (queryRecordEntry as QueryRecordEntry & { id: string | number }).id =
+        (queryRecordEntry as QueryRecordEntry & { id: Id }).id =
           queryDefinition.target.id;
       }
     }

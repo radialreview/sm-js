@@ -22,6 +22,7 @@ import {
   DocumentNode,
   ValidFilterForNode,
   INonPaginatedOneToManyQueryBuilder,
+  Id,
 } from './types';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
@@ -151,7 +152,7 @@ export function generateDOInstance<
   }>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   initialData: {
-    id: string | number;
+    id: Id;
     version: number;
   } & Record<string, any>;
 }) {
@@ -543,7 +544,7 @@ export function convertNodesCollectionValuesToArray<
 }
 
 export function createMockDataItems<T>(opts: {
-  sampleMockData: T & { id: string | number };
+  sampleMockData: T & { id: Id };
   items: Array<Partial<any>>;
   pageInfo?: Partial<PageInfoFromResults>;
   totalCount?: number;
@@ -566,7 +567,7 @@ export function createMockDataItems<T>(opts: {
 }
 
 export function createNonPaginatedMockDataItems<T>(opts: {
-  sampleMockData: T & { id: string | number };
+  sampleMockData: T & { id: Id };
   items: Array<Partial<any>>;
 }) {
   return opts.items.map((mockItem, index) => ({

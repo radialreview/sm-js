@@ -10,6 +10,7 @@ import {
 
 import { MMGQL } from '..';
 import {
+  Id,
   QueryDefinitions,
   QueryRecordEntry,
   RelationalQueryRecordEntry,
@@ -892,7 +893,7 @@ function getMockSubscriptionMessage(opts: {
     }
   ];
   valueNodeType?: string;
-  value?: ({ id: string | number } & Record<string, any>) | null;
+  value?: ({ id: Id } & Record<string, any>) | null;
 }) {
   let typeNameString = `${opts.type}_`;
 

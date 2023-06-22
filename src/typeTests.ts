@@ -27,6 +27,7 @@ import {
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
   INonPaginatedOneToManyQueryBuilder,
+  Id,
 } from './types';
 
 /**
@@ -415,7 +416,7 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  targetOmmissionResults.data.users.nodes[0].id as string | number;
+  targetOmmissionResults.data.users.nodes[0].id as Id;
   // @ts-expect-error invalid type
   targetOmmissionResults.data.users.nodes[0].id as Function;
   // @ts-expect-error not queried
