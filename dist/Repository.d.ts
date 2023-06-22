@@ -10,7 +10,7 @@ export declare function RepositoryFactory<TNodeData extends Record<string, IData
     DOClass: new (initialData?: Record<string, any>) => NodeDO;
     onDataReceived(opts: {
         data: {
-            id: string;
+            id: string | number;
         } & Record<string, any>;
         applyUpdateToDO: () => void;
     }): void;

@@ -37,14 +37,14 @@ export declare class OptimisticUpdatesOrchestrator {
     onDODeleted: (DO: NodeDO) => void;
     onPersistedDataReceived: (opts: {
         data: {
-            id: string;
+            id: string | number;
             version: number;
             lastUpdatedBy: string;
         } & Record<string, any>;
         applyUpdateToDO: () => void;
     }) => void;
     onUpdateRequested: (update: {
-        id: string;
+        id: string | number;
         payload: Record<string, any>;
     }) => {
         onUpdateSuccessful: () => void;

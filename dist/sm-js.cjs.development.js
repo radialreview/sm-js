@@ -334,6 +334,8 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["stringOrNumber"] = "sON";
+  DATA_TYPES["maybeStringOrNumber"] = "mSON";
   DATA_TYPES["boolean"] = "b";
   DATA_TYPES["maybeBoolean"] = "mB";
   DATA_TYPES["object"] = "o";
@@ -475,6 +477,24 @@ number.optional = /*#__PURE__*/new Data({
       return Number(value);
     }
 
+    return value;
+  },
+  isOptional: true
+});
+var stringOrNumber = function stringOrNumber(defaultValue) {
+  return new Data({
+    type: exports.DATA_TYPES.stringOrNumber,
+    parser: function parser(value) {
+      return value;
+    },
+    defaultValue: defaultValue,
+    isOptional: false
+  });
+};
+stringOrNumber._default = /*#__PURE__*/stringOrNumber('');
+stringOrNumber.optional = /*#__PURE__*/new Data({
+  type: exports.DATA_TYPES.maybeStringOrNumber,
+  parser: function parser(value) {
     return value;
   },
   isOptional: true
@@ -646,7 +666,7 @@ function queryDefinition(queryDefinition) {
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string
@@ -802,7 +822,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
@@ -6698,7 +6718,7 @@ function augmentWithRelational(opts) {
     var idOrIds = dataToAugment[ownPropName];
     var queryRecordEntry = {
       def: def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id: typeof idOrIds === 'string' || typeof idOrIds === 'number' ? idOrIds : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties: properties,
       relational: relationalDataForThisRelationalData,
@@ -9295,5 +9315,6 @@ exports.record = record;
 exports.staticRelational = staticRelational;
 exports.string = string;
 exports.stringEnum = stringEnum;
+exports.stringOrNumber = stringOrNumber;
 exports.useSubscription = useSubscription;
 //# sourceMappingURL=sm-js.cjs.development.js.map
