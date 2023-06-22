@@ -1478,12 +1478,6 @@ function getQueryRecordFromQueryDefinition(opts) {
   });
   return queryRecord;
 }
-
-function wrapInQuotesIfString(value) {
-  if (typeof value === 'string') return "\"" + value + "\"";
-  return value;
-}
-
 function getBEFilterString(opts) {
   var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
     var _opts$filter$key2;
@@ -1562,7 +1556,7 @@ function getBEFilterString(opts) {
         var isStringEnum = opts.def.data[filter.key].type === exports.DATA_TYPES.stringEnum || opts.def.data[filter.key].type === exports.DATA_TYPES.maybeStringEnum;
         var operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
           if (index > 0) acc += ', ';
-          var value = isStringEnum ? operatorValueCombo.value : wrapInQuotesIfString(operatorValueCombo.value);
+          var value = isStringEnum ? operatorValueCombo.value : JSON.stringify(operatorValueCombo.value);
 
           if (Array.isArray(operatorValueCombo.value)) {
             // if the value is an array, we need to wrap each value in quotes
@@ -1603,7 +1597,7 @@ function getBEFilterString(opts) {
             Object.keys(operatorValueCombo.value).forEach(function (key) {
               var valueAtThiskey = operatorValueCombo.value[key];
               var isStringEnum = relatedNodeDef.data[key].type === exports.DATA_TYPES.stringEnum || relatedNodeDef.data[key].type === exports.DATA_TYPES.maybeStringEnum;
-              var value = isStringEnum ? valueAtThiskey : wrapInQuotesIfString(valueAtThiskey);
+              var value = isStringEnum ? valueAtThiskey : JSON.stringify(valueAtThiskey);
               acc += key + ": {" + operatorValueCombo.operator + ": " + value + "}";
             });
             return acc;
@@ -1824,7 +1818,7 @@ function getOperationFromQueryRecordEntry(opts) {
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
+    operation = nodeType + "(id: \"" + opts.id + "\")";
   } else {
     var _options = getGetNodeOptions({
       queryRecordEntry: opts,
