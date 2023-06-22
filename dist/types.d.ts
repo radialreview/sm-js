@@ -312,7 +312,7 @@ export interface IDOMethods {
     }): void;
 }
 export interface IDOAccessors {
-    id: string;
+    id: string | number;
     version: number;
     lastUpdatedBy: string;
     persistedData: Record<string, any>;
@@ -456,6 +456,8 @@ export declare enum DATA_TYPES {
     maybeStringEnum = "mSE",
     number = "n",
     maybeNumber = "mN",
+    stringOrNumber = "sON",
+    maybeStringOrNumber = "mSON",
     boolean = "b",
     maybeBoolean = "mB",
     object = "o",
@@ -478,11 +480,11 @@ export interface IQueryPagination<TIncludeTotalCount extends boolean> {
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface INodeRepository {
-    byId(id: string): NodeDO;
+    byId(id: string | number): NodeDO;
     onDataReceived(data: {
-        id: string;
+        id: string | number;
     } & Record<string, any>): void;
-    onNodeDeleted(id: string): void;
+    onNodeDeleted(id: string | number): void;
 }
 export declare enum EStringFilterOperator {
     'eq' = "eq",
@@ -531,10 +533,10 @@ export declare type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode> ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
 export declare type QueryDefinitionTarget = {
-    id: string;
+    id: string | number;
     allowNullResult?: boolean;
 } | {
-    ids: Array<string>;
+    ids: Array<string | number>;
 };
 export declare type FilterTypeForQuery<TFilterTypeForQueryArgs extends {
     TNode: INode;
@@ -598,7 +600,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     map: infer TMapFn;
 } ? TNode extends INode ? TMapFn extends MapFnForNode<TNode> ? TQueryDefinition extends {
     target?: {
-        id: string;
+        id: string | number;
     };
 } ? TQueryDefinition extends {
     target?: {
@@ -613,7 +615,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     def: infer TNode;
 } ? TNode extends INode ? TQueryDefinition extends {
     target?: {
-        id: string;
+        id: string | number;
     };
 } ? GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TNode>;
@@ -793,8 +795,8 @@ export declare type BaseQueryRecordEntry = {
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
     tokenName: Maybe<string>;
     pagination?: IQueryPagination<boolean>;
-    ids?: Array<string>;
-    id?: string;
+    ids?: Array<string | number>;
+    id?: string | number;
     allowNullResult?: boolean;
 };
 export declare type RelationalQueryRecordEntry = {
@@ -809,7 +811,7 @@ export declare type RelationalQueryRecordEntry = {
 export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
-    id: string;
+    id: string | number;
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
 }
 export declare type SubscriptionMessage = {
@@ -817,17 +819,17 @@ export declare type SubscriptionMessage = {
 };
 export declare type SubscriptionMessageData = {
     __typename: string;
-    id: string;
+    id: string | number;
     target?: {
-        id: string;
+        id: string | number;
         property: string;
     };
     targets?: Array<{
-        id: string;
+        id: string | number;
         property: string;
     }>;
     value?: {
-        id: string;
+        id: string | number;
     } & Record<string, any>;
 };
 export {};

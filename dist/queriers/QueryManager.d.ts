@@ -3,7 +3,7 @@ import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, Query
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | Array<string> | null;
+    idsOrIdInCurrentResult: string | number | Array<string | number> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
@@ -107,7 +107,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
             pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             parentFilters?: Array<{
-                id: string;
+                id: string | number;
                 property: string;
             }>;
             previousStateEntries?: Array<{
@@ -238,7 +238,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): void;
         addIdToLastEntryInAliasPath(opts: {
             aliasPath: Array<string>;
-            id: string;
+            id: string | number;
         }): string[];
         /**
          * Removes the id from the alias if it exists

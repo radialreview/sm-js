@@ -334,6 +334,8 @@ var DATA_TYPES;
   DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["stringOrNumber"] = "sON";
+  DATA_TYPES["maybeStringOrNumber"] = "mSON";
   DATA_TYPES["boolean"] = "b";
   DATA_TYPES["maybeBoolean"] = "mB";
   DATA_TYPES["object"] = "o";
@@ -483,6 +485,24 @@ number.optional = /*#__PURE__*/new Data({
       return Number(value);
     }
 
+    return value;
+  },
+  isOptional: true
+});
+var stringOrNumber = function stringOrNumber(defaultValue) {
+  return new Data({
+    type: DATA_TYPES.stringOrNumber,
+    parser: function parser(value) {
+      return value;
+    },
+    defaultValue: defaultValue,
+    isOptional: false
+  });
+};
+stringOrNumber._default = /*#__PURE__*/stringOrNumber('');
+stringOrNumber.optional = /*#__PURE__*/new Data({
+  type: DATA_TYPES.maybeStringOrNumber,
+  parser: function parser(value) {
     return value;
   },
   isOptional: true
@@ -654,7 +674,7 @@ function queryDefinition(queryDefinition) {
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string
@@ -810,7 +830,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
@@ -6706,7 +6726,7 @@ function augmentWithRelational(opts) {
     var idOrIds = dataToAugment[ownPropName];
     var queryRecordEntry = {
       def: def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id: typeof idOrIds === 'string' || typeof idOrIds === 'number' ? idOrIds : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties: properties,
       relational: relationalDataForThisRelationalData,
@@ -9261,5 +9281,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, stringOrNumber, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

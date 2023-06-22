@@ -33,7 +33,7 @@ export declare class ImpliedNodePropertyException extends Error {
 export declare class NotCachedException extends Error {
     constructor(opts: {
         nodeType: string;
-        id: string;
+        id: string | number;
     });
 }
 export declare class NodesCollectionPageOutOfBoundsException extends Error {
