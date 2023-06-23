@@ -1984,7 +1984,7 @@ function getQueryRecordEntrySubscriptionFragmentInnerContents(opts) {
     ownProps: opts.queryRecordEntry.properties,
     relational: opts.queryRecordEntry.relational
   });
-  var ownNodeUpdatedString = "...on Updated_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsString + "}\n  }\n  ";
+  var ownNodeUpdatedString = "...on Updated_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      targets {\n        id\n        property\n      }\n      value {" + ownPropsString + "}\n  }\n  ";
   var ownNodeCreatedString = "...on Created_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsAndRelationalString + "}\n  }\n  ";
   var ownNodeDeletedString = "...on Deleted_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n  }\n  ";
   var relationalSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
@@ -2080,7 +2080,7 @@ function getRelationalSubscriptionString(opts) {
   });
   var subscriptionString = "";
   Object.keys(mergedRecordOfMetadatas).forEach(function (nodeType) {
-    subscriptionString += "\n      ...on Updated_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        id\n        value {" + getSubscriptionOwnPropsString({
+    subscriptionString += "\n      ...on Updated_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        id\n        targets {\n          id\n          property\n        }\n        value {" + getSubscriptionOwnPropsString({
       ownProps: mergedRecordOfMetadatas[nodeType]._allProperties
     }) + "}\n      }\n    ";
     Object.keys(mergedRecordOfMetadatas[nodeType]).forEach(function (parentNodeType) {
