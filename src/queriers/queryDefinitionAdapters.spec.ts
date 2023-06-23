@@ -1572,6 +1572,20 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1594,6 +1608,13 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -1738,6 +1759,20 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1760,6 +1795,13 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -1916,6 +1958,20 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1938,6 +1994,13 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -2041,6 +2104,13 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -2174,6 +2244,22 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               closed
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 lastName
+                 firstName
+               }
+             }
            }
          }
          
@@ -2197,6 +2283,14 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              title
              closed
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+               lastName
+             }
            }
          }
          
