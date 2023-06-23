@@ -1977,14 +1977,11 @@ function getSubscriptionRelationalPropsString(opts) {
 }
 
 function getQueryRecordEntrySubscriptionFragmentInnerContents(opts) {
-  var ownPropsString = getSubscriptionOwnPropsString({
-    ownProps: opts.queryRecordEntry.properties
-  });
   var ownPropsAndRelationalString = getSubscriptionPropsString({
     ownProps: opts.queryRecordEntry.properties,
     relational: opts.queryRecordEntry.relational
   });
-  var ownNodeUpdatedString = "...on Updated_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsString + "}\n  }\n  ";
+  var ownNodeUpdatedString = "...on Updated_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      targets {\n        id\n        property\n      }\n      value {" + ownPropsAndRelationalString + "}\n  }\n  ";
   var ownNodeCreatedString = "...on Created_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n      value {" + ownPropsAndRelationalString + "}\n  }\n  ";
   var ownNodeDeletedString = "...on Deleted_" + capitalizeFirstLetter(opts.queryRecordEntry.def.type) + " {\n      __typename\n      id\n  }\n  ";
   var relationalSubscriptionMetadatas = getRelationalSubscriptionMetadatas({
@@ -2046,7 +2043,8 @@ function getRelationalSubscriptionString(opts) {
     // initialize the record if it doesn't exist
     if (!mergedRecordOfMetadatas[subMetadata.nodeType]) {
       mergedRecordOfMetadatas[subMetadata.nodeType] = {
-        _allProperties: []
+        _allProperties: [],
+        _allRelationships: {}
       };
     }
 
@@ -2076,12 +2074,15 @@ function getRelationalSubscriptionString(opts) {
     if (subMetadata.relational) {
       var existingRecord = mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].relational;
       mergedRecordOfMetadatas[subMetadata.nodeType][subMetadata.parentNodeType][subMetadata.relationalType].relational = flattenNestedRelationshipRecords(existingRecord ? [existingRecord, subMetadata.relational] : [subMetadata.relational]);
+      var existingRelationshipRecord = mergedRecordOfMetadatas[subMetadata.nodeType]._allRelationships;
+      mergedRecordOfMetadatas[subMetadata.nodeType]._allRelationships = flattenNestedRelationshipRecords(existingRelationshipRecord ? [existingRelationshipRecord, subMetadata.relational] : [subMetadata.relational]);
     }
   });
   var subscriptionString = "";
   Object.keys(mergedRecordOfMetadatas).forEach(function (nodeType) {
-    subscriptionString += "\n      ...on Updated_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        id\n        value {" + getSubscriptionOwnPropsString({
-      ownProps: mergedRecordOfMetadatas[nodeType]._allProperties
+    subscriptionString += "\n      ...on Updated_" + capitalizeFirstLetter(nodeType) + " {\n        __typename\n        id\n        targets {\n          id\n          property\n        }\n        value {" + getSubscriptionPropsString({
+      ownProps: mergedRecordOfMetadatas[nodeType]._allProperties,
+      relational: mergedRecordOfMetadatas[nodeType]._allRelationships
     }) + "}\n      }\n    ";
     Object.keys(mergedRecordOfMetadatas[nodeType]).forEach(function (parentNodeType) {
       if (parentNodeType === '_allProperties') return;
