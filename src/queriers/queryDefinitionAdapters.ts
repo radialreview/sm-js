@@ -1306,6 +1306,10 @@ function getQueryRecordEntrySubscriptionFragmentInnerContents(opts: {
   )} {
       __typename
       id
+      targets {
+        id
+        property
+      }
       value {${ownPropsString}}
   }
   `;
@@ -1504,6 +1508,10 @@ function getRelationalSubscriptionString(opts: {
       ...on Updated_${capitalizeFirstLetter(nodeType)} {
         __typename
         id
+        targets {
+          id
+          property
+        }
         value {${getSubscriptionOwnPropsString({
           ownProps: mergedRecordOfMetadatas[nodeType]._allProperties,
         })}}

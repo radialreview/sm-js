@@ -1562,6 +1562,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1580,6 +1584,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1623,6 +1631,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1716,6 +1728,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1734,6 +1750,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1777,6 +1797,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1882,6 +1906,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1900,6 +1928,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1943,6 +1975,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1995,6 +2031,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2013,6 +2053,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2120,6 +2164,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2138,6 +2186,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2184,6 +2236,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
