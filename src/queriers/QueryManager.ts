@@ -1228,6 +1228,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return Object.keys(opts.state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = opts.state[queryAlias];
         const idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
+        console.log('idsOrId', idsOrId);
         const isIdZero = !Array.isArray(idsOrId) && Number(idsOrId) === 0;
         const pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
         const totalCount = stateForThisAlias.totalCount;
@@ -1276,6 +1277,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             resultsAcc[resultsAlias] = items;
           }
         } else if (idsOrId || isIdZero) {
+          console.log('IF idsOrId', idsOrId);
           resultsAcc[resultsAlias] =
             stateForThisAlias.proxyCache[`${idsOrId}`].proxy;
         } else {
