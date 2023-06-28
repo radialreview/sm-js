@@ -6457,7 +6457,6 @@ function createQueryManager(mmGQLInstance) {
       return Object.keys(opts.state).reduce(function (resultsAcc, queryAlias) {
         var stateForThisAlias = opts.state[queryAlias];
         var idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
-        var isIdZero = !Array.isArray(idsOrId) && Number(idsOrId) === 0;
         var pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
         var totalCount = stateForThisAlias.totalCount;
         var clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
@@ -6505,7 +6504,7 @@ function createQueryManager(mmGQLInstance) {
           } else {
             resultsAcc[resultsAlias] = items;
           }
-        } else if (idsOrId || isIdZero) {
+        } else if (idsOrId != null) {
           resultsAcc[resultsAlias] = stateForThisAlias.proxyCache["" + idsOrId].proxy;
         } else {
           resultsAcc[resultsAlias] = null;
