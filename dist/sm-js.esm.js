@@ -6505,7 +6505,7 @@ function createQueryManager(mmGQLInstance) {
             resultsAcc[resultsAlias] = items;
           }
         } else if (idsOrId != null) {
-          resultsAcc[resultsAlias] = stateForThisAlias.proxyCache["" + idsOrId].proxy;
+          resultsAcc[resultsAlias] = stateForThisAlias.proxyCache[idsOrId].proxy;
         } else {
           resultsAcc[resultsAlias] = null;
         }

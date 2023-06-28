@@ -1276,7 +1276,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           }
         } else if (idsOrId != null) {
           resultsAcc[resultsAlias] =
-            stateForThisAlias.proxyCache[`${idsOrId}`].proxy;
+            stateForThisAlias.proxyCache[idsOrId].proxy;
         } else {
           resultsAcc[resultsAlias] = null;
         }
