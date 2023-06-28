@@ -6449,8 +6449,7 @@ function createQueryManager(mmGQLInstance) {
       return Object.keys(opts.state).reduce(function (resultsAcc, queryAlias) {
         var stateForThisAlias = opts.state[queryAlias];
         var idsOrId = stateForThisAlias.idsOrIdInCurrentResult;
-        console.log('idsOrId', idsOrId);
-        var isIdZero = Number.isInteger(idsOrId) && Number(idsOrId) === 0;
+        var isIdZero = !Array.isArray(idsOrId) && Number(idsOrId) === 0;
         var pageInfoFromResults = stateForThisAlias.pageInfoFromResults;
         var totalCount = stateForThisAlias.totalCount;
         var clientSidePageInfo = stateForThisAlias.clientSidePageInfo;
