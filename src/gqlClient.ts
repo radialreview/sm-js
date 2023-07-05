@@ -38,6 +38,10 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     options: {
       reconnect: true,
       wsOptionArguments: [wsOptions],
+      connectionCallback: (a, b) => {
+        console.log('a', a);
+        console.log('b', b);
+      },
     },
     webSocketImpl: WebSocket,
   });
