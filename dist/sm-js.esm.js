@@ -6384,7 +6384,11 @@ function getGQLCLient(gqlClientOpts) {
     uri: gqlClientOpts.wsUrl,
     options: {
       reconnect: true,
-      wsOptionArguments: [wsOptions]
+      wsOptionArguments: [wsOptions],
+      connectionCallback: function connectionCallback(a, b) {
+        console.log('a', a);
+        console.log('b', b);
+      }
     },
     webSocketImpl: WebSocket
   });
