@@ -172,6 +172,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         })
         .subscribe({
           next: message => {
+            console.log('SUB MESSAGE', message);
             gqlClientOpts.logging.gqlSubscriptions &&
               console.log(
                 'subscription message',
@@ -183,7 +184,13 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
               );
             else opts.onMessage(message as SubscriptionMessage);
           },
-          error: opts.onError,
+          error: e => {
+            console.log('SUB ERROR', e);
+            opts.onError(e);
+          },
+          complete: () => {
+            console.log('SUB COMPLETE');
+          },
         });
 
       return () => subscription.unsubscribe();
