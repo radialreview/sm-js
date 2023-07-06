@@ -200,12 +200,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           },
           error: e => {
             console.log('SUB ERROR', e);
-            if (opts.retryAttempts == null || opts.retryAttempts < 3) {
-              gqlClient.subscribe({
-                ...opts,
-                retryAttempts: (opts.retryAttempts || 0) + 1,
-              });
-            }
+            gqlClient.subscribe(opts);
             opts.onError(e);
           },
           complete: () => {
