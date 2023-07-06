@@ -1,4 +1,4 @@
-import { gql, split, ApolloLink, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
+import { gql, ApolloLink, split, Observable, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import Chance from 'chance';
 import { update, isArray, orderBy, isObject, cloneDeep } from 'lodash-es';
 import { observable, when } from 'mobx';
@@ -6378,19 +6378,26 @@ function getGQLCLient(gqlClientOpts) {
     wsOptions.headers = {
       cookie: gqlClientOpts.getCookie()
     };
-  }
+  } // const wsLink = new WebSocketLink({
+  //   uri: gqlClientOpts.wsUrl,
+  //   options: {
+  //     reconnect: true,
+  //     wsOptionArguments: [wsOptions],
+  //   },
+  //   webSocketImpl: WebSocket,
+  // });
 
-  var wsLink = new WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true,
-      wsOptionArguments: [wsOptions],
-      connectionCallback: function connectionCallback(a, b) {
-        console.log('a', a);
-        console.log('b', b);
-      }
-    },
-    webSocketImpl: WebSocket
+
+  var wsLink = new ApolloLink(function (operation) {
+    var link = new WebSocketLink({
+      uri: gqlClientOpts.wsUrl,
+      options: {
+        reconnect: true,
+        wsOptionArguments: [wsOptions]
+      },
+      webSocketImpl: WebSocket
+    });
+    return link.request(operation);
   });
   var nonBatchedLink = new HttpLink({
     uri: gqlClientOpts.httpUrl,

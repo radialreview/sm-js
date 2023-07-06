@@ -6370,19 +6370,26 @@ function getGQLCLient(gqlClientOpts) {
     wsOptions.headers = {
       cookie: gqlClientOpts.getCookie()
     };
-  }
+  } // const wsLink = new WebSocketLink({
+  //   uri: gqlClientOpts.wsUrl,
+  //   options: {
+  //     reconnect: true,
+  //     wsOptionArguments: [wsOptions],
+  //   },
+  //   webSocketImpl: WebSocket,
+  // });
 
-  var wsLink = new ws.WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true,
-      wsOptionArguments: [wsOptions],
-      connectionCallback: function connectionCallback(a, b) {
-        console.log('a', a);
-        console.log('b', b);
-      }
-    },
-    webSocketImpl: WebSocket
+
+  var wsLink = new core.ApolloLink(function (operation) {
+    var link = new ws.WebSocketLink({
+      uri: gqlClientOpts.wsUrl,
+      options: {
+        reconnect: true,
+        wsOptionArguments: [wsOptions]
+      },
+      webSocketImpl: WebSocket
+    });
+    return link.request(operation);
   });
   var nonBatchedLink = new http.HttpLink({
     uri: gqlClientOpts.httpUrl,
