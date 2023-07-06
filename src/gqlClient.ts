@@ -185,7 +185,9 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         })
         .subscribe({
           next: message => {
-            console.log('SUB MESSAGE', message);
+            // restart retry attempts when a message is successfully received
+            opts.retryAttempts = 0;
+
             gqlClientOpts.logging.gqlSubscriptions &&
               console.log(
                 'subscription message',
@@ -200,7 +202,12 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           },
           error: e => {
             console.log('SUB ERROR', e);
-            gqlClient.subscribe(opts);
+            if (opts.retryAttempts == null || opts.retryAttempts < 3) {
+              gqlClient.subscribe({
+                ...opts,
+                retryAttempts: (opts.retryAttempts || 0) + 1,
+              });
+            }
             opts.onError(e);
           },
           complete: () => {
