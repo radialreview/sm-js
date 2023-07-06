@@ -6533,7 +6533,9 @@ function getGQLCLient(gqlClientOpts) {
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message);
         },
         error: function error(e) {
-          console.log('SUB ERROR', e);
+          console.log('SUB ERROR', e); // something in Apollo's internals appears to be causing subscriptions to be prematurely closed when any error is received
+          // even if partial data is included in the message
+          // so we retry the subscription a few times before giving up
 
           if (opts.retryAttempts == null || opts.retryAttempts < 3) {
             gqlClient.subscribe(_extends({}, opts, {
