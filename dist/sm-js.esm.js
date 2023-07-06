@@ -6541,6 +6541,13 @@ function getGQLCLient(gqlClientOpts) {
         },
         error: function error(e) {
           console.log('SUB ERROR', e);
+
+          if (opts.retryAttempts == null || opts.retryAttempts < 3) {
+            gqlClient.subscribe(_extends({}, opts, {
+              retryAttempts: (opts.retryAttempts || 0) + 1
+            }));
+          }
+
           opts.onError(e);
         },
         complete: function complete() {
