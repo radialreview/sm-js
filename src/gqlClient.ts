@@ -33,17 +33,26 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     };
   }
 
-  const wsLink = new WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true,
-      wsOptionArguments: [wsOptions],
-      connectionCallback: (a, b) => {
-        console.log('a', a);
-        console.log('b', b);
+  // const wsLink = new WebSocketLink({
+  //   uri: gqlClientOpts.wsUrl,
+  //   options: {
+  //     reconnect: true,
+  //     wsOptionArguments: [wsOptions],
+  //   },
+  //   webSocketImpl: WebSocket,
+  // });
+
+  const wsLink = new ApolloLink(operation => {
+    const link = new WebSocketLink({
+      uri: gqlClientOpts.wsUrl,
+      options: {
+        reconnect: true,
+        wsOptionArguments: [wsOptions],
       },
-    },
-    webSocketImpl: WebSocket,
+      webSocketImpl: WebSocket,
+    });
+
+    return link.request(operation);
   });
 
   const nonBatchedLink = new HttpLink({
