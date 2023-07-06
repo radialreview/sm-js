@@ -6527,13 +6527,20 @@ function getGQLCLient(gqlClientOpts) {
         query: opts.gql
       }).subscribe({
         next: function next(message) {
-          console.log('SUB MESSAGE', message);
+          // restart retry attempts when a message is successfully received
+          opts.retryAttempts = 0;
           gqlClientOpts.logging.gqlSubscriptions && console.log('subscription message', JSON.stringify(message, null, 2));
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message);
         },
         error: function error(e) {
           console.log('SUB ERROR', e);
-          gqlClient.subscribe(opts);
+
+          if (opts.retryAttempts == null || opts.retryAttempts < 3) {
+            gqlClient.subscribe(_extends({}, opts, {
+              retryAttempts: (opts.retryAttempts || 0) + 1
+            }));
+          }
+
           opts.onError(e);
         },
         complete: function complete() {

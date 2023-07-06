@@ -69,6 +69,7 @@ export interface IGQLClient {
         gql: DocumentNode;
         token?: string;
         cookie?: string;
+        retryAttempts?: number;
         onMessage: (message: SubscriptionMessage) => void;
         onError: (error: any) => void;
     }): SubscriptionCanceller;
