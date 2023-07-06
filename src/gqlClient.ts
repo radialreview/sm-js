@@ -191,6 +191,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
                 'subscription message',
                 JSON.stringify(message, null, 2)
               );
+
             if (!message.data)
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)
@@ -199,6 +200,12 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
           },
           error: e => {
             console.log('SUB ERROR', e);
+            if (opts.retryAttempts == null || opts.retryAttempts < 3) {
+              gqlClient.subscribe({
+                ...opts,
+                retryAttempts: (opts.retryAttempts || 0) + 1,
+              });
+            }
             opts.onError(e);
           },
           complete: () => {
