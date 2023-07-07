@@ -6385,7 +6385,8 @@ function getGQLCLient(gqlClientOpts) {
       uri: gqlClientOpts.wsUrl,
       options: {
         reconnect: true,
-        wsOptionArguments: [wsOptions]
+        wsOptionArguments: [wsOptions],
+        inactivityTimeout: 1
       },
       webSocketImpl: WebSocket
     });
@@ -6533,24 +6534,22 @@ function getGQLCLient(gqlClientOpts) {
           if (!message.data) opts.onError(new Error("Unexpected message structure.\n" + message));else opts.onMessage(message);
         },
         error: function error(e) {
-          console.log('SUB ERROR', e); // something in Apollo's internals appears to be causing subscriptions to be prematurely closed when any error is received
+          // something in Apollo's internals appears to be causing subscriptions to be prematurely closed when any error is received
           // even if partial data is included in the message
           // so we retry the subscription a few times before giving up
-
           if (opts.retryAttempts == null || opts.retryAttempts < 3) {
-            gqlClient.subscribe(_extends({}, opts, {
+            unsubscribe && unsubscribe();
+            unsubscribe = gqlClient.subscribe(_extends({}, opts, {
               retryAttempts: (opts.retryAttempts || 0) + 1
             }));
           }
 
           opts.onError(e);
-        },
-        complete: function complete() {
-          console.log('SUB COMPLETE');
         }
       });
+      var unsubscribe = subscription.unsubscribe.bind(subscription);
       return function () {
-        return subscription.unsubscribe();
+        return unsubscribe;
       };
     },
     mutate: function () {
