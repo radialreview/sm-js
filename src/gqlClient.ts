@@ -48,6 +48,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
       options: {
         reconnect: true,
         wsOptionArguments: [wsOptions],
+        inactivityTimeout: 1,
       },
       webSocketImpl: WebSocket,
     });
@@ -179,7 +180,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         console.log('subscribing', getPrettyPrintedGQL(opts.gql));
       }
 
-      const subscription = baseClient
+      let subscription = baseClient
         .subscribe({
           query: opts.gql,
         })
@@ -201,24 +202,23 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
             else opts.onMessage(message as SubscriptionMessage);
           },
           error: e => {
-            console.log('SUB ERROR', e);
             // something in Apollo's internals appears to be causing subscriptions to be prematurely closed when any error is received
             // even if partial data is included in the message
             // so we retry the subscription a few times before giving up
             if (opts.retryAttempts == null || opts.retryAttempts < 3) {
-              gqlClient.subscribe({
+              unsubscribe && unsubscribe();
+              unsubscribe = gqlClient.subscribe({
                 ...opts,
                 retryAttempts: (opts.retryAttempts || 0) + 1,
               });
             }
             opts.onError(e);
           },
-          complete: () => {
-            console.log('SUB COMPLETE');
-          },
         });
 
-      return () => subscription.unsubscribe();
+      let unsubscribe = subscription.unsubscribe.bind(subscription);
+
+      return () => unsubscribe;
     },
     mutate: async opts => {
       gqlClientOpts.logging.gqlMutations &&
