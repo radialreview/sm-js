@@ -6557,7 +6557,7 @@ function getGQLCLient(gqlClientOpts) {
       });
       var unsubscribe = subscription.unsubscribe.bind(subscription);
       return function () {
-        return unsubscribe;
+        return unsubscribe();
       };
     },
     mutate: function () {
