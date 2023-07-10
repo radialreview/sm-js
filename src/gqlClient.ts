@@ -218,7 +218,7 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
 
       let unsubscribe = subscription.unsubscribe.bind(subscription);
 
-      return () => unsubscribe;
+      return () => unsubscribe();
     },
     mutate: async opts => {
       gqlClientOpts.logging.gqlMutations &&
