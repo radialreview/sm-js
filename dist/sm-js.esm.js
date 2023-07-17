@@ -1884,6 +1884,9 @@ function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts) {
 } // When we query for paginated arrays, the response is an object containing
 // a "nodes" property which is an array of the nodes
 // Otherwise the response is the node, or the list of nodes, itself
+//
+// the exception to this is within subscription messages,
+// where collections do not include paging info
 
 function getDataFromQueryResponsePartial(opts) {
   if (!opts.queryRecordEntry) return null;
@@ -6550,6 +6553,9 @@ function getGQLCLient(gqlClientOpts) {
             unsubscribe = gqlClient.subscribe(_extends({}, opts, {
               retryAttempts: (opts.retryAttempts || 0) + 1
             }));
+          } else {
+            console.error('Failed to initialize subscription after 3 attempts');
+            console.error(getPrettyPrintedGQL(opts.gql));
           }
 
           opts.onError(e);
@@ -6904,6 +6910,18 @@ function createQueryManager(mmGQLInstance) {
       };
 
       this.applyClientSideFilterAndSortToState = function (opts) {
+        Object.keys(opts.stateWhichMayRequireUpdate).forEach(function (alias) {
+          var queryRecordEntry = opts.queryRecord[alias];
+          if (!queryRecordEntry) throw Error("No query record entry found for the alias " + alias);
+
+          _this.applyClientSideFilterAndSortToStateEntry({
+            stateEntryWhichMayRequireUpdate: opts.stateWhichMayRequireUpdate[alias],
+            queryRecordEntry: queryRecordEntry
+          });
+        });
+      };
+
+      this.applyClientSideFilterAndSortToStateEntry = function (opts) {
         var stateEntryWhichMayRequireUpdate = opts.stateEntryWhichMayRequireUpdate,
             queryRecordEntry = opts.queryRecordEntry;
         var currentIds = stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult;
@@ -7225,10 +7243,24 @@ function createQueryManager(mmGQLInstance) {
                     relationalStateEntry = _ref4.relationalStateEntry;
                 var stateEntryWhichMayRequireUpdate = relationalStateEntry || parentStateEntry;
 
+                if (path.queryRecordEntry.relational) {
+                  _this2.notifyRepositories({
+                    data: nodeData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false
+                  });
+                }
+
+                var cacheEntry;
+                var requiresPotentialRelationalUpdate = true;
+
                 if (!stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id]) {
                   var _path$parentQueryReco;
 
-                  var newCacheEntry = _this2.buildCacheEntry({
+                  // we're building a brand new cache entry
+                  // so updating the relational results for any proxies is not necessary
+                  requiresPotentialRelationalUpdate = false;
+                  cacheEntry = _this2.buildCacheEntry({
                     nodeData: nodeData,
                     queryAlias: relationalAlias || rootLevelAlias,
                     queryRecord: relationalStateEntry ? (_path$parentQueryReco = path.parentQueryRecordEntry) == null ? void 0 : _path$parentQueryReco.relational : _this2.queryRecord,
@@ -7241,20 +7273,43 @@ function createQueryManager(mmGQLInstance) {
                     clientSidePageInfo: null,
                     collectionsIncludePagingInfo: false
                   });
-
-                  if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
-                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult || !Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult)) return _this2.logSubscriptionError('No idsOrIdInCurrentResult found on state entry');
-                  stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] = newCacheEntry.proxyCache[nodeData.id];
-
-                  if (!stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(nodeData.id)) {
-                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(nodeData.id);
-                  }
+                } else {
+                  cacheEntry = stateEntryWhichMayRequireUpdate;
                 }
 
-                _this2.applyClientSideFilterAndSortToState({
+                if (!cacheEntry) return _this2.logSubscriptionError('No new cache entry found');
+                stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] = cacheEntry.proxyCache[nodeData.id];
+
+                if (Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult) && !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(nodeData.id)) {
+                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(nodeData.id);
+                }
+
+                _this2.applyClientSideFilterAndSortToStateEntry({
                   stateEntryWhichMayRequireUpdate: stateEntryWhichMayRequireUpdate,
                   queryRecordEntry: path.queryRecordEntry
                 });
+
+                if (requiresPotentialRelationalUpdate) {
+                  var relationalQueryRecord = path.queryRecordEntry.relational;
+
+                  if (relationalQueryRecord) {
+                    var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id].relationalState = _this2.getQueryManagerStateFromData({
+                      data: nodeData,
+                      queryRecord: relationalQueryRecord,
+                      collectionsIncludePagingInfo: false
+                    });
+
+                    _this2.applyClientSideFilterAndSortToState({
+                      stateWhichMayRequireUpdate: relationalState,
+                      queryRecord: relationalQueryRecord
+                    });
+
+                    stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id].proxy.updateRelationalResults(_this2.getResultsFromState({
+                      state: relationalState,
+                      aliasPath: path.aliasPath
+                    }));
+                  }
+                }
 
                 if (idOfAffectedParent != null && relationalAlias && relationalStateEntry) {
                   var _parentStateEntry$pro;
@@ -7318,7 +7373,7 @@ function createQueryManager(mmGQLInstance) {
                   stateEntry.totalCount++;
                 }
 
-                _this2.applyClientSideFilterAndSortToState({
+                _this2.applyClientSideFilterAndSortToStateEntry({
                   stateEntryWhichMayRequireUpdate: stateEntry,
                   queryRecordEntry: path.queryRecordEntry
                 });
@@ -7413,7 +7468,7 @@ function createQueryManager(mmGQLInstance) {
                   stateEntry.proxyCache[nodeInsertedData.id] = newCacheEntry.proxyCache[nodeInsertedData.id];
                 }
 
-                _this2.applyClientSideFilterAndSortToState({
+                _this2.applyClientSideFilterAndSortToStateEntry({
                   stateEntryWhichMayRequireUpdate: stateEntry,
                   queryRecordEntry: path.queryRecordEntry
                 });
@@ -7919,28 +7974,28 @@ function createQueryManager(mmGQLInstance) {
           });
         }
       });
-    }
-    /**
-     * Gets the initial state for this manager from the initial query results
-     *   does not execute on subscription messages
-     */
-    ;
+    };
 
-    _proto.getNewStateFromQueryResult = function getNewStateFromQueryResult(opts) {
+    _proto.getQueryManagerStateFromData = function getQueryManagerStateFromData(opts) {
       var _this8 = this;
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
+        var queryRecordEntry = opts.queryRecord[queryAlias];
+        if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
+
         var cacheEntry = _this8.buildCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
-            queryResponsePartial: opts.queryResult[queryAlias],
+            queryResponsePartial: opts.data[queryAlias],
             queryRecordEntry: opts.queryRecord[queryAlias],
-            collectionsIncludePagingInfo: true
+            collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
           }),
           pageInfoFromResults: _this8.getPageInfoFromResponse({
-            dataForThisAlias: opts.queryResult[queryAlias]
+            dataForThisAlias: opts.data[queryAlias],
+            queryRecordEntry: queryRecordEntry,
+            collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
           }),
           totalCount: _this8.getTotalCountFromResponse({
-            dataForThisAlias: opts.queryResult[queryAlias]
+            dataForThisAlias: opts.data[queryAlias]
           }),
           clientSidePageInfo: _this8.getInitialClientSidePageInfo({
             queryRecordEntry: opts.queryRecord[queryAlias]
@@ -7948,7 +8003,7 @@ function createQueryManager(mmGQLInstance) {
           queryRecord: opts.queryRecord,
           queryAlias: queryAlias,
           aliasPath: [queryAlias],
-          collectionsIncludePagingInfo: true
+          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
         });
 
         if (!cacheEntry) return resultingStateAcc;
@@ -7984,9 +8039,10 @@ function createQueryManager(mmGQLInstance) {
         return Object.keys(relationalQueryRecord).reduce(function (relationalStateAcc, relationalAlias) {
           var _relationalQueryRecor, _extends2;
 
+          var queryRecordEntry = relationalQueryRecord[relationalAlias];
           var relationalDataForThisAlias = getDataFromQueryResponsePartial({
             queryResponsePartial: node[relationalAlias],
-            queryRecordEntry: relationalQueryRecord[relationalAlias],
+            queryRecordEntry: queryRecordEntry,
             collectionsIncludePagingInfo: collectionsIncludePagingInfo
           });
 
@@ -8001,7 +8057,9 @@ function createQueryManager(mmGQLInstance) {
           });
 
           var pageInfoFromResults = collectionsIncludePagingInfo ? _this9.getPageInfoFromResponse({
-            dataForThisAlias: node[relationalAlias]
+            dataForThisAlias: node[relationalAlias],
+            queryRecordEntry: queryRecordEntry,
+            collectionsIncludePagingInfo: collectionsIncludePagingInfo
           }) : {
             hasNextPage: false,
             hasPreviousPage: false,
@@ -8150,6 +8208,20 @@ function createQueryManager(mmGQLInstance) {
     _proto.getPageInfoFromResponse = function getPageInfoFromResponse(opts) {
       var _opts$dataForThisAlia;
 
+      if (!opts.collectionsIncludePagingInfo && queryRecordEntryReturnsArrayOfData({
+        queryRecordEntry: opts.queryRecordEntry
+      })) {
+        var _opts$queryRecordEntr;
+
+        return {
+          totalPages: Math.ceil(opts.dataForThisAlias.length / (((_opts$queryRecordEntr = opts.queryRecordEntry.pagination) == null ? void 0 : _opts$queryRecordEntr.itemsPerPage) || DEFAULT_PAGE_SIZE)),
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: 'mock-cursor-should-not-be-used',
+          endCursor: 'mock-cursor-should-not-be-used'
+        };
+      }
+
       return ((_opts$dataForThisAlia = opts.dataForThisAlias) == null ? void 0 : _opts$dataForThisAlia[PAGE_INFO_PROPERTY_KEY]) || null;
     };
 
@@ -8159,55 +8231,8 @@ function createQueryManager(mmGQLInstance) {
       return (_opts$dataForThisAlia2 = opts.dataForThisAlias) == null ? void 0 : _opts$dataForThisAlia2[TOTAL_COUNT_PROPERTY_KEY];
     };
 
-    _proto.getPageInfoFromResponseForAlias = function getPageInfoFromResponseForAlias(opts) {
-      var _opts$aliasPath = opts.aliasPath,
-          firstAlias = _opts$aliasPath[0],
-          remainingPath = _opts$aliasPath.slice(1);
-
-      var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
-      var idFromFirstAlias = this.getIdFromAlias(firstAlias);
-
-      if (remainingPath.length === 0) {
-        if (idFromFirstAlias != null) {
-          if (!opts.response[firstAliasWithoutId]) {
-            throw Error('Expected array of data when an id is found in the alias');
-          }
-
-          var _dataIsArrayAtRoot = Array.isArray(opts.response[firstAliasWithoutId]);
-
-          var dataIsArrayNestedInNodes = Array.isArray(opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]);
-          if (!_dataIsArrayAtRoot && !dataIsArrayNestedInNodes) throw Error('Expected array of data when an id is found in the alias');
-
-          var _dataArray = _dataIsArrayAtRoot ? opts.response[firstAliasWithoutId] : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
-
-          var _dataForThisAlias = _dataArray.find(function (item) {
-            return item.id === idFromFirstAlias;
-          });
-
-          if (!_dataForThisAlias) throw Error('Expected data for this alias when an id is found in the alias');
-          return this.getPageInfoFromResponse({
-            dataForThisAlias: _dataForThisAlias
-          });
-        }
-
-        return this.getPageInfoFromResponse({
-          dataForThisAlias: opts.response[firstAliasWithoutId]
-        });
-      }
-
-      var dataIsArrayAtRoot = Array.isArray(opts.response[firstAliasWithoutId]);
-      var dataArray = dataIsArrayAtRoot ? opts.response[firstAliasWithoutId] : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
-      var dataForThisAlias = dataArray.find(function (item) {
-        return item.id === idFromFirstAlias;
-      });
-      return this.getPageInfoFromResponseForAlias({
-        aliasPath: remainingPath,
-        response: dataForThisAlias
-      });
-    };
-
     _proto.getInitialClientSidePageInfo = function getInitialClientSidePageInfo(opts) {
-      var _opts$queryRecordEntr;
+      var _opts$queryRecordEntr2;
 
       if (!opts.queryRecordEntry) return null;
       if (!queryRecordEntryReturnsArrayOfData({
@@ -8215,7 +8240,7 @@ function createQueryManager(mmGQLInstance) {
       })) return null;
       return {
         lastQueriedPage: 1,
-        pageSize: ((_opts$queryRecordEntr = opts.queryRecordEntry.pagination) == null ? void 0 : _opts$queryRecordEntr.itemsPerPage) || DEFAULT_PAGE_SIZE
+        pageSize: ((_opts$queryRecordEntr2 = opts.queryRecordEntry.pagination) == null ? void 0 : _opts$queryRecordEntr2.itemsPerPage) || DEFAULT_PAGE_SIZE
       };
     };
 
@@ -8496,9 +8521,9 @@ function createQueryManager(mmGQLInstance) {
     ;
 
     _proto.getMinimalQueryRecordWithUpdatedPaginationParams = function getMinimalQueryRecordWithUpdatedPaginationParams(opts) {
-      var _opts$aliasPath2 = opts.aliasPath,
-          firstAlias = _opts$aliasPath2[0],
-          remainingPath = _opts$aliasPath2.slice(1);
+      var _opts$aliasPath = opts.aliasPath,
+          firstAlias = _opts$aliasPath[0],
+          remainingPath = _opts$aliasPath.slice(1);
 
       var newQueryRecord = {};
       var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
@@ -8550,9 +8575,10 @@ function createQueryManager(mmGQLInstance) {
         queryRecord: opts.queryRecord,
         collectionsIncludePagingInfo: true
       });
-      var newState = this.getNewStateFromQueryResult({
-        queryResult: opts.newData,
-        queryRecord: opts.queryRecord
+      var newState = this.getQueryManagerStateFromData({
+        data: opts.newData,
+        queryRecord: opts.queryRecord,
+        collectionsIncludePagingInfo: true
       });
       this.extendStateObject({
         aliasPath: opts.aliasPath,
@@ -8580,9 +8606,10 @@ function createQueryManager(mmGQLInstance) {
         queryRecord: opts.minimalQueryRecord,
         collectionsIncludePagingInfo: true
       });
-      var newState = this.getNewStateFromQueryResult({
-        queryResult: opts.queryResult,
-        queryRecord: opts.minimalQueryRecord
+      var newState = this.getQueryManagerStateFromData({
+        data: opts.queryResult,
+        queryRecord: opts.minimalQueryRecord,
+        collectionsIncludePagingInfo: true
       });
 
       if (opts.aliasPathsToUpdate) {
@@ -8620,9 +8647,9 @@ function createQueryManager(mmGQLInstance) {
     };
 
     _proto.extendStateObject = function extendStateObject(opts) {
-      var _opts$aliasPath3 = opts.aliasPath,
-          firstAlias = _opts$aliasPath3[0],
-          remainingPath = _opts$aliasPath3.slice(1);
+      var _opts$aliasPath2 = opts.aliasPath,
+          firstAlias = _opts$aliasPath2[0],
+          remainingPath = _opts$aliasPath2.slice(1);
 
       var firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
       var existingStateForFirstAlias = opts.state[firstAliasWithoutId];
