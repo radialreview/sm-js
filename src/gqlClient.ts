@@ -211,6 +211,11 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
                 ...opts,
                 retryAttempts: (opts.retryAttempts || 0) + 1,
               });
+            } else {
+              console.error(
+                'Failed to initialize subscription after 3 attempts'
+              );
+              console.error(getPrettyPrintedGQL(opts.gql));
             }
             opts.onError(e);
           },
