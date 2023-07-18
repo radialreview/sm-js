@@ -1213,7 +1213,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes relational data', done => {
+  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data', done => {
     const mockUsersResponse = {
       [NODES_PROPERTY_KEY]: [
         {
@@ -1556,6 +1556,196 @@ describe('subscription handling', () => {
                 [NODES_PROPERTY_KEY]: mockUsersWithoutFirstName,
                 [TOTAL_COUNT_PROPERTY_KEY]:
                   mockUsersCollection[TOTAL_COUNT_PROPERTY_KEY],
+              },
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 3,
+        },
+      },
+    });
+  });
+
+  it('handles a "CREATED" subscription message related to a node that was queried within a root collection, which includes new relational data', done => {
+    const mockUsersResponse = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          type: 'user',
+          version: 1,
+          id: 'mock-user-id-1',
+          firstName: 'mock-user-name-1',
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+      [PAGE_INFO_PROPERTY_KEY]: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: 'mock-user-id-1',
+        endCursor: 'mock-user-id-1',
+        totalPages: 1,
+      },
+    };
+
+    const mmGQLInstance = new MMGQL(
+      getMockConfig({
+        getMockData: () => ({
+          todos: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                type: 'todo',
+                version: 1,
+                id: 'mock-todo-id-1',
+                task: 'mock-task-1',
+                done: false,
+                assignee: {
+                  type: 'user',
+                  version: 1,
+                  id: 'mock-user-id-1',
+                  firstName: 'mock-user-name-1',
+                },
+                users: mockUsersResponse,
+              },
+              {
+                type: 'todo',
+                version: 1,
+                id: 'mock-todo-id-2',
+                task: 'mock-task-2',
+                done: false,
+                assignee: {
+                  type: 'user',
+                  version: 1,
+                  id: 'mock-user-id-1',
+                  firstName: 'mock-user-name-1',
+                },
+                users: mockUsersResponse,
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+            [PAGE_INFO_PROPERTY_KEY]: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: 'mock-todo-id-1',
+              endCursor: 'mock-todo-id-1',
+              totalPages: 1,
+            },
+          },
+        }),
+      })
+    );
+    const todoNode = generateTodoNode(mmGQLInstance);
+    const todosQueryDefinition = queryDefinition({
+      def: todoNode,
+      map: ({ task, done, assignee, users }) => ({
+        task,
+        done,
+        assignee: assignee({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+        users: users({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    });
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Created',
+        valueNodeType: todoNode.type,
+        id: 'mock-todo-id-3',
+        value: {
+          id: 'mock-todo-id-3',
+          version: 1,
+          type: 'todo',
+          task: 'mock-task-3',
+          done: false,
+          assignee: {
+            type: 'user',
+            version: 1,
+            id: 'mock-user-id-3',
+            firstName: 'mock-user-name-3',
+          },
+          users: [
+            {
+              type: 'user',
+              version: 1,
+              id: 'mock-user-id-3',
+              firstName: 'mock-user-name-3',
+            },
+          ],
+        },
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              assignee: {
+                type: 'user',
+                version: 1,
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
+              },
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    type: 'user',
+                    version: 1,
+                    id: 'mock-user-id-1',
+                    firstName: 'mock-user-name-1',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
+              },
+            },
+            {
+              id: 'mock-todo-id-2',
+              task: 'mock-task-2',
+              done: false,
+              assignee: {
+                type: 'user',
+                version: 1,
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
+              },
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    type: 'user',
+                    version: 1,
+                    id: 'mock-user-id-1',
+                    firstName: 'mock-user-name-1',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
+              },
+            },
+            {
+              id: 'mock-todo-id-3',
+              task: 'mock-task-3',
+              done: false,
+              assignee: {
+                type: 'user',
+                version: 1,
+                id: 'mock-user-id-3',
+                firstName: 'mock-user-name-3',
+              },
+              users: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    type: 'user',
+                    version: 1,
+                    id: 'mock-user-id-3',
+                    firstName: 'mock-user-name-3',
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
               },
             },
           ],
@@ -2082,6 +2272,207 @@ describe('subscription handling', () => {
               {
                 id: 'mock-user-id-2',
                 lastName: 'mock-user-last-name-2',
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+          },
+        },
+      },
+    });
+  });
+
+  it('handles an "INSERTED" subscription message related to a node that was queried within a relational collection, nested within a single node query, which includes new relational data', done => {
+    const mockUsersCollection = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          id: 'mock-user-id-1',
+          type: 'user',
+          version: 1,
+          firstName: 'mock-user-name-1',
+          lastName: 'mock-user-last-name-1',
+          todos: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-todo-id-1',
+                type: 'todo',
+                version: 1,
+                task: 'mock-task-1',
+                done: false,
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            [PAGE_INFO_PROPERTY_KEY]: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: 'mock-todo-id-1',
+              endCursor: 'mock-todo-id-1',
+              totalPages: 1,
+            },
+          },
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+      [PAGE_INFO_PROPERTY_KEY]: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: 'mock-user-id-1',
+        endCursor: 'mock-user-id-1',
+        totalPages: 1,
+      },
+    };
+
+    const mmGQLInstance = new MMGQL(
+      getMockConfig({
+        getMockData: () => ({
+          todo: {
+            id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
+            task: 'mock-task-1',
+            done: false,
+            users: mockUsersCollection,
+            usersCopy: mockUsersCollection,
+          },
+        }),
+      })
+    );
+    const userNode = generateUserNode(mmGQLInstance);
+    const todoNode = generateTodoNode(mmGQLInstance, userNode);
+    const todoQueryDefinition = queryDefinition({
+      def: todoNode,
+      map: ({ task, done, users }) => ({
+        task,
+        done,
+        users: users({
+          map: ({ firstName, todos }) => ({
+            firstName,
+            todos: todos({
+              map: ({ task, done }) => ({
+                task,
+                done,
+              }),
+            }),
+          }),
+        }),
+        usersCopy: users({
+          map: ({ lastName, todos }) => ({
+            lastName,
+            todos: todos({
+              map: ({ task, done }) => ({
+                task,
+                done,
+              }),
+            }),
+          }),
+        }),
+      }),
+      target: {
+        id: 'mock-todo-id-1',
+      },
+    });
+
+    const mockSubscriptionMessage = getMockSubscriptionMessage({
+      alias: 'todo',
+      type: 'Inserted',
+      targetNodeType: todoNode.type,
+      target: {
+        id: 'mock-todo-id-1',
+        property: 'users',
+      },
+      id: 'mock-user-id-2',
+      valueNodeType: userNode.type,
+      value: {
+        id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
+        firstName: 'mock-user-name-2',
+        lastName: 'mock-user-last-name-2',
+        todos: [
+          {
+            id: 'mock-todo-id-2',
+            type: 'todo',
+            version: 1,
+            task: 'mock-task-2',
+            done: false,
+          },
+        ],
+      },
+    });
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          users: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
+                todos: {
+                  [NODES_PROPERTY_KEY]: [
+                    {
+                      id: 'mock-todo-id-1',
+                      task: 'mock-task-1',
+                      done: false,
+                    },
+                  ],
+                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                },
+              },
+              {
+                id: 'mock-user-id-2',
+                firstName: 'mock-user-name-2',
+                todos: {
+                  [NODES_PROPERTY_KEY]: [
+                    {
+                      id: 'mock-todo-id-2',
+                      task: 'mock-task-2',
+                      done: false,
+                    },
+                  ],
+                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                },
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+          },
+          usersCopy: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                id: 'mock-user-id-1',
+                lastName: 'mock-user-last-name-1',
+                todos: {
+                  [NODES_PROPERTY_KEY]: [
+                    {
+                      id: 'mock-todo-id-1',
+                      task: 'mock-task-1',
+                      done: false,
+                    },
+                  ],
+                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                },
+              },
+              {
+                id: 'mock-user-id-2',
+                lastName: 'mock-user-last-name-2',
+                todos: {
+                  [NODES_PROPERTY_KEY]: [
+                    {
+                      id: 'mock-todo-id-2',
+                      task: 'mock-task-2',
+                      done: false,
+                    },
+                  ],
+                  [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                },
               },
             ],
             [TOTAL_COUNT_PROPERTY_KEY]: 2,
@@ -3070,6 +3461,127 @@ describe('subscription handling', () => {
           assignee: {
             id: 'mock-user-id-2',
             firstName: 'mock-user-name-2',
+          },
+        },
+      },
+    });
+  });
+
+  it('handles an "UPDATED_ASSOCIATION" subscription message related to a oneToOne relationship nested within a single node query, which includes new relational data', done => {
+    const mmGQLInstance = new MMGQL(
+      getMockConfig({
+        getMockData: () => ({
+          todo: {
+            id: 'mock-todo-id-1',
+            type: 'todo',
+            version: 1,
+            task: 'mock-task-1',
+            done: false,
+            assignee: {
+              type: 'user',
+              version: 1,
+              id: 'mock-user-id-1',
+              firstName: 'mock-user-name-1',
+              todos: {
+                [NODES_PROPERTY_KEY]: [
+                  {
+                    id: 'mock-todo-id-1',
+                    type: 'todo',
+                    version: 1,
+                    task: 'mock-task-1',
+                    done: false,
+                  },
+                ],
+                [TOTAL_COUNT_PROPERTY_KEY]: 1,
+                [PAGE_INFO_PROPERTY_KEY]: {
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                  startCursor: 'mock-start-cursor',
+                  endCursor: 'mock-end-cursor',
+                  totalPages: 1,
+                },
+              },
+            },
+          },
+        }),
+      })
+    );
+    const userNode = generateUserNode(mmGQLInstance);
+    const todoNode = generateTodoNode(mmGQLInstance, userNode);
+    const todoQueryDefinition = queryDefinition({
+      def: todoNode,
+      map: ({ task, done, assignee }) => ({
+        task,
+        done,
+        assignee: assignee({
+          map: ({ firstName, todos }) => ({
+            firstName,
+            todos: todos({
+              map: ({ task, done }) => ({
+                task,
+                done,
+              }),
+            }),
+          }),
+        }),
+      }),
+      target: {
+        id: 'mock-todo-id-1',
+      },
+    });
+
+    const mockSubscriptionMessage = getMockSubscriptionMessage({
+      alias: 'todo',
+      type: 'UpdatedAssociation',
+      targetNodeType: todoNode.type,
+      target: {
+        id: 'mock-todo-id-1',
+        property: 'assignee',
+      },
+      id: 'mock-user-id-2',
+      valueNodeType: userNode.type,
+      value: {
+        id: 'mock-user-id-2',
+        type: 'user',
+        version: 1,
+        firstName: 'mock-user-name-2',
+        todos: [
+          {
+            id: 'mock-todo-id-2',
+            type: 'todo',
+            version: 1,
+            task: 'mock-task-2',
+            done: false,
+          },
+        ],
+      },
+    });
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todo: todoQueryDefinition,
+      },
+      done,
+      subscriptionMessage: mockSubscriptionMessage,
+      expectedResultsObject: {
+        todo: {
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+          done: false,
+          assignee: {
+            id: 'mock-user-id-2',
+            firstName: 'mock-user-name-2',
+            todos: {
+              [NODES_PROPERTY_KEY]: [
+                {
+                  id: 'mock-todo-id-2',
+                  task: 'mock-task-2',
+                  done: false,
+                },
+              ],
+              [TOTAL_COUNT_PROPERTY_KEY]: 1,
+            },
           },
         },
       },

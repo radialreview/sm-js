@@ -408,6 +408,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 queryRecordEntry.def.repository.onDataReceived(nodeData);
               }
 
+              if (path.queryRecordEntry.relational) {
+                this.notifyRepositories({
+                  data: nodeData,
+                  queryRecord: path.queryRecordEntry.relational,
+                  collectionsIncludePagingInfo: false,
+                });
+              }
+
               const newCacheEntry = this.buildCacheEntry({
                 aliasPath: path.aliasPath,
                 nodeData,
@@ -539,6 +547,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   path.queryRecordEntry.def.repository.onDataReceived(
                     nodeInsertedData
                   );
+                }
+
+                if (path.queryRecordEntry.relational) {
+                  this.notifyRepositories({
+                    data: nodeInsertedData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false,
+                  });
                 }
 
                 const relationalAlias =
@@ -782,6 +798,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   path.queryRecordEntry.def.repository.onDataReceived(
                     nodeAssociatedData
                   );
+                }
+
+                if (path.queryRecordEntry.relational) {
+                  this.notifyRepositories({
+                    data: nodeAssociatedData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false,
+                  });
                 }
 
                 const newCacheEntry = this.buildCacheEntry({
