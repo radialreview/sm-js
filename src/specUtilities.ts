@@ -444,7 +444,7 @@ export function getMockConfig(opts?: {
       gqlQueries: false,
       gqlMutations: false,
       gqlSubscriptions: false,
-      gqlSubscriptionErrors: true,
+      gqlSubscriptionErrors: false,
       ...opts?.logging,
     },
     paginationFilteringSortingInstance:
