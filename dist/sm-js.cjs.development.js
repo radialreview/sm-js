@@ -7337,6 +7337,14 @@ function createQueryManager(mmGQLInstance) {
                 queryRecordEntry.def.repository.onDataReceived(nodeData);
               }
 
+              if (path.queryRecordEntry.relational) {
+                _this2.notifyRepositories({
+                  data: nodeData,
+                  queryRecord: path.queryRecordEntry.relational,
+                  collectionsIncludePagingInfo: false
+                });
+              }
+
               var newCacheEntry = _this2.buildCacheEntry({
                 aliasPath: path.aliasPath,
                 nodeData: nodeData,
@@ -7417,6 +7425,14 @@ function createQueryManager(mmGQLInstance) {
                 // we don't need to call this for every path
                 // since it's targeting the same node repository instance
                 path.queryRecordEntry.def.repository.onDataReceived(nodeInsertedData);
+              }
+
+              if (path.queryRecordEntry.relational) {
+                _this2.notifyRepositories({
+                  data: nodeInsertedData,
+                  queryRecord: path.queryRecordEntry.relational,
+                  collectionsIncludePagingInfo: false
+                });
               }
 
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
@@ -7559,6 +7575,14 @@ function createQueryManager(mmGQLInstance) {
                   // we don't need to call this for every path
                   // since it's targeting the same node repository instance
                   path.queryRecordEntry.def.repository.onDataReceived(nodeAssociatedData);
+                }
+
+                if (path.queryRecordEntry.relational) {
+                  _this2.notifyRepositories({
+                    data: nodeAssociatedData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false
+                  });
                 }
 
                 var newCacheEntry = _this2.buildCacheEntry({
