@@ -1493,7 +1493,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const queryRecord = opts.queryRecord;
       const queryRecordEntry = queryRecord[opts.queryAlias];
 
-      if (!queryRecordEntry) {
+      if (!queryRecordEntry || !nodeData) {
         return getEmptyStateEntry();
       }
 
