@@ -8045,7 +8045,7 @@ function createQueryManager(mmGQLInstance) {
       var queryRecord = opts.queryRecord;
       var queryRecordEntry = queryRecord[opts.queryAlias];
 
-      if (!queryRecordEntry) {
+      if (!queryRecordEntry || !nodeData) {
         return getEmptyStateEntry();
       }
 

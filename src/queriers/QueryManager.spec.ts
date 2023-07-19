@@ -10,6 +10,7 @@ import {
 
 import { MMGQL } from '..';
 import {
+  Maybe,
   QueryDefinitions,
   QueryRecordEntry,
   RelationalQueryRecordEntry,
@@ -880,7 +881,7 @@ function getMockSubscriptionMessage(opts: {
   alias: string;
   type: SubscriptionMessageType;
   targetNodeType?: string;
-  id: string;
+  id: Maybe<string>;
   target?: {
     id: string;
     property: string;
@@ -1372,6 +1373,110 @@ describe('subscription handling', () => {
                   },
                 ],
                 [TOTAL_COUNT_PROPERTY_KEY]: 1,
+              },
+            },
+          ],
+          [TOTAL_COUNT_PROPERTY_KEY]: 2,
+        },
+      },
+    });
+  });
+
+  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data set to null', done => {
+    const mmGQLInstance = new MMGQL(
+      getMockConfig({
+        getMockData: () => ({
+          todos: {
+            [NODES_PROPERTY_KEY]: [
+              {
+                type: 'todo',
+                version: 1,
+                id: 'mock-todo-id-1',
+                task: 'mock-task-1',
+                done: false,
+                assignee: {
+                  type: 'user',
+                  version: 1,
+                  id: 'mock-user-id-1',
+                  firstName: 'mock-user-name-1',
+                },
+              },
+              {
+                type: 'todo',
+                version: 1,
+                id: 'mock-todo-id-2',
+                task: 'mock-task-2',
+                done: false,
+                assignee: {
+                  type: 'user',
+                  version: 1,
+                  id: 'mock-user-id-1',
+                  firstName: 'mock-user-name-1',
+                },
+              },
+            ],
+            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+            [PAGE_INFO_PROPERTY_KEY]: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: 'mock-todo-id-1',
+              endCursor: 'mock-todo-id-1',
+              totalPages: 1,
+            },
+          },
+        }),
+      })
+    );
+    const todoNode = generateTodoNode(mmGQLInstance);
+    const todosQueryDefinition = queryDefinition({
+      def: todoNode,
+      map: ({ task, done, assignee }) => ({
+        task,
+        done,
+        assignee: assignee({
+          map: ({ firstName }) => ({ firstName }),
+        }),
+      }),
+    });
+
+    runSubscriptionTest({
+      mmGQLInstance,
+      queryDefinitions: {
+        todos: todosQueryDefinition,
+      },
+      done,
+      subscriptionMessage: getMockSubscriptionMessage({
+        alias: 'todos',
+        type: 'Updated',
+        valueNodeType: todoNode.type,
+        id: 'mock-todo-id-1',
+        value: {
+          id: 'mock-todo-id-1',
+          version: 1,
+          type: 'todo',
+          task: 'mock-task-1',
+          done: false,
+          assignee: null,
+        },
+      }),
+      expectedResultsObject: {
+        todos: {
+          [NODES_PROPERTY_KEY]: [
+            {
+              id: 'mock-todo-id-1',
+              task: 'mock-task-1',
+              done: false,
+              assignee: null,
+            },
+            {
+              id: 'mock-todo-id-2',
+              task: 'mock-task-2',
+              done: false,
+              assignee: {
+                type: 'user',
+                version: 1,
+                id: 'mock-user-id-1',
+                firstName: 'mock-user-name-1',
               },
             },
           ],
@@ -3634,7 +3739,7 @@ describe('subscription handling', () => {
         id: 'mock-todo-id-1',
         property: 'assignee',
       },
-      id: 'mock-user-id-2',
+      id: null,
       valueNodeType: userNode.type,
       value: null,
     });
