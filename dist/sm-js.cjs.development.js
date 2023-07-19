@@ -7500,7 +7500,7 @@ function _performQueries() {
               queryId: opts.queryId,
               queryRecord: opts.queryRecord,
               useServerSidePaginationFilteringSorting: opts.mmGQLInstance.paginationFilteringSortingInstance === exports.EPaginationFilteringSortingInstance.SERVER,
-              tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
+              tokenName: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
               batchKey: opts.batchKey || undefined
             });
 

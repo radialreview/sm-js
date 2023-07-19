@@ -2542,7 +2542,7 @@ async function performQueries(opts: {
       useServerSidePaginationFilteringSorting:
         opts.mmGQLInstance.paginationFilteringSortingInstance ===
         EPaginationFilteringSortingInstance.SERVER,
-      tokenName: opts.tokenName || DEFAULT_TOKEN_NAME,
+      tokenName: getToken(opts.tokenName || DEFAULT_TOKEN_NAME),
       batchKey: opts.batchKey || undefined,
     });
   } else {
