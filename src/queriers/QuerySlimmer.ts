@@ -596,10 +596,14 @@ export class QuerySlimmer {
           const resultsForRelationalQueries = Object.keys(
             queryRecordEntry.relational
           ).reduce((previous: Record<string, any>, current: string) => {
-            // do array vs object check here before map in case there's only a single id
-            previous[current] = results[alias].map(
-              (user: any) => user[current]
-            );
+            // PIOTR RECHECK THIS STUFF
+            if (Array.isArray(results[alias])) {
+              previous[current] = results[alias].map(
+                (user: any) => user[current]
+              );
+            } else {
+              previous[current] = results[alias];
+            }
             return previous;
           }, {});
 

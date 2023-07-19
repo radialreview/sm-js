@@ -8310,10 +8310,15 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
         if (queryRecordEntry.relational) {
           var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
-            // do array vs object check here before map in case there's only a single id
-            previous[current] = results[alias].map(function (user) {
-              return user[current];
-            });
+            // PIOTR RECHECK THIS STUFF
+            if (Array.isArray(results[alias])) {
+              previous[current] = results[alias].map(function (user) {
+                return user[current];
+              });
+            } else {
+              previous[current] = results[alias];
+            }
+
             return previous;
           }, {});
 
