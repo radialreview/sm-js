@@ -1136,6 +1136,9 @@ export function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 // When we query for paginated arrays, the response is an object containing
 // a "nodes" property which is an array of the nodes
 // Otherwise the response is the node, or the list of nodes, itself
+//
+// the exception to this is within subscription messages,
+// where collections do not include paging info
 export function getDataFromQueryResponsePartial(opts: {
   queryResponsePartial: Record<string, any>;
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;

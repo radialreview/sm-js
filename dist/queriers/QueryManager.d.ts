@@ -45,6 +45,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: QueryRecord;
         }): Record<string, (message: SubscriptionMessage) => void>;
         applyClientSideFilterAndSortToState: (opts: {
+            stateWhichMayRequireUpdate: QueryManagerState;
+            queryRecord: QueryRecord | RelationalQueryRecord;
+        }) => void;
+        applyClientSideFilterAndSortToStateEntry: (opts: {
             stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
         }) => void;
@@ -145,13 +149,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             };
             collectionsIncludePagingInfo: boolean;
         }): void;
-        /**
-         * Gets the initial state for this manager from the initial query results
-         *   does not execute on subscription messages
-         */
-        getNewStateFromQueryResult(opts: {
-            queryResult: Record<string, any>;
-            queryRecord: QueryRecord;
+        getQueryManagerStateFromData(opts: {
+            data: Record<string, any>;
+            queryRecord: QueryRecord | RelationalQueryRecord;
+            collectionsIncludePagingInfo: boolean;
         }): QueryManagerState;
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
@@ -170,14 +171,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): RelationalQueryRecord;
         getPageInfoFromResponse(opts: {
             dataForThisAlias: any;
+            queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+            collectionsIncludePagingInfo: boolean;
         }): Maybe<PageInfoFromResults>;
         getTotalCountFromResponse(opts: {
             dataForThisAlias: any;
         }): Maybe<number>;
-        getPageInfoFromResponseForAlias(opts: {
-            aliasPath: Array<string>;
-            response: Record<string, any>;
-        }): Maybe<PageInfoFromResults>;
         getInitialClientSidePageInfo(opts: {
             queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
         }): Maybe<ClientSidePageInfo>;

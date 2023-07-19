@@ -6,7 +6,6 @@ import {
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_TOKEN_NAME,
-  NODES_PROPERTY_KEY,
   PAGE_INFO_PROPERTY_KEY,
   RELATIONAL_UNION_QUERY_SEPARATOR,
   TOTAL_COUNT_PROPERTY_KEY,
@@ -259,10 +258,23 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   const stateEntryWhichMayRequireUpdate =
                     relationalStateEntry || parentStateEntry;
 
+                  if (path.queryRecordEntry.relational) {
+                    this.notifyRepositories({
+                      data: nodeData,
+                      queryRecord: path.queryRecordEntry.relational,
+                      collectionsIncludePagingInfo: false,
+                    });
+                  }
+
+                  let cacheEntry: Maybe<QueryManagerStateEntry>;
+                  let requiresPotentialRelationalUpdate: boolean = true;
                   if (
                     !stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id]
                   ) {
-                    const newCacheEntry = this.buildCacheEntry({
+                    // we're building a brand new cache entry
+                    // so updating the relational results for any proxies is not necessary
+                    requiresPotentialRelationalUpdate = false;
+                    cacheEntry = this.buildCacheEntry({
                       nodeData: nodeData,
                       queryAlias: relationalAlias || rootLevelAlias,
                       queryRecord: relationalStateEntry
@@ -278,40 +290,64 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       clientSidePageInfo: null,
                       collectionsIncludePagingInfo: false,
                     });
-
-                    if (!newCacheEntry)
-                      return this.logSubscriptionError(
-                        'No new cache entry found'
-                      );
-
-                    if (
-                      !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult ||
-                      !Array.isArray(
-                        stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult
-                      )
-                    )
-                      return this.logSubscriptionError(
-                        'No idsOrIdInCurrentResult found on state entry'
-                      );
-
-                    stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] =
-                      newCacheEntry.proxyCache[nodeData.id];
-
-                    if (
-                      !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(
-                        nodeData.id
-                      )
-                    ) {
-                      stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(
-                        nodeData.id
-                      );
-                    }
+                  } else {
+                    cacheEntry = stateEntryWhichMayRequireUpdate;
                   }
 
-                  this.applyClientSideFilterAndSortToState({
+                  if (!cacheEntry)
+                    return this.logSubscriptionError(
+                      'No new cache entry found'
+                    );
+
+                  stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id] =
+                    cacheEntry.proxyCache[nodeData.id];
+
+                  if (
+                    Array.isArray(
+                      stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult
+                    ) &&
+                    !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(
+                      nodeData.id
+                    )
+                  ) {
+                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(
+                      nodeData.id
+                    );
+                  }
+
+                  this.applyClientSideFilterAndSortToStateEntry({
                     stateEntryWhichMayRequireUpdate,
                     queryRecordEntry: path.queryRecordEntry,
                   });
+
+                  if (requiresPotentialRelationalUpdate) {
+                    const relationalQueryRecord =
+                      path.queryRecordEntry.relational;
+
+                    if (relationalQueryRecord) {
+                      const relationalState = (stateEntryWhichMayRequireUpdate.proxyCache[
+                        nodeData.id
+                      ].relationalState = this.getQueryManagerStateFromData({
+                        data: nodeData,
+                        queryRecord: relationalQueryRecord,
+                        collectionsIncludePagingInfo: false,
+                      }));
+
+                      this.applyClientSideFilterAndSortToState({
+                        stateWhichMayRequireUpdate: relationalState,
+                        queryRecord: relationalQueryRecord,
+                      });
+
+                      stateEntryWhichMayRequireUpdate.proxyCache[
+                        nodeData.id
+                      ].proxy.updateRelationalResults(
+                        this.getResultsFromState({
+                          state: relationalState,
+                          aliasPath: path.aliasPath,
+                        })
+                      );
+                    }
+                  }
 
                   if (
                     idOfAffectedParent != null &&
@@ -372,6 +408,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 queryRecordEntry.def.repository.onDataReceived(nodeData);
               }
 
+              if (path.queryRecordEntry.relational) {
+                this.notifyRepositories({
+                  data: nodeData,
+                  queryRecord: path.queryRecordEntry.relational,
+                  collectionsIncludePagingInfo: false,
+                });
+              }
+
               const newCacheEntry = this.buildCacheEntry({
                 aliasPath: path.aliasPath,
                 nodeData,
@@ -409,7 +453,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   stateEntry.totalCount++;
                 }
 
-                this.applyClientSideFilterAndSortToState({
+                this.applyClientSideFilterAndSortToStateEntry({
                   stateEntryWhichMayRequireUpdate: stateEntry,
                   queryRecordEntry: path.queryRecordEntry,
                 });
@@ -505,6 +549,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
                 }
 
+                if (path.queryRecordEntry.relational) {
+                  this.notifyRepositories({
+                    data: nodeInsertedData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false,
+                  });
+                }
+
                 const relationalAlias =
                   path.aliasPath[path.aliasPath.length - 1];
                 const newCacheEntry = this.buildCacheEntry({
@@ -568,7 +620,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                       newCacheEntry.proxyCache[nodeInsertedData.id];
                   }
 
-                  this.applyClientSideFilterAndSortToState({
+                  this.applyClientSideFilterAndSortToStateEntry({
                     stateEntryWhichMayRequireUpdate: stateEntry,
                     queryRecordEntry: path.queryRecordEntry,
                   });
@@ -748,6 +800,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   );
                 }
 
+                if (path.queryRecordEntry.relational) {
+                  this.notifyRepositories({
+                    data: nodeAssociatedData,
+                    queryRecord: path.queryRecordEntry.relational,
+                    collectionsIncludePagingInfo: false,
+                  });
+                }
+
                 const newCacheEntry = this.buildCacheEntry({
                   nodeData: nodeAssociatedData,
                   queryAlias: relationalAlias,
@@ -838,6 +898,24 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     // https://github.com/radialreview/sm-js/wiki/Dev-docs/_edit#client-side-filtering-and-sorting
     applyClientSideFilterAndSortToState = (opts: {
+      stateWhichMayRequireUpdate: QueryManagerState;
+      queryRecord: QueryRecord | RelationalQueryRecord;
+    }) => {
+      Object.keys(opts.stateWhichMayRequireUpdate).forEach(alias => {
+        const queryRecordEntry = opts.queryRecord[alias];
+
+        if (!queryRecordEntry)
+          throw Error(`No query record entry found for the alias ${alias}`);
+
+        this.applyClientSideFilterAndSortToStateEntry({
+          stateEntryWhichMayRequireUpdate:
+            opts.stateWhichMayRequireUpdate[alias],
+          queryRecordEntry,
+        });
+      });
+    };
+
+    applyClientSideFilterAndSortToStateEntry = (opts: {
       stateEntryWhichMayRequireUpdate: QueryManagerStateEntry;
       queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
     }) => {
@@ -1355,27 +1433,31 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    /**
-     * Gets the initial state for this manager from the initial query results
-     *   does not execute on subscription messages
-     */
-    public getNewStateFromQueryResult(opts: {
-      queryResult: Record<string, any>;
-      queryRecord: QueryRecord;
+    public getQueryManagerStateFromData(opts: {
+      data: Record<string, any>;
+      queryRecord: QueryRecord | RelationalQueryRecord;
+      collectionsIncludePagingInfo: boolean;
     }): QueryManagerState {
       return Object.keys(opts.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
+          const queryRecordEntry = opts.queryRecord[queryAlias];
+
+          if (!queryRecordEntry)
+            throw Error(`No query record entry found for ${queryAlias}`);
+
           const cacheEntry = this.buildCacheEntry({
             nodeData: getDataFromQueryResponsePartial({
-              queryResponsePartial: opts.queryResult[queryAlias],
+              queryResponsePartial: opts.data[queryAlias],
               queryRecordEntry: opts.queryRecord[queryAlias],
-              collectionsIncludePagingInfo: true,
+              collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
             }),
             pageInfoFromResults: this.getPageInfoFromResponse({
-              dataForThisAlias: opts.queryResult[queryAlias],
+              dataForThisAlias: opts.data[queryAlias],
+              queryRecordEntry,
+              collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
             }),
             totalCount: this.getTotalCountFromResponse({
-              dataForThisAlias: opts.queryResult[queryAlias],
+              dataForThisAlias: opts.data[queryAlias],
             }),
             clientSidePageInfo: this.getInitialClientSidePageInfo({
               queryRecordEntry: opts.queryRecord[queryAlias],
@@ -1383,7 +1465,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             queryRecord: opts.queryRecord,
             queryAlias,
             aliasPath: [queryAlias],
-            collectionsIncludePagingInfo: true,
+            collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo,
           });
 
           if (!cacheEntry) return resultingStateAcc;
@@ -1432,9 +1514,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
         return Object.keys(relationalQueryRecord).reduce(
           (relationalStateAcc, relationalAlias) => {
+            const queryRecordEntry = relationalQueryRecord[relationalAlias];
+
             const relationalDataForThisAlias = getDataFromQueryResponsePartial({
               queryResponsePartial: node[relationalAlias],
-              queryRecordEntry: relationalQueryRecord[relationalAlias],
+              queryRecordEntry,
               collectionsIncludePagingInfo,
             });
 
@@ -1451,6 +1535,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             const pageInfoFromResults = collectionsIncludePagingInfo
               ? this.getPageInfoFromResponse({
                   dataForThisAlias: node[relationalAlias],
+                  queryRecordEntry,
+                  collectionsIncludePagingInfo,
                 })
               : {
                   hasNextPage: false,
@@ -1646,7 +1732,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
     public getPageInfoFromResponse(opts: {
       dataForThisAlias: any;
+      queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
+      collectionsIncludePagingInfo: boolean;
     }): Maybe<PageInfoFromResults> {
+      if (
+        !opts.collectionsIncludePagingInfo &&
+        queryRecordEntryReturnsArrayOfData({
+          queryRecordEntry: opts.queryRecordEntry,
+        })
+      ) {
+        return {
+          totalPages: Math.ceil(
+            opts.dataForThisAlias.length /
+              (opts.queryRecordEntry.pagination?.itemsPerPage ||
+                DEFAULT_PAGE_SIZE)
+          ),
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: 'mock-cursor-should-not-be-used',
+          endCursor: 'mock-cursor-should-not-be-used',
+        };
+      }
+
       return opts.dataForThisAlias?.[PAGE_INFO_PROPERTY_KEY] || null;
     }
 
@@ -1654,72 +1761,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       dataForThisAlias: any;
     }): Maybe<number> {
       return opts.dataForThisAlias?.[TOTAL_COUNT_PROPERTY_KEY];
-    }
-
-    public getPageInfoFromResponseForAlias(opts: {
-      aliasPath: Array<string>;
-      response: Record<string, any>;
-    }): Maybe<PageInfoFromResults> {
-      const [firstAlias, ...remainingPath] = opts.aliasPath;
-
-      const firstAliasWithoutId = this.removeIdFromAlias(firstAlias);
-      const idFromFirstAlias = this.getIdFromAlias(firstAlias);
-      if (remainingPath.length === 0) {
-        if (idFromFirstAlias != null) {
-          if (!opts.response[firstAliasWithoutId]) {
-            throw Error(
-              'Expected array of data when an id is found in the alias'
-            );
-          }
-
-          const dataIsArrayAtRoot = Array.isArray(
-            opts.response[firstAliasWithoutId]
-          );
-          const dataIsArrayNestedInNodes = Array.isArray(
-            opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY]
-          );
-
-          if (!dataIsArrayAtRoot && !dataIsArrayNestedInNodes)
-            throw Error(
-              'Expected array of data when an id is found in the alias'
-            );
-
-          const dataArray = dataIsArrayAtRoot
-            ? opts.response[firstAliasWithoutId]
-            : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
-
-          const dataForThisAlias = dataArray.find(
-            (item: any) => item.id === idFromFirstAlias
-          );
-          if (!dataForThisAlias)
-            throw Error(
-              'Expected data for this alias when an id is found in the alias'
-            );
-
-          return this.getPageInfoFromResponse({
-            dataForThisAlias,
-          });
-        }
-
-        return this.getPageInfoFromResponse({
-          dataForThisAlias: opts.response[firstAliasWithoutId],
-        });
-      }
-
-      const dataIsArrayAtRoot = Array.isArray(
-        opts.response[firstAliasWithoutId]
-      );
-      const dataArray = dataIsArrayAtRoot
-        ? opts.response[firstAliasWithoutId]
-        : opts.response[firstAliasWithoutId][NODES_PROPERTY_KEY];
-
-      const dataForThisAlias = dataArray.find(
-        (item: any) => item.id === idFromFirstAlias
-      );
-      return this.getPageInfoFromResponseForAlias({
-        aliasPath: remainingPath,
-        response: dataForThisAlias,
-      });
     }
 
     public getInitialClientSidePageInfo(opts: {
@@ -2000,9 +2041,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         collectionsIncludePagingInfo: true,
       });
 
-      const newState = this.getNewStateFromQueryResult({
-        queryResult: opts.newData,
+      const newState = this.getQueryManagerStateFromData({
+        data: opts.newData,
         queryRecord: opts.queryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       this.extendStateObject({
@@ -2224,9 +2266,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         collectionsIncludePagingInfo: true,
       });
 
-      const newState = this.getNewStateFromQueryResult({
-        queryResult: opts.queryResult,
+      const newState = this.getQueryManagerStateFromData({
+        data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
+        collectionsIncludePagingInfo: true,
       });
 
       if (opts.aliasPathsToUpdate) {
