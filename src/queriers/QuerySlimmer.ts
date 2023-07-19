@@ -707,12 +707,13 @@ export class QuerySlimmer {
       this.populateQueriesByContext(opts.queryRecord, results);
     } catch (e) {
       this.removeInFlightQuery(inFlightQuery);
-      throw new Error(
-        `QuerySlimmer: Error sending request for query: ${JSON.stringify(
-          opts.queryRecord
-        )}`,
-        e as any
-      );
+      throw new Error(`QuerySlimmer: Error sending request for query: ${e}`);
+      // throw new Error(
+      //   `QuerySlimmer: Error sending request for query: ${JSON.stringify(
+      //     opts.queryRecord
+      //   )}`,
+      //   e as any
+      // );
     }
   }
 
