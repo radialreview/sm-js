@@ -169,7 +169,11 @@ export class QuerySlimmer {
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
 
       queryRecordEntry.properties.forEach(property => {
-        newQueryData[property] = { nodes: cachedQueryData.results[property] };
+        if (property === 'type') {
+          newQueryData[property] = cachedQueryData.results[property];
+        } else {
+          newQueryData[property] = { nodes: cachedQueryData.results[property] };
+        }
       });
 
       if (queryRecordEntry.relational !== undefined) {
@@ -732,8 +736,6 @@ export class QuerySlimmer {
     if ('batchKey' in opts && opts.batchKey !== undefined) {
       queryOpts.batchKey = opts.batchKey;
     }
-
-    console.log('gqlDoc', JSON.stringify(gqlDoc, undefined, 2));
 
     try {
       this.setInFlightQuery(inFlightQuery);

@@ -7985,9 +7985,13 @@ var QuerySlimmer = /*#__PURE__*/function () {
       var newQueryData = {};
       var newQueryRelationalData = {};
       queryRecordEntry.properties.forEach(function (property) {
-        newQueryData[property] = {
-          nodes: cachedQueryData.results[property]
-        };
+        if (property === 'type') {
+          newQueryData[property] = cachedQueryData.results[property];
+        } else {
+          newQueryData[property] = {
+            nodes: cachedQueryData.results[property]
+          };
+        }
       });
 
       if (queryRecordEntry.relational !== undefined) {
@@ -8423,31 +8427,30 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 queryOpts.batchKey = opts.batchKey;
               }
 
-              console.log('gqlDoc', JSON.stringify(gqlDoc, undefined, 2));
-              _context2.prev = 7;
+              _context2.prev = 6;
               this.setInFlightQuery(inFlightQuery);
-              _context2.next = 11;
+              _context2.next = 10;
               return this.mmGQLInstance.gqlClient.query(queryOpts);
 
-            case 11:
+            case 10:
               results = _context2.sent;
               this.removeInFlightQuery(inFlightQuery);
               this.populateQueriesByContext(opts.queryRecord, results);
-              _context2.next = 20;
+              _context2.next = 19;
               break;
 
-            case 16:
-              _context2.prev = 16;
-              _context2.t0 = _context2["catch"](7);
+            case 15:
+              _context2.prev = 15;
+              _context2.t0 = _context2["catch"](6);
               this.removeInFlightQuery(inFlightQuery);
               throw new Error("QuerySlimmer: Error sending request for query\nError: " + _context2.t0 + "\nQueryRecord: " + JSON.stringify(opts.queryRecord, undefined, 2));
 
-            case 20:
+            case 19:
             case "end":
               return _context2.stop();
           }
         }
-      }, _callee2, this, [[7, 16]]);
+      }, _callee2, this, [[6, 15]]);
     }));
 
     function sendQueryRequest(_x2) {
