@@ -113,7 +113,7 @@ export class QuerySlimmer {
         batchKey: opts.batchKey,
       });
 
-      await when(
+      when(
         () =>
           !this.areDependentQueriesStillInFlight({
             queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,

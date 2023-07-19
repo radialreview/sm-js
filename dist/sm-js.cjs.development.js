@@ -7937,8 +7937,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               });
 
             case 17:
-              _context.next = 19;
-              return mobx.when(function () {
+              mobx.when(function () {
                 return !_this.areDependentQueriesStillInFlight({
                   queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
                   querySlimmedByInFlightQueries: newQuerySlimmedByInFlightQueries.slimmedQueryRecord
@@ -7949,13 +7948,11 @@ var QuerySlimmer = /*#__PURE__*/function () {
                   throw new Error("QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES", error);
                 }
               });
-
-            case 19:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES\n", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord, undefined, 2) + "\n", "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord, undefined, 2) + "\n", "CACHE: " + JSON.stringify(this.queriesByContext, undefined, 2) + "\n", "DATA RETURNED: " + JSON.stringify(_data2) + "\n");
               return _context.abrupt("return", _data2);
 
-            case 22:
+            case 21:
             case "end":
               return _context.stop();
           }
