@@ -717,11 +717,10 @@ export class QuerySlimmer {
     }
 
     try {
-      // this.setInFlightQuery(inFlightQuery);
+      this.setInFlightQuery(inFlightQuery);
       const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
-      console.log('results', results);
-      // this.removeInFlightQuery(inFlightQuery);
-      // this.populateQueriesByContext(opts.queryRecord, results);
+      this.removeInFlightQuery(inFlightQuery);
+      this.populateQueriesByContext(opts.queryRecord, results);
     } catch (e) {
       this.removeInFlightQuery(inFlightQuery);
       throw new Error(

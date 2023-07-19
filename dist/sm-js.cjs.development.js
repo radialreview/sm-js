@@ -8281,34 +8281,38 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
     var _this9 = this;
 
-    Object.keys(queryRecord).forEach(function (alias) {
-      var _this9$queriesByConte;
+    try {
+      Object.keys(queryRecord).forEach(function (alias) {
+        var _this9$queriesByConte;
 
-      var queryRecordEntry = queryRecord[alias];
-      if (!queryRecordEntry) return;
+        var queryRecordEntry = queryRecord[alias];
+        if (!queryRecordEntry) return;
 
-      var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+        var currentQueryContextKey = _this9.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
 
-      _this9.queriesByContext[currentQueryContextKey] = {
-        subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
-          previous[current] = previous[current] ? previous[current] + 1 : 1;
-          return previous;
-        }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
-        results: results[alias]
-      };
+        _this9.queriesByContext[currentQueryContextKey] = {
+          subscriptionsByProperty: queryRecordEntry.properties.reduce(function (previous, current) {
+            previous[current] = previous[current] ? previous[current] + 1 : 1;
+            return previous;
+          }, ((_this9$queriesByConte = _this9.queriesByContext[currentQueryContextKey]) == null ? void 0 : _this9$queriesByConte.subscriptionsByProperty) || {}),
+          results: results[alias]
+        };
 
-      if (queryRecordEntry.relational) {
-        var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
-          // do array vs object check here before map in case there's only a single id
-          previous[current] = results[alias].map(function (user) {
-            return user[current];
-          });
-          return previous;
-        }, {});
+        if (queryRecordEntry.relational) {
+          var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
+            // do array vs object check here before map in case there's only a single id
+            previous[current] = results[alias].map(function (user) {
+              return user[current];
+            });
+            return previous;
+          }, {});
 
-        _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
-      }
-    });
+          _this9.populateQueriesByContext(queryRecordEntry.relational, resultsForRelationalQueries, currentQueryContextKey);
+        }
+      });
+    } catch (e) {
+      throw new Error("QuerySlimmer populateQueriesByContext: " + e);
+    }
   };
 
   _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
@@ -8441,31 +8445,39 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.setInFlightQuery = function setInFlightQuery(inFlightQueryRecord) {
     var _this11 = this;
 
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
-      if (queryRecordContextKey in _this11.inFlightQueryRecords) {
-        _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
-      } else {
-        _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
-      }
-    });
+    try {
+      var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryRecord.queryRecord);
+      Object.keys(queryRecordsByContext).forEach(function (queryRecordContextKey) {
+        if (queryRecordContextKey in _this11.inFlightQueryRecords) {
+          _this11.inFlightQueryRecords[queryRecordContextKey].push(inFlightQueryRecord);
+        } else {
+          _this11.inFlightQueryRecords[queryRecordContextKey] = [inFlightQueryRecord];
+        }
+      });
+    } catch (e) {
+      throw new Error("QuerySlimmer setInFlightQuery: " + e);
+    }
   };
 
   _proto.removeInFlightQuery = function removeInFlightQuery(inFlightQueryToRemove) {
     var _this12 = this;
 
-    var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
-    Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
-      if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
-        _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
-          return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
-        });
+    try {
+      var queryRecordsByContext = this.getQueryRecordsByContextMap(inFlightQueryToRemove.queryRecord);
+      Object.keys(queryRecordsByContext).forEach(function (queryToRemoveCtxKey) {
+        if (queryToRemoveCtxKey in _this12.inFlightQueryRecords) {
+          _this12.inFlightQueryRecords[queryToRemoveCtxKey] = _this12.inFlightQueryRecords[queryToRemoveCtxKey].filter(function (inFlightRecord) {
+            return inFlightRecord.queryId === inFlightQueryToRemove.queryId;
+          });
 
-        if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-          delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
+          if (_this12.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+            delete _this12.inFlightQueryRecords[queryToRemoveCtxKey];
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      throw new Error("QuerySlimmer removeInFlightQuery: " + e);
+    }
   };
 
   _proto.areDependentQueriesStillInFlight = function areDependentQueriesStillInFlight(opts) {
