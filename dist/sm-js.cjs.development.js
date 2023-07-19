@@ -7900,7 +7900,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               }
 
               data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY FULLY CACHED", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(data));
+              this.log("QUERYSLIMMER: NEW QUERY FULLY CACHED\n", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord, undefined, 2) + "\n", "CACHE: " + JSON.stringify(this.queriesByContext, undefined, 2) + "\n", "DATA RETURNED: " + (JSON.stringify(data), 2) + "\n");
               return _context.abrupt("return", data);
 
             case 5:
@@ -7922,11 +7922,11 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 9:
               _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByCache), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data));
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE\n", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord, undefined, 2) + "\n", "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByCache, undefined, 2) + "\n", "CACHE: " + JSON.stringify(this.queriesByContext, undefined, 2) + "\n", "DATA RETURNED: " + JSON.stringify(_data, undefined, 2) + "\n");
               return _context.abrupt("return", _data);
 
             case 14:
-              this.log("QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "IN-FLIGHT QUERIES: " + JSON.stringify(this.inFlightQueryRecords), "CACHE: " + JSON.stringify(this.queriesByContext));
+              this.log("QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST\n", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord, undefined, 2) + "\n", "IN-FLIGHT QUERIES: " + JSON.stringify(this.inFlightQueryRecords, undefined, 2) + "\n", "CACHE: " + JSON.stringify(this.queriesByContext, undefined, 2) + "\n");
               _context.next = 17;
               return this.sendQueryRequest({
                 queryId: opts.queryId,
@@ -7952,7 +7952,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 19:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord), "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord), "CACHE: " + JSON.stringify(this.queriesByContext), "DATA RETURNED: " + JSON.stringify(_data2));
+              this.log("QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES\n", "ORIGINAL QUERY: " + JSON.stringify(opts.queryRecord, undefined, 2) + "\n", "SLIMMED QUERY: " + JSON.stringify(newQuerySlimmedByInFlightQueries.slimmedQueryRecord, undefined, 2) + "\n", "CACHE: " + JSON.stringify(this.queriesByContext, undefined, 2) + "\n", "DATA RETURNED: " + JSON.stringify(_data2) + "\n");
               return _context.abrupt("return", _data2);
 
             case 22:
@@ -8421,7 +8421,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               _context2.prev = 15;
               _context2.t0 = _context2["catch"](6);
               this.removeInFlightQuery(inFlightQuery);
-              throw new Error("QuerySlimmer: Error sending request for query: " + _context2.t0);
+              throw new Error("QuerySlimmer: Error sending request for query\nError: " + _context2.t0 + "\nQueryRecord: " + JSON.stringify(opts.queryRecord, undefined, 2));
 
             case 19:
             case "end":
