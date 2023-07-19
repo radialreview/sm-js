@@ -164,14 +164,14 @@ describe('populateQueriesByContext', () => {
           type: userNode.type,
           firstName: 'Aidan',
           lastName: 'Goodman',
-          todos: [{ task: 'test-1', id: 'id-1', type: todoNode.type }],
+          todos: [{ id: 'id-1', type: todoNode.type, task: 'test-1' }],
         },
         {
           id: 'id-4',
           type: userNode.type,
           firstName: 'Piotr',
           lastName: 'Bogun',
-          todos: [{ task: 'test-2', id: 'id-2', type: todoNode.type }],
+          todos: [{ id: 'id-2', type: todoNode.type, task: 'test-2' }],
         },
       ],
     };

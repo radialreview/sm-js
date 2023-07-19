@@ -8303,6 +8303,13 @@ var QuerySlimmer = /*#__PURE__*/function () {
         if (queryRecordEntry.relational) {
           var resultsForRelationalQueries = Object.keys(queryRecordEntry.relational).reduce(function (previous, current) {
             // PIOTR RECHECK THIS STUFF
+            // if (Array.isArray(results[alias])) {
+            //   previous[current] = results[alias].map(
+            //     (user: any) => user[current]
+            //   );
+            // } else {
+            //   previous[current] = results[alias];
+            // }
             if (Array.isArray(results[alias])) {
               previous[current] = results[alias].map(function (user) {
                 return user[current];
@@ -8416,30 +8423,31 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 queryOpts.batchKey = opts.batchKey;
               }
 
-              _context2.prev = 6;
+              console.log('queryOpts', queryOpts);
+              _context2.prev = 7;
               this.setInFlightQuery(inFlightQuery);
-              _context2.next = 10;
+              _context2.next = 11;
               return this.mmGQLInstance.gqlClient.query(queryOpts);
 
-            case 10:
+            case 11:
               results = _context2.sent;
               this.removeInFlightQuery(inFlightQuery);
               this.populateQueriesByContext(opts.queryRecord, results);
-              _context2.next = 19;
+              _context2.next = 20;
               break;
 
-            case 15:
-              _context2.prev = 15;
-              _context2.t0 = _context2["catch"](6);
+            case 16:
+              _context2.prev = 16;
+              _context2.t0 = _context2["catch"](7);
               this.removeInFlightQuery(inFlightQuery);
               throw new Error("QuerySlimmer: Error sending request for query\nError: " + _context2.t0 + "\nQueryRecord: " + JSON.stringify(opts.queryRecord, undefined, 2));
 
-            case 19:
+            case 20:
             case "end":
               return _context2.stop();
           }
         }
-      }, _callee2, this, [[6, 15]]);
+      }, _callee2, this, [[7, 16]]);
     }));
 
     function sendQueryRequest(_x2) {

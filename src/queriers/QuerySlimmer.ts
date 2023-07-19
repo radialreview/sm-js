@@ -597,6 +597,13 @@ export class QuerySlimmer {
             queryRecordEntry.relational
           ).reduce((previous: Record<string, any>, current: string) => {
             // PIOTR RECHECK THIS STUFF
+            // if (Array.isArray(results[alias])) {
+            //   previous[current] = results[alias].map(
+            //     (user: any) => user[current]
+            //   );
+            // } else {
+            //   previous[current] = results[alias];
+            // }
             if (Array.isArray(results[alias])) {
               previous[current] = results[alias].map(
                 (user: any) => user[current]
@@ -725,6 +732,8 @@ export class QuerySlimmer {
     if ('batchKey' in opts && opts.batchKey !== undefined) {
       queryOpts.batchKey = opts.batchKey;
     }
+
+    console.log('queryOpts', queryOpts);
 
     try {
       this.setInFlightQuery(inFlightQuery);
