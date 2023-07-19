@@ -565,42 +565,48 @@ export class QuerySlimmer {
     results: Record<string, any>,
     parentContextKey?: string
   ) {
-    Object.keys(queryRecord).forEach(alias => {
-      const queryRecordEntry = queryRecord[alias];
-      if (!queryRecordEntry) return;
-      const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
-        queryRecordEntry,
-        parentContextKey
-      );
-
-      this.queriesByContext[currentQueryContextKey] = {
-        subscriptionsByProperty: queryRecordEntry.properties.reduce(
-          (previous: Record<string, number>, current: string) => {
-            previous[current] = previous[current] ? previous[current] + 1 : 1;
-            return previous;
-          },
-          this.queriesByContext[currentQueryContextKey]
-            ?.subscriptionsByProperty || {}
-        ),
-        results: results[alias],
-      };
-
-      if (queryRecordEntry.relational) {
-        const resultsForRelationalQueries = Object.keys(
-          queryRecordEntry.relational
-        ).reduce((previous: Record<string, any>, current: string) => {
-          // do array vs object check here before map in case there's only a single id
-          previous[current] = results[alias].map((user: any) => user[current]);
-          return previous;
-        }, {});
-
-        this.populateQueriesByContext(
-          queryRecordEntry.relational,
-          resultsForRelationalQueries,
-          currentQueryContextKey
+    try {
+      Object.keys(queryRecord).forEach(alias => {
+        const queryRecordEntry = queryRecord[alias];
+        if (!queryRecordEntry) return;
+        const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
+          queryRecordEntry,
+          parentContextKey
         );
-      }
-    });
+
+        this.queriesByContext[currentQueryContextKey] = {
+          subscriptionsByProperty: queryRecordEntry.properties.reduce(
+            (previous: Record<string, number>, current: string) => {
+              previous[current] = previous[current] ? previous[current] + 1 : 1;
+              return previous;
+            },
+            this.queriesByContext[currentQueryContextKey]
+              ?.subscriptionsByProperty || {}
+          ),
+          results: results[alias],
+        };
+
+        if (queryRecordEntry.relational) {
+          const resultsForRelationalQueries = Object.keys(
+            queryRecordEntry.relational
+          ).reduce((previous: Record<string, any>, current: string) => {
+            // do array vs object check here before map in case there's only a single id
+            previous[current] = results[alias].map(
+              (user: any) => user[current]
+            );
+            return previous;
+          }, {});
+
+          this.populateQueriesByContext(
+            queryRecordEntry.relational,
+            resultsForRelationalQueries,
+            currentQueryContextKey
+          );
+        }
+      });
+    } catch (e) {
+      throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);
+    }
   }
 
   private createContextKeyForQueryRecordEntry(
@@ -734,39 +740,47 @@ export class QuerySlimmer {
   }
 
   private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      inFlightQueryRecord.queryRecord
-    );
-    Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
-      if (queryRecordContextKey in this.inFlightQueryRecords) {
-        this.inFlightQueryRecords[queryRecordContextKey].push(
-          inFlightQueryRecord
-        );
-      } else {
-        this.inFlightQueryRecords[queryRecordContextKey] = [
-          inFlightQueryRecord,
-        ];
-      }
-    });
+    try {
+      const queryRecordsByContext = this.getQueryRecordsByContextMap(
+        inFlightQueryRecord.queryRecord
+      );
+      Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
+        if (queryRecordContextKey in this.inFlightQueryRecords) {
+          this.inFlightQueryRecords[queryRecordContextKey].push(
+            inFlightQueryRecord
+          );
+        } else {
+          this.inFlightQueryRecords[queryRecordContextKey] = [
+            inFlightQueryRecord,
+          ];
+        }
+      });
+    } catch (e) {
+      throw new Error(`QuerySlimmer setInFlightQuery: ${e}`);
+    }
   }
 
   private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      inFlightQueryToRemove.queryRecord
-    );
-    Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
-      if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
-        this.inFlightQueryRecords[
-          queryToRemoveCtxKey
-        ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
-          inFlightRecord =>
-            inFlightRecord.queryId === inFlightQueryToRemove.queryId
-        );
-        if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-          delete this.inFlightQueryRecords[queryToRemoveCtxKey];
+    try {
+      const queryRecordsByContext = this.getQueryRecordsByContextMap(
+        inFlightQueryToRemove.queryRecord
+      );
+      Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
+        if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
+          this.inFlightQueryRecords[
+            queryToRemoveCtxKey
+          ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
+            inFlightRecord =>
+              inFlightRecord.queryId === inFlightQueryToRemove.queryId
+          );
+          if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+            delete this.inFlightQueryRecords[queryToRemoveCtxKey];
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      throw new Error(`QuerySlimmer removeInFlightQuery: ${e}`);
+    }
   }
 
   private areDependentQueriesStillInFlight(opts: {
