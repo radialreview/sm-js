@@ -113,7 +113,7 @@ export class QuerySlimmer {
         batchKey: opts.batchKey,
       });
 
-      when(
+      await when(
         () =>
           !this.areDependentQueriesStillInFlight({
             queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
@@ -122,12 +122,6 @@ export class QuerySlimmer {
           }),
         {
           timeout: IN_FLIGHT_TIMEOUT_MS,
-          onError: (error: any) => {
-            throw new Error(
-              `QUERYSLIMMER TIMED OUT WAITING ON IN FLIGHTQUERIES`,
-              error
-            );
-          },
         }
       );
 
