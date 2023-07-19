@@ -8289,6 +8289,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
     var _this9 = this;
 
+    this.log("QUERYSLIMMER: populateQueriesByContext\n", "QUERY RECORD: " + JSON.stringify(queryRecord, undefined, 2) + "\n", "RESULTS: " + JSON.stringify(results, undefined, 2) + "\n", "PARENT CONTEXT KEY: " + parentContextKey + "\n");
+
     try {
       Object.keys(queryRecord).forEach(function (alias) {
         var _this9$queriesByConte;

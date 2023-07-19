@@ -565,6 +565,12 @@ export class QuerySlimmer {
     results: Record<string, any>,
     parentContextKey?: string
   ) {
+    this.log(
+      `QUERYSLIMMER: populateQueriesByContext\n`,
+      `QUERY RECORD: ${JSON.stringify(queryRecord, undefined, 2)}\n`,
+      `RESULTS: ${JSON.stringify(results, undefined, 2)}\n`,
+      `PARENT CONTEXT KEY: ${parentContextKey}\n`
+    );
     try {
       Object.keys(queryRecord).forEach(alias => {
         const queryRecordEntry = queryRecord[alias];
