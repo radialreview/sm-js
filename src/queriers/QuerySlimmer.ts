@@ -733,7 +733,7 @@ export class QuerySlimmer {
       queryOpts.batchKey = opts.batchKey;
     }
 
-    console.log('queryOpts', queryOpts);
+    console.log('gqlDoc', gqlDoc);
 
     try {
       this.setInFlightQuery(inFlightQuery);

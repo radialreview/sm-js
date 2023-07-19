@@ -8431,7 +8431,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 queryOpts.batchKey = opts.batchKey;
               }
 
-              console.log('queryOpts', queryOpts);
+              console.log('gqlDoc', gqlDoc);
               _context2.prev = 7;
               this.setInFlightQuery(inFlightQuery);
               _context2.next = 11;
