@@ -6926,13 +6926,25 @@ function createQueryManager(mmGQLInstance) {
             // so that we don't accidentally change the order of the results
             // when we receive a subscription message
             data: currentIds.map(function (id) {
-              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+              return _extends({}, stateEntryWhichMayRequireUpdate.proxyCache[id].proxy, {
+                // overwrite with the id we have stored in idsOrIdInCurrentResult
+                // to prevent the id as string from the proxy from being used
+                // which simplifies "includes" checks
+                // can be removed when https://winterinternational.atlassian.net/browse/TTD-1707 is merged
+                id: id
+              });
             })
           });
           var filteredAndSortedIds = getSortedIds({
             queryRecordEntry: queryRecordEntry,
             data: filteredIds.map(function (id) {
-              return stateEntryWhichMayRequireUpdate.proxyCache[id].proxy;
+              return _extends({}, stateEntryWhichMayRequireUpdate.proxyCache[id].proxy, {
+                // overwrite with the id we have stored in idsOrIdInCurrentResult
+                // to prevent the id as string from the proxy from being used
+                // which simplifies "includes" checks
+                // can be removed when https://winterinternational.atlassian.net/browse/TTD-1707 is merged
+                id: id
+              });
             })
           });
           stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;

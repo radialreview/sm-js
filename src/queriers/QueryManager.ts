@@ -929,16 +929,26 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           // in case no client side sorting/filtering is applied
           // so that we don't accidentally change the order of the results
           // when we receive a subscription message
-          data: currentIds.map(
-            id => stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
-          ),
+          data: currentIds.map(id => ({
+            ...stateEntryWhichMayRequireUpdate.proxyCache[id].proxy,
+            // overwrite with the id we have stored in idsOrIdInCurrentResult
+            // to prevent the id as string from the proxy from being used
+            // which simplifies "includes" checks
+            // can be removed when https://winterinternational.atlassian.net/browse/TTD-1707 is merged
+            id,
+          })),
         });
 
         const filteredAndSortedIds = getSortedIds({
           queryRecordEntry,
-          data: filteredIds.map(
-            id => stateEntryWhichMayRequireUpdate.proxyCache[id].proxy
-          ),
+          data: filteredIds.map(id => ({
+            ...stateEntryWhichMayRequireUpdate.proxyCache[id].proxy,
+            // overwrite with the id we have stored in idsOrIdInCurrentResult
+            // to prevent the id as string from the proxy from being used
+            // which simplifies "includes" checks
+            // can be removed when https://winterinternational.atlassian.net/browse/TTD-1707 is merged
+            id,
+          })),
         });
 
         stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult = filteredAndSortedIds;
