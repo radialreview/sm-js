@@ -7914,16 +7914,12 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
               data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query fully cached', {
-                originalQuery: opts.queryRecord,
+                originalQuery: {
+                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
+                },
                 cache: this.queriesByContext,
                 dataReturned: data
-              }); // this.log(
-              //   `QUERYSLIMMER: NEW QUERY FULLY CACHED\n`,
-              //   `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord, undefined, 2)}\n`,
-              //   `CACHE: ${JSON.stringify(this.queriesByContext, undefined, 2)}\n`,
-              //   `DATA RETURNED: ${(JSON.stringify(data), undefined, 2)}\n`
-              // );
-
+              });
               return _context.abrupt("return", data);
 
             case 5:
@@ -7946,39 +7942,24 @@ var QuerySlimmer = /*#__PURE__*/function () {
             case 9:
               _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query slimmed by cache', {
-                originalQuery: opts.queryRecord,
+                originalQuery: {
+                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
+                },
                 cache: this.queriesByContext,
                 dataReturned: _data
-              }); // this.log(
-              //   `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE\n`,
-              //   `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord, undefined, 2)}\n`,
-              //   `SLIMMED QUERY: ${JSON.stringify(
-              //     newQuerySlimmedByCache,
-              //     undefined,
-              //     2
-              //   )}\n`,
-              //   `CACHE: ${JSON.stringify(this.queriesByContext, undefined, 2)}\n`,
-              //   `DATA RETURNED: ${JSON.stringify(data, undefined, 2)}\n`
-              // );
-
+              });
               return _context.abrupt("return", _data);
 
             case 14:
               console.log('QuerySlimmer: Awaiting in-flight queries that were slimmed against', {
-                originalQuery: opts.queryRecord,
-                inFlightQueries: this.inFlightQueryRecords,
+                originalQuery: {
+                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
+                },
+                inFlightQueries: {
+                  inFlightQueries: JSON.stringify(this.inFlightQueryRecords, undefined, 2)
+                },
                 cache: this.queriesByContext
-              }); // this.log(
-              //   `QUERYSLIMMER: AWAITING IN-FLIGHT QUERIES SLIMMED AGAINST\n`,
-              //   `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord, undefined, 2)}\n`,
-              //   `IN-FLIGHT QUERIES: ${JSON.stringify(
-              //     this.inFlightQueryRecords,
-              //     undefined,
-              //     2
-              //   )}\n`,
-              //   `CACHE: ${JSON.stringify(this.queriesByContext, undefined, 2)}\n`
-              // );
-
+              });
               _context.next = 17;
               return this.sendQueryRequest({
                 queryId: opts.queryId,
@@ -8002,22 +7983,15 @@ var QuerySlimmer = /*#__PURE__*/function () {
             case 19:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query slimmed by cache and in-flight queries', {
-                originalQuery: opts.queryRecord,
-                slimmedQuery: newQuerySlimmedByInFlightQueries,
+                originalQuery: {
+                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
+                },
+                slimmedQuery: {
+                  slimmedQuery: JSON.stringify(newQuerySlimmedByInFlightQueries, undefined, 2)
+                },
                 cache: this.queriesByContext,
                 dataReturned: _data2
-              }); // this.log(
-              //   `QUERYSLIMMER: NEW QUERY SLIMMED BY CACHE AND IN-FLIGHT QUERIES\n`,
-              //   `ORIGINAL QUERY: ${JSON.stringify(opts.queryRecord, undefined, 2)}\n`,
-              //   `SLIMMED QUERY: ${JSON.stringify(
-              //     newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-              //     undefined,
-              //     2
-              //   )}\n`,
-              //   `CACHE: ${JSON.stringify(this.queriesByContext, undefined, 2)}\n`,
-              //   `DATA RETURNED: ${JSON.stringify(data)}\n`
-              // );
-
+              });
               return _context.abrupt("return", _data2);
 
             case 22:
@@ -8352,12 +8326,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.populateQueriesByContext = function populateQueriesByContext(queryRecord, results, parentContextKey) {
     var _this9 = this;
 
-    // this.log(
-    //   `QUERYSLIMMER: populateQueriesByContext\n`,
-    //   `QUERY RECORD: ${JSON.stringify(queryRecord, undefined, 2)}\n`,
-    //   `RESULTS: ${JSON.stringify(results, undefined, 2)}\n`,
-    //   `PARENT CONTEXT KEY: ${parentContextKey}\n`
-    // );
     try {
       Object.keys(queryRecord).forEach(function (alias) {
         var _this9$queriesByConte;
