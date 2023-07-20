@@ -6649,6 +6649,11 @@ function createQueryManager(mmGQLInstance) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
         if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
 
+        if (opts.data[queryAlias] == null) {
+          resultingStateAcc[queryAlias] = getEmptyStateEntry();
+          return resultingStateAcc;
+        }
+
         var cacheEntry = _this8.buildCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
             queryResponsePartial: opts.data[queryAlias],
@@ -6687,7 +6692,7 @@ function createQueryManager(mmGQLInstance) {
       var queryRecord = opts.queryRecord;
       var queryRecordEntry = queryRecord[opts.queryAlias];
 
-      if (!queryRecordEntry) {
+      if (!queryRecordEntry || !nodeData) {
         return getEmptyStateEntry();
       }
 
