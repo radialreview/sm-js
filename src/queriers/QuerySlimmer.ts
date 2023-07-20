@@ -58,7 +58,7 @@ export class QuerySlimmer {
 
     if (newQuerySlimmedByCache === null) {
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-      console.dir('QuerySlimmer: New query fully cached', {
+      console.log('QuerySlimmer: New query fully cached', {
         originalQuery: opts.queryRecord,
         cache: this.queriesByContext,
         dataReturned: data,
@@ -86,7 +86,7 @@ export class QuerySlimmer {
         batchKey: opts.batchKey,
       });
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-      console.dir('QuerySlimmer: New query slimmed by cache', {
+      console.log('QuerySlimmer: New query slimmed by cache', {
         originalQuery: opts.queryRecord,
         cache: this.queriesByContext,
         dataReturned: data,
@@ -104,7 +104,7 @@ export class QuerySlimmer {
       // );
       return data;
     } else {
-      console.dir(
+      console.log(
         'QuerySlimmer: Awaiting in-flight queries that were slimmed against',
         {
           originalQuery: opts.queryRecord,
@@ -144,7 +144,7 @@ export class QuerySlimmer {
       );
 
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-      console.dir(
+      console.log(
         'QuerySlimmer: New query slimmed by cache and in-flight queries',
         {
           originalQuery: opts.queryRecord,

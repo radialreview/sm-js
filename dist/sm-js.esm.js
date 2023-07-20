@@ -7913,7 +7913,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               }
 
               data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              console.dir('QuerySlimmer: New query fully cached', {
+              console.log('QuerySlimmer: New query fully cached', {
                 originalQuery: opts.queryRecord,
                 cache: this.queriesByContext,
                 dataReturned: data
@@ -7945,7 +7945,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 9:
               _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              console.dir('QuerySlimmer: New query slimmed by cache', {
+              console.log('QuerySlimmer: New query slimmed by cache', {
                 originalQuery: opts.queryRecord,
                 cache: this.queriesByContext,
                 dataReturned: _data
@@ -7964,7 +7964,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               return _context.abrupt("return", _data);
 
             case 14:
-              console.dir('QuerySlimmer: Awaiting in-flight queries that were slimmed against', {
+              console.log('QuerySlimmer: Awaiting in-flight queries that were slimmed against', {
                 originalQuery: opts.queryRecord,
                 inFlightQueries: this.inFlightQueryRecords,
                 cache: this.queriesByContext
@@ -8001,7 +8001,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 19:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              console.dir('QuerySlimmer: New query slimmed by cache and in-flight queries', {
+              console.log('QuerySlimmer: New query slimmed by cache and in-flight queries', {
                 originalQuery: opts.queryRecord,
                 slimmedQuery: newQuerySlimmedByInFlightQueries,
                 cache: this.queriesByContext,
