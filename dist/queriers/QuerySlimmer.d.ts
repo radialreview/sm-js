@@ -53,5 +53,4 @@ export declare class QuerySlimmer {
     private setInFlightQuery;
     private removeInFlightQuery;
     private areDependentQueriesStillInFlight;
-    private log;
 }
