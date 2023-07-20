@@ -7899,13 +7899,14 @@ var QuerySlimmer = /*#__PURE__*/function () {
     var _query = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee(opts) {
       var _this = this;
 
-      var newQuerySlimmedByCache, data, newQuerySlimmedByInFlightQueries, _data, _data2;
+      var newQuerySlimmedByCache, data, newQuerySlimmedByInFlightQueries, queryForRequest, _data, _data2;
 
       return runtime_1.wrap(function _callee$(_context) {
         while (1) {
           switch (_context.prev = _context.next) {
             case 0:
-              newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(opts.queryRecord);
+              newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(opts.queryRecord); // If newQuerySlimmedByCache equals null, that means all the data this new query is requesting is
+              // already cached and we can just return this data.
 
               if (!(newQuerySlimmedByCache === null)) {
                 _context.next = 5;
@@ -7914,45 +7915,60 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
               data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query fully cached', {
-                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+                originalQuery: opts.queryRecord,
                 cache: this.queriesByContext,
                 dataReturned: data
               });
               return _context.abrupt("return", data);
 
             case 5:
-              newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(newQuerySlimmedByCache);
+              newQuerySlimmedByInFlightQueries = this.slimNewQueryAgainstInFlightQueries(newQuerySlimmedByCache); // If newQuerySlimmedByInFlightQueries equals null then there are no queries currently in flight we want to wait on.
+              // We send the original query or the slimmed by cache query.
 
               if (!(newQuerySlimmedByInFlightQueries === null)) {
-                _context.next = 14;
+                _context.next = 15;
                 break;
               }
 
-              _context.next = 9;
+              queryForRequest = newQuerySlimmedByCache !== null ? newQuerySlimmedByCache : opts.queryRecord;
+              _context.next = 10;
               return this.sendQueryRequest({
                 queryId: opts.queryId,
-                queryRecord: newQuerySlimmedByCache,
+                queryRecord: queryForRequest,
                 useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting,
                 tokenName: opts.tokenName,
                 batchKey: opts.batchKey
               });
 
-            case 9:
+            case 10:
               _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-              console.log('QuerySlimmer: New query slimmed by cache', {
-                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-                cache: this.queriesByContext,
-                dataReturned: _data
-              });
+
+              if (newQuerySlimmedByCache !== null) {
+                console.log('QuerySlimmer: New query slimmed by cache', {
+                  originalQuery: opts.queryRecord,
+                  cache: this.queriesByContext,
+                  dataReturned: _data
+                });
+              } else {
+                console.log('QuerySlimmer: New query sent without slimming', {
+                  originalQuery: opts.queryRecord,
+                  cache: this.queriesByContext,
+                  dataReturned: _data
+                });
+              }
+
               return _context.abrupt("return", _data);
 
-            case 14:
+            case 15:
+              // There are in flight queries we can slim againt. We will try to wait for these queries to resolve,
+              // their data gets put in the cache, and then we will get all the data the original query needed from the cache
+              // and return that data.
               console.log('QuerySlimmer: Awaiting in-flight queries that were slimmed against', {
-                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-                inFlightQueries: JSON.stringify(this.inFlightQueryRecords, undefined, 2),
+                originalQuery: opts.queryRecord,
+                inFlightQueries: this.inFlightQueryRecords,
                 cache: this.queriesByContext
               });
-              _context.next = 17;
+              _context.next = 18;
               return this.sendQueryRequest({
                 queryId: opts.queryId,
                 queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
@@ -7961,8 +7977,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 batchKey: opts.batchKey
               });
 
-            case 17:
-              _context.next = 19;
+            case 18:
+              _context.next = 20;
               return when(function () {
                 return !_this.areDependentQueriesStillInFlight({
                   queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
@@ -7972,17 +7988,17 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 timeout: IN_FLIGHT_TIMEOUT_MS
               });
 
-            case 19:
+            case 20:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query slimmed by cache and in-flight queries', {
-                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-                slimmedQuery: JSON.stringify(newQuerySlimmedByInFlightQueries, undefined, 2),
+                originalQuery: opts.queryRecord,
+                slimmedQuery: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
                 cache: this.queriesByContext,
                 dataReturned: _data2
               });
               return _context.abrupt("return", _data2);
 
-            case 22:
+            case 23:
             case "end":
               return _context.stop();
           }

@@ -56,10 +56,12 @@ export class QuerySlimmer {
       opts.queryRecord
     ) as QueryRecord | null;
 
+    // If newQuerySlimmedByCache equals null, that means all the data this new query is requesting is
+    // already cached and we can just return this data.
     if (newQuerySlimmedByCache === null) {
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       console.log('QuerySlimmer: New query fully cached', {
-        originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+        originalQuery: opts.queryRecord,
         cache: this.queriesByContext,
         dataReturned: data,
       });
@@ -70,35 +72,53 @@ export class QuerySlimmer {
       newQuerySlimmedByCache
     );
 
+    // If newQuerySlimmedByInFlightQueries equals null then there are no queries currently in flight we want to wait on.
+    // We send the original query or the slimmed by cache query.
     if (newQuerySlimmedByInFlightQueries === null) {
+      const queryForRequest =
+        newQuerySlimmedByCache !== null
+          ? newQuerySlimmedByCache
+          : opts.queryRecord;
+
       await this.sendQueryRequest({
         queryId: opts.queryId,
-        queryRecord: newQuerySlimmedByCache,
+        queryRecord: queryForRequest,
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
         batchKey: opts.batchKey,
       });
+
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-      console.log('QuerySlimmer: New query slimmed by cache', {
-        originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-        cache: this.queriesByContext,
-        dataReturned: data,
-      });
+
+      if (newQuerySlimmedByCache !== null) {
+        console.log('QuerySlimmer: New query slimmed by cache', {
+          originalQuery: opts.queryRecord,
+          cache: this.queriesByContext,
+          dataReturned: data,
+        });
+      } else {
+        console.log('QuerySlimmer: New query sent without slimming', {
+          originalQuery: opts.queryRecord,
+          cache: this.queriesByContext,
+          dataReturned: data,
+        });
+      }
+
       return data;
     } else {
+      // There are in flight queries we can slim againt. We will try to wait for these queries to resolve,
+      // their data gets put in the cache, and then we will get all the data the original query needed from the cache
+      // and return that data.
       console.log(
         'QuerySlimmer: Awaiting in-flight queries that were slimmed against',
         {
-          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-          inFlightQueries: JSON.stringify(
-            this.inFlightQueryRecords,
-            undefined,
-            2
-          ),
+          originalQuery: opts.queryRecord,
+          inFlightQueries: this.inFlightQueryRecords,
           cache: this.queriesByContext,
         }
       );
+
       await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
@@ -109,31 +129,30 @@ export class QuerySlimmer {
       });
 
       await when(
-        () =>
-          !this.areDependentQueriesStillInFlight({
+        () => {
+          return !this.areDependentQueriesStillInFlight({
             queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
             querySlimmedByInFlightQueries:
               newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-          }),
+          });
+        },
         {
           timeout: IN_FLIGHT_TIMEOUT_MS,
         }
       );
 
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
+
       console.log(
         'QuerySlimmer: New query slimmed by cache and in-flight queries',
         {
-          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-          slimmedQuery: JSON.stringify(
-            newQuerySlimmedByInFlightQueries,
-            undefined,
-            2
-          ),
+          originalQuery: opts.queryRecord,
+          slimmedQuery: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
           cache: this.queriesByContext,
           dataReturned: data,
         }
       );
+
       return data;
     }
   }
@@ -732,12 +751,6 @@ export class QuerySlimmer {
           2
         )}`
       );
-      // throw new Error(
-      //   `QuerySlimmer: Error sending request for query: ${JSON.stringify(
-      //     opts.queryRecord
-      //   )}`,
-      //   e as any
-      // );
     }
   }
 
