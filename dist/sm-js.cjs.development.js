@@ -8018,7 +8018,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
       queryRecordEntry.properties.forEach(function (property) {
         var fieldsToNotMap = ['id', 'type', 'version', 'lastUpdatedBy'];
 
-        if (property in fieldsToNotMap) {
+        if (fieldsToNotMap.includes(property)) {
           newQueryData[property] = cachedQueryData.results[property];
         } else {
           newQueryData[property] = {

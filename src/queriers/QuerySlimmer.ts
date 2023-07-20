@@ -174,7 +174,7 @@ export class QuerySlimmer {
       queryRecordEntry.properties.forEach(property => {
         const fieldsToNotMap = ['id', 'type', 'version', 'lastUpdatedBy'];
 
-        if (property in fieldsToNotMap) {
+        if (fieldsToNotMap.includes(property)) {
           newQueryData[property] = cachedQueryData.results[property];
         } else {
           newQueryData[property] = { nodes: cachedQueryData.results[property] };
