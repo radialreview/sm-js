@@ -7914,9 +7914,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
               data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query fully cached', {
-                originalQuery: {
-                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
-                },
+                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
                 cache: this.queriesByContext,
                 dataReturned: data
               });
@@ -7942,9 +7940,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
             case 9:
               _data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query slimmed by cache', {
-                originalQuery: {
-                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
-                },
+                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
                 cache: this.queriesByContext,
                 dataReturned: _data
               });
@@ -7952,12 +7948,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 14:
               console.log('QuerySlimmer: Awaiting in-flight queries that were slimmed against', {
-                originalQuery: {
-                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
-                },
-                inFlightQueries: {
-                  inFlightQueries: JSON.stringify(this.inFlightQueryRecords, undefined, 2)
-                },
+                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+                inFlightQueries: JSON.stringify(this.inFlightQueryRecords, undefined, 2),
                 cache: this.queriesByContext
               });
               _context.next = 17;
@@ -7983,12 +7975,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
             case 19:
               _data2 = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
               console.log('QuerySlimmer: New query slimmed by cache and in-flight queries', {
-                originalQuery: {
-                  originalQuery: JSON.stringify(opts.queryRecord, undefined, 2)
-                },
-                slimmedQuery: {
-                  slimmedQuery: JSON.stringify(newQuerySlimmedByInFlightQueries, undefined, 2)
-                },
+                originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+                slimmedQuery: JSON.stringify(newQuerySlimmedByInFlightQueries, undefined, 2),
                 cache: this.queriesByContext,
                 dataReturned: _data2
               });
@@ -8024,15 +8012,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
       var newQueryData = {};
       var newQueryRelationalData = {};
       queryRecordEntry.properties.forEach(function (property) {
-        var fieldsToNotMap = ['id', 'type', 'version', 'lastUpdatedBy'];
-
-        if (fieldsToNotMap.includes(property)) {
-          newQueryData[property] = cachedQueryData.results[property];
-        } else {
-          newQueryData[property] = {
-            nodes: cachedQueryData.results[property]
-          };
-        }
+        newQueryData[property] = cachedQueryData.results[property];
       });
 
       if (queryRecordEntry.relational !== undefined) {

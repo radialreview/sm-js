@@ -59,9 +59,7 @@ export class QuerySlimmer {
     if (newQuerySlimmedByCache === null) {
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       console.log('QuerySlimmer: New query fully cached', {
-        originalQuery: {
-          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-        },
+        originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
         cache: this.queriesByContext,
         dataReturned: data,
       });
@@ -83,9 +81,7 @@ export class QuerySlimmer {
       });
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       console.log('QuerySlimmer: New query slimmed by cache', {
-        originalQuery: {
-          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-        },
+        originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
         cache: this.queriesByContext,
         dataReturned: data,
       });
@@ -94,16 +90,12 @@ export class QuerySlimmer {
       console.log(
         'QuerySlimmer: Awaiting in-flight queries that were slimmed against',
         {
-          originalQuery: {
-            originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-          },
-          inFlightQueries: {
-            inFlightQueries: JSON.stringify(
-              this.inFlightQueryRecords,
-              undefined,
-              2
-            ),
-          },
+          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+          inFlightQueries: JSON.stringify(
+            this.inFlightQueryRecords,
+            undefined,
+            2
+          ),
           cache: this.queriesByContext,
         }
       );
@@ -132,16 +124,12 @@ export class QuerySlimmer {
       console.log(
         'QuerySlimmer: New query slimmed by cache and in-flight queries',
         {
-          originalQuery: {
-            originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
-          },
-          slimmedQuery: {
-            slimmedQuery: JSON.stringify(
-              newQuerySlimmedByInFlightQueries,
-              undefined,
-              2
-            ),
-          },
+          originalQuery: JSON.stringify(opts.queryRecord, undefined, 2),
+          slimmedQuery: JSON.stringify(
+            newQuerySlimmedByInFlightQueries,
+            undefined,
+            2
+          ),
           cache: this.queriesByContext,
           dataReturned: data,
         }
@@ -172,13 +160,7 @@ export class QuerySlimmer {
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
 
       queryRecordEntry.properties.forEach(property => {
-        const fieldsToNotMap = ['id', 'type', 'version', 'lastUpdatedBy'];
-
-        if (fieldsToNotMap.includes(property)) {
-          newQueryData[property] = cachedQueryData.results[property];
-        } else {
-          newQueryData[property] = { nodes: cachedQueryData.results[property] };
-        }
+        newQueryData[property] = cachedQueryData.results[property];
       });
 
       if (queryRecordEntry.relational !== undefined) {
