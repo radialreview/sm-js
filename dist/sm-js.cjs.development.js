@@ -8006,10 +8006,14 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
       var contextKey = _this.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
 
+      console.log('contextKey', contextKey);
       var cachedQueryData = _this.queriesByContext[contextKey];
+      console.log('cachedQueryData', cachedQueryData);
       var newQueryData = {};
-      var newQueryRelationalData = {};
+      var newQueryRelationalData = {}; // results: headlines: nodes: Array(6)
+
       queryRecordEntry.properties.forEach(function (property) {
+        console.log('cachedQueryData.results[property]', cachedQueryData.results[property]);
         newQueryData[property] = cachedQueryData.results[property];
       });
 
@@ -8017,6 +8021,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
         newQueryRelationalData = _this.getDataForQueryFromQueriesByContext(queryRecordEntry.relational, contextKey);
       }
 
+      console.log('newQueryData', newQueryData);
+      console.log('newQueryRelationalData', newQueryRelationalData);
       queryData[newQueryKey] = _extends({}, newQueryData, newQueryRelationalData);
     });
     return queryData;

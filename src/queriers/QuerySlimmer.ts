@@ -190,11 +190,22 @@ export class QuerySlimmer {
         parentContextKey
       );
 
+      console.log('contextKey', contextKey);
+
       const cachedQueryData = this.queriesByContext[contextKey];
+
+      console.log('cachedQueryData', cachedQueryData);
+
       const newQueryData: Record<string, any | Array<any> | null> = {};
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
 
+      // results: headlines: nodes: Array(6)
+
       queryRecordEntry.properties.forEach(property => {
+        console.log(
+          'cachedQueryData.results[property]',
+          cachedQueryData.results[property]
+        );
         newQueryData[property] = cachedQueryData.results[property];
       });
 
@@ -204,6 +215,9 @@ export class QuerySlimmer {
           contextKey
         );
       }
+
+      console.log('newQueryData', newQueryData);
+      console.log('newQueryRelationalData', newQueryRelationalData);
 
       queryData[newQueryKey] = {
         ...newQueryData,
