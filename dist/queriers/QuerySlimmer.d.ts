@@ -43,7 +43,7 @@ export declare class QuerySlimmer {
     getSlimmedQueryAgainstQueriesByContext(newQuery: QueryRecord | RelationalQueryRecord, parentContextKey?: string): QueryRecord | RelationalQueryRecord | null;
     onSubscriptionCancelled(queryRecord: QueryRecord | RelationalQueryRecord, parentContextKey?: string): void;
     getRelationalDepthOfQueryRecordEntry(queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry): number;
-    populateQueriesByContext(queryRecord: QueryRecord | RelationalQueryRecord, results: Record<string, any>, parentContextKey?: string): void;
+    populateQueriesByContext(queryRecord: QueryRecord | RelationalQueryRecord, queryResponse: Record<string, any>, parentContextKey?: string): void;
     private createContextKeyForQueryRecordEntry;
     private getPropertiesNotAlreadyCached;
     private getPropertiesNotCurrentlyBeingRequested;
@@ -52,5 +52,4 @@ export declare class QuerySlimmer {
     private sendQueryRequest;
     private setInFlightQuery;
     private removeInFlightQuery;
-    private areDependentQueriesStillInFlight;
 }

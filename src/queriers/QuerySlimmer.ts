@@ -1,4 +1,5 @@
-import { observable, when } from 'mobx';
+// import { observable, when } from 'mobx';
+import { observable } from 'mobx';
 
 import {
   QueryRecord,
@@ -32,7 +33,7 @@ export type TQueryRecordByContextMap = Record<
   QueryRecord | RelationalQueryRecord
 >;
 
-const IN_FLIGHT_TIMEOUT_MS = 1000;
+// const IN_FLIGHT_TIMEOUT_MS = 1000;
 
 // TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 export class QuerySlimmer {
@@ -110,49 +111,64 @@ export class QuerySlimmer {
       // There are in flight queries we can slim againt. We will try to wait for these queries to resolve,
       // their data gets put in the cache, and then we will get all the data the original query needed from the cache
       // and return that data.
-      console.log(
-        'QuerySlimmer: Awaiting in-flight queries that were slimmed against',
-        {
-          originalQuery: opts.queryRecord,
-          inFlightQueries: this.inFlightQueryRecords,
-          cache: this.queriesByContext,
-        }
-      );
+      // console.log(
+      //   'QuerySlimmer: Awaiting in-flight queries that were slimmed against',
+      //   {
+      //     originalQuery: opts.queryRecord,
+      //     inFlightQueries: this.inFlightQueryRecords,
+      //     cache: this.queriesByContext,
+      //   }
+      // );
+      // await this.sendQueryRequest({
+      //   queryId: opts.queryId,
+      //   queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+      //   useServerSidePaginationFilteringSorting:
+      //     opts.useServerSidePaginationFilteringSorting,
+      //   tokenName: opts.tokenName,
+      //   batchKey: opts.batchKey,
+      // });
+      // await when(
+      //   () => {
+      //     return !this.areDependentQueriesStillInFlight({
+      //       queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
+      //       querySlimmedByInFlightQueries:
+      //         newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+      //     });
+      //   },
+      //   {
+      //     timeout: IN_FLIGHT_TIMEOUT_MS,
+      //   }
+      // );
+      // const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
+      // console.log(
+      //   'QuerySlimmer: New query slimmed by cache and in-flight queries',
+      //   {
+      //     originalQuery: opts.queryRecord,
+      //     slimmedQuery: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+      //     cache: this.queriesByContext,
+      //     dataReturned: data,
+      //   }
+      // );
+      // return data;
 
       await this.sendQueryRequest({
         queryId: opts.queryId,
-        queryRecord: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
+        queryRecord: opts.queryRecord,
         useServerSidePaginationFilteringSorting:
           opts.useServerSidePaginationFilteringSorting,
         tokenName: opts.tokenName,
         batchKey: opts.batchKey,
       });
 
-      await when(
-        () => {
-          return !this.areDependentQueriesStillInFlight({
-            queryIds: newQuerySlimmedByInFlightQueries.queryIdsSlimmedAgainst,
-            querySlimmedByInFlightQueries:
-              newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
-          });
-        },
-        {
-          timeout: IN_FLIGHT_TIMEOUT_MS,
-        }
-      );
-
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
-
       console.log(
-        'QuerySlimmer: New query slimmed by cache and in-flight queries',
+        'QuerySlimmer: Standard request sent instead of slimming against in flight',
         {
           originalQuery: opts.queryRecord,
-          slimmedQuery: newQuerySlimmedByInFlightQueries.slimmedQueryRecord,
           cache: this.queriesByContext,
           dataReturned: data,
         }
       );
-
       return data;
     }
   }
@@ -572,48 +588,47 @@ export class QuerySlimmer {
 
   public populateQueriesByContext(
     queryRecord: QueryRecord | RelationalQueryRecord,
-    results: Record<string, any>,
+    queryResponse: Record<string, any>,
     parentContextKey?: string
   ) {
     try {
       Object.keys(queryRecord).forEach(alias => {
         const queryRecordEntry = queryRecord[alias];
         if (!queryRecordEntry) return;
+
         const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
           queryRecordEntry,
           parentContextKey
         );
 
+        const subscriptionsByProperty = queryRecordEntry.properties.reduce(
+          (subscriptions: Record<string, number>, property: string) => {
+            if (subscriptions[property]) {
+              subscriptions[property] = subscriptions[property] + 1;
+            } else {
+              subscriptions[property] = 1;
+            }
+            return subscriptions;
+          },
+          this.queriesByContext[currentQueryContextKey]
+            ?.subscriptionsByProperty || {}
+        );
+
         this.queriesByContext[currentQueryContextKey] = {
-          subscriptionsByProperty: queryRecordEntry.properties.reduce(
-            (previous: Record<string, number>, current: string) => {
-              previous[current] = previous[current] ? previous[current] + 1 : 1;
-              return previous;
-            },
-            this.queriesByContext[currentQueryContextKey]
-              ?.subscriptionsByProperty || {}
-          ),
-          results: results[alias],
+          subscriptionsByProperty,
+          results: queryResponse[alias],
         };
 
         if (queryRecordEntry.relational) {
           const resultsForRelationalQueries = Object.keys(
             queryRecordEntry.relational
           ).reduce((previous: Record<string, any>, current: string) => {
-            // PIOTR RECHECK THIS STUFF
-            // if (Array.isArray(results[alias])) {
-            //   previous[current] = results[alias].map(
-            //     (user: any) => user[current]
-            //   );
-            // } else {
-            //   previous[current] = results[alias];
-            // }
-            if (Array.isArray(results[alias])) {
-              previous[current] = results[alias].map(
+            if (Array.isArray(queryResponse[alias])) {
+              previous[current] = queryResponse[alias].map(
                 (user: any) => user[current]
               );
             } else {
-              previous[current] = results[alias];
+              previous[current] = queryResponse[alias];
             }
             return previous;
           }, {});
@@ -739,9 +754,9 @@ export class QuerySlimmer {
 
     try {
       this.setInFlightQuery(inFlightQuery);
-      const results = await this.mmGQLInstance.gqlClient.query(queryOpts);
+      const queryResponse = await this.mmGQLInstance.gqlClient.query(queryOpts);
       this.removeInFlightQuery(inFlightQuery);
-      this.populateQueriesByContext(opts.queryRecord, results);
+      this.populateQueriesByContext(opts.queryRecord, queryResponse);
     } catch (e) {
       this.removeInFlightQuery(inFlightQuery);
       throw new Error(
@@ -798,33 +813,33 @@ export class QuerySlimmer {
     }
   }
 
-  private areDependentQueriesStillInFlight(opts: {
-    queryIds: string[];
-    querySlimmedByInFlightQueries: QueryRecord;
-  }) {
-    let isStillWaitingOnInFlightQueries = false;
+  // private areDependentQueriesStillInFlight(opts: {
+  //   queryIds: string[];
+  //   querySlimmedByInFlightQueries: QueryRecord;
+  // }) {
+  //   let isStillWaitingOnInFlightQueries = false;
 
-    const queryRecordsByContext = this.getQueryRecordsByContextMap(
-      opts.querySlimmedByInFlightQueries
-    );
+  //   const queryRecordsByContext = this.getQueryRecordsByContextMap(
+  //     opts.querySlimmedByInFlightQueries
+  //   );
 
-    Object.keys(queryRecordsByContext).forEach(ctxKey => {
-      if (!isStillWaitingOnInFlightQueries) {
-        if (ctxKey in this.inFlightQueryRecords) {
-          const inFlightQueryHasDepedentId = this.inFlightQueryRecords[
-            ctxKey
-          ].some(inFlightQuery =>
-            opts.queryIds.includes(inFlightQuery.queryId)
-          );
-          if (inFlightQueryHasDepedentId) {
-            isStillWaitingOnInFlightQueries = true;
-          }
-        }
-      }
-    });
+  //   Object.keys(queryRecordsByContext).forEach(ctxKey => {
+  //     if (!isStillWaitingOnInFlightQueries) {
+  //       if (ctxKey in this.inFlightQueryRecords) {
+  //         const inFlightQueryHasDepedentId = this.inFlightQueryRecords[
+  //           ctxKey
+  //         ].some(inFlightQuery =>
+  //           opts.queryIds.includes(inFlightQuery.queryId)
+  //         );
+  //         if (inFlightQueryHasDepedentId) {
+  //           isStillWaitingOnInFlightQueries = true;
+  //         }
+  //       }
+  //     }
+  //   });
 
-    return isStillWaitingOnInFlightQueries;
-  }
+  //   return isStillWaitingOnInFlightQueries;
+  // }
 
   // private log(message?: any, ...optionalParams: any[]) {
   //   if (this.mmGQLInstance.logging.querySlimming) {
