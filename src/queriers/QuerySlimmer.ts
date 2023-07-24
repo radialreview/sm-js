@@ -190,22 +190,12 @@ export class QuerySlimmer {
         parentContextKey
       );
 
-      console.log('contextKey', contextKey);
-
       const cachedQueryData = this.queriesByContext[contextKey];
-
-      console.log('cachedQueryData', cachedQueryData);
 
       const newQueryData: Record<string, any | Array<any> | null> = {};
       let newQueryRelationalData: Record<string, any | Array<any> | null> = {};
 
-      // results: headlines: nodes: Array(6)
-
       queryRecordEntry.properties.forEach(property => {
-        console.log(
-          'cachedQueryData.results[property]',
-          cachedQueryData.results[property]
-        );
         newQueryData[property] = cachedQueryData.results[property];
       });
 
@@ -215,9 +205,6 @@ export class QuerySlimmer {
           contextKey
         );
       }
-
-      console.log('newQueryData', newQueryData);
-      console.log('newQueryRelationalData', newQueryRelationalData);
 
       queryData[newQueryKey] = {
         ...newQueryData,
@@ -600,59 +587,128 @@ export class QuerySlimmer {
     return relationalDepth;
   }
 
+  // Given a QueryRecord and the corresponding query results this method
+  // caches (queriesByContext) the given results and updates how many current
+  // active subscriptions exist for each field in the query.
   public populateQueriesByContext(
     queryRecord: QueryRecord | RelationalQueryRecord,
     queryResponse: Record<string, any>,
     parentContextKey?: string
   ) {
     try {
-      Object.keys(queryRecord).forEach(alias => {
-        const queryRecordEntry = queryRecord[alias];
+      Object.keys(queryRecord).forEach(queryRecordField => {
+        const queryRecordEntry = queryRecord[queryRecordField];
         if (!queryRecordEntry) return;
 
         const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
           queryRecordEntry,
           parentContextKey
         );
+        const cachedData = this.queriesByContext[currentQueryContextKey];
 
-        const subscriptionsByProperty = queryRecordEntry.properties.reduce(
-          (subscriptions: Record<string, number>, property: string) => {
-            if (subscriptions[property]) {
-              subscriptions[property] = subscriptions[property] + 1;
+        const results: Record<string, any> = {
+          byParentId: false,
+        };
+        const subscriptionsByProperty = cachedData?.subscriptionsByProperty
+          ? { ...cachedData?.subscriptionsByProperty }
+          : {};
+
+        if (Array.isArray(queryResponse[queryRecordField])) {
+          results[queryRecordField] = {
+            nodes: queryResponse[queryRecordField].map(
+              (qResponse: any, qResponseIndex: number) => {
+                let fieldsToCache: Record<string, any> = {};
+
+                queryRecordEntry.properties.forEach(property => {
+                  fieldsToCache[property] = qResponse[property];
+
+                  if (qResponseIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
+                  }
+                });
+
+                return fieldsToCache;
+              }
+            ),
+          };
+        } else {
+          results[queryRecordField] = {};
+          const resultObj = results[queryRecordField];
+
+          queryRecordEntry.properties.forEach(property => {
+            resultObj[property] = queryResponse[queryRecordField][property];
+
+            if (subscriptionsByProperty[property]) {
+              subscriptionsByProperty[property] += 1;
             } else {
-              subscriptions[property] = 1;
+              subscriptionsByProperty[property] = 1;
             }
-            return subscriptions;
-          },
-          this.queriesByContext[currentQueryContextKey]
-            ?.subscriptionsByProperty || {}
-        );
+          });
+        }
 
         this.queriesByContext[currentQueryContextKey] = {
-          subscriptionsByProperty,
-          results: queryResponse[alias],
+          subscriptionsByProperty: subscriptionsByProperty,
+          results: results,
         };
 
-        if (queryRecordEntry.relational) {
-          const resultsForRelationalQueries = Object.keys(
-            queryRecordEntry.relational
-          ).reduce((previous: Record<string, any>, current: string) => {
-            if (Array.isArray(queryResponse[alias])) {
-              previous[current] = queryResponse[alias].map(
-                (user: any) => user[current]
-              );
-            } else {
-              previous[current] = queryResponse[alias];
-            }
-            return previous;
-          }, {});
+        //   if (queryRecordEntry.relational !== undefined) {
+        //     const relationalQueryRecord = queryRecordEntry.relational;
+        //     const relationalFields = Object.keys(relationalQueryRecord);
+        //     const relationalResults: Record<string, any> = {};
 
-          this.populateQueriesByContext(
-            queryRecordEntry.relational,
-            resultsForRelationalQueries,
-            currentQueryContextKey
-          );
-        }
+        //     if (Array.isArray(queryResponse[alias])) {
+        //       relationalResults[alias].forEach((rResult: any) => {
+        //         relationalResults[rResult.id] = queryResponse[alias];
+        //       });
+        //     } else {
+        //     }
+
+        //     relationalFields.forEach(rField => {
+        //       const rFieldProperties = relationalQueryRecord[rField].properties;
+        //       const rFieldQueryResponse = queryResponse[alias][rField];
+
+        //       if (Array.isArray(rFieldQueryResponse)) {
+        //         relationalResults[rField] = rFieldQueryResponse.map(
+        //           rFieldResponse => {
+        //             let results: Record<string, any> = {};
+        //             rFieldProperties.forEach(rProp => {
+        //               results[rProp] = rFieldResponse[rProp];
+        //             });
+        //             return results;
+        //           }
+        //         );
+        //       } else {
+        //         relationalResults[rField] = {};
+        //         rFieldProperties.forEach(rFieldProperty => {
+        //           relationalResults[rField][rFieldProperty] =
+        //             queryResponse[rField][rFieldProperty];
+        //         });
+        //       }
+        //     });
+
+        //     const resultsForRelationalQueries = Object.keys(
+        //       queryRecordEntry.relational
+        //     ).reduce((previous: Record<string, any>, current: string) => {
+        //       if (Array.isArray(queryResponse[alias])) {
+        //         previous[current] = queryResponse[alias].map(
+        //           (user: any) => user[current]
+        //         );
+        //       } else {
+        //         previous[current] = queryResponse[alias];
+        //       }
+        //       return previous;
+        //     }, {});
+
+        //     this.populateQueriesByContext(
+        //       queryRecordEntry.relational,
+        //       relationalResults,
+        //       currentQueryContextKey
+        //     );
+        //   }
       });
     } catch (e) {
       throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);

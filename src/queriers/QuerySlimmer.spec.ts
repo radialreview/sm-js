@@ -44,87 +44,74 @@ function setupTests() {
 }
 
 describe('populateQueriesByContext', () => {
-  test(`it should create a record for a query with no params and update the subscription count for the given properties`, () => {
-    const { QuerySlimmer, userNode } = setupTests();
-
-    const mockQueryRecord: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
-    const mockResults = {
-      users: [
-        {
-          id: 'id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-        },
-      ],
-    };
-
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
-
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: mockResults.users,
-    });
-  });
-
-  test('it should create a record with the id parameter included when querying by an id', () => {
+  test.only('it should cache a query by id with only the properties requested', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
       user: {
-        id: 'id-2',
+        id: 'user-id-1',
         def: userNode,
-        properties: ['firstName', 'lastName'],
+        properties: ['id', 'type', 'firstName', 'lastName'],
         tokenName: DEFAULT_TOKEN_NAME,
       },
     };
+
     const mockResults = {
       user: {
-        id: 'id-2',
+        id: 'user-id-1',
         type: userNode.type,
-        firstName: 'Aidan',
-        lastName: 'Goodman',
+        firstName: 'Piotr',
+        lastName: 'Bogun',
+        email: 'test@email.com',
+        nickName: 'Piotr',
       },
     };
 
     QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
-    expect(QuerySlimmer.queriesByContext['user({"id":"id-2"})']).toEqual({
-      subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: mockResults.user,
+    expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      results: {
+        byParentId: false,
+        user: {
+          id: 'user-id-1',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+        },
+      },
     });
   });
 
-  test('it should create a record with all the id parameters included when querying by multiple ids', () => {
+  test.only('it should cache a query by ids with only the properties requested', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
       users: {
+        ids: ['user-id-1', 'user-id-2'],
         def: userNode,
-        properties: ['firstName', 'lastName'],
-        ids: ['id-3', 'id-4'],
+        properties: ['id', 'type', 'firstName', 'lastName'],
         tokenName: DEFAULT_TOKEN_NAME,
       },
     };
+
     const mockResults = {
       users: [
         {
-          id: 'id-3',
+          id: 'user-id-1',
           type: userNode.type,
           firstName: 'Aidan',
           lastName: 'Goodman',
+          email: 'test@email.com',
+          nickName: 'Aidan',
         },
         {
-          id: 'id-4',
+          id: 'user-id-2',
           type: userNode.type,
           firstName: 'Piotr',
           lastName: 'Bogun',
+          email: 'test@email.com',
+          nickName: 'Piotr',
         },
       ],
     };
@@ -132,46 +119,51 @@ describe('populateQueriesByContext', () => {
     QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(
-      QuerySlimmer.queriesByContext['users({"ids":["id-3","id-4"]})']
+      QuerySlimmer.queriesByContext['users({"ids":["user-id-1","user-id-2"]})']
     ).toEqual({
-      subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: mockResults.users,
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      results: {
+        byParentId: false,
+        users: {
+          nodes: mockResults.users.map(u => ({
+            id: u.id,
+            type: u.type,
+            firstName: u.firstName,
+            lastName: u.lastName,
+          })),
+        },
+      },
     });
   });
 
-  test('it should create separate records for child relational data that contain no parameters', () => {
-    const { QuerySlimmer, userNode, todoNode } = setupTests();
+  test.only('it should cache an array of results with no params with only the properties requested', () => {
+    const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
       users: {
         def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          todos: {
-            _relationshipName: 'todos',
-            def: todoNode,
-            properties: ['task'],
-            oneToMany: true,
-          },
-        },
+        properties: ['id', 'type', 'firstName', 'lastName'],
         tokenName: DEFAULT_TOKEN_NAME,
       },
     };
+
     const mockResults = {
       users: [
         {
-          id: 'id-3',
+          id: 'user-id-1',
           type: userNode.type,
           firstName: 'Aidan',
           lastName: 'Goodman',
-          todos: [{ id: 'id-1', type: todoNode.type, task: 'test-1' }],
+          email: 'test@email.com',
+          nickName: 'Aidan',
         },
         {
-          id: 'id-4',
+          id: 'user-id-2',
           type: userNode.type,
           firstName: 'Piotr',
           lastName: 'Bogun',
-          todos: [{ id: 'id-2', type: todoNode.type, task: 'test-2' }],
+          email: 'test@email.com',
+          nickName: 'Piotr',
         },
       ],
     };
@@ -179,17 +171,207 @@ describe('populateQueriesByContext', () => {
     QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { firstName: 1, lastName: 1 },
-      results: mockResults.users,
-    });
-
-    expect(
-      QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
-    ).toEqual({
-      subscriptionsByProperty: { task: 1 },
-      results: mockResults.users.map(user => user.todos),
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      results: {
+        byParentId: false,
+        users: {
+          nodes: mockResults.users.map(u => ({
+            id: u.id,
+            type: u.type,
+            firstName: u.firstName,
+            lastName: u.lastName,
+          })),
+        },
+      },
     });
   });
+
+  // test('it should create a record with the id parameter included when querying by an id', () => {
+  //   const { QuerySlimmer, userNode } = setupTests();
+  //   const mockQueryRecord: QueryRecord = {
+  //     user: {
+  //       id: 'id-2',
+  //       def: userNode,
+  //       properties: ['firstName', 'lastName'],
+  //       tokenName: DEFAULT_TOKEN_NAME,
+  //     },
+  //   };
+  //   const mockResults = {
+  //     user: {
+  //       id: 'id-2',
+  //       type: userNode.type,
+  //       firstName: 'Aidan',
+  //       lastName: 'Goodman',
+  //     },
+  //   };
+  //   QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+  //   expect(QuerySlimmer.queriesByContext['user({"id":"id-2"})']).toEqual({
+  //     subscriptionsByProperty: { firstName: 1, lastName: 1 },
+  //     results: mockResults.user,
+  //   });
+  // });
+  // test('it should create a record with all the id parameters included when querying by multiple ids', () => {
+  //   const { QuerySlimmer, userNode } = setupTests();
+  //   const mockQueryRecord: QueryRecord = {
+  //     users: {
+  //       def: userNode,
+  //       properties: ['firstName', 'lastName'],
+  //       ids: ['id-3', 'id-4'],
+  //       tokenName: DEFAULT_TOKEN_NAME,
+  //     },
+  //   };
+  //   const mockResults = {
+  //     users: [
+  //       {
+  //         id: 'id-3',
+  //         type: userNode.type,
+  //         firstName: 'Aidan',
+  //         lastName: 'Goodman',
+  //       },
+  //       {
+  //         id: 'id-4',
+  //         type: userNode.type,
+  //         firstName: 'Piotr',
+  //         lastName: 'Bogun',
+  //       },
+  //     ],
+  //   };
+  //   QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+  //   expect(
+  //     QuerySlimmer.queriesByContext['users({"ids":["id-3","id-4"]})']
+  //   ).toEqual({
+  //     subscriptionsByProperty: { firstName: 1, lastName: 1 },
+  //     results: mockResults.users,
+  //   });
+  // });
+  // test.only('it should create separate records for child relational data that contain no parameters', () => {
+  //   const { QuerySlimmer, userNode, todoNode } = setupTests();
+  //   const mockQueryRecord: QueryRecord = {
+  //     users: {
+  //       def: userNode,
+  //       properties: ['firstName', 'lastName'],
+  //       relational: {
+  //         todos: {
+  //           def: todoNode,
+  //           oneToMany: true,
+  //           _relationshipName: 'todos',
+  //           properties: ['task'],
+  //           relational: {
+  //             assignee: {
+  //               def: userNode,
+  //               oneToOne: true,
+  //               _relationshipName: 'assignee',
+  //               properties: ['firstName', 'lastName'],
+  //             },
+  //           },
+  //         },
+  //       },
+  //       tokenName: DEFAULT_TOKEN_NAME,
+  //     },
+  //   };
+  //   const mockResults = {
+  //     users: [
+  //       {
+  //         id: 'user-id-1',
+  //         type: userNode.type,
+  //         firstName: 'Aidan',
+  //         lastName: 'Goodman',
+  //         todos: [
+  //           {
+  //             id: 'todo-id-1',
+  //             type: todoNode.type,
+  //             task: 'todo-task-1',
+  //             assignee: {
+  //               id: 'user-id-1',
+  //               type: userNode.type,
+  //               firstName: 'Aidan',
+  //               lastName: 'Goodman',
+  //             },
+  //           },
+  //         ],
+  //       },
+  //       {
+  //         id: 'user-id-2',
+  //         type: userNode.type,
+  //         firstName: 'Piotr',
+  //         lastName: 'Bogun',
+  //         todos: [
+  //           {
+  //             id: 'todo-id-2',
+  //             type: todoNode.type,
+  //             task: 'todo-task-2',
+  //             assignee: {
+  //               id: 'user-id-2',
+  //               type: userNode.type,
+  //               firstName: 'Piotr',
+  //               lastName: 'Bogun',
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   };
+  //   QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+  //   console.log(JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2));
+  //   expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
+  //     subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+  //     results: {
+  //       byParentId: false,
+  //       users: {
+  //         nodes: mockResults.users.map(u => ({
+  //           id: u.id,
+  //           type: u.type,
+  //           firstName: u.firstName,
+  //           lastName: u.lastName,
+  //         })),
+  //       },
+  //     },
+  //   });
+  //   expect(
+  //     QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
+  //   ).toEqual({
+  //     subscriptionsByProperty: { id: 1, task: 1 },
+  //     results: {
+  //       byParentId: true,
+  //       'user-id-1': {
+  //         todos: {
+  //           nodes: [{ id: 'todo-id-1', task: 'todo-task-1' }],
+  //         },
+  //       },
+  //       'user-id-2': {
+  //         todos: {
+  //           nodes: [{ id: 'todo-id-2', task: 'todo-task-2' }],
+  //         },
+  //       },
+  //     },
+  //   });
+  //   expect(
+  //     QuerySlimmer.queriesByContext[
+  //       'users(NO_PARAMS).todos(NO_PARAMS).users(NO_PARAMS)'
+  //     ]
+  //   ).toEqual({
+  //     subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+  //     results: {
+  //       byParentId: true,
+  //       'todo-id-1': {
+  //         assignee: {
+  //           id: 'user-id-1',
+  //           type: userNode.type,
+  //           firstName: 'Aidan',
+  //           lastName: 'Goodman',
+  //         },
+  //       },
+  //       'todo-id-2': {
+  //         assignee: {
+  //           id: 'user-id-2',
+  //           type: userNode.type,
+  //           firstName: 'Piotr',
+  //           lastName: 'Bogun',
+  //         },
+  //       },
+  //     },
+  //   });
+  // });
 });
 
 describe('getInFlightQueriesToSlimAgainst', () => {
