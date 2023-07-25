@@ -597,6 +597,14 @@ export class QuerySlimmer {
   ) {
     try {
       Object.keys(queryRecord).forEach(queryRecordField => {
+        if (parentContextKey) {
+          console.log('queryRecord', JSON.stringify(queryRecord, undefined, 2));
+          console.log(
+            'queryResponse',
+            JSON.stringify(queryResponse, undefined, 2)
+          );
+        }
+
         const queryRecordEntry = queryRecord[queryRecordField];
         if (!queryRecordEntry) return;
 
@@ -605,9 +613,10 @@ export class QuerySlimmer {
           parentContextKey
         );
         const cachedData = this.queriesByContext[currentQueryContextKey];
+        const resultsByParentId = parentContextKey !== undefined;
 
         const results: Record<string, any> = {
-          byParentId: false,
+          byParentId: resultsByParentId,
         };
         const subscriptionsByProperty = cachedData?.subscriptionsByProperty
           ? { ...cachedData?.subscriptionsByProperty }
@@ -655,60 +664,37 @@ export class QuerySlimmer {
           results: results,
         };
 
-        //   if (queryRecordEntry.relational !== undefined) {
-        //     const relationalQueryRecord = queryRecordEntry.relational;
-        //     const relationalFields = Object.keys(relationalQueryRecord);
-        //     const relationalResults: Record<string, any> = {};
+        if (queryRecordEntry.relational !== undefined) {
+          const relationalQueryRecord = queryRecordEntry.relational;
+          const relationalFields = Object.keys(relationalQueryRecord);
+          const relationalResults: Record<string, any> = {};
 
-        //     if (Array.isArray(queryResponse[alias])) {
-        //       relationalResults[alias].forEach((rResult: any) => {
-        //         relationalResults[rResult.id] = queryResponse[alias];
-        //       });
-        //     } else {
-        //     }
+          if (Array.isArray(queryResponse[queryRecordField])) {
+            queryResponse[queryRecordField].forEach((queryResponse: any) => {
+              relationalFields.forEach(rField => {
+                if (relationalResults[rField]) {
+                  relationalResults[rField][queryResponse.id] =
+                    queryResponse[rField];
+                } else {
+                  relationalResults[rField] = {};
+                  relationalResults[rField][queryResponse.id] =
+                    queryResponse[rField];
+                }
+              });
+            });
+          } else {
+            relationalFields.forEach(rField => {
+              relationalResults[queryResponse.id][rField] =
+                queryResponse[rField];
+            });
+          }
 
-        //     relationalFields.forEach(rField => {
-        //       const rFieldProperties = relationalQueryRecord[rField].properties;
-        //       const rFieldQueryResponse = queryResponse[alias][rField];
-
-        //       if (Array.isArray(rFieldQueryResponse)) {
-        //         relationalResults[rField] = rFieldQueryResponse.map(
-        //           rFieldResponse => {
-        //             let results: Record<string, any> = {};
-        //             rFieldProperties.forEach(rProp => {
-        //               results[rProp] = rFieldResponse[rProp];
-        //             });
-        //             return results;
-        //           }
-        //         );
-        //       } else {
-        //         relationalResults[rField] = {};
-        //         rFieldProperties.forEach(rFieldProperty => {
-        //           relationalResults[rField][rFieldProperty] =
-        //             queryResponse[rField][rFieldProperty];
-        //         });
-        //       }
-        //     });
-
-        //     const resultsForRelationalQueries = Object.keys(
-        //       queryRecordEntry.relational
-        //     ).reduce((previous: Record<string, any>, current: string) => {
-        //       if (Array.isArray(queryResponse[alias])) {
-        //         previous[current] = queryResponse[alias].map(
-        //           (user: any) => user[current]
-        //         );
-        //       } else {
-        //         previous[current] = queryResponse[alias];
-        //       }
-        //       return previous;
-        //     }, {});
-
-        //     this.populateQueriesByContext(
-        //       queryRecordEntry.relational,
-        //       relationalResults,
-        //       currentQueryContextKey
-        //     );
-        //   }
+          this.populateQueriesByContext(
+            queryRecordEntry.relational,
+            relationalResults,
+            currentQueryContextKey
+          );
+        }
       });
     } catch (e) {
       throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);
