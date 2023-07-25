@@ -597,11 +597,6 @@ export class QuerySlimmer {
   ) {
     try {
       Object.keys(queryRecord).forEach(queryRecordField => {
-        // if (parentContextKey) {
-        //   console.log('queryRecord', this.stringify(queryRecord));
-        //   console.log('queryResponse', this.stringify(queryResponse));
-        // }
-
         const queryRecordEntry = queryRecord[queryRecordField];
         if (!queryRecordEntry) return;
 
@@ -675,8 +670,10 @@ export class QuerySlimmer {
                   parentResult[queryRecordField].nodes.push(resultsToCache);
                 });
               } else {
+                parentResult[queryRecordField] = {};
                 queryRecordEntry.properties.forEach(property => {
-                  parentResult[property] = responseQueryField[property];
+                  parentResult[queryRecordField][property] =
+                    responseQueryField[property];
 
                   if (parentIndex === 0) {
                     if (subscriptionsByProperty[property]) {
@@ -752,7 +749,6 @@ export class QuerySlimmer {
                     relationalResults[resultsForParentId.id][rField] =
                       resultsForParentId[rField];
                   });
-                  relationalResults[resultsForParentId];
                 }
               });
             } else {

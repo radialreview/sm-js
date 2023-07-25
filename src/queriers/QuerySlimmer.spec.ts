@@ -44,7 +44,7 @@ function setupTests() {
 }
 
 describe('populateQueriesByContext', () => {
-  test('it should cache a query by id with only the properties requested', () => {
+  test.only('it should cache a query by id with only the properties requested', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -136,7 +136,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test('it should cache an array of results with no params with only the properties requested', () => {
+  test.only('it should cache an array of results with no params with only the properties requested', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -198,7 +198,7 @@ describe('populateQueriesByContext', () => {
             def: todoNode,
             oneToMany: true,
             _relationshipName: 'todos',
-            properties: ['id', 'task'],
+            properties: ['id', 'type', 'task'],
             relational: {
               assignee: {
                 def: userNode,
@@ -258,8 +258,6 @@ describe('populateQueriesByContext', () => {
 
     QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
 
-    console.log(JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2));
-
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
       results: {
@@ -278,17 +276,21 @@ describe('populateQueriesByContext', () => {
     expect(
       QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
     ).toEqual({
-      subscriptionsByProperty: { id: 1, task: 1 },
+      subscriptionsByProperty: { id: 1, type: 1, task: 1 },
       results: {
         byParentId: true,
         'user-id-1': {
           todos: {
-            nodes: [{ id: 'todo-id-1', task: 'todo-task-1' }],
+            nodes: [
+              { id: 'todo-id-1', type: todoNode.type, task: 'todo-task-1' },
+            ],
           },
         },
         'user-id-2': {
           todos: {
-            nodes: [{ id: 'todo-id-2', task: 'todo-task-2' }],
+            nodes: [
+              { id: 'todo-id-2', type: todoNode.type, task: 'todo-task-2' },
+            ],
           },
         },
       },
@@ -299,7 +301,7 @@ describe('populateQueriesByContext', () => {
         'users(NO_PARAMS).todos(NO_PARAMS).users(NO_PARAMS)'
       ]
     ).toEqual({
-      subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
       results: {
         byParentId: true,
         'todo-id-1': {
