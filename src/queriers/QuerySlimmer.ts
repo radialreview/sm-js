@@ -706,7 +706,6 @@ export class QuerySlimmer {
           results: results,
         };
 
-        // HERE PIOTR AND DOCUMENT
         if (queryRecordEntry.relational !== undefined) {
           const relationalQueryRecord = queryRecordEntry.relational;
           const relationalFields = Object.keys(relationalQueryRecord);

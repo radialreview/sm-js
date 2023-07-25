@@ -44,7 +44,7 @@ function setupTests() {
 }
 
 describe('populateQueriesByContext', () => {
-  test.only('it should cache a query by id with only the properties requested', () => {
+  test.only('it should cache by id queries', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -83,7 +83,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test('it should cache a query by ids with only the properties requested', () => {
+  test.only('it should cache by ids queries', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -136,7 +136,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should cache an array of results with no params with only the properties requested', () => {
+  test.only('it should cache node collection results', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -186,7 +186,145 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should create separate records for child relational data that contain no parameters', () => {
+  test.only('it should cache a separate record a relational child', () => {
+    const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['id', 'type', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'type', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'type', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockResults = {
+      users: [
+        {
+          id: 'user-id-1',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+          todos: [
+            {
+              id: 'todo-id-1',
+              type: todoNode.type,
+              task: 'todo-task-1',
+              assignee: {
+                id: 'user-id-1',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+        {
+          id: 'user-id-2',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+          todos: [
+            {
+              id: 'todo-id-2',
+              type: todoNode.type,
+              task: 'todo-task-2',
+              assignee: {
+                id: 'user-id-2',
+                type: userNode.type,
+                firstName: 'Piotr',
+                lastName: 'Bogun',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+
+    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      results: {
+        byParentId: false,
+        users: {
+          nodes: mockResults.users.map(u => ({
+            id: u.id,
+            type: u.type,
+            firstName: u.firstName,
+            lastName: u.lastName,
+          })),
+        },
+      },
+    });
+
+    expect(
+      QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
+    ).toEqual({
+      subscriptionsByProperty: { id: 1, type: 1, task: 1 },
+      results: {
+        byParentId: true,
+        'user-id-1': {
+          todos: {
+            nodes: [
+              { id: 'todo-id-1', type: todoNode.type, task: 'todo-task-1' },
+            ],
+          },
+        },
+        'user-id-2': {
+          todos: {
+            nodes: [
+              { id: 'todo-id-2', type: todoNode.type, task: 'todo-task-2' },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(
+      QuerySlimmer.queriesByContext[
+        'users(NO_PARAMS).todos(NO_PARAMS).users(NO_PARAMS)'
+      ]
+    ).toEqual({
+      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      results: {
+        byParentId: true,
+        'todo-id-1': {
+          assignee: {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+          },
+        },
+        'todo-id-2': {
+          assignee: {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+          },
+        },
+      },
+    });
+  });
+
+  test.only('it should create separate records for child relational data handling arrays and objects in the tree', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
