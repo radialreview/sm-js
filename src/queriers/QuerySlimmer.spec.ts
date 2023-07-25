@@ -198,13 +198,13 @@ describe('populateQueriesByContext', () => {
             def: todoNode,
             oneToMany: true,
             _relationshipName: 'todos',
-            properties: ['task'],
+            properties: ['id', 'task'],
             relational: {
               assignee: {
                 def: userNode,
                 oneToOne: true,
                 _relationshipName: 'assignee',
-                properties: ['firstName', 'lastName'],
+                properties: ['id', 'type', 'firstName', 'lastName'],
               },
             },
           },
@@ -257,6 +257,8 @@ describe('populateQueriesByContext', () => {
     };
 
     QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+
+    console.log(JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2));
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
