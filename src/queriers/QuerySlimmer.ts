@@ -54,7 +54,7 @@ export class QuerySlimmer {
     batchKey?: string;
   }) {
     // PIOTR TODO
-    const newQuerySlimmedByCache = this.getSlimmedQueryAgainstQueriesByContext(
+    const newQuerySlimmedByCache = this.getSlimmedQueryAgainstCache(
       opts.queryRecord
     ) as QueryRecord | null;
 
@@ -84,6 +84,290 @@ export class QuerySlimmer {
       const data = this.getDataForQueryFromQueriesByContext(opts.queryRecord);
       return data;
     }
+  }
+
+  // Given a QueryRecord and the results of the query, caches the results by context keys along
+  // with how many current active subscriptions exist for each field in the query.
+  public cacheNewData(
+    queryRecord: QueryRecord | RelationalQueryRecord,
+    queryResponse: Record<string, any>,
+    parentContextKey?: string
+  ) {
+    try {
+      Object.keys(queryRecord).forEach(queryRecordField => {
+        const queryRecordEntry = queryRecord[queryRecordField];
+        if (!queryRecordEntry) return;
+
+        const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
+          queryRecordEntry,
+          parentContextKey
+        );
+        const cachedData = this.queriesByContext[currentQueryContextKey];
+        const isResultsByParentId = parentContextKey !== undefined;
+
+        const results: Record<string, any> = {
+          byParentId: isResultsByParentId,
+        };
+        const subscriptionsByProperty = cachedData?.subscriptionsByProperty
+          ? { ...cachedData?.subscriptionsByProperty }
+          : {};
+
+        // If the root query response is an array
+        if (Array.isArray(queryResponse[queryRecordField])) {
+          results[queryRecordField] = {
+            nodes: queryResponse[queryRecordField].map(
+              (qResponse: any, qResponseIndex: number) => {
+                let fieldsToCache: Record<string, any> = {};
+
+                queryRecordEntry.properties.forEach(property => {
+                  fieldsToCache[property] = qResponse[property];
+
+                  if (qResponseIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
+                  }
+                });
+
+                return fieldsToCache;
+              }
+            ),
+          };
+          // If the root query response is not an array
+        } else {
+          if (isResultsByParentId) {
+            const parentIdKeys = Object.keys(queryResponse[queryRecordField]);
+
+            parentIdKeys.forEach((parentId, parentIndex) => {
+              results[parentId] = {};
+              const parentResult = results[parentId];
+              const responseQueryField =
+                queryResponse[queryRecordField][parentId];
+
+              if (Array.isArray(responseQueryField)) {
+                parentResult[queryRecordField] = {
+                  nodes: [],
+                };
+
+                responseQueryField.forEach(response => {
+                  const resultsToCache: Record<string, any> = {};
+
+                  queryRecordEntry.properties.forEach(property => {
+                    resultsToCache[property] = response[property];
+                    if (parentIndex === 0) {
+                      if (subscriptionsByProperty[property]) {
+                        subscriptionsByProperty[property] += 1;
+                      } else {
+                        subscriptionsByProperty[property] = 1;
+                      }
+                    }
+                  });
+
+                  parentResult[queryRecordField].nodes.push(resultsToCache);
+                });
+              } else {
+                parentResult[queryRecordField] = {};
+                queryRecordEntry.properties.forEach(property => {
+                  parentResult[queryRecordField][property] =
+                    responseQueryField[property];
+
+                  if (parentIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
+                  }
+                });
+              }
+            });
+          } else {
+            results[queryRecordField] = {};
+            const resultObj = results[queryRecordField];
+
+            queryRecordEntry.properties.forEach(property => {
+              resultObj[property] = queryResponse[queryRecordField][property];
+
+              if (subscriptionsByProperty[property]) {
+                subscriptionsByProperty[property] += 1;
+              } else {
+                subscriptionsByProperty[property] = 1;
+              }
+            });
+          }
+        }
+
+        this.queriesByContext[currentQueryContextKey] = {
+          subscriptionsByProperty: subscriptionsByProperty,
+          results: results,
+        };
+
+        if (queryRecordEntry.relational !== undefined) {
+          const relationalQueryRecord = queryRecordEntry.relational;
+          const relationalFields = Object.keys(relationalQueryRecord);
+          const relationalResults: Record<string, any> = {};
+
+          if (Array.isArray(queryResponse[queryRecordField])) {
+            queryResponse[queryRecordField].forEach((queryResponse: any) => {
+              relationalFields.forEach(rField => {
+                if (relationalResults[rField]) {
+                  relationalResults[rField][queryResponse.id] =
+                    queryResponse[rField];
+                } else {
+                  relationalResults[rField] = {};
+                  relationalResults[rField][queryResponse.id] =
+                    queryResponse[rField];
+                }
+              });
+            });
+          } else {
+            if (isResultsByParentId) {
+              const parentIds = Object.keys(queryResponse[queryRecordField]);
+
+              parentIds.forEach(pId => {
+                const resultsForParentId = queryResponse[queryRecordField][pId];
+
+                if (Array.isArray(resultsForParentId)) {
+                  resultsForParentId.forEach((result: Record<string, any>) => {
+                    relationalFields.forEach(rField => {
+                      if (!relationalResults[rField]) {
+                        relationalResults[rField] = {};
+                      }
+                      relationalResults[rField][result.id] = result[rField];
+                    });
+                  });
+                } else {
+                  relationalFields.forEach(rField => {
+                    if (!relationalResults[resultsForParentId.id]) {
+                      relationalResults[resultsForParentId.id] = {};
+                    }
+                    relationalResults[resultsForParentId.id][rField] =
+                      resultsForParentId[rField];
+                  });
+                }
+              });
+            } else {
+              relationalFields.forEach(rField => {
+                relationalResults[queryResponse.id][rField] =
+                  queryResponse[rField];
+              });
+            }
+          }
+
+          this.cacheNewData(
+            queryRecordEntry.relational,
+            relationalResults,
+            currentQueryContextKey
+          );
+        }
+      });
+    } catch (e) {
+      throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);
+    }
+  }
+
+  // Given a QueryRecord for a new query returns a QueryRecord that
+  // has properties removed that are already cached.
+  public getSlimmedQueryAgainstCache(
+    newQuery: QueryRecord | RelationalQueryRecord,
+    parentContextKey?: string
+  ) {
+    // The query record could be a root query (not relational), or a child relational query.
+    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
+    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
+    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
+    // We know we are dealing with a relational query when parentContextKey is NOT undefined
+    const slimmedQueryRecord: QueryRecord = {};
+    const slimmedRelationalQueryRecord: RelationalQueryRecord = {};
+    const isNewQueryARootQuery = parentContextKey === undefined;
+
+    Object.keys(newQuery).forEach(newQueryKey => {
+      const newQueryRecordEntry = newQuery[newQueryKey];
+      const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
+      const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
+
+      if (!newQueryRecordEntry) return;
+
+      const newQueryContextKey = this.createContextKeyForQueryRecordEntry(
+        newQueryRecordEntry,
+        parentContextKey
+      );
+
+      if (this.queriesByContext[newQueryContextKey] === undefined) {
+        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
+        if (isNewQueryARootQuery) {
+          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
+        } else {
+          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
+        }
+      } else {
+        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
+        // by the new query are already cached.
+        const cachedQuery = this.queriesByContext[newQueryContextKey];
+        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
+          newQueryProps: newQueryRecordEntry.properties,
+          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty,
+        });
+
+        // If there are no further child relational queries to deal with and there are properties being requested that are not cached
+        // we can just return the new query with only the newly requested properties.
+        if (
+          newRequestedProperties !== null &&
+          newQueryRecordEntry.relational === undefined
+        ) {
+          if (isNewQueryARootQuery) {
+            slimmedQueryRecord[newQueryKey] = {
+              ...newRootRecordEntry,
+              properties: newRequestedProperties,
+            };
+          } else {
+            slimmedRelationalQueryRecord[newQueryKey] = {
+              ...newRelationalRecordEntry,
+              properties: newRequestedProperties,
+            };
+          }
+        }
+
+        // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
+        if (newQueryRecordEntry.relational !== undefined) {
+          const slimmedNewRelationalQueryRecord = this.getSlimmedQueryAgainstCache(
+            newQueryRecordEntry.relational,
+            newQueryContextKey
+          );
+
+          // If there are any non-cached properties being requested in the child relational query
+          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
+          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+          if (slimmedNewRelationalQueryRecord !== null) {
+            if (isNewQueryARootQuery) {
+              slimmedQueryRecord[newQueryKey] = {
+                ...newRootRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            } else {
+              slimmedRelationalQueryRecord[newQueryKey] = {
+                ...newRelationalRecordEntry,
+                properties: newRequestedProperties ?? [],
+                relational: {
+                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
+                },
+              };
+            }
+          }
+        }
+      }
+    });
+
+    const objectToReturn = isNewQueryARootQuery
+      ? slimmedQueryRecord
+      : slimmedRelationalQueryRecord;
+
+    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
   }
 
   public getDataForQueryFromQueriesByContext(
@@ -351,106 +635,6 @@ export class QuerySlimmer {
   //     : queryRecordToReturn;
   // }
 
-  public getSlimmedQueryAgainstQueriesByContext(
-    newQuery: QueryRecord | RelationalQueryRecord,
-    parentContextKey?: string
-  ) {
-    // The query record could be a root query (not relational), or a child relational query.
-    // They have different types so we create/update a brand new query record depending the type of query we are dealing with:
-    //   - Dealing with a root query (not relational): slimmedQueryRecord and newRootRecordEntry
-    //   - Dealing with a relational query: slimmedRelationalQueryRecord and newRelationalRecordEntry
-    // We know we are dealing with a relational query when parentContextKey is NOT undefined
-    const slimmedQueryRecord: QueryRecord = {};
-    const slimmedRelationalQueryRecord: RelationalQueryRecord = {};
-    const isNewQueryARootQuery = parentContextKey === undefined;
-
-    Object.keys(newQuery).forEach(newQueryKey => {
-      const newQueryRecordEntry = newQuery[newQueryKey];
-      const newRootRecordEntry = newQueryRecordEntry as QueryRecordEntry;
-      const newRelationalRecordEntry = newQueryRecordEntry as RelationalQueryRecordEntry;
-
-      if (!newQueryRecordEntry) return;
-
-      const newQueryContextKey = this.createContextKeyForQueryRecordEntry(
-        newQueryRecordEntry,
-        parentContextKey
-      );
-
-      if (this.queriesByContext[newQueryContextKey] === undefined) {
-        // If the context key of the new query is not found in queriesByContext we know there is no cached version of this query.
-        if (isNewQueryARootQuery) {
-          slimmedQueryRecord[newQueryKey] = newRootRecordEntry;
-        } else {
-          slimmedRelationalQueryRecord[newQueryKey] = newRelationalRecordEntry;
-        }
-      } else {
-        // If a context key is found for the new query in queriesByContext we need to check if any of the properties being requested
-        // by the new query are already cached.
-        const cachedQuery = this.queriesByContext[newQueryContextKey];
-        const newRequestedProperties = this.getPropertiesNotAlreadyCached({
-          newQueryProps: newQueryRecordEntry.properties,
-          cachedQuerySubsByProperty: cachedQuery.subscriptionsByProperty,
-        });
-
-        // If there are no further child relational queries to deal with and there are properties being requested that are not cached
-        // we can just return the new query with only the newly requested properties.
-        if (
-          newRequestedProperties !== null &&
-          newQueryRecordEntry.relational === undefined
-        ) {
-          if (isNewQueryARootQuery) {
-            slimmedQueryRecord[newQueryKey] = {
-              ...newRootRecordEntry,
-              properties: newRequestedProperties,
-            };
-          } else {
-            slimmedRelationalQueryRecord[newQueryKey] = {
-              ...newRelationalRecordEntry,
-              properties: newRequestedProperties,
-            };
-          }
-        }
-
-        // If there are child relational queries we still need to handle those even if the parent query is requesting only cached properties.
-        if (newQueryRecordEntry.relational !== undefined) {
-          const slimmedNewRelationalQueryRecord = this.getSlimmedQueryAgainstQueriesByContext(
-            newQueryRecordEntry.relational,
-            newQueryContextKey
-          );
-
-          // If there are any non-cached properties being requested in the child relational query
-          // we will still need to return the query record even if the parent is not requesting any un-cached properties.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
-          if (slimmedNewRelationalQueryRecord !== null) {
-            if (isNewQueryARootQuery) {
-              slimmedQueryRecord[newQueryKey] = {
-                ...newRootRecordEntry,
-                properties: newRequestedProperties ?? [],
-                relational: {
-                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
-                },
-              };
-            } else {
-              slimmedRelationalQueryRecord[newQueryKey] = {
-                ...newRelationalRecordEntry,
-                properties: newRequestedProperties ?? [],
-                relational: {
-                  ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
-                },
-              };
-            }
-          }
-        }
-      }
-    });
-
-    const objectToReturn = isNewQueryARootQuery
-      ? slimmedQueryRecord
-      : slimmedRelationalQueryRecord;
-
-    return Object.keys(objectToReturn).length === 0 ? null : objectToReturn;
-  }
-
   public onSubscriptionCancelled(
     queryRecord: QueryRecord | RelationalQueryRecord,
     parentContextKey?: string
@@ -498,189 +682,6 @@ export class QuerySlimmer {
       });
     }
     return relationalDepth;
-  }
-
-  // Given a QueryRecord and the corresponding query results this method
-  // caches (queriesByContext) the given results and updates how many current
-  // active subscriptions exist for each field in the query.
-  public populateQueriesByContext(
-    queryRecord: QueryRecord | RelationalQueryRecord,
-    queryResponse: Record<string, any>,
-    parentContextKey?: string
-  ) {
-    try {
-      Object.keys(queryRecord).forEach(queryRecordField => {
-        const queryRecordEntry = queryRecord[queryRecordField];
-        if (!queryRecordEntry) return;
-
-        const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
-          queryRecordEntry,
-          parentContextKey
-        );
-        const cachedData = this.queriesByContext[currentQueryContextKey];
-        const isResultsByParentId = parentContextKey !== undefined;
-
-        const results: Record<string, any> = {
-          byParentId: isResultsByParentId,
-        };
-        const subscriptionsByProperty = cachedData?.subscriptionsByProperty
-          ? { ...cachedData?.subscriptionsByProperty }
-          : {};
-
-        // If the root query response is an array
-        if (Array.isArray(queryResponse[queryRecordField])) {
-          results[queryRecordField] = {
-            nodes: queryResponse[queryRecordField].map(
-              (qResponse: any, qResponseIndex: number) => {
-                let fieldsToCache: Record<string, any> = {};
-
-                queryRecordEntry.properties.forEach(property => {
-                  fieldsToCache[property] = qResponse[property];
-
-                  if (qResponseIndex === 0) {
-                    if (subscriptionsByProperty[property]) {
-                      subscriptionsByProperty[property] += 1;
-                    } else {
-                      subscriptionsByProperty[property] = 1;
-                    }
-                  }
-                });
-
-                return fieldsToCache;
-              }
-            ),
-          };
-          // If the root query response is not an array
-        } else {
-          if (isResultsByParentId) {
-            const parentIdKeys = Object.keys(queryResponse[queryRecordField]);
-
-            parentIdKeys.forEach((parentId, parentIndex) => {
-              results[parentId] = {};
-              const parentResult = results[parentId];
-              const responseQueryField =
-                queryResponse[queryRecordField][parentId];
-
-              if (Array.isArray(responseQueryField)) {
-                parentResult[queryRecordField] = {
-                  nodes: [],
-                };
-
-                responseQueryField.forEach(response => {
-                  const resultsToCache: Record<string, any> = {};
-
-                  queryRecordEntry.properties.forEach(property => {
-                    resultsToCache[property] = response[property];
-                    if (parentIndex === 0) {
-                      if (subscriptionsByProperty[property]) {
-                        subscriptionsByProperty[property] += 1;
-                      } else {
-                        subscriptionsByProperty[property] = 1;
-                      }
-                    }
-                  });
-
-                  parentResult[queryRecordField].nodes.push(resultsToCache);
-                });
-              } else {
-                parentResult[queryRecordField] = {};
-                queryRecordEntry.properties.forEach(property => {
-                  parentResult[queryRecordField][property] =
-                    responseQueryField[property];
-
-                  if (parentIndex === 0) {
-                    if (subscriptionsByProperty[property]) {
-                      subscriptionsByProperty[property] += 1;
-                    } else {
-                      subscriptionsByProperty[property] = 1;
-                    }
-                  }
-                });
-              }
-            });
-          } else {
-            results[queryRecordField] = {};
-            const resultObj = results[queryRecordField];
-
-            queryRecordEntry.properties.forEach(property => {
-              resultObj[property] = queryResponse[queryRecordField][property];
-
-              if (subscriptionsByProperty[property]) {
-                subscriptionsByProperty[property] += 1;
-              } else {
-                subscriptionsByProperty[property] = 1;
-              }
-            });
-          }
-        }
-
-        this.queriesByContext[currentQueryContextKey] = {
-          subscriptionsByProperty: subscriptionsByProperty,
-          results: results,
-        };
-
-        if (queryRecordEntry.relational !== undefined) {
-          const relationalQueryRecord = queryRecordEntry.relational;
-          const relationalFields = Object.keys(relationalQueryRecord);
-          const relationalResults: Record<string, any> = {};
-
-          if (Array.isArray(queryResponse[queryRecordField])) {
-            queryResponse[queryRecordField].forEach((queryResponse: any) => {
-              relationalFields.forEach(rField => {
-                if (relationalResults[rField]) {
-                  relationalResults[rField][queryResponse.id] =
-                    queryResponse[rField];
-                } else {
-                  relationalResults[rField] = {};
-                  relationalResults[rField][queryResponse.id] =
-                    queryResponse[rField];
-                }
-              });
-            });
-          } else {
-            if (isResultsByParentId) {
-              const parentIds = Object.keys(queryResponse[queryRecordField]);
-
-              parentIds.forEach(pId => {
-                const resultsForParentId = queryResponse[queryRecordField][pId];
-
-                if (Array.isArray(resultsForParentId)) {
-                  resultsForParentId.forEach((result: Record<string, any>) => {
-                    relationalFields.forEach(rField => {
-                      if (!relationalResults[rField]) {
-                        relationalResults[rField] = {};
-                      }
-                      relationalResults[rField][result.id] = result[rField];
-                    });
-                  });
-                } else {
-                  relationalFields.forEach(rField => {
-                    if (!relationalResults[resultsForParentId.id]) {
-                      relationalResults[resultsForParentId.id] = {};
-                    }
-                    relationalResults[resultsForParentId.id][rField] =
-                      resultsForParentId[rField];
-                  });
-                }
-              });
-            } else {
-              relationalFields.forEach(rField => {
-                relationalResults[queryResponse.id][rField] =
-                  queryResponse[rField];
-              });
-            }
-          }
-
-          this.populateQueriesByContext(
-            queryRecordEntry.relational,
-            relationalResults,
-            currentQueryContextKey
-          );
-        }
-      });
-    } catch (e) {
-      throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);
-    }
   }
 
   private createContextKeyForQueryRecordEntry(
@@ -794,7 +795,7 @@ export class QuerySlimmer {
       this.setInFlightQuery(inFlightQuery);
       const queryResponse = await this.mmGQLInstance.gqlClient.query(queryOpts);
       this.removeInFlightQuery(inFlightQuery);
-      this.populateQueriesByContext(opts.queryRecord, queryResponse);
+      this.cacheNewData(opts.queryRecord, queryResponse);
     } catch (e) {
       this.removeInFlightQuery(inFlightQuery);
       throw new Error(

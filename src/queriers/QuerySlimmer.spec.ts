@@ -1,12 +1,15 @@
-import { MMGQL, QueryRecord, QueryRecordEntry } from '..';
+import { MMGQL, QueryRecord } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 import { string, boolean } from '../dataTypes';
-import {
-  QuerySlimmer,
-  TInFlightQueriesByContextMap,
-  TQueryRecordByContextMap,
-} from './QuerySlimmer';
+import { QuerySlimmer } from './QuerySlimmer';
 import { getMockConfig } from '../specUtilities';
+
+// import { MMGQL, QueryRecord, QueryRecordEntry } from '..';
+// import {
+//   QuerySlimmer,
+//   TInFlightQueriesByContextMap,
+//   TQueryRecordByContextMap,
+// } from './QuerySlimmer';
 
 function setupTests() {
   const mmGQL = new MMGQL(getMockConfig());
@@ -43,8 +46,8 @@ function setupTests() {
   };
 }
 
-describe('populateQueriesByContext', () => {
-  test.only('it should cache by id queries', () => {
+describe('cacheNewData', () => {
+  test('it should cache by id queries', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -67,7 +70,7 @@ describe('populateQueriesByContext', () => {
       },
     };
 
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
@@ -83,7 +86,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should cache by ids queries', () => {
+  test('it should cache by ids queries', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -116,7 +119,7 @@ describe('populateQueriesByContext', () => {
       ],
     };
 
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
     expect(
       QuerySlimmer.queriesByContext['users({"ids":["user-id-1","user-id-2"]})']
@@ -136,7 +139,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should cache node collection results', () => {
+  test('it should cache node collection results', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -168,7 +171,7 @@ describe('populateQueriesByContext', () => {
       ],
     };
 
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
@@ -186,7 +189,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should cache a separate record a relational child', () => {
+  test('it should cache a separate record a relational child', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -256,7 +259,7 @@ describe('populateQueriesByContext', () => {
       ],
     };
 
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
@@ -324,7 +327,7 @@ describe('populateQueriesByContext', () => {
     });
   });
 
-  test.only('it should create separate records for child relational data handling arrays and objects in the tree', () => {
+  test('it should create separate records for child relational data handling arrays and objects in the tree', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -394,7 +397,7 @@ describe('populateQueriesByContext', () => {
       ],
     };
 
-    QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
     expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
@@ -463,218 +466,7 @@ describe('populateQueriesByContext', () => {
   });
 });
 
-describe('getInFlightQueriesToSlimAgainst', () => {
-  test('it should return in flight queries that match by root level context keys and are requesting at least one of the same properties', () => {
-    const { QuerySlimmer, userNode, todoNode } = setupTests();
-
-    const newQueryMock: TQueryRecordByContextMap = {
-      [`users(NO_PARAMS)`]: {
-        users: {
-          def: userNode,
-          properties: ['firstName', 'email'],
-          tokenName: DEFAULT_TOKEN_NAME,
-        },
-      },
-      [`todos(NO_PARAMS)`]: {
-        todos: {
-          def: todoNode,
-          properties: ['task', 'done'],
-          tokenName: DEFAULT_TOKEN_NAME,
-        },
-      },
-    };
-    const inFlightQueriesMock: TInFlightQueriesByContextMap = {
-      [`users(NO_PARAMS)`]: [
-        {
-          queryId: '1',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-        {
-          queryId: '2',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['lastName'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-      [`todos(NO_PARAMS)`]: [
-        {
-          queryId: '3',
-          queryRecord: {
-            todos: {
-              def: todoNode,
-              properties: ['task'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-    };
-    const expectedReturnValue: TInFlightQueriesByContextMap = {
-      [`users(NO_PARAMS)`]: [
-        {
-          queryId: '1',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-      [`todos(NO_PARAMS)`]: [
-        {
-          queryId: '3',
-          queryRecord: {
-            todos: {
-              def: todoNode,
-              properties: ['task'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-    };
-
-    QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
-
-    expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
-      expectedReturnValue
-    );
-  });
-
-  test('it should only return in flight queries that have a relational depth that is less than or equal to that of the new query', () => {
-    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
-
-    const newQueryMock: TQueryRecordByContextMap = {
-      [`users(NO_PARAMS)`]: {
-        users: {
-          def: userNode,
-          properties: ['firstName', 'email'],
-          relational: {
-            meetings: {
-              _relationshipName: 'meetings',
-              def: meetingNode,
-              properties: ['name', 'archived', 'isAgendaInitialized'],
-              oneToMany: true,
-            },
-          },
-          tokenName: DEFAULT_TOKEN_NAME,
-        },
-      },
-    };
-
-    const inFlightQueriesMock: TInFlightQueriesByContextMap = {
-      [`users(NO_PARAMS)`]: [
-        {
-          queryId: '1',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName', 'lastName'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-        {
-          queryId: '2',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName', 'lastName'],
-              relational: {
-                meetings: {
-                  _relationshipName: 'meetings',
-                  def: meetingNode,
-                  properties: ['name', 'archived'],
-                  oneToMany: true,
-                },
-              },
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-        {
-          queryId: '3',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName', 'email'],
-              relational: {
-                meetings: {
-                  _relationshipName: 'meetings',
-                  def: meetingNode,
-                  properties: ['name', 'archived'],
-                  oneToMany: true,
-                  relational: {
-                    todos: {
-                      _relationshipName: 'todos',
-                      def: todoNode,
-                      properties: ['task', 'done'],
-                      oneToMany: true,
-                    },
-                  },
-                },
-              },
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-    };
-
-    const expectedReturnValue: TInFlightQueriesByContextMap = {
-      [`users(NO_PARAMS)`]: [
-        {
-          queryId: '1',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName', 'lastName'],
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-        {
-          queryId: '2',
-          queryRecord: {
-            users: {
-              def: userNode,
-              properties: ['firstName', 'lastName'],
-              relational: {
-                meetings: {
-                  _relationshipName: 'meetings',
-                  def: meetingNode,
-                  properties: ['name', 'archived'],
-                  oneToMany: true,
-                },
-              },
-              tokenName: DEFAULT_TOKEN_NAME,
-            },
-          },
-        },
-      ],
-    };
-
-    QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
-
-    expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
-      expectedReturnValue
-    );
-  });
-});
-
-describe('getSlimmedQueryAgainstQueriesByContext', () => {
+describe('getSlimmedQueryAgainstCache', () => {
   describe('when the new query contains no requests for relational data', () => {
     test('it should return the whole new query record without changes if none of the query record entries are found in queriesByContext', () => {
       const { QuerySlimmer, userNode, todoNode } = setupTests();
@@ -692,9 +484,9 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
-      ).toEqual(mockQueryRecord);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockQueryRecord)).toEqual(
+        mockQueryRecord
+      );
     });
 
     test('it should return null if the query record entries and the properties of each entry are already cached', () => {
@@ -730,15 +522,15 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         ],
       };
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
-      ).toEqual(mockQueryRecord);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockQueryRecord)).toEqual(
+        mockQueryRecord
+      );
 
-      QuerySlimmer.populateQueriesByContext(mockQueryRecord, mockResults);
+      QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
-      ).toEqual(null);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockQueryRecord)).toEqual(
+        null
+      );
     });
 
     test('it should not slim properties that are cached but have no live subscriptions', () => {
@@ -781,9 +573,9 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockQueryRecord)
-      ).toEqual(expectedSlimmedQuery);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockQueryRecord)).toEqual(
+        expectedSlimmedQuery
+      );
     });
 
     test('it should return a slimmed query record where query record entries are returned with only non cached properties', () => {
@@ -864,16 +656,13 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
       };
 
       expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
+        QuerySlimmer.getSlimmedQueryAgainstCache(mockNewQueryRecord)
       ).toEqual(mockNewQueryRecord);
 
-      QuerySlimmer.populateQueriesByContext(
-        mockCachedQueryRecord,
-        mockCachedResults
-      );
+      QuerySlimmer.cacheNewData(mockCachedQueryRecord, mockCachedResults);
 
       expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQueryRecord)
+        QuerySlimmer.getSlimmedQueryAgainstCache(mockNewQueryRecord)
       ).toEqual(expectedSlimmedNewQueryRecord);
     });
   });
@@ -930,14 +719,11 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         ],
       };
 
-      QuerySlimmer.populateQueriesByContext(
-        mockCachedQuery,
-        mockCachedQueryData
-      );
+      QuerySlimmer.cacheNewData(mockCachedQuery, mockCachedQueryData);
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockCachedQuery)
-      ).toBe(null);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockCachedQuery)).toBe(
+        null
+      );
     });
 
     test('it should return a query with only non cached properties for the entire query tree', () => {
@@ -1037,14 +823,11 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      QuerySlimmer.populateQueriesByContext(
-        mockCachedQuery,
-        mockCachedQueryData
-      );
+      QuerySlimmer.cacheNewData(mockCachedQuery, mockCachedQueryData);
 
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
-      ).toEqual(expectedSlimmedQuery);
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockNewQuery)).toEqual(
+        expectedSlimmedQuery
+      );
     });
 
     test('it should return the query record entry with an empty properties array when those properties are cached but the relational query`s are not', () => {
@@ -1153,365 +936,573 @@ describe('getSlimmedQueryAgainstQueriesByContext', () => {
         },
       };
 
-      QuerySlimmer.populateQueriesByContext(
-        mockCachedQuery,
-        mockCachedQueryData
+      QuerySlimmer.cacheNewData(mockCachedQuery, mockCachedQueryData);
+
+      expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockNewQuery)).toEqual(
+        expectedSlimmedNewQuery
       );
-
-      expect(
-        QuerySlimmer.getSlimmedQueryAgainstQueriesByContext(mockNewQuery)
-      ).toEqual(expectedSlimmedNewQuery);
     });
   });
 });
 
-describe('getSlimmedQueryAgainstInFlightQuery', () => {
-  test('should slim the new query against an in flight query that have already been matched by context', () => {
-    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+// describe('getInFlightQueriesToSlimAgainst', () => {
+//   test('it should return in flight queries that match by root level context keys and are requesting at least one of the same properties', () => {
+//     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
-    const newQueryMock: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName', 'email'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-      todos: {
-        def: todoNode,
-        properties: ['task', 'done'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
-    const inFlightQueryMock: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['done'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-      todos: {
-        def: todoNode,
-        properties: ['task'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
-    const expectedSlimmedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['email'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-      todos: {
-        def: todoNode,
-        properties: ['done'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
+//     const newQueryMock: TQueryRecordByContextMap = {
+//       [`users(NO_PARAMS)`]: {
+//         users: {
+//           def: userNode,
+//           properties: ['firstName', 'email'],
+//           tokenName: DEFAULT_TOKEN_NAME,
+//         },
+//       },
+//       [`todos(NO_PARAMS)`]: {
+//         todos: {
+//           def: todoNode,
+//           properties: ['task', 'done'],
+//           tokenName: DEFAULT_TOKEN_NAME,
+//         },
+//       },
+//     };
+//     const inFlightQueriesMock: TInFlightQueriesByContextMap = {
+//       [`users(NO_PARAMS)`]: [
+//         {
+//           queryId: '1',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//         {
+//           queryId: '2',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['lastName'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//       [`todos(NO_PARAMS)`]: [
+//         {
+//           queryId: '3',
+//           queryRecord: {
+//             todos: {
+//               def: todoNode,
+//               properties: ['task'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//     };
+//     const expectedReturnValue: TInFlightQueriesByContextMap = {
+//       [`users(NO_PARAMS)`]: [
+//         {
+//           queryId: '1',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//       [`todos(NO_PARAMS)`]: [
+//         {
+//           queryId: '3',
+//           queryRecord: {
+//             todos: {
+//               def: todoNode,
+//               properties: ['task'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//     };
 
-    expect(
-      QuerySlimmer.getSlimmedQueryAgainstInFlightQuery(
-        newQueryMock,
-        inFlightQueryMock,
-        false
-      )
-    ).toEqual(expectedSlimmedQuery);
-  });
-});
+//     QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
 
-describe('onSubscriptionCancelled', () => {
-  test(`when a query subscription is cancelled the subcription counts for the query's properties should be decremented`, () => {
-    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+//     expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
+//       expectedReturnValue
+//     );
+//   });
 
-    const mockCachedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName', 'lastName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name', 'archived'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task', 'done'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
-    const mockCachedQueryData = {
-      users: [
-        {
-          id: '0',
-          type: userNode.type,
-          firstName: 'Banana',
-          lastName: 'Man',
-          meetings: [
-            {
-              id: '0',
-              name: 'Banana Meeting',
-              archived: false,
-              todos: [
-                {
-                  id: '0',
-                  type: todoNode.type,
-                  task: 'Eat a banana',
-                  done: false,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+//   test('it should only return in flight queries that have a relational depth that is less than or equal to that of the new query', () => {
+//     const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-    const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
-    const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
-    const mockCachedQueryTodosContextKey = `${mockCachedQueryMeetingsContextKey}.todos(NO_PARAMS)`;
+//     const newQueryMock: TQueryRecordByContextMap = {
+//       [`users(NO_PARAMS)`]: {
+//         users: {
+//           def: userNode,
+//           properties: ['firstName', 'email'],
+//           relational: {
+//             meetings: {
+//               _relationshipName: 'meetings',
+//               def: meetingNode,
+//               properties: ['name', 'archived', 'isAgendaInitialized'],
+//               oneToMany: true,
+//             },
+//           },
+//           tokenName: DEFAULT_TOKEN_NAME,
+//         },
+//       },
+//     };
 
-    const mockUnsubbedQuery: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['firstName'],
-        relational: {
-          meetings: {
-            _relationshipName: 'meetings',
-            def: meetingNode,
-            properties: ['name'],
-            oneToMany: true,
-            relational: {
-              todos: {
-                _relationshipName: 'todos',
-                def: todoNode,
-                properties: ['task'],
-                oneToMany: true,
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
+//     const inFlightQueriesMock: TInFlightQueriesByContextMap = {
+//       [`users(NO_PARAMS)`]: [
+//         {
+//           queryId: '1',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName', 'lastName'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//         {
+//           queryId: '2',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName', 'lastName'],
+//               relational: {
+//                 meetings: {
+//                   _relationshipName: 'meetings',
+//                   def: meetingNode,
+//                   properties: ['name', 'archived'],
+//                   oneToMany: true,
+//                 },
+//               },
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//         {
+//           queryId: '3',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName', 'email'],
+//               relational: {
+//                 meetings: {
+//                   _relationshipName: 'meetings',
+//                   def: meetingNode,
+//                   properties: ['name', 'archived'],
+//                   oneToMany: true,
+//                   relational: {
+//                     todos: {
+//                       _relationshipName: 'todos',
+//                       def: todoNode,
+//                       properties: ['task', 'done'],
+//                       oneToMany: true,
+//                     },
+//                   },
+//                 },
+//               },
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//     };
 
-    QuerySlimmer.populateQueriesByContext(mockCachedQuery, mockCachedQueryData);
+//     const expectedReturnValue: TInFlightQueriesByContextMap = {
+//       [`users(NO_PARAMS)`]: [
+//         {
+//           queryId: '1',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName', 'lastName'],
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//         {
+//           queryId: '2',
+//           queryRecord: {
+//             users: {
+//               def: userNode,
+//               properties: ['firstName', 'lastName'],
+//               relational: {
+//                 meetings: {
+//                   _relationshipName: 'meetings',
+//                   def: meetingNode,
+//                   properties: ['name', 'archived'],
+//                   oneToMany: true,
+//                 },
+//               },
+//               tokenName: DEFAULT_TOKEN_NAME,
+//             },
+//           },
+//         },
+//       ],
+//     };
 
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      firstName: 1,
-      lastName: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      name: 1,
-      archived: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      task: 1,
-      done: 1,
-    });
+//     QuerySlimmer.inFlightQueryRecords = inFlightQueriesMock;
 
-    QuerySlimmer.onSubscriptionCancelled(mockUnsubbedQuery);
+//     expect(QuerySlimmer.getInFlightQueriesToSlimAgainst(newQueryMock)).toEqual(
+//       expectedReturnValue
+//     );
+//   });
+// });
 
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      firstName: 0,
-      lastName: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      name: 0,
-      archived: 1,
-    });
-    expect(
-      QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
-        .subscriptionsByProperty
-    ).toEqual({
-      task: 0,
-      done: 1,
-    });
-  });
-});
+// describe('getSlimmedQueryAgainstInFlightQuery', () => {
+//   test('should slim the new query against an in flight query that have already been matched by context', () => {
+//     const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-describe('getRelationalDepthOfQueryRecordEntry', () => {
-  test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
-    const { QuerySlimmer, userNode } = setupTests();
+//     const newQueryMock: QueryRecord = {
+//       users: {
+//         def: userNode,
+//         properties: ['firstName', 'lastName', 'email'],
+//         relational: {
+//           meetings: {
+//             _relationshipName: 'meetings',
+//             def: meetingNode,
+//             properties: ['name', 'archived'],
+//             oneToMany: true,
+//             relational: {
+//               todos: {
+//                 _relationshipName: 'todos',
+//                 def: todoNode,
+//                 properties: ['task', 'done'],
+//                 oneToMany: true,
+//               },
+//             },
+//           },
+//         },
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//       todos: {
+//         def: todoNode,
+//         properties: ['task', 'done'],
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//     };
+//     const inFlightQueryMock: QueryRecord = {
+//       users: {
+//         def: userNode,
+//         properties: ['firstName', 'lastName'],
+//         relational: {
+//           meetings: {
+//             _relationshipName: 'meetings',
+//             def: meetingNode,
+//             properties: ['name'],
+//             oneToMany: true,
+//             relational: {
+//               todos: {
+//                 _relationshipName: 'todos',
+//                 def: todoNode,
+//                 properties: ['done'],
+//                 oneToMany: true,
+//               },
+//             },
+//           },
+//         },
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//       todos: {
+//         def: todoNode,
+//         properties: ['task'],
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//     };
+//     const expectedSlimmedQuery: QueryRecord = {
+//       users: {
+//         def: userNode,
+//         properties: ['email'],
+//         relational: {
+//           meetings: {
+//             _relationshipName: 'meetings',
+//             def: meetingNode,
+//             properties: ['archived'],
+//             oneToMany: true,
+//             relational: {
+//               todos: {
+//                 _relationshipName: 'todos',
+//                 def: todoNode,
+//                 properties: ['task'],
+//                 oneToMany: true,
+//               },
+//             },
+//           },
+//         },
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//       todos: {
+//         def: todoNode,
+//         properties: ['done'],
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//     };
 
-    const mockQueryRecordEntry: QueryRecordEntry = {
-      def: userNode,
-      properties: ['firstName', 'lastName'],
-      tokenName: DEFAULT_TOKEN_NAME,
-    };
-    const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-      mockQueryRecordEntry
-    );
+//     expect(
+//       QuerySlimmer.getSlimmedQueryAgainstInFlightQuery(
+//         newQueryMock,
+//         inFlightQueryMock,
+//         false
+//       )
+//     ).toEqual(expectedSlimmedQuery);
+//   });
+// });
 
-    expect(actualValue).toBe(0);
-  });
+// describe('onSubscriptionCancelled', () => {
+//   test(`when a query subscription is cancelled the subcription counts for the query's properties should be decremented`, () => {
+//     const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-  test('should return number of relational queries nested in a QueryRecordEntry', () => {
-    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+//     const mockCachedQuery: QueryRecord = {
+//       users: {
+//         def: userNode,
+//         properties: ['firstName', 'lastName'],
+//         relational: {
+//           meetings: {
+//             _relationshipName: 'meetings',
+//             def: meetingNode,
+//             properties: ['name', 'archived'],
+//             oneToMany: true,
+//             relational: {
+//               todos: {
+//                 _relationshipName: 'todos',
+//                 def: todoNode,
+//                 properties: ['task', 'done'],
+//                 oneToMany: true,
+//               },
+//             },
+//           },
+//         },
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//     };
+//     const mockCachedQueryData = {
+//       users: [
+//         {
+//           id: '0',
+//           type: userNode.type,
+//           firstName: 'Banana',
+//           lastName: 'Man',
+//           meetings: [
+//             {
+//               id: '0',
+//               name: 'Banana Meeting',
+//               archived: false,
+//               todos: [
+//                 {
+//                   id: '0',
+//                   type: todoNode.type,
+//                   task: 'Eat a banana',
+//                   done: false,
+//                 },
+//               ],
+//             },
+//           ],
+//         },
+//       ],
+//     };
 
-    const mockQueryRecordEntry1: QueryRecordEntry = {
-      def: userNode,
-      properties: ['firstName', 'lastName'],
-      relational: {
-        meetings: {
-          _relationshipName: 'meetings',
-          def: meetingNode,
-          properties: ['name', 'archived'],
-          oneToMany: true,
-        },
-      },
-      tokenName: DEFAULT_TOKEN_NAME,
-    };
-    const mockQueryRecordEntry2: QueryRecordEntry = {
-      def: userNode,
-      properties: ['firstName', 'lastName'],
-      relational: {
-        meetings: {
-          _relationshipName: 'meetings',
-          def: meetingNode,
-          properties: ['name', 'archived'],
-          oneToMany: true,
-          relational: {
-            todos: {
-              _relationshipName: 'todos',
-              def: todoNode,
-              properties: ['task', 'done'],
-              oneToMany: true,
-            },
-          },
-        },
-      },
-      tokenName: DEFAULT_TOKEN_NAME,
-    };
-    const mockQueryRecordEntry3: QueryRecordEntry = {
-      def: userNode,
-      properties: ['firstName', 'lastName'],
-      relational: {
-        meetings: {
-          _relationshipName: 'meetings',
-          def: meetingNode,
-          properties: ['name', 'archived'],
-          oneToMany: true,
-          relational: {
-            todos: {
-              _relationshipName: 'todos',
-              def: todoNode,
-              properties: ['task', 'done'],
-              oneToMany: true,
-            },
-          },
-        },
-        todos: {
-          _relationshipName: 'todos',
-          def: todoNode,
-          properties: ['task', 'done'],
-          oneToMany: true,
-          relational: {
-            users: {
-              _relationshipName: 'users',
-              def: userNode,
-              properties: ['firstName', 'lastName'],
-              oneToMany: true,
-              relational: {
-                meetings: {
-                  _relationshipName: 'meetings',
-                  def: meetingNode,
-                  properties: ['name', 'archived'],
-                  oneToMany: true,
-                  relational: {
-                    todos: {
-                      _relationshipName: 'todos',
-                      def: todoNode,
-                      properties: ['task', 'done'],
-                      oneToMany: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      tokenName: DEFAULT_TOKEN_NAME,
-    };
+//     const mockCachedQueryUsersContextKey = `users(NO_PARAMS)`;
+//     const mockCachedQueryMeetingsContextKey = `${mockCachedQueryUsersContextKey}.meetings(NO_PARAMS)`;
+//     const mockCachedQueryTodosContextKey = `${mockCachedQueryMeetingsContextKey}.todos(NO_PARAMS)`;
 
-    const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-      mockQueryRecordEntry1
-    );
-    const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-      mockQueryRecordEntry2
-    );
-    const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-      mockQueryRecordEntry3
-    );
+//     const mockUnsubbedQuery: QueryRecord = {
+//       users: {
+//         def: userNode,
+//         properties: ['firstName'],
+//         relational: {
+//           meetings: {
+//             _relationshipName: 'meetings',
+//             def: meetingNode,
+//             properties: ['name'],
+//             oneToMany: true,
+//             relational: {
+//               todos: {
+//                 _relationshipName: 'todos',
+//                 def: todoNode,
+//                 properties: ['task'],
+//                 oneToMany: true,
+//               },
+//             },
+//           },
+//         },
+//         tokenName: DEFAULT_TOKEN_NAME,
+//       },
+//     };
 
-    expect(actualValue1).toBe(1);
-    expect(actualValue2).toBe(2);
-    expect(actualValue3).toBe(5);
-  });
-});
+//     QuerySlimmer.cacheNewData(mockCachedQuery, mockCachedQueryData);
+
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       firstName: 1,
+//       lastName: 1,
+//     });
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       name: 1,
+//       archived: 1,
+//     });
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       task: 1,
+//       done: 1,
+//     });
+
+//     QuerySlimmer.onSubscriptionCancelled(mockUnsubbedQuery);
+
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryUsersContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       firstName: 0,
+//       lastName: 1,
+//     });
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryMeetingsContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       name: 0,
+//       archived: 1,
+//     });
+//     expect(
+//       QuerySlimmer.queriesByContext[mockCachedQueryTodosContextKey]
+//         .subscriptionsByProperty
+//     ).toEqual({
+//       task: 0,
+//       done: 1,
+//     });
+//   });
+// });
+
+// describe('getRelationalDepthOfQueryRecordEntry', () => {
+//   test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
+//     const { QuerySlimmer, userNode } = setupTests();
+
+//     const mockQueryRecordEntry: QueryRecordEntry = {
+//       def: userNode,
+//       properties: ['firstName', 'lastName'],
+//       tokenName: DEFAULT_TOKEN_NAME,
+//     };
+//     const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+//       mockQueryRecordEntry
+//     );
+
+//     expect(actualValue).toBe(0);
+//   });
+
+//   test('should return number of relational queries nested in a QueryRecordEntry', () => {
+//     const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+//     const mockQueryRecordEntry1: QueryRecordEntry = {
+//       def: userNode,
+//       properties: ['firstName', 'lastName'],
+//       relational: {
+//         meetings: {
+//           _relationshipName: 'meetings',
+//           def: meetingNode,
+//           properties: ['name', 'archived'],
+//           oneToMany: true,
+//         },
+//       },
+//       tokenName: DEFAULT_TOKEN_NAME,
+//     };
+//     const mockQueryRecordEntry2: QueryRecordEntry = {
+//       def: userNode,
+//       properties: ['firstName', 'lastName'],
+//       relational: {
+//         meetings: {
+//           _relationshipName: 'meetings',
+//           def: meetingNode,
+//           properties: ['name', 'archived'],
+//           oneToMany: true,
+//           relational: {
+//             todos: {
+//               _relationshipName: 'todos',
+//               def: todoNode,
+//               properties: ['task', 'done'],
+//               oneToMany: true,
+//             },
+//           },
+//         },
+//       },
+//       tokenName: DEFAULT_TOKEN_NAME,
+//     };
+//     const mockQueryRecordEntry3: QueryRecordEntry = {
+//       def: userNode,
+//       properties: ['firstName', 'lastName'],
+//       relational: {
+//         meetings: {
+//           _relationshipName: 'meetings',
+//           def: meetingNode,
+//           properties: ['name', 'archived'],
+//           oneToMany: true,
+//           relational: {
+//             todos: {
+//               _relationshipName: 'todos',
+//               def: todoNode,
+//               properties: ['task', 'done'],
+//               oneToMany: true,
+//             },
+//           },
+//         },
+//         todos: {
+//           _relationshipName: 'todos',
+//           def: todoNode,
+//           properties: ['task', 'done'],
+//           oneToMany: true,
+//           relational: {
+//             users: {
+//               _relationshipName: 'users',
+//               def: userNode,
+//               properties: ['firstName', 'lastName'],
+//               oneToMany: true,
+//               relational: {
+//                 meetings: {
+//                   _relationshipName: 'meetings',
+//                   def: meetingNode,
+//                   properties: ['name', 'archived'],
+//                   oneToMany: true,
+//                   relational: {
+//                     todos: {
+//                       _relationshipName: 'todos',
+//                       def: todoNode,
+//                       properties: ['task', 'done'],
+//                       oneToMany: true,
+//                     },
+//                   },
+//                 },
+//               },
+//             },
+//           },
+//         },
+//       },
+//       tokenName: DEFAULT_TOKEN_NAME,
+//     };
+
+//     const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+//       mockQueryRecordEntry1
+//     );
+//     const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+//       mockQueryRecordEntry2
+//     );
+//     const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+//       mockQueryRecordEntry3
+//     );
+
+//     expect(actualValue1).toBe(1);
+//     expect(actualValue2).toBe(2);
+//     expect(actualValue3).toBe(5);
+//   });
+// });
