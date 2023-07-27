@@ -8727,7 +8727,8 @@ function createQueryManager(mmGQLInstance) {
 
         if (!id) throw Error("Expected an id for the alias " + firstAlias);
         var existingProxyCacheEntryForThisId = existingStateForFirstAlias.proxyCache[id];
-        if (!existingProxyCacheEntryForThisId) throw Error("Expected a proxy cache entry for the id " + id + ". This likely means that a query was performed with an id, and the results included a different id");
+        if (!existingProxyCacheEntryForThisId) // happens in this case https://winterinternational.atlassian.net/browse/TTD-2096
+          return;
         var existingRelationalStateForThisProxy = existingProxyCacheEntryForThisId.relationalState;
         if (!existingRelationalStateForThisProxy) throw Error("Expected existing relational state for the alias " + firstAlias + " and the id " + id);
         var newRelationalStateForThisProxy = newStateForFirstAlias.proxyCache[id].relationalState;
