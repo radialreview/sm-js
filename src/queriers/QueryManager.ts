@@ -2387,10 +2387,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         if (!id) throw Error(`Expected an id for the alias ${firstAlias}`);
         const existingProxyCacheEntryForThisId =
           existingStateForFirstAlias.proxyCache[id];
+
         if (!existingProxyCacheEntryForThisId)
-          throw Error(
-            `Expected a proxy cache entry for the id ${id}. This likely means that a query was performed with an id, and the results included a different id`
-          );
+          // happens in this case https://winterinternational.atlassian.net/browse/TTD-2096
+          return;
+
         const existingRelationalStateForThisProxy =
           existingProxyCacheEntryForThisId.relationalState;
         if (!existingRelationalStateForThisProxy)
