@@ -1006,20 +1006,22 @@ describe('getDataForQueryFromCache', () => {
     };
 
     const expectedCachedData = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-        },
-      ],
+      users: {
+        nodes: [
+          {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+          },
+          {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+          },
+        ],
+      },
     };
 
     QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
@@ -1029,7 +1031,7 @@ describe('getDataForQueryFromCache', () => {
     expect(actualResult).toEqual(expectedCachedData);
   });
 
-  test.only('it return data for a query with relational data with only requested properties', () => {
+  test('it return data for a query with relational data with only requested properties', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -1146,6 +1148,7 @@ describe('getDataForQueryFromCache', () => {
                     id: 'user-id-2',
                     type: userNode.type,
                     firstName: 'Piotr',
+                    lastName: 'Bogun',
                   },
                 },
               ],
@@ -1158,8 +1161,6 @@ describe('getDataForQueryFromCache', () => {
     QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
 
     const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
-
-    console.log('actualResult', JSON.stringify(actualResult, undefined, 2));
 
     expect(actualResult).toEqual(expectedCachedData);
   });

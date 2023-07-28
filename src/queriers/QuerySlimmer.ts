@@ -433,7 +433,9 @@ export class QuerySlimmer {
         });
       } else {
         if (cachedData.results[newQueryKey]['nodes']) {
-          dataForNewQueryKey = [];
+          dataForNewQueryKey = {
+            nodes: [],
+          };
 
           cachedData.results[newQueryKey]['nodes'].forEach(
             (data: Record<string, any>) => {
@@ -443,7 +445,7 @@ export class QuerySlimmer {
                 dataToReturn[property] = data[property];
               });
 
-              dataForNewQueryKey.push(dataToReturn);
+              dataForNewQueryKey.nodes.push(dataToReturn);
             }
           );
         } else {
@@ -465,22 +467,24 @@ export class QuerySlimmer {
 
       if ('byParentId' in dataForNewQueryKey === false) {
         if (relationalDataForNewQueryKey) {
-          if (Array.isArray(dataForNewQueryKey)) {
-            dataForNewQueryKey = dataForNewQueryKey.map(data => {
-              if (data.id in relationalDataForNewQueryKey) {
-                return {
-                  ...data,
-                  ...relationalDataForNewQueryKey[data.id],
-                };
-              } else {
-                return data;
+          if ('nodes' in dataForNewQueryKey) {
+            dataForNewQueryKey['nodes'] = dataForNewQueryKey['nodes'].map(
+              (data: Record<string, any>) => {
+                if (data.id in relationalDataForNewQueryKey) {
+                  return {
+                    ...data,
+                    ...relationalDataForNewQueryKey[data.id],
+                  };
+                } else {
+                  return data;
+                }
               }
-            });
+            );
           } else {
             if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
               dataForNewQueryKey = {
                 ...dataForNewQueryKey,
-                ...relationalDataForNewQueryKey,
+                ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
               };
             }
           }
@@ -533,11 +537,6 @@ export class QuerySlimmer {
         });
       }
     });
-
-    console.log(
-      'queryDataToReturn',
-      JSON.stringify(queryDataToReturn, undefined, 2)
-    );
 
     return queryDataToReturn;
   }
