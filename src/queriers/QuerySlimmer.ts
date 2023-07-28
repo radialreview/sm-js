@@ -53,26 +53,27 @@ export class QuerySlimmer {
     tokenName: string;
     batchKey?: string;
   }) {
-    // PIOTR TODO
     const newQuerySlimmedByCache = this.getSlimmedQueryAgainstCache(
       opts.queryRecord
     ) as QueryRecord | null;
 
+    // If newQuerySlimmedByCache equals null, all data being requested by this query are already cached.
+    // We stich this data up from queriesByContext and return it.
     if (newQuerySlimmedByCache === null) {
-      // If newQuerySlimmedByCache equals null, all data being requested by this query are already cached.
-      // We stich this data up from queriesByContext and return it.
-      // PIOTR TODO
       const data = this.getDataForQueryFromCache(opts.queryRecord);
-      // console.log('QuerySlimmer: New query fully cached', {
-      //   originalQuery: opts.queryRecord,
-      //   cache: this.queriesByContext,
-      //   dataReturned: data,
-      // });
+
+      this.log('[QuerySlimmer] query fully cached.', {
+        originalQuery: opts.queryRecord,
+        cache: this.queriesByContext,
+        dataReturned: data,
+      });
+
       return data;
-    } else {
-      // If newQuerySlimmedByCache is not null only a portion of the data being requested is cached.
+
+      // If newQuerySlimmedByCache is not null, only a portion of the data being requested is cached.
       // We send a request containing only the fields that are not already cached.
-      // Once this new data is returned, we saved the new results in the cache and rebuild the full query response in the cache.
+      // Once this new data is returned, we saved the new results in the cache and rebuild the full query response from the cache.
+    } else {
       await this.sendQueryRequest({
         queryId: opts.queryId,
         queryRecord: newQuerySlimmedByCache,
@@ -81,7 +82,16 @@ export class QuerySlimmer {
         tokenName: opts.tokenName,
         batchKey: opts.batchKey,
       });
+
       const data = this.getDataForQueryFromCache(opts.queryRecord);
+
+      this.log('[QuerySlimmer] query partially cached.', {
+        originalQuery: opts.queryRecord,
+        slimmedQuery: newQuerySlimmedByCache,
+        cache: this.queriesByContext,
+        dataReturned: data,
+      });
+
       return data;
     }
   }
@@ -871,25 +881,25 @@ export class QuerySlimmer {
     return JSON.stringify(params);
   }
 
-  private getQueryRecordsByContextMap(
-    queryRecord: QueryRecord | RelationalQueryRecord
-  ) {
-    return Object.keys(queryRecord).reduce(
-      (queryRecordsByContext, queryRecordKey) => {
-        const queryRecordEntry = queryRecord[queryRecordKey];
-        if (!queryRecordEntry) return queryRecordsByContext;
-        const contextKey = this.createContextKeyForQueryRecordEntry(
-          queryRecordEntry
-        );
-        const queryRecordSlice = {
-          [queryRecordKey]: queryRecordEntry,
-        } as QueryRecord | RelationalQueryRecord;
-        queryRecordsByContext[contextKey] = queryRecordSlice;
-        return queryRecordsByContext;
-      },
-      {} as TQueryRecordByContextMap
-    );
-  }
+  // private getQueryRecordsByContextMap(
+  //   queryRecord: QueryRecord | RelationalQueryRecord
+  // ) {
+  //   return Object.keys(queryRecord).reduce(
+  //     (queryRecordsByContext, queryRecordKey) => {
+  //       const queryRecordEntry = queryRecord[queryRecordKey];
+  //       if (!queryRecordEntry) return queryRecordsByContext;
+  //       const contextKey = this.createContextKeyForQueryRecordEntry(
+  //         queryRecordEntry
+  //       );
+  //       const queryRecordSlice = {
+  //         [queryRecordKey]: queryRecordEntry,
+  //       } as QueryRecord | RelationalQueryRecord;
+  //       queryRecordsByContext[contextKey] = queryRecordSlice;
+  //       return queryRecordsByContext;
+  //     },
+  //     {} as TQueryRecordByContextMap
+  //   );
+  // }
 
   private async sendQueryRequest(opts: {
     queryId: string;
@@ -898,10 +908,10 @@ export class QuerySlimmer {
     useServerSidePaginationFilteringSorting: boolean;
     batchKey?: string | undefined;
   }) {
-    const inFlightQuery: IInFlightQueryRecord = {
-      queryId: opts.queryId,
-      queryRecord: opts.queryRecord,
-    };
+    // const inFlightQuery: IInFlightQueryRecord = {
+    //   queryId: opts.queryId,
+    //   queryRecord: opts.queryRecord,
+    // };
     const gqlDoc = getQueryGQLDocumentFromQueryRecord({
       queryId: opts.queryId,
       queryRecord: opts.queryRecord,
@@ -921,68 +931,63 @@ export class QuerySlimmer {
     }
 
     try {
-      this.setInFlightQuery(inFlightQuery);
+      // this.setInFlightQuery(inFlightQuery);
       const queryResponse = await this.mmGQLInstance.gqlClient.query(queryOpts);
-      this.removeInFlightQuery(inFlightQuery);
+      // this.removeInFlightQuery(inFlightQuery);
       this.cacheNewData(opts.queryRecord, queryResponse);
     } catch (e) {
-      this.removeInFlightQuery(inFlightQuery);
-      throw new Error(
-        `QuerySlimmer: Error sending request for query\nError: ${e}\nQueryRecord: ${JSON.stringify(
-          opts.queryRecord,
-          undefined,
-          2
-        )}`
-      );
-    }
-  }
-
-  private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
-    try {
-      const queryRecordsByContext = this.getQueryRecordsByContextMap(
-        inFlightQueryRecord.queryRecord
-      );
-      Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
-        if (queryRecordContextKey in this.inFlightQueryRecords) {
-          this.inFlightQueryRecords[queryRecordContextKey].push(
-            inFlightQueryRecord
-          );
-        } else {
-          this.inFlightQueryRecords[queryRecordContextKey] = [
-            inFlightQueryRecord,
-          ];
-        }
+      // this.removeInFlightQuery(inFlightQuery);
+      this.log(`QuerySlimmer: Error sending query request`, {
+        queryId: opts.queryId,
+        queryRecord: opts.queryRecord,
+        error: e,
       });
-    } catch (e) {
-      throw new Error(`QuerySlimmer setInFlightQuery: ${e}`);
+      throw new Error(`[QuerySlimmer] sendQueryRequest error: ${e}`);
     }
   }
 
-  private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
-    try {
-      const queryRecordsByContext = this.getQueryRecordsByContextMap(
-        inFlightQueryToRemove.queryRecord
-      );
-      Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
-        if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
-          this.inFlightQueryRecords[
-            queryToRemoveCtxKey
-          ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
-            inFlightRecord =>
-              inFlightRecord.queryId === inFlightQueryToRemove.queryId
-          );
-          if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
-            delete this.inFlightQueryRecords[queryToRemoveCtxKey];
-          }
-        }
-      });
-    } catch (e) {
-      throw new Error(`QuerySlimmer removeInFlightQuery: ${e}`);
-    }
-  }
+  // private setInFlightQuery(inFlightQueryRecord: IInFlightQueryRecord) {
+  //   try {
+  //     const queryRecordsByContext = this.getQueryRecordsByContextMap(
+  //       inFlightQueryRecord.queryRecord
+  //     );
+  //     Object.keys(queryRecordsByContext).forEach(queryRecordContextKey => {
+  //       if (queryRecordContextKey in this.inFlightQueryRecords) {
+  //         this.inFlightQueryRecords[queryRecordContextKey].push(
+  //           inFlightQueryRecord
+  //         );
+  //       } else {
+  //         this.inFlightQueryRecords[queryRecordContextKey] = [
+  //           inFlightQueryRecord,
+  //         ];
+  //       }
+  //     });
+  //   } catch (e) {
+  //     throw new Error(`QuerySlimmer setInFlightQuery: ${e}`);
+  //   }
+  // }
 
-  // private stringify(obj: Record<string, any>) {
-  //   return JSON.stringify(obj, undefined, 2);
+  // private removeInFlightQuery(inFlightQueryToRemove: IInFlightQueryRecord) {
+  //   try {
+  //     const queryRecordsByContext = this.getQueryRecordsByContextMap(
+  //       inFlightQueryToRemove.queryRecord
+  //     );
+  //     Object.keys(queryRecordsByContext).forEach(queryToRemoveCtxKey => {
+  //       if (queryToRemoveCtxKey in this.inFlightQueryRecords) {
+  //         this.inFlightQueryRecords[
+  //           queryToRemoveCtxKey
+  //         ] = this.inFlightQueryRecords[queryToRemoveCtxKey].filter(
+  //           inFlightRecord =>
+  //             inFlightRecord.queryId === inFlightQueryToRemove.queryId
+  //         );
+  //         if (this.inFlightQueryRecords[queryToRemoveCtxKey].length === 0) {
+  //           delete this.inFlightQueryRecords[queryToRemoveCtxKey];
+  //         }
+  //       }
+  //     });
+  //   } catch (e) {
+  //     throw new Error(`QuerySlimmer removeInFlightQuery: ${e}`);
+  //   }
   // }
 
   // private areDependentQueriesStillInFlight(opts: {
@@ -1013,9 +1018,13 @@ export class QuerySlimmer {
   //   return isStillWaitingOnInFlightQueries;
   // }
 
-  // private log(message?: any, ...optionalParams: any[]) {
-  //   if (this.mmGQLInstance.logging.querySlimming) {
-  //     console.log(message, ...optionalParams);
-  //   }
+  // private stringify(obj: Record<string, any>) {
+  //   return JSON.stringify(obj, undefined, 2);
   // }
+
+  private log(message?: any, ...optionalParams: any[]) {
+    if (this.mmGQLInstance.logging.querySlimming) {
+      console.log(message, ...optionalParams);
+    }
+  }
 }
