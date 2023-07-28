@@ -244,9 +244,10 @@ export async function setupE2ETests() {
   const { cookie } = await acquireCookie();
 
   const logging = {
-    gqlClientQueries: false,
-    gqlClientMutations: false,
-    gqlClientSubscriptions: false,
+    gqlQueries: false,
+    gqlMutations: false,
+    gqlSubscriptions: false,
+    gqlSubscriptionErrors: false,
     querySlimming: false,
   };
 
