@@ -60,6 +60,9 @@ export type Plugin = {
       computedFn: TComputedFn;
     }) => () => TReturnType;
   };
+  QMResults?: {
+    onConstruct?: (opts: { queryResults: Record<string, any> }) => void;
+  }
 };
 
 export type Config = {

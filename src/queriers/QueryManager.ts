@@ -36,7 +36,7 @@ import {
   getSubscriptionGQLDocumentsFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
 } from './queryDefinitionAdapters';
-import { extend } from '../dataUtilities';
+import { arrayEquals } from '../dataUtilities';
 import { generateMockNodeDataForQueryRecord } from './generateMockData';
 import { cloneDeep } from 'lodash';
 import {
@@ -78,14 +78,9 @@ type QueryManagerOpts = {
   queryId: string;
   subscribe: boolean;
   useServerSidePaginationFilteringSorting: boolean;
-  // an object which will be mutated when a "loadMoreResults" function is called
-  // on a node collection
-  // we use a mutable object here so that a query result can be partially updated
-  // since when a "loadMoreResults" function is called, we don't re-request all
-  // of the data for the query, just the data for the node collection
-  resultsObject: Record<string, any>;
+
   // A callback that is executed when the resultsObject above is mutated
-  onResultsUpdated(): void;
+  onResultsUpdated(resultsObject: Record<string, any>): void;
   onQueryError(error: any): void;
   onSubscriptionError(error: any): void;
   batchKey: Maybe<string>;
@@ -117,6 +112,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
     public queryIdx: number = 0;
+    public queryResults: Record<string, any> = {}; //NOLEY BETTER NAME - make this an observable object and mutate within getResultsFromState
     public subscriptionMessageHandlers: Record<
       // root level alias
       string,
@@ -136,11 +132,24 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     ) {
       this.queryDefinitions = queryDefinitions;
       this.opts = opts;
+      this.onConstructQueryResultsFromPlugin();
 
       this.onQueryDefinitionsUpdated(this.queryDefinitions).catch(e => {
         this.opts.onQueryError(e);
       });
     }
+
+    public onConstructQueryResultsFromPlugin = () => {
+      if (mmGQLInstance.plugins) {
+        mmGQLInstance.plugins.forEach(plugin => {
+          if (plugin.QMResults?.onConstruct) {
+            plugin.QMResults.onConstruct({
+              queryResults: this.queryResults,
+            });
+          }
+        });
+      }
+    };
 
     public onSubscriptionMessage = (message: SubscriptionMessage) => {
       if (!this.queryRecord) throw Error('No query record initialized');
@@ -151,14 +160,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           throw Error(`No subscription message handler found for ${rootAlias}`);
 
         handler(message);
-
-        this.opts.resultsObject[rootAlias] = this.getResultsFromState({
-          state: this.state,
-          aliasPath: [],
-        })[rootAlias];
       });
 
-      this.opts.onResultsUpdated();
+      this.opts.onResultsUpdated(this.getQueryResults());
     };
 
     public logSubscriptionError = (error: string) => {
@@ -1340,7 +1344,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               pageInfoFromResults,
               totalCount,
               // allows the UI to re-render when a nodeCollection's internal state is updated
-              onPaginationRequestStateChanged: this.opts.onResultsUpdated,
+              onPaginationRequestStateChanged: () =>
+                this.opts.onResultsUpdated(this.getQueryResults()),
               onLoadMoreResults: () =>
                 this.onLoadMoreResults({
                   aliasPath,
@@ -1372,6 +1377,54 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return resultsAcc;
       }, {} as Record<string, any>);
     }
+
+    public getQueryResults = () => {
+      const currentResults = this.getResultsFromState({ state: this.state });
+
+      Object.keys(currentResults).forEach(resultsAlias => {
+        if (this.queryResults[resultsAlias] == null) {
+          this.queryResults[resultsAlias] = currentResults[resultsAlias];
+        } else {
+          // this would only be the case if the this.queryResults[resultsAlias] is a non paginated array of nodes
+          if (Array.isArray(this.queryResults[resultsAlias])) {
+            const idsFromPreviousQueryResults = this.queryResults[
+              resultsAlias
+            ].map((DoProxy: any) => DoProxy.id);
+            const idsFromCurrentResutls = currentResults[resultsAlias].map(
+              (DoProxy: any) => DoProxy.id
+            );
+            const isSameIds = arrayEquals(
+              idsFromPreviousQueryResults,
+              idsFromCurrentResutls
+            );
+            if (!isSameIds) {
+              this.queryResults[resultsAlias] = currentResults[resultsAlias];
+            }
+          } else if (
+            // this would be the case if the this.queryResults[resultsAlias] is an array of nodes
+            this.queryResults[resultsAlias] instanceof NodesCollection
+          ) {
+            const idsFromPreviousQueryResults = this.queryResults[
+              resultsAlias
+            ].items.map((DoProxy: any) => DoProxy.id);
+            const idsFromCurrentResutls = currentResults[
+              resultsAlias
+            ].items.map((DoProxy: any) => DoProxy.id);
+            const isSameIds = arrayEquals(
+              idsFromPreviousQueryResults,
+              idsFromCurrentResutls
+            );
+            if (!isSameIds) {
+              this.queryResults[resultsAlias] = currentResults[resultsAlias];
+            }
+          } else {
+            this.queryResults[resultsAlias] = currentResults[resultsAlias];
+          }
+        }
+      });
+
+      return this.queryResults;
+    };
 
     /**
      * Takes a queryRecord and the data that resulted from that query
@@ -2070,16 +2123,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
       });
 
-      extend({
-        object: this.opts.resultsObject,
-        extension: this.getResultsFromState({
-          state: this.state,
-        }),
-        extendNestedObjects: false,
-        deleteKeysNotInExtension: false,
-      });
-
-      this.opts.onResultsUpdated();
+      this.opts.onResultsUpdated(this.getQueryResults());
     }
 
     public onQueryDefinitionsUpdated = async (
@@ -2309,17 +2353,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         });
       }
 
-      extend({
-        object: this.opts.resultsObject,
-        extension: this.getResultsFromState({
-          state: this.state,
-          aliasPath: [],
-        }),
-        extendNestedObjects: false,
-        deleteKeysNotInExtension: false,
-      });
-
-      this.opts.onResultsUpdated();
+      this.opts.onResultsUpdated(this.getQueryResults());
     }
 
     public extendStateObject(opts: {

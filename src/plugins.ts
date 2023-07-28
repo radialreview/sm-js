@@ -15,4 +15,9 @@ export const mobxPlugin: Plugin = {
       return computed(() => computedFn(ProxyInstance)).get;
     },
   },
+  QMResults: {
+    onConstruct: ({ queryResults }) => {
+      makeAutoObservable(queryResults);
+    },
+  },
 };

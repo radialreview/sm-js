@@ -22,6 +22,7 @@ import {
   DocumentNode,
   ValidFilterForNode,
   INonPaginatedOneToManyQueryBuilder,
+  Plugin,
 } from './types';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
@@ -409,6 +410,7 @@ export function getMockConfig(opts?: {
   // should return error to fail with when performing a query
   // if not included or returns undefined, query will succeed
   failQuery?: () => any;
+  plugins?: Array<Plugin>;
 }): Config {
   if (opts?.mockData && opts?.getMockData) {
     throw Error('Pick one');
@@ -450,6 +452,7 @@ export function getMockConfig(opts?: {
     paginationFilteringSortingInstance:
       opts?.paginationFilteringSortingInstance ??
       EPaginationFilteringSortingInstance.SERVER,
+    plugins: opts?.plugins ?? undefined,
   };
 }
 

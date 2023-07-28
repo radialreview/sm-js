@@ -41,15 +41,18 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
     }
 
     return new Promise((res, rej) => {
-      const dataToReturn = {} as QueryDataReturn<TQueryDefinitions>;
-
       try {
         new mmGQLInstance.QueryManager(queryDefinitions, {
           subscribe: false,
-          resultsObject: dataToReturn,
-          onResultsUpdated: () => {
-            res({ data: dataToReturn, error: undefined });
-            opts?.onData && opts.onData({ results: dataToReturn });
+          onResultsUpdated: queryResults => {
+            res({
+              data: queryResults as QueryDataReturn<TQueryDefinitions>,
+              error: undefined,
+            });
+            opts?.onData &&
+              opts.onData({
+                results: queryResults as QueryDataReturn<TQueryDefinitions>,
+              });
           },
           onQueryError: e => {
             const error = getError(
@@ -59,7 +62,7 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
 
             if (opts?.onError) {
               opts.onError(error);
-              res({ data: dataToReturn, error });
+              res({ data: {} as QueryDataReturn<TQueryDefinitions>, error });
               return;
             }
 
@@ -84,7 +87,7 @@ export function generateQuerier({ mmGQLInstance }: { mmGQLInstance: IMMGQL }) {
 
         if (opts?.onError) {
           opts.onError(error);
-          res({ data: dataToReturn, error });
+          res({ data: {} as QueryDataReturn<TQueryDefinitions>, error });
           return;
         }
 
@@ -135,8 +138,6 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
     }
 
     return new Promise<ReturnType>((res, rej) => {
-      const dataToReturn = {} as QueryDataReturn<TQueryDefinitions>;
-
       const handlers = {
         onQueryDefinitionsUpdated: (
           _: QueryDefinitions<any, any, any>
@@ -147,17 +148,18 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
 
       try {
         const qM = new mmGQLInstance.QueryManager(queryDefinitions, {
-          resultsObject: dataToReturn,
           subscribe: true,
-          onResultsUpdated: () => {
+          onResultsUpdated: resultsObject => {
             res({
-              data: dataToReturn,
+              data: resultsObject as QueryDataReturn<TQueryDefinitions>,
               unsub: () => qM.unsub(),
               onQueryDefinitionsUpdated: newQueryDefinitionRecord =>
                 handlers.onQueryDefinitionsUpdated(newQueryDefinitionRecord),
               error: undefined,
             } as ReturnType);
-            opts.onData({ results: dataToReturn });
+            opts.onData({
+              results: resultsObject as QueryDataReturn<TQueryDefinitions>,
+            });
           },
           onQueryError: e => {
             const error = getError(
@@ -168,7 +170,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             if (opts.onError) {
               opts.onError(error);
               res({
-                data: dataToReturn,
+                data: {} as QueryDataReturn<TQueryDefinitions>,
                 unsub: () => qM.unsub(),
                 onQueryDefinitionsUpdated: newQueryDefinitionRecord =>
                   handlers.onQueryDefinitionsUpdated(newQueryDefinitionRecord),
@@ -188,7 +190,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
             if (opts.onError) {
               opts.onError(error);
               res({
-                data: dataToReturn,
+                data: {} as QueryDataReturn<TQueryDefinitions>,
                 unsub: () => qM.unsub(),
                 onQueryDefinitionsUpdated: newQueryDefinitionRecord =>
                   handlers.onQueryDefinitionsUpdated(newQueryDefinitionRecord),
@@ -217,7 +219,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
         if (opts.onError) {
           opts.onError(error);
           res(({
-            data: dataToReturn,
+            data: {} as QueryDataReturn<TQueryDefinitions>,
             unsub: () => {
               const error = getError(
                 new Error(
