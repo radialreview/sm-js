@@ -945,6 +945,226 @@ describe('getSlimmedQueryAgainstCache', () => {
   });
 });
 
+describe('getDataForQueryFromCache', () => {
+  test('it should return data for a simple single entity QueryRecord', () => {
+    const { QuerySlimmer, userNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      user: {
+        id: 'user-id-1',
+        def: userNode,
+        properties: ['id', 'type', 'firstName', 'lastName'],
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+    const mockQueryResults = {
+      user: {
+        id: 'user-id-1',
+        type: userNode.type,
+        firstName: 'Jon',
+        lastName: 'Doe',
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
+
+    const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
+
+    expect(actualResult).toEqual(mockQueryResults);
+  });
+
+  test('it should return data for a simple nodes collection QueryRecord', () => {
+    const { QuerySlimmer, userNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['id', 'type', 'firstName', 'lastName'],
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockQueryResults = {
+      users: [
+        {
+          id: 'user-id-1',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+          email: 'test@email.com',
+          nickName: 'Aidan',
+        },
+        {
+          id: 'user-id-2',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+          email: 'test@email.com',
+          nickName: 'Piotr',
+        },
+      ],
+    };
+
+    const expectedCachedData = {
+      users: [
+        {
+          id: 'user-id-1',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+        },
+        {
+          id: 'user-id-2',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+        },
+      ],
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
+
+    const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
+
+    expect(actualResult).toEqual(expectedCachedData);
+  });
+
+  test.only('it return data for a query with relational data with only requested properties', () => {
+    const { QuerySlimmer, userNode, todoNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      users: {
+        def: userNode,
+        properties: ['id', 'type', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'type', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'type', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockQueryResults = {
+      users: [
+        {
+          id: 'user-id-1',
+          type: userNode.type,
+          firstName: 'Aidan',
+          lastName: 'Goodman',
+          email: 'test@email.com',
+          nickName: 'nickName',
+          todos: [
+            {
+              id: 'todo-id-1',
+              type: todoNode.type,
+              task: 'todo-task-1',
+              isArchived: false,
+              assignee: {
+                id: 'user-id-1',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+                email: 'test@email.com',
+              },
+            },
+          ],
+        },
+        {
+          id: 'user-id-2',
+          type: userNode.type,
+          firstName: 'Piotr',
+          lastName: 'Bogun',
+          email: 'test@email.com',
+          nickName: 'nickName',
+          todos: [
+            {
+              id: 'todo-id-2',
+              type: todoNode.type,
+              task: 'todo-task-2',
+              isArchived: false,
+              assignee: {
+                id: 'user-id-2',
+                type: userNode.type,
+                firstName: 'Piotr',
+                lastName: 'Bogun',
+                email: 'test@email.com',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const expectedCachedData = {
+      users: {
+        nodes: [
+          {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            todos: {
+              nodes: [
+                {
+                  id: 'todo-id-1',
+                  type: todoNode.type,
+                  task: 'todo-task-1',
+                  assignee: {
+                    id: 'user-id-1',
+                    type: userNode.type,
+                    firstName: 'Aidan',
+                    lastName: 'Goodman',
+                  },
+                },
+              ],
+            },
+          },
+          {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            todos: {
+              nodes: [
+                {
+                  id: 'todo-id-2',
+                  type: todoNode.type,
+                  task: 'todo-task-2',
+                  assignee: {
+                    id: 'user-id-2',
+                    type: userNode.type,
+                    firstName: 'Piotr',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
+
+    const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
+
+    console.log('actualResult', JSON.stringify(actualResult, undefined, 2));
+
+    expect(actualResult).toEqual(expectedCachedData);
+  });
+});
+
 // describe('getInFlightQueriesToSlimAgainst', () => {
 //   test('it should return in flight queries that match by root level context keys and are requesting at least one of the same properties', () => {
 //     const { QuerySlimmer, userNode, todoNode } = setupTests();
