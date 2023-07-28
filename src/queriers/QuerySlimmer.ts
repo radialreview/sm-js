@@ -933,6 +933,11 @@ export class QuerySlimmer {
     try {
       // this.setInFlightQuery(inFlightQuery);
       const queryResponse = await this.mmGQLInstance.gqlClient.query(queryOpts);
+      this.log(`[QuerySlimmer]: Query request response recieved`, {
+        queryId: opts.queryId,
+        queryRecord: opts.queryRecord,
+        queryResponse: queryResponse,
+      });
       // this.removeInFlightQuery(inFlightQuery);
       this.cacheNewData(opts.queryRecord, queryResponse);
     } catch (e) {

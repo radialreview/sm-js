@@ -8672,13 +8672,18 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
             case 8:
               queryResponse = _context2.sent;
-              // this.removeInFlightQuery(inFlightQuery);
+              this.log("[QuerySlimmer]: Query request response recieved", {
+                queryId: opts.queryId,
+                queryRecord: opts.queryRecord,
+                queryResponse: queryResponse
+              }); // this.removeInFlightQuery(inFlightQuery);
+
               this.cacheNewData(opts.queryRecord, queryResponse);
-              _context2.next = 16;
+              _context2.next = 17;
               break;
 
-            case 12:
-              _context2.prev = 12;
+            case 13:
+              _context2.prev = 13;
               _context2.t0 = _context2["catch"](5);
               // this.removeInFlightQuery(inFlightQuery);
               this.log("QuerySlimmer: Error sending query request", {
@@ -8688,12 +8693,12 @@ var QuerySlimmer = /*#__PURE__*/function () {
               });
               throw new Error("[QuerySlimmer] sendQueryRequest error: " + _context2.t0);
 
-            case 16:
+            case 17:
             case "end":
               return _context2.stop();
           }
         }
-      }, _callee2, this, [[5, 12]]);
+      }, _callee2, this, [[5, 13]]);
     }));
 
     function sendQueryRequest(_x2) {

@@ -1031,7 +1031,7 @@ describe('getDataForQueryFromCache', () => {
     expect(actualResult).toEqual(expectedCachedData);
   });
 
-  test('it return data for a query with relational data with only requested properties', () => {
+  test('it should return data for a query with relational data with only requested properties', () => {
     const { QuerySlimmer, userNode, todoNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
