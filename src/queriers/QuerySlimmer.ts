@@ -103,86 +103,68 @@ export class QuerySlimmer {
     queryResponse: Record<string, any>,
     parentContextKey?: string
   ) {
-    try {
-      Object.keys(queryRecord).forEach(queryRecordField => {
-        const queryRecordEntry = queryRecord[queryRecordField];
-        if (!queryRecordEntry) return;
+    Object.keys(queryRecord).forEach(queryRecordField => {
+      const queryRecordEntry = queryRecord[queryRecordField];
+      if (!queryRecordEntry) return;
 
-        const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
-          queryRecordEntry,
-          parentContextKey
-        );
-        const cachedData = this.queriesByContext[currentQueryContextKey];
-        const isResultsByParentId = parentContextKey !== undefined;
+      const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
+        queryRecordEntry,
+        parentContextKey
+      );
+      const cachedData = this.queriesByContext[currentQueryContextKey];
+      const isResultsByParentId = parentContextKey !== undefined;
 
-        const results: Record<string, any> = {
-          byParentId: isResultsByParentId,
-        };
-        const subscriptionsByProperty = cachedData?.subscriptionsByProperty
-          ? { ...cachedData?.subscriptionsByProperty }
-          : {};
+      const results: Record<string, any> = {
+        byParentId: isResultsByParentId,
+      };
+      const subscriptionsByProperty = cachedData?.subscriptionsByProperty
+        ? { ...cachedData?.subscriptionsByProperty }
+        : {};
 
-        // If the root query response is an array
-        if (Array.isArray(queryResponse[queryRecordField])) {
-          results[queryRecordField] = {
-            nodes: queryResponse[queryRecordField].map(
-              (qResponse: any, qResponseIndex: number) => {
-                let fieldsToCache: Record<string, any> = {};
+      // If the root query response is an array
+      if (Array.isArray(queryResponse[queryRecordField])) {
+        results[queryRecordField] = {
+          nodes: queryResponse[queryRecordField].map(
+            (qResponse: any, qResponseIndex: number) => {
+              let fieldsToCache: Record<string, any> = {};
 
-                queryRecordEntry.properties.forEach(property => {
-                  fieldsToCache[property] = qResponse[property];
+              queryRecordEntry.properties.forEach(property => {
+                fieldsToCache[property] = qResponse[property];
 
-                  if (qResponseIndex === 0) {
-                    if (subscriptionsByProperty[property]) {
-                      subscriptionsByProperty[property] += 1;
-                    } else {
-                      subscriptionsByProperty[property] = 1;
-                    }
+                if (qResponseIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
                   }
-                });
+                }
+              });
 
-                return fieldsToCache;
-              }
-            ),
-          };
-          // If the root query response is not an array
-        } else {
-          if (isResultsByParentId) {
-            const parentIdKeys = Object.keys(queryResponse[queryRecordField]);
+              return fieldsToCache;
+            }
+          ),
+        };
+        // If the root query response is not an array
+      } else {
+        if (isResultsByParentId) {
+          const parentIdKeys = Object.keys(queryResponse[queryRecordField]);
 
-            parentIdKeys.forEach((parentId, parentIndex) => {
-              results[parentId] = {};
-              const parentResult = results[parentId];
-              const responseQueryField =
-                queryResponse[queryRecordField][parentId];
+          parentIdKeys.forEach((parentId, parentIndex) => {
+            results[parentId] = {};
+            const parentResult = results[parentId];
+            const responseQueryField =
+              queryResponse[queryRecordField][parentId];
 
-              if (Array.isArray(responseQueryField)) {
-                parentResult[queryRecordField] = {
-                  nodes: [],
-                };
+            if (Array.isArray(responseQueryField)) {
+              parentResult[queryRecordField] = {
+                nodes: [],
+              };
 
-                responseQueryField.forEach(response => {
-                  const resultsToCache: Record<string, any> = {};
+              responseQueryField.forEach(response => {
+                const resultsToCache: Record<string, any> = {};
 
-                  queryRecordEntry.properties.forEach(property => {
-                    resultsToCache[property] = response[property];
-                    if (parentIndex === 0) {
-                      if (subscriptionsByProperty[property]) {
-                        subscriptionsByProperty[property] += 1;
-                      } else {
-                        subscriptionsByProperty[property] = 1;
-                      }
-                    }
-                  });
-
-                  parentResult[queryRecordField].nodes.push(resultsToCache);
-                });
-              } else {
-                parentResult[queryRecordField] = {};
                 queryRecordEntry.properties.forEach(property => {
-                  parentResult[queryRecordField][property] =
-                    responseQueryField[property];
-
+                  resultsToCache[property] = response[property];
                   if (parentIndex === 0) {
                     if (subscriptionsByProperty[property]) {
                       subscriptionsByProperty[property] += 1;
@@ -191,12 +173,50 @@ export class QuerySlimmer {
                     }
                   }
                 });
-              }
-            });
-          } else {
-            results[queryRecordField] = {};
-            const resultObj = results[queryRecordField];
 
+                parentResult[queryRecordField].nodes.push(resultsToCache);
+              });
+            } else {
+              parentResult[queryRecordField] = {};
+              queryRecordEntry.properties.forEach(property => {
+                parentResult[queryRecordField][property] =
+                  responseQueryField[property];
+
+                if (parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
+                }
+              });
+            }
+          });
+        } else {
+          results[queryRecordField] = {};
+          const resultObj = results[queryRecordField];
+
+          if ('nodes' in queryResponse[queryRecordField]) {
+            resultObj['nodes'] = queryResponse[queryRecordField]['nodes'].map(
+              (response: Record<string, any>, responseIndex: number) => {
+                const responseDataToReturn: Record<string, any> = {};
+
+                queryRecordEntry.properties.forEach(property => {
+                  responseDataToReturn[property] = response[property];
+
+                  if (responseIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
+                  }
+                });
+
+                return responseDataToReturn;
+              }
+            );
+          } else {
             queryRecordEntry.properties.forEach(property => {
               resultObj[property] = queryResponse[queryRecordField][property];
 
@@ -208,74 +228,72 @@ export class QuerySlimmer {
             });
           }
         }
+      }
 
-        this.queriesByContext[currentQueryContextKey] = {
-          subscriptionsByProperty: subscriptionsByProperty,
-          results: results,
-        };
+      this.queriesByContext[currentQueryContextKey] = {
+        subscriptionsByProperty: subscriptionsByProperty,
+        results: results,
+      };
 
-        if (queryRecordEntry.relational !== undefined) {
-          const relationalQueryRecord = queryRecordEntry.relational;
-          const relationalFields = Object.keys(relationalQueryRecord);
-          const relationalResults: Record<string, any> = {};
+      if (queryRecordEntry.relational !== undefined) {
+        const relationalQueryRecord = queryRecordEntry.relational;
+        const relationalFields = Object.keys(relationalQueryRecord);
+        const relationalResults: Record<string, any> = {};
 
-          if (Array.isArray(queryResponse[queryRecordField])) {
-            queryResponse[queryRecordField].forEach((queryResponse: any) => {
-              relationalFields.forEach(rField => {
-                if (relationalResults[rField]) {
-                  relationalResults[rField][queryResponse.id] =
-                    queryResponse[rField];
-                } else {
-                  relationalResults[rField] = {};
-                  relationalResults[rField][queryResponse.id] =
-                    queryResponse[rField];
-                }
-              });
+        if (Array.isArray(queryResponse[queryRecordField])) {
+          queryResponse[queryRecordField].forEach((queryResponse: any) => {
+            relationalFields.forEach(rField => {
+              if (relationalResults[rField]) {
+                relationalResults[rField][queryResponse.id] =
+                  queryResponse[rField];
+              } else {
+                relationalResults[rField] = {};
+                relationalResults[rField][queryResponse.id] =
+                  queryResponse[rField];
+              }
+            });
+          });
+        } else {
+          if (isResultsByParentId) {
+            const parentIds = Object.keys(queryResponse[queryRecordField]);
+
+            parentIds.forEach(pId => {
+              const resultsForParentId = queryResponse[queryRecordField][pId];
+
+              if (Array.isArray(resultsForParentId)) {
+                resultsForParentId.forEach((result: Record<string, any>) => {
+                  relationalFields.forEach(rField => {
+                    if (!relationalResults[rField]) {
+                      relationalResults[rField] = {};
+                    }
+                    relationalResults[rField][result.id] = result[rField];
+                  });
+                });
+              } else {
+                relationalFields.forEach(rField => {
+                  if (!relationalResults[resultsForParentId.id]) {
+                    relationalResults[resultsForParentId.id] = {};
+                  }
+                  relationalResults[resultsForParentId.id][rField] =
+                    resultsForParentId[rField];
+                });
+              }
             });
           } else {
-            if (isResultsByParentId) {
-              const parentIds = Object.keys(queryResponse[queryRecordField]);
-
-              parentIds.forEach(pId => {
-                const resultsForParentId = queryResponse[queryRecordField][pId];
-
-                if (Array.isArray(resultsForParentId)) {
-                  resultsForParentId.forEach((result: Record<string, any>) => {
-                    relationalFields.forEach(rField => {
-                      if (!relationalResults[rField]) {
-                        relationalResults[rField] = {};
-                      }
-                      relationalResults[rField][result.id] = result[rField];
-                    });
-                  });
-                } else {
-                  relationalFields.forEach(rField => {
-                    if (!relationalResults[resultsForParentId.id]) {
-                      relationalResults[resultsForParentId.id] = {};
-                    }
-                    relationalResults[resultsForParentId.id][rField] =
-                      resultsForParentId[rField];
-                  });
-                }
-              });
-            } else {
-              relationalFields.forEach(rField => {
-                relationalResults[queryResponse.id][rField] =
-                  queryResponse[rField];
-              });
-            }
+            relationalFields.forEach(rField => {
+              relationalResults[queryResponse.id][rField] =
+                queryResponse[rField];
+            });
           }
-
-          this.cacheNewData(
-            queryRecordEntry.relational,
-            relationalResults,
-            currentQueryContextKey
-          );
         }
-      });
-    } catch (e) {
-      throw new Error(`QuerySlimmer populateQueriesByContext: ${e}`);
-    }
+
+        this.cacheNewData(
+          queryRecordEntry.relational,
+          relationalResults,
+          currentQueryContextKey
+        );
+      }
+    });
   }
 
   // Given a QueryRecord for a new query returns a QueryRecord that

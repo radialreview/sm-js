@@ -47,7 +47,7 @@ function setupTests() {
 }
 
 describe('cacheNewData', () => {
-  test('it should cache by id queries', () => {
+  test('it should cache by id queries where the result is a single object', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -59,7 +59,7 @@ describe('cacheNewData', () => {
       },
     };
 
-    const mockResults = {
+    const mockRequestResponse = {
       user: {
         id: 'user-id-1',
         type: userNode.type,
@@ -70,7 +70,7 @@ describe('cacheNewData', () => {
       },
     };
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
     expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
@@ -86,7 +86,7 @@ describe('cacheNewData', () => {
     });
   });
 
-  test('it should cache by ids queries', () => {
+  test('it should cache by ids queries where the result is a nodes collection', () => {
     const { QuerySlimmer, userNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -98,103 +98,68 @@ describe('cacheNewData', () => {
       },
     };
 
-    const mockResults = {
-      users: [
+    const mockRequestResponse = {
+      users: {
+        nodes: [
+          {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            email: 'test@email.com',
+            nickName: 'Aidan',
+          },
+          {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            email: 'test@email.com',
+            nickName: 'Piotr',
+          },
+        ],
+      },
+    };
+
+    const expectedCachedUserData = {
+      nodes: [
         {
           id: 'user-id-1',
           type: userNode.type,
           firstName: 'Aidan',
           lastName: 'Goodman',
-          email: 'test@email.com',
-          nickName: 'Aidan',
         },
         {
           id: 'user-id-2',
           type: userNode.type,
           firstName: 'Piotr',
           lastName: 'Bogun',
-          email: 'test@email.com',
-          nickName: 'Piotr',
         },
       ],
     };
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
-
-    expect(
-      QuerySlimmer.queriesByContext['users({"ids":["user-id-1","user-id-2"]})']
-    ).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: false,
-        users: {
-          nodes: mockResults.users.map(u => ({
-            id: u.id,
-            type: u.type,
-            firstName: u.firstName,
-            lastName: u.lastName,
-          })),
+    const expectedCache = {
+      'users({"ids":["user-id-1","user-id-2"]})': {
+        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          users: expectedCachedUserData,
         },
-      },
-    });
-  });
-
-  test('it should cache node collection results', () => {
-    const { QuerySlimmer, userNode } = setupTests();
-
-    const mockQueryRecord: QueryRecord = {
-      users: {
-        def: userNode,
-        properties: ['id', 'type', 'firstName', 'lastName'],
-        tokenName: DEFAULT_TOKEN_NAME,
       },
     };
 
-    const mockResults = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-          email: 'test@email.com',
-          nickName: 'Aidan',
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-          email: 'test@email.com',
-          nickName: 'Piotr',
-        },
-      ],
-    };
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
-
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: false,
-        users: {
-          nodes: mockResults.users.map(u => ({
-            id: u.id,
-            type: u.type,
-            firstName: u.firstName,
-            lastName: u.lastName,
-          })),
-        },
-      },
-    });
+    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
 
-  test('it should cache a separate record a relational child', () => {
-    const { QuerySlimmer, userNode, todoNode } = setupTests();
+  test.only('it should create separate records for child relational data handling arrays and objects in the tree', () => {
+    const { QuerySlimmer, userNode, todoNode, meetingNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
-      users: {
+      user: {
         def: userNode,
+        id: 'user-id-1',
         properties: ['id', 'type', 'firstName', 'lastName'],
         relational: {
           todos: {
@@ -214,138 +179,22 @@ describe('cacheNewData', () => {
         },
         tokenName: DEFAULT_TOKEN_NAME,
       },
-    };
-
-    const mockResults = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-          todos: [
-            {
-              id: 'todo-id-1',
-              type: todoNode.type,
-              task: 'todo-task-1',
-              assignee: {
-                id: 'user-id-1',
-                type: userNode.type,
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-              },
-            },
-          ],
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-          todos: [
-            {
-              id: 'todo-id-2',
-              type: todoNode.type,
-              task: 'todo-task-2',
-              assignee: {
-                id: 'user-id-2',
-                type: userNode.type,
-                firstName: 'Piotr',
-                lastName: 'Bogun',
-              },
-            },
-          ],
-        },
-      ],
-    };
-
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
-
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: false,
-        users: {
-          nodes: mockResults.users.map(u => ({
-            id: u.id,
-            type: u.type,
-            firstName: u.firstName,
-            lastName: u.lastName,
-          })),
-        },
-      },
-    });
-
-    expect(
-      QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
-    ).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, task: 1 },
-      results: {
-        byParentId: true,
-        'user-id-1': {
-          todos: {
-            nodes: [
-              { id: 'todo-id-1', type: todoNode.type, task: 'todo-task-1' },
-            ],
-          },
-        },
-        'user-id-2': {
-          todos: {
-            nodes: [
-              { id: 'todo-id-2', type: todoNode.type, task: 'todo-task-2' },
-            ],
-          },
-        },
-      },
-    });
-
-    expect(
-      QuerySlimmer.queriesByContext[
-        'users(NO_PARAMS).todos(NO_PARAMS).users(NO_PARAMS)'
-      ]
-    ).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: true,
-        'todo-id-1': {
-          assignee: {
-            id: 'user-id-1',
-            type: userNode.type,
-            firstName: 'Aidan',
-            lastName: 'Goodman',
-          },
-        },
-        'todo-id-2': {
-          assignee: {
-            id: 'user-id-2',
-            type: userNode.type,
-            firstName: 'Piotr',
-            lastName: 'Bogun',
-          },
-        },
-      },
-    });
-  });
-
-  test('it should create separate records for child relational data handling arrays and objects in the tree', () => {
-    const { QuerySlimmer, userNode, todoNode } = setupTests();
-
-    const mockQueryRecord: QueryRecord = {
       users: {
         def: userNode,
+        ids: ['user-id-1', 'user-id-2'],
         properties: ['id', 'type', 'firstName', 'lastName'],
         relational: {
-          todos: {
-            def: todoNode,
-            oneToMany: true,
-            _relationshipName: 'todos',
-            properties: ['id', 'type', 'task'],
+          meeting: {
+            def: meetingNode,
+            oneToOne: true,
+            _relationshipName: 'meeting',
+            properties: ['id', 'type', 'name'],
             relational: {
-              assignee: {
-                def: userNode,
-                oneToOne: true,
-                _relationshipName: 'assignee',
-                properties: ['id', 'type', 'firstName', 'lastName'],
+              todos: {
+                def: todoNode,
+                oneToMany: true,
+                _relationshipName: 'todos',
+                properties: ['id', 'type', 'task'],
               },
             },
           },
@@ -354,20 +203,31 @@ describe('cacheNewData', () => {
       },
     };
 
-    const mockResults = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-          todos: [
+    const mockRequestResponse = {
+      user: {
+        id: 'aidan-id',
+        type: userNode,
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+        todos: {
+          nodes: [
             {
-              id: 'todo-id-1',
+              id: 'aidan-todo-id-1',
               type: todoNode.type,
-              task: 'todo-task-1',
+              task: 'aidan-todo-task-1',
               assignee: {
-                id: 'user-id-1',
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-todo-id-2',
+              type: todoNode.type,
+              task: 'aidan-todo-task-2',
+              assignee: {
+                id: 'aidan-id',
                 type: userNode.type,
                 firstName: 'Aidan',
                 lastName: 'Goodman',
@@ -375,94 +235,207 @@ describe('cacheNewData', () => {
             },
           ],
         },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-          todos: [
-            {
-              id: 'todo-id-2',
-              type: todoNode.type,
-              task: 'todo-task-2',
-              assignee: {
-                id: 'user-id-2',
-                type: userNode.type,
-                firstName: 'Piotr',
-                lastName: 'Bogun',
+      },
+      users: {
+        nodes: [
+          {
+            id: 'aidan-id',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              type: meetingNode,
+              name: 'aidan-meeting-1',
+              todos: {
+                nodes: [
+                  {
+                    id: 'aidan-todo-id-1',
+                    type: todoNode.type,
+                    task: 'aidan-todo-task-1',
+                  },
+                  {
+                    id: 'aidan-todo-id-2',
+                    type: todoNode.type,
+                    task: 'aidan-todo-task-2',
+                  },
+                ],
               },
             },
-          ],
-        },
-      ],
+          },
+          {
+            id: 'piotr-id',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              type: meetingNode,
+              name: 'piotr-meeting-1',
+              todos: {
+                nodes: [
+                  {
+                    id: 'piotr-todo-id-1',
+                    type: todoNode.type,
+                    task: 'piotr-todo-task-1',
+                  },
+                  {
+                    id: 'piotr-todo-id-2',
+                    type: todoNode.type,
+                    task: 'piotr-todo-task-2',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
     };
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockResults);
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    expect(QuerySlimmer.queriesByContext['users(NO_PARAMS)']).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: false,
-        users: {
-          nodes: mockResults.users.map(u => ({
-            id: u.id,
-            type: u.type,
-            firstName: u.firstName,
-            lastName: u.lastName,
-          })),
-        },
-      },
-    });
-
-    expect(
-      QuerySlimmer.queriesByContext['users(NO_PARAMS).todos(NO_PARAMS)']
-    ).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, task: 1 },
-      results: {
-        byParentId: true,
-        'user-id-1': {
-          todos: {
-            nodes: [
-              { id: 'todo-id-1', type: todoNode.type, task: 'todo-task-1' },
-            ],
-          },
-        },
-        'user-id-2': {
-          todos: {
-            nodes: [
-              { id: 'todo-id-2', type: todoNode.type, task: 'todo-task-2' },
-            ],
-          },
-        },
-      },
-    });
-
-    expect(
-      QuerySlimmer.queriesByContext[
-        'users(NO_PARAMS).todos(NO_PARAMS).users(NO_PARAMS)'
-      ]
-    ).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: true,
-        'todo-id-1': {
-          assignee: {
-            id: 'user-id-1',
-            type: userNode.type,
+    const expectedCache = {
+      'users({"id":"aidan-id-1"})': {
+        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          user: {
+            id: 'aidan-id',
+            type: userNode,
             firstName: 'Aidan',
             lastName: 'Goodman',
           },
         },
-        'todo-id-2': {
-          assignee: {
-            id: 'user-id-2',
-            type: userNode.type,
-            firstName: 'Piotr',
-            lastName: 'Bogun',
+      },
+      'users({"id":"aidan-id"}).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, type: 1, task: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  type: todoNode.type,
+                  task: 'aidan-todo-task-1',
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  type: todoNode.type,
+                  task: 'aidan-todo-task-2',
+                },
+              ],
+            },
           },
         },
       },
-    });
+      'users({"id":"user-id-1"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-todo-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              type: userNode.type,
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-todo-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              type: userNode.type,
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
+      'users(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          users: {
+            nodes: [
+              {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+              {
+                id: 'piotr-id',
+                type: userNode.type,
+                firstName: 'Piotr',
+                lastName: 'Bogun',
+              },
+            ],
+          },
+        },
+      },
+      'users(NO_PARAMS).meeting(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, type: 1, name: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              type: meetingNode,
+              name: 'aidan-meeting-1',
+            },
+          },
+          'piotr-id': {
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              type: meetingNode,
+              name: 'piotr-meeting-1',
+            },
+          },
+        },
+      },
+      'users(NO_PARAMS).meeting(NO_PARAMS).todos(NO_PARAMS': {
+        subscriptionsByProperty: { id: 1, type: 1, name: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  type: todoNode.type,
+                  task: 'aidan-todo-task-1',
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  type: todoNode.type,
+                  task: 'aidan-todo-task-2',
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            meeting: {
+              todos: {
+                nodes: [
+                  {
+                    id: 'piotr-todo-id-1',
+                    type: todoNode.type,
+                    task: 'piotr-todo-task-1',
+                  },
+                  {
+                    id: 'piotr-todo-id-2',
+                    type: todoNode.type,
+                    task: 'piotr-todo-task-2',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
 });
 
