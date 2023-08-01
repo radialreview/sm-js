@@ -294,6 +294,11 @@ describe('cacheNewData', () => {
 
     QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
+    // console.log(
+    //   'queriesByContext',
+    //   JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2)
+    // );
+
     const expectedCache = {
       'users({"id":"aidan-id-1"})': {
         subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
