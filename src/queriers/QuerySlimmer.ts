@@ -103,198 +103,211 @@ export class QuerySlimmer {
     queryResponseToCache: Record<string, any>,
     parentContextKey?: string
   ) {
-    Object.keys(queryRecordToCache).forEach(recordFieldToCache => {
-      const queryRecordEntry = queryRecordToCache[recordFieldToCache];
-      if (!queryRecordEntry) return;
+    Object.keys(queryRecordToCache).forEach(
+      (recordFieldToCache, recordFieldIndex) => {
+        const queryRecordEntry = queryRecordToCache[recordFieldToCache];
+        if (!queryRecordEntry) return;
 
-      const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
-        queryRecordEntry,
-        parentContextKey
-      );
-      const currentCacheForThisContext = this.queriesByContext[
-        currentQueryContextKey
-      ];
-      const subscriptionsByProperty = currentCacheForThisContext?.subscriptionsByProperty
-        ? { ...currentCacheForThisContext?.subscriptionsByProperty }
-        : {};
+        const currentQueryContextKey = this.createContextKeyForQueryRecordEntry(
+          queryRecordEntry,
+          parentContextKey
+        );
+        const currentCacheForThisContext = this.queriesByContext[
+          currentQueryContextKey
+        ];
+        const subscriptionsByProperty = currentCacheForThisContext?.subscriptionsByProperty
+          ? { ...currentCacheForThisContext?.subscriptionsByProperty }
+          : {};
 
-      const isResultsByParentId = parentContextKey !== undefined;
+        const isResultsByParentId = parentContextKey !== undefined;
 
-      const resultsToCache: Record<string, any> = {
-        byParentId: isResultsByParentId,
-      };
+        const resultsToCache: Record<string, any> = {
+          byParentId: isResultsByParentId,
+        };
 
-      // If we are dealing with relational data in a recursive call, the data will be organized under id keys of the parent object.
-      // If we are getting todos under a user the results will look like this:
-      // { [user-id]: { todos: { nodes: [...todos for this user] } }
-      // We want to cache this data as is but with only the actual todo data.
-      // For example, if the todos have further relational data (assignees), those should be cached under their own context.
-      if (isResultsByParentId) {
-        const parentIdKeys = Object.keys(queryResponseToCache);
+        // If we are dealing with relational data in a recursive call, the data will be organized under id keys of the parent object.
+        // If we are getting todos under a user the results will look like this:
+        // { [user-id]: { todos: { nodes: [...todos for this user] } }
+        // We want to cache this data as is but with only the actual todo data.
+        // For example, if the todos have further relational data (assignees), those should be cached under their own context.
+        if (isResultsByParentId) {
+          const parentIdKeys = Object.keys(queryResponseToCache);
 
-        parentIdKeys.forEach((parentId, parentIndex) => {
-          resultsToCache[parentId] = {};
-          const dataToCacheForParent = resultsToCache[parentId];
-          const responseDataForParent =
-            queryResponseToCache[parentId][recordFieldToCache];
+          parentIdKeys.forEach((parentId, parentIndex) => {
+            resultsToCache[parentId] = {};
+            const dataToCacheForParent = resultsToCache[parentId];
+            const responseDataForParent =
+              queryResponseToCache[parentId][recordFieldToCache];
 
-          // If the data for this field is a nodes collection, we loop over each result and only cache the data
-          // for this particular model, leaving out any relational data.
-          if ('nodes' in responseDataForParent) {
-            dataToCacheForParent[recordFieldToCache] = {
-              nodes: [],
-            };
+            // If the data for this field is a nodes collection, we loop over each result and only cache the data
+            // for this particular model, leaving out any relational data.
+            if ('nodes' in responseDataForParent) {
+              dataToCacheForParent[recordFieldToCache] = {
+                nodes: [],
+              };
 
-            responseDataForParent.nodes.forEach(
-              (response: Record<string, any>) => {
-                const dataToCache: Record<string, any> = {};
+              responseDataForParent.nodes.forEach(
+                (response: Record<string, any>, responseIndex: number) => {
+                  const dataToCache: Record<string, any> = {};
 
-                queryRecordEntry.properties.forEach(property => {
-                  dataToCache[property] = response[property];
-                  if (parentIndex === 0) {
-                    if (subscriptionsByProperty[property]) {
-                      subscriptionsByProperty[property] += 1;
-                    } else {
-                      subscriptionsByProperty[property] = 1;
-                    }
+                  if (recordFieldIndex === 0 && responseIndex === 0) {
+                    queryRecordEntry.properties.forEach(property => {
+                      dataToCache[property] = response[property];
+                      if (parentIndex === 0) {
+                        if (subscriptionsByProperty[property]) {
+                          subscriptionsByProperty[property] += 1;
+                        } else {
+                          subscriptionsByProperty[property] = 1;
+                        }
+                      }
+                    });
                   }
-                });
 
-                dataToCacheForParent[recordFieldToCache].nodes.push(
-                  resultsToCache
-                );
-              }
-            );
-            // This data is not a nodes collection. We can just look at the data object and cache only the data
-            // for this particular model.
-          } else {
-            dataToCacheForParent[recordFieldToCache] = {};
-
-            queryRecordEntry.properties.forEach(property => {
-              dataToCacheForParent[recordFieldToCache][property] =
-                dataToCacheForParent[property];
-
-              if (parentIndex === 0) {
-                if (subscriptionsByProperty[property]) {
-                  subscriptionsByProperty[property] += 1;
-                } else {
-                  subscriptionsByProperty[property] = 1;
+                  dataToCacheForParent[recordFieldToCache].nodes.push(
+                    resultsToCache
+                  );
                 }
-              }
-            });
-          }
-        });
-        // Deal with data that is not relational (top level of a query).
-      } else {
-        resultsToCache[recordFieldToCache] = {};
-        const resultObj = resultsToCache[recordFieldToCache];
-
-        // Handle nodes collection
-        if ('nodes' in queryResponseToCache[recordFieldToCache]) {
-          resultObj['nodes'] = queryResponseToCache[recordFieldToCache][
-            'nodes'
-          ].map((response: Record<string, any>, responseIndex: number) => {
-            const dataToCache: Record<string, any> = {};
-
-            queryRecordEntry.properties.forEach(property => {
-              dataToCache[property] = response[property];
-
-              if (responseIndex === 0) {
-                if (subscriptionsByProperty[property]) {
-                  subscriptionsByProperty[property] += 1;
-                } else {
-                  subscriptionsByProperty[property] = 1;
-                }
-              }
-            });
-
-            return dataToCache;
-          });
-        } else {
-          queryRecordEntry.properties.forEach(property => {
-            resultObj[property] =
-              queryResponseToCache[recordFieldToCache][property];
-
-            if (subscriptionsByProperty[property]) {
-              subscriptionsByProperty[property] += 1;
+              );
+              // This data is not a nodes collection. We can just look at the data object and cache only the data
+              // for this particular model.
             } else {
-              subscriptionsByProperty[property] = 1;
+              dataToCacheForParent[recordFieldToCache] = {};
+
+              queryRecordEntry.properties.forEach(property => {
+                dataToCacheForParent[recordFieldToCache][property] =
+                  dataToCacheForParent[property];
+
+                if (recordFieldIndex === 0 && parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
+                }
+              });
             }
           });
-        }
-      }
-
-      // Cache the data we have organized for this specific query record (no relational data).
-      this.queriesByContext[currentQueryContextKey] = {
-        subscriptionsByProperty: subscriptionsByProperty,
-        results: resultsToCache,
-      };
-
-      // If this QueryRecord has relational data, we organize the specific relational data under each individual parent id.
-      // relationalDataToCache will hold only relational.
-      if (queryRecordEntry.relational !== undefined) {
-        const relationalQueryRecord = queryRecordEntry.relational;
-        const relationalFields = Object.keys(relationalQueryRecord);
-        const relationalDataToCache: Record<string, any> = {};
-
-        // The data we are given is organized under parent id keys.
-        if (isResultsByParentId) {
-          const parentIds = Object.keys(queryResponseToCache);
-
-          parentIds.forEach(pId => {
-            const dataUnderParentId = queryResponseToCache[pId];
-            const queryFields = Object.keys(dataUnderParentId);
-
-            queryFields.forEach(queryField => {
-              const dataForQueryField = dataUnderParentId[queryField];
-
-              if ('nodes' in dataForQueryField) {
-                dataForQueryField.nodes.forEach((data: Record<string, any>) => {
-                  relationalDataToCache[data.id] = {};
-
-                  relationalFields.forEach(rField => {
-                    relationalDataToCache[data.id][rField] = data[rField];
-                  });
-                });
-              } else {
-                relationalDataToCache[dataForQueryField.id] = {};
-
-                relationalFields.forEach(rField => {
-                  relationalDataToCache[dataForQueryField.id][rField] =
-                    dataForQueryField[rField];
-                });
-              }
-            });
-          });
+          // Deal with data that is not relational (top level of a query).
         } else {
+          resultsToCache[recordFieldToCache] = {};
+          const resultObj = resultsToCache[recordFieldToCache];
+
+          // Handle nodes collection
           if ('nodes' in queryResponseToCache[recordFieldToCache]) {
-            queryResponseToCache[recordFieldToCache].nodes.forEach(
-              (response: Record<string, any>) => {
-                relationalDataToCache[response.id] = {};
+            resultObj['nodes'] = queryResponseToCache[recordFieldToCache][
+              'nodes'
+            ].map((response: Record<string, any>, responseIndex: number) => {
+              const dataToCache: Record<string, any> = {};
 
-                relationalFields.forEach(rField => {
-                  relationalDataToCache[response.id][rField] = response[rField];
-                });
-              }
-            );
+              queryRecordEntry.properties.forEach(property => {
+                dataToCache[property] = response[property];
+
+                if (responseIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
+                }
+              });
+
+              return dataToCache;
+            });
           } else {
-            const idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
-            relationalDataToCache[idOfQueryRecord] = {};
+            queryRecordEntry.properties.forEach(property => {
+              resultObj[property] =
+                queryResponseToCache[recordFieldToCache][property];
 
-            relationalFields.forEach(rField => {
-              relationalDataToCache[idOfQueryRecord][rField] =
-                queryResponseToCache[recordFieldToCache][rField];
+              if (subscriptionsByProperty[property]) {
+                subscriptionsByProperty[property] += 1;
+              } else {
+                subscriptionsByProperty[property] = 1;
+              }
             });
           }
         }
 
-        this.cacheNewData(
-          queryRecordEntry.relational,
-          relationalDataToCache,
-          currentQueryContextKey
-        );
+        // Cache the data we have organized for this specific query record (no relational data).
+        this.queriesByContext[currentQueryContextKey] = {
+          subscriptionsByProperty: subscriptionsByProperty,
+          results: resultsToCache,
+        };
+
+        // If this QueryRecord has relational data, we organize the specific relational data under each individual parent id.
+        // relationalDataToCache will hold only relational.
+        if (queryRecordEntry.relational !== undefined) {
+          const relationalQueryRecord = queryRecordEntry.relational;
+          const relationalFields = Object.keys(relationalQueryRecord);
+          const relationalDataToCache: Record<string, any> = {};
+
+          // The data we are given is organized under parent id keys.
+          if (isResultsByParentId) {
+            const parentIds = Object.keys(queryResponseToCache);
+
+            parentIds.forEach(pId => {
+              const dataUnderParentId = queryResponseToCache[pId];
+              const queryFields = Object.keys(dataUnderParentId);
+
+              queryFields.forEach(queryField => {
+                const dataForQueryField = dataUnderParentId[queryField];
+
+                if ('nodes' in dataForQueryField) {
+                  dataForQueryField.nodes.forEach(
+                    (data: Record<string, any>) => {
+                      relationalDataToCache[data.id] = {};
+
+                      relationalFields.forEach(rField => {
+                        relationalDataToCache[data.id][rField] = data[rField];
+                      });
+                    }
+                  );
+                } else {
+                  relationalDataToCache[dataForQueryField.id] = {};
+
+                  relationalFields.forEach(rField => {
+                    relationalDataToCache[dataForQueryField.id][rField] =
+                      dataForQueryField[rField];
+                  });
+                }
+              });
+            });
+          } else {
+            if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+              queryResponseToCache[recordFieldToCache].nodes.forEach(
+                (response: Record<string, any>) => {
+                  relationalDataToCache[response.id] = {};
+
+                  relationalFields.forEach(rField => {
+                    relationalDataToCache[response.id][rField] =
+                      response[rField];
+                  });
+                }
+              );
+            } else {
+              const idOfQueryRecord =
+                queryResponseToCache[recordFieldToCache].id;
+              relationalDataToCache[idOfQueryRecord] = {};
+
+              relationalFields.forEach(rField => {
+                relationalDataToCache[idOfQueryRecord][rField] =
+                  queryResponseToCache[recordFieldToCache][rField];
+              });
+            }
+          }
+
+          console.log(
+            'relationalDataToCache',
+            JSON.stringify(relationalDataToCache, undefined, 2)
+          );
+
+          this.cacheNewData(
+            queryRecordEntry.relational,
+            relationalDataToCache,
+            currentQueryContextKey
+          );
+        }
       }
-    });
+    );
   }
 
   // Given a QueryRecord for a new query returns a QueryRecord that

@@ -11,26 +11,26 @@ import { getMockConfig } from '../specUtilities';
 //   TQueryRecordByContextMap,
 // } from './QuerySlimmer';
 
-function stringify(obj: any) {
-  let cache: any = [];
-  let str = JSON.stringify(
-    obj,
-    function(_, value) {
-      if (typeof value === 'object' && value !== null) {
-        if (cache.indexOf(value) !== -1) {
-          // Circular reference found, discard key
-          return;
-        }
-        // Store value in our collection
-        cache.push(value);
-      }
-      return value;
-    },
-    2
-  );
-  cache = null; // reset the cache
-  return str;
-}
+// function stringify(obj: any) {
+//   let cache: any = [];
+//   let str = JSON.stringify(
+//     obj,
+//     function(_, value) {
+//       if (typeof value === 'object' && value !== null) {
+//         if (cache.indexOf(value) !== -1) {
+//           // Circular reference found, discard key
+//           return;
+//         }
+//         // Store value in our collection
+//         cache.push(value);
+//       }
+//       return value;
+//     },
+//     2
+//   );
+//   cache = null; // reset the cache
+//   return str;
+// }
 
 function setupTests() {
   const mmGQL = new MMGQL(getMockConfig());
@@ -315,7 +315,7 @@ describe('cacheNewData', () => {
 
     QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    console.log('queriesByContext', stringify(QuerySlimmer.queriesByContext));
+    // console.log('queriesByContext', stringify(QuerySlimmer.queriesByContext));
 
     const expectedCache = {
       'user({"id":"aidan-id"})': {
@@ -408,7 +408,7 @@ describe('cacheNewData', () => {
         },
       },
       'users({"ids":["aidan-id","piotr-id"]}).meetings(NO_PARAMS).todos(NO_PARAMS)': {
-        subscriptionsByProperty: { id: 1, name: 1 },
+        subscriptionsByProperty: { id: 1, task: 1 },
         results: {
           byParentId: true,
           'aidan-meeting-id-1': {
