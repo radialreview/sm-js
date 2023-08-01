@@ -6904,7 +6904,7 @@ function createQueryManager(mmGQLInstance) {
       this.applyClientSideFilterAndSortToState = function (opts) {
         Object.keys(opts.stateWhichMayRequireUpdate).forEach(function (alias) {
           var queryRecordEntry = opts.queryRecord[alias];
-          if (!queryRecordEntry) throw Error("No query record entry found for the alias " + alias);
+          if (!queryRecordEntry) return; // nothing to do here
 
           _this.applyClientSideFilterAndSortToStateEntry({
             stateEntryWhichMayRequireUpdate: opts.stateWhichMayRequireUpdate[alias],
@@ -8009,9 +8009,8 @@ function createQueryManager(mmGQLInstance) {
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
-        if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
 
-        if (opts.data[queryAlias] == null) {
+        if (opts.data[queryAlias] == null || !queryRecordEntry) {
           resultingStateAcc[queryAlias] = getEmptyStateEntry();
           return resultingStateAcc;
         }
