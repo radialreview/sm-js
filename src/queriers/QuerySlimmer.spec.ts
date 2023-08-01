@@ -11,6 +11,27 @@ import { getMockConfig } from '../specUtilities';
 //   TQueryRecordByContextMap,
 // } from './QuerySlimmer';
 
+function stringify(obj: any) {
+  let cache: any = [];
+  let str = JSON.stringify(
+    obj,
+    function(_, value) {
+      if (typeof value === 'object' && value !== null) {
+        if (cache.indexOf(value) !== -1) {
+          // Circular reference found, discard key
+          return;
+        }
+        // Store value in our collection
+        cache.push(value);
+      }
+      return value;
+    },
+    2
+  );
+  cache = null; // reset the cache
+  return str;
+}
+
 function setupTests() {
   const mmGQL = new MMGQL(getMockConfig());
 
@@ -159,20 +180,20 @@ describe('cacheNewData', () => {
     const mockQueryRecord: QueryRecord = {
       user: {
         def: userNode,
-        id: 'user-id-1',
-        properties: ['id', 'type', 'firstName', 'lastName'],
+        id: 'aidan-id',
+        properties: ['id', 'firstName', 'lastName'],
         relational: {
           todos: {
             def: todoNode,
             oneToMany: true,
             _relationshipName: 'todos',
-            properties: ['id', 'type', 'task'],
+            properties: ['id', 'task'],
             relational: {
               assignee: {
                 def: userNode,
                 oneToOne: true,
                 _relationshipName: 'assignee',
-                properties: ['id', 'type', 'firstName', 'lastName'],
+                properties: ['id', 'firstName', 'lastName'],
               },
             },
           },
@@ -181,20 +202,20 @@ describe('cacheNewData', () => {
       },
       users: {
         def: userNode,
-        ids: ['user-id-1', 'user-id-2'],
-        properties: ['id', 'type', 'firstName', 'lastName'],
+        ids: ['aidan-id', 'piotr-id'],
+        properties: ['id', 'firstName', 'lastName'],
         relational: {
           meeting: {
             def: meetingNode,
             oneToOne: true,
             _relationshipName: 'meeting',
-            properties: ['id', 'type', 'name'],
+            properties: ['id', 'name'],
             relational: {
               todos: {
                 def: todoNode,
                 oneToMany: true,
                 _relationshipName: 'todos',
-                properties: ['id', 'type', 'task'],
+                properties: ['id', 'task'],
               },
             },
           },
@@ -294,26 +315,22 @@ describe('cacheNewData', () => {
 
     QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    // console.log(
-    //   'queriesByContext',
-    //   JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2)
-    // );
+    console.log('queriesByContext', stringify(QuerySlimmer.queriesByContext));
 
     const expectedCache = {
-      'users({"id":"aidan-id-1"})': {
-        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      'user({"id":"aidan-id"})': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
         results: {
           byParentId: false,
           user: {
             id: 'aidan-id',
-            type: userNode,
             firstName: 'Aidan',
             lastName: 'Goodman',
           },
         },
       },
-      'users({"id":"aidan-id"}).todos(NO_PARAMS)': {
-        subscriptionsByProperty: { id: 1, type: 1, task: 1 },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, task: 1 },
         results: {
           byParentId: true,
           'aidan-id': {
@@ -321,12 +338,10 @@ describe('cacheNewData', () => {
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
-                  type: todoNode.type,
                   task: 'aidan-todo-task-1',
                 },
                 {
                   id: 'aidan-todo-id-2',
-                  type: todoNode.type,
                   task: 'aidan-todo-task-2',
                 },
               ],
@@ -334,14 +349,13 @@ describe('cacheNewData', () => {
           },
         },
       },
-      'users({"id":"user-id-1"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
-        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS).users(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
         results: {
           byParentId: true,
           'aidan-todo-id-1': {
             assignee: {
               id: 'aidan-id',
-              type: userNode.type,
               firstName: 'Aidan',
               lastName: 'Goodman',
             },
@@ -349,28 +363,25 @@ describe('cacheNewData', () => {
           'aidan-todo-id-2': {
             assignee: {
               id: 'aidan-id',
-              type: userNode.type,
               firstName: 'Aidan',
               lastName: 'Goodman',
             },
           },
         },
       },
-      'users(NO_PARAMS)': {
-        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+      'users({"ids":["aidan-id","piotr-id"]})': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
         results: {
           byParentId: false,
           users: {
             nodes: [
               {
                 id: 'aidan-id',
-                type: userNode.type,
                 firstName: 'Aidan',
                 lastName: 'Goodman',
               },
               {
                 id: 'piotr-id',
-                type: userNode.type,
                 firstName: 'Piotr',
                 lastName: 'Bogun',
               },
@@ -378,28 +389,26 @@ describe('cacheNewData', () => {
           },
         },
       },
-      'users(NO_PARAMS).meeting(NO_PARAMS)': {
-        subscriptionsByProperty: { id: 1, type: 1, name: 1 },
+      'users({"ids":["aidan-id","piotr-id"]}).meetings(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, name: 1 },
         results: {
           byParentId: true,
           'aidan-id': {
             meeting: {
               id: 'aidan-meeting-id-1',
-              type: meetingNode,
               name: 'aidan-meeting-1',
             },
           },
           'piotr-id': {
             meeting: {
               id: 'piotr-meeting-id-1',
-              type: meetingNode,
               name: 'piotr-meeting-1',
             },
           },
         },
       },
-      'users(NO_PARAMS).meeting(NO_PARAMS).todos(NO_PARAMS': {
-        subscriptionsByProperty: { id: 1, type: 1, name: 1 },
+      'users({"ids":["aidan-id","piotr-id"]}).meetings(NO_PARAMS).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, name: 1 },
         results: {
           byParentId: true,
           'aidan-meeting-id-1': {
@@ -407,12 +416,10 @@ describe('cacheNewData', () => {
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
-                  type: todoNode.type,
                   task: 'aidan-todo-task-1',
                 },
                 {
                   id: 'aidan-todo-id-2',
-                  type: todoNode.type,
                   task: 'aidan-todo-task-2',
                 },
               ],
@@ -424,12 +431,10 @@ describe('cacheNewData', () => {
                 nodes: [
                   {
                     id: 'piotr-todo-id-1',
-                    type: todoNode.type,
                     task: 'piotr-todo-task-1',
                   },
                   {
                     id: 'piotr-todo-id-2',
-                    type: todoNode.type,
                     task: 'piotr-todo-task-2',
                   },
                 ],
