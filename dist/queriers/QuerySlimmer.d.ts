@@ -22,7 +22,7 @@ export declare class QuerySlimmer {
         tokenName: string;
         batchKey?: string;
     }): Promise<Record<string, any>>;
-    cacheNewData(queryRecord: QueryRecord | RelationalQueryRecord, queryResponse: Record<string, any>, parentContextKey?: string): void;
+    cacheNewData(queryRecordToCache: QueryRecord | RelationalQueryRecord, queryResponseToCache: Record<string, any>, parentContextKey?: string): void;
     getSlimmedQueryAgainstCache(newQuery: QueryRecord | RelationalQueryRecord, parentContextKey?: string): QueryRecord | RelationalQueryRecord | null;
     getDataForQueryFromCache(newQuery: QueryRecord | RelationalQueryRecord, parentContextKey?: string): Record<string, any>;
     /**

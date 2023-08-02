@@ -463,21 +463,25 @@ describe('getSlimmedQueryAgainstCache', () => {
         },
       };
       const mockResults = {
-        users: [
-          {
-            id: '0',
-            type: userNode.type,
-            firstName: 'Banana',
-            lastName: 'Man',
-          },
-        ],
-        todos: [
-          {
-            id: '0',
-            type: todoNode.type,
-            task: 'Eat a banana',
-          },
-        ],
+        users: {
+          nodes: [
+            {
+              id: '0',
+              type: userNode.type,
+              firstName: 'Banana',
+              lastName: 'Man',
+            },
+          ],
+        },
+        todos: {
+          nodes: [
+            {
+              id: '0',
+              type: todoNode.type,
+              task: 'Eat a banana',
+            },
+          ],
+        },
       };
 
       expect(QuerySlimmer.getSlimmedQueryAgainstCache(mockQueryRecord)).toEqual(
@@ -653,28 +657,32 @@ describe('getSlimmedQueryAgainstCache', () => {
         },
       };
       const mockCachedQueryData = {
-        users: [
-          {
-            id: '0',
-            type: userNode.type,
-            firstName: 'Banana',
-            lastName: 'Man',
-            meetings: [
-              {
-                id: '0',
-                name: 'Banana Meeting',
-                archived: false,
-                todos: [
+        users: {
+          nodes: [
+            {
+              id: '0',
+              type: userNode.type,
+              firstName: 'Banana',
+              lastName: 'Man',
+              meetings: {
+                nodes: [
                   {
                     id: '0',
-                    type: todoNode.type,
-                    task: 'Eat a banana',
+                    name: 'Banana Meeting',
+                    archived: false,
+                    todos: [
+                      {
+                        id: '0',
+                        type: todoNode.type,
+                        task: 'Eat a banana',
+                      },
+                    ],
                   },
                 ],
               },
-            ],
-          },
-        ],
+            },
+          ],
+        },
       };
 
       QuerySlimmer.cacheNewData(mockCachedQuery, mockCachedQueryData);
@@ -711,27 +719,31 @@ describe('getSlimmedQueryAgainstCache', () => {
         },
       };
       const mockCachedQueryData = {
-        users: [
-          {
-            id: '0',
-            type: userNode.type,
-            firstName: 'Banana',
-            lastName: 'Man',
-            meetings: [
-              {
-                id: '0',
-                name: 'Banana Meeting',
-                todos: [
+        users: {
+          nodes: [
+            {
+              id: '0',
+              type: userNode.type,
+              firstName: 'Banana',
+              lastName: 'Man',
+              meetings: {
+                nodes: [
                   {
                     id: '0',
-                    type: todoNode.type,
-                    task: 'Eat a banana',
+                    name: 'Banana Meeting',
+                    todos: [
+                      {
+                        id: '0',
+                        type: todoNode.type,
+                        task: 'Eat a banana',
+                      },
+                    ],
                   },
                 ],
               },
-            ],
-          },
-        ],
+            },
+          ],
+        },
       };
 
       const mockNewQuery: QueryRecord = {
@@ -815,36 +827,42 @@ describe('getSlimmedQueryAgainstCache', () => {
         },
       };
       const mockCachedQueryData = {
-        users: [
-          {
-            id: '0',
-            type: userNode.type,
-            firstName: 'Banana',
-            lastName: 'Man',
-            meetings: [
-              {
-                id: '0',
-                name: 'Banana Meeting',
-                archived: false,
-                todos: [{ id: '0', task: 'Eat a banana' }],
+        users: {
+          nodes: [
+            {
+              id: '0',
+              type: userNode.type,
+              firstName: 'Banana',
+              lastName: 'Man',
+              meetings: {
+                nodes: [
+                  {
+                    id: '0',
+                    name: 'Banana Meeting',
+                    archived: false,
+                    todos: [{ id: '0', task: 'Eat a banana' }],
+                  },
+                ],
               },
-            ],
-          },
-          {
-            id: '1',
-            type: userNode.type,
-            firstName: 'Apple',
-            lastName: 'Woman',
-            meetings: [
-              {
-                id: '1',
-                name: 'Apple Meeting',
-                archived: false,
-                todos: [{ task: 'Eat an apple' }],
+            },
+            {
+              id: '1',
+              type: userNode.type,
+              firstName: 'Apple',
+              lastName: 'Woman',
+              meetings: {
+                nodes: [
+                  {
+                    id: '1',
+                    name: 'Apple Meeting',
+                    archived: false,
+                    todos: [{ task: 'Eat an apple' }],
+                  },
+                ],
               },
-            ],
-          },
-        ],
+            },
+          ],
+        },
       };
 
       const mockNewQuery: QueryRecord = {
@@ -943,24 +961,26 @@ describe('getDataForQueryFromCache', () => {
     };
 
     const mockQueryResults = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-          email: 'test@email.com',
-          nickName: 'Aidan',
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-          email: 'test@email.com',
-          nickName: 'Piotr',
-        },
-      ],
+      users: {
+        nodes: [
+          {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            email: 'test@email.com',
+            nickName: 'Aidan',
+          },
+          {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            email: 'test@email.com',
+            nickName: 'Piotr',
+          },
+        ],
+      },
     };
 
     const expectedCachedData = {
@@ -1017,54 +1037,60 @@ describe('getDataForQueryFromCache', () => {
     };
 
     const mockQueryResults = {
-      users: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-          email: 'test@email.com',
-          nickName: 'nickName',
-          todos: [
-            {
-              id: 'todo-id-1',
-              type: todoNode.type,
-              task: 'todo-task-1',
-              isArchived: false,
-              assignee: {
-                id: 'user-id-1',
-                type: userNode.type,
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-                email: 'test@email.com',
-              },
+      users: {
+        nodes: [
+          {
+            id: 'user-id-1',
+            type: userNode.type,
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            email: 'test@email.com',
+            nickName: 'nickName',
+            todos: {
+              nodes: [
+                {
+                  id: 'todo-id-1',
+                  type: todoNode.type,
+                  task: 'todo-task-1',
+                  isArchived: false,
+                  assignee: {
+                    id: 'user-id-1',
+                    type: userNode.type,
+                    firstName: 'Aidan',
+                    lastName: 'Goodman',
+                    email: 'test@email.com',
+                  },
+                },
+              ],
             },
-          ],
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-          email: 'test@email.com',
-          nickName: 'nickName',
-          todos: [
-            {
-              id: 'todo-id-2',
-              type: todoNode.type,
-              task: 'todo-task-2',
-              isArchived: false,
-              assignee: {
-                id: 'user-id-2',
-                type: userNode.type,
-                firstName: 'Piotr',
-                lastName: 'Bogun',
-                email: 'test@email.com',
-              },
+          },
+          {
+            id: 'user-id-2',
+            type: userNode.type,
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            email: 'test@email.com',
+            nickName: 'nickName',
+            todos: {
+              nodes: [
+                {
+                  id: 'todo-id-2',
+                  type: todoNode.type,
+                  task: 'todo-task-2',
+                  isArchived: false,
+                  assignee: {
+                    id: 'user-id-2',
+                    type: userNode.type,
+                    firstName: 'Piotr',
+                    lastName: 'Bogun',
+                    email: 'test@email.com',
+                  },
+                },
+              ],
             },
-          ],
-        },
-      ],
+          },
+        ],
+      },
     };
 
     const expectedCachedData = {

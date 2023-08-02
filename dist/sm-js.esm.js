@@ -7969,31 +7969,44 @@ var QuerySlimmer = /*#__PURE__*/function () {
   // with how many current active subscriptions exist for each field in the query.
   ;
 
-  _proto.cacheNewData = function cacheNewData(queryRecord, queryResponse, parentContextKey) {
+  _proto.cacheNewData = function cacheNewData(queryRecordToCache, queryResponseToCache, parentContextKey) {
     var _this = this;
 
-    try {
-      Object.keys(queryRecord).forEach(function (queryRecordField) {
-        var queryRecordEntry = queryRecord[queryRecordField];
-        if (!queryRecordEntry) return;
+    Object.keys(queryRecordToCache).forEach(function (recordFieldToCache, recordFieldIndex) {
+      var queryRecordEntry = queryRecordToCache[recordFieldToCache];
+      if (!queryRecordEntry) return;
 
-        var currentQueryContextKey = _this.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
+      var currentQueryContextKey = _this.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
 
-        var cachedData = _this.queriesByContext[currentQueryContextKey];
-        var isResultsByParentId = parentContextKey !== undefined;
-        var results = {
-          byParentId: isResultsByParentId
-        };
-        var subscriptionsByProperty = cachedData != null && cachedData.subscriptionsByProperty ? _extends({}, cachedData == null ? void 0 : cachedData.subscriptionsByProperty) : {}; // If the root query response is an array
+      var currentCacheForThisContext = _this.queriesByContext[currentQueryContextKey];
+      var subscriptionsByProperty = currentCacheForThisContext != null && currentCacheForThisContext.subscriptionsByProperty ? _extends({}, currentCacheForThisContext == null ? void 0 : currentCacheForThisContext.subscriptionsByProperty) : {};
+      var isResultsByParentId = parentContextKey !== undefined;
+      var resultsToCache = {
+        byParentId: isResultsByParentId
+      }; // If we are dealing with relational data in a recursive call, the data will be organized under id keys of the parent object.
+      // If we are getting todos under a user the results will look like this:
+      // { [user-id]: { todos: { nodes: [...todos for this user] } }
+      // We want to cache this data as is but with only the actual todo data.
+      // For example, if the todos have further relational data (assignees), those should be cached under their own context.
 
-        if (Array.isArray(queryResponse[queryRecordField])) {
-          results[queryRecordField] = {
-            nodes: queryResponse[queryRecordField].map(function (qResponse, qResponseIndex) {
-              var fieldsToCache = {};
+      if (isResultsByParentId) {
+        var parentIdKeys = Object.keys(queryResponseToCache);
+        parentIdKeys.forEach(function (parentId, parentIndex) {
+          resultsToCache[parentId] = {};
+          var dataToCacheForParent = resultsToCache[parentId];
+          var responseDataForParent = queryResponseToCache[parentId][recordFieldToCache]; // If the data for this field is a nodes collection, we loop over each result and only cache the data
+          // for this particular model, leaving out any relational data.
+
+          if ('nodes' in responseDataForParent) {
+            dataToCacheForParent[recordFieldToCache] = {
+              nodes: []
+            };
+            responseDataForParent.nodes.forEach(function (response, responseIndex) {
+              var dataToCache = {};
               queryRecordEntry.properties.forEach(function (property) {
-                fieldsToCache[property] = qResponse[property];
+                dataToCache[property] = response[property];
 
-                if (qResponseIndex === 0) {
+                if (recordFieldIndex === 0 && responseIndex === 0 && parentIndex === 0) {
                   if (subscriptionsByProperty[property]) {
                     subscriptionsByProperty[property] += 1;
                   } else {
@@ -8001,126 +8014,112 @@ var QuerySlimmer = /*#__PURE__*/function () {
                   }
                 }
               });
-              return fieldsToCache;
-            })
-          }; // If the root query response is not an array
-        } else {
-          if (isResultsByParentId) {
-            var parentIdKeys = Object.keys(queryResponse[queryRecordField]);
-            parentIdKeys.forEach(function (parentId, parentIndex) {
-              results[parentId] = {};
-              var parentResult = results[parentId];
-              var responseQueryField = queryResponse[queryRecordField][parentId];
-
-              if (Array.isArray(responseQueryField)) {
-                parentResult[queryRecordField] = {
-                  nodes: []
-                };
-                responseQueryField.forEach(function (response) {
-                  var resultsToCache = {};
-                  queryRecordEntry.properties.forEach(function (property) {
-                    resultsToCache[property] = response[property];
-
-                    if (parentIndex === 0) {
-                      if (subscriptionsByProperty[property]) {
-                        subscriptionsByProperty[property] += 1;
-                      } else {
-                        subscriptionsByProperty[property] = 1;
-                      }
-                    }
-                  });
-                  parentResult[queryRecordField].nodes.push(resultsToCache);
-                });
-              } else {
-                parentResult[queryRecordField] = {};
-                queryRecordEntry.properties.forEach(function (property) {
-                  parentResult[queryRecordField][property] = responseQueryField[property];
-
-                  if (parentIndex === 0) {
-                    if (subscriptionsByProperty[property]) {
-                      subscriptionsByProperty[property] += 1;
-                    } else {
-                      subscriptionsByProperty[property] = 1;
-                    }
-                  }
-                });
-              }
-            });
+              dataToCacheForParent[recordFieldToCache].nodes.push(dataToCache);
+            }); // This data is not a nodes collection. We can just look at the data object and cache only the data
+            // for this particular model.
           } else {
-            results[queryRecordField] = {};
-            var resultObj = results[queryRecordField];
+            dataToCacheForParent[recordFieldToCache] = {};
             queryRecordEntry.properties.forEach(function (property) {
-              resultObj[property] = queryResponse[queryRecordField][property];
+              dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
 
-              if (subscriptionsByProperty[property]) {
-                subscriptionsByProperty[property] += 1;
-              } else {
-                subscriptionsByProperty[property] = 1;
+              if (recordFieldIndex === 0 && parentIndex === 0) {
+                if (subscriptionsByProperty[property]) {
+                  subscriptionsByProperty[property] += 1;
+                } else {
+                  subscriptionsByProperty[property] = 1;
+                }
               }
             });
           }
-        }
+        }); // Deal with data that is not relational (top level of a query).
+      } else {
+        resultsToCache[recordFieldToCache] = {};
+        var resultObj = resultsToCache[recordFieldToCache]; // Handle nodes collection
 
-        _this.queriesByContext[currentQueryContextKey] = {
-          subscriptionsByProperty: subscriptionsByProperty,
-          results: results
-        };
+        if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+          resultObj['nodes'] = queryResponseToCache[recordFieldToCache]['nodes'].map(function (response, responseIndex) {
+            var dataToCache = {};
+            queryRecordEntry.properties.forEach(function (property) {
+              dataToCache[property] = response[property];
 
-        if (queryRecordEntry.relational !== undefined) {
-          var relationalQueryRecord = queryRecordEntry.relational;
-          var relationalFields = Object.keys(relationalQueryRecord);
-          var relationalResults = {};
-
-          if (Array.isArray(queryResponse[queryRecordField])) {
-            queryResponse[queryRecordField].forEach(function (queryResponse) {
-              relationalFields.forEach(function (rField) {
-                if (relationalResults[rField]) {
-                  relationalResults[rField][queryResponse.id] = queryResponse[rField];
+              if (responseIndex === 0) {
+                if (subscriptionsByProperty[property]) {
+                  subscriptionsByProperty[property] += 1;
                 } else {
-                  relationalResults[rField] = {};
-                  relationalResults[rField][queryResponse.id] = queryResponse[rField];
+                  subscriptionsByProperty[property] = 1;
                 }
+              }
+            });
+            return dataToCache;
+          });
+        } else {
+          queryRecordEntry.properties.forEach(function (property) {
+            resultObj[property] = queryResponseToCache[recordFieldToCache][property];
+
+            if (subscriptionsByProperty[property]) {
+              subscriptionsByProperty[property] += 1;
+            } else {
+              subscriptionsByProperty[property] = 1;
+            }
+          });
+        }
+      } // Cache the data we have organized for this specific query record (no relational data).
+
+
+      _this.queriesByContext[currentQueryContextKey] = {
+        subscriptionsByProperty: subscriptionsByProperty,
+        results: resultsToCache
+      }; // If this QueryRecord has relational data, we organize the specific relational data under each individual parent id.
+      // relationalDataToCache will hold only relational.
+
+      if (queryRecordEntry.relational !== undefined) {
+        var relationalQueryRecord = queryRecordEntry.relational;
+        var relationalFields = Object.keys(relationalQueryRecord);
+        var relationalDataToCache = {}; // The data we are given is organized under parent id keys.
+
+        if (isResultsByParentId) {
+          var parentIds = Object.keys(queryResponseToCache);
+          parentIds.forEach(function (pId) {
+            var dataUnderParentId = queryResponseToCache[pId];
+            var queryFields = Object.keys(dataUnderParentId);
+            queryFields.forEach(function (queryField) {
+              var dataForQueryField = dataUnderParentId[queryField];
+
+              if ('nodes' in dataForQueryField) {
+                dataForQueryField.nodes.forEach(function (data) {
+                  relationalDataToCache[data.id] = {};
+                  relationalFields.forEach(function (rField) {
+                    relationalDataToCache[data.id][rField] = data[rField];
+                  });
+                });
+              } else {
+                relationalDataToCache[dataForQueryField.id] = {};
+                relationalFields.forEach(function (rField) {
+                  relationalDataToCache[dataForQueryField.id][rField] = dataForQueryField[rField];
+                });
+              }
+            });
+          });
+        } else {
+          if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+            queryResponseToCache[recordFieldToCache].nodes.forEach(function (response) {
+              relationalDataToCache[response.id] = {};
+              relationalFields.forEach(function (rField) {
+                relationalDataToCache[response.id][rField] = response[rField];
               });
             });
           } else {
-            if (isResultsByParentId) {
-              var parentIds = Object.keys(queryResponse[queryRecordField]);
-              parentIds.forEach(function (pId) {
-                var resultsForParentId = queryResponse[queryRecordField][pId];
-
-                if (Array.isArray(resultsForParentId)) {
-                  resultsForParentId.forEach(function (result) {
-                    relationalFields.forEach(function (rField) {
-                      if (!relationalResults[rField]) {
-                        relationalResults[rField] = {};
-                      }
-
-                      relationalResults[rField][result.id] = result[rField];
-                    });
-                  });
-                } else {
-                  relationalFields.forEach(function (rField) {
-                    if (!relationalResults[resultsForParentId.id]) {
-                      relationalResults[resultsForParentId.id] = {};
-                    }
-
-                    relationalResults[resultsForParentId.id][rField] = resultsForParentId[rField];
-                  });
-                }
-              });
-            } else {
-              relationalFields.forEach(function (rField) {
-                relationalResults[queryResponse.id][rField] = queryResponse[rField];
-              });
-            }
+            var idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
+            relationalDataToCache[idOfQueryRecord] = {};
+            relationalFields.forEach(function (rField) {
+              relationalDataToCache[idOfQueryRecord][rField] = queryResponseToCache[recordFieldToCache][rField];
+            });
           }
-
-          _this.cacheNewData(queryRecordEntry.relational, relationalResults, currentQueryContextKey);
         }
-      });
-    } catch (e) {
-      throw new Error("QuerySlimmer populateQueriesByContext: " + e);
-    }
+
+        _this.cacheNewData(queryRecordEntry.relational, relationalDataToCache, currentQueryContextKey);
+      }
+    });
   } // Given a QueryRecord for a new query returns a QueryRecord that
   // has properties removed that are already cached.
   ;
