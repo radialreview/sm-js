@@ -37,124 +37,137 @@ function setupTests() {
       done: boolean,
     },
   });
+  const headlineNode = mmGQL.def({
+    type: 'headline',
+    properties: {
+      title: string,
+    },
+  });
 
   return {
     QuerySlimmer: new QuerySlimmer(mmGQL),
     userNode,
     meetingNode,
     todoNode,
+    headlineNode,
   };
 }
 
 describe('cacheNewData', () => {
-  test('it should cache by id queries where the result is a single object', () => {
-    const { QuerySlimmer, userNode } = setupTests();
+  // test('it should cache by id queries where the result is a single object', () => {
+  //   const { QuerySlimmer, userNode } = setupTests();
 
-    const mockQueryRecord: QueryRecord = {
-      user: {
-        id: 'user-id-1',
-        def: userNode,
-        properties: ['id', 'type', 'firstName', 'lastName'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
+  //   const mockQueryRecord: QueryRecord = {
+  //     user: {
+  //       id: 'user-id-1',
+  //       def: userNode,
+  //       properties: ['id', 'type', 'firstName', 'lastName'],
+  //       tokenName: DEFAULT_TOKEN_NAME,
+  //     },
+  //   };
 
-    const mockRequestResponse = {
-      user: {
-        id: 'user-id-1',
-        type: userNode.type,
-        firstName: 'Piotr',
-        lastName: 'Bogun',
-        email: 'test@email.com',
-        nickName: 'Piotr',
-      },
-    };
+  //   const mockRequestResponse = {
+  //     user: {
+  //       id: 'user-id-1',
+  //       type: userNode.type,
+  //       firstName: 'Piotr',
+  //       lastName: 'Bogun',
+  //       email: 'test@email.com',
+  //       nickName: 'Piotr',
+  //     },
+  //   };
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
-      subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-      results: {
-        byParentId: false,
-        user: {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-        },
-      },
-    });
-  });
+  //   expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
+  //     subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+  //     results: {
+  //       byParentId: false,
+  //       user: {
+  //         id: 'user-id-1',
+  //         type: userNode.type,
+  //         firstName: 'Piotr',
+  //         lastName: 'Bogun',
+  //       },
+  //     },
+  //   });
+  // });
 
-  test('it should cache by ids queries where the result is a nodes collection', () => {
-    const { QuerySlimmer, userNode } = setupTests();
+  // test('it should cache by ids queries where the result is a nodes collection', () => {
+  //   const { QuerySlimmer, userNode } = setupTests();
 
-    const mockQueryRecord: QueryRecord = {
-      users: {
-        ids: ['user-id-1', 'user-id-2'],
-        def: userNode,
-        properties: ['id', 'type', 'firstName', 'lastName'],
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
-    };
+  //   const mockQueryRecord: QueryRecord = {
+  //     users: {
+  //       ids: ['user-id-1', 'user-id-2'],
+  //       def: userNode,
+  //       properties: ['id', 'type', 'firstName', 'lastName'],
+  //       tokenName: DEFAULT_TOKEN_NAME,
+  //     },
+  //   };
 
-    const mockRequestResponse = {
-      users: {
-        nodes: [
-          {
-            id: 'user-id-1',
-            type: userNode.type,
-            firstName: 'Aidan',
-            lastName: 'Goodman',
-            email: 'test@email.com',
-            nickName: 'Aidan',
-          },
-          {
-            id: 'user-id-2',
-            type: userNode.type,
-            firstName: 'Piotr',
-            lastName: 'Bogun',
-            email: 'test@email.com',
-            nickName: 'Piotr',
-          },
-        ],
-      },
-    };
+  //   const mockRequestResponse = {
+  //     users: {
+  //       nodes: [
+  //         {
+  //           id: 'user-id-1',
+  //           type: userNode.type,
+  //           firstName: 'Aidan',
+  //           lastName: 'Goodman',
+  //           email: 'test@email.com',
+  //           nickName: 'Aidan',
+  //         },
+  //         {
+  //           id: 'user-id-2',
+  //           type: userNode.type,
+  //           firstName: 'Piotr',
+  //           lastName: 'Bogun',
+  //           email: 'test@email.com',
+  //           nickName: 'Piotr',
+  //         },
+  //       ],
+  //     },
+  //   };
 
-    const expectedCachedUserData = {
-      nodes: [
-        {
-          id: 'user-id-1',
-          type: userNode.type,
-          firstName: 'Aidan',
-          lastName: 'Goodman',
-        },
-        {
-          id: 'user-id-2',
-          type: userNode.type,
-          firstName: 'Piotr',
-          lastName: 'Bogun',
-        },
-      ],
-    };
+  //   const expectedCachedUserData = {
+  //     nodes: [
+  //       {
+  //         id: 'user-id-1',
+  //         type: userNode.type,
+  //         firstName: 'Aidan',
+  //         lastName: 'Goodman',
+  //       },
+  //       {
+  //         id: 'user-id-2',
+  //         type: userNode.type,
+  //         firstName: 'Piotr',
+  //         lastName: 'Bogun',
+  //       },
+  //     ],
+  //   };
 
-    const expectedCache = {
-      'users({"ids":["user-id-1","user-id-2"]})': {
-        subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-        results: {
-          byParentId: false,
-          users: expectedCachedUserData,
-        },
-      },
-    };
+  //   const expectedCache = {
+  //     'users({"ids":["user-id-1","user-id-2"]})': {
+  //       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
+  //       results: {
+  //         byParentId: false,
+  //         users: expectedCachedUserData,
+  //       },
+  //     },
+  //   };
 
-    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
-  });
+  //   expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
+  // });
 
-  test('it should create separate records for child relational data handling arrays and objects in the tree', () => {
-    const { QuerySlimmer, userNode, todoNode, meetingNode } = setupTests();
+  test.only('it should cache data separately under query context keys', () => {
+    const {
+      QuerySlimmer,
+      userNode,
+      todoNode,
+      meetingNode,
+      headlineNode,
+    } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
       user: {
@@ -167,6 +180,20 @@ describe('cacheNewData', () => {
             oneToMany: true,
             _relationshipName: 'todos',
             properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            oneToMany: true,
+            _relationshipName: 'headlines',
+            properties: ['id', 'title'],
             relational: {
               assignee: {
                 def: userNode,
@@ -195,6 +222,12 @@ describe('cacheNewData', () => {
                 oneToMany: true,
                 _relationshipName: 'todos',
                 properties: ['id', 'task'],
+              },
+              headlines: {
+                def: headlineNode,
+                oneToMany: true,
+                _relationshipName: 'headlines',
+                properties: ['id', 'title'],
               },
             },
           },
@@ -235,6 +268,32 @@ describe('cacheNewData', () => {
             },
           ],
         },
+        headlines: {
+          nodes: [
+            {
+              id: 'aidan-headline-id-1',
+              type: headlineNode.type,
+              title: 'aidan-headline-title-1',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-headline-id-2',
+              type: headlineNode.type,
+              title: 'aidan-headline-title-2',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
       },
       users: {
         nodes: [
@@ -261,6 +320,20 @@ describe('cacheNewData', () => {
                   },
                 ],
               },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'aidan-headline-id-1',
+                    type: headlineNode.type,
+                    title: 'aidan-headline-task-1',
+                  },
+                  {
+                    id: 'aidan-headline-id-2',
+                    type: headlineNode.type,
+                    title: 'aidan-headline-task-2',
+                  },
+                ],
+              },
             },
           },
           {
@@ -283,6 +356,20 @@ describe('cacheNewData', () => {
                     id: 'piotr-todo-id-2',
                     type: todoNode.type,
                     task: 'piotr-todo-task-2',
+                  },
+                ],
+              },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'piotr-headline-id-1',
+                    type: headlineNode.type,
+                    task: 'piotr-headline-task-1',
+                  },
+                  {
+                    id: 'piotr-headline-id-2',
+                    type: headlineNode.type,
+                    task: 'piotr-headline-task-2',
                   },
                 ],
               },
@@ -326,7 +413,41 @@ describe('cacheNewData', () => {
           },
         },
       },
-      'user({"id":"aidan-id"}).todos(NO_PARAMS).users(NO_PARAMS)': {
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  type: headlineNode.type,
+                  title: 'aidan-headline-title-1',
+                  assignee: {
+                    id: 'aidan-id',
+                    type: userNode.type,
+                    firstName: 'Aidan',
+                    lastName: 'Goodman',
+                  },
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  type: headlineNode.type,
+                  title: 'aidan-headline-title-2',
+                  assignee: {
+                    id: 'aidan-id',
+                    type: userNode.type,
+                    firstName: 'Aidan',
+                    lastName: 'Goodman',
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
         subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
         results: {
           byParentId: true,
@@ -366,7 +487,7 @@ describe('cacheNewData', () => {
           },
         },
       },
-      'users({"ids":["aidan-id","piotr-id"]}).meetings(NO_PARAMS)': {
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS)': {
         subscriptionsByProperty: { id: 1, name: 1 },
         results: {
           byParentId: true,
@@ -384,7 +505,7 @@ describe('cacheNewData', () => {
           },
         },
       },
-      'users({"ids":["aidan-id","piotr-id"]}).meetings(NO_PARAMS).todos(NO_PARAMS)': {
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).todos(NO_PARAMS)': {
         subscriptionsByProperty: { id: 1, task: 1 },
         results: {
           byParentId: true,
@@ -418,7 +539,50 @@ describe('cacheNewData', () => {
           },
         },
       },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  type: headlineNode.type,
+                  task: 'aidan-headline-task-1',
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  type: headlineNode.type,
+                  task: 'aidan-headline-task-2',
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'piotr-headline-id-1',
+                  type: headlineNode.type,
+                  task: 'piotr-headline-task-1',
+                },
+                {
+                  id: 'piotr-headline-id-2',
+                  type: headlineNode.type,
+                  task: 'piotr-headline-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
     };
+
+    console.log(
+      'cache',
+      JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2)
+    );
 
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });

@@ -1,3 +1,7 @@
+// PIOTR TODO
+// - Use relationshipName
+// - Snapshot tests
+
 // import { observable, when } from 'mobx';
 import { observable } from 'mobx';
 
@@ -859,15 +863,25 @@ export class QuerySlimmer {
   ) {
     const doesQueryHaveIdProperty =
       'id' in queryRecordEntry && !!queryRecordEntry.id;
+
     const parentContextKeyPrefix = !!parentContextKey
       ? `${parentContextKey}.`
       : '';
-    const currentQueryTypeProperty = `${queryRecordEntry.def.type}${
-      doesQueryHaveIdProperty ? '' : 's'
-    }`;
+
+    let currentQueryTypeProperty = '';
+
+    if ((queryRecordEntry as any)['_relationshipName']) {
+      currentQueryTypeProperty = (queryRecordEntry as any)['_relationshipName'];
+    } else {
+      currentQueryTypeProperty = `${queryRecordEntry.def.type}${
+        doesQueryHaveIdProperty ? '' : 's'
+      }`;
+    }
+
     const currentQueryStringifiedParams = this.stringifyQueryParams(
       queryRecordEntry
     );
+
     return `${parentContextKeyPrefix}${currentQueryTypeProperty}(${currentQueryStringifiedParams})`;
   }
 
