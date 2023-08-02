@@ -150,21 +150,24 @@ export class QuerySlimmer {
                 (response: Record<string, any>, responseIndex: number) => {
                   const dataToCache: Record<string, any> = {};
 
-                  if (recordFieldIndex === 0 && responseIndex === 0) {
-                    queryRecordEntry.properties.forEach(property => {
-                      dataToCache[property] = response[property];
-                      if (parentIndex === 0) {
-                        if (subscriptionsByProperty[property]) {
-                          subscriptionsByProperty[property] += 1;
-                        } else {
-                          subscriptionsByProperty[property] = 1;
-                        }
+                  queryRecordEntry.properties.forEach(property => {
+                    dataToCache[property] = response[property];
+
+                    if (
+                      recordFieldIndex === 0 &&
+                      responseIndex === 0 &&
+                      parentIndex === 0
+                    ) {
+                      if (subscriptionsByProperty[property]) {
+                        subscriptionsByProperty[property] += 1;
+                      } else {
+                        subscriptionsByProperty[property] = 1;
                       }
-                    });
-                  }
+                    }
+                  });
 
                   dataToCacheForParent[recordFieldToCache].nodes.push(
-                    resultsToCache
+                    dataToCache
                   );
                 }
               );
@@ -175,7 +178,7 @@ export class QuerySlimmer {
 
               queryRecordEntry.properties.forEach(property => {
                 dataToCacheForParent[recordFieldToCache][property] =
-                  dataToCacheForParent[property];
+                  responseDataForParent[property];
 
                 if (recordFieldIndex === 0 && parentIndex === 0) {
                   if (subscriptionsByProperty[property]) {
@@ -294,11 +297,6 @@ export class QuerySlimmer {
               });
             }
           }
-
-          console.log(
-            'relationalDataToCache',
-            JSON.stringify(relationalDataToCache, undefined, 2)
-          );
 
           this.cacheNewData(
             queryRecordEntry.relational,

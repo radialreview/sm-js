@@ -11,27 +11,6 @@ import { getMockConfig } from '../specUtilities';
 //   TQueryRecordByContextMap,
 // } from './QuerySlimmer';
 
-// function stringify(obj: any) {
-//   let cache: any = [];
-//   let str = JSON.stringify(
-//     obj,
-//     function(_, value) {
-//       if (typeof value === 'object' && value !== null) {
-//         if (cache.indexOf(value) !== -1) {
-//           // Circular reference found, discard key
-//           return;
-//         }
-//         // Store value in our collection
-//         cache.push(value);
-//       }
-//       return value;
-//     },
-//     2
-//   );
-//   cache = null; // reset the cache
-//   return str;
-// }
-
 function setupTests() {
   const mmGQL = new MMGQL(getMockConfig());
 
@@ -174,7 +153,7 @@ describe('cacheNewData', () => {
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
 
-  test.only('it should create separate records for child relational data handling arrays and objects in the tree', () => {
+  test('it should create separate records for child relational data handling arrays and objects in the tree', () => {
     const { QuerySlimmer, userNode, todoNode, meetingNode } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -315,8 +294,6 @@ describe('cacheNewData', () => {
 
     QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
-    // console.log('queriesByContext', stringify(QuerySlimmer.queriesByContext));
-
     const expectedCache = {
       'user({"id":"aidan-id"})': {
         subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
@@ -426,19 +403,17 @@ describe('cacheNewData', () => {
             },
           },
           'piotr-meeting-id-1': {
-            meeting: {
-              todos: {
-                nodes: [
-                  {
-                    id: 'piotr-todo-id-1',
-                    task: 'piotr-todo-task-1',
-                  },
-                  {
-                    id: 'piotr-todo-id-2',
-                    task: 'piotr-todo-task-2',
-                  },
-                ],
-              },
+            todos: {
+              nodes: [
+                {
+                  id: 'piotr-todo-id-1',
+                  task: 'piotr-todo-task-1',
+                },
+                {
+                  id: 'piotr-todo-id-2',
+                  task: 'piotr-todo-task-2',
+                },
+              ],
             },
           },
         },
