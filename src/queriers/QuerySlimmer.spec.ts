@@ -364,12 +364,12 @@ describe('cacheNewData', () => {
                   {
                     id: 'piotr-headline-id-1',
                     type: headlineNode.type,
-                    task: 'piotr-headline-task-1',
+                    title: 'piotr-headline-task-1',
                   },
                   {
                     id: 'piotr-headline-id-2',
                     type: headlineNode.type,
-                    task: 'piotr-headline-task-2',
+                    title: 'piotr-headline-task-2',
                   },
                 ],
               },

@@ -107,6 +107,13 @@ export class QuerySlimmer {
     queryResponseToCache: Record<string, any>,
     parentContextKey?: string
   ) {
+    if (parentContextKey) {
+      console.log(
+        'queryResponseToCache',
+        JSON.stringify(queryResponseToCache, undefined, 2)
+      );
+    }
+
     Object.keys(queryRecordToCache).forEach(recordFieldToCache => {
       const queryRecordEntry = queryRecordToCache[recordFieldToCache];
       if (!queryRecordEntry) return;
@@ -230,6 +237,7 @@ export class QuerySlimmer {
       }
 
       // Cache the data we have organized for this specific query record (no relational data).
+      // PIOTR TODO: Don't overwrite existing data.
       this.queriesByContext[currentQueryContextKey] = {
         subscriptionsByProperty: subscriptionsByProperty,
         results: resultsToCache,
@@ -243,40 +251,62 @@ export class QuerySlimmer {
 
         // The data we are given is organized under parent id keys.
         if (isResultsByParentId) {
-          const parentIds = Object.keys(queryResponseToCache);
+          relationalFields.forEach(rField => {
+            const parentIds = Object.keys(queryResponseToCache);
+            const dataToCacheForField: Record<string, any> = {};
 
-          parentIds.forEach(pId => {
-            const dataUnderParentId = queryResponseToCache[pId];
-            const fieldsUnderParent = Object.keys(dataUnderParentId);
+            parentIds.forEach(pId => {
+              const dataForRecordField =
+                queryResponseToCache[pId][recordFieldToCache];
 
-            fieldsUnderParent.forEach(fieldUnderParent => {
-              const dataForQueryField = dataUnderParentId[fieldUnderParent];
-              const dataToCacheForField: Record<string, any> = {};
-
-              if ('nodes' in dataForQueryField) {
-                dataForQueryField.nodes.forEach((data: Record<string, any>) => {
-                  dataToCacheForField[data.id] = {};
-
-                  relationalFields.forEach(rField => {
-                    dataToCacheForField[data.id][rField] = data[rField];
-                  });
-                });
-              } else {
-                dataToCacheForField[dataForQueryField.id] = {};
-
-                relationalFields.forEach(rField => {
-                  dataToCacheForField[dataForQueryField.id][rField] =
-                    dataForQueryField[rField];
-                });
-              }
-
-              this.cacheNewData(
-                relationalQueryRecord,
-                dataToCacheForField,
-                currentQueryContextKey
-              );
+              dataToCacheForField[dataForRecordField['id']] = {
+                [rField]: dataForRecordField[rField],
+              };
             });
+
+            const queryRecordForThisRField = {
+              [rField]: relationalQueryRecord[rField],
+            };
+
+            this.cacheNewData(
+              queryRecordForThisRField,
+              dataToCacheForField,
+              currentQueryContextKey
+            );
           });
+
+          // const parentIds = Object.keys(queryResponseToCache);
+          // parentIds.forEach(pId => {
+          //   const dataUnderParentId = queryResponseToCache[pId];
+          //   const fieldsUnderParent = Object.keys(dataUnderParentId);
+          //   fieldsUnderParent.forEach(fieldUnderParent => {
+          //     const dataForQueryField = dataUnderParentId[fieldUnderParent];
+          //     const dataToCacheForField: Record<string, any> = {};
+          //     if ('nodes' in dataForQueryField) {
+          //       dataForQueryField.nodes.forEach((data: Record<string, any>) => {
+          //         dataToCacheForField[data.id] = {};
+          //         relationalFields.forEach(rField => {
+          //           dataToCacheForField[data.id][rField] = data[rField];
+          //         });
+          //       });
+          //     } else {
+          //       dataToCacheForField[dataForQueryField.id] = {};
+          //       relationalFields.forEach(rField => {
+          //         dataToCacheForField[dataForQueryField.id][rField] =
+          //           dataForQueryField[rField];
+          //       });
+          //     }
+          //     console.log(
+          //       'dataToCacheForField',
+          //       JSON.stringify(dataToCacheForField, undefined, 2)
+          //     );
+          //     this.cacheNewData(
+          //       relationalQueryRecord,
+          //       dataToCacheForField,
+          //       currentQueryContextKey
+          //     );
+          //   });
+          // });
         } else {
           const relationalDataToCache: Record<string, any> = {};
 
