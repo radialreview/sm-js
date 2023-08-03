@@ -240,7 +240,6 @@ export class QuerySlimmer {
       if (queryRecordEntry.relational !== undefined) {
         const relationalQueryRecord = queryRecordEntry.relational;
         const relationalFields = Object.keys(relationalQueryRecord);
-        const relationalDataToCache: Record<string, any> = {};
 
         // The data we are given is organized under parent id keys.
         if (isResultsByParentId) {
@@ -248,30 +247,39 @@ export class QuerySlimmer {
 
           parentIds.forEach(pId => {
             const dataUnderParentId = queryResponseToCache[pId];
-            const queryFields = Object.keys(dataUnderParentId);
+            const fieldsUnderParent = Object.keys(dataUnderParentId);
 
-            queryFields.forEach(queryField => {
-              const dataForQueryField = dataUnderParentId[queryField];
+            fieldsUnderParent.forEach(fieldUnderParent => {
+              const dataForQueryField = dataUnderParentId[fieldUnderParent];
+              const dataToCacheForField: Record<string, any> = {};
 
               if ('nodes' in dataForQueryField) {
                 dataForQueryField.nodes.forEach((data: Record<string, any>) => {
-                  relationalDataToCache[data.id] = {};
+                  dataToCacheForField[data.id] = {};
 
                   relationalFields.forEach(rField => {
-                    relationalDataToCache[data.id][rField] = data[rField];
+                    dataToCacheForField[data.id][rField] = data[rField];
                   });
                 });
               } else {
-                relationalDataToCache[dataForQueryField.id] = {};
+                dataToCacheForField[dataForQueryField.id] = {};
 
                 relationalFields.forEach(rField => {
-                  relationalDataToCache[dataForQueryField.id][rField] =
+                  dataToCacheForField[dataForQueryField.id][rField] =
                     dataForQueryField[rField];
                 });
               }
+
+              this.cacheNewData(
+                relationalQueryRecord,
+                dataToCacheForField,
+                currentQueryContextKey
+              );
             });
           });
         } else {
+          const relationalDataToCache: Record<string, any> = {};
+
           if ('nodes' in queryResponseToCache[recordFieldToCache]) {
             queryResponseToCache[recordFieldToCache].nodes.forEach(
               (response: Record<string, any>) => {
@@ -282,22 +290,35 @@ export class QuerySlimmer {
                 });
               }
             );
-          } else {
-            const idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
-            relationalDataToCache[idOfQueryRecord] = {};
 
+            this.cacheNewData(
+              relationalQueryRecord,
+              relationalDataToCache,
+              currentQueryContextKey
+            );
+          } else {
             relationalFields.forEach(rField => {
-              relationalDataToCache[idOfQueryRecord][rField] =
-                queryResponseToCache[recordFieldToCache][rField];
+              const idOfQueryRecord =
+                queryResponseToCache[recordFieldToCache].id;
+
+              const rDataToCache: Record<string, any> = {
+                [idOfQueryRecord]: {
+                  [rField]: queryResponseToCache[recordFieldToCache][rField],
+                },
+              };
+
+              const queryRecordForThisRField = {
+                [rField]: relationalQueryRecord[rField],
+              };
+
+              this.cacheNewData(
+                queryRecordForThisRField,
+                rDataToCache,
+                currentQueryContextKey
+              );
             });
           }
         }
-
-        this.cacheNewData(
-          queryRecordEntry.relational,
-          relationalDataToCache,
-          currentQueryContextKey
-        );
       }
     });
   }
