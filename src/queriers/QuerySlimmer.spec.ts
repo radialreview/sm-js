@@ -422,25 +422,11 @@ describe('cacheNewData', () => {
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
-                  type: headlineNode.type,
                   title: 'aidan-headline-title-1',
-                  assignee: {
-                    id: 'aidan-id',
-                    type: userNode.type,
-                    firstName: 'Aidan',
-                    lastName: 'Goodman',
-                  },
                 },
                 {
                   id: 'aidan-headline-id-2',
-                  type: headlineNode.type,
                   title: 'aidan-headline-title-2',
-                  assignee: {
-                    id: 'aidan-id',
-                    type: userNode.type,
-                    firstName: 'Aidan',
-                    lastName: 'Goodman',
-                  },
                 },
               ],
             },
@@ -459,6 +445,26 @@ describe('cacheNewData', () => {
             },
           },
           'aidan-todo-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-headline-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-headline-id-2': {
             assignee: {
               id: 'aidan-id',
               firstName: 'Aidan',
@@ -548,13 +554,11 @@ describe('cacheNewData', () => {
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
-                  type: headlineNode.type,
-                  task: 'aidan-headline-task-1',
+                  title: 'aidan-headline-task-1',
                 },
                 {
                   id: 'aidan-headline-id-2',
-                  type: headlineNode.type,
-                  task: 'aidan-headline-task-2',
+                  title: 'aidan-headline-task-2',
                 },
               ],
             },
@@ -564,13 +568,11 @@ describe('cacheNewData', () => {
               nodes: [
                 {
                   id: 'piotr-headline-id-1',
-                  type: headlineNode.type,
-                  task: 'piotr-headline-task-1',
+                  title: 'piotr-headline-task-1',
                 },
                 {
                   id: 'piotr-headline-id-2',
-                  type: headlineNode.type,
-                  task: 'piotr-headline-task-2',
+                  title: 'piotr-headline-task-2',
                 },
               ],
             },
