@@ -66,7 +66,7 @@ export class MMGQL implements IMMGQL {
 
     this.query = generateQuerier({ mmGQLInstance: this });
     this.subscribe = generateSubscriber(this);
-    this.DOProxyGenerator = createDOProxyGenerator(this);
+    this.DOProxyGenerator = createDOProxyGenerator();
     this.DOFactory = createDOFactory(this);
     this.QueryManager = createQueryManager(this);
     this.QuerySlimmer = new QuerySlimmer(this);

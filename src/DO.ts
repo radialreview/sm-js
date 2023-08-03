@@ -73,6 +73,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           persistedData: this.persistedData,
           defaultData: this._defaults,
         });
+        console.log('NOLEY THISPARSED', this.parsedData);
         mmGQLInstance.plugins?.forEach(plugin => {
           if (plugin.DO?.onConstruct) {
             plugin.DO.onConstruct({
@@ -315,6 +316,17 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
             persistedData: this.persistedData,
             defaultData: this._defaults,
           });
+          console.log(
+            'NOLEY WE NEVER GET HERE------------------------------------'
+          );
+          mmGQLInstance.plugins?.forEach(plugin => {
+            if (plugin.DO?.onConstruct) {
+              plugin.DO.onConstruct({
+                DOInstance: this,
+                parsedDataKey: 'parsedData',
+              });
+            }
+          });
         }
       };
 
@@ -415,6 +427,28 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
             return this.parsedData[propNameForThisObject];
           },
         });
+
+        // we have problems since this is already an observable, and you can't double observe things.
+        // console.log(
+        //   'NOLEY IN SETOBJECTPROP',
+        //   propNameForThisObject,
+        //   isObservable(this.parsedData[propNameForThisObject])
+        // );
+
+        // NOLEY NOTES: we can extendObservable here, but we are not extending the parsed data object, we are setting a new property on the
+        // DO, and even though it is a reference to the parsedData object:
+        // "only supports properties that are already defined. "
+        // 14. makeObservable(Object.create(prototype)) copies properties from prototype to created object and makes them observable.
+        // This behavior is wrong, unexpected and therefore deprecated and will likely change in future versions. Don't rely on it.
+
+        // mmGQLInstance.plugins?.forEach(plugin => {
+        //   if (plugin.DO?.onExtendNodePropGetters) {
+        //     plugin.DO.onExtendNodePropGetters({
+        //       DOInstance: this,
+        //       nodePropName: propNameForThisObject,
+        //     });
+        //   }
+        // });
       };
 
       private setPrimitiveValueProp = (propName: string) => {

@@ -3,7 +3,12 @@ import {
   getMockQueryResultExpectations,
   getMockConfig,
 } from './specUtilities';
-import { isObservableObject } from 'mobx';
+import {
+  isObservable,
+  isObservableObject,
+  isObservableProp,
+  observable,
+} from 'mobx';
 
 import { MMGQL } from '.';
 import { QueryDefinitions } from './types';
@@ -82,6 +87,24 @@ test.only('QueryManager handles a query result and returns the expected data wit
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
 
+  // NOLEY NOTES: test to see if the nested props on an object are observables
+
+  const object: Record<string, any> = observable({
+    key: {
+      nestedKey: 'value',
+      doubleNestedKey: { tripleNestedKey: { IamAKey: 'value' } },
+    },
+  });
+
+  object['newKey'] = { key: 'value' };
+
+  expect(isObservable(object)).toBe(true);
+  expect(isObservable(object.key)).toBe(true);
+  expect(isObservableProp(object.newKey, 'key')).toBe(true);
+  expect(isObservableProp(object.key, 'nestedKey')).toBe(true);
+  expect(isObservable(object.key.doubleNestedKey)).toBe(true);
+  expect(isObservable(object.key.doubleNestedKey.tripleNestedKey)).toBe(true);
+
   new mmGQLInstance.QueryManager(
     createMockQueryDefinitions(mmGQLInstance) as QueryDefinitions<
       any,
@@ -93,7 +116,7 @@ test.only('QueryManager handles a query result and returns the expected data wit
       subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       onResultsUpdated: resultsObject => {
-        console.log('NOLEY RESULTS OBJECT', resultsObject);
+        // console.log('NOLEY RESULTS OBJECT', resultsObject);
         resultsObject.users.nodes.forEach(
           (node: {
             parsedData: any;

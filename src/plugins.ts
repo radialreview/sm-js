@@ -6,6 +6,10 @@ export const mobxPlugin: Plugin = {
     onConstruct: ({ DOInstance, parsedDataKey }) => {
       makeAutoObservable(DOInstance[parsedDataKey]);
     },
+    // onExtendNodePropGetters: ({ DOInstance, nodePropName }) => {
+    //   extendObservable(DOInstance, DOInstance[nodePropName]);
+    //   // tried extends, tried observable, tried obervable.ref
+    // },
     computedDecorator: ({ DOInstance, computedFn }) => {
       return computed(() => computedFn(DOInstance)).get;
     },

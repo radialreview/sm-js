@@ -5,7 +5,6 @@ import {
 } from './exceptions';
 import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 import {
-  IMMGQL,
   IData,
   DataDefaultFn,
   IDOProxy,
@@ -16,7 +15,7 @@ import {
   DATA_TYPES,
 } from './types';
 
-export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
+export function createDOProxyGenerator() {
   /**
    * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
    * Instead, we decorate each DO instance with a bit of functionality
@@ -75,21 +74,6 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
           let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
-          // NOLEY CIRCULAR PROBLEMS - deal with this when smarter
-          // also, why do we need to do this for the proxy computed but not the parsed properties? I am curious as to why one and not the other.
-          // mmGQLInstance.plugins?.forEach(plugin => {
-          //   if (plugin.DOProxy?.computedDecorator) {
-          //     computedFn = plugin.DOProxy.computedDecorator({
-          //       ProxyInstance: proxy,
-          //       computedFn,
-          //     });
-          //   }
-          // });
-          if (mmGQLInstance.plugins) {
-            mmGQLInstance.plugins?.forEach(plugin => {
-              return plugin;
-            });
-          }
 
           acc[computedKey] = computedFn;
 

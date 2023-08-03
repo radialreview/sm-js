@@ -43,6 +43,7 @@ export type DocumentNode = import('@apollo/client/core').DocumentNode;
 export type Plugin = {
   DO?: {
     onConstruct?: (opts: { DOInstance: NodeDO; parsedDataKey: string }) => void;
+    onExtendNodePropGetters?: (opts: { DOInstance: NodeDO; nodePropName: string }) => void;
     computedDecorator?: <
       TReturnType,
       TComputedFn extends (data: Record<string, any>) => TReturnType
