@@ -904,8 +904,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       Object.keys(opts.stateWhichMayRequireUpdate).forEach(alias => {
         const queryRecordEntry = opts.queryRecord[alias];
 
-        if (!queryRecordEntry)
-          throw Error(`No query record entry found for the alias ${alias}`);
+        if (!queryRecordEntry) return; // nothing to do here
 
         this.applyClientSideFilterAndSortToStateEntry({
           stateEntryWhichMayRequireUpdate:
@@ -1452,10 +1451,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         (resultingStateAcc, queryAlias) => {
           const queryRecordEntry = opts.queryRecord[queryAlias];
 
-          if (!queryRecordEntry)
-            throw Error(`No query record entry found for ${queryAlias}`);
-
-          if (opts.data[queryAlias] == null) {
+          if (opts.data[queryAlias] == null || !queryRecordEntry) {
             resultingStateAcc[queryAlias] = getEmptyStateEntry();
             return resultingStateAcc;
           }
