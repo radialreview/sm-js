@@ -170,42 +170,42 @@ describe('cacheNewData', () => {
     } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
-      // user: {
-      //   def: userNode,
-      //   id: 'aidan-id',
-      //   properties: ['id', 'firstName', 'lastName'],
-      //   relational: {
-      //     todos: {
-      //       def: todoNode,
-      //       oneToMany: true,
-      //       _relationshipName: 'todos',
-      //       properties: ['id', 'task'],
-      //       relational: {
-      //         assignee: {
-      //           def: userNode,
-      //           oneToOne: true,
-      //           _relationshipName: 'assignee',
-      //           properties: ['id', 'firstName', 'lastName'],
-      //         },
-      //       },
-      //     },
-      //     headlines: {
-      //       def: headlineNode,
-      //       oneToMany: true,
-      //       _relationshipName: 'headlines',
-      //       properties: ['id', 'title'],
-      //       relational: {
-      //         assignee: {
-      //           def: userNode,
-      //           oneToOne: true,
-      //           _relationshipName: 'assignee',
-      //           properties: ['id', 'firstName', 'lastName'],
-      //         },
-      //       },
-      //     },
-      //   },
-      //   tokenName: DEFAULT_TOKEN_NAME,
-      // },
+      user: {
+        def: userNode,
+        id: 'aidan-id',
+        properties: ['id', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            oneToMany: true,
+            _relationshipName: 'headlines',
+            properties: ['id', 'title'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
       users: {
         def: userNode,
         ids: ['aidan-id', 'piotr-id'],
@@ -237,64 +237,64 @@ describe('cacheNewData', () => {
     };
 
     const mockRequestResponse = {
-      // user: {
-      //   id: 'aidan-id',
-      //   type: userNode,
-      //   firstName: 'Aidan',
-      //   lastName: 'Goodman',
-      //   todos: {
-      //     nodes: [
-      //       {
-      //         id: 'aidan-todo-id-1',
-      //         type: todoNode.type,
-      //         task: 'aidan-todo-task-1',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           type: userNode.type,
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //       {
-      //         id: 'aidan-todo-id-2',
-      //         type: todoNode.type,
-      //         task: 'aidan-todo-task-2',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           type: userNode.type,
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //     ],
-      //   },
-      //   headlines: {
-      //     nodes: [
-      //       {
-      //         id: 'aidan-headline-id-1',
-      //         type: headlineNode.type,
-      //         title: 'aidan-headline-title-1',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           type: userNode.type,
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //       {
-      //         id: 'aidan-headline-id-2',
-      //         type: headlineNode.type,
-      //         title: 'aidan-headline-title-2',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           type: userNode.type,
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //     ],
-      //   },
-      // },
+      user: {
+        id: 'aidan-id',
+        type: userNode,
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+        todos: {
+          nodes: [
+            {
+              id: 'aidan-todo-id-1',
+              type: todoNode.type,
+              task: 'aidan-todo-task-1',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-todo-id-2',
+              type: todoNode.type,
+              task: 'aidan-todo-task-2',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+        headlines: {
+          nodes: [
+            {
+              id: 'aidan-headline-id-1',
+              type: headlineNode.type,
+              title: 'aidan-headline-title-1',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-headline-id-2',
+              type: headlineNode.type,
+              title: 'aidan-headline-title-2',
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+      },
       users: {
         nodes: [
           {
@@ -382,97 +382,97 @@ describe('cacheNewData', () => {
     QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
 
     const expectedCache = {
-      // 'user({"id":"aidan-id"})': {
-      //   subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
-      //   results: {
-      //     byParentId: false,
-      //     user: {
-      //       id: 'aidan-id',
-      //       firstName: 'Aidan',
-      //       lastName: 'Goodman',
-      //     },
-      //   },
-      // },
-      // 'user({"id":"aidan-id"}).todos(NO_PARAMS)': {
-      //   subscriptionsByProperty: { id: 1, task: 1 },
-      //   results: {
-      //     byParentId: true,
-      //     'aidan-id': {
-      //       todos: {
-      //         nodes: [
-      //           {
-      //             id: 'aidan-todo-id-1',
-      //             task: 'aidan-todo-task-1',
-      //           },
-      //           {
-      //             id: 'aidan-todo-id-2',
-      //             task: 'aidan-todo-task-2',
-      //           },
-      //         ],
-      //       },
-      //     },
-      //   },
-      // },
-      // 'user({"id":"aidan-id"}).headlines(NO_PARAMS)': {
-      //   subscriptionsByProperty: { id: 1, title: 1 },
-      //   results: {
-      //     byParentId: true,
-      //     'aidan-id': {
-      //       headlines: {
-      //         nodes: [
-      //           {
-      //             id: 'aidan-headline-id-1',
-      //             title: 'aidan-headline-title-1',
-      //           },
-      //           {
-      //             id: 'aidan-headline-id-2',
-      //             title: 'aidan-headline-title-2',
-      //           },
-      //         ],
-      //       },
-      //     },
-      //   },
-      // },
-      // 'user({"id":"aidan-id"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
-      //   subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
-      //   results: {
-      //     byParentId: true,
-      //     'aidan-todo-id-1': {
-      //       assignee: {
-      //         id: 'aidan-id',
-      //         firstName: 'Aidan',
-      //         lastName: 'Goodman',
-      //       },
-      //     },
-      //     'aidan-todo-id-2': {
-      //       assignee: {
-      //         id: 'aidan-id',
-      //         firstName: 'Aidan',
-      //         lastName: 'Goodman',
-      //       },
-      //     },
-      //   },
-      // },
-      // 'user({"id":"aidan-id"}).headlines(NO_PARAMS).assignee(NO_PARAMS)': {
-      //   subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
-      //   results: {
-      //     byParentId: true,
-      //     'aidan-headline-id-1': {
-      //       assignee: {
-      //         id: 'aidan-id',
-      //         firstName: 'Aidan',
-      //         lastName: 'Goodman',
-      //       },
-      //     },
-      //     'aidan-headline-id-2': {
-      //       assignee: {
-      //         id: 'aidan-id',
-      //         firstName: 'Aidan',
-      //         lastName: 'Goodman',
-      //       },
-      //     },
-      //   },
-      // },
+      'user({"id":"aidan-id"})': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          user: {
+            id: 'aidan-id',
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, task: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  task: 'aidan-todo-task-1',
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  task: 'aidan-todo-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  title: 'aidan-headline-title-1',
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  title: 'aidan-headline-title-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-todo-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-todo-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-headline-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-headline-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
       'users({"ids":["aidan-id","piotr-id"]})': {
         subscriptionsByProperty: { id: 1, firstName: 1, lastName: 1 },
         results: {

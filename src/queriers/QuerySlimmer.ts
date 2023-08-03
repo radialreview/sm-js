@@ -107,12 +107,16 @@ export class QuerySlimmer {
     queryResponseToCache: Record<string, any>,
     parentContextKey?: string
   ) {
-    if (parentContextKey) {
-      console.log(
-        'queryResponseToCache',
-        JSON.stringify(queryResponseToCache, undefined, 2)
-      );
-    }
+    // if (parentContextKey) {
+    //   console.log(
+    //     'queryRecordToCache',
+    //     JSON.stringify(queryRecordToCache, undefined, 2)
+    //   );
+    //   console.log(
+    //     'queryResponseToCache',
+    //     JSON.stringify(queryResponseToCache, undefined, 2)
+    //   );
+    // }
 
     Object.keys(queryRecordToCache).forEach(recordFieldToCache => {
       const queryRecordEntry = queryRecordToCache[recordFieldToCache];
@@ -259,9 +263,20 @@ export class QuerySlimmer {
               const dataForRecordField =
                 queryResponseToCache[pId][recordFieldToCache];
 
-              dataToCacheForField[dataForRecordField['id']] = {
-                [rField]: dataForRecordField[rField],
-              };
+              if ('nodes' in dataForRecordField) {
+                dataForRecordField['nodes'].forEach(
+                  (datum: Record<string, any>) => {
+                    if (!dataToCacheForField[datum.id]) {
+                      dataToCacheForField[datum.id] = {};
+                    }
+                    dataToCacheForField[datum.id][rField] = datum[rField];
+                  }
+                );
+              } else {
+                dataToCacheForField[dataForRecordField['id']] = {
+                  [rField]: dataForRecordField[rField],
+                };
+              }
             });
 
             const queryRecordForThisRField = {
@@ -274,39 +289,6 @@ export class QuerySlimmer {
               currentQueryContextKey
             );
           });
-
-          // const parentIds = Object.keys(queryResponseToCache);
-          // parentIds.forEach(pId => {
-          //   const dataUnderParentId = queryResponseToCache[pId];
-          //   const fieldsUnderParent = Object.keys(dataUnderParentId);
-          //   fieldsUnderParent.forEach(fieldUnderParent => {
-          //     const dataForQueryField = dataUnderParentId[fieldUnderParent];
-          //     const dataToCacheForField: Record<string, any> = {};
-          //     if ('nodes' in dataForQueryField) {
-          //       dataForQueryField.nodes.forEach((data: Record<string, any>) => {
-          //         dataToCacheForField[data.id] = {};
-          //         relationalFields.forEach(rField => {
-          //           dataToCacheForField[data.id][rField] = data[rField];
-          //         });
-          //       });
-          //     } else {
-          //       dataToCacheForField[dataForQueryField.id] = {};
-          //       relationalFields.forEach(rField => {
-          //         dataToCacheForField[dataForQueryField.id][rField] =
-          //           dataForQueryField[rField];
-          //       });
-          //     }
-          //     console.log(
-          //       'dataToCacheForField',
-          //       JSON.stringify(dataToCacheForField, undefined, 2)
-          //     );
-          //     this.cacheNewData(
-          //       relationalQueryRecord,
-          //       dataToCacheForField,
-          //       currentQueryContextKey
-          //     );
-          //   });
-          // });
         } else {
           const relationalDataToCache: Record<string, any> = {};
 
@@ -321,6 +303,7 @@ export class QuerySlimmer {
               }
             );
 
+            // console.log('2', relationalDataToCache);
             this.cacheNewData(
               relationalQueryRecord,
               relationalDataToCache,
@@ -341,6 +324,7 @@ export class QuerySlimmer {
                 [rField]: relationalQueryRecord[rField],
               };
 
+              // console.log('3', rDataToCache);
               this.cacheNewData(
                 queryRecordForThisRField,
                 rDataToCache,
