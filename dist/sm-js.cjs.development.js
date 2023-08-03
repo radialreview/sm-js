@@ -7963,7 +7963,17 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.cacheNewData = function cacheNewData(queryRecordToCache, queryResponseToCache, parentContextKey) {
     var _this = this;
 
-    Object.keys(queryRecordToCache).forEach(function (recordFieldToCache, recordFieldIndex) {
+    // if (parentContextKey) {
+    //   console.log(
+    //     'queryRecordToCache',
+    //     JSON.stringify(queryRecordToCache, undefined, 2)
+    //   );
+    //   console.log(
+    //     'queryResponseToCache',
+    //     JSON.stringify(queryResponseToCache, undefined, 2)
+    //   );
+    // }
+    Object.keys(queryRecordToCache).forEach(function (recordFieldToCache) {
       var queryRecordEntry = queryRecordToCache[recordFieldToCache];
       if (!queryRecordEntry) return;
 
@@ -7997,7 +8007,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               queryRecordEntry.properties.forEach(function (property) {
                 dataToCache[property] = response[property];
 
-                if (recordFieldIndex === 0 && responseIndex === 0 && parentIndex === 0) {
+                if (responseIndex === 0 && parentIndex === 0) {
                   if (subscriptionsByProperty[property]) {
                     subscriptionsByProperty[property] += 1;
                   } else {
@@ -8013,7 +8023,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
             queryRecordEntry.properties.forEach(function (property) {
               dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
 
-              if (recordFieldIndex === 0 && parentIndex === 0) {
+              if (parentIndex === 0) {
                 if (subscriptionsByProperty[property]) {
                   subscriptionsByProperty[property] += 1;
                 } else {
@@ -8055,6 +8065,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
           });
         }
       } // Cache the data we have organized for this specific query record (no relational data).
+      // PIOTR TODO: Don't overwrite existing data.
 
 
       _this.queriesByContext[currentQueryContextKey] = {
@@ -8065,50 +8076,59 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
       if (queryRecordEntry.relational !== undefined) {
         var relationalQueryRecord = queryRecordEntry.relational;
-        var relationalFields = Object.keys(relationalQueryRecord);
-        var relationalDataToCache = {}; // The data we are given is organized under parent id keys.
+        var relationalFields = Object.keys(relationalQueryRecord); // The data we are given is organized under parent id keys.
 
         if (isResultsByParentId) {
-          var parentIds = Object.keys(queryResponseToCache);
-          parentIds.forEach(function (pId) {
-            var dataUnderParentId = queryResponseToCache[pId];
-            var queryFields = Object.keys(dataUnderParentId);
-            queryFields.forEach(function (queryField) {
-              var dataForQueryField = dataUnderParentId[queryField];
+          relationalFields.forEach(function (rField) {
+            var _queryRecordForThisRF;
 
-              if ('nodes' in dataForQueryField) {
-                dataForQueryField.nodes.forEach(function (data) {
-                  relationalDataToCache[data.id] = {};
-                  relationalFields.forEach(function (rField) {
-                    relationalDataToCache[data.id][rField] = data[rField];
-                  });
+            var parentIds = Object.keys(queryResponseToCache);
+            var dataToCacheForField = {};
+            parentIds.forEach(function (pId) {
+              var dataForRecordField = queryResponseToCache[pId][recordFieldToCache];
+
+              if ('nodes' in dataForRecordField) {
+                dataForRecordField['nodes'].forEach(function (datum) {
+                  if (!dataToCacheForField[datum.id]) {
+                    dataToCacheForField[datum.id] = {};
+                  }
+
+                  dataToCacheForField[datum.id][rField] = datum[rField];
                 });
               } else {
-                relationalDataToCache[dataForQueryField.id] = {};
-                relationalFields.forEach(function (rField) {
-                  relationalDataToCache[dataForQueryField.id][rField] = dataForQueryField[rField];
-                });
+                var _dataToCacheForField$;
+
+                dataToCacheForField[dataForRecordField['id']] = (_dataToCacheForField$ = {}, _dataToCacheForField$[rField] = dataForRecordField[rField], _dataToCacheForField$);
               }
             });
+            var queryRecordForThisRField = (_queryRecordForThisRF = {}, _queryRecordForThisRF[rField] = relationalQueryRecord[rField], _queryRecordForThisRF);
+
+            _this.cacheNewData(queryRecordForThisRField, dataToCacheForField, currentQueryContextKey);
           });
         } else {
+          var relationalDataToCache = {};
+
           if ('nodes' in queryResponseToCache[recordFieldToCache]) {
             queryResponseToCache[recordFieldToCache].nodes.forEach(function (response) {
               relationalDataToCache[response.id] = {};
               relationalFields.forEach(function (rField) {
                 relationalDataToCache[response.id][rField] = response[rField];
               });
-            });
+            }); // console.log('2', relationalDataToCache);
+
+            _this.cacheNewData(relationalQueryRecord, relationalDataToCache, currentQueryContextKey);
           } else {
-            var idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
-            relationalDataToCache[idOfQueryRecord] = {};
             relationalFields.forEach(function (rField) {
-              relationalDataToCache[idOfQueryRecord][rField] = queryResponseToCache[recordFieldToCache][rField];
+              var _idOfQueryRecord, _rDataToCache, _queryRecordForThisRF2;
+
+              var idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
+              var rDataToCache = (_rDataToCache = {}, _rDataToCache[idOfQueryRecord] = (_idOfQueryRecord = {}, _idOfQueryRecord[rField] = queryResponseToCache[recordFieldToCache][rField], _idOfQueryRecord), _rDataToCache);
+              var queryRecordForThisRField = (_queryRecordForThisRF2 = {}, _queryRecordForThisRF2[rField] = relationalQueryRecord[rField], _queryRecordForThisRF2); // console.log('3', rDataToCache);
+
+              _this.cacheNewData(queryRecordForThisRField, rDataToCache, currentQueryContextKey);
             });
           }
         }
-
-        _this.cacheNewData(queryRecordEntry.relational, relationalDataToCache, currentQueryContextKey);
       }
     });
   } // Given a QueryRecord for a new query returns a QueryRecord that
@@ -8559,7 +8579,14 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.createContextKeyForQueryRecordEntry = function createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey) {
     var doesQueryHaveIdProperty = 'id' in queryRecordEntry && !!queryRecordEntry.id;
     var parentContextKeyPrefix = !!parentContextKey ? parentContextKey + "." : '';
-    var currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
+    var currentQueryTypeProperty = '';
+
+    if (queryRecordEntry['_relationshipName']) {
+      currentQueryTypeProperty = queryRecordEntry['_relationshipName'];
+    } else {
+      currentQueryTypeProperty = "" + queryRecordEntry.def.type + (doesQueryHaveIdProperty ? '' : 's');
+    }
+
     var currentQueryStringifiedParams = this.stringifyQueryParams(queryRecordEntry);
     return "" + parentContextKeyPrefix + currentQueryTypeProperty + "(" + currentQueryStringifiedParams + ")";
   };
