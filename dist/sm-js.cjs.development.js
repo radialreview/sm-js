@@ -376,6 +376,25 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   ENumberFilterOperator["nlte"] = "nlte";
 })(exports.ENumberFilterOperator || (exports.ENumberFilterOperator = {}));
 
+(function (EStringOrNumberFilterOperator) {
+  EStringOrNumberFilterOperator["eq"] = "eq";
+  EStringOrNumberFilterOperator["neq"] = "neq";
+  EStringOrNumberFilterOperator["contains"] = "contains";
+  EStringOrNumberFilterOperator["ncontains"] = "ncontains";
+  EStringOrNumberFilterOperator["startsWith"] = "startsWith";
+  EStringOrNumberFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringOrNumberFilterOperator["endsWith"] = "endsWith";
+  EStringOrNumberFilterOperator["nendsWith"] = "nendsWith";
+  EStringOrNumberFilterOperator["gt"] = "gt";
+  EStringOrNumberFilterOperator["ngt"] = "ngt";
+  EStringOrNumberFilterOperator["gte"] = "gte";
+  EStringOrNumberFilterOperator["ngte"] = "ngte";
+  EStringOrNumberFilterOperator["lt"] = "lt";
+  EStringOrNumberFilterOperator["nlt"] = "nlt";
+  EStringOrNumberFilterOperator["lte"] = "lte";
+  EStringOrNumberFilterOperator["nlte"] = "nlte";
+})(exports.EStringOrNumberFilterOperator || (exports.EStringOrNumberFilterOperator = {}));
+
 (function (EBooleanFilterOperator) {
   EBooleanFilterOperator["eq"] = "eq";
   EBooleanFilterOperator["neq"] = "neq"; // not equal

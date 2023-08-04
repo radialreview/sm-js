@@ -382,6 +382,27 @@ var ENumberFilterOperator;
   ENumberFilterOperator["nlte"] = "nlte";
 })(ENumberFilterOperator || (ENumberFilterOperator = {}));
 
+var EStringOrNumberFilterOperator;
+
+(function (EStringOrNumberFilterOperator) {
+  EStringOrNumberFilterOperator["eq"] = "eq";
+  EStringOrNumberFilterOperator["neq"] = "neq";
+  EStringOrNumberFilterOperator["contains"] = "contains";
+  EStringOrNumberFilterOperator["ncontains"] = "ncontains";
+  EStringOrNumberFilterOperator["startsWith"] = "startsWith";
+  EStringOrNumberFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringOrNumberFilterOperator["endsWith"] = "endsWith";
+  EStringOrNumberFilterOperator["nendsWith"] = "nendsWith";
+  EStringOrNumberFilterOperator["gt"] = "gt";
+  EStringOrNumberFilterOperator["ngt"] = "ngt";
+  EStringOrNumberFilterOperator["gte"] = "gte";
+  EStringOrNumberFilterOperator["ngte"] = "ngte";
+  EStringOrNumberFilterOperator["lt"] = "lt";
+  EStringOrNumberFilterOperator["nlt"] = "nlt";
+  EStringOrNumberFilterOperator["lte"] = "lte";
+  EStringOrNumberFilterOperator["nlte"] = "nlte";
+})(EStringOrNumberFilterOperator || (EStringOrNumberFilterOperator = {}));
+
 var EBooleanFilterOperator;
 
 (function (EBooleanFilterOperator) {
@@ -9362,5 +9383,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, stringOrNumber, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, EStringOrNumberFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, stringOrNumber, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

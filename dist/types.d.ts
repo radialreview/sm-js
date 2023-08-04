@@ -250,7 +250,7 @@ export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> 
 export declare type SortDirection = 'asc' | 'desc';
 export declare type NodeFilterCondition = 'or' | 'and';
 export declare type CollectionFilterCondition = 'all' | 'some' | 'none';
-export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>, TIsCollectionFilter extends boolean> = TValue | (Partial<Record<TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
+export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>, TIsCollectionFilter extends boolean> = TValue | (Partial<Record<TValue extends string | number ? EStringOrNumberFilterOperator : TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
     condition?: TIsCollectionFilter extends true ? CollectionFilterCondition : NodeFilterCondition;
 }>);
 export declare type SortObject = {
@@ -501,6 +501,24 @@ export declare enum EStringFilterOperator {
 export declare enum ENumberFilterOperator {
     'eq' = "eq",
     'neq' = "neq",
+    'gt' = "gt",
+    'ngt' = "ngt",
+    'gte' = "gte",
+    'ngte' = "ngte",
+    'lt' = "lt",
+    'nlt' = "nlt",
+    'lte' = "lte",
+    'nlte' = "nlte"
+}
+export declare enum EStringOrNumberFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq",
+    'contains' = "contains",
+    'ncontains' = "ncontains",
+    'startsWith' = "startsWith",
+    'nstartsWith' = "nstartsWith",
+    'endsWith' = "endsWith",
+    'nendsWith' = "nendsWith",
     'gt' = "gt",
     'ngt' = "ngt",
     'gte' = "gte",
