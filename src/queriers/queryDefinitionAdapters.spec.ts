@@ -1562,12 +1562,30 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1580,12 +1598,23 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -1623,6 +1652,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1716,12 +1749,30 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1734,12 +1785,23 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -1777,6 +1839,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1882,12 +1948,30 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 firstName
+               }
+             }
            }
          }
          
@@ -1900,12 +1984,23 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -1943,6 +2038,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -1995,12 +2094,23 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              title
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+             }
            }
          }
          
@@ -2013,6 +2123,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2120,12 +2234,32 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Meeting {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
              lastUpdatedBy
              type
              name
+             headlines {
+               id
+               version
+               lastUpdatedBy
+               type
+               title
+               closed
+               assignee {
+                 id
+                 version
+                 lastUpdatedBy
+                 type
+                 lastName
+                 firstName
+               }
+             }
            }
          }
          
@@ -2138,6 +2272,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_Headline {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version
@@ -2145,6 +2283,14 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
              type
              title
              closed
+             assignee {
+               id
+               version
+               lastUpdatedBy
+               type
+               firstName
+               lastName
+             }
            }
          }
          
@@ -2184,6 +2330,10 @@ describe('getSubscriptionGQLDocumentsFromQueryRecord', () => {
          ...on Updated_User {
            __typename
            id
+           targets {
+             id
+             property
+           }
            value {
              id
              version

@@ -1132,6 +1132,9 @@ export function queryRecordEntryReturnsArrayOfDataNestedInNodes(opts: {
 // When we query for paginated arrays, the response is an object containing
 // a "nodes" property which is an array of the nodes
 // Otherwise the response is the node, or the list of nodes, itself
+//
+// the exception to this is within subscription messages,
+// where collections do not include paging info
 export function getDataFromQueryResponsePartial(opts: {
   queryResponsePartial: Record<string, any>;
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry | null;
@@ -1288,10 +1291,6 @@ function getSubscriptionRelationalPropsString(opts: {
 function getQueryRecordEntrySubscriptionFragmentInnerContents(opts: {
   queryRecordEntry: QueryRecordEntry;
 }) {
-  const ownPropsString = getSubscriptionOwnPropsString({
-    ownProps: opts.queryRecordEntry.properties,
-  });
-
   const ownPropsAndRelationalString = getSubscriptionPropsString({
     ownProps: opts.queryRecordEntry.properties,
     relational: opts.queryRecordEntry.relational,
@@ -1302,7 +1301,11 @@ function getQueryRecordEntrySubscriptionFragmentInnerContents(opts: {
   )} {
       __typename
       id
-      value {${ownPropsString}}
+      targets {
+        id
+        property
+      }
+      value {${ownPropsAndRelationalString}}
   }
   `;
 
@@ -1407,7 +1410,10 @@ function getRelationalSubscriptionString(opts: {
     // we keep an array of all properties for the merged root Updated/Created node subscription fragments
     // so for example, in the relationship headline.assignee
     // this would be all the properties that we'd need to subscribe to pertaining the assignee
-    { _allProperties: Array<string> } & Record<
+    {
+      _allProperties: Array<string>;
+      _allRelationships: RelationalQueryRecord;
+    } & Record<
       // parentNodeType
       string,
       // we keen an array of all properties queried in this relationship
@@ -1428,6 +1434,7 @@ function getRelationalSubscriptionString(opts: {
     if (!mergedRecordOfMetadatas[subMetadata.nodeType]) {
       mergedRecordOfMetadatas[subMetadata.nodeType] = {
         _allProperties: [] as Array<string>,
+        _allRelationships: {} as RelationalQueryRecord,
       } as typeof mergedRecordOfMetadatas[string];
     }
 
@@ -1491,6 +1498,17 @@ function getRelationalSubscriptionString(opts: {
           ? [existingRecord, subMetadata.relational]
           : [subMetadata.relational]
       );
+
+      const existingRelationshipRecord =
+        mergedRecordOfMetadatas[subMetadata.nodeType]._allRelationships;
+
+      mergedRecordOfMetadatas[
+        subMetadata.nodeType
+      ]._allRelationships = flattenNestedRelationshipRecords(
+        existingRelationshipRecord
+          ? [existingRelationshipRecord, subMetadata.relational]
+          : [subMetadata.relational]
+      );
     }
   });
 
@@ -1500,8 +1518,13 @@ function getRelationalSubscriptionString(opts: {
       ...on Updated_${capitalizeFirstLetter(nodeType)} {
         __typename
         id
-        value {${getSubscriptionOwnPropsString({
+        targets {
+          id
+          property
+        }
+        value {${getSubscriptionPropsString({
           ownProps: mergedRecordOfMetadatas[nodeType]._allProperties,
+          relational: mergedRecordOfMetadatas[nodeType]._allRelationships,
         })}}
       }
     `;

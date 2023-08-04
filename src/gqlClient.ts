@@ -33,13 +33,27 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
     };
   }
 
-  const wsLink = new WebSocketLink({
-    uri: gqlClientOpts.wsUrl,
-    options: {
-      reconnect: true,
-      wsOptionArguments: [wsOptions],
-    },
-    webSocketImpl: WebSocket,
+  // const wsLink = new WebSocketLink({
+  //   uri: gqlClientOpts.wsUrl,
+  //   options: {
+  //     reconnect: true,
+  //     wsOptionArguments: [wsOptions],
+  //   },
+  //   webSocketImpl: WebSocket,
+  // });
+
+  const wsLink = new ApolloLink(operation => {
+    const link = new WebSocketLink({
+      uri: gqlClientOpts.wsUrl,
+      options: {
+        reconnect: true,
+        wsOptionArguments: [wsOptions],
+        inactivityTimeout: 1,
+      },
+      webSocketImpl: WebSocket,
+    });
+
+    return link.request(operation);
   });
 
   const nonBatchedLink = new HttpLink({
@@ -166,27 +180,50 @@ export function getGQLCLient(gqlClientOpts: IGetGQLClientOpts) {
         console.log('subscribing', getPrettyPrintedGQL(opts.gql));
       }
 
-      const subscription = baseClient
+      let subscription = baseClient
         .subscribe({
           query: opts.gql,
         })
         .subscribe({
           next: message => {
+            // restart retry attempts when a message is successfully received
+            opts.retryAttempts = 0;
+
             gqlClientOpts.logging.gqlSubscriptions &&
               console.log(
                 'subscription message',
                 JSON.stringify(message, null, 2)
               );
+
             if (!message.data)
               opts.onError(
                 new Error(`Unexpected message structure.\n${message}`)
               );
             else opts.onMessage(message as SubscriptionMessage);
           },
-          error: opts.onError,
+          error: e => {
+            // something in Apollo's internals appears to be causing subscriptions to be prematurely closed when any error is received
+            // even if partial data is included in the message
+            // so we retry the subscription a few times before giving up
+            if (opts.retryAttempts == null || opts.retryAttempts < 3) {
+              unsubscribe && unsubscribe();
+              unsubscribe = gqlClient.subscribe({
+                ...opts,
+                retryAttempts: (opts.retryAttempts || 0) + 1,
+              });
+            } else {
+              console.error(
+                'Failed to initialize subscription after 3 attempts'
+              );
+              console.error(getPrettyPrintedGQL(opts.gql));
+            }
+            opts.onError(e);
+          },
         });
 
-      return () => subscription.unsubscribe();
+      let unsubscribe = subscription.unsubscribe.bind(subscription);
+
+      return () => unsubscribe();
     },
     mutate: async opts => {
       gqlClientOpts.logging.gqlMutations &&
