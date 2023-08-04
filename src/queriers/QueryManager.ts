@@ -1128,25 +1128,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               Object.keys(stateEntryToIterate.proxyCache).forEach(nodeId => {
                 if (shouldApplyIdFilter) {
-                  const nodeIdAsNumber = Number(nodeId);
-
                   const matchesSomeIdInTargets = parentFilters.find(
                     parentFilter => {
-                      // since we store node ids as strings
-                      // but the message from BE may include the id as a number
-                      if (
-                        typeof parentFilter.id === 'number' &&
-                        nodeIdAsNumber === parentFilter.id
-                      ) {
-                        return true;
-                      } else if (
-                        typeof parentFilter.id === 'string' &&
-                        nodeId === parentFilter.id
-                      ) {
-                        return true;
-                      }
-
-                      return false;
+                      return nodeId === parentFilter.id;
                     }
                   );
 
