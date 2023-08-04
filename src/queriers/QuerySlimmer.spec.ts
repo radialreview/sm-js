@@ -54,113 +54,7 @@ function setupTests() {
 }
 
 describe('cacheNewData', () => {
-  // test('it should cache by id queries where the result is a single object', () => {
-  //   const { QuerySlimmer, userNode } = setupTests();
-
-  //   const mockQueryRecord: QueryRecord = {
-  //     user: {
-  //       id: 'user-id-1',
-  //       def: userNode,
-  //       properties: ['id', 'type', 'firstName', 'lastName'],
-  //       tokenName: DEFAULT_TOKEN_NAME,
-  //     },
-  //   };
-
-  //   const mockRequestResponse = {
-  //     user: {
-  //       id: 'user-id-1',
-  //       type: userNode.type,
-  //       firstName: 'Piotr',
-  //       lastName: 'Bogun',
-  //       email: 'test@email.com',
-  //       nickName: 'Piotr',
-  //     },
-  //   };
-
-  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
-
-  //   expect(QuerySlimmer.queriesByContext['user({"id":"user-id-1"})']).toEqual({
-  //     subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-  //     results: {
-  //       byParentId: false,
-  //       user: {
-  //         id: 'user-id-1',
-  //         type: userNode.type,
-  //         firstName: 'Piotr',
-  //         lastName: 'Bogun',
-  //       },
-  //     },
-  //   });
-  // });
-
-  // test('it should cache by ids queries where the result is a nodes collection', () => {
-  //   const { QuerySlimmer, userNode } = setupTests();
-
-  //   const mockQueryRecord: QueryRecord = {
-  //     users: {
-  //       ids: ['user-id-1', 'user-id-2'],
-  //       def: userNode,
-  //       properties: ['id', 'type', 'firstName', 'lastName'],
-  //       tokenName: DEFAULT_TOKEN_NAME,
-  //     },
-  //   };
-
-  //   const mockRequestResponse = {
-  //     users: {
-  //       nodes: [
-  //         {
-  //           id: 'user-id-1',
-  //           type: userNode.type,
-  //           firstName: 'Aidan',
-  //           lastName: 'Goodman',
-  //           email: 'test@email.com',
-  //           nickName: 'Aidan',
-  //         },
-  //         {
-  //           id: 'user-id-2',
-  //           type: userNode.type,
-  //           firstName: 'Piotr',
-  //           lastName: 'Bogun',
-  //           email: 'test@email.com',
-  //           nickName: 'Piotr',
-  //         },
-  //       ],
-  //     },
-  //   };
-
-  //   const expectedCachedUserData = {
-  //     nodes: [
-  //       {
-  //         id: 'user-id-1',
-  //         type: userNode.type,
-  //         firstName: 'Aidan',
-  //         lastName: 'Goodman',
-  //       },
-  //       {
-  //         id: 'user-id-2',
-  //         type: userNode.type,
-  //         firstName: 'Piotr',
-  //         lastName: 'Bogun',
-  //       },
-  //     ],
-  //   };
-
-  //   const expectedCache = {
-  //     'users({"ids":["user-id-1","user-id-2"]})': {
-  //       subscriptionsByProperty: { id: 1, type: 1, firstName: 1, lastName: 1 },
-  //       results: {
-  //         byParentId: false,
-  //         users: expectedCachedUserData,
-  //       },
-  //     },
-  //   };
-
-  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
-
-  //   expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
-  // });
-
-  test.only('it should cache data separately under query context keys', () => {
+  test('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
     const {
       QuerySlimmer,
       userNode,
@@ -580,11 +474,6 @@ describe('cacheNewData', () => {
         },
       },
     };
-
-    // console.log(
-    //   'cache',
-    //   JSON.stringify(QuerySlimmer.queriesByContext, undefined, 2)
-    // );
 
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });

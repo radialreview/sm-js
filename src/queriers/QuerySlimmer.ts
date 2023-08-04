@@ -1,6 +1,11 @@
 // PIOTR TODO
 // - Use relationshipName
 // - Snapshot tests
+// - cacheNewData
+//   - Confirm/test existing data is not overwritten
+//   - Confirm/test existing subsByProp counts are correctly updated
+// - Go through main fns being used and look into any cleanup/better naming
+// - Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 
 // import { observable, when } from 'mobx';
 import { observable } from 'mobx';
@@ -39,7 +44,6 @@ export type TQueryRecordByContextMap = Record<
 
 // const IN_FLIGHT_TIMEOUT_MS = 1000;
 
-// TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 export class QuerySlimmer {
   constructor(mmGQLInstance: IMMGQL) {
     this.mmGQLInstance = mmGQLInstance;
@@ -107,17 +111,6 @@ export class QuerySlimmer {
     queryResponseToCache: Record<string, any>,
     parentContextKey?: string
   ) {
-    // if (parentContextKey) {
-    //   console.log(
-    //     'queryRecordToCache',
-    //     JSON.stringify(queryRecordToCache, undefined, 2)
-    //   );
-    //   console.log(
-    //     'queryResponseToCache',
-    //     JSON.stringify(queryResponseToCache, undefined, 2)
-    //   );
-    // }
-
     Object.keys(queryRecordToCache).forEach(recordFieldToCache => {
       const queryRecordEntry = queryRecordToCache[recordFieldToCache];
       if (!queryRecordEntry) return;
@@ -241,7 +234,6 @@ export class QuerySlimmer {
       }
 
       // Cache the data we have organized for this specific query record (no relational data).
-      // PIOTR TODO: Don't overwrite existing data.
       this.queriesByContext[currentQueryContextKey] = {
         subscriptionsByProperty: subscriptionsByProperty,
         results: resultsToCache,
@@ -303,7 +295,6 @@ export class QuerySlimmer {
               }
             );
 
-            // console.log('2', relationalDataToCache);
             this.cacheNewData(
               relationalQueryRecord,
               relationalDataToCache,
@@ -324,7 +315,6 @@ export class QuerySlimmer {
                 [rField]: relationalQueryRecord[rField],
               };
 
-              // console.log('3', rDataToCache);
               this.cacheNewData(
                 queryRecordForThisRField,
                 rDataToCache,
