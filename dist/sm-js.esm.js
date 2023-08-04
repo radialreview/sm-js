@@ -7715,17 +7715,8 @@ function createQueryManager(mmGQLInstance) {
               var _proxyCacheEntry$rela;
 
               if (shouldApplyIdFilter) {
-                var nodeIdAsNumber = Number(nodeId);
                 var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  // since we store node ids as strings
-                  // but the message from BE may include the id as a number
-                  if (typeof parentFilter.id === 'number' && nodeIdAsNumber === parentFilter.id) {
-                    return true;
-                  } else if (typeof parentFilter.id === 'string' && nodeId === parentFilter.id) {
-                    return true;
-                  }
-
-                  return false;
+                  return nodeId === parentFilter.id;
                 });
                 if (!matchesSomeIdInTargets) return;
               }
