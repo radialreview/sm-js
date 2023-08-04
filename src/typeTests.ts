@@ -338,6 +338,10 @@ const stateNode: StateNode = mmGQL.def({
     maybeStr: { eq: null },
   };
   filter7;
+  const filter8: ValidFilterForNode<UserNode, false> = {
+    id: { neq: 123 },
+  };
+  filter8;
 })();
 
 (function DataTypeInferenceUtilTests() {
@@ -483,8 +487,8 @@ const stateNode: StateNode = mmGQL.def({
           task: {
             contains: 'test',
           },
+          // @ts-expect-error wrong data type, id is a string
           id: {
-            // @ts-expect-error wrong data type, id is a string
             eq: {},
           },
         },

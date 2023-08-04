@@ -362,13 +362,15 @@ export type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boo
   (
     Partial<
       Record<
-        TValue extends boolean
-          ? EBooleanFilterOperator
-          : TValue extends string
-            ? EStringFilterOperator
-              : TValue extends number
-              ? ENumberFilterOperator
-              : never,            
+        TValue extends string | number
+          ? EStringOrNumberFilterOperator
+          : TValue extends boolean
+            ? EBooleanFilterOperator
+            : TValue extends string
+              ? EStringFilterOperator
+                : TValue extends number
+                  ? ENumberFilterOperator
+                  : never,            
         TValue
       > & { condition?: TIsCollectionFilter extends true ? CollectionFilterCondition : NodeFilterCondition   }
     >
@@ -723,6 +725,25 @@ export enum EStringFilterOperator {
 export enum ENumberFilterOperator {
   'eq' = 'eq', // equal
   'neq' = 'neq', // not equal
+  'gt' = 'gt',
+  'ngt' = 'ngt',
+  'gte' = 'gte',
+  'ngte' = 'ngte',
+  'lt' = 'lt',
+  'nlt' = 'nlt',
+  'lte' = 'lte',
+  'nlte' = 'nlte'
+}
+
+export enum EStringOrNumberFilterOperator {
+  'eq' = 'eq', // equal
+  'neq' = 'neq', // not equal
+  'contains' = 'contains',
+  'ncontains' = 'ncontains',
+  'startsWith' = 'startsWith',
+  'nstartsWith' = 'nstartsWith',
+  'endsWith' = 'endsWith',
+  'nendsWith' = 'nendsWith',
   'gt' = 'gt',
   'ngt' = 'ngt',
   'gte' = 'gte',
