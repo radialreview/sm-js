@@ -31,7 +31,6 @@ import { capitalizeFirstLetter } from './queryDefinitionAdapters';
 test('QueryManager handles a query result and returns the expected data', done => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
-  const resultsObject = {};
   new mmGQLInstance.QueryManager(
     createMockQueryDefinitions(mmGQLInstance) as QueryDefinitions<
       any,
@@ -42,8 +41,7 @@ test('QueryManager handles a query result and returns the expected data', done =
       queryId: 'MockQueryId',
       subscribe: false,
       useServerSidePaginationFilteringSorting: true,
-      resultsObject,
-      onResultsUpdated: () => {
+      onResultsUpdated: resultsObject => {
         expect(JSON.stringify(resultsObject)).toEqual(
           JSON.stringify(
             getMockQueryResultExpectations({
@@ -89,7 +87,6 @@ test('QueryManager will query a minimum set of results when a fitler/sorting/pag
     })
   );
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
-  const resultsObject = {};
 
   const mockNode = mmGQLInstance.def({
     type: 'mock',
@@ -122,7 +119,6 @@ test('QueryManager will query a minimum set of results when a fitler/sorting/pag
       queryId: 'MockQueryId',
       subscribe: false,
       useServerSidePaginationFilteringSorting: true,
-      resultsObject,
       onResultsUpdated: () => {},
       onQueryError: () => {},
       onSubscriptionError: () => {},
@@ -241,7 +237,7 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     }),
   });
 
-  const resultsObject: Record<string, any> = {};
+  let resultsObjectForAdditionalTests: Record<string, any> = {};
   let resultsIdx = 0;
   const queryManager = new mmGQLInstance.QueryManager(
     {
@@ -251,8 +247,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     {
       queryId: 'MockQueryId',
       useServerSidePaginationFilteringSorting: true,
-      resultsObject,
-      onResultsUpdated: () => {
+      onResultsUpdated: resultsObject => {
+        resultsObjectForAdditionalTests = resultsObject;
         if (resultsIdx === 0) {
           resultsIdx++;
           continueTest();
@@ -267,8 +263,10 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
   );
 
   async function continueTest() {
-    await resultsObject.secondMockFirstResults.loadMore();
-    expect(resultsObject.secondMockFirstResults.nodes.length).toBe(2);
+    await resultsObjectForAdditionalTests.secondMockFirstResults.loadMore();
+    expect(
+      resultsObjectForAdditionalTests.secondMockFirstResults.nodes.length
+    ).toBe(2);
 
     await queryManager.onQueryDefinitionsUpdated({
       secondMockFirstResults: mockQueryDef,
@@ -282,11 +280,14 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
 
     // mock for secondResults was updatdd due to the change in filter above
     expect(
-      resultsObject.secondMockSecondResults.nodes[0].mock.nodes[0].id
+      resultsObjectForAdditionalTests.secondMockSecondResults.nodes[0].mock
+        .nodes[0].id
     ).toEqual('test-id');
 
     // pagination state for secondMockFirstResults remains intact
-    expect(resultsObject.secondMockFirstResults.nodes.length).toBe(2);
+    expect(
+      resultsObjectForAdditionalTests.secondMockFirstResults.nodes.length
+    ).toBe(2);
     done();
   }
 });
@@ -382,7 +383,7 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     },
   });
 
-  const resultsObject: Record<string, any> = {};
+  let resultsObjectForAdditionalTests: Record<string, any> = {};
   let resultsIdx = 0;
   const queryManager = new mmGQLInstance.QueryManager(
     {
@@ -391,8 +392,8 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
     {
       queryId: 'MockQueryId',
       useServerSidePaginationFilteringSorting: true,
-      resultsObject,
-      onResultsUpdated: () => {
+      onResultsUpdated: resultsObject => {
+        resultsObjectForAdditionalTests = resultsObject;
         if (resultsIdx === 0) {
           resultsIdx++;
           continueTest();
@@ -407,10 +408,11 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
   );
 
   async function continueTest() {
-    await resultsObject.secondMockResults.mockSecondResults.loadMore();
-    expect(resultsObject.secondMockResults.mockSecondResults.nodes.length).toBe(
-      2
-    );
+    await resultsObjectForAdditionalTests.secondMockResults.mockSecondResults.loadMore();
+    expect(
+      resultsObjectForAdditionalTests.secondMockResults.mockSecondResults.nodes
+        .length
+    ).toBe(2);
 
     await queryManager.onQueryDefinitionsUpdated({
       secondMockResults: queryDefinition({
@@ -432,13 +434,15 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
 
     // mock for secondResults was updated due to the change in filter above
     expect(
-      resultsObject.secondMockResults.mockFirstResults.nodes[0].id
+      resultsObjectForAdditionalTests.secondMockResults.mockFirstResults
+        .nodes[0].id
     ).toEqual('test-id');
 
     // pagination state for secondMockFirstResults remains intact
-    expect(resultsObject.secondMockResults.mockSecondResults.nodes.length).toBe(
-      2
-    );
+    expect(
+      resultsObjectForAdditionalTests.secondMockResults.mockSecondResults.nodes
+        .length
+    ).toBe(2);
     done();
   }
 });
@@ -1000,15 +1004,13 @@ describe('subscription handling', () => {
     subscriptionMessage: SubscriptionMessage;
     expectedResultsObject: Record<string, any>;
   }) {
-    const resultsObject = {};
     let index = 0;
     const queryManager = new opts.mmGQLInstance.QueryManager(
       opts.queryDefinitions,
       {
         queryId: 'Test_Query',
         useServerSidePaginationFilteringSorting: false,
-        resultsObject,
-        onResultsUpdated: () => {
+        onResultsUpdated: resultsObject => {
           if (index === 0) {
             index++;
             queryManager.onSubscriptionMessage(opts.subscriptionMessage);

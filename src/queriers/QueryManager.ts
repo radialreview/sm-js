@@ -112,7 +112,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public opts: QueryManagerOpts;
     public queryRecord: Maybe<QueryRecord> = null;
     public queryIdx: number = 0;
-    public queryResults: Record<string, any> = {}; //NOLEY BETTER NAME - make this an observable object and mutate within getResultsFromState
+    public queryResults: Record<string, any> = {};
     public subscriptionMessageHandlers: Record<
       // root level alias
       string,

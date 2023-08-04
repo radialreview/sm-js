@@ -4,6 +4,7 @@ import {
   getMockConfig,
 } from './specUtilities';
 import {
+  extendObservable,
   isObservable,
   isObservableObject,
   isObservableProp,
@@ -98,12 +99,31 @@ test.only('QueryManager handles a query result and returns the expected data wit
 
   object['newKey'] = { key: 'value' };
 
+  const nonObservableObject: Record<string, any> = {
+    key: { cats: 'cool' },
+    basicKey: 'value',
+  };
+
+  extendObservable(nonObservableObject, { funNewKey: { cats: 'value' } });
+  expect(isObservableObject(nonObservableObject)).toBe(true); // problematic
+  expect(isObservableObject(nonObservableObject.key)).toBe(false);
+  expect(isObservableObject(nonObservableObject.basicKey)).toBe(false);
+  expect(isObservableObject(nonObservableObject.funNewKey)).toBe(true);
+
   expect(isObservable(object)).toBe(true);
   expect(isObservable(object.key)).toBe(true);
   expect(isObservableProp(object.newKey, 'key')).toBe(true);
   expect(isObservableProp(object.key, 'nestedKey')).toBe(true);
   expect(isObservable(object.key.doubleNestedKey)).toBe(true);
   expect(isObservable(object.key.doubleNestedKey.tripleNestedKey)).toBe(true);
+
+  // const c1 = computed(() => {});
+  // const c2 = computed(() => {}).get;
+  // const c3 = computed(() => {}).get();
+
+  // expect(isComputed(c1)).toBe(true);
+  // expect(isComputed(c2)).toBe(true); // fail
+  // expect(isComputed(c3)).toBe(true); // fail
 
   new mmGQLInstance.QueryManager(
     createMockQueryDefinitions(mmGQLInstance) as QueryDefinitions<
@@ -116,11 +136,11 @@ test.only('QueryManager handles a query result and returns the expected data wit
       subscribe: false,
       useServerSidePaginationFilteringSorting: true,
       onResultsUpdated: resultsObject => {
-        // console.log('NOLEY RESULTS OBJECT', resultsObject);
         resultsObject.users.nodes.forEach(
           (node: {
             parsedData: any;
             id: string;
+            displayName: string;
             address: {
               state: string;
               apt: {
@@ -129,8 +149,12 @@ test.only('QueryManager handles a query result and returns the expected data wit
               };
             };
           }) => {
-            console.log('NOLEY NODE', node);
-            // expect(isObservableObject(node.address)).toBe(true);
+            // console.log('NOLEY node.displayName', node.displayName);
+            // expect(isComputed(node.displayName)).toBe(true);
+            // expect(isComputedProp(node, 'displayName')).toBe(true);
+            expect(isObservableProp(node, 'address')).toBe(true);
+            expect(isObservableObject(node.address)).toBe(true);
+            expect(isObservableObject(node.parsedData.address)).toBe(true);
             expect(isObservableObject(node.parsedData)).toBe(true);
           }
         );

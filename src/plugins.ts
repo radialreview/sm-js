@@ -1,4 +1,4 @@
-import { computed, makeAutoObservable } from 'mobx';
+import { computed, extendObservable, makeAutoObservable } from 'mobx';
 import { Plugin } from './types';
 
 export const mobxPlugin: Plugin = {
@@ -6,10 +6,9 @@ export const mobxPlugin: Plugin = {
     onConstruct: ({ DOInstance, parsedDataKey }) => {
       makeAutoObservable(DOInstance[parsedDataKey]);
     },
-    // onExtendNodePropGetters: ({ DOInstance, nodePropName }) => {
-    //   extendObservable(DOInstance, DOInstance[nodePropName]);
-    //   // tried extends, tried observable, tried obervable.ref
-    // },
+    onExtendObservable: ({ DOInstance, objectToExtend }) => {
+      extendObservable(DOInstance, objectToExtend);
+    },
     computedDecorator: ({ DOInstance, computedFn }) => {
       return computed(() => computedFn(DOInstance)).get;
     },
