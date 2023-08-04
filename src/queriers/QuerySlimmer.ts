@@ -446,156 +446,226 @@ export class QuerySlimmer {
         parentContextKey
       );
 
-      const cachedData = this.queriesByContext[contextKey];
-      let dataForNewQueryKey: any = null;
-      let relationalDataForNewQueryKey: any = null;
+      const cachedDataForContext = this.queriesByContext[contextKey];
+      let dataForNewQueryKey: Record<string, any> = {};
 
-      if (cachedData.results.byParentId) {
-        dataForNewQueryKey = {
-          byParentId: true,
-        };
-
-        Object.keys(cachedData.results).forEach(parentIdKey => {
-          if (parentIdKey !== 'byParentId') {
-            const dataUnderParentId =
-              cachedData.results[parentIdKey][newQueryKey];
-
-            if ('nodes' in dataUnderParentId) {
-              dataForNewQueryKey[parentIdKey] = {
-                [newQueryKey]: {
-                  nodes: [],
-                },
-              };
-
-              dataUnderParentId.nodes.forEach((datum: Record<string, any>) => {
-                const dataToReturn: Record<string, any> = {};
-
-                queryRecordEntry.properties.forEach(property => {
-                  dataToReturn[property] = datum[property];
-                });
-
-                dataForNewQueryKey[parentIdKey][newQueryKey]['nodes'].push(
-                  dataToReturn
-                );
-              });
-            } else {
-              dataForNewQueryKey[parentIdKey] = {
-                [newQueryKey]: {},
-              };
-
-              queryRecordEntry.properties.forEach(property => {
-                dataForNewQueryKey[parentIdKey][newQueryKey][property] =
-                  dataUnderParentId[property];
-              });
+      if (cachedDataForContext.results.byParentId) {
+        Object.entries(cachedDataForContext.results).forEach(
+          ([parentId, resultsUnderParent]) => {
+            if (parentId !== 'byParentId') {
+              if (parentId in dataForNewQueryKey) {
+                dataForNewQueryKey[parentId] = {
+                  ...dataForNewQueryKey[parentId],
+                  ...(resultsUnderParent as Record<string, any>),
+                };
+              } else {
+                dataForNewQueryKey[parentId] = {
+                  ...(resultsUnderParent as Record<string, any>),
+                };
+              }
             }
           }
-        });
+        );
       } else {
-        if (cachedData.results[newQueryKey]['nodes']) {
-          dataForNewQueryKey = {
-            nodes: [],
-          };
+        const cachedDataForKey = cachedDataForContext.results[newQueryKey];
 
-          cachedData.results[newQueryKey]['nodes'].forEach(
-            (data: Record<string, any>) => {
-              const dataToReturn: Record<string, any> = {};
-
-              queryRecordEntry.properties.forEach(property => {
-                dataToReturn[property] = data[property];
-              });
-
-              dataForNewQueryKey.nodes.push(dataToReturn);
-            }
-          );
+        if ('nodes' in cachedDataForKey) {
+          console.log('TODO NODES');
         } else {
-          dataForNewQueryKey = {};
-
           queryRecordEntry.properties.forEach(property => {
-            dataForNewQueryKey[property] =
-              cachedData.results[newQueryKey][property];
+            dataForNewQueryKey[property] = cachedDataForKey[property];
           });
         }
       }
 
       if (queryRecordEntry.relational !== undefined) {
-        relationalDataForNewQueryKey = this.getDataForQueryFromCache(
+        const relationalDataForNewQueryKey = this.getDataForQueryFromCache(
           queryRecordEntry.relational,
           contextKey
         );
-      }
 
-      if ('byParentId' in dataForNewQueryKey === false) {
-        if (relationalDataForNewQueryKey) {
-          if ('nodes' in dataForNewQueryKey) {
-            dataForNewQueryKey['nodes'] = dataForNewQueryKey['nodes'].map(
-              (data: Record<string, any>) => {
-                if (data.id in relationalDataForNewQueryKey) {
-                  return {
-                    ...data,
-                    ...relationalDataForNewQueryKey[data.id],
-                  };
-                } else {
-                  return data;
-                }
-              }
-            );
-          } else {
-            if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
-              dataForNewQueryKey = {
-                ...dataForNewQueryKey,
-                ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
-              };
-            }
+        if (parentContextKey) {
+          console.log('TODO 1 combine relational and relational');
+        } else {
+          if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
+            dataForNewQueryKey = {
+              ...dataForNewQueryKey,
+              ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
+            };
           }
         }
-
-        if (Array.isArray(dataForNewQueryKey)) {
-          queryDataToReturn[newQueryKey] = dataForNewQueryKey;
-        } else {
-          queryDataToReturn[newQueryKey] = {
-            ...dataForNewQueryKey,
-          };
-        }
-      } else {
-        if (relationalDataForNewQueryKey) {
-          Object.keys(dataForNewQueryKey).forEach(byParentIdKey => {
-            if (byParentIdKey !== 'byParentId') {
-              const dataForParentKey = dataForNewQueryKey[byParentIdKey];
-              const dataFieldKeys = Object.keys(dataForParentKey);
-
-              dataFieldKeys.forEach(dataKey => {
-                if ('nodes' in dataForParentKey[dataKey]) {
-                  dataForParentKey[dataKey]['nodes'] = dataForParentKey[
-                    dataKey
-                  ]['nodes'].map((data: Record<string, any>) => {
-                    if (data.id in relationalDataForNewQueryKey) {
-                      return {
-                        ...data,
-                        ...relationalDataForNewQueryKey[data.id],
-                      };
-                    }
-                  });
-                } else {
-                  if (
-                    dataForParentKey[dataKey]['id'] in
-                    relationalDataForNewQueryKey
-                  ) {
-                    dataForParentKey[dataKey]['id'] = {
-                      ...dataForParentKey[dataKey]['id'],
-                      ...relationalDataForNewQueryKey[dataKey]['id'],
-                    };
-                  }
-                }
-              });
-            }
-          });
-        }
-
-        Object.keys(dataForNewQueryKey).forEach(parentIdKey => {
-          queryDataToReturn[parentIdKey] = dataForNewQueryKey[parentIdKey];
-        });
       }
+
+      if (parentContextKey) {
+        Object.entries(dataForNewQueryKey).forEach(([parentKey, results]) => {
+          if (queryDataToReturn[parentKey]) {
+            queryDataToReturn[parentKey] = {
+              ...queryDataToReturn[parentKey],
+              ...results,
+            };
+          } else {
+            queryDataToReturn[parentKey] = results;
+          }
+        });
+      } else {
+        queryDataToReturn[newQueryKey] = {
+          ...dataForNewQueryKey,
+        };
+      }
+
+      // if (cachedData.results.byParentId) {
+      //   dataForNewQueryKey['byParentId'] = true;
+
+      //   Object.keys(cachedData.results).forEach(parentIdKey => {
+      //     if (parentIdKey !== 'byParentId') {
+      //       const dataUnderParentId =
+      //         cachedData.results[parentIdKey][newQueryKey];
+
+      //       if ('nodes' in dataUnderParentId) {
+      //         dataForNewQueryKey[parentIdKey] = {
+      //           [newQueryKey]: {
+      //             nodes: [],
+      //           },
+      //         };
+
+      //         dataUnderParentId.nodes.forEach((datum: Record<string, any>) => {
+      //           const dataToReturn: Record<string, any> = {};
+
+      //           queryRecordEntry.properties.forEach(property => {
+      //             dataToReturn[property] = datum[property];
+      //           });
+
+      //           dataForNewQueryKey[parentIdKey][newQueryKey]['nodes'].push(
+      //             dataToReturn
+      //           );
+      //         });
+      //       } else {
+      //         dataForNewQueryKey[parentIdKey] = {
+      //           [newQueryKey]: {},
+      //         };
+
+      //         queryRecordEntry.properties.forEach(property => {
+      //           dataForNewQueryKey[parentIdKey][newQueryKey][property] =
+      //             dataUnderParentId[property];
+      //         });
+      //       }
+      //     }
+      //   });
+      // } else {
+      //   if (cachedData.results[newQueryKey]['nodes']) {
+      //     dataForNewQueryKey['nodes'] = [];
+
+      //     cachedData.results[newQueryKey]['nodes'].forEach(
+      //       (data: Record<string, any>) => {
+      //         const dataToReturn: Record<string, any> = {};
+
+      //         queryRecordEntry.properties.forEach(property => {
+      //           dataToReturn[property] = data[property];
+      //         });
+
+      //         dataForNewQueryKey.nodes.push(dataToReturn);
+      //       }
+      //     );
+      //   } else {
+      //     queryRecordEntry.properties.forEach(property => {
+      //       dataForNewQueryKey[property] =
+      //         cachedData.results[newQueryKey][property];
+      //     });
+      //   }
+      // }
+
+      // if (queryRecordEntry.relational !== undefined) {
+      //   relationalDataForNewQueryKey = this.getDataForQueryFromCache(
+      //     queryRecordEntry.relational,
+      //     contextKey
+      //   );
+      // }
+
+      // if ('byParentId' in dataForNewQueryKey === false) {
+      //   if (relationalDataForNewQueryKey) {
+      //     if ('nodes' in dataForNewQueryKey) {
+      //       dataForNewQueryKey['nodes'] = dataForNewQueryKey['nodes'].map(
+      //         (data: Record<string, any>) => {
+      //           if (data.id in relationalDataForNewQueryKey) {
+      //             return {
+      //               ...data,
+      //               ...relationalDataForNewQueryKey[data.id],
+      //             };
+      //           } else {
+      //             return data;
+      //           }
+      //         }
+      //       );
+      //     } else {
+      //       if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
+      //         console.log('dataForNewQueryKey', dataForNewQueryKey);
+      //         console.log(
+      //           'relationalDataForNewQueryKey',
+      //           relationalDataForNewQueryKey
+      //         );
+
+      //         dataForNewQueryKey = {
+      //           ...dataForNewQueryKey,
+      //           ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
+      //         };
+      //       }
+      //     }
+      //   }
+
+      //   if (Array.isArray(dataForNewQueryKey)) {
+      //     queryDataToReturn[newQueryKey] = dataForNewQueryKey;
+      //   } else {
+      //     queryDataToReturn[newQueryKey] = {
+      //       ...dataForNewQueryKey,
+      //     };
+      //   }
+      // } else {
+      //   if (relationalDataForNewQueryKey) {
+      //     Object.keys(dataForNewQueryKey).forEach(byParentIdKey => {
+      //       if (byParentIdKey !== 'byParentId') {
+      //         const dataForParentKey = dataForNewQueryKey[byParentIdKey];
+      //         const dataFieldKeys = Object.keys(dataForParentKey);
+
+      //         dataFieldKeys.forEach(dataKey => {
+      //           if ('nodes' in dataForParentKey[dataKey]) {
+      //             dataForParentKey[dataKey]['nodes'] = dataForParentKey[
+      //               dataKey
+      //             ]['nodes'].map((data: Record<string, any>) => {
+      //               if (data.id in relationalDataForNewQueryKey) {
+      //                 return {
+      //                   ...data,
+      //                   ...relationalDataForNewQueryKey[data.id],
+      //                 };
+      //               }
+      //             });
+      //           } else {
+      //             if (
+      //               dataForParentKey[dataKey]['id'] in
+      //               relationalDataForNewQueryKey
+      //             ) {
+      //               const parentId = dataForParentKey[dataKey]['id'];
+
+      //               dataForParentKey[dataKey]['id'] = {
+      //                 ...dataForParentKey[dataKey]['id'],
+      //                 ...relationalDataForNewQueryKey[parentId],
+      //               };
+      //             }
+      //           }
+      //         });
+      //       }
+      //     });
+      //   }
+
+      //   Object.keys(dataForNewQueryKey).forEach(parentIdKey => {
+      //     queryDataToReturn[parentIdKey] = dataForNewQueryKey[parentIdKey];
+      //   });
+      // }
     });
+
+    // console.log(
+    //   'queryDataToReturn',
+    //   JSON.stringify(queryDataToReturn, undefined, 2)
+    // );
 
     return queryDataToReturn;
   }
