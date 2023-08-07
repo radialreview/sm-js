@@ -1000,7 +1000,7 @@ function getOperationFromQueryRecordEntry(
     });
     operation = `${nodeType}s${options !== '' ? `(${options})` : ''}`;
   } else if ('id' in opts && opts.id != null) {
-    operation = `${nodeType}(id: ${opts.id})`;
+    operation = `${nodeType}(id: ${JSON.stringify(opts.id)})`;
   } else {
     const options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -1106,15 +1106,7 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
     '\n}'
   ).trim();
 
-  console.log('query string', queryString);
-
-  try {
-    return gql(queryString);
-  } catch (e) {
-    console.error('error creating gql document', e);
-    console.error(queryString);
-    return gql('');
-  }
+  return gql(queryString);
 }
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
