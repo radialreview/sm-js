@@ -7895,8 +7895,6 @@ function camelCasePropertyName(property) {
   }, '');
 }
 
-// TODO Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
-
 var QuerySlimmer = /*#__PURE__*/function () {
   function QuerySlimmer(mmGQLInstance) {
     this.mmGQLInstance = void 0;
@@ -7971,16 +7969,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.cacheNewData = function cacheNewData(queryRecordToCache, queryResponseToCache, parentContextKey) {
     var _this = this;
 
-    // if (parentContextKey) {
-    //   console.log(
-    //     'queryRecordToCache',
-    //     JSON.stringify(queryRecordToCache, undefined, 2)
-    //   );
-    //   console.log(
-    //     'queryResponseToCache',
-    //     JSON.stringify(queryResponseToCache, undefined, 2)
-    //   );
-    // }
     Object.keys(queryRecordToCache).forEach(function (recordFieldToCache) {
       var queryRecordEntry = queryRecordToCache[recordFieldToCache];
       if (!queryRecordEntry) return;
@@ -8073,7 +8061,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
           });
         }
       } // Cache the data we have organized for this specific query record (no relational data).
-      // PIOTR TODO: Don't overwrite existing data.
 
 
       _this.queriesByContext[currentQueryContextKey] = {
@@ -8122,7 +8109,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
               relationalFields.forEach(function (rField) {
                 relationalDataToCache[response.id][rField] = response[rField];
               });
-            }); // console.log('2', relationalDataToCache);
+            });
 
             _this.cacheNewData(relationalQueryRecord, relationalDataToCache, currentQueryContextKey);
           } else {
@@ -8131,7 +8118,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
               var idOfQueryRecord = queryResponseToCache[recordFieldToCache].id;
               var rDataToCache = (_rDataToCache = {}, _rDataToCache[idOfQueryRecord] = (_idOfQueryRecord = {}, _idOfQueryRecord[rField] = queryResponseToCache[recordFieldToCache][rField], _idOfQueryRecord), _rDataToCache);
-              var queryRecordForThisRField = (_queryRecordForThisRF2 = {}, _queryRecordForThisRF2[rField] = relationalQueryRecord[rField], _queryRecordForThisRF2); // console.log('3', rDataToCache);
+              var queryRecordForThisRField = (_queryRecordForThisRF2 = {}, _queryRecordForThisRF2[rField] = relationalQueryRecord[rField], _queryRecordForThisRF2);
 
               _this.cacheNewData(queryRecordForThisRField, rDataToCache, currentQueryContextKey);
             });
@@ -8232,113 +8219,93 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
       var contextKey = _this3.createContextKeyForQueryRecordEntry(queryRecordEntry, parentContextKey);
 
-      var cachedData = _this3.queriesByContext[contextKey];
-      var dataForNewQueryKey = null;
-      var relationalDataForNewQueryKey = null;
+      var cachedDataForContext = _this3.queriesByContext[contextKey];
+      var dataForNewQueryKey = {};
 
-      if (cachedData.results.byParentId) {
-        dataForNewQueryKey = {
-          byParentId: true
-        };
-        Object.keys(cachedData.results).forEach(function (parentIdKey) {
-          if (parentIdKey !== 'byParentId') {
-            var dataUnderParentId = cachedData.results[parentIdKey][newQueryKey];
+      if (cachedDataForContext.results.byParentId) {
+        Object.entries(cachedDataForContext.results).forEach(function (_ref) {
+          var parentId = _ref[0],
+              resultsUnderParent = _ref[1];
 
-            if ('nodes' in dataUnderParentId) {
-              var _dataForNewQueryKey$p;
-
-              dataForNewQueryKey[parentIdKey] = (_dataForNewQueryKey$p = {}, _dataForNewQueryKey$p[newQueryKey] = {
-                nodes: []
-              }, _dataForNewQueryKey$p);
-              dataUnderParentId.nodes.forEach(function (datum) {
-                var dataToReturn = {};
-                queryRecordEntry.properties.forEach(function (property) {
-                  dataToReturn[property] = datum[property];
-                });
-                dataForNewQueryKey[parentIdKey][newQueryKey]['nodes'].push(dataToReturn);
-              });
+          if (parentId !== 'byParentId') {
+            if (parentId in dataForNewQueryKey) {
+              dataForNewQueryKey[parentId] = _extends({}, dataForNewQueryKey[parentId], resultsUnderParent);
             } else {
-              var _dataForNewQueryKey$p2;
-
-              dataForNewQueryKey[parentIdKey] = (_dataForNewQueryKey$p2 = {}, _dataForNewQueryKey$p2[newQueryKey] = {}, _dataForNewQueryKey$p2);
-              queryRecordEntry.properties.forEach(function (property) {
-                dataForNewQueryKey[parentIdKey][newQueryKey][property] = dataUnderParentId[property];
-              });
+              dataForNewQueryKey[parentId] = _extends({}, resultsUnderParent);
             }
           }
         });
       } else {
-        if (cachedData.results[newQueryKey]['nodes']) {
-          dataForNewQueryKey = {
-            nodes: []
-          };
-          cachedData.results[newQueryKey]['nodes'].forEach(function (data) {
-            var dataToReturn = {};
+        var cachedDataForKey = cachedDataForContext.results[newQueryKey];
+
+        if ('nodes' in cachedDataForKey) {
+          var nodesDataToReturn = [];
+          cachedDataForKey.nodes.forEach(function (datum) {
+            var dataToReturnDatum = {};
             queryRecordEntry.properties.forEach(function (property) {
-              dataToReturn[property] = data[property];
+              dataToReturnDatum[property] = datum[property];
             });
-            dataForNewQueryKey.nodes.push(dataToReturn);
+            nodesDataToReturn.push(dataToReturnDatum);
           });
+          dataForNewQueryKey = {
+            nodes: nodesDataToReturn
+          };
         } else {
-          dataForNewQueryKey = {};
           queryRecordEntry.properties.forEach(function (property) {
-            dataForNewQueryKey[property] = cachedData.results[newQueryKey][property];
+            dataForNewQueryKey[property] = cachedDataForKey[property];
           });
         }
       }
 
       if (queryRecordEntry.relational !== undefined) {
-        relationalDataForNewQueryKey = _this3.getDataForQueryFromCache(queryRecordEntry.relational, contextKey);
-      }
+        var relationalDataForNewQueryKey = _this3.getDataForQueryFromCache(queryRecordEntry.relational, contextKey);
 
-      if ('byParentId' in dataForNewQueryKey === false) {
-        if (relationalDataForNewQueryKey) {
+        if (parentContextKey) {
+          Object.entries(dataForNewQueryKey).forEach(function (_ref2) {
+            var parentId = _ref2[0],
+                dataUnderParentId = _ref2[1];
+            var dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
+
+            if ('nodes' in dataUnderParentForQueryKey) {
+              dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(function (datum) {
+                if (datum.id in relationalDataForNewQueryKey) {
+                  return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
+                } else {
+                  return datum;
+                }
+              });
+            } else {
+              dataForNewQueryKey[parentId][newQueryKey] = _extends({}, dataUnderParentId[newQueryKey], relationalDataForNewQueryKey[dataUnderParentForQueryKey.id]);
+            }
+          });
+        } else {
           if ('nodes' in dataForNewQueryKey) {
-            dataForNewQueryKey['nodes'] = dataForNewQueryKey['nodes'].map(function (data) {
-              if (data.id in relationalDataForNewQueryKey) {
-                return _extends({}, data, relationalDataForNewQueryKey[data.id]);
+            dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(function (parentDatum) {
+              if (parentDatum.id in relationalDataForNewQueryKey) {
+                return _extends({}, parentDatum, relationalDataForNewQueryKey[parentDatum.id]);
               } else {
-                return data;
+                return parentDatum;
               }
             });
           } else {
-            if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
-              dataForNewQueryKey = _extends({}, dataForNewQueryKey, relationalDataForNewQueryKey[dataForNewQueryKey.id]);
-            }
+            dataForNewQueryKey = _extends({}, dataForNewQueryKey, relationalDataForNewQueryKey[dataForNewQueryKey.id]);
           }
         }
+      }
 
-        if (Array.isArray(dataForNewQueryKey)) {
-          queryDataToReturn[newQueryKey] = dataForNewQueryKey;
-        } else {
-          queryDataToReturn[newQueryKey] = _extends({}, dataForNewQueryKey);
-        }
-      } else {
-        if (relationalDataForNewQueryKey) {
-          Object.keys(dataForNewQueryKey).forEach(function (byParentIdKey) {
-            if (byParentIdKey !== 'byParentId') {
-              var dataForParentKey = dataForNewQueryKey[byParentIdKey];
-              var dataFieldKeys = Object.keys(dataForParentKey);
-              dataFieldKeys.forEach(function (dataKey) {
-                if ('nodes' in dataForParentKey[dataKey]) {
-                  dataForParentKey[dataKey]['nodes'] = dataForParentKey[dataKey]['nodes'].map(function (data) {
-                    if (data.id in relationalDataForNewQueryKey) {
-                      return _extends({}, data, relationalDataForNewQueryKey[data.id]);
-                    }
-                  });
-                } else {
-                  if (dataForParentKey[dataKey]['id'] in relationalDataForNewQueryKey) {
-                    dataForParentKey[dataKey]['id'] = _extends({}, dataForParentKey[dataKey]['id'], relationalDataForNewQueryKey[dataKey]['id']);
-                  }
-                }
-              });
-            }
-          });
-        }
+      if (parentContextKey) {
+        Object.entries(dataForNewQueryKey).forEach(function (_ref3) {
+          var parentKey = _ref3[0],
+              results = _ref3[1];
 
-        Object.keys(dataForNewQueryKey).forEach(function (parentIdKey) {
-          queryDataToReturn[parentIdKey] = dataForNewQueryKey[parentIdKey];
+          if (queryDataToReturn[parentKey]) {
+            queryDataToReturn[parentKey] = _extends({}, queryDataToReturn[parentKey], results);
+          } else {
+            queryDataToReturn[parentKey] = results;
+          }
         });
+      } else {
+        queryDataToReturn[newQueryKey] = _extends({}, dataForNewQueryKey);
       }
     });
     return queryDataToReturn;
