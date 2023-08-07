@@ -1,4 +1,5 @@
 // PIOTR TODO
+// - slim query record should not slim fields always requested
 // - Use relationshipName
 // - Snapshot tests
 // - cacheNewData
