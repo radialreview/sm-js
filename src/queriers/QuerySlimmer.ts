@@ -485,7 +485,26 @@ export class QuerySlimmer {
         );
 
         if (parentContextKey) {
-          console.log('TODO 1 combine relational and relational');
+          Object.values(dataForNewQueryKey).forEach(dataUnderParent => {
+            let dataForNewQueryKey = dataUnderParent[newQueryKey];
+
+            if ('nodes' in dataForNewQueryKey) {
+              dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
+                (datum: Record<string, any>) => {
+                  if (datum.id in relationalDataForNewQueryKey) {
+                    return {
+                      ...datum,
+                      ...relationalDataForNewQueryKey[datum.id],
+                    };
+                  } else {
+                    return datum;
+                  }
+                }
+              );
+            } else {
+              console.log('TODO R TO R Non Nodes');
+            }
+          });
         } else {
           if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
             dataForNewQueryKey = {
