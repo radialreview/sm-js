@@ -1106,6 +1106,8 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
     '\n}'
   ).trim();
 
+  console.log('query string', queryString);
+
   return gql(queryString);
 }
 
