@@ -1909,6 +1909,7 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }));
   }).join('\n    ') + '\n}').trim();
+  console.log('query string', queryString);
   return gql(queryString);
 }
 function queryRecordEntryReturnsArrayOfData(opts) {
