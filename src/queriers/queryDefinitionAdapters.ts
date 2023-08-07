@@ -1108,7 +1108,13 @@ export function getQueryGQLDocumentFromQueryRecord(opts: {
 
   console.log('query string', queryString);
 
-  return gql(queryString);
+  try {
+    return gql(queryString);
+  } catch (e) {
+    console.error('error creating gql document', e);
+    console.error(queryString);
+    return gql('');
+  }
 }
 
 export function queryRecordEntryReturnsArrayOfData(opts: {
