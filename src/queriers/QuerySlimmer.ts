@@ -470,7 +470,21 @@ export class QuerySlimmer {
         const cachedDataForKey = cachedDataForContext.results[newQueryKey];
 
         if ('nodes' in cachedDataForKey) {
-          console.log('TODO NODES');
+          const nodesDataToReturn: Record<string, any>[] = [];
+
+          cachedDataForKey.nodes.forEach((datum: Record<string, any>) => {
+            const dataToReturnDatum: Record<string, any> = {};
+
+            queryRecordEntry.properties.forEach(property => {
+              dataToReturnDatum[property] = datum[property];
+            });
+
+            nodesDataToReturn.push(dataToReturnDatum);
+          });
+
+          dataForNewQueryKey = {
+            nodes: nodesDataToReturn,
+          };
         } else {
           queryRecordEntry.properties.forEach(property => {
             dataForNewQueryKey[property] = cachedDataForKey[property];

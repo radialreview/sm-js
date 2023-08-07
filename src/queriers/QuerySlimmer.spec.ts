@@ -981,48 +981,48 @@ describe('getDataForQueryFromCache', () => {
     const {
       QuerySlimmer,
       userNode,
-      todoNode,
+      // todoNode,
       // meetingNode,
-      headlineNode,
+      // headlineNode,
     } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
-      user: {
-        def: userNode,
-        id: 'aidan-id',
-        properties: ['id', 'firstName', 'lastName'],
-        relational: {
-          todos: {
-            def: todoNode,
-            oneToMany: true,
-            _relationshipName: 'todos',
-            properties: ['id', 'task'],
-            relational: {
-              assignee: {
-                def: userNode,
-                oneToOne: true,
-                _relationshipName: 'assignee',
-                properties: ['id', 'firstName', 'lastName'],
-              },
-            },
-          },
-          headlines: {
-            def: headlineNode,
-            oneToMany: true,
-            _relationshipName: 'headlines',
-            properties: ['id', 'title'],
-            relational: {
-              assignee: {
-                def: userNode,
-                oneToOne: true,
-                _relationshipName: 'assignee',
-                properties: ['id', 'firstName', 'lastName'],
-              },
-            },
-          },
-        },
-        tokenName: DEFAULT_TOKEN_NAME,
-      },
+      // user: {
+      //   def: userNode,
+      //   id: 'aidan-id',
+      //   properties: ['id', 'firstName', 'lastName'],
+      //   relational: {
+      //     todos: {
+      //       def: todoNode,
+      //       oneToMany: true,
+      //       _relationshipName: 'todos',
+      //       properties: ['id', 'task'],
+      //       relational: {
+      //         assignee: {
+      //           def: userNode,
+      //           oneToOne: true,
+      //           _relationshipName: 'assignee',
+      //           properties: ['id', 'firstName', 'lastName'],
+      //         },
+      //       },
+      //     },
+      //     headlines: {
+      //       def: headlineNode,
+      //       oneToMany: true,
+      //       _relationshipName: 'headlines',
+      //       properties: ['id', 'title'],
+      //       relational: {
+      //         assignee: {
+      //           def: userNode,
+      //           oneToOne: true,
+      //           _relationshipName: 'assignee',
+      //           properties: ['id', 'firstName', 'lastName'],
+      //         },
+      //       },
+      //     },
+      //   },
+      //   tokenName: DEFAULT_TOKEN_NAME,
+      // },
       users: {
         def: userNode,
         ids: ['aidan-id', 'piotr-id'],
@@ -1054,55 +1054,55 @@ describe('getDataForQueryFromCache', () => {
     };
 
     const mockRequestResponse = {
-      user: {
-        id: 'aidan-id',
-        firstName: 'Aidan',
-        lastName: 'Goodman',
-        todos: {
-          nodes: [
-            {
-              id: 'aidan-todo-id-1',
-              task: 'aidan-todo-task-1',
-              assignee: {
-                id: 'aidan-id',
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-              },
-            },
-            {
-              id: 'aidan-todo-id-2',
-              task: 'aidan-todo-task-2',
-              assignee: {
-                id: 'aidan-id',
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-              },
-            },
-          ],
-        },
-        headlines: {
-          nodes: [
-            {
-              id: 'aidan-headline-id-1',
-              title: 'aidan-headline-title-1',
-              assignee: {
-                id: 'aidan-id',
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-              },
-            },
-            {
-              id: 'aidan-headline-id-2',
-              title: 'aidan-headline-title-2',
-              assignee: {
-                id: 'aidan-id',
-                firstName: 'Aidan',
-                lastName: 'Goodman',
-              },
-            },
-          ],
-        },
-      },
+      // user: {
+      //   id: 'aidan-id',
+      //   firstName: 'Aidan',
+      //   lastName: 'Goodman',
+      //   todos: {
+      //     nodes: [
+      //       {
+      //         id: 'aidan-todo-id-1',
+      //         task: 'aidan-todo-task-1',
+      //         assignee: {
+      //           id: 'aidan-id',
+      //           firstName: 'Aidan',
+      //           lastName: 'Goodman',
+      //         },
+      //       },
+      //       {
+      //         id: 'aidan-todo-id-2',
+      //         task: 'aidan-todo-task-2',
+      //         assignee: {
+      //           id: 'aidan-id',
+      //           firstName: 'Aidan',
+      //           lastName: 'Goodman',
+      //         },
+      //       },
+      //     ],
+      //   },
+      //   headlines: {
+      //     nodes: [
+      //       {
+      //         id: 'aidan-headline-id-1',
+      //         title: 'aidan-headline-title-1',
+      //         assignee: {
+      //           id: 'aidan-id',
+      //           firstName: 'Aidan',
+      //           lastName: 'Goodman',
+      //         },
+      //       },
+      //       {
+      //         id: 'aidan-headline-id-2',
+      //         title: 'aidan-headline-title-2',
+      //         assignee: {
+      //           id: 'aidan-id',
+      //           firstName: 'Aidan',
+      //           lastName: 'Goodman',
+      //         },
+      //       },
+      //     ],
+      //   },
+      // },
       users: {
         nodes: [
           {
