@@ -520,7 +520,20 @@ export class QuerySlimmer {
             }
           });
         } else {
-          if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
+          if ('nodes' in dataForNewQueryKey) {
+            dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
+              (parentDatum: Record<string, any>) => {
+                if (parentDatum.id in relationalDataForNewQueryKey) {
+                  return {
+                    ...parentDatum,
+                    ...relationalDataForNewQueryKey[parentDatum.id],
+                  };
+                } else {
+                  return parentDatum;
+                }
+              }
+            );
+          } else {
             dataForNewQueryKey = {
               ...dataForNewQueryKey,
               ...relationalDataForNewQueryKey[dataForNewQueryKey.id],

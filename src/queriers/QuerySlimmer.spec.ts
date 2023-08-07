@@ -982,7 +982,7 @@ describe('getDataForQueryFromCache', () => {
       QuerySlimmer,
       userNode,
       // todoNode,
-      // meetingNode,
+      meetingNode,
       // headlineNode,
     } = setupTests();
 
@@ -1027,28 +1027,28 @@ describe('getDataForQueryFromCache', () => {
         def: userNode,
         ids: ['aidan-id', 'piotr-id'],
         properties: ['id', 'firstName', 'lastName'],
-        // relational: {
-        //   meeting: {
-        //     def: meetingNode,
-        //     oneToOne: true,
-        //     _relationshipName: 'meeting',
-        //     properties: ['id', 'name'],
-        //     relational: {
-        //       todos: {
-        //         def: todoNode,
-        //         oneToMany: true,
-        //         _relationshipName: 'todos',
-        //         properties: ['id', 'task'],
-        //       },
-        //       headlines: {
-        //         def: headlineNode,
-        //         oneToMany: true,
-        //         _relationshipName: 'headlines',
-        //         properties: ['id', 'title'],
-        //       },
-        //     },
-        //   },
-        // },
+        relational: {
+          meeting: {
+            def: meetingNode,
+            oneToOne: true,
+            _relationshipName: 'meeting',
+            properties: ['id', 'name'],
+            // relational: {
+            //   todos: {
+            //     def: todoNode,
+            //     oneToMany: true,
+            //     _relationshipName: 'todos',
+            //     properties: ['id', 'task'],
+            //   },
+            //   headlines: {
+            //     def: headlineNode,
+            //     oneToMany: true,
+            //     _relationshipName: 'headlines',
+            //     properties: ['id', 'title'],
+            //   },
+            // },
+          },
+        },
         tokenName: DEFAULT_TOKEN_NAME,
       },
     };
@@ -1109,77 +1109,75 @@ describe('getDataForQueryFromCache', () => {
             id: 'aidan-id',
             firstName: 'Aidan',
             lastName: 'Goodman',
-            // meeting: {
-            //   id: 'aidan-meeting-id-1',
-            //   type: meetingNode,
-            //   name: 'aidan-meeting-1',
-            //   todos: {
-            //     nodes: [
-            //       {
-            //         id: 'aidan-todo-id-1',
-            //         type: todoNode.type,
-            //         task: 'aidan-todo-task-1',
-            //       },
-            //       {
-            //         id: 'aidan-todo-id-2',
-            //         type: todoNode.type,
-            //         task: 'aidan-todo-task-2',
-            //       },
-            //     ],
-            //   },
-            //   headlines: {
-            //     nodes: [
-            //       {
-            //         id: 'aidan-headline-id-1',
-            //         type: headlineNode.type,
-            //         title: 'aidan-headline-task-1',
-            //       },
-            //       {
-            //         id: 'aidan-headline-id-2',
-            //         type: headlineNode.type,
-            //         title: 'aidan-headline-task-2',
-            //       },
-            //     ],
-            //   },
-            // },
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              name: 'aidan-meeting-1',
+              // todos: {
+              //   nodes: [
+              //     {
+              //       id: 'aidan-todo-id-1',
+              //       type: todoNode.type,
+              //       task: 'aidan-todo-task-1',
+              //     },
+              //     {
+              //       id: 'aidan-todo-id-2',
+              //       type: todoNode.type,
+              //       task: 'aidan-todo-task-2',
+              //     },
+              //   ],
+              // },
+              // headlines: {
+              //   nodes: [
+              //     {
+              //       id: 'aidan-headline-id-1',
+              //       type: headlineNode.type,
+              //       title: 'aidan-headline-task-1',
+              //     },
+              //     {
+              //       id: 'aidan-headline-id-2',
+              //       type: headlineNode.type,
+              //       title: 'aidan-headline-task-2',
+              //     },
+              //   ],
+              // },
+            },
           },
           {
             id: 'piotr-id',
             firstName: 'Piotr',
             lastName: 'Bogun',
-            // meeting: {
-            //   id: 'piotr-meeting-id-1',
-            //   type: meetingNode,
-            //   name: 'piotr-meeting-1',
-            //   todos: {
-            //     nodes: [
-            //       {
-            //         id: 'piotr-todo-id-1',
-            //         type: todoNode.type,
-            //         task: 'piotr-todo-task-1',
-            //       },
-            //       {
-            //         id: 'piotr-todo-id-2',
-            //         type: todoNode.type,
-            //         task: 'piotr-todo-task-2',
-            //       },
-            //     ],
-            //   },
-            //   headlines: {
-            //     nodes: [
-            //       {
-            //         id: 'piotr-headline-id-1',
-            //         type: headlineNode.type,
-            //         title: 'piotr-headline-task-1',
-            //       },
-            //       {
-            //         id: 'piotr-headline-id-2',
-            //         type: headlineNode.type,
-            //         title: 'piotr-headline-task-2',
-            //       },
-            //     ],
-            //   },
-            // },
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              name: 'piotr-meeting-1',
+              // todos: {
+              //   nodes: [
+              //     {
+              //       id: 'piotr-todo-id-1',
+              //       type: todoNode.type,
+              //       task: 'piotr-todo-task-1',
+              //     },
+              //     {
+              //       id: 'piotr-todo-id-2',
+              //       type: todoNode.type,
+              //       task: 'piotr-todo-task-2',
+              //     },
+              //   ],
+              // },
+              // headlines: {
+              //   nodes: [
+              //     {
+              //       id: 'piotr-headline-id-1',
+              //       type: headlineNode.type,
+              //       title: 'piotr-headline-task-1',
+              //     },
+              //     {
+              //       id: 'piotr-headline-id-2',
+              //       type: headlineNode.type,
+              //       title: 'piotr-headline-task-2',
+              //     },
+              //   ],
+              // },
+            },
           },
         ],
       },
