@@ -1847,7 +1847,7 @@ function getOperationFromQueryRecordEntry(opts) {
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: " + opts.id + ")";
+    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
   } else {
     var _options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -1909,15 +1909,7 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
       useServerSidePaginationFilteringSorting: opts.useServerSidePaginationFilteringSorting
     }));
   }).join('\n    ') + '\n}').trim();
-  console.log('query string', queryString);
-
-  try {
-    return gql(queryString);
-  } catch (e) {
-    console.error('error creating gql document', e);
-    console.error(queryString);
-    return gql('');
-  }
+  return gql(queryString);
 }
 function queryRecordEntryReturnsArrayOfData(opts) {
   return !!(opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry));
