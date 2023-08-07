@@ -1910,7 +1910,14 @@ function getQueryGQLDocumentFromQueryRecord(opts) {
     }));
   }).join('\n    ') + '\n}').trim();
   console.log('query string', queryString);
-  return gql(queryString);
+
+  try {
+    return gql(queryString);
+  } catch (e) {
+    console.error('error creating gql document', e);
+    console.error(queryString);
+    return gql('');
+  }
 }
 function queryRecordEntryReturnsArrayOfData(opts) {
   return !!(opts.queryRecordEntry && (!('id' in opts.queryRecordEntry) || opts.queryRecordEntry.id == null) && !('oneToOne' in opts.queryRecordEntry));
