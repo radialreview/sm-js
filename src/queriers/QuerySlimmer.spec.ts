@@ -54,7 +54,7 @@ function setupTests() {
 }
 
 describe('cacheNewData', () => {
-  test('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
+  test.only('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
     const {
       QuerySlimmer,
       userNode,
@@ -981,48 +981,48 @@ describe('getDataForQueryFromCache', () => {
     const {
       QuerySlimmer,
       userNode,
-      // todoNode,
+      todoNode,
       meetingNode,
-      // headlineNode,
+      headlineNode,
     } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
-      // user: {
-      //   def: userNode,
-      //   id: 'aidan-id',
-      //   properties: ['id', 'firstName', 'lastName'],
-      //   relational: {
-      //     todos: {
-      //       def: todoNode,
-      //       oneToMany: true,
-      //       _relationshipName: 'todos',
-      //       properties: ['id', 'task'],
-      //       relational: {
-      //         assignee: {
-      //           def: userNode,
-      //           oneToOne: true,
-      //           _relationshipName: 'assignee',
-      //           properties: ['id', 'firstName', 'lastName'],
-      //         },
-      //       },
-      //     },
-      //     headlines: {
-      //       def: headlineNode,
-      //       oneToMany: true,
-      //       _relationshipName: 'headlines',
-      //       properties: ['id', 'title'],
-      //       relational: {
-      //         assignee: {
-      //           def: userNode,
-      //           oneToOne: true,
-      //           _relationshipName: 'assignee',
-      //           properties: ['id', 'firstName', 'lastName'],
-      //         },
-      //       },
-      //     },
-      //   },
-      //   tokenName: DEFAULT_TOKEN_NAME,
-      // },
+      user: {
+        def: userNode,
+        id: 'aidan-id',
+        properties: ['id', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            oneToMany: true,
+            _relationshipName: 'headlines',
+            properties: ['id', 'title'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
       users: {
         def: userNode,
         ids: ['aidan-id', 'piotr-id'],
@@ -1033,20 +1033,20 @@ describe('getDataForQueryFromCache', () => {
             oneToOne: true,
             _relationshipName: 'meeting',
             properties: ['id', 'name'],
-            // relational: {
-            //   todos: {
-            //     def: todoNode,
-            //     oneToMany: true,
-            //     _relationshipName: 'todos',
-            //     properties: ['id', 'task'],
-            //   },
-            //   headlines: {
-            //     def: headlineNode,
-            //     oneToMany: true,
-            //     _relationshipName: 'headlines',
-            //     properties: ['id', 'title'],
-            //   },
-            // },
+            relational: {
+              todos: {
+                def: todoNode,
+                oneToMany: true,
+                _relationshipName: 'todos',
+                properties: ['id', 'task'],
+              },
+              headlines: {
+                def: headlineNode,
+                oneToMany: true,
+                _relationshipName: 'headlines',
+                properties: ['id', 'title'],
+              },
+            },
           },
         },
         tokenName: DEFAULT_TOKEN_NAME,
@@ -1054,55 +1054,55 @@ describe('getDataForQueryFromCache', () => {
     };
 
     const mockRequestResponse = {
-      // user: {
-      //   id: 'aidan-id',
-      //   firstName: 'Aidan',
-      //   lastName: 'Goodman',
-      //   todos: {
-      //     nodes: [
-      //       {
-      //         id: 'aidan-todo-id-1',
-      //         task: 'aidan-todo-task-1',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //       {
-      //         id: 'aidan-todo-id-2',
-      //         task: 'aidan-todo-task-2',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //     ],
-      //   },
-      //   headlines: {
-      //     nodes: [
-      //       {
-      //         id: 'aidan-headline-id-1',
-      //         title: 'aidan-headline-title-1',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //       {
-      //         id: 'aidan-headline-id-2',
-      //         title: 'aidan-headline-title-2',
-      //         assignee: {
-      //           id: 'aidan-id',
-      //           firstName: 'Aidan',
-      //           lastName: 'Goodman',
-      //         },
-      //       },
-      //     ],
-      //   },
-      // },
+      user: {
+        id: 'aidan-id',
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+        todos: {
+          nodes: [
+            {
+              id: 'aidan-todo-id-1',
+              task: 'aidan-todo-task-1',
+              assignee: {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-todo-id-2',
+              task: 'aidan-todo-task-2',
+              assignee: {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+        headlines: {
+          nodes: [
+            {
+              id: 'aidan-headline-id-1',
+              title: 'aidan-headline-title-1',
+              assignee: {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-headline-id-2',
+              title: 'aidan-headline-title-2',
+              assignee: {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+      },
       users: {
         nodes: [
           {
@@ -1112,34 +1112,30 @@ describe('getDataForQueryFromCache', () => {
             meeting: {
               id: 'aidan-meeting-id-1',
               name: 'aidan-meeting-1',
-              // todos: {
-              //   nodes: [
-              //     {
-              //       id: 'aidan-todo-id-1',
-              //       type: todoNode.type,
-              //       task: 'aidan-todo-task-1',
-              //     },
-              //     {
-              //       id: 'aidan-todo-id-2',
-              //       type: todoNode.type,
-              //       task: 'aidan-todo-task-2',
-              //     },
-              //   ],
-              // },
-              // headlines: {
-              //   nodes: [
-              //     {
-              //       id: 'aidan-headline-id-1',
-              //       type: headlineNode.type,
-              //       title: 'aidan-headline-task-1',
-              //     },
-              //     {
-              //       id: 'aidan-headline-id-2',
-              //       type: headlineNode.type,
-              //       title: 'aidan-headline-task-2',
-              //     },
-              //   ],
-              // },
+              todos: {
+                nodes: [
+                  {
+                    id: 'aidan-todo-id-1',
+                    task: 'aidan-todo-task-1',
+                  },
+                  {
+                    id: 'aidan-todo-id-2',
+                    task: 'aidan-todo-task-2',
+                  },
+                ],
+              },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'aidan-headline-id-1',
+                    title: 'aidan-headline-task-1',
+                  },
+                  {
+                    id: 'aidan-headline-id-2',
+                    title: 'aidan-headline-task-2',
+                  },
+                ],
+              },
             },
           },
           {
@@ -1149,34 +1145,30 @@ describe('getDataForQueryFromCache', () => {
             meeting: {
               id: 'piotr-meeting-id-1',
               name: 'piotr-meeting-1',
-              // todos: {
-              //   nodes: [
-              //     {
-              //       id: 'piotr-todo-id-1',
-              //       type: todoNode.type,
-              //       task: 'piotr-todo-task-1',
-              //     },
-              //     {
-              //       id: 'piotr-todo-id-2',
-              //       type: todoNode.type,
-              //       task: 'piotr-todo-task-2',
-              //     },
-              //   ],
-              // },
-              // headlines: {
-              //   nodes: [
-              //     {
-              //       id: 'piotr-headline-id-1',
-              //       type: headlineNode.type,
-              //       title: 'piotr-headline-task-1',
-              //     },
-              //     {
-              //       id: 'piotr-headline-id-2',
-              //       type: headlineNode.type,
-              //       title: 'piotr-headline-task-2',
-              //     },
-              //   ],
-              // },
+              todos: {
+                nodes: [
+                  {
+                    id: 'piotr-todo-id-1',
+                    task: 'piotr-todo-task-1',
+                  },
+                  {
+                    id: 'piotr-todo-id-2',
+                    task: 'piotr-todo-task-2',
+                  },
+                ],
+              },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'piotr-headline-id-1',
+                    title: 'piotr-headline-task-1',
+                  },
+                  {
+                    id: 'piotr-headline-id-2',
+                    title: 'piotr-headline-task-2',
+                  },
+                ],
+              },
             },
           },
         ],
@@ -1189,222 +1181,8 @@ describe('getDataForQueryFromCache', () => {
       mockQueryRecord
     );
 
-    // console.log(
-    //   'actualDataFromCache',
-    //   JSON.stringify(actualDataFromCache, undefined, 2)
-    // );
-
     expect(actualDataFromCache).toEqual(mockRequestResponse);
   });
-
-  // test('it should return data for a simple single entity QueryRecord', () => {
-  //   const { QuerySlimmer, userNode } = setupTests();
-  //   const mockQueryRecord: QueryRecord = {
-  //     user: {
-  //       id: 'user-id-1',
-  //       def: userNode,
-  //       properties: ['id', 'type', 'firstName', 'lastName'],
-  //       tokenName: DEFAULT_TOKEN_NAME,
-  //     },
-  //   };
-  //   const mockQueryResults = {
-  //     user: {
-  //       id: 'user-id-1',
-  //       type: userNode.type,
-  //       firstName: 'Jon',
-  //       lastName: 'Doe',
-  //     },
-  //   };
-  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
-  //   const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
-  //   expect(actualResult).toEqual(mockQueryResults);
-  // });
-  // test('it should return data for a simple nodes collection QueryRecord', () => {
-  //   const { QuerySlimmer, userNode } = setupTests();
-  //   const mockQueryRecord: QueryRecord = {
-  //     users: {
-  //       def: userNode,
-  //       properties: ['id', 'type', 'firstName', 'lastName'],
-  //       tokenName: DEFAULT_TOKEN_NAME,
-  //     },
-  //   };
-  //   const mockQueryResults = {
-  //     users: {
-  //       nodes: [
-  //         {
-  //           id: 'user-id-1',
-  //           type: userNode.type,
-  //           firstName: 'Aidan',
-  //           lastName: 'Goodman',
-  //           email: 'test@email.com',
-  //           nickName: 'Aidan',
-  //         },
-  //         {
-  //           id: 'user-id-2',
-  //           type: userNode.type,
-  //           firstName: 'Piotr',
-  //           lastName: 'Bogun',
-  //           email: 'test@email.com',
-  //           nickName: 'Piotr',
-  //         },
-  //       ],
-  //     },
-  //   };
-  //   const expectedCachedData = {
-  //     users: {
-  //       nodes: [
-  //         {
-  //           id: 'user-id-1',
-  //           type: userNode.type,
-  //           firstName: 'Aidan',
-  //           lastName: 'Goodman',
-  //         },
-  //         {
-  //           id: 'user-id-2',
-  //           type: userNode.type,
-  //           firstName: 'Piotr',
-  //           lastName: 'Bogun',
-  //         },
-  //       ],
-  //     },
-  //   };
-  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
-  //   const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
-  //   expect(actualResult).toEqual(expectedCachedData);
-  // });
-  // test('it should return data for a query with relational data with only requested properties', () => {
-  //   const { QuerySlimmer, userNode, todoNode } = setupTests();
-  //   const mockQueryRecord: QueryRecord = {
-  //     users: {
-  //       def: userNode,
-  //       properties: ['id', 'type', 'firstName', 'lastName'],
-  //       relational: {
-  //         todos: {
-  //           def: todoNode,
-  //           oneToMany: true,
-  //           _relationshipName: 'todos',
-  //           properties: ['id', 'type', 'task'],
-  //           relational: {
-  //             assignee: {
-  //               def: userNode,
-  //               oneToOne: true,
-  //               _relationshipName: 'assignee',
-  //               properties: ['id', 'type', 'firstName', 'lastName'],
-  //             },
-  //           },
-  //         },
-  //       },
-  //       tokenName: DEFAULT_TOKEN_NAME,
-  //     },
-  //   };
-  //   const mockQueryResults = {
-  //     users: {
-  //       nodes: [
-  //         {
-  //           id: 'user-id-1',
-  //           type: userNode.type,
-  //           firstName: 'Aidan',
-  //           lastName: 'Goodman',
-  //           email: 'test@email.com',
-  //           nickName: 'nickName',
-  //           todos: {
-  //             nodes: [
-  //               {
-  //                 id: 'todo-id-1',
-  //                 type: todoNode.type,
-  //                 task: 'todo-task-1',
-  //                 isArchived: false,
-  //                 assignee: {
-  //                   id: 'user-id-1',
-  //                   type: userNode.type,
-  //                   firstName: 'Aidan',
-  //                   lastName: 'Goodman',
-  //                   email: 'test@email.com',
-  //                 },
-  //               },
-  //             ],
-  //           },
-  //         },
-  //         {
-  //           id: 'user-id-2',
-  //           type: userNode.type,
-  //           firstName: 'Piotr',
-  //           lastName: 'Bogun',
-  //           email: 'test@email.com',
-  //           nickName: 'nickName',
-  //           todos: {
-  //             nodes: [
-  //               {
-  //                 id: 'todo-id-2',
-  //                 type: todoNode.type,
-  //                 task: 'todo-task-2',
-  //                 isArchived: false,
-  //                 assignee: {
-  //                   id: 'user-id-2',
-  //                   type: userNode.type,
-  //                   firstName: 'Piotr',
-  //                   lastName: 'Bogun',
-  //                   email: 'test@email.com',
-  //                 },
-  //               },
-  //             ],
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   };
-  //   const expectedCachedData = {
-  //     users: {
-  //       nodes: [
-  //         {
-  //           id: 'user-id-1',
-  //           type: userNode.type,
-  //           firstName: 'Aidan',
-  //           lastName: 'Goodman',
-  //           todos: {
-  //             nodes: [
-  //               {
-  //                 id: 'todo-id-1',
-  //                 type: todoNode.type,
-  //                 task: 'todo-task-1',
-  //                 assignee: {
-  //                   id: 'user-id-1',
-  //                   type: userNode.type,
-  //                   firstName: 'Aidan',
-  //                   lastName: 'Goodman',
-  //                 },
-  //               },
-  //             ],
-  //           },
-  //         },
-  //         {
-  //           id: 'user-id-2',
-  //           type: userNode.type,
-  //           firstName: 'Piotr',
-  //           lastName: 'Bogun',
-  //           todos: {
-  //             nodes: [
-  //               {
-  //                 id: 'todo-id-2',
-  //                 type: todoNode.type,
-  //                 task: 'todo-task-2',
-  //                 assignee: {
-  //                   id: 'user-id-2',
-  //                   type: userNode.type,
-  //                   firstName: 'Piotr',
-  //                   lastName: 'Bogun',
-  //                 },
-  //               },
-  //             ],
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   };
-  //   QuerySlimmer.cacheNewData(mockQueryRecord, mockQueryResults);
-  //   const actualResult = QuerySlimmer.getDataForQueryFromCache(mockQueryRecord);
-  //   expect(actualResult).toEqual(expectedCachedData);
-  // });
 });
 
 // describe('getInFlightQueriesToSlimAgainst', () => {

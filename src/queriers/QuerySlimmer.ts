@@ -499,26 +499,33 @@ export class QuerySlimmer {
         );
 
         if (parentContextKey) {
-          Object.values(dataForNewQueryKey).forEach(dataUnderParent => {
-            let dataForNewQueryKey = dataUnderParent[newQueryKey];
+          Object.entries(dataForNewQueryKey).forEach(
+            ([parentId, dataUnderParentId]) => {
+              let dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
 
-            if ('nodes' in dataForNewQueryKey) {
-              dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
-                (datum: Record<string, any>) => {
-                  if (datum.id in relationalDataForNewQueryKey) {
-                    return {
-                      ...datum,
-                      ...relationalDataForNewQueryKey[datum.id],
-                    };
-                  } else {
-                    return datum;
+              if ('nodes' in dataUnderParentForQueryKey) {
+                dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(
+                  (datum: Record<string, any>) => {
+                    if (datum.id in relationalDataForNewQueryKey) {
+                      return {
+                        ...datum,
+                        ...relationalDataForNewQueryKey[datum.id],
+                      };
+                    } else {
+                      return datum;
+                    }
                   }
-                }
-              );
-            } else {
-              console.log('TODO R TO R Non Nodes');
+                );
+              } else {
+                dataForNewQueryKey[parentId][newQueryKey] = {
+                  ...dataUnderParentId[newQueryKey],
+                  ...relationalDataForNewQueryKey[
+                    dataUnderParentForQueryKey.id
+                  ],
+                };
+              }
             }
-          });
+          );
         } else {
           if ('nodes' in dataForNewQueryKey) {
             dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
@@ -558,160 +565,7 @@ export class QuerySlimmer {
           ...dataForNewQueryKey,
         };
       }
-
-      // if (cachedData.results.byParentId) {
-      //   dataForNewQueryKey['byParentId'] = true;
-
-      //   Object.keys(cachedData.results).forEach(parentIdKey => {
-      //     if (parentIdKey !== 'byParentId') {
-      //       const dataUnderParentId =
-      //         cachedData.results[parentIdKey][newQueryKey];
-
-      //       if ('nodes' in dataUnderParentId) {
-      //         dataForNewQueryKey[parentIdKey] = {
-      //           [newQueryKey]: {
-      //             nodes: [],
-      //           },
-      //         };
-
-      //         dataUnderParentId.nodes.forEach((datum: Record<string, any>) => {
-      //           const dataToReturn: Record<string, any> = {};
-
-      //           queryRecordEntry.properties.forEach(property => {
-      //             dataToReturn[property] = datum[property];
-      //           });
-
-      //           dataForNewQueryKey[parentIdKey][newQueryKey]['nodes'].push(
-      //             dataToReturn
-      //           );
-      //         });
-      //       } else {
-      //         dataForNewQueryKey[parentIdKey] = {
-      //           [newQueryKey]: {},
-      //         };
-
-      //         queryRecordEntry.properties.forEach(property => {
-      //           dataForNewQueryKey[parentIdKey][newQueryKey][property] =
-      //             dataUnderParentId[property];
-      //         });
-      //       }
-      //     }
-      //   });
-      // } else {
-      //   if (cachedData.results[newQueryKey]['nodes']) {
-      //     dataForNewQueryKey['nodes'] = [];
-
-      //     cachedData.results[newQueryKey]['nodes'].forEach(
-      //       (data: Record<string, any>) => {
-      //         const dataToReturn: Record<string, any> = {};
-
-      //         queryRecordEntry.properties.forEach(property => {
-      //           dataToReturn[property] = data[property];
-      //         });
-
-      //         dataForNewQueryKey.nodes.push(dataToReturn);
-      //       }
-      //     );
-      //   } else {
-      //     queryRecordEntry.properties.forEach(property => {
-      //       dataForNewQueryKey[property] =
-      //         cachedData.results[newQueryKey][property];
-      //     });
-      //   }
-      // }
-
-      // if (queryRecordEntry.relational !== undefined) {
-      //   relationalDataForNewQueryKey = this.getDataForQueryFromCache(
-      //     queryRecordEntry.relational,
-      //     contextKey
-      //   );
-      // }
-
-      // if ('byParentId' in dataForNewQueryKey === false) {
-      //   if (relationalDataForNewQueryKey) {
-      //     if ('nodes' in dataForNewQueryKey) {
-      //       dataForNewQueryKey['nodes'] = dataForNewQueryKey['nodes'].map(
-      //         (data: Record<string, any>) => {
-      //           if (data.id in relationalDataForNewQueryKey) {
-      //             return {
-      //               ...data,
-      //               ...relationalDataForNewQueryKey[data.id],
-      //             };
-      //           } else {
-      //             return data;
-      //           }
-      //         }
-      //       );
-      //     } else {
-      //       if (dataForNewQueryKey.id in relationalDataForNewQueryKey) {
-      //         console.log('dataForNewQueryKey', dataForNewQueryKey);
-      //         console.log(
-      //           'relationalDataForNewQueryKey',
-      //           relationalDataForNewQueryKey
-      //         );
-
-      //         dataForNewQueryKey = {
-      //           ...dataForNewQueryKey,
-      //           ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
-      //         };
-      //       }
-      //     }
-      //   }
-
-      //   if (Array.isArray(dataForNewQueryKey)) {
-      //     queryDataToReturn[newQueryKey] = dataForNewQueryKey;
-      //   } else {
-      //     queryDataToReturn[newQueryKey] = {
-      //       ...dataForNewQueryKey,
-      //     };
-      //   }
-      // } else {
-      //   if (relationalDataForNewQueryKey) {
-      //     Object.keys(dataForNewQueryKey).forEach(byParentIdKey => {
-      //       if (byParentIdKey !== 'byParentId') {
-      //         const dataForParentKey = dataForNewQueryKey[byParentIdKey];
-      //         const dataFieldKeys = Object.keys(dataForParentKey);
-
-      //         dataFieldKeys.forEach(dataKey => {
-      //           if ('nodes' in dataForParentKey[dataKey]) {
-      //             dataForParentKey[dataKey]['nodes'] = dataForParentKey[
-      //               dataKey
-      //             ]['nodes'].map((data: Record<string, any>) => {
-      //               if (data.id in relationalDataForNewQueryKey) {
-      //                 return {
-      //                   ...data,
-      //                   ...relationalDataForNewQueryKey[data.id],
-      //                 };
-      //               }
-      //             });
-      //           } else {
-      //             if (
-      //               dataForParentKey[dataKey]['id'] in
-      //               relationalDataForNewQueryKey
-      //             ) {
-      //               const parentId = dataForParentKey[dataKey]['id'];
-
-      //               dataForParentKey[dataKey]['id'] = {
-      //                 ...dataForParentKey[dataKey]['id'],
-      //                 ...relationalDataForNewQueryKey[parentId],
-      //               };
-      //             }
-      //           }
-      //         });
-      //       }
-      //     });
-      //   }
-
-      //   Object.keys(dataForNewQueryKey).forEach(parentIdKey => {
-      //     queryDataToReturn[parentIdKey] = dataForNewQueryKey[parentIdKey];
-      //   });
-      // }
     });
-
-    // console.log(
-    //   'queryDataToReturn',
-    //   JSON.stringify(queryDataToReturn, undefined, 2)
-    // );
 
     return queryDataToReturn;
   }
