@@ -14,6 +14,8 @@ import {
 } from './types';
 import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
+import { number, object, string } from './dataTypes';
+import { getNestedProxyObjectWithNotUpToDateProtection } from './DOProxyGenerator';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -218,3 +220,280 @@ function generateDOProxy<
     relationalQueries: opts.relationalQueries || {},
   });
 }
+
+test('getNestedProxyObjectWithNotUpToDateProtection correct infers an object when all properties are queried', async () => {
+  const opts = {
+    nodeType: 'user',
+    queryId: 'MockQueryId',
+    allCachedData: {
+      streetName: '123 Main St',
+      zipCode: '97403',
+      state: 'Oregon',
+      apt: {
+        floor: 13,
+        number: 22,
+      },
+    },
+    dataForThisObject: {
+      streetName: string(''),
+      zipCode: string(''),
+      state: string(''),
+      apt: object({
+        number: number,
+        floor: number,
+      }),
+    },
+    allPropertiesQueried: [
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+      `address${OBJECT_PROPERTY_SEPARATOR}state`,
+      `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,
+      `address${OBJECT_PROPERTY_SEPARATOR}streetName`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}floor`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}number`,
+    ],
+    parentObjectKey: 'address',
+  };
+
+  const result = getNestedProxyObjectWithNotUpToDateProtection(opts);
+
+  expect(result.streetName).toBe('123 Main St');
+  expect(result.zipCode).toBe('97403');
+  expect(result.state).toBe('Oregon');
+  expect(result.apt.number).toBe(22);
+  expect(result.apt.floor).toBe(13);
+});
+
+test('getNestedProxyObjectWithNotUpToDateProtection correctly throws an error when a non queried property is accessed', async () => {
+  const opts = {
+    nodeType: 'user',
+    queryId: 'MockQueryId',
+    allCachedData: {
+      streetName: '123 Main St',
+      zipCode: '97403',
+      state: 'Oregon',
+      apt: {
+        floor: 13,
+        number: 22,
+      },
+    },
+    dataForThisObject: {
+      streetName: string(''),
+      zipCode: string(''),
+      state: string(''),
+      apt: object({
+        number: number,
+        floor: number,
+      }),
+    },
+    allPropertiesQueried: [
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+      `address${OBJECT_PROPERTY_SEPARATOR}state`,
+      `address${OBJECT_PROPERTY_SEPARATOR}streetName`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}floor`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}number`,
+    ],
+    parentObjectKey: 'address',
+  };
+
+  const result = getNestedProxyObjectWithNotUpToDateProtection(opts);
+
+  expect(result.streetName).toBe('123 Main St');
+  expect(result.state).toBe('Oregon');
+  expect(result.apt.number).toBe(22);
+  expect(result.apt.floor).toBe(13);
+
+  expect(() => result.zipCode).toThrowError(
+    new NotUpToDateException({
+      propName: `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,
+      nodeType: 'user',
+      queryId: 'MockQueryId',
+    })
+  );
+});
+
+test('getNestedProxyObjectWithNotUpToDateProtection correctly throws an error when a nested non queried property is accessed', async () => {
+  const opts = {
+    nodeType: 'user',
+    queryId: 'MockQueryId',
+    allCachedData: {
+      streetName: '123 Main St',
+      zipCode: '97403',
+      state: 'Oregon',
+      apt: {
+        floor: 13,
+        number: 22,
+      },
+    },
+    dataForThisObject: {
+      streetName: string(''),
+      zipCode: string(''),
+      state: string(''),
+      apt: object({
+        number: number,
+        floor: number,
+      }),
+    },
+    allPropertiesQueried: [
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+      `address${OBJECT_PROPERTY_SEPARATOR}state`,
+      `address${OBJECT_PROPERTY_SEPARATOR}streetName`,
+      `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}floor`,
+    ],
+    parentObjectKey: 'address',
+  };
+
+  const result = getNestedProxyObjectWithNotUpToDateProtection(opts);
+
+  expect(result.streetName).toBe('123 Main St');
+  expect(result.zipCode).toBe('97403');
+  expect(result.state).toBe('Oregon');
+  expect(result.apt.floor).toBe(13);
+
+  expect(() => result.apt.number).toThrowError(
+    new NotUpToDateException({
+      propName: `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}number`,
+      nodeType: 'user',
+      queryId: 'MockQueryId',
+    })
+  );
+});
+
+test('getNestedProxyObjectWithNotUpToDateProtection correctly throws an error when a double nested non queried property is accessed', async () => {
+  const opts = {
+    nodeType: 'user',
+    queryId: 'MockQueryId',
+    allCachedData: {
+      streetName: '123 Main St',
+      zipCode: '97403',
+      state: 'Oregon',
+      apt: {
+        floor: 13,
+        number: 22,
+        instructions: {
+          passcode: 'cats',
+        },
+      },
+    },
+    dataForThisObject: {
+      streetName: string(''),
+      zipCode: string(''),
+      state: string(''),
+      apt: object({
+        number: number,
+        floor: number,
+        instructions: object({
+          passcode: string(''),
+          knock: string(''),
+        }),
+      }),
+    },
+    allPropertiesQueried: [
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+      `address${OBJECT_PROPERTY_SEPARATOR}state`,
+      `address${OBJECT_PROPERTY_SEPARATOR}streetName`,
+      `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}floor`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}instructions${OBJECT_PROPERTY_SEPARATOR}knock`,
+    ],
+    parentObjectKey: 'address',
+  };
+
+  const result = getNestedProxyObjectWithNotUpToDateProtection(opts);
+
+  expect(result.streetName).toBe('123 Main St');
+  expect(result.zipCode).toBe('97403');
+  expect(result.state).toBe('Oregon');
+  expect(result.apt.floor).toBe(13);
+
+  expect(() => result.apt.instructions.passcode).toThrowError(
+    new NotUpToDateException({
+      propName: `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}instructions${OBJECT_PROPERTY_SEPARATOR}passcode`,
+      nodeType: 'user',
+      queryId: 'MockQueryId',
+    })
+  );
+});
+
+//NOLEY PROBLEMS
+test.only('getNestedProxyObjectWithNotUpToDateProtection avoids enumerating properties which are not up to date', async () => {
+  const opts = {
+    nodeType: 'user',
+    queryId: 'MockQueryId',
+    allCachedData: {
+      streetName: '123 Main St',
+      zipCode: '97403',
+      state: 'Oregon',
+      apt: {
+        floor: 13,
+        number: 22,
+      },
+    },
+    dataForThisObject: {
+      streetName: string(''),
+      zipCode: string(''),
+      state: string(''),
+      apt: object({
+        number: number,
+        floor: number,
+      }),
+    },
+    allPropertiesQueried: [
+      ...Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
+      `address${OBJECT_PROPERTY_SEPARATOR}state`,
+      `address${OBJECT_PROPERTY_SEPARATOR}streetName`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}floor`,
+      `address${OBJECT_PROPERTY_SEPARATOR}apt${OBJECT_PROPERTY_SEPARATOR}number`,
+    ],
+    parentObjectKey: 'address',
+  };
+
+  const result = getNestedProxyObjectWithNotUpToDateProtection(opts);
+
+  expect(result.streetName).toBe('123 Main St');
+  expect(result.state).toBe('Oregon');
+  expect(result.apt.number).toBe(22);
+  expect(result.apt.floor).toBe(13);
+
+  console.log('NOLEY result', result);
+
+  const object1 = {
+    streetName: '123 Main St',
+    zipCode: '97403',
+    state: 'Oregon',
+    apt: {
+      floor: 13,
+      number: 22,
+    },
+  };
+
+  const handler = {
+    getOwnPropertyDescriptor(target: Record<string, any>, prop: string) {
+      console.log(`NOLEY called: ${target}, ${prop}`);
+      // Expected output: "called: eyeCount"
+
+      return {
+        configurable: false,
+        enumerable: false,
+        value: 5,
+      };
+    },
+  };
+
+  const testProxy = new Proxy(object1, handler);
+
+  // Object.defineProperty(testProxy, 'zipCode', { enumerable: false });
+
+  console.log('NOLEY TESTPROXY', testProxy);
+
+  // expect(result).toMatchInlineSnapshot(`
+  //   Object {
+  //     "streetName": "123 Main St",
+  //     "state": "Oregon",
+  //     "apt": {
+  //       "floor": 13,
+  //       "number": 22,
+  //     },
+  //   }
+  // `);
+});

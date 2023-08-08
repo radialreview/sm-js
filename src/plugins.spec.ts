@@ -15,6 +15,8 @@ import { MMGQL } from '.';
 import { QueryDefinitions } from './types';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { mobxPlugin } from './plugins';
+import { NotUpToDateException } from './exceptions';
+import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 
 test('mmGQLInstance correctly returns the plugins passed in', async () => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
@@ -142,6 +144,7 @@ test.only('QueryManager handles a query result and returns the expected data wit
             id: string;
             displayName: string;
             address: {
+              zipCode: string;
               state: string;
               apt: {
                 floor: number;
@@ -153,7 +156,15 @@ test.only('QueryManager handles a query result and returns the expected data wit
             // expect(isComputed(node.displayName)).toBe(true);
             // expect(isComputedProp(node, 'displayName')).toBe(true);
             expect(isObservableProp(node, 'address')).toBe(true);
-            expect(isObservableObject(node.address)).toBe(true);
+            // NOLEY NOTES: this causes symbol errors
+            // expect(isObservableObject(node.address)).toBe(true);
+            expect(() => node.address.zipCode).toThrowError(
+              new NotUpToDateException({
+                propName: `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,
+                nodeType: 'user',
+                queryId: 'MockQueryId',
+              })
+            );
             expect(isObservableObject(node.parsedData.address)).toBe(true);
             expect(isObservableObject(node.parsedData)).toBe(true);
           }

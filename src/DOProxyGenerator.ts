@@ -3,7 +3,7 @@ import {
   NotUpToDateException,
   NotUpToDateInComputedException,
 } from './exceptions';
-// import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
+import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 
 import {
   IData,
@@ -179,17 +179,14 @@ export function createDOProxyGenerator() {
             dataForThisProp.type === DATA_TYPES.object ||
             dataForThisProp.type === DATA_TYPES.maybeObject
           ) {
-            // NOLEY TODO: refactor this
-            // return getNestedObjectWithNotUpToDateProtection({
-            //   nodeType: opts.node.type,
-            //   queryId: opts.queryId,
-            //   allCachedData: opts.do[key],
-            //   dataForThisObject: dataForThisProp.boxedValue,
-            //   allPropertiesQueried: opts.allPropertiesQueried,
-            //   parentObjectKey: key,
-            // });
-
-            return opts.do[key];
+            return getNestedProxyObjectWithNotUpToDateProtection({
+              nodeType: opts.node.type,
+              queryId: opts.queryId,
+              allCachedData: opts.do[key],
+              dataForThisObject: dataForThisProp.boxedValue,
+              allPropertiesQueried: opts.allPropertiesQueried,
+              parentObjectKey: key,
+            });
           }
 
           return opts.do[key];
@@ -224,48 +221,114 @@ export function createDOProxyGenerator() {
 
     return proxy;
   };
+}
 
-  // function getNestedObjectWithNotUpToDateProtection(opts: {
-  //   nodeType: string;
-  //   queryId: string;
-  //   allCachedData: Record<string, any>;
-  //   dataForThisObject: Record<string, IData>;
-  //   allPropertiesQueried: Array<string>;
-  //   parentObjectKey: Maybe<string>;
-  // }) {
-  //   const proxyObjectToReturn = new Proxy(opts.dataForThisObject, {
-  //     //NOLEY NOTES: we do have some problems with enumerability here..
+export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
+  nodeType: string;
+  queryId: string;
+  allCachedData: Record<string, any>;
+  dataForThisObject: Record<string, IData>;
+  allPropertiesQueried: Array<string>;
+  parentObjectKey: Maybe<string>;
+}) {
+  const proxyObjectToReturn: Record<string, any> = new Proxy(
+    opts.allCachedData,
+    {
+      getOwnPropertyDescriptor: function(target, key: string) {
+        const name = opts.parentObjectKey
+          ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+          : key;
 
-  //     // Also this is trash and literally doesn't work with proxies due to the recursive nature of this function with the
-  //     // maybeObject and object type.
-  //     // we'd have to find a way to remove the recursive nature of this function since it would layer proxies inside of proxies
-  //     // and that seems like a bad idea.
+        const isUpToDate =
+          opts.allPropertiesQueried.includes(name) ||
+          // this second case handles ensuring that nested objects are enumerable
+          // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
+          // and we request address_apt_floor and address_apt_unit
+          // we need to make address.apt enumerable below
+          opts.allPropertiesQueried.some(prop => prop.startsWith(name));
 
-  //     get: (target, key: string) => {
-  //       console.log('NOLEY TARGET AND KEY', target, key);
-  //       const name = opts.parentObjectKey
-  //         ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
-  //         : key;
-  //       console.log('NOLEY NAME IN PROXY', name);
-  //       const dataForThisProp = target[key];
-  //       const isUpToDate =
-  //         opts.allPropertiesQueried.includes(name) ||
-  //         // this second case handles ensuring that nested objects are enumerable
-  //         // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
-  //         // and we request address_apt_floor and address_apt_unit
-  //         // we need to make address.apt enumerable below
-  //         opts.allPropertiesQueried.some(prop => prop.startsWith(name));
+        const descriptor = {
+          ...Object.getOwnPropertyDescriptor(target, key),
+          enumerable: isUpToDate,
+        };
 
+        Object.defineProperty(target, key, descriptor);
+
+        return descriptor;
+      },
+
+      get: (target, key: string) => {
+        const name = opts.parentObjectKey
+          ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
+          : key;
+
+        const dataForThisProp = opts.dataForThisObject[key];
+        const isUpToDate =
+          opts.allPropertiesQueried.includes(name) ||
+          // this second case handles ensuring that nested objects are enumerable
+          // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
+          // and we request address_apt_floor and address_apt_unit
+          // we need to make address.apt enumerable below
+          opts.allPropertiesQueried.some(prop => prop.startsWith(name));
+
+        if (
+          dataForThisProp.type === DATA_TYPES.object ||
+          dataForThisProp.type === DATA_TYPES.maybeObject
+        ) {
+          if (opts.allCachedData[key] == null) return opts.allCachedData[key];
+
+          return getNestedProxyObjectWithNotUpToDateProtection({
+            nodeType: opts.nodeType,
+            queryId: opts.queryId,
+            allCachedData: opts.allCachedData[key],
+            dataForThisObject: dataForThisProp.boxedValue,
+            allPropertiesQueried: opts.allPropertiesQueried,
+            parentObjectKey: name,
+          });
+        }
+
+        if (!isUpToDate) {
+          throw new NotUpToDateException({
+            propName: name,
+            nodeType: opts.nodeType,
+            queryId: opts.queryId,
+          });
+        }
+
+        return target[key];
+      },
+    }
+  );
+
+  // const objectToReturn = {};
+
+  // Object.keys(opts.dataForThisObject).forEach(objectProp => {
+  //   const name = opts.parentObjectKey
+  //     ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
+  //     : objectProp;
+  //   const dataForThisProp = opts.dataForThisObject[objectProp];
+  //   const isUpToDate =
+  //     opts.allPropertiesQueried.includes(name) ||
+  //     // this second case handles ensuring that nested objects are enumerable
+  //     // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
+  //     // and we request address_apt_floor and address_apt_unit
+  //     // we need to make address.apt enumerable below
+  //     opts.allPropertiesQueried.some(prop => prop.startsWith(name));
+
+  //   Object.defineProperty(objectToReturn, objectProp, {
+  //     enumerable: isUpToDate,
+  //     get: () => {
   //       if (
   //         dataForThisProp.type === DATA_TYPES.object ||
   //         dataForThisProp.type === DATA_TYPES.maybeObject
   //       ) {
-  //         if (opts.allCachedData[key] == null) return opts.allCachedData[key];
+  //         if (opts.allCachedData[objectProp] == null)
+  //           return opts.allCachedData[objectProp];
 
-  //         return getNestedObjectWithNotUpToDateProtection({
+  //         return getNestedProxyObjectWithNotUpToDateProtection({
   //           nodeType: opts.nodeType,
   //           queryId: opts.queryId,
-  //           allCachedData: opts.allCachedData[key],
+  //           allCachedData: opts.allCachedData[objectProp],
   //           dataForThisObject: dataForThisProp.boxedValue,
   //           allPropertiesQueried: opts.allPropertiesQueried,
   //           parentObjectKey: name,
@@ -280,69 +343,15 @@ export function createDOProxyGenerator() {
   //         });
   //       }
 
-  //       return opts.allCachedData ? opts.allCachedData[key] : undefined;
+  //       return opts.allCachedData ? opts.allCachedData[objectProp] : undefined;
   //     },
   //   });
+  // });
 
-  //   const objectToReturn = {};
+  // Object.defineProperty(proxyObjectToReturn, 'zipCode', {
+  //   enumerable: false,
+  //   configurable: true,
+  // });
 
-  //   Object.keys(opts.dataForThisObject).forEach(objectProp => {
-  //     const name = opts.parentObjectKey
-  //       ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
-  //       : objectProp;
-  //     const dataForThisProp = opts.dataForThisObject[objectProp];
-  //     const isUpToDate =
-  //       opts.allPropertiesQueried.includes(name) ||
-  //       // this second case handles ensuring that nested objects are enumerable
-  //       // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
-  //       // and we request address_apt_floor and address_apt_unit
-  //       // we need to make address.apt enumerable below
-  //       opts.allPropertiesQueried.some(prop => prop.startsWith(name));
-
-  //     console.log('NOLEY name', name);
-
-  //     Object.defineProperty(objectToReturn, objectProp, {
-  //       enumerable: isUpToDate,
-  //       get: () => {
-  //         if (
-  //           dataForThisProp.type === DATA_TYPES.object ||
-  //           dataForThisProp.type === DATA_TYPES.maybeObject
-  //         ) {
-  //           if (opts.allCachedData[objectProp] == null)
-  //             return opts.allCachedData[objectProp];
-
-  //           return getNestedObjectWithNotUpToDateProtection({
-  //             nodeType: opts.nodeType,
-  //             queryId: opts.queryId,
-  //             allCachedData: opts.allCachedData[objectProp],
-  //             dataForThisObject: dataForThisProp.boxedValue,
-  //             allPropertiesQueried: opts.allPropertiesQueried,
-  //             parentObjectKey: name,
-  //           });
-  //         }
-
-  //         if (!isUpToDate) {
-  //           throw new NotUpToDateException({
-  //             propName: name,
-  //             nodeType: opts.nodeType,
-  //             queryId: opts.queryId,
-  //           });
-  //         }
-
-  //         return opts.allCachedData
-  //           ? opts.allCachedData[objectProp]
-  //           : undefined;
-  //       },
-  //     });
-  //   });
-
-  //   console.log(
-  //     'NOLEY proxyObjectToReturn',
-  //     proxyObjectToReturn,
-  //     'NOLEY  objectToReturn',
-  //     objectToReturn
-  //   );
-
-  //   return objectToReturn;
-  // }
+  return proxyObjectToReturn;
 }
