@@ -1132,7 +1132,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       parentFilters?: Array<{ id: Id; property: string }>;
       previousStateEntries?: Array<{
         parentStateEntry: QueryManagerStateEntry;
-        idOfAffectedParent: string | null;
+        idOfAffectedParent: Id | null;
         relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }>;
     }): Array<{
@@ -1141,7 +1141,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       parentStateEntry: QueryManagerStateEntry;
       // The entire state entry may be affected if it's a root state entry
       // otherwise idOfTheAffectedParent will be set
-      idOfAffectedParent: string | null;
+      idOfAffectedParent: Id | null;
       relationalAlias: string | null;
       // the relational state entry for the node that was updated/inserted/removed
       // and is related to the target above
@@ -1197,7 +1197,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
       const getStateEntriesForFirstAlias = (): Array<{
         parentStateEntry: QueryManagerStateEntry;
-        idOfAffectedParent: string | null;
+        idOfAffectedParent: Id | null;
         relationalAlias: string | null;
         relationalStateEntry: Maybe<QueryManagerStateEntry>;
       }> => {
@@ -1213,46 +1213,42 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               // otherwise, we want to return all state entries for this alias
               const shouldApplyIdFilter = restOfAliasPath.length === 0;
 
-              Object.keys(stateEntryToIterate.proxyCache).forEach(nodeId => {
-                if (shouldApplyIdFilter) {
-                  const matchesSomeIdInTargets = parentFilters.find(
-                    parentFilter => {
-                      // Object.keys returns strings, so we need to convert the nodeId to a number
-                      const nodeIdAsNumber = Number(nodeId);
-
-                      if (Number.isNaN(nodeIdAsNumber)) {
-                        return nodeId === parentFilter.id;
-                      } else {
-                        return nodeIdAsNumber === Number(parentFilter.id);
+              Object.values(stateEntryToIterate.proxyCache).forEach(
+                ({ proxy }) => {
+                  if (shouldApplyIdFilter) {
+                    const matchesSomeIdInTargets = parentFilters.find(
+                      parentFilter => {
+                        return proxy.id === parentFilter.id;
                       }
-                    }
-                  );
+                    );
 
-                  if (!matchesSomeIdInTargets) return;
+                    if (!matchesSomeIdInTargets) return;
+                  }
+
+                  const proxyCacheEntry =
+                    stateEntryToIterate.proxyCache[proxy.id];
+
+                  const relationalStateForAlias =
+                    proxyCacheEntry.relationalState?.[firstAlias];
+                  if (!relationalStateForAlias)
+                    throw Error(
+                      `No relational state found for alias path "${firstAlias}"`
+                    );
+
+                  acc.push({
+                    parentStateEntry: stateEntryToIterate,
+                    idOfAffectedParent: proxy.id,
+                    relationalAlias: firstAlias,
+                    relationalStateEntry: relationalStateForAlias,
+                  });
                 }
-
-                const proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
-
-                const relationalStateForAlias =
-                  proxyCacheEntry.relationalState?.[firstAlias];
-                if (!relationalStateForAlias)
-                  throw Error(
-                    `No relational state found for alias path "${firstAlias}"`
-                  );
-
-                acc.push({
-                  parentStateEntry: stateEntryToIterate,
-                  idOfAffectedParent: nodeId,
-                  relationalAlias: firstAlias,
-                  relationalStateEntry: relationalStateForAlias,
-                });
-              });
+              );
 
               return acc;
             },
             [] as Array<{
               parentStateEntry: QueryManagerStateEntry;
-              idOfAffectedParent: string | null;
+              idOfAffectedParent: Id | null;
               relationalAlias: string | null;
               relationalStateEntry: QueryManagerStateEntry | null;
             }>
