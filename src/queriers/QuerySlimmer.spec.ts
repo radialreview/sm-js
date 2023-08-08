@@ -41,6 +41,7 @@ function setupTests() {
     type: 'headline',
     properties: {
       title: string,
+      archived: boolean,
     },
   });
 
@@ -54,7 +55,7 @@ function setupTests() {
 }
 
 describe('cacheNewData', () => {
-  test.only('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
+  test('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
     const {
       QuerySlimmer,
       userNode,
@@ -467,6 +468,630 @@ describe('cacheNewData', () => {
                 {
                   id: 'piotr-headline-id-2',
                   title: 'piotr-headline-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
+  });
+
+  test('it should not remove any data that is already cached, only adding/updating new data', () => {
+    const {
+      QuerySlimmer,
+      userNode,
+      todoNode,
+      meetingNode,
+      headlineNode,
+    } = setupTests();
+
+    QuerySlimmer.queriesByContext = {
+      'user({"id":"aidan-id"})': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: false,
+          user: {
+            id: 'aidan-id',
+            firstName: 'Aidan',
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, task: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  task: 'aidan-todo-task-1',
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  task: 'aidan-todo-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  title: 'aidan-headline-title-1',
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  title: 'aidan-headline-title-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-todo-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+            },
+          },
+          'aidan-todo-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-headline-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+            },
+          },
+          'aidan-headline-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]})': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: false,
+          users: {
+            nodes: [
+              {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+              },
+              {
+                id: 'piotr-id',
+                firstName: 'Piotr',
+              },
+            ],
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, name: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              name: 'aidan-meeting-1',
+            },
+          },
+          'piotr-id': {
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              name: 'piotr-meeting-1',
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, task: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  task: 'aidan-todo-task-1',
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  task: 'aidan-todo-task-2',
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            todos: {
+              nodes: [
+                {
+                  id: 'piotr-todo-id-1',
+                  task: 'piotr-todo-task-1',
+                },
+                {
+                  id: 'piotr-todo-id-2',
+                  task: 'piotr-todo-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  title: 'aidan-headline-task-1',
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  title: 'aidan-headline-task-2',
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'piotr-headline-id-1',
+                  title: 'piotr-headline-task-1',
+                },
+                {
+                  id: 'piotr-headline-id-2',
+                  title: 'piotr-headline-task-2',
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const mockQueryRecord: QueryRecord = {
+      user: {
+        def: userNode,
+        id: 'aidan-id',
+        properties: ['id', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'done'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            oneToMany: true,
+            _relationshipName: 'headlines',
+            properties: ['id', 'archived'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+      users: {
+        def: userNode,
+        ids: ['aidan-id', 'piotr-id'],
+        properties: ['id', 'lastName'],
+        relational: {
+          meeting: {
+            def: meetingNode,
+            oneToOne: true,
+            _relationshipName: 'meeting',
+            properties: ['id', 'archived'],
+            relational: {
+              todos: {
+                def: todoNode,
+                oneToMany: true,
+                _relationshipName: 'todos',
+                properties: ['id', 'done'],
+              },
+              headlines: {
+                def: headlineNode,
+                oneToMany: true,
+                _relationshipName: 'headlines',
+                properties: ['id', 'archived'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockRequestResponse = {
+      user: {
+        id: 'aidan-id',
+        type: userNode,
+        lastName: 'Goodman',
+        todos: {
+          nodes: [
+            {
+              id: 'aidan-todo-id-1',
+              type: todoNode.type,
+              done: false,
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-todo-id-2',
+              type: todoNode.type,
+              done: false,
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+        headlines: {
+          nodes: [
+            {
+              id: 'aidan-headline-id-1',
+              type: headlineNode.type,
+              archived: false,
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                lastName: 'Goodman',
+              },
+            },
+            {
+              id: 'aidan-headline-id-2',
+              type: headlineNode.type,
+              archived: false,
+              assignee: {
+                id: 'aidan-id',
+                type: userNode.type,
+                lastName: 'Goodman',
+              },
+            },
+          ],
+        },
+      },
+      users: {
+        nodes: [
+          {
+            id: 'aidan-id',
+            type: userNode.type,
+            lastName: 'Goodman',
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              type: meetingNode,
+              archived: false,
+              todos: {
+                nodes: [
+                  {
+                    id: 'aidan-todo-id-1',
+                    type: todoNode.type,
+                    done: false,
+                  },
+                  {
+                    id: 'aidan-todo-id-2',
+                    type: todoNode.type,
+                    done: false,
+                  },
+                ],
+              },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'aidan-headline-id-1',
+                    type: headlineNode.type,
+                    archived: false,
+                  },
+                  {
+                    id: 'aidan-headline-id-2',
+                    type: headlineNode.type,
+                    archived: false,
+                  },
+                ],
+              },
+            },
+          },
+          {
+            id: 'piotr-id',
+            type: userNode.type,
+            lastName: 'Bogun',
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              type: meetingNode,
+              archived: false,
+              todos: {
+                nodes: [
+                  {
+                    id: 'piotr-todo-id-1',
+                    type: todoNode.type,
+                    done: false,
+                  },
+                  {
+                    id: 'piotr-todo-id-2',
+                    type: todoNode.type,
+                    done: false,
+                  },
+                ],
+              },
+              headlines: {
+                nodes: [
+                  {
+                    id: 'piotr-headline-id-1',
+                    type: headlineNode.type,
+                    archived: false,
+                  },
+                  {
+                    id: 'piotr-headline-id-2',
+                    type: headlineNode.type,
+                    archived: false,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+
+    const expectedCache = {
+      'user({"id":"aidan-id"})': {
+        subscriptionsByProperty: { id: 2, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          user: {
+            id: 'aidan-id',
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, task: 1, done: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  task: 'aidan-todo-task-1',
+                  done: false,
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  task: 'aidan-todo-task-2',
+                  done: false,
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, title: 1, archived: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  title: 'aidan-headline-title-1',
+                  archived: false,
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  title: 'aidan-headline-title-2',
+                  archived: false,
+                },
+              ],
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).todos(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-todo-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-todo-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
+      'user({"id":"aidan-id"}).headlines(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: true,
+          'aidan-headline-id-1': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          'aidan-headline-id-2': {
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]})': {
+        subscriptionsByProperty: { id: 2, firstName: 1, lastName: 1 },
+        results: {
+          byParentId: false,
+          users: {
+            nodes: [
+              {
+                id: 'aidan-id',
+                firstName: 'Aidan',
+                lastName: 'Goodman',
+              },
+              {
+                id: 'piotr-id',
+                firstName: 'Piotr',
+                lastName: 'Bogun',
+              },
+            ],
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, name: 1, archived: 1 },
+        results: {
+          byParentId: true,
+          'aidan-id': {
+            meeting: {
+              id: 'aidan-meeting-id-1',
+              name: 'aidan-meeting-1',
+              archived: false,
+            },
+          },
+          'piotr-id': {
+            meeting: {
+              id: 'piotr-meeting-id-1',
+              name: 'piotr-meeting-1',
+              archived: false,
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).todos(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, task: 1, done: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            todos: {
+              nodes: [
+                {
+                  id: 'aidan-todo-id-1',
+                  task: 'aidan-todo-task-1',
+                  done: false,
+                },
+                {
+                  id: 'aidan-todo-id-2',
+                  task: 'aidan-todo-task-2',
+                  done: false,
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            todos: {
+              nodes: [
+                {
+                  id: 'piotr-todo-id-1',
+                  task: 'piotr-todo-task-1',
+                  done: false,
+                },
+                {
+                  id: 'piotr-todo-id-2',
+                  task: 'piotr-todo-task-2',
+                  done: false,
+                },
+              ],
+            },
+          },
+        },
+      },
+      'users({"ids":["aidan-id","piotr-id"]}).meeting(NO_PARAMS).headlines(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 2, title: 1, archived: 1 },
+        results: {
+          byParentId: true,
+          'aidan-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'aidan-headline-id-1',
+                  title: 'aidan-headline-task-1',
+                  archived: false,
+                },
+                {
+                  id: 'aidan-headline-id-2',
+                  title: 'aidan-headline-task-2',
+                  archived: false,
+                },
+              ],
+            },
+          },
+          'piotr-meeting-id-1': {
+            headlines: {
+              nodes: [
+                {
+                  id: 'piotr-headline-id-1',
+                  title: 'piotr-headline-task-1',
+                  archived: false,
+                },
+                {
+                  id: 'piotr-headline-id-2',
+                  title: 'piotr-headline-task-2',
+                  archived: false,
                 },
               ],
             },
@@ -977,7 +1602,7 @@ describe('getSlimmedQueryAgainstCache', () => {
 });
 
 describe('getDataForQueryFromCache', () => {
-  test.only('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
+  test('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
     const {
       QuerySlimmer,
       userNode,
@@ -1746,3 +2371,116 @@ describe('getDataForQueryFromCache', () => {
 //     expect(actualValue3).toBe(5);
 //   });
 // });
+
+describe('mergeQueryResults', () => {
+  test('given the same results, one cached, one new, it should return a new object that merges the two results', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockCachedResult = {
+      byParentId: false,
+      user: {
+        id: '0',
+        firstName: 'Bob',
+        meeting: {
+          id: '1',
+          name: 'Bob Saget Meeting',
+          todos: {
+            nodes: [
+              {
+                id: 0,
+                task: 'todo 1',
+                assignee: {
+                  id: '0',
+                  firstName: 'Bob',
+                },
+              },
+              {
+                id: 1,
+                task: 'todo 2',
+                assignee: {
+                  id: '0',
+                  firstName: 'Bob',
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
+    const mockNewResult = {
+      byParentId: false,
+      user: {
+        id: '0',
+        lastName: 'Saget',
+        meeting: {
+          id: '1',
+          archived: false,
+          todos: {
+            nodes: [
+              {
+                id: 0,
+                done: false,
+                assignee: {
+                  id: '0',
+                  lastName: 'Saget',
+                },
+              },
+              {
+                id: 1,
+                done: true,
+                assignee: {
+                  id: '0',
+                  lastName: 'Saget',
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
+    const expectedMergedResult = {
+      byParentId: false,
+      user: {
+        id: '0',
+        firstName: 'Bob',
+        lastName: 'Saget',
+        meeting: {
+          id: '1',
+          name: 'Bob Saget Meeting',
+          archived: false,
+          todos: {
+            nodes: [
+              {
+                id: 0,
+                task: 'todo 1',
+                done: false,
+                assignee: {
+                  id: '0',
+                  firstName: 'Bob',
+                  lastName: 'Saget',
+                },
+              },
+              {
+                id: 1,
+                task: 'todo 2',
+                done: true,
+                assignee: {
+                  id: '0',
+                  firstName: 'Bob',
+                  lastName: 'Saget',
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    expect(
+      QuerySlimmer.mergeQueryResults({
+        cachedResult: mockCachedResult,
+        newResult: mockNewResult,
+      })
+    ).toEqual(expectedMergedResult);
+  });
+});
