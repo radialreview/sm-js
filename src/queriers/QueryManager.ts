@@ -1217,7 +1217,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 if (shouldApplyIdFilter) {
                   const matchesSomeIdInTargets = parentFilters.find(
                     parentFilter => {
-                      return nodeId === parentFilter.id;
+                      // Object.keys returns strings, so we need to convert the nodeId to a number
+                      const nodeIdAsNumber = Number(nodeId);
+
+                      if (Number.isNaN(nodeIdAsNumber)) {
+                        return nodeId === parentFilter.id;
+                      } else {
+                        return nodeIdAsNumber === Number(parentFilter.id);
+                      }
                     }
                   );
 
