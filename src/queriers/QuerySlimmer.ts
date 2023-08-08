@@ -1,11 +1,6 @@
 // PIOTR TODO
 // - slim query record should not slim fields always requested
-// - Use relationshipName
 // - Snapshot tests
-// - cacheNewData
-//   - Confirm/test existing data is not overwritten
-//   - Confirm/test existing subsByProp counts are correctly updated
-// - Go through main fns being used and look into any cleanup/better naming
 // - Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 
 // import { observable, when } from 'mobx';
@@ -891,6 +886,91 @@ export class QuerySlimmer {
     return newRequestedProperties.length === 0 ? null : newRequestedProperties;
   }
 
+  public mergeQueryResults(opts: {
+    cachedResult: Record<string, any> | undefined;
+    newResult: Record<string, any>;
+  }) {
+    if (opts.cachedResult == undefined) {
+      return opts.newResult;
+    }
+
+    const mergedResult: Record<string, any> = { ...opts.cachedResult };
+
+    Object.entries(opts.newResult).forEach(
+      ([resultFieldKey, resultFieldValue]) => {
+        if (resultFieldKey !== 'byParentId') {
+          if ('nodes' in resultFieldValue) {
+            const mergedNodes: Record<string, any> = [];
+
+            resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
+              const result1NodeDatum = (mergedResult[resultFieldKey]
+                .nodes as Record<string, any>[]).find(result1Datum => {
+                return result1Datum.id === datum.id;
+              });
+
+              if (result1NodeDatum) {
+                const mergedDatum: Record<string, any> = {
+                  ...result1NodeDatum,
+                };
+
+                Object.entries(datum).forEach(([datumKey, datumValue]) => {
+                  if (typeof datumValue === 'object') {
+                    const childOpts = {
+                      cachedResult: {
+                        [datumKey]: mergedDatum[datumKey],
+                      },
+                      newResult: {
+                        [datumKey]: datumValue,
+                      },
+                    };
+
+                    const mergedDatums = this.mergeQueryResults(childOpts);
+
+                    mergedDatum[datumKey] = mergedDatums[datumKey];
+                  } else {
+                    if (!(datumKey in mergedDatum)) {
+                      mergedDatum[datumKey] = datumValue;
+                    }
+                  }
+                });
+
+                mergedNodes.push(mergedDatum);
+              }
+            });
+
+            mergedResult[resultFieldKey]['nodes'] = mergedNodes;
+          } else {
+            Object.entries(resultFieldValue).forEach(
+              ([valueKey, valueDatum]) => {
+                if (typeof valueDatum === 'object') {
+                  const childOpts = {
+                    cachedResult: {
+                      [valueKey]: mergedResult[resultFieldKey][valueKey],
+                    },
+                    newResult: {
+                      [valueKey]: valueDatum,
+                    },
+                  };
+
+                  const mergedDatums = this.mergeQueryResults(childOpts);
+
+                  mergedResult[resultFieldKey][valueKey] =
+                    mergedDatums[valueKey];
+                } else {
+                  if (!(valueKey in mergedResult[resultFieldKey])) {
+                    mergedResult[resultFieldKey][valueKey] = valueDatum;
+                  }
+                }
+              }
+            );
+          }
+        }
+      }
+    );
+
+    return mergedResult;
+  }
+
   // private getPropertiesNotCurrentlyBeingRequested(opts: {
   //   newQueryProps: string[];
   //   inFlightProps: string[];
@@ -1067,132 +1147,4 @@ export class QuerySlimmer {
       console.log(message, ...optionalParams);
     }
   }
-
-  // private test1 = {
-  //   byParentId: false,
-  //   user: {
-  //     id: 'ID',
-  //     firstName: 'firstName',
-  //   },
-  // };
-
-  // private test2 = {
-  //   byParentId: false,
-  //   user: {
-  //     id: 'ID',
-  //     lastName: 'lastName',
-  //   },
-  // };
-
-  public mergeQueryResults(opts: {
-    cachedResult: Record<string, any> | undefined;
-    newResult: Record<string, any>;
-  }) {
-    if (opts.cachedResult == undefined) {
-      return opts.newResult;
-    }
-
-    const mergedResult: Record<string, any> = { ...opts.cachedResult };
-
-    Object.entries(opts.newResult).forEach(
-      ([resultFieldKey, resultFieldValue]) => {
-        if (resultFieldKey !== 'byParentId') {
-          if ('nodes' in resultFieldValue) {
-            const mergedNodes: Record<string, any> = [];
-
-            resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
-              const result1NodeDatum = (mergedResult[resultFieldKey]
-                .nodes as Record<string, any>[]).find(result1Datum => {
-                return result1Datum.id === datum.id;
-              });
-
-              if (result1NodeDatum) {
-                const mergedDatum: Record<string, any> = {
-                  ...result1NodeDatum,
-                };
-
-                Object.entries(datum).forEach(([datumKey, datumValue]) => {
-                  if (typeof datumValue === 'object') {
-                    const childOpts = {
-                      cachedResult: {
-                        [datumKey]: mergedDatum[datumKey],
-                      },
-                      newResult: {
-                        [datumKey]: datumValue,
-                      },
-                    };
-
-                    const mergedDatums = this.mergeQueryResults(childOpts);
-
-                    mergedDatum[datumKey] = mergedDatums[datumKey];
-                  } else {
-                    if (!(datumKey in mergedDatum)) {
-                      mergedDatum[datumKey] = datumValue;
-                    }
-                  }
-                });
-
-                mergedNodes.push(mergedDatum);
-              }
-            });
-
-            mergedResult[resultFieldKey]['nodes'] = mergedNodes;
-          } else {
-            Object.entries(resultFieldValue).forEach(
-              ([valueKey, valueDatum]) => {
-                if (typeof valueDatum === 'object') {
-                  const childOpts = {
-                    cachedResult: {
-                      [valueKey]: mergedResult[resultFieldKey][valueKey],
-                    },
-                    newResult: {
-                      [valueKey]: valueDatum,
-                    },
-                  };
-
-                  const mergedDatums = this.mergeQueryResults(childOpts);
-
-                  mergedResult[resultFieldKey][valueKey] =
-                    mergedDatums[valueKey];
-                } else {
-                  if (!(valueKey in mergedResult[resultFieldKey])) {
-                    mergedResult[resultFieldKey][valueKey] = valueDatum;
-                  }
-                }
-              }
-            );
-          }
-        }
-      }
-    );
-
-    return mergedResult;
-  }
-
-  // function merge(obj1, obj2) {
-  //   if (obj1 === null || obj2 === null) return obj1 || obj2;
-
-  //   let result = { ...obj1 };
-
-  //   for (let key in obj2) {
-  //     if (obj2.hasOwnProperty(key)) {
-  //       if (
-  //         typeof obj2[key] === 'object' &&
-  //         !Array.isArray(obj2[key]) &&
-  //         obj1.hasOwnProperty(key) &&
-  //         typeof obj1[key] === 'object'
-  //       ) {
-  //         if (key === 'nodes' && Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
-  //           result[key] = obj1[key].map((node, index) => merge(node, obj2[key][index]));
-  //         } else {
-  //           result[key] = merge(obj1[key], obj2[key]);
-  //         }
-  //       } else {
-  //         result[key] = obj2[key];
-  //       }
-  //     }
-  //   }
-
-  //   return result;
-  // }
 }

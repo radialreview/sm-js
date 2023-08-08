@@ -1,10 +1,9 @@
-import { MMGQL, QueryRecord } from '..';
+import { MMGQL, QueryRecord, QueryRecordEntry } from '..';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 import { string, boolean } from '../dataTypes';
 import { QuerySlimmer } from './QuerySlimmer';
 import { getMockConfig } from '../specUtilities';
 
-// import { MMGQL, QueryRecord, QueryRecordEntry } from '..';
 // import {
 //   QuerySlimmer,
 //   TInFlightQueriesByContextMap,
@@ -2251,126 +2250,126 @@ describe('getDataForQueryFromCache', () => {
 //   });
 // });
 
-// describe('getRelationalDepthOfQueryRecordEntry', () => {
-//   test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
-//     const { QuerySlimmer, userNode } = setupTests();
+describe('getRelationalDepthOfQueryRecordEntry', () => {
+  test('should return 0 when a QueryRecordEntry has no relational child queries', () => {
+    const { QuerySlimmer, userNode } = setupTests();
 
-//     const mockQueryRecordEntry: QueryRecordEntry = {
-//       def: userNode,
-//       properties: ['firstName', 'lastName'],
-//       tokenName: DEFAULT_TOKEN_NAME,
-//     };
-//     const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-//       mockQueryRecordEntry
-//     );
+    const mockQueryRecordEntry: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      tokenName: DEFAULT_TOKEN_NAME,
+    };
+    const actualValue = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry
+    );
 
-//     expect(actualValue).toBe(0);
-//   });
+    expect(actualValue).toBe(0);
+  });
 
-//   test('should return number of relational queries nested in a QueryRecordEntry', () => {
-//     const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+  test('should return number of relational queries nested in a QueryRecordEntry', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
 
-//     const mockQueryRecordEntry1: QueryRecordEntry = {
-//       def: userNode,
-//       properties: ['firstName', 'lastName'],
-//       relational: {
-//         meetings: {
-//           _relationshipName: 'meetings',
-//           def: meetingNode,
-//           properties: ['name', 'archived'],
-//           oneToMany: true,
-//         },
-//       },
-//       tokenName: DEFAULT_TOKEN_NAME,
-//     };
-//     const mockQueryRecordEntry2: QueryRecordEntry = {
-//       def: userNode,
-//       properties: ['firstName', 'lastName'],
-//       relational: {
-//         meetings: {
-//           _relationshipName: 'meetings',
-//           def: meetingNode,
-//           properties: ['name', 'archived'],
-//           oneToMany: true,
-//           relational: {
-//             todos: {
-//               _relationshipName: 'todos',
-//               def: todoNode,
-//               properties: ['task', 'done'],
-//               oneToMany: true,
-//             },
-//           },
-//         },
-//       },
-//       tokenName: DEFAULT_TOKEN_NAME,
-//     };
-//     const mockQueryRecordEntry3: QueryRecordEntry = {
-//       def: userNode,
-//       properties: ['firstName', 'lastName'],
-//       relational: {
-//         meetings: {
-//           _relationshipName: 'meetings',
-//           def: meetingNode,
-//           properties: ['name', 'archived'],
-//           oneToMany: true,
-//           relational: {
-//             todos: {
-//               _relationshipName: 'todos',
-//               def: todoNode,
-//               properties: ['task', 'done'],
-//               oneToMany: true,
-//             },
-//           },
-//         },
-//         todos: {
-//           _relationshipName: 'todos',
-//           def: todoNode,
-//           properties: ['task', 'done'],
-//           oneToMany: true,
-//           relational: {
-//             users: {
-//               _relationshipName: 'users',
-//               def: userNode,
-//               properties: ['firstName', 'lastName'],
-//               oneToMany: true,
-//               relational: {
-//                 meetings: {
-//                   _relationshipName: 'meetings',
-//                   def: meetingNode,
-//                   properties: ['name', 'archived'],
-//                   oneToMany: true,
-//                   relational: {
-//                     todos: {
-//                       _relationshipName: 'todos',
-//                       def: todoNode,
-//                       properties: ['task', 'done'],
-//                       oneToMany: true,
-//                     },
-//                   },
-//                 },
-//               },
-//             },
-//           },
-//         },
-//       },
-//       tokenName: DEFAULT_TOKEN_NAME,
-//     };
+    const mockQueryRecordEntry1: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
+        },
+      },
+      tokenName: DEFAULT_TOKEN_NAME,
+    };
+    const mockQueryRecordEntry2: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
+          relational: {
+            todos: {
+              _relationshipName: 'todos',
+              def: todoNode,
+              properties: ['task', 'done'],
+              oneToMany: true,
+            },
+          },
+        },
+      },
+      tokenName: DEFAULT_TOKEN_NAME,
+    };
+    const mockQueryRecordEntry3: QueryRecordEntry = {
+      def: userNode,
+      properties: ['firstName', 'lastName'],
+      relational: {
+        meetings: {
+          _relationshipName: 'meetings',
+          def: meetingNode,
+          properties: ['name', 'archived'],
+          oneToMany: true,
+          relational: {
+            todos: {
+              _relationshipName: 'todos',
+              def: todoNode,
+              properties: ['task', 'done'],
+              oneToMany: true,
+            },
+          },
+        },
+        todos: {
+          _relationshipName: 'todos',
+          def: todoNode,
+          properties: ['task', 'done'],
+          oneToMany: true,
+          relational: {
+            users: {
+              _relationshipName: 'users',
+              def: userNode,
+              properties: ['firstName', 'lastName'],
+              oneToMany: true,
+              relational: {
+                meetings: {
+                  _relationshipName: 'meetings',
+                  def: meetingNode,
+                  properties: ['name', 'archived'],
+                  oneToMany: true,
+                  relational: {
+                    todos: {
+                      _relationshipName: 'todos',
+                      def: todoNode,
+                      properties: ['task', 'done'],
+                      oneToMany: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      tokenName: DEFAULT_TOKEN_NAME,
+    };
 
-//     const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-//       mockQueryRecordEntry1
-//     );
-//     const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-//       mockQueryRecordEntry2
-//     );
-//     const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
-//       mockQueryRecordEntry3
-//     );
+    const actualValue1 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry1
+    );
+    const actualValue2 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry2
+    );
+    const actualValue3 = QuerySlimmer.getRelationalDepthOfQueryRecordEntry(
+      mockQueryRecordEntry3
+    );
 
-//     expect(actualValue1).toBe(1);
-//     expect(actualValue2).toBe(2);
-//     expect(actualValue3).toBe(5);
-//   });
-// });
+    expect(actualValue1).toBe(1);
+    expect(actualValue2).toBe(2);
+    expect(actualValue3).toBe(5);
+  });
+});
 
 describe('mergeQueryResults', () => {
   test('given the same results, one cached, one new, it should return a new object that merges the two results', () => {
