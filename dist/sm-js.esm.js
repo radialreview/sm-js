@@ -7851,29 +7851,24 @@ function createQueryManager(mmGQLInstance) {
             // otherwise, we want to return all state entries for this alias
 
             var shouldApplyIdFilter = restOfAliasPath.length === 0;
-            Object.keys(stateEntryToIterate.proxyCache).forEach(function (nodeId) {
+            Object.values(stateEntryToIterate.proxyCache).forEach(function (_ref5) {
               var _proxyCacheEntry$rela;
+
+              var proxy = _ref5.proxy;
 
               if (shouldApplyIdFilter) {
                 var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  // Object.keys returns strings, so we need to convert the nodeId to a number
-                  var nodeIdAsNumber = Number(nodeId);
-
-                  if (Number.isNaN(nodeIdAsNumber)) {
-                    return nodeId === parentFilter.id;
-                  } else {
-                    return nodeIdAsNumber === Number(parentFilter.id);
-                  }
+                  return proxy.id === parentFilter.id;
                 });
                 if (!matchesSomeIdInTargets) return;
               }
 
-              var proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
+              var proxyCacheEntry = stateEntryToIterate.proxyCache[proxy.id];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
               acc.push({
                 parentStateEntry: stateEntryToIterate,
-                idOfAffectedParent: nodeId,
+                idOfAffectedParent: proxy.id,
                 relationalAlias: firstAlias,
                 relationalStateEntry: relationalStateForAlias
               });
@@ -8812,9 +8807,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref5) {
-    var alias = _ref5[0],
-        queryRecordEntry = _ref5[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref6) {
+    var alias = _ref6[0],
+        queryRecordEntry = _ref6[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -8823,9 +8818,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
-    var alias = _ref6[0],
-        queryDefinition = _ref6[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
+    var alias = _ref7[0],
+        queryDefinition = _ref7[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -8833,9 +8828,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
-    var key = _ref7[0],
-        queryDefinition = _ref7[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        queryDefinition = _ref8[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -9016,9 +9011,9 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       previousQueryRecord = opts.previousQueryRecord;
   var minimalQueryRecord = {};
   var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref8) {
-    var alias = _ref8[0],
-        nextQueryRecordEntry = _ref8[1];
+  Object.entries(nextQueryRecord).forEach(function (_ref9) {
+    var alias = _ref9[0],
+        nextQueryRecordEntry = _ref9[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
@@ -9101,9 +9096,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref9) {
-      var key = _ref9[0],
-          nextRelationalQueryRecordEntry = _ref9[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref10) {
+      var key = _ref10[0],
+          nextRelationalQueryRecordEntry = _ref10[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -9130,9 +9125,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref10) {
-    var key = _ref10[0],
-        nextQueryRecordEntry = _ref10[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref11) {
+    var key = _ref11[0],
+        nextQueryRecordEntry = _ref11[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {

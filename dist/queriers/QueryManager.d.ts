@@ -116,12 +116,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             }>;
             previousStateEntries?: Array<{
                 parentStateEntry: QueryManagerStateEntry;
-                idOfAffectedParent: string | null;
+                idOfAffectedParent: Id | null;
                 relationalStateEntry: Maybe<QueryManagerStateEntry>;
             }>;
         }): Array<{
             parentStateEntry: QueryManagerStateEntry;
-            idOfAffectedParent: string | null;
+            idOfAffectedParent: Id | null;
             relationalAlias: string | null;
             relationalStateEntry: QueryManagerStateEntry | null;
         }>;
