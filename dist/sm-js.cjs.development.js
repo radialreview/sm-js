@@ -8052,12 +8052,17 @@ var QuerySlimmer = /*#__PURE__*/function () {
             }
           });
         }
-      } // Cache the data we have organized for this specific query record (no relational data).
+      }
+
+      var mergedResults = _this.mergeQueryResults({
+        cachedResult: currentCacheForThisContext == null ? void 0 : currentCacheForThisContext.results,
+        newResult: resultsToCache
+      }); // Cache the data we have organized for this specific query record (relational data is cached in its own context).
 
 
       _this.queriesByContext[currentQueryContextKey] = {
         subscriptionsByProperty: subscriptionsByProperty,
-        results: resultsToCache
+        results: mergedResults
       }; // If this QueryRecord has relational data, we organize the specific relational data under each individual parent id.
       // relationalDataToCache will hold only relational.
 
@@ -8771,6 +8776,97 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
       (_console = console).log.apply(_console, [message].concat(optionalParams));
     }
+  } // private test1 = {
+  //   byParentId: false,
+  //   user: {
+  //     id: 'ID',
+  //     firstName: 'firstName',
+  //   },
+  // };
+  // private test2 = {
+  //   byParentId: false,
+  //   user: {
+  //     id: 'ID',
+  //     lastName: 'lastName',
+  //   },
+  // };
+  ;
+
+  _proto.mergeQueryResults = function mergeQueryResults(opts) {
+    var _this6 = this;
+
+    if (opts.cachedResult == undefined) {
+      return opts.newResult;
+    }
+
+    var mergedResult = _extends({}, opts.cachedResult);
+
+    Object.entries(opts.newResult).forEach(function (_ref4) {
+      var resultFieldKey = _ref4[0],
+          resultFieldValue = _ref4[1];
+
+      if (resultFieldKey !== 'byParentId') {
+        if ('nodes' in resultFieldValue) {
+          var mergedNodes = [];
+          resultFieldValue.nodes.forEach(function (datum) {
+            var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
+              return result1Datum.id === datum.id;
+            });
+
+            if (result1NodeDatum) {
+              var mergedDatum = _extends({}, result1NodeDatum);
+
+              Object.entries(datum).forEach(function (_ref5) {
+                var datumKey = _ref5[0],
+                    datumValue = _ref5[1];
+
+                if (typeof datumValue === 'object') {
+                  var _cachedResult, _newResult;
+
+                  var childOpts = {
+                    cachedResult: (_cachedResult = {}, _cachedResult[datumKey] = mergedDatum[datumKey], _cachedResult),
+                    newResult: (_newResult = {}, _newResult[datumKey] = datumValue, _newResult)
+                  };
+
+                  var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+                  mergedDatum[datumKey] = mergedDatums[datumKey];
+                } else {
+                  if (!(datumKey in mergedDatum)) {
+                    mergedDatum[datumKey] = datumValue;
+                  }
+                }
+              });
+              mergedNodes.push(mergedDatum);
+            }
+          });
+          mergedResult[resultFieldKey]['nodes'] = mergedNodes;
+        } else {
+          Object.entries(resultFieldValue).forEach(function (_ref6) {
+            var valueKey = _ref6[0],
+                valueDatum = _ref6[1];
+
+            if (typeof valueDatum === 'object') {
+              var _cachedResult2, _newResult2;
+
+              var childOpts = {
+                cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
+                newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)
+              };
+
+              var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+              mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
+            } else {
+              if (!(valueKey in mergedResult[resultFieldKey])) {
+                mergedResult[resultFieldKey][valueKey] = valueDatum;
+              }
+            }
+          });
+        }
+      }
+    });
+    return mergedResult;
   };
 
   return QuerySlimmer;

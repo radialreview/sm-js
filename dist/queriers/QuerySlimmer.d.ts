@@ -43,4 +43,8 @@ export declare class QuerySlimmer {
     private stringifyQueryParams;
     private sendQueryRequest;
     private log;
+    mergeQueryResults(opts: {
+        cachedResult: Record<string, any> | undefined;
+        newResult: Record<string, any>;
+    }): Record<string, any>;
 }
