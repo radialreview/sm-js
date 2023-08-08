@@ -7856,7 +7856,14 @@ function createQueryManager(mmGQLInstance) {
 
               if (shouldApplyIdFilter) {
                 var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  return nodeId === parentFilter.id;
+                  // Object.keys returns strings, so we need to convert the nodeId to a number
+                  var nodeIdAsNumber = Number(nodeId);
+
+                  if (Number.isNaN(nodeIdAsNumber)) {
+                    return nodeId === parentFilter.id;
+                  } else {
+                    return nodeIdAsNumber === Number(parentFilter.id);
+                  }
                 });
                 if (!matchesSomeIdInTargets) return;
               }
