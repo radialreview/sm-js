@@ -1,13 +1,13 @@
 export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: {
     id: {
-        (defaultValue: string): import("./types").IData<{
-            TValue: string;
-            TParsedValue: string;
+        (defaultValue: string | number): import("./types").IData<{
+            TValue: string | number;
+            TParsedValue: string | number;
             TBoxedValue: undefined;
         }>;
         _default: import("./types").IData<{
-            TValue: string;
-            TParsedValue: string;
+            TValue: string | number;
+            TParsedValue: string | number;
             TBoxedValue: undefined;
         }>;
         optional: import("./types").IData<{
@@ -123,14 +123,14 @@ export declare const DEFAULT_NODE_PROPERTIES: {
         }>;
     };
     id: {
-        (defaultValue: string): import("./types").IData<{
-            TValue: string;
-            TParsedValue: string;
+        (defaultValue: string | number): import("./types").IData<{
+            TValue: string | number;
+            TParsedValue: string | number;
             TBoxedValue: undefined;
         }>;
         _default: import("./types").IData<{
-            TValue: string;
-            TParsedValue: string;
+            TValue: string | number;
+            TParsedValue: string | number;
             TBoxedValue: undefined;
         }>;
         optional: import("./types").IData<{

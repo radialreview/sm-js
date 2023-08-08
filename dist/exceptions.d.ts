@@ -1,4 +1,4 @@
-import { FilterOperator } from './types';
+import { FilterOperator, Id } from './types';
 export declare class NotUpToDateException extends Error {
     propName: string;
     constructor(opts: {
@@ -33,7 +33,7 @@ export declare class ImpliedNodePropertyException extends Error {
 export declare class NotCachedException extends Error {
     constructor(opts: {
         nodeType: string;
-        id: string;
+        id: Id;
     });
 }
 export declare class NodesCollectionPageOutOfBoundsException extends Error {

@@ -70,6 +70,23 @@ export declare const number: {
         TBoxedValue: undefined;
     }>;
 };
+export declare const stringOrNumber: {
+    (defaultValue: string | number): IData<{
+        TValue: string | number;
+        TParsedValue: string | number;
+        TBoxedValue: undefined;
+    }>;
+    _default: IData<{
+        TValue: string | number;
+        TParsedValue: string | number;
+        TBoxedValue: undefined;
+    }>;
+    optional: IData<{
+        TValue: Maybe<string>;
+        TParsedValue: Maybe<string>;
+        TBoxedValue: undefined;
+    }>;
+};
 export declare const boolean: {
     <TDefaultValue extends boolean>(defaultValue?: TDefaultValue | undefined): IData<{
         TValue: string | boolean;

@@ -22,6 +22,7 @@ import {
   DocumentNode,
   ValidFilterForNode,
   INonPaginatedOneToManyQueryBuilder,
+  Id,
 } from './types';
 import { NodesCollection, PageInfoFromResults } from './nodesCollection';
 
@@ -151,7 +152,7 @@ export function generateDOInstance<
   }>;
   relational?: NodeRelationalFns<TNodeRelationalData>;
   initialData: {
-    id: string;
+    id: Id;
     version: number;
   } & Record<string, any>;
 }) {
@@ -543,7 +544,7 @@ export function convertNodesCollectionValuesToArray<
 }
 
 export function createMockDataItems<T>(opts: {
-  sampleMockData: T & { id: string };
+  sampleMockData: T & { id: Id };
   items: Array<Partial<any>>;
   pageInfo?: Partial<PageInfoFromResults>;
   totalCount?: number;
@@ -557,7 +558,7 @@ export function createMockDataItems<T>(opts: {
   return {
     nodes: opts.items.map((mockItem, index) => ({
       ...opts.sampleMockData,
-      id: opts.sampleMockData.id + index,
+      id: String(opts.sampleMockData.id) + index,
       ...mockItem,
     })),
     totalCount: opts.totalCount ?? opts.items.length,
@@ -566,12 +567,12 @@ export function createMockDataItems<T>(opts: {
 }
 
 export function createNonPaginatedMockDataItems<T>(opts: {
-  sampleMockData: T & { id: string };
+  sampleMockData: T & { id: Id };
   items: Array<Partial<any>>;
 }) {
   return opts.items.map((mockItem, index) => ({
     ...opts.sampleMockData,
-    id: opts.sampleMockData.id + index,
+    id: String(opts.sampleMockData.id) + index,
     ...mockItem,
   }));
 }

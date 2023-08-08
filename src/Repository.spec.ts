@@ -9,6 +9,7 @@ import {
   NodeRelationalFns,
   DataDefaultFn,
   IOneToOneQueryBuilder,
+  Id,
 } from './types';
 
 function generateRepositoryInstance<
@@ -134,7 +135,7 @@ describe('data.repository', () => {
         task: 'my task',
         assignee: 'test', // purposely adding a property which is relational to test that we don't throw "tried to set a property without a setter"
         otherProp: 'test2', // and a property not declared on the node
-      } as { id: string })
+      } as { id: Id })
     ).not.toThrow();
 
     const DO = repository.byId('mock-id');

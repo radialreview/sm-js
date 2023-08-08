@@ -334,6 +334,8 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["stringOrNumber"] = "sON";
+  DATA_TYPES["maybeStringOrNumber"] = "mSON";
   DATA_TYPES["boolean"] = "b";
   DATA_TYPES["maybeBoolean"] = "mB";
   DATA_TYPES["object"] = "o";
@@ -373,6 +375,25 @@ var UnreachableCaseError = /*#__PURE__*/function (_Error14) {
   ENumberFilterOperator["lte"] = "lte";
   ENumberFilterOperator["nlte"] = "nlte";
 })(exports.ENumberFilterOperator || (exports.ENumberFilterOperator = {}));
+
+(function (EStringOrNumberFilterOperator) {
+  EStringOrNumberFilterOperator["eq"] = "eq";
+  EStringOrNumberFilterOperator["neq"] = "neq";
+  EStringOrNumberFilterOperator["contains"] = "contains";
+  EStringOrNumberFilterOperator["ncontains"] = "ncontains";
+  EStringOrNumberFilterOperator["startsWith"] = "startsWith";
+  EStringOrNumberFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringOrNumberFilterOperator["endsWith"] = "endsWith";
+  EStringOrNumberFilterOperator["nendsWith"] = "nendsWith";
+  EStringOrNumberFilterOperator["gt"] = "gt";
+  EStringOrNumberFilterOperator["ngt"] = "ngt";
+  EStringOrNumberFilterOperator["gte"] = "gte";
+  EStringOrNumberFilterOperator["ngte"] = "ngte";
+  EStringOrNumberFilterOperator["lt"] = "lt";
+  EStringOrNumberFilterOperator["nlt"] = "nlt";
+  EStringOrNumberFilterOperator["lte"] = "lte";
+  EStringOrNumberFilterOperator["nlte"] = "nlte";
+})(exports.EStringOrNumberFilterOperator || (exports.EStringOrNumberFilterOperator = {}));
 
 (function (EBooleanFilterOperator) {
   EBooleanFilterOperator["eq"] = "eq";
@@ -475,6 +496,24 @@ number.optional = /*#__PURE__*/new Data({
       return Number(value);
     }
 
+    return value;
+  },
+  isOptional: true
+});
+var stringOrNumber = function stringOrNumber(defaultValue) {
+  return new Data({
+    type: exports.DATA_TYPES.stringOrNumber,
+    parser: function parser(value) {
+      return value;
+    },
+    defaultValue: defaultValue,
+    isOptional: false
+  });
+};
+stringOrNumber._default = /*#__PURE__*/stringOrNumber('');
+stringOrNumber.optional = /*#__PURE__*/new Data({
+  type: exports.DATA_TYPES.maybeStringOrNumber,
+  parser: function parser(value) {
     return value;
   },
   isOptional: true
@@ -646,7 +685,7 @@ function queryDefinition(queryDefinition) {
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string
@@ -802,7 +841,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
@@ -1458,12 +1497,6 @@ function getQueryRecordFromQueryDefinition(opts) {
   });
   return queryRecord;
 }
-
-function wrapInQuotesIfString(value) {
-  if (typeof value === 'string') return "\"" + value + "\"";
-  return value;
-}
-
 function getBEFilterString(opts) {
   var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
     var _opts$filter$key2;
@@ -1542,7 +1575,7 @@ function getBEFilterString(opts) {
         var isStringEnum = opts.def.data[filter.key].type === exports.DATA_TYPES.stringEnum || opts.def.data[filter.key].type === exports.DATA_TYPES.maybeStringEnum;
         var operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
           if (index > 0) acc += ', ';
-          var value = isStringEnum ? operatorValueCombo.value : wrapInQuotesIfString(operatorValueCombo.value);
+          var value = isStringEnum ? operatorValueCombo.value : JSON.stringify(operatorValueCombo.value);
 
           if (Array.isArray(operatorValueCombo.value)) {
             // if the value is an array, we need to wrap each value in quotes
@@ -1583,7 +1616,7 @@ function getBEFilterString(opts) {
             Object.keys(operatorValueCombo.value).forEach(function (key) {
               var valueAtThiskey = operatorValueCombo.value[key];
               var isStringEnum = relatedNodeDef.data[key].type === exports.DATA_TYPES.stringEnum || relatedNodeDef.data[key].type === exports.DATA_TYPES.maybeStringEnum;
-              var value = isStringEnum ? valueAtThiskey : wrapInQuotesIfString(valueAtThiskey);
+              var value = isStringEnum ? valueAtThiskey : JSON.stringify(valueAtThiskey);
               acc += key + ": {" + operatorValueCombo.operator + ": " + value + "}";
             });
             return acc;
@@ -1804,7 +1837,7 @@ function getOperationFromQueryRecordEntry(opts) {
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: \"" + opts.id + "\")";
+    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
   } else {
     var _options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -5441,7 +5474,7 @@ function augmentWithRelational(opts) {
     var idOrIds = dataToAugment[ownPropName];
     var queryRecordEntry = {
       def: def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id: typeof idOrIds === 'string' || typeof idOrIds === 'number' ? idOrIds : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties: properties,
       relational: relationalDataForThisRelationalData,
@@ -6462,17 +6495,8 @@ function createQueryManager(mmGQLInstance) {
               var _proxyCacheEntry$rela;
 
               if (shouldApplyIdFilter) {
-                var nodeIdAsNumber = Number(nodeId);
                 var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  // since we store node ids as strings
-                  // but the message from BE may include the id as a number
-                  if (typeof parentFilter.id === 'number' && nodeIdAsNumber === parentFilter.id) {
-                    return true;
-                  } else if (typeof parentFilter.id === 'string' && nodeId === parentFilter.id) {
-                    return true;
-                  }
-
-                  return false;
+                  return nodeId === parentFilter.id;
                 });
                 if (!matchesSomeIdInTargets) return;
               }
@@ -9728,5 +9752,6 @@ exports.record = record;
 exports.staticRelational = staticRelational;
 exports.string = string;
 exports.stringEnum = stringEnum;
+exports.stringOrNumber = stringOrNumber;
 exports.useSubscription = useSubscription;
 //# sourceMappingURL=sm-js.cjs.development.js.map

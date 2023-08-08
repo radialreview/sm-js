@@ -7,6 +7,7 @@ import { createQueryManager } from './queriers/QueryManager';
 import { QuerySlimmer } from './queriers/QuerySlimmer';
 import { StaticData } from './queriers/getResponseFromStaticData';
 declare type ValidateShape<T, Shape> = T extends Shape ? Exclude<keyof T, keyof Shape> extends never ? T : Shape : Shape;
+export declare type Id = string | number;
 export declare type BOmit<T, K extends keyof T> = T extends any ? Omit<T, K> : never;
 export declare type Maybe<T> = T | null;
 export declare type IsMaybe<Type> = null extends Type ? true : false;
@@ -249,7 +250,7 @@ export declare type GetResultingDataTypeFromNodeDefinition<TNode extends INode> 
 export declare type SortDirection = 'asc' | 'desc';
 export declare type NodeFilterCondition = 'or' | 'and';
 export declare type CollectionFilterCondition = 'all' | 'some' | 'none';
-export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>, TIsCollectionFilter extends boolean> = TValue | (Partial<Record<TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
+export declare type FilterValue<TValue extends Maybe<string> | Maybe<number> | Maybe<boolean>, TIsCollectionFilter extends boolean> = TValue | (Partial<Record<TValue extends string | number ? EStringOrNumberFilterOperator : TValue extends boolean ? EBooleanFilterOperator : TValue extends string ? EStringFilterOperator : TValue extends number ? ENumberFilterOperator : never, TValue> & {
     condition?: TIsCollectionFilter extends true ? CollectionFilterCondition : NodeFilterCondition;
 }>);
 export declare type SortObject = {
@@ -313,7 +314,7 @@ export interface IDOMethods {
     }): void;
 }
 export interface IDOAccessors {
-    id: string;
+    id: Id;
     version: number;
     lastUpdatedBy: string;
     persistedData: Record<string, any>;
@@ -457,6 +458,8 @@ export declare enum DATA_TYPES {
     maybeStringEnum = "mSE",
     number = "n",
     maybeNumber = "mN",
+    stringOrNumber = "sON",
+    maybeStringOrNumber = "mSON",
     boolean = "b",
     maybeBoolean = "mB",
     object = "o",
@@ -479,11 +482,11 @@ export interface IQueryPagination<TIncludeTotalCount extends boolean> {
 }
 export declare type NodeRelationalQueryBuilderRecord = Record<string, NodeRelationalQueryBuilder>;
 export interface INodeRepository {
-    byId(id: string): NodeDO;
+    byId(id: Id): NodeDO;
     onDataReceived(data: {
-        id: string;
+        id: Id;
     } & Record<string, any>): void;
-    onNodeDeleted(id: string): void;
+    onNodeDeleted(id: Id): void;
 }
 export declare enum EStringFilterOperator {
     'eq' = "eq",
@@ -498,6 +501,24 @@ export declare enum EStringFilterOperator {
 export declare enum ENumberFilterOperator {
     'eq' = "eq",
     'neq' = "neq",
+    'gt' = "gt",
+    'ngt' = "ngt",
+    'gte' = "gte",
+    'ngte' = "ngte",
+    'lt' = "lt",
+    'nlt' = "nlt",
+    'lte' = "lte",
+    'nlte' = "nlte"
+}
+export declare enum EStringOrNumberFilterOperator {
+    'eq' = "eq",
+    'neq' = "neq",
+    'contains' = "contains",
+    'ncontains' = "ncontains",
+    'startsWith' = "startsWith",
+    'nstartsWith' = "nstartsWith",
+    'endsWith' = "endsWith",
+    'nendsWith' = "nendsWith",
     'gt' = "gt",
     'ngt' = "ngt",
     'gte' = "gte",
@@ -532,10 +553,10 @@ export declare type ExtractNodeSortData<TNode extends INode> = DeepPartial<{
     [TKey in keyof ExtractNodeDataWithDefaultProperties<TNode> as ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends IData<infer TDataArgs> ? IsArray<TDataArgs["TParsedValue"]> extends true ? never : TDataArgs["TBoxedValue"] extends undefined ? TKey : TDataArgs["TBoxedValue"] extends Record<string, IData | DataDefaultFn> ? TKey : never : ExtractNodeDataWithDefaultProperties<TNode>[TKey] extends DataDefaultFn ? IsArray<GetParsedValueTypeFromDefaultFn<ExtractNodeDataWithDefaultProperties<TNode>[TKey]>> extends true ? never : TKey : TKey]: TKey extends keyof GetSortingDataTypeFromNodeDefinition<TNode> ? GetSortingDataTypeFromNodeDefinition<TNode>[TKey] : never;
 }>;
 export declare type QueryDefinitionTarget = {
-    id: string;
+    id: Id;
     allowNullResult?: boolean;
 } | {
-    ids: Array<string>;
+    ids: Array<Id>;
 };
 export declare type FilterTypeForQuery<TFilterTypeForQueryArgs extends {
     TNode: INode;
@@ -599,7 +620,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     map: infer TMapFn;
 } ? TNode extends INode ? TMapFn extends MapFnForNode<TNode> ? TQueryDefinition extends {
     target?: {
-        id: string;
+        id: Id;
     };
 } ? TQueryDefinition extends {
     target?: {
@@ -614,7 +635,7 @@ export declare type GetResultingDataFromQueryDefinition<TQueryDefinition extends
     def: infer TNode;
 } ? TNode extends INode ? TQueryDefinition extends {
     target?: {
-        id: string;
+        id: Id;
     };
 } ? GetAllAvailableNodeDataType<{
     TNodeData: ExtractNodeData<TNode>;
@@ -794,8 +815,8 @@ export declare type BaseQueryRecordEntry = {
 export declare type QueryRecordEntry = BaseQueryRecordEntry & {
     tokenName: Maybe<string>;
     pagination?: IQueryPagination<boolean>;
-    ids?: Array<string>;
-    id?: string;
+    ids?: Array<Id>;
+    id?: Id;
     allowNullResult?: boolean;
 };
 export declare type RelationalQueryRecordEntry = {
@@ -810,7 +831,7 @@ export declare type RelationalQueryRecordEntry = {
 export declare type QueryRecord = Record<string, QueryRecordEntry | null>;
 export declare type RelationalQueryRecord = Record<string, RelationalQueryRecordEntry>;
 export interface IDOProxy {
-    id: string;
+    id: Id;
     updateRelationalResults(newRelationalResults: Maybe<Record<string, IDOProxy | Array<IDOProxy>>>): void;
 }
 export declare type SubscriptionMessage = {
@@ -818,17 +839,17 @@ export declare type SubscriptionMessage = {
 };
 export declare type SubscriptionMessageData = {
     __typename: string;
-    id: string;
+    id: Id;
     target?: {
-        id: string;
+        id: Id;
         property: string;
     };
     targets?: Array<{
-        id: string;
+        id: Id;
         property: string;
     }>;
     value?: {
-        id: string;
+        id: Id;
     } & Record<string, any>;
 };
 export {};
