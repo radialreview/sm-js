@@ -40,11 +40,11 @@ export declare class QuerySlimmer {
     getRelationalDepthOfQueryRecordEntry(queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry): number;
     private createContextKeyForQueryRecordEntry;
     private getPropertiesNotAlreadyCached;
-    private stringifyQueryParams;
-    private sendQueryRequest;
-    private log;
     mergeQueryResults(opts: {
         cachedResult: Record<string, any> | undefined;
         newResult: Record<string, any>;
     }): Record<string, any>;
+    private stringifyQueryParams;
+    private sendQueryRequest;
+    private log;
 }
