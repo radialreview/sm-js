@@ -8014,6 +8014,11 @@ var QuerySlimmer = /*#__PURE__*/function () {
             dataToCacheForParent[recordFieldToCache] = {
               nodes: []
             };
+
+            if ('pageInfo' in responseDataForParent) {
+              dataToCacheForParent[recordFieldToCache]['pageInfo'] = responseDataForParent['pageInfo'];
+            }
+
             responseDataForParent.nodes.forEach(function (response, responseIndex) {
               var dataToCache = {};
               queryRecordEntry.properties.forEach(function (property) {
@@ -8050,6 +8055,10 @@ var QuerySlimmer = /*#__PURE__*/function () {
         var resultObj = resultsToCache[recordFieldToCache]; // Handle nodes collection
 
         if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+          if ('pageInfo' in queryResponseToCache[recordFieldToCache]) {
+            resultObj['pageInfo'] = queryResponseToCache[recordFieldToCache]['pageInfo'];
+          }
+
           resultObj['nodes'] = queryResponseToCache[recordFieldToCache]['nodes'].map(function (response, responseIndex) {
             var dataToCache = {};
             queryRecordEntry.properties.forEach(function (property) {
@@ -8271,6 +8280,10 @@ var QuerySlimmer = /*#__PURE__*/function () {
           dataForNewQueryKey = {
             nodes: nodesDataToReturn
           };
+
+          if ('pageInfo' in cachedDataForKey) {
+            dataForNewQueryKey['pageInfo'] = cachedDataForKey['pageInfo'];
+          }
         } else {
           queryRecordEntry.properties.forEach(function (property) {
             dataForNewQueryKey[property] = cachedDataForKey[property];
