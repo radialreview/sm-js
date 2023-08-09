@@ -44,12 +44,21 @@ function setupTests() {
     },
   });
 
+  const pageInfo = {
+    endCursor: 'MA==',
+    hasNextPage: false,
+    hasPreviousPage: false,
+    startCursor: 'MA==',
+    __typename: 'PageInfo',
+  };
+
   return {
     QuerySlimmer: new QuerySlimmer(mmGQL),
     userNode,
     meetingNode,
     todoNode,
     headlineNode,
+    pageInfo,
   };
 }
 
@@ -61,6 +70,7 @@ describe('cacheNewData', () => {
       todoNode,
       meetingNode,
       headlineNode,
+      pageInfo,
     } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -137,6 +147,7 @@ describe('cacheNewData', () => {
         firstName: 'Aidan',
         lastName: 'Goodman',
         todos: {
+          pageInfo: pageInfo,
           nodes: [
             {
               id: 'aidan-todo-id-1',
@@ -163,6 +174,7 @@ describe('cacheNewData', () => {
           ],
         },
         headlines: {
+          pageInfo: pageInfo,
           nodes: [
             {
               id: 'aidan-headline-id-1',
@@ -190,6 +202,7 @@ describe('cacheNewData', () => {
         },
       },
       users: {
+        pageInfo: pageInfo,
         nodes: [
           {
             id: 'aidan-id',
@@ -201,6 +214,7 @@ describe('cacheNewData', () => {
               type: meetingNode,
               name: 'aidan-meeting-1',
               todos: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'aidan-todo-id-1',
@@ -215,6 +229,7 @@ describe('cacheNewData', () => {
                 ],
               },
               headlines: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'aidan-headline-id-1',
@@ -240,6 +255,7 @@ describe('cacheNewData', () => {
               type: meetingNode,
               name: 'piotr-meeting-1',
               todos: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'piotr-todo-id-1',
@@ -254,6 +270,7 @@ describe('cacheNewData', () => {
                 ],
               },
               headlines: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'piotr-headline-id-1',
@@ -293,6 +310,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             todos: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -313,6 +331,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             headlines: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -372,6 +391,7 @@ describe('cacheNewData', () => {
         results: {
           byParentId: false,
           users: {
+            pageInfo: pageInfo,
             nodes: [
               {
                 id: 'aidan-id',
@@ -411,6 +431,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             todos: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -425,6 +446,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             todos: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'piotr-todo-id-1',
@@ -445,6 +467,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             headlines: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -459,6 +482,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             headlines: {
+              pageInfo: pageInfo,
               nodes: [
                 {
                   id: 'piotr-headline-id-1',

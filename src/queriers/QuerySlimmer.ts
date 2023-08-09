@@ -1,4 +1,5 @@
 // PIOTR TODO
+// - Save/Return pageInfo in nodes collections.
 // - slim query record should not slim fields always requested
 // - Snapshot tests
 // - Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
@@ -149,6 +150,11 @@ export class QuerySlimmer {
               nodes: [],
             };
 
+            if ('pageInfo' in responseDataForParent) {
+              dataToCacheForParent[recordFieldToCache]['pageInfo'] =
+                responseDataForParent['pageInfo'];
+            }
+
             responseDataForParent.nodes.forEach(
               (response: Record<string, any>, responseIndex: number) => {
                 const dataToCache: Record<string, any> = {};
@@ -196,6 +202,11 @@ export class QuerySlimmer {
 
         // Handle nodes collection
         if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+          if ('pageInfo' in queryResponseToCache[recordFieldToCache]) {
+            resultObj['pageInfo'] =
+              queryResponseToCache[recordFieldToCache]['pageInfo'];
+          }
+
           resultObj['nodes'] = queryResponseToCache[recordFieldToCache][
             'nodes'
           ].map((response: Record<string, any>, responseIndex: number) => {
