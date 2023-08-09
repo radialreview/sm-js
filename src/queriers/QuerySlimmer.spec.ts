@@ -1632,6 +1632,7 @@ describe('getDataForQueryFromCache', () => {
       todoNode,
       meetingNode,
       headlineNode,
+      pageInfo,
     } = setupTests();
 
     const mockQueryRecord: QueryRecord = {
@@ -1707,6 +1708,7 @@ describe('getDataForQueryFromCache', () => {
         firstName: 'Aidan',
         lastName: 'Goodman',
         todos: {
+          pageInfo: pageInfo,
           nodes: [
             {
               id: 'aidan-todo-id-1',
@@ -1729,6 +1731,7 @@ describe('getDataForQueryFromCache', () => {
           ],
         },
         headlines: {
+          pageInfo: pageInfo,
           nodes: [
             {
               id: 'aidan-headline-id-1',
@@ -1752,6 +1755,7 @@ describe('getDataForQueryFromCache', () => {
         },
       },
       users: {
+        pageInfo: pageInfo,
         nodes: [
           {
             id: 'aidan-id',
@@ -1761,6 +1765,7 @@ describe('getDataForQueryFromCache', () => {
               id: 'aidan-meeting-id-1',
               name: 'aidan-meeting-1',
               todos: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'aidan-todo-id-1',
@@ -1773,6 +1778,7 @@ describe('getDataForQueryFromCache', () => {
                 ],
               },
               headlines: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'aidan-headline-id-1',
@@ -1794,6 +1800,7 @@ describe('getDataForQueryFromCache', () => {
               id: 'piotr-meeting-id-1',
               name: 'piotr-meeting-1',
               todos: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'piotr-todo-id-1',
@@ -1806,6 +1813,7 @@ describe('getDataForQueryFromCache', () => {
                 ],
               },
               headlines: {
+                pageInfo: pageInfo,
                 nodes: [
                   {
                     id: 'piotr-headline-id-1',
