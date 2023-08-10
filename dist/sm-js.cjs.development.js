@@ -8716,7 +8716,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 if (typeof valueDatum === 'object') {
                   var _cachedResult2, _newResult2;
 
-                  console.log('mergedResult', mergedResult, resultFieldKey, valueKey);
                   var childOpts = {
                     cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
                     newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)

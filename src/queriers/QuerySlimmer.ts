@@ -1028,12 +1028,6 @@ export class QuerySlimmer {
                     mergedResult[resultFieldKey] = { [valueKey]: valueDatum };
                   } else {
                     if (typeof valueDatum === 'object') {
-                      console.log(
-                        'mergedResult',
-                        mergedResult,
-                        resultFieldKey,
-                        valueKey
-                      );
                       const childOpts = {
                         cachedResult: {
                           [valueKey]: mergedResult[resultFieldKey][valueKey],
