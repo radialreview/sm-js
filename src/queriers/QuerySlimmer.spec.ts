@@ -1125,6 +1125,68 @@ describe('cacheNewData', () => {
 
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
+
+  test('it should handle caching data that returns null and not creat cache records for child relational data', () => {
+    const { QuerySlimmer, userNode, meetingNode, todoNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      meeting: {
+        id: 'meeting_id',
+        def: meetingNode,
+        properties: ['id', 'name'],
+        tokenName: DEFAULT_TOKEN_NAME,
+        relational: {
+          assignee: {
+            def: userNode,
+            oneToOne: true,
+            _relationshipName: 'assignee',
+            properties: ['id', 'firstName'],
+            relational: {
+              todos: {
+                def: todoNode,
+                oneToMany: true,
+                _relationshipName: 'todos',
+                properties: ['id', 'task'],
+              },
+            },
+          },
+        },
+      },
+    };
+    const mockRequestResponse = {
+      meeting: {
+        id: 'meeting_id',
+        name: 'Meeting Name',
+        assignee: null,
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+
+    const expectedCache = {
+      'meeting({"id":"meeting_id"})': {
+        subscriptionsByProperty: { id: 1, name: 1 },
+        results: {
+          byParentId: false,
+          meeting: {
+            id: 'meeting_id',
+            name: 'Meeting Name',
+          },
+        },
+      },
+      'meeting({"id":"meeting_id"}).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: true,
+          meeting_id: {
+            assignee: null,
+          },
+        },
+      },
+    };
+
+    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
+  });
 });
 
 describe('getSlimmedQueryAgainstCache', () => {
@@ -2597,3 +2659,13 @@ describe('getPropertiesNotAlreadyCached', () => {
     expect(actualResult).toBe(null);
   });
 });
+
+/*
+"TypeError: Cannot read properties of null (reading 'id')\n    
+at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8112:89)\n    
+at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8111:41)\n    
+at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8078:22)\n    
+at Array.forEach (<anonymous>)\n    at QuerySlimmer.cacheNewData (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8059:37)\n    
+at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8224:21)\n    
+at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8217:30)"
+*/

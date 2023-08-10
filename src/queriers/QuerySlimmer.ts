@@ -182,20 +182,34 @@ export class QuerySlimmer {
             // This data is not a nodes collection. We can just look at the data object and cache only the data
             // for this particular model.
           } else {
-            dataToCacheForParent[recordFieldToCache] = {};
+            if (responseDataForParent == null) {
+              dataToCacheForParent[recordFieldToCache] = null;
 
-            queryRecordEntry.properties.forEach(property => {
-              dataToCacheForParent[recordFieldToCache][property] =
-                responseDataForParent[property];
-
-              if (parentIndex === 0) {
-                if (subscriptionsByProperty[property]) {
-                  subscriptionsByProperty[property] += 1;
-                } else {
-                  subscriptionsByProperty[property] = 1;
+              queryRecordEntry.properties.forEach(property => {
+                if (parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
                 }
-              }
-            });
+              });
+            } else {
+              dataToCacheForParent[recordFieldToCache] = {};
+
+              queryRecordEntry.properties.forEach(property => {
+                dataToCacheForParent[recordFieldToCache][property] =
+                  responseDataForParent[property];
+
+                if (parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
+                }
+              });
+            }
           }
         });
         // Deal with data that is not relational (top level of a query).
@@ -273,19 +287,21 @@ export class QuerySlimmer {
               const dataForRecordField =
                 queryResponseToCache[pId][recordFieldToCache];
 
-              if (dataForRecordField != null && 'nodes' in dataForRecordField) {
-                dataForRecordField['nodes'].forEach(
-                  (datum: Record<string, any>) => {
-                    if (!dataToCacheForField[datum.id]) {
-                      dataToCacheForField[datum.id] = {};
+              if (dataForRecordField != null) {
+                if ('nodes' in dataForRecordField) {
+                  dataForRecordField['nodes'].forEach(
+                    (datum: Record<string, any>) => {
+                      if (!dataToCacheForField[datum.id]) {
+                        dataToCacheForField[datum.id] = {};
+                      }
+                      dataToCacheForField[datum.id][rField] = datum[rField];
                     }
-                    dataToCacheForField[datum.id][rField] = datum[rField];
-                  }
-                );
-              } else {
-                dataToCacheForField[dataForRecordField['id']] = {
-                  [rField]: dataForRecordField[rField],
-                };
+                  );
+                } else {
+                  dataToCacheForField[dataForRecordField['id']] = {
+                    [rField]: dataForRecordField[rField],
+                  };
+                }
               }
             });
 
@@ -293,11 +309,13 @@ export class QuerySlimmer {
               [rField]: relationalQueryRecord[rField],
             };
 
-            this.cacheNewData(
-              queryRecordForThisRField,
-              dataToCacheForField,
-              currentQueryContextKey
-            );
+            if (Object.keys(dataToCacheForField).length !== 0) {
+              this.cacheNewData(
+                queryRecordForThisRField,
+                dataToCacheForField,
+                currentQueryContextKey
+              );
+            }
           });
         } else {
           const relationalDataToCache: Record<string, any> = {};
