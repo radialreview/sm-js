@@ -144,7 +144,10 @@ export class QuerySlimmer {
 
           // If the data for this field is a nodes collection, we loop over each result and only cache the data
           // for this particular model, leaving out any relational data.
-          if ('nodes' in responseDataForParent) {
+          if (
+            responseDataForParent != null &&
+            'nodes' in responseDataForParent
+          ) {
             dataToCacheForParent[recordFieldToCache] = {
               nodes: [],
             };
@@ -200,7 +203,10 @@ export class QuerySlimmer {
         const resultObj = resultsToCache[recordFieldToCache];
 
         // Handle nodes collection
-        if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+        if (
+          queryResponseToCache[recordFieldToCache] != null &&
+          'nodes' in queryResponseToCache[recordFieldToCache]
+        ) {
           if ('pageInfo' in queryResponseToCache[recordFieldToCache]) {
             resultObj['pageInfo'] =
               queryResponseToCache[recordFieldToCache]['pageInfo'];
@@ -266,7 +272,7 @@ export class QuerySlimmer {
               const dataForRecordField =
                 queryResponseToCache[pId][recordFieldToCache];
 
-              if ('nodes' in dataForRecordField) {
+              if (dataForRecordField != null && 'nodes' in dataForRecordField) {
                 dataForRecordField['nodes'].forEach(
                   (datum: Record<string, any>) => {
                     if (!dataToCacheForField[datum.id]) {
@@ -295,7 +301,10 @@ export class QuerySlimmer {
         } else {
           const relationalDataToCache: Record<string, any> = {};
 
-          if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+          if (
+            queryResponseToCache[recordFieldToCache] != null &&
+            'nodes' in queryResponseToCache[recordFieldToCache]
+          ) {
             queryResponseToCache[recordFieldToCache].nodes.forEach(
               (response: Record<string, any>) => {
                 relationalDataToCache[response.id] = {};
@@ -480,7 +489,7 @@ export class QuerySlimmer {
       } else {
         const cachedDataForKey = cachedDataForContext.results[newQueryKey];
 
-        if ('nodes' in cachedDataForKey) {
+        if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
           const nodesDataToReturn: Record<string, any>[] = [];
 
           cachedDataForKey.nodes.forEach((datum: Record<string, any>) => {
@@ -518,7 +527,10 @@ export class QuerySlimmer {
             ([parentId, dataUnderParentId]) => {
               let dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
 
-              if ('nodes' in dataUnderParentForQueryKey) {
+              if (
+                dataUnderParentForQueryKey != null &&
+                'nodes' in dataUnderParentForQueryKey
+              ) {
                 dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(
                   (datum: Record<string, any>) => {
                     if (datum.id in relationalDataForNewQueryKey) {
@@ -542,7 +554,7 @@ export class QuerySlimmer {
             }
           );
         } else {
-          if ('nodes' in dataForNewQueryKey) {
+          if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
             dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
               (parentDatum: Record<string, any>) => {
                 if (parentDatum.id in relationalDataForNewQueryKey) {
@@ -904,11 +916,6 @@ export class QuerySlimmer {
     cachedResult: Record<string, any> | undefined;
     newResult: Record<string, any>;
   }) {
-    this.log('mergeQueryResults', {
-      cachedResult: opts.cachedResult,
-      newResult: opts.newResult,
-    });
-
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
@@ -918,7 +925,7 @@ export class QuerySlimmer {
     Object.entries(opts.newResult).forEach(
       ([resultFieldKey, resultFieldValue]) => {
         if (resultFieldKey !== 'byParentId') {
-          if ('nodes' in resultFieldValue) {
+          if (resultFieldValue != null && 'nodes' in resultFieldValue) {
             const mergedNodes: Record<string, any> = [];
 
             resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
@@ -986,10 +993,6 @@ export class QuerySlimmer {
         }
       }
     );
-
-    this.log('mergedResult', {
-      mergedResult,
-    });
 
     return mergedResult;
   }

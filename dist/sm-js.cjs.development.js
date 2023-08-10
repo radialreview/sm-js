@@ -8010,7 +8010,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
           var responseDataForParent = queryResponseToCache[parentId][recordFieldToCache]; // If the data for this field is a nodes collection, we loop over each result and only cache the data
           // for this particular model, leaving out any relational data.
 
-          if ('nodes' in responseDataForParent) {
+          if (responseDataForParent != null && 'nodes' in responseDataForParent) {
             dataToCacheForParent[recordFieldToCache] = {
               nodes: []
             };
@@ -8054,7 +8054,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
         resultsToCache[recordFieldToCache] = {};
         var resultObj = resultsToCache[recordFieldToCache]; // Handle nodes collection
 
-        if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+        if (queryResponseToCache[recordFieldToCache] != null && 'nodes' in queryResponseToCache[recordFieldToCache]) {
           if ('pageInfo' in queryResponseToCache[recordFieldToCache]) {
             resultObj['pageInfo'] = queryResponseToCache[recordFieldToCache]['pageInfo'];
           }
@@ -8112,7 +8112,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
             parentIds.forEach(function (pId) {
               var dataForRecordField = queryResponseToCache[pId][recordFieldToCache];
 
-              if ('nodes' in dataForRecordField) {
+              if (dataForRecordField != null && 'nodes' in dataForRecordField) {
                 dataForRecordField['nodes'].forEach(function (datum) {
                   if (!dataToCacheForField[datum.id]) {
                     dataToCacheForField[datum.id] = {};
@@ -8133,7 +8133,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
         } else {
           var relationalDataToCache = {};
 
-          if ('nodes' in queryResponseToCache[recordFieldToCache]) {
+          if (queryResponseToCache[recordFieldToCache] != null && 'nodes' in queryResponseToCache[recordFieldToCache]) {
             queryResponseToCache[recordFieldToCache].nodes.forEach(function (response) {
               relationalDataToCache[response.id] = {};
               relationalFields.forEach(function (rField) {
@@ -8268,7 +8268,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
       } else {
         var cachedDataForKey = cachedDataForContext.results[newQueryKey];
 
-        if ('nodes' in cachedDataForKey) {
+        if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
           var nodesDataToReturn = [];
           cachedDataForKey.nodes.forEach(function (datum) {
             var dataToReturnDatum = {};
@@ -8300,7 +8300,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 dataUnderParentId = _ref2[1];
             var dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
 
-            if ('nodes' in dataUnderParentForQueryKey) {
+            if (dataUnderParentForQueryKey != null && 'nodes' in dataUnderParentForQueryKey) {
               dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(function (datum) {
                 if (datum.id in relationalDataForNewQueryKey) {
                   return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
@@ -8313,7 +8313,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
             }
           });
         } else {
-          if ('nodes' in dataForNewQueryKey) {
+          if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
             dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(function (parentDatum) {
               if (parentDatum.id in relationalDataForNewQueryKey) {
                 return _extends({}, parentDatum, relationalDataForNewQueryKey[parentDatum.id]);
@@ -8614,11 +8614,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.mergeQueryResults = function mergeQueryResults(opts) {
     var _this6 = this;
 
-    this.log('mergeQueryResults', {
-      cachedResult: opts.cachedResult,
-      newResult: opts.newResult
-    });
-
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
@@ -8630,7 +8625,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
           resultFieldValue = _ref4[1];
 
       if (resultFieldKey !== 'byParentId') {
-        if ('nodes' in resultFieldValue) {
+        if (resultFieldValue != null && 'nodes' in resultFieldValue) {
           var mergedNodes = [];
           resultFieldValue.nodes.forEach(function (datum) {
             var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
@@ -8689,9 +8684,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
           });
         }
       }
-    });
-    this.log('mergedResult', {
-      mergedResult: mergedResult
     });
     return mergedResult;
   } // private getPropertiesNotCurrentlyBeingRequested(opts: {
