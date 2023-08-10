@@ -419,12 +419,14 @@ export class QuerySlimmer {
 
           // If there are any non-cached properties being requested in the child relational query
           // we will still need to return the query record even if the parent is not requesting any un-cached properties.
-          // In this scenario we return an empty array for the properties of the parent query while the child relational query is populated.
+          // In this scenario we return an array with required properties only for the parent query while the child relational query is populated.
           if (slimmedNewRelationalQueryRecord !== null) {
             if (isNewQueryARootQuery) {
               slimmedQueryRecord[newQueryKey] = {
                 ...newRootRecordEntry,
-                properties: newRequestedProperties ?? [],
+                properties:
+                  newRequestedProperties ??
+                  Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES),
                 relational: {
                   ...(slimmedNewRelationalQueryRecord as RelationalQueryRecord),
                 },
