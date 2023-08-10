@@ -488,52 +488,55 @@ export class QuerySlimmer {
       );
 
       const cachedDataForContext = this.queriesByContext[contextKey];
+
       let dataForNewQueryKey: Record<string, any> = {};
 
-      if (cachedDataForContext.results.byParentId) {
-        Object.entries(cachedDataForContext.results).forEach(
-          ([parentId, resultsUnderParent]) => {
-            if (parentId !== 'byParentId') {
-              if (parentId in dataForNewQueryKey) {
-                dataForNewQueryKey[parentId] = {
-                  ...dataForNewQueryKey[parentId],
-                  ...(resultsUnderParent as Record<string, any>),
-                };
-              } else {
-                dataForNewQueryKey[parentId] = {
-                  ...(resultsUnderParent as Record<string, any>),
-                };
+      if (cachedDataForContext != null) {
+        if (cachedDataForContext.results.byParentId) {
+          Object.entries(cachedDataForContext.results).forEach(
+            ([parentId, resultsUnderParent]) => {
+              if (parentId !== 'byParentId') {
+                if (parentId in dataForNewQueryKey) {
+                  dataForNewQueryKey[parentId] = {
+                    ...dataForNewQueryKey[parentId],
+                    ...(resultsUnderParent as Record<string, any>),
+                  };
+                } else {
+                  dataForNewQueryKey[parentId] = {
+                    ...(resultsUnderParent as Record<string, any>),
+                  };
+                }
               }
             }
-          }
-        );
-      } else {
-        const cachedDataForKey = cachedDataForContext.results[newQueryKey];
+          );
+        } else {
+          const cachedDataForKey = cachedDataForContext.results[newQueryKey];
 
-        if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
-          const nodesDataToReturn: Record<string, any>[] = [];
+          if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
+            const nodesDataToReturn: Record<string, any>[] = [];
 
-          cachedDataForKey.nodes.forEach((datum: Record<string, any>) => {
-            const dataToReturnDatum: Record<string, any> = {};
+            cachedDataForKey.nodes.forEach((datum: Record<string, any>) => {
+              const dataToReturnDatum: Record<string, any> = {};
 
-            queryRecordEntry.properties.forEach(property => {
-              dataToReturnDatum[property] = datum[property];
+              queryRecordEntry.properties.forEach(property => {
+                dataToReturnDatum[property] = datum[property];
+              });
+
+              nodesDataToReturn.push(dataToReturnDatum);
             });
 
-            nodesDataToReturn.push(dataToReturnDatum);
-          });
+            dataForNewQueryKey = {
+              nodes: nodesDataToReturn,
+            };
 
-          dataForNewQueryKey = {
-            nodes: nodesDataToReturn,
-          };
-
-          if ('pageInfo' in cachedDataForKey) {
-            dataForNewQueryKey['pageInfo'] = cachedDataForKey['pageInfo'];
+            if ('pageInfo' in cachedDataForKey) {
+              dataForNewQueryKey['pageInfo'] = cachedDataForKey['pageInfo'];
+            }
+          } else {
+            queryRecordEntry.properties.forEach(property => {
+              dataForNewQueryKey[property] = cachedDataForKey[property];
+            });
           }
-        } else {
-          queryRecordEntry.properties.forEach(property => {
-            dataForNewQueryKey[property] = cachedDataForKey[property];
-          });
         }
       }
 
@@ -543,56 +546,58 @@ export class QuerySlimmer {
           contextKey
         );
 
-        if (parentContextKey) {
-          Object.entries(dataForNewQueryKey).forEach(
-            ([parentId, dataUnderParentId]) => {
-              let dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
+        if (Object.keys(relationalDataForNewQueryKey).length !== 0) {
+          if (parentContextKey) {
+            Object.entries(dataForNewQueryKey).forEach(
+              ([parentId, dataUnderParentId]) => {
+                let dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
 
-              if (
-                dataUnderParentForQueryKey != null &&
-                'nodes' in dataUnderParentForQueryKey
-              ) {
-                dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(
-                  (datum: Record<string, any>) => {
-                    if (datum.id in relationalDataForNewQueryKey) {
-                      return {
-                        ...datum,
-                        ...relationalDataForNewQueryKey[datum.id],
-                      };
-                    } else {
-                      return datum;
+                if (
+                  dataUnderParentForQueryKey != null &&
+                  'nodes' in dataUnderParentForQueryKey
+                ) {
+                  dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(
+                    (datum: Record<string, any>) => {
+                      if (datum.id in relationalDataForNewQueryKey) {
+                        return {
+                          ...datum,
+                          ...relationalDataForNewQueryKey[datum.id],
+                        };
+                      } else {
+                        return datum;
+                      }
                     }
-                  }
-                );
-              } else {
-                dataForNewQueryKey[parentId][newQueryKey] = {
-                  ...dataUnderParentId[newQueryKey],
-                  ...relationalDataForNewQueryKey[
-                    dataUnderParentForQueryKey.id
-                  ],
-                };
-              }
-            }
-          );
-        } else {
-          if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
-            dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
-              (parentDatum: Record<string, any>) => {
-                if (parentDatum.id in relationalDataForNewQueryKey) {
-                  return {
-                    ...parentDatum,
-                    ...relationalDataForNewQueryKey[parentDatum.id],
-                  };
+                  );
                 } else {
-                  return parentDatum;
+                  dataForNewQueryKey[parentId][newQueryKey] = {
+                    ...dataUnderParentId[newQueryKey],
+                    ...relationalDataForNewQueryKey[
+                      dataUnderParentForQueryKey.id
+                    ],
+                  };
                 }
               }
             );
           } else {
-            dataForNewQueryKey = {
-              ...dataForNewQueryKey,
-              ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
-            };
+            if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
+              dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(
+                (parentDatum: Record<string, any>) => {
+                  if (parentDatum.id in relationalDataForNewQueryKey) {
+                    return {
+                      ...parentDatum,
+                      ...relationalDataForNewQueryKey[parentDatum.id],
+                    };
+                  } else {
+                    return parentDatum;
+                  }
+                }
+              );
+            } else {
+              dataForNewQueryKey = {
+                ...dataForNewQueryKey,
+                ...relationalDataForNewQueryKey[dataForNewQueryKey.id],
+              };
+            }
           }
         }
       }

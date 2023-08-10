@@ -8046,18 +8046,31 @@ var QuerySlimmer = /*#__PURE__*/function () {
             }); // This data is not a nodes collection. We can just look at the data object and cache only the data
             // for this particular model.
           } else {
-            dataToCacheForParent[recordFieldToCache] = {};
-            queryRecordEntry.properties.forEach(function (property) {
-              dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
-
-              if (parentIndex === 0) {
-                if (subscriptionsByProperty[property]) {
-                  subscriptionsByProperty[property] += 1;
-                } else {
-                  subscriptionsByProperty[property] = 1;
+            if (responseDataForParent == null) {
+              dataToCacheForParent[recordFieldToCache] = null;
+              queryRecordEntry.properties.forEach(function (property) {
+                if (parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
                 }
-              }
-            });
+              });
+            } else {
+              dataToCacheForParent[recordFieldToCache] = {};
+              queryRecordEntry.properties.forEach(function (property) {
+                dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
+
+                if (parentIndex === 0) {
+                  if (subscriptionsByProperty[property]) {
+                    subscriptionsByProperty[property] += 1;
+                  } else {
+                    subscriptionsByProperty[property] = 1;
+                  }
+                }
+              });
+            }
           }
         }); // Deal with data that is not relational (top level of a query).
       } else {
@@ -8122,23 +8135,27 @@ var QuerySlimmer = /*#__PURE__*/function () {
             parentIds.forEach(function (pId) {
               var dataForRecordField = queryResponseToCache[pId][recordFieldToCache];
 
-              if (dataForRecordField != null && 'nodes' in dataForRecordField) {
-                dataForRecordField['nodes'].forEach(function (datum) {
-                  if (!dataToCacheForField[datum.id]) {
-                    dataToCacheForField[datum.id] = {};
-                  }
+              if (dataForRecordField != null) {
+                if ('nodes' in dataForRecordField) {
+                  dataForRecordField['nodes'].forEach(function (datum) {
+                    if (!dataToCacheForField[datum.id]) {
+                      dataToCacheForField[datum.id] = {};
+                    }
 
-                  dataToCacheForField[datum.id][rField] = datum[rField];
-                });
-              } else {
-                var _dataToCacheForField$;
+                    dataToCacheForField[datum.id][rField] = datum[rField];
+                  });
+                } else {
+                  var _dataToCacheForField$;
 
-                dataToCacheForField[dataForRecordField['id']] = (_dataToCacheForField$ = {}, _dataToCacheForField$[rField] = dataForRecordField[rField], _dataToCacheForField$);
+                  dataToCacheForField[dataForRecordField['id']] = (_dataToCacheForField$ = {}, _dataToCacheForField$[rField] = dataForRecordField[rField], _dataToCacheForField$);
+                }
               }
             });
             var queryRecordForThisRField = (_queryRecordForThisRF = {}, _queryRecordForThisRF[rField] = relationalQueryRecord[rField], _queryRecordForThisRF);
 
-            _this.cacheNewData(queryRecordForThisRField, dataToCacheForField, currentQueryContextKey);
+            if (Object.keys(dataToCacheForField).length !== 0) {
+              _this.cacheNewData(queryRecordForThisRField, dataToCacheForField, currentQueryContextKey);
+            }
           });
         } else {
           var relationalDataToCache = {};
@@ -8262,77 +8279,81 @@ var QuerySlimmer = /*#__PURE__*/function () {
       var cachedDataForContext = _this3.queriesByContext[contextKey];
       var dataForNewQueryKey = {};
 
-      if (cachedDataForContext.results.byParentId) {
-        Object.entries(cachedDataForContext.results).forEach(function (_ref) {
-          var parentId = _ref[0],
-              resultsUnderParent = _ref[1];
+      if (cachedDataForContext != null) {
+        if (cachedDataForContext.results.byParentId) {
+          Object.entries(cachedDataForContext.results).forEach(function (_ref) {
+            var parentId = _ref[0],
+                resultsUnderParent = _ref[1];
 
-          if (parentId !== 'byParentId') {
-            if (parentId in dataForNewQueryKey) {
-              dataForNewQueryKey[parentId] = _extends({}, dataForNewQueryKey[parentId], resultsUnderParent);
-            } else {
-              dataForNewQueryKey[parentId] = _extends({}, resultsUnderParent);
+            if (parentId !== 'byParentId') {
+              if (parentId in dataForNewQueryKey) {
+                dataForNewQueryKey[parentId] = _extends({}, dataForNewQueryKey[parentId], resultsUnderParent);
+              } else {
+                dataForNewQueryKey[parentId] = _extends({}, resultsUnderParent);
+              }
             }
-          }
-        });
-      } else {
-        var cachedDataForKey = cachedDataForContext.results[newQueryKey];
-
-        if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
-          var nodesDataToReturn = [];
-          cachedDataForKey.nodes.forEach(function (datum) {
-            var dataToReturnDatum = {};
-            queryRecordEntry.properties.forEach(function (property) {
-              dataToReturnDatum[property] = datum[property];
-            });
-            nodesDataToReturn.push(dataToReturnDatum);
           });
-          dataForNewQueryKey = {
-            nodes: nodesDataToReturn
-          };
-
-          if ('pageInfo' in cachedDataForKey) {
-            dataForNewQueryKey['pageInfo'] = cachedDataForKey['pageInfo'];
-          }
         } else {
-          queryRecordEntry.properties.forEach(function (property) {
-            dataForNewQueryKey[property] = cachedDataForKey[property];
-          });
+          var cachedDataForKey = cachedDataForContext.results[newQueryKey];
+
+          if (cachedDataForKey != null && 'nodes' in cachedDataForKey) {
+            var nodesDataToReturn = [];
+            cachedDataForKey.nodes.forEach(function (datum) {
+              var dataToReturnDatum = {};
+              queryRecordEntry.properties.forEach(function (property) {
+                dataToReturnDatum[property] = datum[property];
+              });
+              nodesDataToReturn.push(dataToReturnDatum);
+            });
+            dataForNewQueryKey = {
+              nodes: nodesDataToReturn
+            };
+
+            if ('pageInfo' in cachedDataForKey) {
+              dataForNewQueryKey['pageInfo'] = cachedDataForKey['pageInfo'];
+            }
+          } else {
+            queryRecordEntry.properties.forEach(function (property) {
+              dataForNewQueryKey[property] = cachedDataForKey[property];
+            });
+          }
         }
       }
 
       if (queryRecordEntry.relational !== undefined) {
         var relationalDataForNewQueryKey = _this3.getDataForQueryFromCache(queryRecordEntry.relational, contextKey);
 
-        if (parentContextKey) {
-          Object.entries(dataForNewQueryKey).forEach(function (_ref2) {
-            var parentId = _ref2[0],
-                dataUnderParentId = _ref2[1];
-            var dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
+        if (Object.keys(relationalDataForNewQueryKey).length !== 0) {
+          if (parentContextKey) {
+            Object.entries(dataForNewQueryKey).forEach(function (_ref2) {
+              var parentId = _ref2[0],
+                  dataUnderParentId = _ref2[1];
+              var dataUnderParentForQueryKey = dataUnderParentId[newQueryKey];
 
-            if (dataUnderParentForQueryKey != null && 'nodes' in dataUnderParentForQueryKey) {
-              dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(function (datum) {
-                if (datum.id in relationalDataForNewQueryKey) {
-                  return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
-                } else {
-                  return datum;
-                }
-              });
-            } else {
-              dataForNewQueryKey[parentId][newQueryKey] = _extends({}, dataUnderParentId[newQueryKey], relationalDataForNewQueryKey[dataUnderParentForQueryKey.id]);
-            }
-          });
-        } else {
-          if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
-            dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(function (parentDatum) {
-              if (parentDatum.id in relationalDataForNewQueryKey) {
-                return _extends({}, parentDatum, relationalDataForNewQueryKey[parentDatum.id]);
+              if (dataUnderParentForQueryKey != null && 'nodes' in dataUnderParentForQueryKey) {
+                dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(function (datum) {
+                  if (datum.id in relationalDataForNewQueryKey) {
+                    return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
+                  } else {
+                    return datum;
+                  }
+                });
               } else {
-                return parentDatum;
+                dataForNewQueryKey[parentId][newQueryKey] = _extends({}, dataUnderParentId[newQueryKey], relationalDataForNewQueryKey[dataUnderParentForQueryKey.id]);
               }
             });
           } else {
-            dataForNewQueryKey = _extends({}, dataForNewQueryKey, relationalDataForNewQueryKey[dataForNewQueryKey.id]);
+            if (dataForNewQueryKey != null && 'nodes' in dataForNewQueryKey) {
+              dataForNewQueryKey.nodes = dataForNewQueryKey.nodes.map(function (parentDatum) {
+                if (parentDatum.id in relationalDataForNewQueryKey) {
+                  return _extends({}, parentDatum, relationalDataForNewQueryKey[parentDatum.id]);
+                } else {
+                  return parentDatum;
+                }
+              });
+            } else {
+              dataForNewQueryKey = _extends({}, dataForNewQueryKey, relationalDataForNewQueryKey[dataForNewQueryKey.id]);
+            }
           }
         }
       }

@@ -1687,7 +1687,7 @@ describe('getSlimmedQueryAgainstCache', () => {
 });
 
 describe('getDataForQueryFromCache', () => {
-  test('it should cache all QueryRecordEntries and relational entries under their own separate context keys and correctly update subscription counts for each property', () => {
+  test('it should get cached data for all QueryRecordEntries and relational entries', () => {
     const {
       QuerySlimmer,
       userNode,
@@ -1888,6 +1888,133 @@ describe('getDataForQueryFromCache', () => {
                 ],
               },
             },
+          },
+        ],
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+
+    const actualDataFromCache = QuerySlimmer.getDataForQueryFromCache(
+      mockQueryRecord
+    );
+
+    expect(actualDataFromCache).toEqual(mockRequestResponse);
+  });
+
+  test('it should get cached data properly when data somewhere in the tree was returned as null', () => {
+    const {
+      QuerySlimmer,
+      userNode,
+      todoNode,
+      meetingNode,
+      headlineNode,
+      pageInfo,
+    } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      user: {
+        def: userNode,
+        id: 'aidan-id',
+        properties: ['id', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            oneToMany: true,
+            _relationshipName: 'todos',
+            properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            oneToMany: true,
+            _relationshipName: 'headlines',
+            properties: ['id', 'title'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+      users: {
+        def: userNode,
+        ids: ['aidan-id', 'piotr-id'],
+        properties: ['id', 'firstName', 'lastName'],
+        relational: {
+          meeting: {
+            def: meetingNode,
+            oneToOne: true,
+            _relationshipName: 'meeting',
+            properties: ['id', 'name'],
+            relational: {
+              todos: {
+                def: todoNode,
+                oneToMany: true,
+                _relationshipName: 'todos',
+                properties: ['id', 'task'],
+              },
+              headlines: {
+                def: headlineNode,
+                oneToMany: true,
+                _relationshipName: 'headlines',
+                properties: ['id', 'title'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockRequestResponse = {
+      user: {
+        id: 'aidan-id',
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+        todos: null,
+        headlines: {
+          pageInfo: pageInfo,
+          nodes: [
+            {
+              id: 'aidan-headline-id-1',
+              title: 'aidan-headline-title-1',
+              assignee: null,
+            },
+            {
+              id: 'aidan-headline-id-2',
+              title: 'aidan-headline-title-2',
+              assignee: null,
+            },
+          ],
+        },
+      },
+      users: {
+        pageInfo: pageInfo,
+        nodes: [
+          {
+            id: 'aidan-id',
+            firstName: 'Aidan',
+            lastName: 'Goodman',
+            meeting: null,
+          },
+          {
+            id: 'piotr-id',
+            firstName: 'Piotr',
+            lastName: 'Bogun',
+            meeting: null,
           },
         ],
       },
@@ -2659,13 +2786,3 @@ describe('getPropertiesNotAlreadyCached', () => {
     expect(actualResult).toBe(null);
   });
 });
-
-/*
-"TypeError: Cannot read properties of null (reading 'id')\n    
-at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8112:89)\n    
-at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8111:41)\n    
-at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8078:22)\n    
-at Array.forEach (<anonymous>)\n    at QuerySlimmer.cacheNewData (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8059:37)\n    
-at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8224:21)\n    
-at Array.forEach (<anonymous>)\n    at eval (webpack-internal:///../node_modules/sm-js/dist/sm-js.esm.js:8217:30)"
-*/
