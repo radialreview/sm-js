@@ -958,8 +958,6 @@ export class QuerySlimmer {
     cachedResult: Record<string, any> | undefined;
     newResult: Record<string, any>;
   }) {
-    this.log('mergeQueryResults', opts);
-
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }

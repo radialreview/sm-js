@@ -8645,8 +8645,6 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.mergeQueryResults = function mergeQueryResults(opts) {
     var _this6 = this;
 
-    this.log('mergeQueryResults', opts);
-
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
