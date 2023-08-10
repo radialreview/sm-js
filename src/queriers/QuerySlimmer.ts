@@ -961,7 +961,7 @@ export class QuerySlimmer {
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
-    this.log('mergeQueryResults', opts);
+    // this.log('mergeQueryResults', opts);
 
     const mergedResult: Record<string, any> = { ...opts.cachedResult };
 

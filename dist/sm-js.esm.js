@@ -8657,9 +8657,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
     if (opts.cachedResult == undefined) {
       return opts.newResult;
-    }
+    } // this.log('mergeQueryResults', opts);
 
-    this.log('mergeQueryResults', opts);
 
     var mergedResult = _extends({}, opts.cachedResult);
 
