@@ -8614,6 +8614,11 @@ var QuerySlimmer = /*#__PURE__*/function () {
   _proto.mergeQueryResults = function mergeQueryResults(opts) {
     var _this6 = this;
 
+    this.log('mergeQueryResults', {
+      cachedResult: opts.cachedResult,
+      newResult: opts.newResult
+    });
+
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
@@ -8684,6 +8689,9 @@ var QuerySlimmer = /*#__PURE__*/function () {
           });
         }
       }
+    });
+    this.log('mergedResult', {
+      mergedResult: mergedResult
     });
     return mergedResult;
   } // private getPropertiesNotCurrentlyBeingRequested(opts: {

@@ -904,6 +904,11 @@ export class QuerySlimmer {
     cachedResult: Record<string, any> | undefined;
     newResult: Record<string, any>;
   }) {
+    this.log('mergeQueryResults', {
+      cachedResult: opts.cachedResult,
+      newResult: opts.newResult,
+    });
+
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
@@ -981,6 +986,10 @@ export class QuerySlimmer {
         }
       }
     );
+
+    this.log('mergedResult', {
+      mergedResult,
+    });
 
     return mergedResult;
   }
