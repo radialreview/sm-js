@@ -8628,6 +8628,8 @@ var QuerySlimmer = /*#__PURE__*/function () {
       return opts.newResult;
     }
 
+    this.log('mergeQueryResults', opts);
+
     var mergedResult = _extends({}, opts.cachedResult);
 
     Object.entries(opts.newResult).forEach(function (_ref4) {
