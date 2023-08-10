@@ -8720,24 +8720,31 @@ var QuerySlimmer = /*#__PURE__*/function () {
               var valueKey = _ref6[0],
                   valueDatum = _ref6[1];
 
-              if (typeof valueDatum === 'object') {
-                var _cachedResult2, _newResult2;
+              if (!(resultFieldKey in mergedResult)) {
+                var _mergedResult$resultF;
 
-                var childOpts = {
-                  cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
-                  newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)
-                };
-
-                var mergedDatums = _this6.mergeQueryResults(childOpts);
-
-                mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
+                mergedResult[resultFieldKey] = (_mergedResult$resultF = {}, _mergedResult$resultF[valueKey] = valueDatum, _mergedResult$resultF);
               } else {
-                if (mergedResult[resultFieldKey] == null) {
-                  mergedResult[resultFieldKey] = {};
-                  mergedResult[resultFieldKey][valueKey] = valueDatum;
+                if (typeof valueDatum === 'object') {
+                  var _cachedResult2, _newResult2;
+
+                  console.log('mergedResult', mergedResult, resultFieldKey, valueKey);
+                  var childOpts = {
+                    cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
+                    newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)
+                  };
+
+                  var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+                  mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
                 } else {
-                  if (!(valueKey in mergedResult[resultFieldKey])) {
+                  if (mergedResult[resultFieldKey] == null) {
+                    mergedResult[resultFieldKey] = {};
                     mergedResult[resultFieldKey][valueKey] = valueDatum;
+                  } else {
+                    if (!(valueKey in mergedResult[resultFieldKey])) {
+                      mergedResult[resultFieldKey][valueKey] = valueDatum;
+                    }
                   }
                 }
               }

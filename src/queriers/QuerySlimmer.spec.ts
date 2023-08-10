@@ -2615,7 +2615,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
 });
 
 describe('mergeQueryResults', () => {
-  test('given the same results, one cached, one new, it should return a new object that merges the two results', () => {
+  test('should merge two results that are not organized by parentId', () => {
     const { QuerySlimmer, pageInfo } = setupTests();
 
     const mockCachedResult = {
@@ -2717,6 +2717,123 @@ describe('mergeQueryResults', () => {
               },
             ],
           },
+        },
+      },
+    };
+
+    expect(
+      QuerySlimmer.mergeQueryResults({
+        cachedResult: mockCachedResult,
+        newResult: mockNewResult,
+      })
+    ).toEqual(expectedMergedResult);
+  });
+
+  test('should merge two results that are organized by parentId', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockCachedResult = {
+      byParentId: true,
+      'todo-id-1': {
+        assignee: {
+          firstName: 'Bob',
+          lastName: 'Smith',
+        },
+      },
+      'todo-id-2': {
+        assignee: {
+          firstName: 'Mary',
+          lastName: 'Jones',
+        },
+      },
+      'todo-id-3': {
+        assignee: {
+          firstName: 'Todd',
+          lastName: 'Packer',
+        },
+      },
+      'todo-id-4': {
+        assignee: {
+          firstName: 'Mona',
+          lastName: 'Lisa',
+        },
+      },
+    };
+    const mockNewResult = {
+      byParentId: true,
+      'todo-id-5': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Pink',
+        },
+      },
+      'todo-id-6': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Brown',
+        },
+      },
+      'todo-id-7': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'White',
+        },
+      },
+      'todo-id-8': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Black',
+        },
+      },
+    };
+    const expectedMergedResult = {
+      byParentId: true,
+      'todo-id-1': {
+        assignee: {
+          firstName: 'Bob',
+          lastName: 'Smith',
+        },
+      },
+      'todo-id-2': {
+        assignee: {
+          firstName: 'Mary',
+          lastName: 'Jones',
+        },
+      },
+      'todo-id-3': {
+        assignee: {
+          firstName: 'Todd',
+          lastName: 'Packer',
+        },
+      },
+      'todo-id-4': {
+        assignee: {
+          firstName: 'Mona',
+          lastName: 'Lisa',
+        },
+      },
+      'todo-id-5': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Pink',
+        },
+      },
+      'todo-id-6': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Brown',
+        },
+      },
+      'todo-id-7': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'White',
+        },
+      },
+      'todo-id-8': {
+        assignee: {
+          firstName: 'Mr',
+          lastName: 'Black',
         },
       },
     };

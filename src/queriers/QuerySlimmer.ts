@@ -1026,27 +1026,37 @@ export class QuerySlimmer {
             } else {
               Object.entries(resultFieldValue).forEach(
                 ([valueKey, valueDatum]) => {
-                  if (typeof valueDatum === 'object') {
-                    const childOpts = {
-                      cachedResult: {
-                        [valueKey]: mergedResult[resultFieldKey][valueKey],
-                      },
-                      newResult: {
-                        [valueKey]: valueDatum,
-                      },
-                    };
-
-                    const mergedDatums = this.mergeQueryResults(childOpts);
-
-                    mergedResult[resultFieldKey][valueKey] =
-                      mergedDatums[valueKey];
+                  if (!(resultFieldKey in mergedResult)) {
+                    mergedResult[resultFieldKey] = { [valueKey]: valueDatum };
                   } else {
-                    if (mergedResult[resultFieldKey] == null) {
-                      mergedResult[resultFieldKey] = {};
-                      mergedResult[resultFieldKey][valueKey] = valueDatum;
+                    if (typeof valueDatum === 'object') {
+                      console.log(
+                        'mergedResult',
+                        mergedResult,
+                        resultFieldKey,
+                        valueKey
+                      );
+                      const childOpts = {
+                        cachedResult: {
+                          [valueKey]: mergedResult[resultFieldKey][valueKey],
+                        },
+                        newResult: {
+                          [valueKey]: valueDatum,
+                        },
+                      };
+
+                      const mergedDatums = this.mergeQueryResults(childOpts);
+
+                      mergedResult[resultFieldKey][valueKey] =
+                        mergedDatums[valueKey];
                     } else {
-                      if (!(valueKey in mergedResult[resultFieldKey])) {
+                      if (mergedResult[resultFieldKey] == null) {
+                        mergedResult[resultFieldKey] = {};
                         mergedResult[resultFieldKey][valueKey] = valueDatum;
+                      } else {
+                        if (!(valueKey in mergedResult[resultFieldKey])) {
+                          mergedResult[resultFieldKey][valueKey] = valueDatum;
+                        }
                       }
                     }
                   }
