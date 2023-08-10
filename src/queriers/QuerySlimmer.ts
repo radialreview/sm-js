@@ -1,5 +1,4 @@
 // PIOTR TODO
-// - slim query record should not slim fields always requested
 // - Snapshot tests
 // - Add onSubscriptionMessageReceived method: https://tractiontools.atlassian.net/browse/TTD-377
 
@@ -15,6 +14,8 @@ import {
   IGQLClient,
 } from '../types';
 import { getQueryGQLDocumentFromQueryRecord } from './queryDefinitionAdapters';
+
+import { PROPERTIES_QUERIED_FOR_ALL_NODES } from '../consts';
 
 export interface IFetchedQueryData {
   subscriptionsByProperty: Record<string, number>;
@@ -897,19 +898,35 @@ export class QuerySlimmer {
     return `${parentContextKeyPrefix}${currentQueryTypeProperty}(${currentQueryStringifiedParams})`;
   }
 
-  private getPropertiesNotAlreadyCached(opts: {
+  public getPropertiesNotAlreadyCached(opts: {
     newQueryProps: string[];
     cachedQuerySubsByProperty: IFetchedQueryData['subscriptionsByProperty'];
   }) {
     const newRequestedProperties = opts.newQueryProps.filter(
       newQueryProperty => {
-        if (newQueryProperty in opts.cachedQuerySubsByProperty) {
+        if (newQueryProperty in PROPERTIES_QUERIED_FOR_ALL_NODES) {
+          return true;
+        } else if (newQueryProperty in opts.cachedQuerySubsByProperty) {
           return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
+        } else {
+          return true;
         }
-        return true;
       }
     );
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+
+    if (newRequestedProperties != null) {
+      const isAtLeastOnePropertyNotRequiredProperty = newRequestedProperties.some(
+        prop => {
+          return !(prop in PROPERTIES_QUERIED_FOR_ALL_NODES);
+        }
+      );
+
+      return isAtLeastOnePropertyNotRequiredProperty
+        ? newRequestedProperties
+        : null;
+    }
+
+    return null;
   }
 
   public mergeQueryResults(opts: {

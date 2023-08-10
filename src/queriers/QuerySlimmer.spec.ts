@@ -1203,11 +1203,11 @@ describe('getSlimmedQueryAgainstCache', () => {
 
       QuerySlimmer.queriesByContext = {
         'users(NO_PARAMS)': {
-          subscriptionsByProperty: { firstName: 1, lastName: 0 },
+          subscriptionsByProperty: { id: 1, firstName: 1, lastName: 0 },
           results: [],
         },
         'todos(NO_PARAMS)': {
-          subscriptionsByProperty: { id: 0, task: 1 },
+          subscriptionsByProperty: { id: 1, task: 1, done: 0 },
           results: [],
         },
       };
@@ -1215,12 +1215,12 @@ describe('getSlimmedQueryAgainstCache', () => {
       const mockQueryRecord: QueryRecord = {
         users: {
           def: userNode,
-          properties: ['firstName', 'lastName'],
+          properties: ['id', 'firstName', 'lastName'],
           tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
-          properties: ['id', 'task'],
+          properties: ['id', 'task', 'done'],
           tokenName: DEFAULT_TOKEN_NAME,
         },
       };
@@ -1228,12 +1228,12 @@ describe('getSlimmedQueryAgainstCache', () => {
       const expectedSlimmedQuery: QueryRecord = {
         users: {
           def: userNode,
-          properties: ['lastName'],
+          properties: ['id', 'lastName'],
           tokenName: DEFAULT_TOKEN_NAME,
         },
         todos: {
           def: todoNode,
-          properties: ['id'],
+          properties: ['id', 'done'],
           tokenName: DEFAULT_TOKEN_NAME,
         },
       };
@@ -2513,5 +2513,58 @@ describe('mergeQueryResults', () => {
         newResult: mockNewResult,
       })
     ).toEqual(expectedMergedResult);
+  });
+});
+
+describe('getPropertiesNotAlreadyCached', () => {
+  test('if none of the requested properties are already cached it should return all the new requested properties', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockNewProperties = ['id', 'type', 'firstName', 'lastName'];
+    const mockCachedProperties = {};
+
+    const actualResult = QuerySlimmer.getPropertiesNotAlreadyCached({
+      newQueryProps: mockNewProperties,
+      cachedQuerySubsByProperty: mockCachedProperties,
+    });
+
+    expect(actualResult).toEqual(mockNewProperties);
+  });
+
+  test('it should return all properties not cached along with required properties', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockNewProperties = ['id', 'type', 'firstName', 'lastName'];
+    const mockCachedProperties = {
+      id: 1,
+      type: 1,
+      firstName: 1,
+    };
+
+    const actualResult = QuerySlimmer.getPropertiesNotAlreadyCached({
+      newQueryProps: mockNewProperties,
+      cachedQuerySubsByProperty: mockCachedProperties,
+    });
+
+    expect(actualResult).toEqual(['id', 'type', 'lastName']);
+  });
+
+  test('it should return null when all non required properties are already cached', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockNewProperties = ['id', 'type', 'firstName', 'lastName'];
+    const mockCachedProperties = {
+      id: 1,
+      type: 1,
+      firstName: 1,
+      lastName: 1,
+    };
+
+    const actualResult = QuerySlimmer.getPropertiesNotAlreadyCached({
+      newQueryProps: mockNewProperties,
+      cachedQuerySubsByProperty: mockCachedProperties,
+    });
+
+    expect(actualResult).toBe(null);
   });
 });

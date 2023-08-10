@@ -8612,13 +8612,23 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
   _proto.getPropertiesNotAlreadyCached = function getPropertiesNotAlreadyCached(opts) {
     var newRequestedProperties = opts.newQueryProps.filter(function (newQueryProperty) {
-      if (newQueryProperty in opts.cachedQuerySubsByProperty) {
+      if (newQueryProperty in PROPERTIES_QUERIED_FOR_ALL_NODES) {
+        return true;
+      } else if (newQueryProperty in opts.cachedQuerySubsByProperty) {
         return opts.cachedQuerySubsByProperty[newQueryProperty] === 0;
+      } else {
+        return true;
       }
-
-      return true;
     });
-    return newRequestedProperties.length === 0 ? null : newRequestedProperties;
+
+    if (newRequestedProperties != null) {
+      var isAtLeastOnePropertyNotRequiredProperty = newRequestedProperties.some(function (prop) {
+        return !(prop in PROPERTIES_QUERIED_FOR_ALL_NODES);
+      });
+      return isAtLeastOnePropertyNotRequiredProperty ? newRequestedProperties : null;
+    }
+
+    return null;
   };
 
   _proto.mergeQueryResults = function mergeQueryResults(opts) {

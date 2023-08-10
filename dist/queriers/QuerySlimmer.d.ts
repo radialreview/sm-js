@@ -39,7 +39,10 @@ export declare class QuerySlimmer {
     onSubscriptionCancelled(queryRecord: QueryRecord | RelationalQueryRecord, parentContextKey?: string): void;
     getRelationalDepthOfQueryRecordEntry(queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry): number;
     private createContextKeyForQueryRecordEntry;
-    private getPropertiesNotAlreadyCached;
+    getPropertiesNotAlreadyCached(opts: {
+        newQueryProps: string[];
+        cachedQuerySubsByProperty: IFetchedQueryData['subscriptionsByProperty'];
+    }): string[] | null;
     mergeQueryResults(opts: {
         cachedResult: Record<string, any> | undefined;
         newResult: Record<string, any>;
