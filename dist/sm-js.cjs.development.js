@@ -8647,8 +8647,7 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
     if (opts.cachedResult == undefined) {
       return opts.newResult;
-    } // this.log('mergeQueryResults', opts);
-
+    }
 
     var mergedResult = _extends({}, opts.cachedResult);
 
@@ -8698,7 +8697,9 @@ var QuerySlimmer = /*#__PURE__*/function () {
             });
 
             if (mergedResult[resultFieldKey] == null) {
-              mergedResult[resultFieldKey] = {};
+              mergedResult[resultFieldKey] = {
+                pageInfo: resultFieldValue['pageInfo']
+              };
             }
 
             mergedResult[resultFieldKey]['nodes'] = mergedNodes;

@@ -961,7 +961,6 @@ export class QuerySlimmer {
     if (opts.cachedResult == undefined) {
       return opts.newResult;
     }
-    // this.log('mergeQueryResults', opts);
 
     const mergedResult: Record<string, any> = { ...opts.cachedResult };
 
@@ -1016,7 +1015,9 @@ export class QuerySlimmer {
               });
 
               if (mergedResult[resultFieldKey] == null) {
-                mergedResult[resultFieldKey] = {};
+                mergedResult[resultFieldKey] = {
+                  pageInfo: resultFieldValue['pageInfo'],
+                };
               }
 
               mergedResult[resultFieldKey]['nodes'] = mergedNodes;

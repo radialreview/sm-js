@@ -509,6 +509,7 @@ describe('cacheNewData', () => {
       todoNode,
       meetingNode,
       headlineNode,
+      pageInfo,
     } = setupTests();
 
     QuerySlimmer.queriesByContext = {
@@ -528,6 +529,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -548,6 +550,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -603,6 +606,7 @@ describe('cacheNewData', () => {
         results: {
           byParentId: false,
           users: {
+            pageInfo,
             nodes: [
               {
                 id: 'aidan-id',
@@ -640,6 +644,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -654,6 +659,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'piotr-todo-id-1',
@@ -674,6 +680,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -688,6 +695,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'piotr-headline-id-1',
@@ -777,6 +785,7 @@ describe('cacheNewData', () => {
         type: userNode,
         lastName: 'Goodman',
         todos: {
+          pageInfo,
           nodes: [
             {
               id: 'aidan-todo-id-1',
@@ -801,6 +810,7 @@ describe('cacheNewData', () => {
           ],
         },
         headlines: {
+          pageInfo,
           nodes: [
             {
               id: 'aidan-headline-id-1',
@@ -826,6 +836,7 @@ describe('cacheNewData', () => {
         },
       },
       users: {
+        pageInfo,
         nodes: [
           {
             id: 'aidan-id',
@@ -836,6 +847,7 @@ describe('cacheNewData', () => {
               type: meetingNode,
               archived: false,
               todos: {
+                pageInfo,
                 nodes: [
                   {
                     id: 'aidan-todo-id-1',
@@ -850,6 +862,7 @@ describe('cacheNewData', () => {
                 ],
               },
               headlines: {
+                pageInfo,
                 nodes: [
                   {
                     id: 'aidan-headline-id-1',
@@ -874,6 +887,7 @@ describe('cacheNewData', () => {
               type: meetingNode,
               archived: false,
               todos: {
+                pageInfo,
                 nodes: [
                   {
                     id: 'piotr-todo-id-1',
@@ -888,6 +902,7 @@ describe('cacheNewData', () => {
                 ],
               },
               headlines: {
+                pageInfo,
                 nodes: [
                   {
                     id: 'piotr-headline-id-1',
@@ -927,6 +942,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -949,6 +965,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-id': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -1010,6 +1027,7 @@ describe('cacheNewData', () => {
         results: {
           byParentId: false,
           users: {
+            pageInfo,
             nodes: [
               {
                 id: 'aidan-id',
@@ -1051,6 +1069,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-todo-id-1',
@@ -1067,6 +1086,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             todos: {
+              pageInfo,
               nodes: [
                 {
                   id: 'piotr-todo-id-1',
@@ -1089,6 +1109,7 @@ describe('cacheNewData', () => {
           byParentId: true,
           'aidan-meeting-id-1': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'aidan-headline-id-1',
@@ -1105,6 +1126,7 @@ describe('cacheNewData', () => {
           },
           'piotr-meeting-id-1': {
             headlines: {
+              pageInfo,
               nodes: [
                 {
                   id: 'piotr-headline-id-1',
@@ -2594,7 +2616,7 @@ describe('getRelationalDepthOfQueryRecordEntry', () => {
 
 describe('mergeQueryResults', () => {
   test('given the same results, one cached, one new, it should return a new object that merges the two results', () => {
-    const { QuerySlimmer } = setupTests();
+    const { QuerySlimmer, pageInfo } = setupTests();
 
     const mockCachedResult = {
       byParentId: false,
@@ -2605,6 +2627,7 @@ describe('mergeQueryResults', () => {
           id: '1',
           name: 'Bob Saget Meeting',
           todos: {
+            pageInfo,
             nodes: [
               {
                 id: 0,
@@ -2636,6 +2659,7 @@ describe('mergeQueryResults', () => {
           id: '1',
           archived: false,
           todos: {
+            pageInfo,
             nodes: [
               {
                 id: 0,
@@ -2669,6 +2693,7 @@ describe('mergeQueryResults', () => {
           name: 'Bob Saget Meeting',
           archived: false,
           todos: {
+            pageInfo,
             nodes: [
               {
                 id: 0,
@@ -2770,7 +2795,7 @@ describe('mergeQueryResults', () => {
   });
 
   test('when the cached node collection was null and the new one is not, it should save the new non null results', () => {
-    const { QuerySlimmer } = setupTests();
+    const { QuerySlimmer, pageInfo } = setupTests();
 
     const mockCachedResult = {
       byParentId: true,
@@ -2782,6 +2807,7 @@ describe('mergeQueryResults', () => {
       byParentId: true,
       'user-id': {
         todos: {
+          pageInfo,
           nodes: [
             { task: 'todo task 1', done: false },
             { task: 'todo task 2', done: false },
@@ -2793,6 +2819,7 @@ describe('mergeQueryResults', () => {
       byParentId: true,
       'user-id': {
         todos: {
+          pageInfo,
           nodes: [
             { task: 'todo task 1', done: false },
             { task: 'todo task 2', done: false },
