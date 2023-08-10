@@ -945,70 +945,77 @@ export class QuerySlimmer {
     Object.entries(opts.newResult).forEach(
       ([resultFieldKey, resultFieldValue]) => {
         if (resultFieldKey !== 'byParentId') {
-          if (resultFieldValue != null && 'nodes' in resultFieldValue) {
-            const mergedNodes: Record<string, any> = [];
+          if (
+            resultFieldValue != null &&
+            typeof resultFieldValue === 'object'
+          ) {
+            if ('nodes' in resultFieldValue) {
+              const mergedNodes: Record<string, any> = [];
 
-            resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
-              const result1NodeDatum = (mergedResult[resultFieldKey]
-                .nodes as Record<string, any>[]).find(result1Datum => {
-                return result1Datum.id === datum.id;
+              resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
+                const result1NodeDatum = (mergedResult[resultFieldKey]
+                  .nodes as Record<string, any>[]).find(result1Datum => {
+                  return result1Datum.id === datum.id;
+                });
+
+                if (result1NodeDatum) {
+                  const mergedDatum: Record<string, any> = {
+                    ...result1NodeDatum,
+                  };
+
+                  Object.entries(datum).forEach(([datumKey, datumValue]) => {
+                    if (typeof datumValue === 'object') {
+                      const childOpts = {
+                        cachedResult: {
+                          [datumKey]: mergedDatum[datumKey],
+                        },
+                        newResult: {
+                          [datumKey]: datumValue,
+                        },
+                      };
+
+                      const mergedDatums = this.mergeQueryResults(childOpts);
+
+                      mergedDatum[datumKey] = mergedDatums[datumKey];
+                    } else {
+                      if (!(datumKey in mergedDatum)) {
+                        mergedDatum[datumKey] = datumValue;
+                      }
+                    }
+                  });
+
+                  mergedNodes.push(mergedDatum);
+                }
               });
 
-              if (result1NodeDatum) {
-                const mergedDatum: Record<string, any> = {
-                  ...result1NodeDatum,
-                };
-
-                Object.entries(datum).forEach(([datumKey, datumValue]) => {
-                  if (typeof datumValue === 'object') {
+              mergedResult[resultFieldKey]['nodes'] = mergedNodes;
+            } else {
+              Object.entries(resultFieldValue).forEach(
+                ([valueKey, valueDatum]) => {
+                  if (typeof valueDatum === 'object') {
                     const childOpts = {
                       cachedResult: {
-                        [datumKey]: mergedDatum[datumKey],
+                        [valueKey]: mergedResult[resultFieldKey][valueKey],
                       },
                       newResult: {
-                        [datumKey]: datumValue,
+                        [valueKey]: valueDatum,
                       },
                     };
 
                     const mergedDatums = this.mergeQueryResults(childOpts);
 
-                    mergedDatum[datumKey] = mergedDatums[datumKey];
+                    mergedResult[resultFieldKey][valueKey] =
+                      mergedDatums[valueKey];
                   } else {
-                    if (!(datumKey in mergedDatum)) {
-                      mergedDatum[datumKey] = datumValue;
+                    if (!(valueKey in mergedResult[resultFieldKey])) {
+                      mergedResult[resultFieldKey][valueKey] = valueDatum;
                     }
                   }
-                });
-
-                mergedNodes.push(mergedDatum);
-              }
-            });
-
-            mergedResult[resultFieldKey]['nodes'] = mergedNodes;
-          } else {
-            Object.entries(resultFieldValue).forEach(
-              ([valueKey, valueDatum]) => {
-                if (typeof valueDatum === 'object') {
-                  const childOpts = {
-                    cachedResult: {
-                      [valueKey]: mergedResult[resultFieldKey][valueKey],
-                    },
-                    newResult: {
-                      [valueKey]: valueDatum,
-                    },
-                  };
-
-                  const mergedDatums = this.mergeQueryResults(childOpts);
-
-                  mergedResult[resultFieldKey][valueKey] =
-                    mergedDatums[valueKey];
-                } else {
-                  if (!(valueKey in mergedResult[resultFieldKey])) {
-                    mergedResult[resultFieldKey][valueKey] = valueDatum;
-                  }
                 }
-              }
-            );
+              );
+            }
+          } else {
+            mergedResult[resultFieldKey] = resultFieldValue;
           }
         }
       }

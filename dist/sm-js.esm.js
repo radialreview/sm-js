@@ -8647,63 +8647,67 @@ var QuerySlimmer = /*#__PURE__*/function () {
           resultFieldValue = _ref4[1];
 
       if (resultFieldKey !== 'byParentId') {
-        if (resultFieldValue != null && 'nodes' in resultFieldValue) {
-          var mergedNodes = [];
-          resultFieldValue.nodes.forEach(function (datum) {
-            var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
-              return result1Datum.id === datum.id;
-            });
-
-            if (result1NodeDatum) {
-              var mergedDatum = _extends({}, result1NodeDatum);
-
-              Object.entries(datum).forEach(function (_ref5) {
-                var datumKey = _ref5[0],
-                    datumValue = _ref5[1];
-
-                if (typeof datumValue === 'object') {
-                  var _cachedResult, _newResult;
-
-                  var childOpts = {
-                    cachedResult: (_cachedResult = {}, _cachedResult[datumKey] = mergedDatum[datumKey], _cachedResult),
-                    newResult: (_newResult = {}, _newResult[datumKey] = datumValue, _newResult)
-                  };
-
-                  var mergedDatums = _this6.mergeQueryResults(childOpts);
-
-                  mergedDatum[datumKey] = mergedDatums[datumKey];
-                } else {
-                  if (!(datumKey in mergedDatum)) {
-                    mergedDatum[datumKey] = datumValue;
-                  }
-                }
+        if (resultFieldValue != null && typeof resultFieldValue === 'object') {
+          if ('nodes' in resultFieldValue) {
+            var mergedNodes = [];
+            resultFieldValue.nodes.forEach(function (datum) {
+              var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
+                return result1Datum.id === datum.id;
               });
-              mergedNodes.push(mergedDatum);
-            }
-          });
-          mergedResult[resultFieldKey]['nodes'] = mergedNodes;
-        } else {
-          Object.entries(resultFieldValue).forEach(function (_ref6) {
-            var valueKey = _ref6[0],
-                valueDatum = _ref6[1];
 
-            if (typeof valueDatum === 'object') {
-              var _cachedResult2, _newResult2;
+              if (result1NodeDatum) {
+                var mergedDatum = _extends({}, result1NodeDatum);
 
-              var childOpts = {
-                cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
-                newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)
-              };
+                Object.entries(datum).forEach(function (_ref5) {
+                  var datumKey = _ref5[0],
+                      datumValue = _ref5[1];
 
-              var mergedDatums = _this6.mergeQueryResults(childOpts);
+                  if (typeof datumValue === 'object') {
+                    var _cachedResult, _newResult;
 
-              mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
-            } else {
-              if (!(valueKey in mergedResult[resultFieldKey])) {
-                mergedResult[resultFieldKey][valueKey] = valueDatum;
+                    var childOpts = {
+                      cachedResult: (_cachedResult = {}, _cachedResult[datumKey] = mergedDatum[datumKey], _cachedResult),
+                      newResult: (_newResult = {}, _newResult[datumKey] = datumValue, _newResult)
+                    };
+
+                    var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+                    mergedDatum[datumKey] = mergedDatums[datumKey];
+                  } else {
+                    if (!(datumKey in mergedDatum)) {
+                      mergedDatum[datumKey] = datumValue;
+                    }
+                  }
+                });
+                mergedNodes.push(mergedDatum);
               }
-            }
-          });
+            });
+            mergedResult[resultFieldKey]['nodes'] = mergedNodes;
+          } else {
+            Object.entries(resultFieldValue).forEach(function (_ref6) {
+              var valueKey = _ref6[0],
+                  valueDatum = _ref6[1];
+
+              if (typeof valueDatum === 'object') {
+                var _cachedResult2, _newResult2;
+
+                var childOpts = {
+                  cachedResult: (_cachedResult2 = {}, _cachedResult2[valueKey] = mergedResult[resultFieldKey][valueKey], _cachedResult2),
+                  newResult: (_newResult2 = {}, _newResult2[valueKey] = valueDatum, _newResult2)
+                };
+
+                var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+                mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
+              } else {
+                if (!(valueKey in mergedResult[resultFieldKey])) {
+                  mergedResult[resultFieldKey][valueKey] = valueDatum;
+                }
+              }
+            });
+          }
+        } else {
+          mergedResult[resultFieldKey] = resultFieldValue;
         }
       }
     });

@@ -2514,6 +2514,35 @@ describe('mergeQueryResults', () => {
       })
     ).toEqual(expectedMergedResult);
   });
+
+  test('it should handle regular fields that can be null', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockCachedResult = {
+      lastUpdatedBy: null,
+      firstName: 'Joey',
+      email: null,
+    };
+    const mockNewResult = {
+      lastUpdatedBy: null,
+      lastName: 'Diaz',
+      timezone: null,
+    };
+    const expectedMergedResult = {
+      lastUpdatedBy: null,
+      firstName: 'Joey',
+      email: null,
+      lastName: 'Diaz',
+      timezone: null,
+    };
+
+    const actualResult = QuerySlimmer.mergeQueryResults({
+      cachedResult: mockCachedResult,
+      newResult: mockNewResult,
+    });
+
+    expect(actualResult).toEqual(expectedMergedResult);
+  });
 });
 
 describe('getPropertiesNotAlreadyCached', () => {
