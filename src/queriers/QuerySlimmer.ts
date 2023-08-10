@@ -976,40 +976,48 @@ export class QuerySlimmer {
               const mergedNodes: Record<string, any> = [];
 
               resultFieldValue.nodes.forEach((datum: Record<string, any>) => {
-                const result1NodeDatum = (mergedResult[resultFieldKey]
-                  .nodes as Record<string, any>[]).find(result1Datum => {
-                  return result1Datum.id === datum.id;
-                });
-
-                if (result1NodeDatum) {
-                  const mergedDatum: Record<string, any> = {
-                    ...result1NodeDatum,
-                  };
-
-                  Object.entries(datum).forEach(([datumKey, datumValue]) => {
-                    if (typeof datumValue === 'object') {
-                      const childOpts = {
-                        cachedResult: {
-                          [datumKey]: mergedDatum[datumKey],
-                        },
-                        newResult: {
-                          [datumKey]: datumValue,
-                        },
-                      };
-
-                      const mergedDatums = this.mergeQueryResults(childOpts);
-
-                      mergedDatum[datumKey] = mergedDatums[datumKey];
-                    } else {
-                      if (!(datumKey in mergedDatum)) {
-                        mergedDatum[datumKey] = datumValue;
-                      }
-                    }
+                if (mergedResult[resultFieldKey] == null) {
+                  mergedNodes.push(datum);
+                } else {
+                  const result1NodeDatum = (mergedResult[resultFieldKey]
+                    .nodes as Record<string, any>[]).find(result1Datum => {
+                    return result1Datum.id === datum.id;
                   });
 
-                  mergedNodes.push(mergedDatum);
+                  if (result1NodeDatum) {
+                    const mergedDatum: Record<string, any> = {
+                      ...result1NodeDatum,
+                    };
+
+                    Object.entries(datum).forEach(([datumKey, datumValue]) => {
+                      if (typeof datumValue === 'object') {
+                        const childOpts = {
+                          cachedResult: {
+                            [datumKey]: mergedDatum[datumKey],
+                          },
+                          newResult: {
+                            [datumKey]: datumValue,
+                          },
+                        };
+
+                        const mergedDatums = this.mergeQueryResults(childOpts);
+
+                        mergedDatum[datumKey] = mergedDatums[datumKey];
+                      } else {
+                        if (!(datumKey in mergedDatum)) {
+                          mergedDatum[datumKey] = datumValue;
+                        }
+                      }
+                    });
+
+                    mergedNodes.push(mergedDatum);
+                  }
                 }
               });
+
+              if (mergedResult[resultFieldKey] == null) {
+                mergedResult[resultFieldKey] = {};
+              }
 
               mergedResult[resultFieldKey]['nodes'] = mergedNodes;
             } else {
@@ -1030,8 +1038,13 @@ export class QuerySlimmer {
                     mergedResult[resultFieldKey][valueKey] =
                       mergedDatums[valueKey];
                   } else {
-                    if (!(valueKey in mergedResult[resultFieldKey])) {
+                    if (mergedResult[resultFieldKey] == null) {
+                      mergedResult[resultFieldKey] = {};
                       mergedResult[resultFieldKey][valueKey] = valueDatum;
+                    } else {
+                      if (!(valueKey in mergedResult[resultFieldKey])) {
+                        mergedResult[resultFieldKey][valueKey] = valueDatum;
+                      }
                     }
                   }
                 }

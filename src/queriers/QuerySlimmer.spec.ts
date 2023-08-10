@@ -2732,6 +2732,82 @@ describe('mergeQueryResults', () => {
 
     expect(actualResult).toEqual(expectedMergedResult);
   });
+
+  test('when the cached result object was null and the new one is not, it should save the new non null results', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockCachedResult = {
+      byParentId: true,
+      'user-id': {
+        meeting: null,
+      },
+    };
+    const mockNewResult = {
+      byParentId: true,
+      'user-id': {
+        meeting: {
+          name: 'Meeting Name',
+          archived: false,
+        },
+      },
+    };
+    const expectedMergedResult = {
+      byParentId: true,
+      'user-id': {
+        meeting: {
+          name: 'Meeting Name',
+          archived: false,
+        },
+      },
+    };
+
+    expect(
+      QuerySlimmer.mergeQueryResults({
+        cachedResult: mockCachedResult,
+        newResult: mockNewResult,
+      })
+    ).toEqual(expectedMergedResult);
+  });
+
+  test('when the cached node collection was null and the new one is not, it should save the new non null results', () => {
+    const { QuerySlimmer } = setupTests();
+
+    const mockCachedResult = {
+      byParentId: true,
+      'user-id': {
+        todos: null,
+      },
+    };
+    const mockNewResult = {
+      byParentId: true,
+      'user-id': {
+        todos: {
+          nodes: [
+            { task: 'todo task 1', done: false },
+            { task: 'todo task 2', done: false },
+          ],
+        },
+      },
+    };
+    const expectedMergedResult = {
+      byParentId: true,
+      'user-id': {
+        todos: {
+          nodes: [
+            { task: 'todo task 1', done: false },
+            { task: 'todo task 2', done: false },
+          ],
+        },
+      },
+    };
+
+    expect(
+      QuerySlimmer.mergeQueryResults({
+        cachedResult: mockCachedResult,
+        newResult: mockNewResult,
+      })
+    ).toEqual(expectedMergedResult);
+  });
 });
 
 describe('getPropertiesNotAlreadyCached', () => {

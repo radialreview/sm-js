@@ -8672,37 +8672,46 @@ var QuerySlimmer = /*#__PURE__*/function () {
           if ('nodes' in resultFieldValue) {
             var mergedNodes = [];
             resultFieldValue.nodes.forEach(function (datum) {
-              var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
-                return result1Datum.id === datum.id;
-              });
-
-              if (result1NodeDatum) {
-                var mergedDatum = _extends({}, result1NodeDatum);
-
-                Object.entries(datum).forEach(function (_ref5) {
-                  var datumKey = _ref5[0],
-                      datumValue = _ref5[1];
-
-                  if (typeof datumValue === 'object') {
-                    var _cachedResult, _newResult;
-
-                    var childOpts = {
-                      cachedResult: (_cachedResult = {}, _cachedResult[datumKey] = mergedDatum[datumKey], _cachedResult),
-                      newResult: (_newResult = {}, _newResult[datumKey] = datumValue, _newResult)
-                    };
-
-                    var mergedDatums = _this6.mergeQueryResults(childOpts);
-
-                    mergedDatum[datumKey] = mergedDatums[datumKey];
-                  } else {
-                    if (!(datumKey in mergedDatum)) {
-                      mergedDatum[datumKey] = datumValue;
-                    }
-                  }
+              if (mergedResult[resultFieldKey] == null) {
+                mergedNodes.push(datum);
+              } else {
+                var result1NodeDatum = mergedResult[resultFieldKey].nodes.find(function (result1Datum) {
+                  return result1Datum.id === datum.id;
                 });
-                mergedNodes.push(mergedDatum);
+
+                if (result1NodeDatum) {
+                  var mergedDatum = _extends({}, result1NodeDatum);
+
+                  Object.entries(datum).forEach(function (_ref5) {
+                    var datumKey = _ref5[0],
+                        datumValue = _ref5[1];
+
+                    if (typeof datumValue === 'object') {
+                      var _cachedResult, _newResult;
+
+                      var childOpts = {
+                        cachedResult: (_cachedResult = {}, _cachedResult[datumKey] = mergedDatum[datumKey], _cachedResult),
+                        newResult: (_newResult = {}, _newResult[datumKey] = datumValue, _newResult)
+                      };
+
+                      var mergedDatums = _this6.mergeQueryResults(childOpts);
+
+                      mergedDatum[datumKey] = mergedDatums[datumKey];
+                    } else {
+                      if (!(datumKey in mergedDatum)) {
+                        mergedDatum[datumKey] = datumValue;
+                      }
+                    }
+                  });
+                  mergedNodes.push(mergedDatum);
+                }
               }
             });
+
+            if (mergedResult[resultFieldKey] == null) {
+              mergedResult[resultFieldKey] = {};
+            }
+
             mergedResult[resultFieldKey]['nodes'] = mergedNodes;
           } else {
             Object.entries(resultFieldValue).forEach(function (_ref6) {
@@ -8721,8 +8730,13 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
                 mergedResult[resultFieldKey][valueKey] = mergedDatums[valueKey];
               } else {
-                if (!(valueKey in mergedResult[resultFieldKey])) {
+                if (mergedResult[resultFieldKey] == null) {
+                  mergedResult[resultFieldKey] = {};
                   mergedResult[resultFieldKey][valueKey] = valueDatum;
+                } else {
+                  if (!(valueKey in mergedResult[resultFieldKey])) {
+                    mergedResult[resultFieldKey][valueKey] = valueDatum;
+                  }
                 }
               }
             });
