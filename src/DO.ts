@@ -425,13 +425,9 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               plugin.DO.onExtendObservable({
                 DOInstance: this,
                 objectToExtend: {
-                  [propNameForThisObject]: {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => {
-                      return this.parsedData[propNameForThisObject];
-                    },
-                  },
+                  [propNameForThisObject]: this.parsedData[
+                    propNameForThisObject
+                  ],
                 },
               });
             }
@@ -458,13 +454,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               plugin.DO.onExtendObservable({
                 DOInstance: this,
                 objectToExtend: {
-                  [propName]: {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => {
-                      return this.parsedData[propName];
-                    },
-                  },
+                  [propName]: this.parsedData[propName],
                 },
               });
             }
@@ -491,13 +481,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               plugin.DO.onExtendObservable({
                 DOInstance: this,
                 objectToExtend: {
-                  [propName]: {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => {
-                      return this.parsedData[propName];
-                    },
-                  },
+                  [propName]: this.parsedData[propName],
                 },
               });
             }
@@ -537,11 +521,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               plugin.DO.onExtendObservable({
                 DOInstance: this,
                 objectToExtend: {
-                  [opts.propName]: {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => computedGetter(),
-                  },
+                  [opts.propName]: () => computedGetter(),
                 },
               });
             }

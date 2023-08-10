@@ -83,133 +83,260 @@ export function createDOProxyGenerator() {
         }, {} as Record<string, () => any>)
       : {};
 
-    const proxy = new Proxy(opts.do as Record<string, any>, {
-      getOwnPropertyDescriptor: function(target, key: string) {
-        // This gives better json stringify results
-        // by preventing attempts to get properties which are not
-        // guaranteed to be up to date
-
-        if (
-          opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
-          opts.relationalResults?.hasOwnProperty(key) ||
-          Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
-        ) {
-          return {
-            ...Object.getOwnPropertyDescriptor(target, key),
-            enumerable: true,
-          };
-        }
-
-        // enumerate computed properties which have all the data they need queried
-        // otherwise they throw NotUpToDateException and we don't enumerate
-        if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
-          try {
-            computedAccessors[key]();
+    const proxy = new Proxy(
+      {},
+      {
+        getOwnPropertyDescriptor: (_, key: string) => {
+          // This gives better json stringify results
+          // by preventing attempts to get properties which are not
+          // guaranteed to be up to date
+          if (
+            opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
+            opts.relationalResults?.hasOwnProperty(key) ||
+            Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+          ) {
             return {
-              ...Object.getOwnPropertyDescriptor(target, key),
+              ...Object.getOwnPropertyDescriptor(opts.do, key),
               enumerable: true,
-            };
-          } catch (e) {
-            if (!(e instanceof NotUpToDateException)) throw e;
-
-            return {
-              ...Object.getOwnPropertyDescriptor(target, key),
-              enumerable: false,
+              configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
             };
           }
-        }
+          // enumerate computed properties which have all the data they need queried
+          // otherwise they throw NotUpToDateException and we don't enumerate
+          if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
+            try {
+              computedAccessors[key]();
+              return {
+                ...Object.getOwnPropertyDescriptor(opts.do, key),
+                enumerable: true,
+                configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+              };
+            } catch (e) {
+              if (!(e instanceof NotUpToDateException)) throw e;
+              return {
+                ...Object.getOwnPropertyDescriptor(opts.do, key),
+                enumerable: false,
+                configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+              };
+            }
+          }
 
-        return {
-          ...Object.getOwnPropertyDescriptor(target, key),
-          enumerable: false,
-        };
-      },
-      get: (target, key: string) => {
-        if (key === 'updateRelationalResults') {
-          return (newRelationalResults: Maybe<TRelationalResults>) => {
-            if (newRelationalResults) {
-              relationalResults &&
-                Object.keys(relationalResults).forEach(key => {
+          return {
+            ...Object.getOwnPropertyDescriptor(opts.do, key),
+            enumerable: false,
+            configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+          };
+        },
+        ownKeys: () => {
+          return Object.keys(opts.do);
+        },
+        get: (_, key: string) => {
+          if (key === 'updateRelationalResults') {
+            return (newRelationalResults: Maybe<TRelationalResults>) => {
+              if (newRelationalResults) {
+                relationalResults &&
+                  Object.keys(relationalResults).forEach(key => {
+                    Object.defineProperty(proxy, key, {
+                      enumerable: false,
+                      get: () => {
+                        throw new NotUpToDateException({
+                          propName: key,
+                          queryId: opts.queryId,
+                          nodeType: opts.node.type,
+                        });
+                      },
+                    });
+                  });
+                Object.keys(newRelationalResults).forEach(key => {
                   Object.defineProperty(proxy, key, {
-                    enumerable: false,
-                    get: () => {
-                      throw new NotUpToDateException({
-                        propName: key,
-                        queryId: opts.queryId,
-                        nodeType: opts.node.type,
-                      });
-                    },
+                    enumerable: true,
+                    configurable: true,
                   });
                 });
-
-              Object.keys(newRelationalResults).forEach(key => {
-                Object.defineProperty(proxy, key, {
-                  enumerable: true,
-                  configurable: true,
-                });
+              }
+              relationalResults = {
+                ...relationalResults,
+                ...newRelationalResults,
+              } as Maybe<TRelationalResults>;
+            };
+          }
+          if (
+            relationalResults &&
+            opts.relationalQueries &&
+            Object.keys(relationalResults).includes(key)
+          ) {
+            return relationalResults[key];
+          }
+          if (Object.keys(opts.node.data).includes(key)) {
+            if (!opts.allPropertiesQueried.some(prop => prop.startsWith(key))) {
+              throw new NotUpToDateException({
+                propName: key,
+                queryId: opts.queryId,
+                nodeType: opts.node.type,
               });
             }
+            const dataForThisProp = opts.node.data[key] as IData;
 
-            relationalResults = {
-              ...relationalResults,
-              ...newRelationalResults,
-            } as Maybe<TRelationalResults>;
-          };
-        }
+            if (
+              dataForThisProp.type === DATA_TYPES.object ||
+              dataForThisProp.type === DATA_TYPES.maybeObject
+            ) {
+              //NOLEY QUESTION: why was this removed?
+              // do not return an object if this prop came back as null from backend
+              if (opts.do[key] == null) return opts.do[key];
 
-        if (
-          relationalResults &&
-          opts.relationalQueries &&
-          Object.keys(relationalResults).includes(key)
-        ) {
-          return relationalResults[key];
-        }
-
-        if (Object.keys(opts.node.data).includes(key)) {
-          if (!opts.allPropertiesQueried.some(prop => prop.startsWith(key))) {
-            throw new NotUpToDateException({
-              propName: key,
-              queryId: opts.queryId,
-              nodeType: opts.node.type,
-            });
-          }
-
-          const dataForThisProp = opts.node.data[key] as IData;
-          if (
-            dataForThisProp.type === DATA_TYPES.object ||
-            dataForThisProp.type === DATA_TYPES.maybeObject
-          ) {
-            return getNestedProxyObjectWithNotUpToDateProtection({
-              nodeType: opts.node.type,
-              queryId: opts.queryId,
-              allCachedData: opts.do[key],
-              dataForThisObject: dataForThisProp.boxedValue,
-              allPropertiesQueried: opts.allPropertiesQueried,
-              parentObjectKey: key,
-            });
-          }
-
-          return opts.do[key];
-        } else if (computedAccessors[key]) {
-          try {
-            return computedAccessors[key]();
-          } catch (e) {
-            if (e instanceof NotUpToDateException) {
-              throw new NotUpToDateInComputedException({
-                computedPropName: key,
-                propName: e.propName,
+              return getNestedProxyObjectWithNotUpToDateProtection({
                 nodeType: opts.node.type,
                 queryId: opts.queryId,
+                allCachedData: opts.do[key],
+                dataForThisObject: dataForThisProp.boxedValue,
+                allPropertiesQueried: opts.allPropertiesQueried,
+                parentObjectKey: key,
               });
             }
-
-            throw e;
+            return opts.do[key];
+          } else if (computedAccessors[key]) {
+            try {
+              return computedAccessors[key]();
+            } catch (e) {
+              if (e instanceof NotUpToDateException) {
+                throw new NotUpToDateInComputedException({
+                  computedPropName: key,
+                  propName: e.propName,
+                  nodeType: opts.node.type,
+                  queryId: opts.queryId,
+                });
+              }
+              throw e;
+            }
           }
-        }
+          return opts.do[key];
+        },
+      }
+    ) as NodeDO & TRelationalResults & IDOProxy;
 
-        return target[key];
-      },
-    }) as NodeDO & TRelationalResults & IDOProxy;
+    // const proxy = new Proxy(opts.do as Record<string, any>, {
+    //   getOwnPropertyDescriptor: function(target, key: string) {
+    //     // This gives better json stringify results
+    //     // by preventing attempts to get properties which are not
+    //     // guaranteed to be up to date
+    //     if (
+    //       opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
+    //       opts.relationalResults?.hasOwnProperty(key) ||
+    //       Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
+    //     ) {
+    //       return {
+    //         ...Object.getOwnPropertyDescriptor(target, key),
+    //         enumerable: true,
+    //       };
+    //     }
+    //     // enumerate computed properties which have all the data they need queried
+    //     // otherwise they throw NotUpToDateException and we don't enumerate
+    //     if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
+    //       try {
+    //         computedAccessors[key]();
+    //         return {
+    //           ...Object.getOwnPropertyDescriptor(target, key),
+    //           enumerable: true,
+    //         };
+    //       } catch (e) {
+    //         if (!(e instanceof NotUpToDateException)) throw e;
+    //         return {
+    //           ...Object.getOwnPropertyDescriptor(target, key),
+    //           enumerable: false,
+    //         };
+    //       }
+    //     }
+    //     return {
+    //       ...Object.getOwnPropertyDescriptor(target, key),
+    //       // enumerable: false,
+    //     };
+    //   },
+    //   get: (target, key: string) => {
+    //     if (key === 'updateRelationalResults') {
+    //       return (newRelationalResults: Maybe<TRelationalResults>) => {
+    //         if (newRelationalResults) {
+    //           relationalResults &&
+    //             Object.keys(relationalResults).forEach(key => {
+    //               Object.defineProperty(proxy, key, {
+    //                 enumerable: false,
+    //                 get: () => {
+    //                   throw new NotUpToDateException({
+    //                     propName: key,
+    //                     queryId: opts.queryId,
+    //                     nodeType: opts.node.type,
+    //                   });
+    //                 },
+    //               });
+    //             });
+    //           Object.keys(newRelationalResults).forEach(key => {
+    //             Object.defineProperty(proxy, key, {
+    //               enumerable: true,
+    //               configurable: true,
+    //             });
+    //           });
+    //         }
+    //         relationalResults = {
+    //           ...relationalResults,
+    //           ...newRelationalResults,
+    //         } as Maybe<TRelationalResults>;
+    //       };
+    //     }
+    //     if (
+    //       relationalResults &&
+    //       opts.relationalQueries &&
+    //       Object.keys(relationalResults).includes(key)
+    //     ) {
+    //       return relationalResults[key];
+    //     }
+    //     if (Object.keys(opts.node.data).includes(key)) {
+    //       if (!opts.allPropertiesQueried.some(prop => prop.startsWith(key))) {
+    //         throw new NotUpToDateException({
+    //           propName: key,
+    //           queryId: opts.queryId,
+    //           nodeType: opts.node.type,
+    //         });
+    //       }
+    //       const dataForThisProp = opts.node.data[key] as IData;
+    //       if (
+    //         dataForThisProp.type === DATA_TYPES.object ||
+    //         dataForThisProp.type === DATA_TYPES.maybeObject
+    //       ) {
+    //         //NOLEY QUESTION: why was this removed?
+    //         // do not return an object if this prop came back as null from backend
+    //         // if (opts.do[key] == null) return opts.do[key];
+    //         return opts.do[key];
+    //         // return getNestedProxyObjectWithNotUpToDateProtection({
+    //         //   nodeType: opts.node.type,
+    //         //   queryId: opts.queryId,
+    //         //   allCachedData: opts.do[key],
+    //         //   dataForThisObject: dataForThisProp.boxedValue,
+    //         //   allPropertiesQueried: opts.allPropertiesQueried,
+    //         //   parentObjectKey: key,
+    //         // });
+    //       }
+    //       return opts.do[key];
+    //     } else if (computedAccessors[key]) {
+    //       try {
+    //         return computedAccessors[key]();
+    //       } catch (e) {
+    //         if (e instanceof NotUpToDateException) {
+    //           throw new NotUpToDateInComputedException({
+    //             computedPropName: key,
+    //             propName: e.propName,
+    //             nodeType: opts.node.type,
+    //             queryId: opts.queryId,
+    //           });
+    //         }
+    //         throw e;
+    //       }
+    //     }
+    //     return target[key];
+    //   },
+    // }) as NodeDO & TRelationalResults & IDOProxy;
+
+    console.log('NOLEY JSON proxyTest', { ...proxy });
+    // console.log('NOLEY original proxy', proxy);
 
     opts.relationalResults &&
       Object.keys(opts.relationalResults).forEach(key => {
@@ -234,7 +361,7 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
   const proxyObjectToReturn: Record<string, any> = new Proxy(
     opts.allCachedData,
     {
-      getOwnPropertyDescriptor: function(target, key: string) {
+      getOwnPropertyDescriptor: (target, key: string) => {
         const name = opts.parentObjectKey
           ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
           : key;
@@ -251,8 +378,6 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
           ...Object.getOwnPropertyDescriptor(target, key),
           enumerable: isUpToDate,
         };
-
-        Object.defineProperty(target, key, descriptor);
 
         return descriptor;
       },
@@ -299,59 +424,6 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
       },
     }
   );
-
-  // const objectToReturn = {};
-
-  // Object.keys(opts.dataForThisObject).forEach(objectProp => {
-  //   const name = opts.parentObjectKey
-  //     ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${objectProp}`
-  //     : objectProp;
-  //   const dataForThisProp = opts.dataForThisObject[objectProp];
-  //   const isUpToDate =
-  //     opts.allPropertiesQueried.includes(name) ||
-  //     // this second case handles ensuring that nested objects are enumerable
-  //     // for example, if user matches the interface { address: { apt: { floor: number, unit: number } } }
-  //     // and we request address_apt_floor and address_apt_unit
-  //     // we need to make address.apt enumerable below
-  //     opts.allPropertiesQueried.some(prop => prop.startsWith(name));
-
-  //   Object.defineProperty(objectToReturn, objectProp, {
-  //     enumerable: isUpToDate,
-  //     get: () => {
-  //       if (
-  //         dataForThisProp.type === DATA_TYPES.object ||
-  //         dataForThisProp.type === DATA_TYPES.maybeObject
-  //       ) {
-  //         if (opts.allCachedData[objectProp] == null)
-  //           return opts.allCachedData[objectProp];
-
-  //         return getNestedProxyObjectWithNotUpToDateProtection({
-  //           nodeType: opts.nodeType,
-  //           queryId: opts.queryId,
-  //           allCachedData: opts.allCachedData[objectProp],
-  //           dataForThisObject: dataForThisProp.boxedValue,
-  //           allPropertiesQueried: opts.allPropertiesQueried,
-  //           parentObjectKey: name,
-  //         });
-  //       }
-
-  //       if (!isUpToDate) {
-  //         throw new NotUpToDateException({
-  //           propName: name,
-  //           nodeType: opts.nodeType,
-  //           queryId: opts.queryId,
-  //         });
-  //       }
-
-  //       return opts.allCachedData ? opts.allCachedData[objectProp] : undefined;
-  //     },
-  //   });
-  // });
-
-  // Object.defineProperty(proxyObjectToReturn, 'zipCode', {
-  //   enumerable: false,
-  //   configurable: true,
-  // });
 
   return proxyObjectToReturn;
 }

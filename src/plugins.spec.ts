@@ -1,18 +1,18 @@
 import {
   createMockQueryDefinitions,
-  getMockQueryResultExpectations,
   getMockConfig,
+  getMockQueryResultExpectations,
 } from './specUtilities';
 import {
-  extendObservable,
   isObservable,
   isObservableObject,
   isObservableProp,
+  extendObservable,
   observable,
 } from 'mobx';
 
-import { MMGQL } from '.';
-import { QueryDefinitions } from './types';
+import { MMGQL, queryDefinition, string } from '.';
+import { INode, QueryDefinitions } from './types';
 import { DEFAULT_TOKEN_NAME } from './consts';
 import { mobxPlugin } from './plugins';
 import { NotUpToDateException } from './exceptions';
@@ -26,9 +26,59 @@ test('mmGQLInstance correctly returns the plugins passed in', async () => {
   );
 });
 
-test('QueryManager handles a query result and returns the expected data when plugins are enabled', done => {
+test.only('QueryManager handles a query result and returns the expected data when plugins are enabled', done => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
+
+  // class DO {
+  //   public id: string = '123456';
+  //   public cat: string = 'Babu';
+
+  //   constructor() {
+  //     makeAutoObservable(this);
+  //   }
+
+  //   get firstName() {
+  //     return 'George';
+  //   }
+  // }
+
+  // const myDO: Record<string, any> = new DO();
+
+  // const proxiedDO = new Proxy(
+  //   {},
+  //   {
+  //     getOwnPropertyDescriptor: (_: Record<string, any>, key: string) => {
+  //       console.log(
+  //         'NOLEy Object.getOwnPropertyDescriptor(target, key)',
+  //         Object.getOwnPropertyDescriptor(myDO, key)
+  //       );
+  //       if (key === 'id') {
+  //         return {
+  //           ...Object.getOwnPropertyDescriptor(myDO, key),
+  //           enumerable: true,
+  //           configurable: true,
+  //           // value: myDO[key],
+  //         };
+  //       } else {
+  //         return {
+  //           ...Object.getOwnPropertyDescriptor(myDO, key),
+  //           enumerable: false,
+  //           configurable: true,
+  //           // value: myDO[key],
+  //         };
+  //       }
+  //     },
+  //     ownKeys: () => {
+  //       return Object.keys(myDO);
+  //     },
+  //     get: (_: Record<string, any>, key: string) => {
+  //       return myDO[key];
+  //     },
+  //   }
+  // );
+
+  // console.log('NOLEY proxiedDO', JSON.stringify(proxiedDO));
 
   new mmGQLInstance.QueryManager(
     createMockQueryDefinitions(mmGQLInstance) as QueryDefinitions<
@@ -62,7 +112,11 @@ test('QueryManager handles a query result and returns the expected data when plu
 // the resutlsObject is an observable
 // run existing tests hunt all spec files and see if any new failings
 test('QueryManager handles a query result and returns the expected data as an observable when plugins are enabled', done => {
-  const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
+  const mmGQLInstance = new MMGQL(
+    getMockConfig({
+      plugins: [mobxPlugin],
+    })
+  );
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
 
   new mmGQLInstance.QueryManager(
@@ -86,7 +140,7 @@ test('QueryManager handles a query result and returns the expected data as an ob
   );
 });
 
-test.only('QueryManager handles a query result and returns the expected data with each property on the DO being an observable when plugins are enabled', done => {
+test('QueryManager handles a query result and returns the expected data with each property on the DO being an observable when plugins are enabled', done => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
 
@@ -152,6 +206,8 @@ test.only('QueryManager handles a query result and returns the expected data wit
               };
             };
           }) => {
+            console.log('NOLEY node', node.address.state);
+            expect(node.address.state).toBe('FL');
             // console.log('NOLEY node.displayName', node.displayName);
             // expect(isComputed(node.displayName)).toBe(true);
             // expect(isComputedProp(node, 'displayName')).toBe(true);
@@ -176,4 +232,63 @@ test.only('QueryManager handles a query result and returns the expected data wit
       batchKey: null,
     }
   );
+});
+
+test('Computed properties update only when a property that derives the computed is changed', async () => {
+  const mmGQLInstance = new MMGQL(
+    getMockConfig({
+      plugins: [mobxPlugin],
+      mockData: {
+        user: {
+          id: 'id-1',
+          type: 'user',
+          firstName: 'Noley',
+          lastName: 'Holland',
+        },
+      },
+    })
+  );
+
+  const userProperties = {
+    firstName: string,
+    lastName: string,
+  };
+
+  type UserNode = INode<{
+    TNodeType: 'user';
+    TNodeData: typeof userProperties;
+    TNodeComputedData: { fullName: string };
+    TNodeRelationalData: {};
+  }>;
+
+  let indexCount = 0;
+  const userNode: UserNode = mmGQLInstance.def({
+    type: 'user',
+    properties: userProperties,
+    relational: {},
+    computed: {
+      fullName: ({ firstName, lastName }) => {
+        indexCount++;
+        return firstName + ' ' + lastName;
+      },
+    },
+  });
+
+  const { data } = await mmGQLInstance.query({
+    user: queryDefinition({
+      def: userNode,
+      map: ({ firstName, lastName }) => ({
+        firstName,
+        lastName,
+      }),
+      target: {
+        id: 'id-1',
+      },
+    }),
+  });
+
+  console.log('NOLEY data.user.firstName', data.user.firstName, indexCount);
+
+  // expect(indexCount).toBe(0);
+  expect(data.user.fullName).toBe('Noley Holland');
 });
