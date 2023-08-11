@@ -26,59 +26,9 @@ test('mmGQLInstance correctly returns the plugins passed in', async () => {
   );
 });
 
-test.only('QueryManager handles a query result and returns the expected data when plugins are enabled', done => {
+test('QueryManager handles a query result and returns the expected data when plugins are enabled', done => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
-
-  // class DO {
-  //   public id: string = '123456';
-  //   public cat: string = 'Babu';
-
-  //   constructor() {
-  //     makeAutoObservable(this);
-  //   }
-
-  //   get firstName() {
-  //     return 'George';
-  //   }
-  // }
-
-  // const myDO: Record<string, any> = new DO();
-
-  // const proxiedDO = new Proxy(
-  //   {},
-  //   {
-  //     getOwnPropertyDescriptor: (_: Record<string, any>, key: string) => {
-  //       console.log(
-  //         'NOLEy Object.getOwnPropertyDescriptor(target, key)',
-  //         Object.getOwnPropertyDescriptor(myDO, key)
-  //       );
-  //       if (key === 'id') {
-  //         return {
-  //           ...Object.getOwnPropertyDescriptor(myDO, key),
-  //           enumerable: true,
-  //           configurable: true,
-  //           // value: myDO[key],
-  //         };
-  //       } else {
-  //         return {
-  //           ...Object.getOwnPropertyDescriptor(myDO, key),
-  //           enumerable: false,
-  //           configurable: true,
-  //           // value: myDO[key],
-  //         };
-  //       }
-  //     },
-  //     ownKeys: () => {
-  //       return Object.keys(myDO);
-  //     },
-  //     get: (_: Record<string, any>, key: string) => {
-  //       return myDO[key];
-  //     },
-  //   }
-  // );
-
-  // console.log('NOLEY proxiedDO', JSON.stringify(proxiedDO));
 
   new mmGQLInstance.QueryManager(
     createMockQueryDefinitions(mmGQLInstance) as QueryDefinitions<
@@ -140,7 +90,7 @@ test('QueryManager handles a query result and returns the expected data as an ob
   );
 });
 
-test('QueryManager handles a query result and returns the expected data with each property on the DO being an observable when plugins are enabled', done => {
+test.only('QueryManager handles a query result and returns the expected data with each property on the DO being an observable when plugins are enabled', done => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
   mmGQLInstance.setToken({ tokenName: DEFAULT_TOKEN_NAME, token: 'token' });
 
@@ -213,7 +163,7 @@ test('QueryManager handles a query result and returns the expected data with eac
             // expect(isComputedProp(node, 'displayName')).toBe(true);
             expect(isObservableProp(node, 'address')).toBe(true);
             // NOLEY NOTES: this causes symbol errors
-            // expect(isObservableObject(node.address)).toBe(true);
+            expect(isObservableObject(node.address)).toBe(true);
             expect(() => node.address.zipCode).toThrowError(
               new NotUpToDateException({
                 propName: `address${OBJECT_PROPERTY_SEPARATOR}zipCode`,

@@ -422,13 +422,18 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           mmGQLInstance.plugins.forEach(plugin => {
             if (plugin.DO?.onExtendObservable) {
               extended = true;
+
+              const objectToExtend = {};
+
+              Object.defineProperty(this, propNameForThisObject, {
+                configurable: true,
+                enumerable: true,
+                get: () => this.parsedData[propNameForThisObject],
+              });
+
               plugin.DO.onExtendObservable({
                 DOInstance: this,
-                objectToExtend: {
-                  [propNameForThisObject]: this.parsedData[
-                    propNameForThisObject
-                  ],
-                },
+                objectToExtend,
               });
             }
           });
@@ -451,11 +456,18 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           mmGQLInstance.plugins.forEach(plugin => {
             if (plugin.DO?.onExtendObservable) {
               extended = true;
+
+              const objectToExtend = {};
+
+              Object.defineProperty(this, propName, {
+                configurable: true,
+                enumerable: true,
+                get: () => this.parsedData[propName],
+              });
+
               plugin.DO.onExtendObservable({
                 DOInstance: this,
-                objectToExtend: {
-                  [propName]: this.parsedData[propName],
-                },
+                objectToExtend,
               });
             }
           });
@@ -478,11 +490,18 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           mmGQLInstance.plugins.forEach(plugin => {
             if (plugin.DO?.onExtendObservable) {
               extended = true;
+
+              const objectToExtend = {};
+
+              Object.defineProperty(this, propName, {
+                configurable: true,
+                enumerable: true,
+                get: () => this.parsedData[propName],
+              });
+
               plugin.DO.onExtendObservable({
                 DOInstance: this,
-                objectToExtend: {
-                  [propName]: this.parsedData[propName],
-                },
+                objectToExtend,
               });
             }
           });
@@ -518,11 +537,18 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           mmGQLInstance.plugins.forEach(plugin => {
             if (plugin.DO?.onExtendObservable) {
               extended = true;
+
+              const objectToExtend = {};
+
+              Object.defineProperty(this, opts.propName, {
+                configurable: true,
+                enumerable: true,
+                get: () => this.parsedData[opts.propName],
+              });
+
               plugin.DO.onExtendObservable({
                 DOInstance: this,
-                objectToExtend: {
-                  [opts.propName]: () => computedGetter(),
-                },
+                objectToExtend,
               });
             }
           });

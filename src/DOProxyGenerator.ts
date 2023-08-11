@@ -76,13 +76,17 @@ export function createDOProxyGenerator() {
     // however due to them not working currently with the .get structure, unsure if necessary circle back to this
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
-          let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
+          let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy); // NOLEY WAS PROXY ERRRRSSS
           acc[computedKey] = computedFn;
 
           return acc;
         }, {} as Record<string, () => any>)
       : {};
 
+    const relationalKeysAndDOKeys = [
+      ...Object.keys(opts.do),
+      ...Object.keys(opts.relationalResults || []),
+    ];
     const proxy = new Proxy(
       {},
       {
@@ -96,9 +100,8 @@ export function createDOProxyGenerator() {
             Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
           ) {
             return {
-              ...Object.getOwnPropertyDescriptor(opts.do, key),
               enumerable: true,
-              configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+              configurable: true,
             };
           }
           // enumerate computed properties which have all the data they need queried
@@ -107,30 +110,32 @@ export function createDOProxyGenerator() {
             try {
               computedAccessors[key]();
               return {
-                ...Object.getOwnPropertyDescriptor(opts.do, key),
                 enumerable: true,
-                configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+                configurable: true,
               };
             } catch (e) {
               if (!(e instanceof NotUpToDateException)) throw e;
               return {
-                ...Object.getOwnPropertyDescriptor(opts.do, key),
                 enumerable: false,
-                configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+                configurable: true,
               };
             }
           }
 
           return {
-            ...Object.getOwnPropertyDescriptor(opts.do, key),
             enumerable: false,
-            configurable: true, // NOLEY NOTES: we have to set this to true to prevent errors, ask
+            configurable: true,
           };
         },
         ownKeys: () => {
-          return Object.keys(opts.do);
+          return relationalKeysAndDOKeys;
         },
         get: (_, key: string) => {
+          //NOLEY WELL THIS IS TOTALLY NOT FINE
+          if (key === 'toJSON') {
+            return;
+          }
+
           if (key === 'updateRelationalResults') {
             return (newRelationalResults: Maybe<TRelationalResults>) => {
               if (newRelationalResults) {
@@ -181,7 +186,6 @@ export function createDOProxyGenerator() {
               dataForThisProp.type === DATA_TYPES.object ||
               dataForThisProp.type === DATA_TYPES.maybeObject
             ) {
-              //NOLEY QUESTION: why was this removed?
               // do not return an object if this prop came back as null from backend
               if (opts.do[key] == null) return opts.do[key];
 
@@ -214,6 +218,21 @@ export function createDOProxyGenerator() {
         },
       }
     ) as NodeDO & TRelationalResults & IDOProxy;
+
+    // NOLEY DO WE EVEN NEED THIS?
+    opts.relationalResults &&
+      Object.keys(opts.relationalResults).forEach(key => {
+        // console.log(
+        //   'NOLEY DEFINING RELATIONALRESUTLS',
+        //   opts.relationalResults,
+        //   key,
+        //   relationalResults && relationalResults[key]
+        // );
+        Object.defineProperty(proxy, key, {
+          enumerable: true,
+          configurable: true,
+        });
+      });
 
     // const proxy = new Proxy(opts.do as Record<string, any>, {
     //   getOwnPropertyDescriptor: function(target, key: string) {
@@ -249,7 +268,7 @@ export function createDOProxyGenerator() {
     //     }
     //     return {
     //       ...Object.getOwnPropertyDescriptor(target, key),
-    //       // enumerable: false,
+    //       enumerable: false,
     //     };
     //   },
     //   get: (target, key: string) => {
@@ -297,7 +316,10 @@ export function createDOProxyGenerator() {
     //           nodeType: opts.node.type,
     //         });
     //       }
+
+    //       console.log('NOLEY opts.node.data', opts.node.data);
     //       const dataForThisProp = opts.node.data[key] as IData;
+
     //       if (
     //         dataForThisProp.type === DATA_TYPES.object ||
     //         dataForThisProp.type === DATA_TYPES.maybeObject
@@ -335,16 +357,8 @@ export function createDOProxyGenerator() {
     //   },
     // }) as NodeDO & TRelationalResults & IDOProxy;
 
-    console.log('NOLEY JSON proxyTest', { ...proxy });
+    // console.log('NOLEY JSON proxyTest', { ...proxy });
     // console.log('NOLEY original proxy', proxy);
-
-    opts.relationalResults &&
-      Object.keys(opts.relationalResults).forEach(key => {
-        Object.defineProperty(proxy, key, {
-          enumerable: true,
-          configurable: true,
-        });
-      });
 
     return proxy;
   };
@@ -381,8 +395,12 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
 
         return descriptor;
       },
-
       get: (target, key: string) => {
+        //NOLEY WELL THIS IS TOTALLY NOT FINE
+        if (key === 'toJSON') {
+          return;
+        }
+
         const name = opts.parentObjectKey
           ? `${opts.parentObjectKey}${OBJECT_PROPERTY_SEPARATOR}${key}`
           : key;
