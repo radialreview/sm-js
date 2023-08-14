@@ -8048,18 +8048,38 @@ var QuerySlimmer = /*#__PURE__*/function () {
                 }
               });
             } else {
-              dataToCacheForParent[recordFieldToCache] = {};
-              queryRecordEntry.properties.forEach(function (property) {
-                dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
+              // This is a non-paginated array that isn't under a nodes field as usual
+              if (Array.isArray(responseDataForParent)) {
+                dataToCacheForParent[recordFieldToCache] = [];
+                responseDataForParent.forEach(function (datum, datumIndex) {
+                  var nonPaginatedDatum = {};
+                  queryRecordEntry.properties.forEach(function (property) {
+                    nonPaginatedDatum[property] = datum[property];
 
-                if (parentIndex === 0) {
-                  if (subscriptionsByProperty[property]) {
-                    subscriptionsByProperty[property] += 1;
-                  } else {
-                    subscriptionsByProperty[property] = 1;
+                    if (parentIndex === 0 && datumIndex === 0) {
+                      if (subscriptionsByProperty[property]) {
+                        subscriptionsByProperty[property] += 1;
+                      } else {
+                        subscriptionsByProperty[property] = 1;
+                      }
+                    }
+                  });
+                  dataToCacheForParent[recordFieldToCache].push(nonPaginatedDatum);
+                });
+              } else {
+                dataToCacheForParent[recordFieldToCache] = {};
+                queryRecordEntry.properties.forEach(function (property) {
+                  dataToCacheForParent[recordFieldToCache][property] = responseDataForParent[property];
+
+                  if (parentIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
                   }
-                }
-              });
+                });
+              }
             }
           }
         }); // Deal with data that is not relational (top level of a query).
@@ -8135,9 +8155,18 @@ var QuerySlimmer = /*#__PURE__*/function () {
                     dataToCacheForField[datum.id][rField] = datum[rField];
                   });
                 } else {
-                  var _dataToCacheForField$;
+                  // The data is a non paginated array that is not under a nodes field
+                  if (Array.isArray(dataForRecordField)) {
+                    dataForRecordField.forEach(function (datum) {
+                      var _dataToCacheForField$;
 
-                  dataToCacheForField[dataForRecordField['id']] = (_dataToCacheForField$ = {}, _dataToCacheForField$[rField] = dataForRecordField[rField], _dataToCacheForField$);
+                      dataToCacheForField[datum.id] = (_dataToCacheForField$ = {}, _dataToCacheForField$[rField] = datum[rField], _dataToCacheForField$);
+                    });
+                  } else {
+                    var _dataToCacheForField$2;
+
+                    dataToCacheForField[dataForRecordField['id']] = (_dataToCacheForField$2 = {}, _dataToCacheForField$2[rField] = dataForRecordField[rField], _dataToCacheForField$2);
+                  }
                 }
               }
             });
@@ -8322,6 +8351,14 @@ var QuerySlimmer = /*#__PURE__*/function () {
 
               if (dataUnderParentForQueryKey != null && 'nodes' in dataUnderParentForQueryKey) {
                 dataUnderParentForQueryKey.nodes = dataUnderParentForQueryKey.nodes.map(function (datum) {
+                  if (datum.id in relationalDataForNewQueryKey) {
+                    return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
+                  } else {
+                    return datum;
+                  }
+                });
+              } else if (Array.isArray(dataUnderParentForQueryKey)) {
+                dataForNewQueryKey[parentId][newQueryKey] = dataUnderParentForQueryKey.map(function (datum) {
                   if (datum.id in relationalDataForNewQueryKey) {
                     return _extends({}, datum, relationalDataForNewQueryKey[datum.id]);
                   } else {
