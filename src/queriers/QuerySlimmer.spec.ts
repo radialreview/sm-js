@@ -1210,7 +1210,7 @@ describe('cacheNewData', () => {
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
 
-  test.only('it should handle non paginated array relationships', () => {
+  test('it should handle non paginated array relationships', () => {
     const {
       QuerySlimmer,
       meetingNode,
@@ -2193,6 +2193,105 @@ describe('getDataForQueryFromCache', () => {
             firstName: 'Piotr',
             lastName: 'Bogun',
             meeting: null,
+          },
+        ],
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+
+    const actualDataFromCache = QuerySlimmer.getDataForQueryFromCache(
+      mockQueryRecord
+    );
+
+    expect(actualDataFromCache).toEqual(mockRequestResponse);
+  });
+
+  test('it should get cached data for non paginated arrays', () => {
+    const { QuerySlimmer, userNode, todoNode, headlineNode } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      user: {
+        def: userNode,
+        id: 'aidan-id',
+        properties: ['id', 'firstName', 'lastName'],
+        relational: {
+          todos: {
+            def: todoNode,
+            nonPaginatedOneToMany: true,
+            _relationshipName: 'todos_nonPaginated',
+            properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            nonPaginatedOneToMany: true,
+            _relationshipName: 'headlines_nonPaginated',
+            properties: ['id', 'title'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName', 'lastName'],
+              },
+            },
+          },
+        },
+        tokenName: DEFAULT_TOKEN_NAME,
+      },
+    };
+
+    const mockRequestResponse = {
+      user: {
+        id: 'aidan-id',
+        firstName: 'Aidan',
+        lastName: 'Goodman',
+        todos: [
+          {
+            id: 'aidan-todo-id-1',
+            task: 'aidan-todo-task-1',
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          {
+            id: 'aidan-todo-id-2',
+            task: 'aidan-todo-task-2',
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+        ],
+        headlines: [
+          {
+            id: 'aidan-headline-id-1',
+            title: 'aidan-headline-title-1',
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
+          },
+          {
+            id: 'aidan-headline-id-2',
+            title: 'aidan-headline-title-2',
+            assignee: {
+              id: 'aidan-id',
+              firstName: 'Aidan',
+              lastName: 'Goodman',
+            },
           },
         ],
       },

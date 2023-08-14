@@ -602,6 +602,19 @@ export class QuerySlimmer {
                       }
                     }
                   );
+                } else if (Array.isArray(dataUnderParentForQueryKey)) {
+                  dataForNewQueryKey[parentId][
+                    newQueryKey
+                  ] = dataUnderParentForQueryKey.map(datum => {
+                    if (datum.id in relationalDataForNewQueryKey) {
+                      return {
+                        ...datum,
+                        ...relationalDataForNewQueryKey[datum.id],
+                      };
+                    } else {
+                      return datum;
+                    }
+                  });
                 } else {
                   dataForNewQueryKey[parentId][newQueryKey] = {
                     ...dataUnderParentId[newQueryKey],
