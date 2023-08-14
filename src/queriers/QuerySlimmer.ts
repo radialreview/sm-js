@@ -195,20 +195,45 @@ export class QuerySlimmer {
                 }
               });
             } else {
-              dataToCacheForParent[recordFieldToCache] = {};
+              // This is a non-paginated array that isn't under a nodes field as usual
+              if (Array.isArray(responseDataForParent)) {
+                dataToCacheForParent[recordFieldToCache] = [];
 
-              queryRecordEntry.properties.forEach(property => {
-                dataToCacheForParent[recordFieldToCache][property] =
-                  responseDataForParent[property];
+                responseDataForParent.forEach((datum, datumIndex) => {
+                  const nonPaginatedDatum: Record<string, any> = {};
 
-                if (parentIndex === 0) {
-                  if (subscriptionsByProperty[property]) {
-                    subscriptionsByProperty[property] += 1;
-                  } else {
-                    subscriptionsByProperty[property] = 1;
+                  queryRecordEntry.properties.forEach(property => {
+                    nonPaginatedDatum[property] = datum[property];
+
+                    if (parentIndex === 0 && datumIndex === 0) {
+                      if (subscriptionsByProperty[property]) {
+                        subscriptionsByProperty[property] += 1;
+                      } else {
+                        subscriptionsByProperty[property] = 1;
+                      }
+                    }
+                  });
+
+                  dataToCacheForParent[recordFieldToCache].push(
+                    nonPaginatedDatum
+                  );
+                });
+              } else {
+                dataToCacheForParent[recordFieldToCache] = {};
+
+                queryRecordEntry.properties.forEach(property => {
+                  dataToCacheForParent[recordFieldToCache][property] =
+                    responseDataForParent[property];
+
+                  if (parentIndex === 0) {
+                    if (subscriptionsByProperty[property]) {
+                      subscriptionsByProperty[property] += 1;
+                    } else {
+                      subscriptionsByProperty[property] = 1;
+                    }
                   }
-                }
-              });
+                });
+              }
             }
           }
         });
@@ -298,9 +323,18 @@ export class QuerySlimmer {
                     }
                   );
                 } else {
-                  dataToCacheForField[dataForRecordField['id']] = {
-                    [rField]: dataForRecordField[rField],
-                  };
+                  // The data is a non paginated array that is not under a nodes field
+                  if (Array.isArray(dataForRecordField)) {
+                    dataForRecordField.forEach(datum => {
+                      dataToCacheForField[datum.id] = {
+                        [rField]: datum[rField],
+                      };
+                    });
+                  } else {
+                    dataToCacheForField[dataForRecordField['id']] = {
+                      [rField]: dataForRecordField[rField],
+                    };
+                  }
                 }
               }
             });

@@ -1209,6 +1209,162 @@ describe('cacheNewData', () => {
 
     expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
   });
+
+  test.only('it should handle non paginated array relationships', () => {
+    const {
+      QuerySlimmer,
+      meetingNode,
+      todoNode,
+      headlineNode,
+      userNode,
+    } = setupTests();
+
+    const mockQueryRecord: QueryRecord = {
+      meeting: {
+        id: 'meeting_id',
+        def: meetingNode,
+        properties: ['id', 'name'],
+        tokenName: DEFAULT_TOKEN_NAME,
+        relational: {
+          todos: {
+            def: todoNode,
+            nonPaginatedOneToMany: true,
+            _relationshipName: 'todos_nonPaginated',
+            properties: ['id', 'task'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName'],
+              },
+            },
+          },
+          headlines: {
+            def: headlineNode,
+            nonPaginatedOneToMany: true,
+            _relationshipName: 'headlines_nonPaginated',
+            properties: ['id', 'title'],
+            relational: {
+              assignee: {
+                def: userNode,
+                oneToOne: true,
+                _relationshipName: 'assignee',
+                properties: ['id', 'firstName'],
+              },
+            },
+          },
+        },
+      },
+    };
+    const mockRequestResponse = {
+      meeting: {
+        id: 'meeting-id',
+        name: 'Meeting Name',
+        todos: [
+          {
+            id: 'todo-id-1',
+            task: 'todo-task-1',
+            assignee: { id: 'todo-assignee-1', firstName: 'Peter' },
+          },
+          {
+            id: 'todo-id-2',
+            task: 'todo-task-2',
+            assignee: { id: 'todo-assignee-2', firstName: 'Peter' },
+          },
+        ],
+        headlines: [
+          {
+            id: 'headline-id-1',
+            title: 'headline-title-1',
+            assignee: { id: 'headline-assignee-1', firstName: 'Peter' },
+          },
+          {
+            id: 'headline-id-2',
+            title: 'headline-title-2',
+            assignee: { id: 'headline-assignee-2', firstName: 'Peter' },
+          },
+        ],
+      },
+    };
+
+    QuerySlimmer.cacheNewData(mockQueryRecord, mockRequestResponse);
+
+    const expectedCache = {
+      'meeting({"id":"meeting_id"})': {
+        subscriptionsByProperty: { id: 1, name: 1 },
+        results: {
+          byParentId: false,
+          meeting: {
+            id: 'meeting-id',
+            name: 'Meeting Name',
+          },
+        },
+      },
+      'meeting({"id":"meeting_id"}).todos_nonPaginated(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, task: 1 },
+        results: {
+          byParentId: true,
+          'meeting-id': {
+            todos: [
+              {
+                id: 'todo-id-1',
+                task: 'todo-task-1',
+              },
+              {
+                id: 'todo-id-2',
+                task: 'todo-task-2',
+              },
+            ],
+          },
+        },
+      },
+      'meeting({"id":"meeting_id"}).headlines_nonPaginated(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, title: 1 },
+        results: {
+          byParentId: true,
+          'meeting-id': {
+            headlines: [
+              {
+                id: 'headline-id-1',
+                title: 'headline-title-1',
+              },
+              {
+                id: 'headline-id-2',
+                title: 'headline-title-2',
+              },
+            ],
+          },
+        },
+      },
+      'meeting({"id":"meeting_id"}).todos_nonPaginated(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: true,
+          'todo-id-1': {
+            assignee: { id: 'todo-assignee-1', firstName: 'Peter' },
+          },
+          'todo-id-2': {
+            assignee: { id: 'todo-assignee-2', firstName: 'Peter' },
+          },
+        },
+      },
+      'meeting({"id":"meeting_id"}).headlines_nonPaginated(NO_PARAMS).assignee(NO_PARAMS)': {
+        subscriptionsByProperty: { id: 1, firstName: 1 },
+        results: {
+          byParentId: true,
+          'headline-id-1': {
+            assignee: { id: 'headline-assignee-1', firstName: 'Peter' },
+          },
+          'headline-id-2': {
+            assignee: { id: 'headline-assignee-2', firstName: 'Peter' },
+          },
+        },
+      },
+    };
+
+    expect(QuerySlimmer.queriesByContext).toEqual(expectedCache);
+  });
 });
 
 describe('getSlimmedQueryAgainstCache', () => {
