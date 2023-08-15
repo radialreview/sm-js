@@ -3687,7 +3687,7 @@ function generateSubscriber(mmGQLInstance) {
                         },
                         error: undefined
                       });
-                      console.log('dataToReturn', dataToReturn);
+                      console.log('dataToReturn', JSON.stringify(dataToReturn, undefined, 2));
                       opts.onData({
                         results: dataToReturn
                       });
