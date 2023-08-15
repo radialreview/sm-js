@@ -157,6 +157,7 @@ export function generateSubscriber(mmGQLInstance: IMMGQL) {
                 handlers.onQueryDefinitionsUpdated(newQueryDefinitionRecord),
               error: undefined,
             } as ReturnType);
+            console.log('dataToReturn', dataToReturn);
             opts.onData({ results: dataToReturn });
           },
           onQueryError: e => {

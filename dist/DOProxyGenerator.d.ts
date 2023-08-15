@@ -59,14 +59,14 @@ export declare function createDOProxyGenerator(mmGQLInstance: IMMGQL): <TNodeTyp
                 }>;
             };
             id: {
-                (defaultValue: string | number): IData<{
-                    TValue: string | number;
-                    TParsedValue: string | number;
+                (defaultValue: string): IData<{
+                    TValue: string;
+                    TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
                 _default: IData<{
-                    TValue: string | number;
-                    TParsedValue: string | number;
+                    TValue: string;
+                    TParsedValue: string;
                     TBoxedValue: undefined;
                 }>;
                 optional: IData<{
