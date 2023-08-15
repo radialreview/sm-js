@@ -74,9 +74,19 @@ export function createDOProxyGenerator() {
     >;
     //NOLEY NOTES: this is going to break the oberservalbe chain for computed properties,
     // however due to them not working currently with the .get structure, unsure if necessary circle back to this
+    // this was previously using the
+    // mmGQLInstance.plugins?.forEach(plugin => {
+    //   if (plugin.DOProxy?.computedDecorator) {
+    //     computedFn = plugin.DOProxy.computedDecorator({
+    //       ProxyInstance: proxy,
+    //       computedFn,
+    //     });
+    //   }
+    // });
+
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
-          let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy); // NOLEY WAS PROXY ERRRRSSS
+          let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
           acc[computedKey] = computedFn;
 
           return acc;
@@ -222,12 +232,6 @@ export function createDOProxyGenerator() {
     // NOLEY DO WE EVEN NEED THIS?
     opts.relationalResults &&
       Object.keys(opts.relationalResults).forEach(key => {
-        // console.log(
-        //   'NOLEY DEFINING RELATIONALRESUTLS',
-        //   opts.relationalResults,
-        //   key,
-        //   relationalResults && relationalResults[key]
-        // );
         Object.defineProperty(proxy, key, {
           enumerable: true,
           configurable: true,

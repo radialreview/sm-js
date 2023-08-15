@@ -523,14 +523,16 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         computedFn: (nodeData: Record<string, any>) => any;
       }) {
         let computedGetter = () => opts.computedFn(this);
-        mmGQLInstance.plugins?.forEach(plugin => {
-          if (plugin.DO?.computedDecorator) {
-            computedGetter = plugin.DO.computedDecorator({
-              computedFn: computedGetter,
-              DOInstance: this,
-            });
-          }
-        });
+
+        // NOLEY DO WE NEED THIS??
+        // mmGQLInstance.plugins?.forEach(plugin => {
+        //   if (plugin.DO?.computedDecorator) {
+        //     computedGetter = plugin.DO.computedDecorator({
+        //       computedFn: computedGetter,
+        //       DOInstance: this,
+        //     });
+        //   }
+        // });
 
         let extended = false;
         if (mmGQLInstance.plugins) {
@@ -543,7 +545,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
               Object.defineProperty(this, opts.propName, {
                 configurable: true,
                 enumerable: true,
-                get: () => this.parsedData[opts.propName],
+                get: () => opts.computedFn(this),
               });
 
               plugin.DO.onExtendObservable({
