@@ -147,12 +147,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: {
                 [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
             };
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): void;
         getQueryManagerStateFromData(opts: {
             data: Record<string, any>;
             queryRecord: QueryRecord | RelationalQueryRecord;
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): QueryManagerState;
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
@@ -162,7 +162,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): Maybe<QueryManagerStateEntry>;
         removeUnionSuffix(alias: string): string;
         getApplicableRelationalQueries(opts: {
