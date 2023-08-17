@@ -44,20 +44,20 @@ export type Plugin = {
   DO?: {
     onConstruct?: (opts: { DOInstance: NodeDO; parsedDataKey: string }) => void;
     onExtendObservable?: (opts: { DOInstance: NodeDO; objectToExtend: Record<string, any> }) => void;
-    computedDecorator?: <
-      TReturnType,
+    onExtendComputedObservable?: <
+      TReturnType, 
       TComputedFn extends (data: Record<string, any>) => TReturnType
-    >(opts: {
+    >(opts: { 
       DOInstance: NodeDO;
-      computedFn: TComputedFn;
-    }) => () => TReturnType;
+      propName: string; 
+      computedFn: TComputedFn; 
+    }) => void;
   };
   DOProxy?: {
     computedDecorator?: <
       TReturnType,
-      TComputedFn extends (data: Record<string, any>) => TReturnType
+      TComputedFn extends () => TReturnType
     >(opts: {
-      ProxyInstance: IDOProxy;
       computedFn: TComputedFn;
     }) => () => TReturnType;
   };

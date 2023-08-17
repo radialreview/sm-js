@@ -14,9 +14,10 @@ import {
   Maybe,
   RelationalQueryRecordEntry,
   DATA_TYPES,
+  IMMGQL,
 } from './types';
 
-export function createDOProxyGenerator() {
+export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
   /**
    * When some data fetcher like "useQuery" requests some data we do not directly return the DO instances
    * Instead, we decorate each DO instance with a bit of functionality
@@ -72,31 +73,33 @@ export function createDOProxyGenerator() {
       string,
       (proxy: IDOProxy) => any
     >;
-    //NOLEY NOTES: this is going to break the oberservalbe chain for computed properties,
-    // however due to them not working currently with the .get structure, unsure if necessary circle back to this
-    // this was previously using the
-    // mmGQLInstance.plugins?.forEach(plugin => {
-    //   if (plugin.DOProxy?.computedDecorator) {
-    //     computedFn = plugin.DOProxy.computedDecorator({
-    //       ProxyInstance: proxy,
-    //       computedFn,
-    //     });
-    //   }
-    // });
 
+    //NOLEY QUESTION: so why do we not grab these off the DO? We already initilize them there, and doing it here seems weird.
+    // I understand up to date protection is gained on the proxy, not the do, but why then initilize on the DO at all if we aren't using it?
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
           let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
+
+          mmGQLInstance.plugins?.forEach(plugin => {
+            if (plugin.DOProxy?.computedDecorator) {
+              computedFn = plugin.DOProxy.computedDecorator({
+                computedFn,
+              });
+            }
+          });
+
           acc[computedKey] = computedFn;
 
           return acc;
         }, {} as Record<string, () => any>)
       : {};
 
-    const relationalKeysAndDOKeys = [
+    const relationalKeysComputedKeysAndDOKeys = [
       ...Object.keys(opts.do),
+      ...Object.keys(nodeComputed || {}),
       ...Object.keys(opts.relationalResults || []),
     ];
+
     const proxy = new Proxy(
       {},
       {
@@ -138,10 +141,9 @@ export function createDOProxyGenerator() {
           };
         },
         ownKeys: () => {
-          return relationalKeysAndDOKeys;
+          return relationalKeysComputedKeysAndDOKeys;
         },
         get: (_, key: string) => {
-          //NOLEY WELL THIS IS TOTALLY NOT FINE
           if (key === 'toJSON') {
             return;
           }
@@ -229,140 +231,14 @@ export function createDOProxyGenerator() {
       }
     ) as NodeDO & TRelationalResults & IDOProxy;
 
-    // NOLEY DO WE EVEN NEED THIS?
-    opts.relationalResults &&
-      Object.keys(opts.relationalResults).forEach(key => {
-        Object.defineProperty(proxy, key, {
-          enumerable: true,
-          configurable: true,
-        });
-      });
-
-    // const proxy = new Proxy(opts.do as Record<string, any>, {
-    //   getOwnPropertyDescriptor: function(target, key: string) {
-    //     // This gives better json stringify results
-    //     // by preventing attempts to get properties which are not
-    //     // guaranteed to be up to date
-    //     if (
-    //       opts.allPropertiesQueried.some(prop => prop.startsWith(key)) ||
-    //       opts.relationalResults?.hasOwnProperty(key) ||
-    //       Object.keys(PROPERTIES_QUERIED_FOR_ALL_NODES).includes(key)
-    //     ) {
-    //       return {
-    //         ...Object.getOwnPropertyDescriptor(target, key),
-    //         enumerable: true,
-    //       };
-    //     }
-    //     // enumerate computed properties which have all the data they need queried
-    //     // otherwise they throw NotUpToDateException and we don't enumerate
-    //     if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
-    //       try {
-    //         computedAccessors[key]();
-    //         return {
-    //           ...Object.getOwnPropertyDescriptor(target, key),
-    //           enumerable: true,
-    //         };
-    //       } catch (e) {
-    //         if (!(e instanceof NotUpToDateException)) throw e;
-    //         return {
-    //           ...Object.getOwnPropertyDescriptor(target, key),
-    //           enumerable: false,
-    //         };
-    //       }
-    //     }
-    //     return {
-    //       ...Object.getOwnPropertyDescriptor(target, key),
-    //       enumerable: false,
-    //     };
-    //   },
-    //   get: (target, key: string) => {
-    //     if (key === 'updateRelationalResults') {
-    //       return (newRelationalResults: Maybe<TRelationalResults>) => {
-    //         if (newRelationalResults) {
-    //           relationalResults &&
-    //             Object.keys(relationalResults).forEach(key => {
-    //               Object.defineProperty(proxy, key, {
-    //                 enumerable: false,
-    //                 get: () => {
-    //                   throw new NotUpToDateException({
-    //                     propName: key,
-    //                     queryId: opts.queryId,
-    //                     nodeType: opts.node.type,
-    //                   });
-    //                 },
-    //               });
-    //             });
-    //           Object.keys(newRelationalResults).forEach(key => {
-    //             Object.defineProperty(proxy, key, {
-    //               enumerable: true,
-    //               configurable: true,
-    //             });
-    //           });
-    //         }
-    //         relationalResults = {
-    //           ...relationalResults,
-    //           ...newRelationalResults,
-    //         } as Maybe<TRelationalResults>;
-    //       };
-    //     }
-    //     if (
-    //       relationalResults &&
-    //       opts.relationalQueries &&
-    //       Object.keys(relationalResults).includes(key)
-    //     ) {
-    //       return relationalResults[key];
-    //     }
-    //     if (Object.keys(opts.node.data).includes(key)) {
-    //       if (!opts.allPropertiesQueried.some(prop => prop.startsWith(key))) {
-    //         throw new NotUpToDateException({
-    //           propName: key,
-    //           queryId: opts.queryId,
-    //           nodeType: opts.node.type,
-    //         });
-    //       }
-
-    //       console.log('NOLEY opts.node.data', opts.node.data);
-    //       const dataForThisProp = opts.node.data[key] as IData;
-
-    //       if (
-    //         dataForThisProp.type === DATA_TYPES.object ||
-    //         dataForThisProp.type === DATA_TYPES.maybeObject
-    //       ) {
-    //         //NOLEY QUESTION: why was this removed?
-    //         // do not return an object if this prop came back as null from backend
-    //         // if (opts.do[key] == null) return opts.do[key];
-    //         return opts.do[key];
-    //         // return getNestedProxyObjectWithNotUpToDateProtection({
-    //         //   nodeType: opts.node.type,
-    //         //   queryId: opts.queryId,
-    //         //   allCachedData: opts.do[key],
-    //         //   dataForThisObject: dataForThisProp.boxedValue,
-    //         //   allPropertiesQueried: opts.allPropertiesQueried,
-    //         //   parentObjectKey: key,
-    //         // });
-    //       }
-    //       return opts.do[key];
-    //     } else if (computedAccessors[key]) {
-    //       try {
-    //         return computedAccessors[key]();
-    //       } catch (e) {
-    //         if (e instanceof NotUpToDateException) {
-    //           throw new NotUpToDateInComputedException({
-    //             computedPropName: key,
-    //             propName: e.propName,
-    //             nodeType: opts.node.type,
-    //             queryId: opts.queryId,
-    //           });
-    //         }
-    //         throw e;
-    //       }
-    //     }
-    //     return target[key];
-    //   },
-    // }) as NodeDO & TRelationalResults & IDOProxy;
-
-    // console.log('NOLEY JSON proxyTest', { ...proxy });
-    // console.log('NOLEY original proxy', proxy);
+    // NOLEY QUESTION - DO WE EVEN NEED THIS? Dont think so but circle at end
+    // opts.relationalResults &&
+    //   Object.keys(opts.relationalResults).forEach(key => {
+    //     Object.defineProperty(proxy, key, {
+    //       enumerable: true,
+    //       configurable: true,
+    //     });
+    //   });
 
     return proxy;
   };
@@ -400,7 +276,6 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
         return descriptor;
       },
       get: (target, key: string) => {
-        //NOLEY WELL THIS IS TOTALLY NOT FINE
         if (key === 'toJSON') {
           return;
         }

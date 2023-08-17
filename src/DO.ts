@@ -522,35 +522,18 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         propName: string;
         computedFn: (nodeData: Record<string, any>) => any;
       }) {
-        let computedGetter = () => opts.computedFn(this);
-
-        // NOLEY DO WE NEED THIS??
-        // mmGQLInstance.plugins?.forEach(plugin => {
-        //   if (plugin.DO?.computedDecorator) {
-        //     computedGetter = plugin.DO.computedDecorator({
-        //       computedFn: computedGetter,
-        //       DOInstance: this,
-        //     });
-        //   }
-        // });
+        const computedGetter = () => opts.computedFn(this);
 
         let extended = false;
         if (mmGQLInstance.plugins) {
           mmGQLInstance.plugins.forEach(plugin => {
-            if (plugin.DO?.onExtendObservable) {
+            if (plugin.DO?.onExtendComputedObservable) {
               extended = true;
 
-              const objectToExtend = {};
-
-              Object.defineProperty(this, opts.propName, {
-                configurable: true,
-                enumerable: true,
-                get: () => opts.computedFn(this),
-              });
-
-              plugin.DO.onExtendObservable({
+              plugin.DO.onExtendComputedObservable({
                 DOInstance: this,
-                objectToExtend,
+                propName: opts.propName,
+                computedFn: opts.computedFn,
               });
             }
           });
