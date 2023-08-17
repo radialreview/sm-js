@@ -1,4 +1,4 @@
-import { IData, DataDefaultFn, NodeDO, INodeRepository } from './types';
+import { IData, DataDefaultFn, NodeDO, INodeRepository, Id } from './types';
 /**
  * Returns an initialized instance of a repository for a Node
  */
@@ -10,7 +10,7 @@ export declare function RepositoryFactory<TNodeData extends Record<string, IData
     DOClass: new (initialData?: Record<string, any>) => NodeDO;
     onDataReceived(opts: {
         data: {
-            id: string;
+            id: Id;
         } & Record<string, any>;
         applyUpdateToDO: () => void;
     }): void;

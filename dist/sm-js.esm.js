@@ -334,6 +334,8 @@ var DATA_TYPES;
   DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["stringOrNumber"] = "sON";
+  DATA_TYPES["maybeStringOrNumber"] = "mSON";
   DATA_TYPES["boolean"] = "b";
   DATA_TYPES["maybeBoolean"] = "mB";
   DATA_TYPES["object"] = "o";
@@ -379,6 +381,27 @@ var ENumberFilterOperator;
   ENumberFilterOperator["lte"] = "lte";
   ENumberFilterOperator["nlte"] = "nlte";
 })(ENumberFilterOperator || (ENumberFilterOperator = {}));
+
+var EStringOrNumberFilterOperator;
+
+(function (EStringOrNumberFilterOperator) {
+  EStringOrNumberFilterOperator["eq"] = "eq";
+  EStringOrNumberFilterOperator["neq"] = "neq";
+  EStringOrNumberFilterOperator["contains"] = "contains";
+  EStringOrNumberFilterOperator["ncontains"] = "ncontains";
+  EStringOrNumberFilterOperator["startsWith"] = "startsWith";
+  EStringOrNumberFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringOrNumberFilterOperator["endsWith"] = "endsWith";
+  EStringOrNumberFilterOperator["nendsWith"] = "nendsWith";
+  EStringOrNumberFilterOperator["gt"] = "gt";
+  EStringOrNumberFilterOperator["ngt"] = "ngt";
+  EStringOrNumberFilterOperator["gte"] = "gte";
+  EStringOrNumberFilterOperator["ngte"] = "ngte";
+  EStringOrNumberFilterOperator["lt"] = "lt";
+  EStringOrNumberFilterOperator["nlt"] = "nlt";
+  EStringOrNumberFilterOperator["lte"] = "lte";
+  EStringOrNumberFilterOperator["nlte"] = "nlte";
+})(EStringOrNumberFilterOperator || (EStringOrNumberFilterOperator = {}));
 
 var EBooleanFilterOperator;
 
@@ -483,6 +506,24 @@ number.optional = /*#__PURE__*/new Data({
       return Number(value);
     }
 
+    return value;
+  },
+  isOptional: true
+});
+var stringOrNumber = function stringOrNumber(defaultValue) {
+  return new Data({
+    type: DATA_TYPES.stringOrNumber,
+    parser: function parser(value) {
+      return value;
+    },
+    defaultValue: defaultValue,
+    isOptional: false
+  });
+};
+stringOrNumber._default = /*#__PURE__*/stringOrNumber('');
+stringOrNumber.optional = /*#__PURE__*/new Data({
+  type: DATA_TYPES.maybeStringOrNumber,
+  parser: function parser(value) {
     return value;
   },
   isOptional: true
@@ -654,7 +695,7 @@ function queryDefinition(queryDefinition) {
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string
@@ -810,7 +851,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
@@ -1466,12 +1507,6 @@ function getQueryRecordFromQueryDefinition(opts) {
   });
   return queryRecord;
 }
-
-function wrapInQuotesIfString(value) {
-  if (typeof value === 'string') return "\"" + value + "\"";
-  return value;
-}
-
 function getBEFilterString(opts) {
   var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
     var _opts$filter$key2;
@@ -1550,7 +1585,7 @@ function getBEFilterString(opts) {
         var isStringEnum = opts.def.data[filter.key].type === DATA_TYPES.stringEnum || opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
         var operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
           if (index > 0) acc += ', ';
-          var value = isStringEnum ? operatorValueCombo.value : wrapInQuotesIfString(operatorValueCombo.value);
+          var value = isStringEnum ? operatorValueCombo.value : JSON.stringify(operatorValueCombo.value);
 
           if (Array.isArray(operatorValueCombo.value)) {
             // if the value is an array, we need to wrap each value in quotes
@@ -1591,7 +1626,7 @@ function getBEFilterString(opts) {
             Object.keys(operatorValueCombo.value).forEach(function (key) {
               var valueAtThiskey = operatorValueCombo.value[key];
               var isStringEnum = relatedNodeDef.data[key].type === DATA_TYPES.stringEnum || relatedNodeDef.data[key].type === DATA_TYPES.maybeStringEnum;
-              var value = isStringEnum ? valueAtThiskey : wrapInQuotesIfString(valueAtThiskey);
+              var value = isStringEnum ? valueAtThiskey : JSON.stringify(valueAtThiskey);
               acc += key + ": {" + operatorValueCombo.operator + ": " + value + "}";
             });
             return acc;
@@ -1812,7 +1847,7 @@ function getOperationFromQueryRecordEntry(opts) {
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: \"" + opts.id + "\")";
+    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
   } else {
     var _options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -6740,7 +6775,7 @@ function augmentWithRelational(opts) {
     var idOrIds = dataToAugment[ownPropName];
     var queryRecordEntry = {
       def: def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id: typeof idOrIds === 'string' || typeof idOrIds === 'number' ? idOrIds : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties: properties,
       relational: relationalDataForThisRelationalData,
@@ -7816,31 +7851,24 @@ function createQueryManager(mmGQLInstance) {
             // otherwise, we want to return all state entries for this alias
 
             var shouldApplyIdFilter = restOfAliasPath.length === 0;
-            Object.keys(stateEntryToIterate.proxyCache).forEach(function (nodeId) {
+            Object.values(stateEntryToIterate.proxyCache).forEach(function (_ref5) {
               var _proxyCacheEntry$rela;
 
-              if (shouldApplyIdFilter) {
-                var nodeIdAsNumber = Number(nodeId);
-                var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  // since we store node ids as strings
-                  // but the message from BE may include the id as a number
-                  if (typeof parentFilter.id === 'number' && nodeIdAsNumber === parentFilter.id) {
-                    return true;
-                  } else if (typeof parentFilter.id === 'string' && nodeId === parentFilter.id) {
-                    return true;
-                  }
+              var proxy = _ref5.proxy;
 
-                  return false;
+              if (shouldApplyIdFilter) {
+                var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
+                  return proxy.id === parentFilter.id;
                 });
                 if (!matchesSomeIdInTargets) return;
               }
 
-              var proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
+              var proxyCacheEntry = stateEntryToIterate.proxyCache[proxy.id];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
               acc.push({
                 parentStateEntry: stateEntryToIterate,
-                idOfAffectedParent: nodeId,
+                idOfAffectedParent: proxy.id,
                 relationalAlias: firstAlias,
                 relationalStateEntry: relationalStateForAlias
               });
@@ -8779,9 +8807,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref5) {
-    var alias = _ref5[0],
-        queryRecordEntry = _ref5[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref6) {
+    var alias = _ref6[0],
+        queryRecordEntry = _ref6[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -8790,9 +8818,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
-    var alias = _ref6[0],
-        queryDefinition = _ref6[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
+    var alias = _ref7[0],
+        queryDefinition = _ref7[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -8800,9 +8828,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
-    var key = _ref7[0],
-        queryDefinition = _ref7[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        queryDefinition = _ref8[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -8983,9 +9011,9 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       previousQueryRecord = opts.previousQueryRecord;
   var minimalQueryRecord = {};
   var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref8) {
-    var alias = _ref8[0],
-        nextQueryRecordEntry = _ref8[1];
+  Object.entries(nextQueryRecord).forEach(function (_ref9) {
+    var alias = _ref9[0],
+        nextQueryRecordEntry = _ref9[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
@@ -9068,9 +9096,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref9) {
-      var key = _ref9[0],
-          nextRelationalQueryRecordEntry = _ref9[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref10) {
+      var key = _ref10[0],
+          nextRelationalQueryRecordEntry = _ref10[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -9097,9 +9125,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref10) {
-    var key = _ref10[0],
-        nextQueryRecordEntry = _ref10[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref11) {
+    var key = _ref11[0],
+        nextQueryRecordEntry = _ref11[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {
@@ -9357,5 +9385,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, EStringOrNumberFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, stringOrNumber, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

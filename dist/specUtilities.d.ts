@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder, Id } from './types';
 import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
@@ -865,7 +865,7 @@ export declare function generateDOInstance<TNodeType extends string, TNodeData e
     }>;
     relational?: NodeRelationalFns<TNodeRelationalData>;
     initialData: {
-        id: string;
+        id: Id;
         version: number;
     } & Record<string, any>;
 }): {
@@ -1153,14 +1153,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                 }>;
             };
             id: {
-                (defaultValue: string): IData<{
-                    TValue: string;
-                    TParsedValue: string;
+                (defaultValue: string | number): IData<{
+                    TValue: string | number;
+                    TParsedValue: string | number;
                     TBoxedValue: undefined;
                 }>;
                 _default: IData<{
-                    TValue: string;
-                    TParsedValue: string;
+                    TValue: string | number;
+                    TParsedValue: string | number;
                     TBoxedValue: undefined;
                 }>;
                 optional: IData<{
@@ -1351,14 +1351,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                     }>;
                 };
                 id: {
-                    (defaultValue: string): IData<{
-                        TValue: string;
-                        TParsedValue: string;
+                    (defaultValue: string | number): IData<{
+                        TValue: string | number;
+                        TParsedValue: string | number;
                         TBoxedValue: undefined;
                     }>;
                     _default: IData<{
-                        TValue: string;
-                        TParsedValue: string;
+                        TValue: string | number;
+                        TParsedValue: string | number;
                         TBoxedValue: undefined;
                     }>;
                     optional: IData<{
@@ -1507,14 +1507,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         }>;
                     };
                     id: {
-                        (defaultValue: string): IData<{
-                            TValue: string;
-                            TParsedValue: string;
+                        (defaultValue: string | number): IData<{
+                            TValue: string | number;
+                            TParsedValue: string | number;
                             TBoxedValue: undefined;
                         }>;
                         _default: IData<{
-                            TValue: string;
-                            TParsedValue: string;
+                            TValue: string | number;
+                            TParsedValue: string | number;
                             TBoxedValue: undefined;
                         }>;
                         optional: IData<{
@@ -1862,14 +1862,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                             }>;
                         };
                         id: {
-                            (defaultValue: string): IData<{
-                                TValue: string;
-                                TParsedValue: string;
+                            (defaultValue: string | number): IData<{
+                                TValue: string | number;
+                                TParsedValue: string | number;
                                 TBoxedValue: undefined;
                             }>;
                             _default: IData<{
-                                TValue: string;
-                                TParsedValue: string;
+                                TValue: string | number;
+                                TParsedValue: string | number;
                                 TBoxedValue: undefined;
                             }>;
                             optional: IData<{
@@ -2188,14 +2188,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                         }>;
                                     };
                                     id: {
-                                        (defaultValue: string): IData<{
-                                            TValue: string;
-                                            TParsedValue: string;
+                                        (defaultValue: string | number): IData<{
+                                            TValue: string | number;
+                                            TParsedValue: string | number;
                                             TBoxedValue: undefined;
                                         }>;
                                         _default: IData<{
-                                            TValue: string;
-                                            TParsedValue: string;
+                                            TValue: string | number;
+                                            TParsedValue: string | number;
                                             TBoxedValue: undefined;
                                         }>;
                                         optional: IData<{
@@ -2282,7 +2282,7 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         dateCreated: import("./types").FilterValue<number, true>;
                         dateLastModified: import("./types").FilterValue<number, true>;
                         lastUpdatedClientTimestamp: import("./types").FilterValue<number, true>;
-                        id: import("./types").FilterValue<string, true>;
+                        id: import("./types").FilterValue<string | number, true>;
                         version: import("./types").FilterValue<number, true>;
                         lastUpdatedBy: import("./types").FilterValue<string, true>;
                     }>> | undefined;
@@ -2553,14 +2553,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                         }>;
                     };
                     id: {
-                        (defaultValue: string): IData<{
-                            TValue: string;
-                            TParsedValue: string;
+                        (defaultValue: string | number): IData<{
+                            TValue: string | number;
+                            TParsedValue: string | number;
                             TBoxedValue: undefined;
                         }>;
                         _default: IData<{
-                            TValue: string;
-                            TParsedValue: string;
+                            TValue: string | number;
+                            TParsedValue: string | number;
                             TBoxedValue: undefined;
                         }>;
                         optional: IData<{
@@ -2879,14 +2879,14 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
                                     }>;
                                 };
                                 id: {
-                                    (defaultValue: string): IData<{
-                                        TValue: string;
-                                        TParsedValue: string;
+                                    (defaultValue: string | number): IData<{
+                                        TValue: string | number;
+                                        TParsedValue: string | number;
                                         TBoxedValue: undefined;
                                     }>;
                                     _default: IData<{
-                                        TValue: string;
-                                        TParsedValue: string;
+                                        TValue: string | number;
+                                        TParsedValue: string | number;
                                         TBoxedValue: undefined;
                                     }>;
                                     optional: IData<{
@@ -2954,10 +2954,10 @@ export declare function createMockQueryDefinitions(mmGQLInstance: IMMGQL, opts?:
             }>;
         };
         TQueryDefinitionTarget: {
-            id: string;
+            id: Id;
             allowNullResult?: boolean | undefined;
         } | {
-            ids: string[];
+            ids: Id[];
         };
         TUseSubscriptionQueryDefinitionOpts: {
             doNotSuspend: boolean | undefined;
@@ -3108,7 +3108,7 @@ export declare function convertNodesCollectionValuesToArray<T extends Record<str
 }): Record<string, any>;
 export declare function createMockDataItems<T>(opts: {
     sampleMockData: T & {
-        id: string;
+        id: Id;
     };
     items: Array<Partial<any>>;
     pageInfo?: Partial<PageInfoFromResults>;
@@ -3122,7 +3122,7 @@ export declare function createMockDataItems<T>(opts: {
 };
 export declare function createNonPaginatedMockDataItems<T>(opts: {
     sampleMockData: T & {
-        id: string;
+        id: Id;
     };
     items: Array<Partial<any>>;
 }): (T & {
