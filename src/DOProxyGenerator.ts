@@ -94,9 +94,20 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         }, {} as Record<string, () => any>)
       : {};
 
+    // when we onExtendComputedObservable with plugins on the DO, that makes the computed not enumerable, in that case, we have
+    // to add the computed key to relationalKeysComputedKeysAndDOKeys. Otherwise, ownKeys will error out due to duplicate keys on
+    // the proxy trap.
+    const nonEnumerableComputedFunctionsFromPlugins = !!mmGQLInstance.plugins?.some(
+      plugin => plugin.DO?.onExtendComputedObservable
+    );
+
     const relationalKeysComputedKeysAndDOKeys = [
       ...Object.keys(opts.do),
-      ...Object.keys(nodeComputed || {}),
+      ...Object.keys(
+        nonEnumerableComputedFunctionsFromPlugins && nodeComputed
+          ? nodeComputed
+          : {}
+      ),
       ...Object.keys(opts.relationalResults || []),
     ];
 
