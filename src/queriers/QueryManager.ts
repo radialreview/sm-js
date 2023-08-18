@@ -1429,7 +1429,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               this.notifyRepositories({
                 data: {
-                  [relationalAlias]: relationalDataEntry,
+                  [relationalDataAlias]: relationalDataEntry,
                 },
                 queryRecord: {
                   [relationalAlias]: relationalQuery,

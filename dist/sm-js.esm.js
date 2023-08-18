@@ -8039,7 +8039,7 @@ function createQueryManager(mmGQLInstance) {
               }
 
               _this7.notifyRepositories({
-                data: (_data = {}, _data[relationalAlias] = relationalDataEntry, _data),
+                data: (_data = {}, _data[relationalDataAlias] = relationalDataEntry, _data),
                 queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord),
                 isFromSubscriptionMessage: opts.isFromSubscriptionMessage
               });
