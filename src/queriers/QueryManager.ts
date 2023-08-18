@@ -36,6 +36,7 @@ import {
   getQueryRecordFromQueryDefinition,
   getSubscriptionGQLDocumentsFromQueryRecord,
   queryRecordEntryReturnsArrayOfData,
+  queryRecordEntryReturnsArrayOfDataNestedInNodes,
 } from './queryDefinitionAdapters';
 import { extend } from '../dataUtilities';
 import { generateMockNodeDataForQueryRecord } from './generateMockData';
@@ -1558,13 +1559,18 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               id: node.id,
             });
 
-            const pageInfoFromResults = !isFromSubscriptionMessage
-              ? this.getPageInfoFromResponse({
+            const getPageInfoFromResults = () => {
+              const shouldBeWrappedInNodes = queryRecordEntryReturnsArrayOfDataNestedInNodes(
+                { queryRecordEntry }
+              );
+              if (!isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+                return this.getPageInfoFromResponse({
                   dataForThisAlias: node[relationalDataAlias],
                   queryRecordEntry,
                   collectionsIncludePagingInfo: true,
-                })
-              : {
+                });
+              } else if (isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+                return {
                   hasNextPage: false,
                   hasPreviousPage: false,
                   startCursor: 'mock-start-cursor-should-not-be-used',
@@ -1575,6 +1581,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                         ?.itemsPerPage || DEFAULT_PAGE_SIZE)
                   ),
                 };
+              } else {
+                return null;
+              }
+            };
+
+            const pageInfoFromResults = getPageInfoFromResults();
 
             const totalCount = !isFromSubscriptionMessage
               ? this.getTotalCountFromResponse({
