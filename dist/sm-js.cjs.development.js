@@ -8111,7 +8111,7 @@ function createQueryManager(mmGQLInstance) {
       var buildRelationalStateForNode = function buildRelationalStateForNode(node) {
         if (!relationalQueryRecord) return null;
         return Object.keys(relationalQueryRecord).reduce(function (relationalStateAcc, relationalAlias) {
-          var _relationalQueryRecor, _extends2;
+          var _extends2;
 
           var queryRecordEntry = relationalQueryRecord[relationalAlias];
           var relationalDataAlias = getAliasForData({
@@ -8135,17 +8135,33 @@ function createQueryManager(mmGQLInstance) {
             id: node.id
           });
 
-          var pageInfoFromResults = !isFromSubscriptionMessage ? _this9.getPageInfoFromResponse({
-            dataForThisAlias: node[relationalDataAlias],
-            queryRecordEntry: queryRecordEntry,
-            collectionsIncludePagingInfo: true
-          }) : {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: 'mock-start-cursor-should-not-be-used',
-            endCursor: 'mock-end-cursor-should-not-be-used',
-            totalPages: Math.ceil(relationalDataForThisAlias.length / (((_relationalQueryRecor = relationalQueryRecord[relationalAlias].pagination) == null ? void 0 : _relationalQueryRecor.itemsPerPage) || DEFAULT_PAGE_SIZE))
+          var getPageInfoFromResults = function getPageInfoFromResults() {
+            var shouldBeWrappedInNodes = queryRecordEntryReturnsArrayOfDataNestedInNodes({
+              queryRecordEntry: queryRecordEntry
+            });
+
+            if (!isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+              return _this9.getPageInfoFromResponse({
+                dataForThisAlias: node[relationalDataAlias],
+                queryRecordEntry: queryRecordEntry,
+                collectionsIncludePagingInfo: true
+              });
+            } else if (isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+              var _relationalQueryRecor;
+
+              return {
+                hasNextPage: false,
+                hasPreviousPage: false,
+                startCursor: 'mock-start-cursor-should-not-be-used',
+                endCursor: 'mock-end-cursor-should-not-be-used',
+                totalPages: Math.ceil(relationalDataForThisAlias.length / (((_relationalQueryRecor = relationalQueryRecord[relationalAlias].pagination) == null ? void 0 : _relationalQueryRecor.itemsPerPage) || DEFAULT_PAGE_SIZE))
+              };
+            } else {
+              return null;
+            }
           };
+
+          var pageInfoFromResults = getPageInfoFromResults();
           var totalCount = !isFromSubscriptionMessage ? _this9.getTotalCountFromResponse({
             dataForThisAlias: node[relationalDataAlias]
           }) : relationalDataForThisAlias.length;
