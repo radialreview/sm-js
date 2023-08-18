@@ -1385,7 +1385,26 @@ describe('subscription handling', () => {
     });
   });
 
-  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases, deeply nested', done => {
+  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases', done => {
+    const mockTodosCollection = {
+      [NODES_PROPERTY_KEY]: [
+        {
+          type: 'todo',
+          version: 1,
+          id: 'mock-todo-id-1',
+          task: 'mock-task-1',
+        },
+      ],
+      [TOTAL_COUNT_PROPERTY_KEY]: 1,
+      [PAGE_INFO_PROPERTY_KEY]: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: 'mock-todo-id-1',
+        endCursor: 'mock-todo-id-1',
+        totalPages: 1,
+      },
+    };
+
     const mockUsersResponse = {
       [NODES_PROPERTY_KEY]: [
         {
@@ -1393,42 +1412,7 @@ describe('subscription handling', () => {
           version: 1,
           id: 'mock-user-id-1',
           firstName: 'mock-user-name-1',
-          todos: {
-            [NODES_PROPERTY_KEY]: [
-              {
-                type: 'todo',
-                version: 1,
-                id: 'mock-todo-id-1',
-                task: 'mock-task-1',
-              },
-            ],
-            [TOTAL_COUNT_PROPERTY_KEY]: 1,
-            [PAGE_INFO_PROPERTY_KEY]: {
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor: 'mock-todo-id-1',
-              endCursor: 'mock-todo-id-1',
-              totalPages: 1,
-            },
-          },
-          todosCopy: {
-            [NODES_PROPERTY_KEY]: [
-              {
-                type: 'todo',
-                version: 1,
-                id: 'mock-todo-id-1',
-                task: 'mock-task-1',
-              },
-            ],
-            [TOTAL_COUNT_PROPERTY_KEY]: 1,
-            [PAGE_INFO_PROPERTY_KEY]: {
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor: 'mock-todo-id-1',
-              endCursor: 'mock-todo-id-1',
-              totalPages: 1,
-            },
-          },
+          todosCopy: mockTodosCollection,
         },
       ],
       [TOTAL_COUNT_PROPERTY_KEY]: 1,
@@ -1480,9 +1464,6 @@ describe('subscription handling', () => {
         usersCopy: users({
           map: ({ firstName, todos }) => ({
             firstName,
-            todos: todos({
-              map: ({ task }) => ({ task }),
-            }),
             todosCopy: todos({
               map: ({ task }) => ({ task }),
             }),
@@ -1551,17 +1532,6 @@ describe('subscription handling', () => {
                     version: 1,
                     id: 'mock-user-id-2',
                     firstName: 'mock-user-name-2',
-                    todos: {
-                      [NODES_PROPERTY_KEY]: [
-                        {
-                          type: 'todo',
-                          version: 1,
-                          id: 'mock-todo-id-2',
-                          task: 'mock-task-2',
-                        },
-                      ],
-                      [TOTAL_COUNT_PROPERTY_KEY]: 1,
-                    },
                     todosCopy: {
                       [NODES_PROPERTY_KEY]: [
                         {
