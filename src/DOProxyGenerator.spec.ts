@@ -174,6 +174,9 @@ describe('DOProxyGenerator', () => {
     console.log('NOLEY ...doProxy', { ...doProxy });
 
     // NOLEY PROBLEM: something about matching inline snapshots errors out here. spreading is fine above but the snapshot below errors out
+    // proxy trap problem, possible a mobx thing. TOJSON try and find out what and escape it
+    // Update > if we rule out those properties, we crash in the mobx tests for isObservable. Can't have both asking...
+
     // expect({ ...doProxy }).toMatchInlineSnapshot(`
     //   Object {
     //     "computedValue": "",

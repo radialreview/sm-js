@@ -74,8 +74,9 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
       (proxy: IDOProxy) => any
     >;
 
-    //NOLEY QUESTION: so why do we not grab these off the DO? We already initilize them there, and doing it here seems weird.
-    // I understand up to date protection is gained on the proxy, not the do, but why then initilize on the DO at all if we aren't using it?
+    // NOLEY NOTES:  remove computed from the DO, might break stuff
+
+    // we have to redefine the computeds here passing in the proxy so the computeds will have NotUpToDateInComputedException protection.
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
           let computedFn = () => nodeComputed[computedKey](proxy as IDOProxy);
@@ -93,23 +94,6 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
           return acc;
         }, {} as Record<string, () => any>)
       : {};
-
-    // when we onExtendComputedObservable with plugins on the DO, that makes the computed not enumerable, in that case, we have
-    // to add the computed key to relationalKeysComputedKeysAndDOKeys. Otherwise, ownKeys will error out due to duplicate keys on
-    // the proxy trap.
-    const nonEnumerableComputedFunctionsFromPlugins = !!mmGQLInstance.plugins?.some(
-      plugin => plugin.DO?.onExtendComputedObservable
-    );
-
-    const relationalKeysComputedKeysAndDOKeys = [
-      ...Object.keys(opts.do),
-      ...Object.keys(
-        nonEnumerableComputedFunctionsFromPlugins && nodeComputed
-          ? nodeComputed
-          : {}
-      ),
-      ...Object.keys(opts.relationalResults || []),
-    ];
 
     const proxy = new Proxy(
       {},
@@ -152,10 +136,20 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
           };
         },
         ownKeys: () => {
-          return relationalKeysComputedKeysAndDOKeys;
+          return Object.getOwnPropertyNames(opts.do);
         },
         get: (_, key: string) => {
-          if (key === 'toJSON') {
+          if (
+            key === 'toJSON'
+            // NOLEY NOTES: see other comments
+            // ||
+            // key === '$$typeof' ||
+            // key === 'constructor' ||
+            // key === '@@__IMMUTABLE_ITERABLE__@@' ||
+            // key === '@@__IMMUTABLE_RECORD__@@' ||
+            // key === '_isMockFunction' ||
+            // typeof key === 'symbol'
+          ) {
             return;
           }
 
@@ -287,7 +281,17 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
         return descriptor;
       },
       get: (target, key: string) => {
-        if (key === 'toJSON') {
+        if (
+          key === 'toJSON'
+          //||
+          // NOLEY NOTES: these crash observables, without them we crash on toMatchInlineSnapshot
+          // key === '$$typeof' ||
+          // key === 'constructor' ||
+          // key === '@@__IMMUTABLE_ITERABLE__@@' ||
+          // key === '@@__IMMUTABLE_RECORD__@@' ||
+          // key === '_isMockFunction' ||
+          // typeof key === 'symbol'
+        ) {
           return;
         }
 

@@ -1,4 +1,7 @@
-import { DEFAULT_NODE_PROPERTIES } from './consts';
+import {
+  DEFAULT_NODE_PROPERTIES,
+  PROTECTED_NODE_PROPTERY_NAMES,
+} from './consts';
 import { createDOFactory } from './DO';
 import { createDOProxyGenerator } from './DOProxyGenerator';
 import { ImpliedNodePropertyException } from './exceptions';
@@ -107,7 +110,11 @@ export class MMGQL implements IMMGQL {
 
     const propertyNames = Object.keys(def.properties);
     const defaultProp = propertyNames.find(x =>
-      Object.keys(DEFAULT_NODE_PROPERTIES).includes(x)
+      Object.keys({
+        ...DEFAULT_NODE_PROPERTIES,
+        // NOLEY NOTES: we might need to remove this, follow up
+        ...PROTECTED_NODE_PROPTERY_NAMES,
+      }).includes(x)
     );
     if (defaultProp) {
       throw new ImpliedNodePropertyException({

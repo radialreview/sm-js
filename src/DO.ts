@@ -425,7 +425,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
 
               const objectToExtend = {};
 
-              Object.defineProperty(this, propNameForThisObject, {
+              Object.defineProperty(objectToExtend, propNameForThisObject, {
                 configurable: true,
                 enumerable: true,
                 get: () => this.parsedData[propNameForThisObject],
@@ -459,7 +459,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
 
               const objectToExtend = {};
 
-              Object.defineProperty(this, propName, {
+              Object.defineProperty(objectToExtend, propName, {
                 configurable: true,
                 enumerable: true,
                 get: () => this.parsedData[propName],
@@ -493,7 +493,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
 
               const objectToExtend = {};
 
-              Object.defineProperty(this, propName, {
+              Object.defineProperty(objectToExtend, propName, {
                 configurable: true,
                 enumerable: true,
                 get: () => this.parsedData[propName],

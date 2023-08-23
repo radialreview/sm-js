@@ -8,6 +8,7 @@ import {
   isComputedProp,
   isObservableArray,
   isObservableObject,
+  isObservableProp,
 } from 'mobx';
 
 import {
@@ -80,23 +81,25 @@ test('QueryManager handles a query result and returns the expected data when plu
 });
 
 test('Querying returns the expected data as an observable for all data types when plugins are enabled', async () => {
+  const initialData = {
+    user: {
+      id: 'id-1',
+      type: 'user',
+      firstName: 'John',
+      lastName: 'Smith',
+      hasPets: true,
+      numberOfPets: 2,
+      petName: 'Babu',
+      pets: ['dog', 'cat'],
+      petsToAge: { dog: 2, cat: 5 },
+      petSleepToSpots: { Babu: 'couch', George: 'chair' },
+    },
+  };
+
   const mmGQLInstance = new MMGQL(
     getMockConfig({
       plugins: [mobxPlugin],
-      mockData: {
-        user: {
-          id: 'id-1',
-          type: 'user',
-          firstName: 'John',
-          lastName: 'Smith',
-          hasPets: true,
-          numberOfPets: 2,
-          petName: 'Babu',
-          pets: ['dog', 'cat'],
-          petsToAge: { dog: 2, cat: 5 },
-          petSleepToSpots: { Babu: 'couch', George: 'chair' },
-        },
-      },
+      mockData: initialData,
     })
   );
 
@@ -151,15 +154,51 @@ test('Querying returns the expected data as an observable for all data types whe
     }),
   });
 
-  // NOLEY PROBLEM 1: these fail, mobx or me?
-  // expect(isObservableProp(data.user, 'firstName')).toBe(true);
-  // expect(isObservableProp(data.user, 'numberOfPets')).toBe(true);
-  // expect(isObservableProp(data.user, 'hasPets')).toBe(true);
-  // expect(isObservableProp(data.user, 'petName')).toBe(true);
-  // expect(isObservableObject(data.user.petSleepToSpots)).toBe(true);
-  expect(isObservableObject(data.user)).toBe(true);
+  expect(isObservableProp(data.user, 'firstName')).toBe(true);
+  expect(isObservableProp(data.user, 'numberOfPets')).toBe(true);
+  expect(isObservableProp(data.user, 'hasPets')).toBe(true);
+  expect(isObservableProp(data.user, 'petName')).toBe(true);
+  expect(isObservableObject(data)).toBe(true);
   expect(isObservableArray(data.user.pets)).toBe(true);
   expect(isObservableObject(data.user.petsToAge)).toBe(true);
+
+  // NOLEY PROBLEM: can't get this to work as expected. The autorun does not detect the change in data.user.firstName.
+  // let iterationCounter = 0;
+  // const updateData = () => {
+  //   userNode.repository.onDataReceived({
+  //     id: 'id-1',
+  //     type: 'user',
+  //     version: 1,
+  //     firstName: 'Ralph',
+  //   });
+  // };
+
+  // const errorSpy = jest.spyOn(console, 'error');
+
+  // autorun(() => {
+  //   iterationCounter++;
+
+  //   console.log(
+  //     'NOLEY iterationCounter',
+  //     iterationCounter,
+  //     data.user.firstName
+  //   );
+
+  //   if (iterationCounter === 1) {
+  //     console.log('NOLEY COUNT 1', data.user.firstName);
+  //     expect(data.user.firstName).toBe('John');
+  //   }
+
+  //   if (iterationCounter === 2) {
+  //     console.log('NOLEY COUNT 2', data.user.firstName);
+  //     expect(data.user.firstName).toBe('Ralph');
+  //   }
+  // });
+
+  // updateData();
+  // done();
+
+  // expect(errorSpy).not.toHaveBeenCalled();
 });
 
 test('QueryManager handles a query result and returns the expected data as an observable when plugins are enabled for a nodesCollection', done => {
@@ -213,7 +252,7 @@ test('QueryManager handles a query result and returns the expected data as an ob
   );
 });
 
-test('Computed properties update only when a property that derives the computed is changed when plugins are enabled', async () => {
+test('Computed properties update only when a property that derives the computed is changed when plugins are enabled', async done => {
   const mmGQLInstance = new MMGQL(
     getMockConfig({
       plugins: [mobxPlugin],
@@ -222,8 +261,8 @@ test('Computed properties update only when a property that derives the computed 
           id: 'id-1',
           type: 'user',
           firstName: 'Babu',
-          middleName: 'Toe',
-          lastName: 'Biter',
+          middleName: 'Orange',
+          lastName: 'Cat',
         },
       },
     })
@@ -298,314 +337,14 @@ test('Computed properties update only when a property that derives the computed 
   autorun(() => {
     expect(isComputedProp(data.user, 'fullName')).toBe(true);
     expect(indexCount).toBe(0);
-    expect(data.user.fullName).toBe('Babu Biter');
+    expect(data.user.fullName).toBe('Babu Cat');
     expect(indexCount).toBe(1);
-    expect(data.user.fullName).toBe('Babu Biter');
+    expect(data.user.fullName).toBe('Babu Cat');
     expect(indexCount).toBe(1);
-    expect(data.user.fullName).toBe('Babu Biter');
+    expect(data.user.fullName).toBe('Babu Cat');
     expect(indexCount).toBe(1);
   });
 
   expect(errorSpy).not.toHaveBeenCalled();
+  done();
 });
-
-//NOLEY GRAVEYARD - delete at end.
-// test('POC for DO observables does the things', () => {
-//   let computedIndex = 0;
-
-//   const node: Record<string, any> = {
-//     computed: {
-//       superCoolComputed: (opts: { cats: string }) => {
-//         computedIndex++;
-//         return opts.cats + ' are super cool';
-//       },
-//       superNeatComputed: (opts: { cats: string }) => {
-//         return opts.cats + ' are neat';
-//       },
-//     },
-//   };
-
-//   class DO {
-//     public parsedData: Record<string, any> = {};
-//     public useMobx: boolean = false;
-
-//     constructor(opts: { initialData: Record<string, any>; useMobx: boolean }) {
-//       this.parsedData = opts.initialData;
-//       this.useMobx = opts.useMobx;
-//       opts.useMobx && makeAutoObservable(this['parsedData']);
-
-//       this.initializeNodePropGetters();
-//       this.initializeNodeComputedGetters();
-//     }
-
-//     public onDataReceived = (data: Record<string, any>) => {
-//       this.parsedData = data;
-//     };
-
-//     private initializeNodePropGetters() {
-//       this.setPrimitiveValueProp('cats');
-//     }
-
-//     private initializeNodeComputedGetters() {
-//       const computedData = node.computed;
-//       if (computedData) {
-//         Object.keys(computedData).forEach(computedProp => {
-//           this.setComputedProp({
-//             propName: computedProp,
-//             computedFn: computedData[computedProp] as (
-//               data: Record<string, any>
-//             ) => any,
-//           });
-//         });
-//       }
-//     }
-
-//     private setComputedProp(opts: {
-//       propName: string;
-//       computedFn: (nodeData: Record<string, any>) => any;
-//     }) {
-//       let extended = false;
-//       if (this.useMobx) {
-//         extended = true;
-
-//         extendObservable(this, {
-//           get [opts.propName]() {
-//             return computed(() => {
-//               return opts.computedFn(this);
-//             }).get();
-//           },
-//         });
-//       }
-
-//       if (!extended) {
-//         Object.defineProperty(this, opts.propName, {
-//           get: () => opts.computedFn(this),
-//           configurable: true,
-//           enumerable: true,
-//         });
-//       }
-//     }
-
-//     private setPrimitiveValueProp = (propName: string) => {
-//       if (this.useMobx) {
-//         const emptyObj = {};
-//         Object.defineProperty(emptyObj, propName, {
-//           enumerable: true,
-//           configurable: true,
-//           get: () => this.parsedData[propName],
-//         });
-//         extendObservable(this, emptyObj);
-//       } else {
-//         Object.defineProperty(this, propName, {
-//           enumerable: true,
-//           configurable: true,
-//           get: () => this.parsedData[propName],
-//         });
-//       }
-//     };
-//   }
-
-//   const myDOWithMobx: Record<string, any> = new DO({
-//     initialData: { cats: 'dogs' },
-//     useMobx: true,
-//   });
-
-//   // onDataRecieved will not update correctly within autorun, not autofun. See how this behaves when we plug this in to
-//   // the real DO.
-//   // expect(computedIndex).toBe(0);
-//   // myDOWithMobx.onDataReceived({ cats: 'avocados' });
-//   // expect(computedIndex).toBe(0);
-//   // expect(myDOWithMobx.superCoolComputed).toBe('avocados are super cool');
-//   // expect(computedIndex).toBe(1);
-//   // myDOWithMobx.onDataReceived({ cats: 'dogs' });
-
-//   // // per mobx, computed's have to be observed by something in order to memoize values, autorun replicates this:
-//   // // https://github.com/mobxjs/mobx/issues/1531#issuecomment-386818310
-//   // autorun(() => {
-//   //   expect(isComputedProp(myDOWithMobx, 'superCoolComputed')).toBe(true);
-//   //   expect(computedIndex).toBe(1);
-//   //   expect(myDOWithMobx.superCoolComputed).toBe('dogs are super cool');
-//   //   expect(computedIndex).toBe(2);
-//   //   expect(myDOWithMobx.superCoolComputed).toBe('dogs are super cool');
-//   //   expect(computedIndex).toBe(2);
-//   //   expect(myDOWithMobx.superCoolComputed).toBe('dogs are super cool');
-//   //   expect(computedIndex).toBe(2);
-//   // });
-
-//   const nodeComputed = (node.computed as unknown) as Record<
-//     string,
-//     (proxy: IDOProxy) => any
-//   >;
-
-//   const computedAccessors = nodeComputed
-//     ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
-//         acc[computedKey] = computedFn(() => {
-//           return nodeComputed[computedKey](proxiedDO as IDOProxy);
-//         });
-
-//         return acc;
-//       }, {} as Record<string, () => any>)
-//     : {};
-
-//   const proxiedDO = new Proxy(
-//     {},
-//     {
-//       getOwnPropertyDescriptor: (_: Record<string, any>, key: string) => {
-//         if (key === 'id') {
-//           return {
-//             ...Object.getOwnPropertyDescriptor(myDOWithMobx, key),
-//             enumerable: true,
-//             configurable: true,
-//             // value: myDO[key],
-//           };
-//         }
-
-//         // enumerate computed properties which have all the data they need queried
-//         // otherwise they throw NotUpToDateException and we don't enumerate
-//         else if (nodeComputed && Object.keys(nodeComputed).includes(key)) {
-//           try {
-//             computedAccessors[key]();
-//             return {
-//               enumerable: true,
-//               configurable: true,
-//             };
-//           } catch (e) {
-//             if (!(e instanceof NotUpToDateException)) throw e;
-//             return {
-//               enumerable: false,
-//               configurable: true,
-//             };
-//           }
-//         } else {
-//           return {
-//             ...Object.getOwnPropertyDescriptor(myDOWithMobx, key),
-//             enumerable: false,
-//             configurable: true,
-//             // value: myDO[key],
-//           };
-//         }
-//       },
-//       ownKeys: () => {
-//         return Object.keys(myDOWithMobx);
-//       },
-//       get: (_: Record<string, any>, key: string) => {
-//         if (computedAccessors[key]) {
-//           try {
-//             return computedAccessors[key]();
-//           } catch (e) {
-//             if (e instanceof NotUpToDateException) {
-//               throw new NotUpToDateInComputedException({
-//                 computedPropName: key,
-//                 propName: e.propName,
-//                 nodeType: 'TEST',
-//                 queryId: '123',
-//               });
-//             }
-//             throw e;
-//           }
-//         } else {
-//           return myDOWithMobx[key];
-//         }
-//       },
-//     }
-//   );
-
-//   expect(isObservableProp(proxiedDO, 'cats')).toBe(true);
-
-//   expect(computedIndex).toBe(0);
-//   proxiedDO.onDataReceived({ cats: 'avocados' });
-//   expect(computedIndex).toBe(0);
-//   expect(proxiedDO.superCoolComputed).toBe('avocados are super cool');
-//   expect(proxiedDO.superNeatComputed).toBe('avocados are neat');
-//   expect(computedIndex).toBe(1);
-//   proxiedDO.onDataReceived({ cats: 'dogs' });
-
-//   const errorSpy = jest.spyOn(console, 'error');
-
-//   // per mobx, computed's have to be observed by something in order to memoize values, autorun replicates this:
-//   // https://github.com/mobxjs/mobx/issues/1531#issuecomment-386818310
-//   autorun(() => {
-//     expect(isComputedProp(proxiedDO, 'superCoolComputed')).toBe(true);
-//     expect(computedIndex).toBe(1);
-//     expect(proxiedDO.superCoolComputed).toBe('dogs are super cool');
-//     expect(computedIndex).toBe(2);
-//     expect(proxiedDO.superCoolComputed).toBe('dogs are super cool');
-//     expect(computedIndex).toBe(2);
-//     expect(proxiedDO.superCoolComputed).toBe('dogs are super cool');
-//     expect(computedIndex).toBe(2);
-//   });
-
-//   expect(errorSpy).not.toHaveBeenCalled();
-// });
-
-// makeAutoObservable(computedIndex);
-
-// makeAutoObservable(computedInde// this fails due to not properly memozing the value
-// Object.defineProperty(emptyObj, 'computed', {
-//   configurable: true,
-//   enumerable: true,
-//   get: computedFn(() =>
-//     node.computed.superCoolComputed({ cats: computedIndexl })
-//   ),
-// });
-
-// this fails due to blah of undefined errors:  TypeError: Cannot read property 'size' of undefined
-// Object.defineProperty(emptyObj, 'computed', {
-//   configurable: true,
-//   enumerable: true,
-//   get: computed(() =>
-//     node.computed.superCoolComputed({ cats: computedIndexl })
-//   ).get,
-// });
-
-// this does not properly memoize
-// Object.defineProperty(emptyObj, 'computed', {
-//   configurable: true,
-//   enumerable: true,
-//   get: () =>
-//     computed(() =>
-//       node.computed.superCoolComputed({ cats: computedIndexl })
-//     ).get(),
-// });
-
-//    TypeError: Cannot read property 'isComputing_' of undefined
-//   const computedFunctionTest = computed(() =>
-//   node.computed.superCoolComputed({ cats: computedIndexl })
-// ).get;
-
-// class DOTest {
-//   animal = 'cats';
-
-//   constructor() {
-//     makeAutoObservable(this);
-//   }
-
-//   changeAnimal(newAnimal: string) {
-//     action(() => {
-//       this.animal = newAnimal;
-//     })();
-//   }
-// }
-
-// const obersObj: Record<string, any> = new DOTest();
-
-// const computedValue = computed(() => {
-//   return node.computed.superCoolComputed({ cats: obersObj.animal });
-// }).get();
-
-// extendObservable(obersObj, {
-//   get computed() {
-//     return computedValue;
-//   },
-// });
-
-// someone kill me: https://github.com/mobxjs/mobx/issues/1531#issuecomment-386818310
-
-// autorun(() => {
-//   expect(isComputedProp(obersObj, 'computed')).toBe(true);
-//   expect(computedIndex).toBe(1);
-//   expect(obersObj.computed).toBe('cats are super cool');
-//   expect(computedIndex).toBe(1);
-//   expect(obersObj.computed).toBe('cats are super cool');
-//   expect(computedIndex).toBe(1);
-// });
