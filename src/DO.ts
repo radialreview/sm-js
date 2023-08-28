@@ -1,5 +1,7 @@
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { Data } from './dataTypes';
+import { extend } from './dataUtilities';
+
 import {
   IMMGQL,
   IData,
@@ -13,6 +15,7 @@ import {
   INode,
   DATA_TYPES,
   MapFn,
+  IDOMethods,
 } from './types';
 
 export function createDOFactory(mmGQLInstance: IMMGQL) {
@@ -73,6 +76,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
           persistedData: this.persistedData,
           defaultData: this._defaults,
         });
+
         mmGQLInstance.plugins?.forEach(plugin => {
           if (plugin.DO?.onConstruct) {
             plugin.DO.onConstruct({
@@ -279,53 +283,54 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         }
       }
 
-      public onDataReceived = (
-        receivedData: {
-          version: number;
-          lastUpdatedBy: string;
-        } & DeepPartial<TNodeData>,
-        opts?: { __unsafeIgnoreVersion: boolean }
-      ) => {
-        if (receivedData.version == null) {
-          throw Error('Message received for a node was missing a version');
-        }
+      public onDataReceived = decorateInActionIfApplicable({
+        func: (
+          receivedData: {
+            version: number;
+            lastUpdatedBy: string;
+          } & DeepPartial<TNodeData>,
+          opts?: { __unsafeIgnoreVersion: boolean }
+        ) => {
+          if (receivedData.version == null) {
+            throw Error('Message received for a node was missing a version');
+          }
 
-        const newVersion = Number(receivedData.version);
+          const newVersion = Number(receivedData.version);
 
-        // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
-        // it allows setting the data on the DO to a version older than the last optimistic update
-        // so that we can revert on a failed request
-        if (opts?.__unsafeIgnoreVersion || newVersion >= this.version) {
-          this.version = newVersion;
-          this.lastUpdatedBy = receivedData.lastUpdatedBy;
+          // __unsafeIgnoreVersion should used by OptimisticUpdatesOrchestrator ONLY
+          // it allows setting the data on the DO to a version older than the last optimistic update
+          // so that we can revert on a failed request
+          if (opts?.__unsafeIgnoreVersion || newVersion >= this.version) {
+            this.version = newVersion;
+            this.lastUpdatedBy = receivedData.lastUpdatedBy;
 
-          const newData = this.parseReceivedData({
-            initialData: receivedData,
-            nodeProperties: node.properties,
-          });
+            const newData = this.parseReceivedData({
+              initialData: receivedData,
+              nodeProperties: node.properties,
+            });
 
-          this.extendPersistedWithNewlyReceivedData({
-            data: node.properties,
-            object: this.persistedData,
-            extension: newData,
-          });
+            this.extendPersistedWithNewlyReceivedData({
+              data: node.properties,
+              object: this.persistedData,
+              extension: newData,
+            });
 
-          this.parsedData = this.getParsedData({
-            data: node.properties,
-            persistedData: this.persistedData,
-            defaultData: this._defaults,
-          });
+            const updatedParsedData = this.getParsedData({
+              data: node.properties,
+              persistedData: this.persistedData,
+              defaultData: this._defaults,
+            });
 
-          mmGQLInstance.plugins?.forEach(plugin => {
-            if (plugin.DO?.onConstruct) {
-              plugin.DO.onConstruct({
-                DOInstance: this,
-                parsedDataKey: 'parsedData',
-              });
-            }
-          });
-        }
-      };
+            extend({
+              object: this.parsedData,
+              extension: updatedParsedData,
+              deleteKeysNotInExtension: true,
+              extendNestedObjects: true,
+            });
+          }
+        },
+        mmGQLInstance,
+      });
 
       private extendPersistedWithNewlyReceivedData(opts: {
         data: Record<string, IData | DataDefaultFn>;
@@ -590,3 +595,21 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
     };
   };
 }
+
+//NOLEY: issues with how this is done here, want to allow multiple plugins but use case is weird.
+const decorateInActionIfApplicable = (opts: {
+  func: IDOMethods['onDataReceived'];
+  mmGQLInstance: IMMGQL;
+}) => {
+  const pluginsWithAnActionDecorator = opts.mmGQLInstance.plugins?.find(
+    plugin => plugin.DO?.actionDecorator
+  );
+
+  if (pluginsWithAnActionDecorator?.DO?.actionDecorator) {
+    return pluginsWithAnActionDecorator.DO.actionDecorator({
+      actionFn: opts.func,
+    });
+  } else {
+    return opts.func;
+  }
+};

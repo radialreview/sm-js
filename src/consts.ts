@@ -12,7 +12,19 @@ export const RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
 
 export const DEFAULT_TOKEN_NAME = 'default';
 
-// NOLEY NOTES: we might need to remove this, follow up -> In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds 'constructor' as a key to
+export const DO_PROXY_GENERATOR_ESCAPED_KEYS = [
+  'nodeType',
+  'toJSON',
+  '$$typeof',
+  'constructor',
+  '@@__IMMUTABLE_ITERABLE__@@',
+  '@@__IMMUTABLE_RECORD__@@',
+  '_isMockFunction',
+  'asymmetricMatch',
+];
+
+// NOLEY NOTES: we might need to remove this, follow up ->
+// In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds 'constructor' as a key to
 // the get traps. We have to escape that key, and we want to prevent it from being used as a property name which would break the DOProxyGenerator,
 // since it is purposely excluded from the get traps.
 export const PROTECTED_NODE_PROPTERY_NAMES = {

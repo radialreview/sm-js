@@ -1,5 +1,3 @@
-import { Maybe } from './types';
-
 /**
  * Clones an object or array. Recurses into nested objects and arrays for deep clones.
  */
@@ -123,52 +121,4 @@ export function extend(opts: {
 export function arrayEquals<T extends Array<any>>(arr1: T, arr2: T) {
   if (arr1.length !== arr2.length) return false;
   return !arr1.find((el, index) => arr2[index] !== el);
-}
-
-//NOLEY TODO: if you can get around formating error, use inline snapshot instead
-export const keys = Object.keys as <T>(o: T) => Extract<keyof T, string>[];
-
-export function isDeepEqual<T extends Record<string, any>>(
-  obj1: Maybe<T>,
-  obj2: Maybe<T>
-): boolean {
-  if (!obj1 || !obj2) return false;
-
-  if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false;
-
-  // quick and dirty check
-  // if they don't have the same keys, they can't be deep equal
-  if (!arrayEquals(keys(obj1), keys(obj2))) return false;
-
-  for (const key in obj1) {
-    const valueInObj1 = obj1[key];
-    const valueInObj2 = obj2[key];
-
-    if (valueInObj1 == null || typeof valueInObj1 !== 'object') {
-      // if the values in one of the objects is null or not an object, it's safe to use strict equality
-      if (valueInObj1 !== valueInObj2) return false;
-    } else if (typeof valueInObj1 !== typeof valueInObj2) {
-      // if the values are different types the objects are definitely not deep equal
-      return false;
-    } else {
-      // otherwise, value in obj1 is an object
-      // if value in obj2 is not, they are not deep equal
-      if (typeof valueInObj2 !== 'object') return false;
-
-      const valueInObj1IsArray = Array.isArray(valueInObj1);
-      const valueInObj2IsArray = Array.isArray(valueInObj2);
-
-      // if one is an array and another is not, they are not deep equal
-      if (valueInObj2IsArray !== valueInObj1IsArray) return false;
-      else if (valueInObj1IsArray && valueInObj2IsArray) {
-        // if they are both arrays but are not shallow equal, the objects are not deep equal
-        if (!arrayEquals(valueInObj1, valueInObj2)) return false;
-      }
-
-      // otherwise both values are nested objects, return false if they are not deep equal
-      if (!isDeepEqual(valueInObj1, valueInObj2)) return false;
-    }
-  }
-
-  return true;
 }

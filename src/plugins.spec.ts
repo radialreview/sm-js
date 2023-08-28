@@ -33,13 +33,13 @@ import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 
 // NOLEY TESING GOALS
 // 1. need to check each DO property is an observable and the computed functions are computed
-// - problem with this, see NOLEY PROBLEM 1 below
+// - done
 // 2. the resutlsObject is an observable
 // - done
 // 3. run existing tests hunt all spec files and see if any new failings
 // - need to do, also should run all tests with the plugins to see how that behaves
 // 4. onDataRecieved should update data for computed as expected
-// - need to test, this probably is covered in other tests but worth making sure.
+// - done
 
 test('mmGQLInstance correctly returns the plugins passed in', async () => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
@@ -80,7 +80,7 @@ test('QueryManager handles a query result and returns the expected data when plu
   );
 });
 
-test('Querying returns the expected data as an observable for all data types when plugins are enabled', async () => {
+test('Querying returns the expected data as an observable for all data types when plugins are enabled', async done => {
   const initialData = {
     user: {
       id: 'id-1',
@@ -162,43 +162,34 @@ test('Querying returns the expected data as an observable for all data types whe
   expect(isObservableArray(data.user.pets)).toBe(true);
   expect(isObservableObject(data.user.petsToAge)).toBe(true);
 
-  // NOLEY PROBLEM: can't get this to work as expected. The autorun does not detect the change in data.user.firstName.
-  // let iterationCounter = 0;
-  // const updateData = () => {
-  //   userNode.repository.onDataReceived({
-  //     id: 'id-1',
-  //     type: 'user',
-  //     version: 1,
-  //     firstName: 'Ralph',
-  //   });
-  // };
+  let iterationCounter = 0;
+  const updateData = () => {
+    userNode.repository.onDataReceived({
+      id: 'id-1',
+      type: 'user',
+      version: 1,
+      firstName: 'Ralph',
+    });
+  };
 
-  // const errorSpy = jest.spyOn(console, 'error');
+  const errorSpy = jest.spyOn(console, 'error');
 
-  // autorun(() => {
-  //   iterationCounter++;
+  autorun(() => {
+    iterationCounter++;
 
-  //   console.log(
-  //     'NOLEY iterationCounter',
-  //     iterationCounter,
-  //     data.user.firstName
-  //   );
+    if (iterationCounter === 1) {
+      expect(data.user.firstName).toBe('John');
+    }
 
-  //   if (iterationCounter === 1) {
-  //     console.log('NOLEY COUNT 1', data.user.firstName);
-  //     expect(data.user.firstName).toBe('John');
-  //   }
+    if (iterationCounter === 2) {
+      expect(data.user.firstName).toBe('Ralph');
+      done();
+    }
+  });
 
-  //   if (iterationCounter === 2) {
-  //     console.log('NOLEY COUNT 2', data.user.firstName);
-  //     expect(data.user.firstName).toBe('Ralph');
-  //   }
-  // });
+  updateData();
 
-  // updateData();
-  // done();
-
-  // expect(errorSpy).not.toHaveBeenCalled();
+  expect(errorSpy).not.toHaveBeenCalled();
 });
 
 test('QueryManager handles a query result and returns the expected data as an observable when plugins are enabled for a nodesCollection', done => {
@@ -336,6 +327,8 @@ test('Computed properties update only when a property that derives the computed 
 
   autorun(() => {
     expect(isComputedProp(data.user, 'fullName')).toBe(true);
+    expect(isObservableProp(data.user, 'firstName')).toBe(true);
+
     expect(indexCount).toBe(0);
     expect(data.user.fullName).toBe('Babu Cat');
     expect(indexCount).toBe(1);
@@ -343,8 +336,24 @@ test('Computed properties update only when a property that derives the computed 
     expect(indexCount).toBe(1);
     expect(data.user.fullName).toBe('Babu Cat');
     expect(indexCount).toBe(1);
+
+    userNode.repository.onDataReceived({
+      id: 'id-1',
+      version: 1,
+      type: 'user',
+      firstName: 'Calcifer',
+    });
+
+    expect(data.user.firstName).toBe('Calcifer');
+    expect(data.user.fullName).toBe('Calcifer Cat');
+    expect(indexCount).toBe(2);
+    expect(data.user.fullName).toBe('Calcifer Cat');
+    expect(indexCount).toBe(2);
+
+    if (indexCount === 2) {
+      done();
+    }
   });
 
   expect(errorSpy).not.toHaveBeenCalled();
-  done();
 });

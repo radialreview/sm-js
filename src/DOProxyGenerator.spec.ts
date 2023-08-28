@@ -16,7 +16,6 @@ import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
 import { number, object, string } from './dataTypes';
 import { getNestedProxyObjectWithNotUpToDateProtection } from './DOProxyGenerator';
-import { isDeepEqual } from './dataUtilities';
 
 describe('DOProxyGenerator', () => {
   // basic sanity check
@@ -171,24 +170,18 @@ describe('DOProxyGenerator', () => {
       ],
     });
 
-    console.log('NOLEY ...doProxy', { ...doProxy });
-
-    // NOLEY PROBLEM: something about matching inline snapshots errors out here. spreading is fine above but the snapshot below errors out
-    // proxy trap problem, possible a mobx thing. TOJSON try and find out what and escape it
-    // Update > if we rule out those properties, we crash in the mobx tests for isObservable. Can't have both asking...
-
-    // expect({ ...doProxy }).toMatchInlineSnapshot(`
-    //   Object {
-    //     "computedValue": "",
-    //     "id": "mockId",
-    //     "lastUpdatedBy": undefined,
-    //     "object": Object {
-    //       "nestedString": "",
-    //     },
-    //     "type": "mockNodeType",
-    //     "version": 1,
-    //   }
-    // `);
+    expect({ ...doProxy }).toMatchInlineSnapshot(`
+      Object {
+        "computedValue": "",
+        "id": "mockId",
+        "lastUpdatedBy": undefined,
+        "object": Object {
+          "nestedString": "",
+        },
+        "type": "mockNodeType",
+        "version": 1,
+      }
+    `);
   });
 });
 
@@ -469,27 +462,14 @@ test('getNestedProxyObjectWithNotUpToDateProtection avoids enumerating propertie
     })
   );
 
-  // NOLEY NOTES: this is preferable if able to get around formatting error
-  // expect(result).toMatchInlineSnapshot(`
-  //   Object {
-  //     "streetName": "123 Main St",
-  //     "state": "Oregon",
-  //     "apt": {
-  //       "floor": 13,
-  //       "number": 22,
-  //     },
-  //   }
-  // `);
-
-  expect(
-    isDeepEqual(
-      { ...result },
-      {
-        streetName: '123 Main St',
-        state: 'Oregon',
-        apt: { floor: 13, number: 22 },
-      }
-    )
-  ).toBe(true);
-  expect(Object.keys(result)).toEqual(['streetName', 'state', 'apt']);
+  expect(result).toMatchInlineSnapshot(`
+    Object {
+      "apt": Object {
+        "floor": 13,
+        "number": 22,
+      },
+      "state": "Oregon",
+      "streetName": "123 Main St",
+    }
+  `);
 });

@@ -52,6 +52,7 @@ export type Plugin = {
       propName: string; 
       computedFn: TComputedFn; 
     }) => void;
+    actionDecorator?: (opts: {actionFn: IDOMethods['onDataReceived']}) => IDOMethods['onDataReceived']
   };
   DOProxy?: {
     computedDecorator?: <

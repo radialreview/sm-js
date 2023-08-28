@@ -1,4 +1,4 @@
-import { computed, extendObservable, makeAutoObservable } from 'mobx';
+import { computed, extendObservable, makeAutoObservable, action } from 'mobx';
 import { Plugin } from './types';
 import { computedFn as computedFnMobx } from 'mobx-utils';
 
@@ -16,6 +16,9 @@ export const mobxPlugin: Plugin = {
           return computed(() => computedFn(DOInstance)).get();
         },
       });
+    },
+    actionDecorator: ({ actionFn }) => {
+      return action(actionFn);
     },
   },
   DOProxy: {

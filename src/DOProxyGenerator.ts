@@ -1,4 +1,7 @@
-import { PROPERTIES_QUERIED_FOR_ALL_NODES } from './consts';
+import {
+  DO_PROXY_GENERATOR_ESCAPED_KEYS,
+  PROPERTIES_QUERIED_FOR_ALL_NODES,
+} from './consts';
 import {
   NotUpToDateException,
   NotUpToDateInComputedException,
@@ -140,17 +143,10 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
         },
         get: (_, key: string) => {
           if (
-            key === 'toJSON'
-            // NOLEY NOTES: see other comments
-            // ||
-            // key === '$$typeof' ||
-            // key === 'constructor' ||
-            // key === '@@__IMMUTABLE_ITERABLE__@@' ||
-            // key === '@@__IMMUTABLE_RECORD__@@' ||
-            // key === '_isMockFunction' ||
-            // typeof key === 'symbol'
+            DO_PROXY_GENERATOR_ESCAPED_KEYS.includes(key) ||
+            typeof key === 'symbol'
           ) {
-            return;
+            return opts.do[key];
           }
 
           if (key === 'updateRelationalResults') {
@@ -282,17 +278,10 @@ export function getNestedProxyObjectWithNotUpToDateProtection(opts: {
       },
       get: (target, key: string) => {
         if (
-          key === 'toJSON'
-          //||
-          // NOLEY NOTES: these crash observables, without them we crash on toMatchInlineSnapshot
-          // key === '$$typeof' ||
-          // key === 'constructor' ||
-          // key === '@@__IMMUTABLE_ITERABLE__@@' ||
-          // key === '@@__IMMUTABLE_RECORD__@@' ||
-          // key === '_isMockFunction' ||
-          // typeof key === 'symbol'
+          DO_PROXY_GENERATOR_ESCAPED_KEYS.includes(key) ||
+          typeof key === 'symbol'
         ) {
-          return;
+          return target[key];
         }
 
         const name = opts.parentObjectKey
