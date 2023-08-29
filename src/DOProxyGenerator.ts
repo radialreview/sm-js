@@ -77,8 +77,6 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
       (proxy: IDOProxy) => any
     >;
 
-    // NOLEY NOTES:  remove computed from the DO, might break stuff
-
     // we have to redefine the computeds here passing in the proxy so the computeds will have NotUpToDateInComputedException protection.
     const computedAccessors = nodeComputed
       ? Object.keys(nodeComputed).reduce((acc, computedKey) => {
@@ -232,14 +230,13 @@ export function createDOProxyGenerator(mmGQLInstance: IMMGQL) {
       }
     ) as NodeDO & TRelationalResults & IDOProxy;
 
-    // NOLEY QUESTION - DO WE EVEN NEED THIS? Dont think so but circle at end
-    // opts.relationalResults &&
-    //   Object.keys(opts.relationalResults).forEach(key => {
-    //     Object.defineProperty(proxy, key, {
-    //       enumerable: true,
-    //       configurable: true,
-    //     });
-    //   });
+    opts.relationalResults &&
+      Object.keys(opts.relationalResults).forEach(key => {
+        Object.defineProperty(proxy, key, {
+          enumerable: true,
+          configurable: true,
+        });
+      });
 
     return proxy;
   };

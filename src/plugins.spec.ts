@@ -40,6 +40,8 @@ import { OBJECT_PROPERTY_SEPARATOR } from './queriers/queryDefinitionAdapters';
 // - need to do, also should run all tests with the plugins to see how that behaves
 // 4. onDataRecieved should update data for computed as expected
 // - done
+// 5. remove computed from the DO, might break stuff
+// - todo, want to get everything else functional before doing this
 
 test('mmGQLInstance correctly returns the plugins passed in', async () => {
   const mmGQLInstance = new MMGQL(getMockConfig({ plugins: [mobxPlugin] }));
