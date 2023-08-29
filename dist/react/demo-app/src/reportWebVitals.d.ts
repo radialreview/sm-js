@@ -1,3 +1,2 @@
-import { ReportHandler } from 'web-vitals';
-declare const reportWebVitals: (onPerfEntry?: ReportHandler | undefined) => void;
+declare const reportWebVitals: (onPerfEntry?: any) => void;
 export default reportWebVitals;

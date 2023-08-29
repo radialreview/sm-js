@@ -11,6 +11,7 @@ import {
   oneToMany,
   oneToOne,
   nonPaginatedOneToMany,
+  stringOrNumber,
 } from './dataTypes';
 import {
   ExtractQueriedDataFromMapFn,
@@ -26,6 +27,7 @@ import {
   GetResultingDataFromQueryDefinition,
   GetMapFnArgs,
   INonPaginatedOneToManyQueryBuilder,
+  Id,
 } from './types';
 
 /**
@@ -33,7 +35,7 @@ import {
  */
 const mmGQL = new MMGQL(getDefaultConfig());
 const todoProperties = {
-  id: string,
+  id: stringOrNumber,
   task: string,
   dueDate: number,
   assigneeId: string,
@@ -110,7 +112,7 @@ const meetingNode: MeetingNode = mmGQL.def({
 });
 
 const userProperties = {
-  id: string,
+  id: stringOrNumber,
   firstName: string,
   lastName: string,
   bool: boolean(true),
@@ -159,7 +161,7 @@ const userNode: UserNode = mmGQL.def({
 });
 
 const meetingGuestProperties = {
-  id: string,
+  id: stringOrNumber,
   firstName: string,
 };
 type MeetingGuestNode = INode<{
@@ -336,6 +338,10 @@ const stateNode: StateNode = mmGQL.def({
     maybeStr: { eq: null },
   };
   filter7;
+  const filter8: ValidFilterForNode<UserNode, false> = {
+    id: { neq: 123 },
+  };
+  filter8;
 })();
 
 (function DataTypeInferenceUtilTests() {
@@ -414,9 +420,9 @@ const stateNode: StateNode = mmGQL.def({
     }),
   });
 
-  targetOmmissionResults.data.users.nodes[0].id as string;
+  targetOmmissionResults.data.users.nodes[0].id as Id;
   // @ts-expect-error invalid type
-  targetOmmissionResults.data.users.nodes[0].id as number;
+  targetOmmissionResults.data.users.nodes[0].id as Function;
   // @ts-expect-error not queried
   targetOmmissionResults.data.users.nodes[0].notqueried as number;
   // @ts-expect-error not queried
@@ -483,7 +489,7 @@ const stateNode: StateNode = mmGQL.def({
           },
           // @ts-expect-error wrong data type, id is a string
           id: {
-            eq: 123,
+            eq: {},
           },
         },
       },
@@ -578,7 +584,7 @@ const stateNode: StateNode = mmGQL.def({
 
   validTargetWithFilters.data.users.nodes[0].id as string;
   // @ts-expect-error invalid type
-  validTargetWithFilters.data.users.nodes[0].id as number;
+  validTargetWithFilters.data.users.nodes[0].id as Function;
   // @ts-expect-error not queried
   validTargetWithFilters.data.users.nodes[0].notqueried as number;
 

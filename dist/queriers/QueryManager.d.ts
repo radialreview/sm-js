@@ -1,9 +1,9 @@
 import { PageInfoFromResults, ClientSidePageInfo } from '../nodesCollection';
-import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage } from '../types';
+import { IDOProxy, Maybe, IMMGQL, QueryRecord, RelationalQueryRecordEntry, QueryRecordEntry, RelationalQueryRecord, IQueryPagination, QueryDefinitions, UseSubscriptionQueryDefinitions, QueryState, SubscriptionMessage, Id } from '../types';
 declare type QueryManagerState = Record<string, // the alias for this set of results
 QueryManagerStateEntry>;
 declare type QueryManagerStateEntry = {
-    idsOrIdInCurrentResult: string | Array<string> | null;
+    idsOrIdInCurrentResult: Id | Array<Id> | null;
     proxyCache: QueryManagerProxyCache;
     pageInfoFromResults: Maybe<PageInfoFromResults>;
     totalCount: Maybe<number>;
@@ -111,17 +111,17 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             aliasPath: Array<string>;
             pathEndQueryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
             parentFilters?: Array<{
-                id: string;
+                id: Id;
                 property: string;
             }>;
             previousStateEntries?: Array<{
                 parentStateEntry: QueryManagerStateEntry;
-                idOfAffectedParent: string | null;
+                idOfAffectedParent: Id | null;
                 relationalStateEntry: Maybe<QueryManagerStateEntry>;
             }>;
         }): Array<{
             parentStateEntry: QueryManagerStateEntry;
-            idOfAffectedParent: string | null;
+            idOfAffectedParent: Id | null;
             relationalAlias: string | null;
             relationalStateEntry: QueryManagerStateEntry | null;
         }>;
@@ -147,12 +147,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             queryRecord: {
                 [key: string]: QueryRecordEntry | RelationalQueryRecordEntry | null;
             };
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): void;
         getQueryManagerStateFromData(opts: {
             data: Record<string, any>;
             queryRecord: QueryRecord | RelationalQueryRecord;
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): QueryManagerState;
         buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
@@ -162,7 +162,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             totalCount: Maybe<number>;
             clientSidePageInfo: Maybe<ClientSidePageInfo>;
             aliasPath: Array<string>;
-            collectionsIncludePagingInfo: boolean;
+            isFromSubscriptionMessage: boolean;
         }): Maybe<QueryManagerStateEntry>;
         removeUnionSuffix(alias: string): string;
         getApplicableRelationalQueries(opts: {
@@ -237,7 +237,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         }): void;
         addIdToLastEntryInAliasPath(opts: {
             aliasPath: Array<string>;
-            id: string;
+            id: Id;
         }): string[];
         /**
          * Removes the id from the alias if it exists

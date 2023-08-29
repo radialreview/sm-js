@@ -6,7 +6,7 @@ import {
   generateDOInstance,
   getMockConfig,
 } from './specUtilities';
-import { IOneToManyQueryBuilder, IData, RELATIONAL_TYPES } from './types';
+import { IOneToManyQueryBuilder, IData, RELATIONAL_TYPES, Id } from './types';
 
 describe('data.DO', () => {
   test('that DO class will automatically parse and validate data it receives when constructed based on the expected data structure', () => {
@@ -85,7 +85,7 @@ describe('data.DO', () => {
     const { doInstance } = generateDOInstance<
       'mock-type',
       typeof properties,
-      { dropdownOpt: { value: string; display: string } },
+      { dropdownOpt: { value: Id; display: string } },
       {}
     >({
       properties,

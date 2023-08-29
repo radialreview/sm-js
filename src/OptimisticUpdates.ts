@@ -1,5 +1,5 @@
 import { deepClone } from './dataUtilities';
-import { Maybe, NodeDO } from './types';
+import { Id, Maybe, NodeDO } from './types';
 
 /**
  * This class is responsible for handling all logic pertaining optimistic updates.
@@ -51,10 +51,11 @@ export class OptimisticUpdatesOrchestrator {
   };
 
   public onPersistedDataReceived = (opts: {
-    data: { id: string; version: number; lastUpdatedBy: string } & Record<
-      string,
-      any
-    >;
+    data: {
+      id: Id;
+      version: number;
+      lastUpdatedBy: string;
+    } & Record<string, any>;
     applyUpdateToDO: () => void;
   }) => {
     const nodeId = opts.data.id;
@@ -69,7 +70,7 @@ export class OptimisticUpdatesOrchestrator {
   };
 
   public onUpdateRequested = (update: {
-    id: string;
+    id: Id;
     payload: Record<string, any>;
   }) => {
     const DO = this.getDOById(update.id);
@@ -116,7 +117,7 @@ export class OptimisticUpdatesOrchestrator {
     };
   };
 
-  private handleUpdateFailed(opts: { updateIdx: number; id: string }) {
+  private handleUpdateFailed(opts: { updateIdx: number; id: Id }) {
     const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
     const wasLastTriggeredUpdate =
       inFlightRequestsForThisNode.length === opts.updateIdx + 1;
@@ -150,18 +151,18 @@ export class OptimisticUpdatesOrchestrator {
     this.cleanupIfNoInFlightRequests(opts.id);
   }
 
-  private handleUpdateSuccessful(opts: { updateIdx: number; id: string }) {
+  private handleUpdateSuccessful(opts: { updateIdx: number; id: Id }) {
     const inFlightRequestsForThisNode = this.inFlightRequestsById[opts.id];
     inFlightRequestsForThisNode.splice(opts.updateIdx, 1);
     this.cleanupIfNoInFlightRequests(opts.id);
   }
 
-  private getDOById(id: string): Maybe<NodeDO> {
+  private getDOById(id: Id): Maybe<NodeDO> {
     const DO = this.DOsById[id];
     return DO;
   }
 
-  private cleanupIfNoInFlightRequests(id: string) {
+  private cleanupIfNoInFlightRequests(id: Id) {
     if (!this.inFlightRequestsById[id].length) {
       delete this.lastKnownPersistedDataById[id];
       delete this.inFlightRequestsById[id];

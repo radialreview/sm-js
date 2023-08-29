@@ -334,6 +334,8 @@ var DATA_TYPES;
   DATA_TYPES["maybeStringEnum"] = "mSE";
   DATA_TYPES["number"] = "n";
   DATA_TYPES["maybeNumber"] = "mN";
+  DATA_TYPES["stringOrNumber"] = "sON";
+  DATA_TYPES["maybeStringOrNumber"] = "mSON";
   DATA_TYPES["boolean"] = "b";
   DATA_TYPES["maybeBoolean"] = "mB";
   DATA_TYPES["object"] = "o";
@@ -379,6 +381,27 @@ var ENumberFilterOperator;
   ENumberFilterOperator["lte"] = "lte";
   ENumberFilterOperator["nlte"] = "nlte";
 })(ENumberFilterOperator || (ENumberFilterOperator = {}));
+
+var EStringOrNumberFilterOperator;
+
+(function (EStringOrNumberFilterOperator) {
+  EStringOrNumberFilterOperator["eq"] = "eq";
+  EStringOrNumberFilterOperator["neq"] = "neq";
+  EStringOrNumberFilterOperator["contains"] = "contains";
+  EStringOrNumberFilterOperator["ncontains"] = "ncontains";
+  EStringOrNumberFilterOperator["startsWith"] = "startsWith";
+  EStringOrNumberFilterOperator["nstartsWith"] = "nstartsWith";
+  EStringOrNumberFilterOperator["endsWith"] = "endsWith";
+  EStringOrNumberFilterOperator["nendsWith"] = "nendsWith";
+  EStringOrNumberFilterOperator["gt"] = "gt";
+  EStringOrNumberFilterOperator["ngt"] = "ngt";
+  EStringOrNumberFilterOperator["gte"] = "gte";
+  EStringOrNumberFilterOperator["ngte"] = "ngte";
+  EStringOrNumberFilterOperator["lt"] = "lt";
+  EStringOrNumberFilterOperator["nlt"] = "nlt";
+  EStringOrNumberFilterOperator["lte"] = "lte";
+  EStringOrNumberFilterOperator["nlte"] = "nlte";
+})(EStringOrNumberFilterOperator || (EStringOrNumberFilterOperator = {}));
 
 var EBooleanFilterOperator;
 
@@ -483,6 +506,24 @@ number.optional = /*#__PURE__*/new Data({
       return Number(value);
     }
 
+    return value;
+  },
+  isOptional: true
+});
+var stringOrNumber = function stringOrNumber(defaultValue) {
+  return new Data({
+    type: DATA_TYPES.stringOrNumber,
+    parser: function parser(value) {
+      return value;
+    },
+    defaultValue: defaultValue,
+    isOptional: false
+  });
+};
+stringOrNumber._default = /*#__PURE__*/stringOrNumber('');
+stringOrNumber.optional = /*#__PURE__*/new Data({
+  type: DATA_TYPES.maybeStringOrNumber,
+  parser: function parser(value) {
     return value;
   },
   isOptional: true
@@ -654,7 +695,7 @@ function queryDefinition(queryDefinition) {
 }
 
 var PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string
@@ -810,7 +851,7 @@ function createDOFactory(mmGQLInstance) {
         };
 
         this._defaults = this.getDefaultData(node.properties);
-        this.id = String(initialData.id);
+        this.id = initialData.id;
         this.lastUpdatedBy = initialData.lastUpdatedBy;
 
         if (initialData.version != null) {
@@ -1466,12 +1507,6 @@ function getQueryRecordFromQueryDefinition(opts) {
   });
   return queryRecord;
 }
-
-function wrapInQuotesIfString(value) {
-  if (typeof value === 'string') return "\"" + value + "\"";
-  return value;
-}
-
 function getBEFilterString(opts) {
   var readyForBE = Object.keys(opts.filter).reduce(function (acc, current) {
     var _opts$filter$key2;
@@ -1550,7 +1585,7 @@ function getBEFilterString(opts) {
         var isStringEnum = opts.def.data[filter.key].type === DATA_TYPES.stringEnum || opts.def.data[filter.key].type === DATA_TYPES.maybeStringEnum;
         var operatorValueCombosStringified = filter.operatorValueCombos.reduce(function (acc, operatorValueCombo, index) {
           if (index > 0) acc += ', ';
-          var value = isStringEnum ? operatorValueCombo.value : wrapInQuotesIfString(operatorValueCombo.value);
+          var value = isStringEnum ? operatorValueCombo.value : JSON.stringify(operatorValueCombo.value);
 
           if (Array.isArray(operatorValueCombo.value)) {
             // if the value is an array, we need to wrap each value in quotes
@@ -1591,7 +1626,7 @@ function getBEFilterString(opts) {
             Object.keys(operatorValueCombo.value).forEach(function (key) {
               var valueAtThiskey = operatorValueCombo.value[key];
               var isStringEnum = relatedNodeDef.data[key].type === DATA_TYPES.stringEnum || relatedNodeDef.data[key].type === DATA_TYPES.maybeStringEnum;
-              var value = isStringEnum ? valueAtThiskey : wrapInQuotesIfString(valueAtThiskey);
+              var value = isStringEnum ? valueAtThiskey : JSON.stringify(valueAtThiskey);
               acc += key + ": {" + operatorValueCombo.operator + ": " + value + "}";
             });
             return acc;
@@ -1812,7 +1847,7 @@ function getOperationFromQueryRecordEntry(opts) {
     });
     operation = nodeType + "s" + (options !== '' ? "(" + options + ")" : '');
   } else if ('id' in opts && opts.id != null) {
-    operation = nodeType + "(id: \"" + opts.id + "\")";
+    operation = nodeType + "(id: " + JSON.stringify(opts.id) + ")";
   } else {
     var _options = getGetNodeOptions({
       queryRecordEntry: opts,
@@ -6740,7 +6775,7 @@ function augmentWithRelational(opts) {
     var idOrIds = dataToAugment[ownPropName];
     var queryRecordEntry = {
       def: def,
-      id: typeof idOrIds === 'string' ? idOrIds : undefined,
+      id: typeof idOrIds === 'string' || typeof idOrIds === 'number' ? idOrIds : undefined,
       ids: Array.isArray(idOrIds) ? idOrIds : undefined,
       properties: properties,
       relational: relationalDataForThisRelationalData,
@@ -6912,7 +6947,7 @@ function createQueryManager(mmGQLInstance) {
       this.applyClientSideFilterAndSortToState = function (opts) {
         Object.keys(opts.stateWhichMayRequireUpdate).forEach(function (alias) {
           var queryRecordEntry = opts.queryRecord[alias];
-          if (!queryRecordEntry) throw Error("No query record entry found for the alias " + alias);
+          if (!queryRecordEntry) return; // nothing to do here
 
           _this.applyClientSideFilterAndSortToStateEntry({
             stateEntryWhichMayRequireUpdate: opts.stateWhichMayRequireUpdate[alias],
@@ -7259,7 +7294,7 @@ function createQueryManager(mmGQLInstance) {
                   _this2.notifyRepositories({
                     data: nodeData,
                     queryRecord: path.queryRecordEntry.relational,
-                    collectionsIncludePagingInfo: false
+                    isFromSubscriptionMessage: true
                   });
                 }
 
@@ -7283,7 +7318,7 @@ function createQueryManager(mmGQLInstance) {
                     pageInfoFromResults: null,
                     totalCount: null,
                     clientSidePageInfo: null,
-                    collectionsIncludePagingInfo: false
+                    isFromSubscriptionMessage: true
                   });
                 } else {
                   cacheEntry = stateEntryWhichMayRequireUpdate;
@@ -7308,7 +7343,7 @@ function createQueryManager(mmGQLInstance) {
                     var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id].relationalState = _this2.getQueryManagerStateFromData({
                       data: nodeData,
                       queryRecord: relationalQueryRecord,
-                      collectionsIncludePagingInfo: false
+                      isFromSubscriptionMessage: true
                     });
 
                     _this2.applyClientSideFilterAndSortToState({
@@ -7361,7 +7396,7 @@ function createQueryManager(mmGQLInstance) {
                 _this2.notifyRepositories({
                   data: nodeData,
                   queryRecord: path.queryRecordEntry.relational,
-                  collectionsIncludePagingInfo: false
+                  isFromSubscriptionMessage: true
                 });
               }
 
@@ -7376,7 +7411,7 @@ function createQueryManager(mmGQLInstance) {
                 pageInfoFromResults: null,
                 totalCount: null,
                 clientSidePageInfo: null,
-                collectionsIncludePagingInfo: false
+                isFromSubscriptionMessage: true
               });
 
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
@@ -7451,7 +7486,7 @@ function createQueryManager(mmGQLInstance) {
                 _this2.notifyRepositories({
                   data: nodeInsertedData,
                   queryRecord: path.queryRecordEntry.relational,
-                  collectionsIncludePagingInfo: false
+                  isFromSubscriptionMessage: true
                 });
               }
 
@@ -7468,7 +7503,7 @@ function createQueryManager(mmGQLInstance) {
                 pageInfoFromResults: null,
                 totalCount: null,
                 clientSidePageInfo: null,
-                collectionsIncludePagingInfo: false
+                isFromSubscriptionMessage: true
               });
 
               if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
@@ -7601,7 +7636,7 @@ function createQueryManager(mmGQLInstance) {
                   _this2.notifyRepositories({
                     data: nodeAssociatedData,
                     queryRecord: path.queryRecordEntry.relational,
-                    collectionsIncludePagingInfo: false
+                    isFromSubscriptionMessage: true
                   });
                 }
 
@@ -7616,7 +7651,7 @@ function createQueryManager(mmGQLInstance) {
                   pageInfoFromResults: null,
                   totalCount: null,
                   clientSidePageInfo: null,
-                  collectionsIncludePagingInfo: false
+                  isFromSubscriptionMessage: true
                 });
 
                 if (!newCacheEntry) return _this2.logSubscriptionError('No new cache entry found');
@@ -7816,31 +7851,24 @@ function createQueryManager(mmGQLInstance) {
             // otherwise, we want to return all state entries for this alias
 
             var shouldApplyIdFilter = restOfAliasPath.length === 0;
-            Object.keys(stateEntryToIterate.proxyCache).forEach(function (nodeId) {
+            Object.values(stateEntryToIterate.proxyCache).forEach(function (_ref5) {
               var _proxyCacheEntry$rela;
 
-              if (shouldApplyIdFilter) {
-                var nodeIdAsNumber = Number(nodeId);
-                var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
-                  // since we store node ids as strings
-                  // but the message from BE may include the id as a number
-                  if (typeof parentFilter.id === 'number' && nodeIdAsNumber === parentFilter.id) {
-                    return true;
-                  } else if (typeof parentFilter.id === 'string' && nodeId === parentFilter.id) {
-                    return true;
-                  }
+              var proxy = _ref5.proxy;
 
-                  return false;
+              if (shouldApplyIdFilter) {
+                var matchesSomeIdInTargets = parentFilters.find(function (parentFilter) {
+                  return proxy.id === parentFilter.id;
                 });
                 if (!matchesSomeIdInTargets) return;
               }
 
-              var proxyCacheEntry = stateEntryToIterate.proxyCache[nodeId];
+              var proxyCacheEntry = stateEntryToIterate.proxyCache[proxy.id];
               var relationalStateForAlias = (_proxyCacheEntry$rela = proxyCacheEntry.relationalState) == null ? void 0 : _proxyCacheEntry$rela[firstAlias];
               if (!relationalStateForAlias) throw Error("No relational state found for alias path \"" + firstAlias + "\"");
               acc.push({
                 parentStateEntry: stateEntryToIterate,
-                idOfAffectedParent: nodeId,
+                idOfAffectedParent: proxy.id,
                 relationalAlias: firstAlias,
                 relationalStateEntry: relationalStateForAlias
               });
@@ -7963,10 +7991,15 @@ function createQueryManager(mmGQLInstance) {
       Object.keys(opts.queryRecord).forEach(function (queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
         if (!queryRecordEntry) return;
+        var dataAlias = getAliasForData({
+          queryRecordEntry: queryRecordEntry,
+          isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
+          originalAlias: queryAlias
+        });
         var dataForThisAlias = getDataFromQueryResponsePartial({
           queryRecordEntry: queryRecordEntry,
-          queryResponsePartial: opts.data[queryAlias],
-          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
+          queryResponsePartial: opts.data[dataAlias],
+          collectionsIncludePagingInfo: !opts.isFromSubscriptionMessage
         });
         if (dataForThisAlias == null) return;
         var nodeRepository = queryRecordEntry.def.repository;
@@ -7983,9 +8016,15 @@ function createQueryManager(mmGQLInstance) {
 
         if (relationalQueries) {
           Object.keys(relationalQueries).forEach(function (relationalAlias) {
+            var relationalQuery = relationalQueries[relationalAlias];
+            var relationalDataAlias = getAliasForData({
+              queryRecordEntry: relationalQuery,
+              isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
+              originalAlias: relationalAlias
+            });
             var relationalDataForThisAlias = Array.isArray(dataForThisAlias) ? dataForThisAlias.flatMap(function (dataEntry) {
-              return dataEntry[relationalAlias];
-            }) : dataForThisAlias[relationalAlias]; // makes it easier to simply handle this as an array below
+              return dataEntry[relationalDataAlias];
+            }) : dataForThisAlias[relationalDataAlias]; // makes it easier to simply handle this as an array below
 
             if (!Array.isArray(relationalDataForThisAlias)) {
               relationalDataForThisAlias = [relationalDataForThisAlias];
@@ -7994,17 +8033,15 @@ function createQueryManager(mmGQLInstance) {
             relationalDataForThisAlias.forEach(function (relationalDataEntry) {
               var _data, _queryRecord;
 
-              var relationalQuery = relationalQueries[relationalAlias];
-
               if (relationalAlias.includes(RELATIONAL_UNION_QUERY_SEPARATOR)) {
                 var node = relationalDataEntry;
                 if (node && node.type !== relationalQuery.def.type) return;
               }
 
               _this7.notifyRepositories({
-                data: (_data = {}, _data[relationalAlias] = relationalDataEntry, _data),
+                data: (_data = {}, _data[relationalDataAlias] = relationalDataEntry, _data),
                 queryRecord: (_queryRecord = {}, _queryRecord[relationalAlias] = relationalQuery, _queryRecord),
-                collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
+                isFromSubscriptionMessage: opts.isFromSubscriptionMessage
               });
             });
           });
@@ -8018,25 +8055,31 @@ function createQueryManager(mmGQLInstance) {
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
         if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
+        var dataAlias = getAliasForData({
+          queryRecordEntry: queryRecordEntry,
+          isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
+          originalAlias: queryAlias
+        });
+        var dataForThisAlias = opts.data[dataAlias];
 
-        if (opts.data[queryAlias] == null) {
+        if (dataForThisAlias == null) {
           resultingStateAcc[queryAlias] = getEmptyStateEntry();
           return resultingStateAcc;
         }
 
         var cacheEntry = _this8.buildCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
-            queryResponsePartial: opts.data[queryAlias],
+            queryResponsePartial: dataForThisAlias,
             queryRecordEntry: opts.queryRecord[queryAlias],
-            collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
+            collectionsIncludePagingInfo: !opts.isFromSubscriptionMessage
           }),
           pageInfoFromResults: _this8.getPageInfoFromResponse({
-            dataForThisAlias: opts.data[queryAlias],
+            dataForThisAlias: dataForThisAlias,
             queryRecordEntry: queryRecordEntry,
-            collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
+            collectionsIncludePagingInfo: !opts.isFromSubscriptionMessage
           }),
           totalCount: _this8.getTotalCountFromResponse({
-            dataForThisAlias: opts.data[queryAlias]
+            dataForThisAlias: dataForThisAlias
           }),
           clientSidePageInfo: _this8.getInitialClientSidePageInfo({
             queryRecordEntry: opts.queryRecord[queryAlias]
@@ -8044,7 +8087,7 @@ function createQueryManager(mmGQLInstance) {
           queryRecord: opts.queryRecord,
           queryAlias: queryAlias,
           aliasPath: [queryAlias],
-          collectionsIncludePagingInfo: opts.collectionsIncludePagingInfo
+          isFromSubscriptionMessage: opts.isFromSubscriptionMessage
         });
 
         if (!cacheEntry) return resultingStateAcc;
@@ -8058,7 +8101,7 @@ function createQueryManager(mmGQLInstance) {
 
       var nodeData = opts.nodeData,
           queryAlias = opts.queryAlias,
-          collectionsIncludePagingInfo = opts.collectionsIncludePagingInfo;
+          isFromSubscriptionMessage = opts.isFromSubscriptionMessage;
       var queryRecord = opts.queryRecord;
       var queryRecordEntry = queryRecord[opts.queryAlias];
 
@@ -8078,13 +8121,18 @@ function createQueryManager(mmGQLInstance) {
       var buildRelationalStateForNode = function buildRelationalStateForNode(node) {
         if (!relationalQueryRecord) return null;
         return Object.keys(relationalQueryRecord).reduce(function (relationalStateAcc, relationalAlias) {
-          var _relationalQueryRecor, _extends2;
+          var _extends2;
 
           var queryRecordEntry = relationalQueryRecord[relationalAlias];
-          var relationalDataForThisAlias = getDataFromQueryResponsePartial({
-            queryResponsePartial: node[relationalAlias],
+          var relationalDataAlias = getAliasForData({
             queryRecordEntry: queryRecordEntry,
-            collectionsIncludePagingInfo: collectionsIncludePagingInfo
+            isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
+            originalAlias: relationalAlias
+          });
+          var relationalDataForThisAlias = getDataFromQueryResponsePartial({
+            queryResponsePartial: node[relationalDataAlias],
+            queryRecordEntry: queryRecordEntry,
+            collectionsIncludePagingInfo: !isFromSubscriptionMessage
           });
 
           if (!relationalDataForThisAlias) {
@@ -8097,19 +8145,35 @@ function createQueryManager(mmGQLInstance) {
             id: node.id
           });
 
-          var pageInfoFromResults = collectionsIncludePagingInfo ? _this9.getPageInfoFromResponse({
-            dataForThisAlias: node[relationalAlias],
-            queryRecordEntry: queryRecordEntry,
-            collectionsIncludePagingInfo: collectionsIncludePagingInfo
-          }) : {
-            hasNextPage: false,
-            hasPreviousPage: false,
-            startCursor: 'mock-start-cursor-should-not-be-used',
-            endCursor: 'mock-end-cursor-should-not-be-used',
-            totalPages: Math.ceil(relationalDataForThisAlias.length / (((_relationalQueryRecor = relationalQueryRecord[relationalAlias].pagination) == null ? void 0 : _relationalQueryRecor.itemsPerPage) || DEFAULT_PAGE_SIZE))
+          var getPageInfoFromResults = function getPageInfoFromResults() {
+            var shouldBeWrappedInNodes = queryRecordEntryReturnsArrayOfDataNestedInNodes({
+              queryRecordEntry: queryRecordEntry
+            });
+
+            if (!isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+              return _this9.getPageInfoFromResponse({
+                dataForThisAlias: node[relationalDataAlias],
+                queryRecordEntry: queryRecordEntry,
+                collectionsIncludePagingInfo: true
+              });
+            } else if (isFromSubscriptionMessage && shouldBeWrappedInNodes) {
+              var _relationalQueryRecor;
+
+              return {
+                hasNextPage: false,
+                hasPreviousPage: false,
+                startCursor: 'mock-start-cursor-should-not-be-used',
+                endCursor: 'mock-end-cursor-should-not-be-used',
+                totalPages: Math.ceil(relationalDataForThisAlias.length / (((_relationalQueryRecor = relationalQueryRecord[relationalAlias].pagination) == null ? void 0 : _relationalQueryRecor.itemsPerPage) || DEFAULT_PAGE_SIZE))
+              };
+            } else {
+              return null;
+            }
           };
-          var totalCount = collectionsIncludePagingInfo ? _this9.getTotalCountFromResponse({
-            dataForThisAlias: node[relationalAlias]
+
+          var pageInfoFromResults = getPageInfoFromResults();
+          var totalCount = !isFromSubscriptionMessage ? _this9.getTotalCountFromResponse({
+            dataForThisAlias: node[relationalDataAlias]
           }) : relationalDataForThisAlias.length;
 
           var cacheEntry = _this9.buildCacheEntry({
@@ -8122,7 +8186,7 @@ function createQueryManager(mmGQLInstance) {
             queryAlias: relationalAlias,
             queryRecord: relationalQueryRecord,
             aliasPath: [].concat(aliasPath, [relationalAlias]),
-            collectionsIncludePagingInfo: collectionsIncludePagingInfo
+            isFromSubscriptionMessage: isFromSubscriptionMessage
           });
 
           if (!cacheEntry) return relationalStateAcc;
@@ -8614,12 +8678,12 @@ function createQueryManager(mmGQLInstance) {
       this.notifyRepositories({
         data: opts.newData,
         queryRecord: opts.queryRecord,
-        collectionsIncludePagingInfo: true
+        isFromSubscriptionMessage: false
       });
       var newState = this.getQueryManagerStateFromData({
         data: opts.newData,
         queryRecord: opts.queryRecord,
-        collectionsIncludePagingInfo: true
+        isFromSubscriptionMessage: false
       });
       this.extendStateObject({
         aliasPath: opts.aliasPath,
@@ -8645,12 +8709,12 @@ function createQueryManager(mmGQLInstance) {
       this.notifyRepositories({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
-        collectionsIncludePagingInfo: true
+        isFromSubscriptionMessage: false
       });
       var newState = this.getQueryManagerStateFromData({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
-        collectionsIncludePagingInfo: true
+        isFromSubscriptionMessage: false
       });
 
       if (opts.aliasPathsToUpdate) {
@@ -8727,7 +8791,8 @@ function createQueryManager(mmGQLInstance) {
 
         if (!id) throw Error("Expected an id for the alias " + firstAlias);
         var existingProxyCacheEntryForThisId = existingStateForFirstAlias.proxyCache[id];
-        if (!existingProxyCacheEntryForThisId) throw Error("Expected a proxy cache entry for the id " + id + ". This likely means that a query was performed with an id, and the results included a different id");
+        if (!existingProxyCacheEntryForThisId) // happens in this case https://winterinternational.atlassian.net/browse/TTD-2096
+          return;
         var existingRelationalStateForThisProxy = existingProxyCacheEntryForThisId.relationalState;
         if (!existingRelationalStateForThisProxy) throw Error("Expected existing relational state for the alias " + firstAlias + " and the id " + id);
         var newRelationalStateForThisProxy = newStateForFirstAlias.proxyCache[id].relationalState;
@@ -8779,9 +8844,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref5) {
-    var alias = _ref5[0],
-        queryRecordEntry = _ref5[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref6) {
+    var alias = _ref6[0],
+        queryRecordEntry = _ref6[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -8790,9 +8855,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref6) {
-    var alias = _ref6[0],
-        queryDefinition = _ref6[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
+    var alias = _ref7[0],
+        queryDefinition = _ref7[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -8800,9 +8865,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
-    var key = _ref7[0],
-        queryDefinition = _ref7[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref8) {
+    var key = _ref8[0],
+        queryDefinition = _ref8[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -8983,9 +9048,9 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       previousQueryRecord = opts.previousQueryRecord;
   var minimalQueryRecord = {};
   var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref8) {
-    var alias = _ref8[0],
-        nextQueryRecordEntry = _ref8[1];
+  Object.entries(nextQueryRecord).forEach(function (_ref9) {
+    var alias = _ref9[0],
+        nextQueryRecordEntry = _ref9[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
@@ -9068,9 +9133,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref9) {
-      var key = _ref9[0],
-          nextRelationalQueryRecordEntry = _ref9[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref10) {
+      var key = _ref10[0],
+          nextRelationalQueryRecordEntry = _ref10[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -9097,9 +9162,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref10) {
-    var key = _ref10[0],
-        nextQueryRecordEntry = _ref10[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref11) {
+    var key = _ref11[0],
+        nextQueryRecordEntry = _ref11[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {
@@ -9245,6 +9310,20 @@ function camelCasePropertyName(property) {
   }, '');
 }
 
+function getAliasForData(opts) {
+  var relationshipName = '_relationshipName' in opts.queryRecordEntry ? opts.queryRecordEntry._relationshipName : null;
+
+  if (opts.isFromSubscriptionMessage && relationshipName) {
+    // collections in subscriptions cannot be filtered, sorted, or paginated
+    // because of that, it would be redundant to subscribe to the same related collection twice
+    // to avoid this, we group all data being accessed for a collection of nodes
+    // under the same alias, using the relationshipName
+    return relationshipName;
+  } else {
+    return opts.originalAlias;
+  }
+}
+
 var MMGQL = /*#__PURE__*/function () {
   function MMGQL(config) {
     this.gqlClient = void 0;
@@ -9357,5 +9436,5 @@ var MMGQL = /*#__PURE__*/function () {
   return MMGQL;
 }();
 
-export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, useSubscription };
+export { DATA_TYPES, DEFAULT_NODE_PROPERTIES, DEFAULT_PAGE_SIZE, DEFAULT_TOKEN_NAME, Data, EBooleanFilterOperator, ENumberFilterOperator, EPaginationFilteringSortingInstance, EStringFilterOperator, EStringOrNumberFilterOperator, LoggingContext, MMGQL, MMGQLContext, MMGQLProvider, NODES_PROPERTY_KEY, NodesCollection, PAGE_INFO_PROPERTY_KEY, PROPERTIES_QUERIED_FOR_ALL_NODES, QueryState, RELATIONAL_TYPES, RELATIONAL_UNION_QUERY_SEPARATOR, TOTAL_COUNT_PROPERTY_KEY, UnsafeNoDuplicateSubIdErrorProvider, array, _boolean as boolean, chance, chunkArray, generateRandomBoolean, generateRandomId, generateRandomNumber, generateRandomString, getDefaultConfig, getGQLCLient, getResponseFromStaticData, nonPaginatedOneToMany, number, object, oneToMany, oneToOne, queryDefinition, record, staticRelational, string, stringEnum, stringOrNumber, useSubscription };
 //# sourceMappingURL=sm-js.esm.js.map

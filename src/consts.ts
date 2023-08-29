@@ -1,8 +1,8 @@
-import { string, number } from './dataTypes';
+import { string, number, stringOrNumber } from './dataTypes';
 
 // These are the properties that are essential for mm-gql to function and are queried automatically with each query.
 export const PROPERTIES_QUERIED_FOR_ALL_NODES = {
-  id: string,
+  id: stringOrNumber,
   version: number,
   lastUpdatedBy: string,
   type: string,

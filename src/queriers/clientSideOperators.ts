@@ -26,6 +26,7 @@ import {
   DATA_TYPES,
   EStringFilterOperator,
   SortObject,
+  Id,
 } from '../types';
 
 function checkFilter({
@@ -461,7 +462,7 @@ export function getSortedIds({
   data,
 }: {
   queryRecordEntry: QueryRecordEntry | RelationalQueryRecordEntry;
-  data: Array<{ id: string }>;
+  data: Array<{ id: Id }>;
 }) {
   if (!queryRecordEntry.sort) return data.map(item => item.id);
 
@@ -538,11 +539,7 @@ export function getSortedIds({
     .map(item => item.id);
 }
 
-function getSortPosition(
-  first: string | number,
-  second: string | number,
-  ascending: boolean
-) {
+function getSortPosition(first: Id, second: Id, ascending: boolean) {
   // equal items sort equally
   if (first === second) {
     return 0;
