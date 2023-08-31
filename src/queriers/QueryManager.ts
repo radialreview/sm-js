@@ -1452,8 +1452,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         (resultingStateAcc, queryAlias) => {
           const queryRecordEntry = opts.queryRecord[queryAlias];
 
-          if (!queryRecordEntry)
-            throw Error(`No query record entry found for ${queryAlias}`);
+          if (!queryRecordEntry) {
+            resultingStateAcc[queryAlias] = getEmptyStateEntry();
+            return resultingStateAcc;
+          }
 
           const dataAlias = getAliasForData({
             queryRecordEntry,
