@@ -1387,7 +1387,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases', done => {
+  it.only('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases', done => {
     const mockTodosCollection = {
       [NODES_PROPERTY_KEY]: [
         {

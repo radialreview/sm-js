@@ -1370,11 +1370,47 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const currentResults = this.getResultsFromState({ state: this.state });
 
       Object.keys(currentResults).forEach(resultsAlias => {
+        // NOLEY
+        // useSub.spec
+        // breaks this test ✓ updates data when paginating (238ms)...
+        // fixed this test  ✕ if the query record provided is updated, performs a new query and returns the new set of results when that query resolves (1527ms)
+        // QM.spec
+        // fixes these tests:
+        // ● QueryManager correctly updates the results object when a fitler/sorting/pagination param is updated in a relational query under a paginated list query
+        // ● subscription handling › handles an ""UPDATED"" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases"
+        // this.queryResults[resultsAlias] = currentResults[resultsAlias];
+
+        // NOLEY BUG: so we can have the sameIds here, but we can have relational results with differing ids from filtering that are nested on
+        // the same collection. So the ids will be the same, but the relational results are not. We could write a diffing algo that looks
+        // deeply into the relational results and see if the filters have updated, but since we can have essentially infinitely deep relational results
+        // (well really its like triple nested, but besides the point), then that algo will need to be recursive to detect if nodes colllections exist underneath it.
         if (this.queryResults[resultsAlias] == null) {
           this.queryResults[resultsAlias] = currentResults[resultsAlias];
         } else {
           // this would only be the case if the this.queryResults[resultsAlias] is a non paginated array of nodes
           if (Array.isArray(this.queryResults[resultsAlias])) {
+            if (!this.queryRecord) throw Error('No query record initialized');
+            const queryRecordForThisAlias = this.queryRecord[resultsAlias];
+
+            if (queryRecordForThisAlias?.relational) {
+              const {
+                isSameIds,
+                hasNullRelationalResults,
+              } = this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults(
+                {
+                  relationalAliasesForThisQueryRecord: Object.keys(
+                    queryRecordForThisAlias.relational
+                  ),
+                  previousQueryResults: this.queryResults[resultsAlias],
+                  currentQueryResults: currentResults[resultsAlias],
+                }
+              );
+
+              if (!isSameIds || hasNullRelationalResults) {
+                this.queryResults[resultsAlias] = currentResults[resultsAlias];
+              }
+            }
+
             const idsFromPreviousQueryResults = this.queryResults[
               resultsAlias
             ].map((DoProxy: any) => DoProxy.id);
@@ -1392,6 +1428,28 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             // this would be the case if the this.queryResults[resultsAlias] is an array of nodes
             this.queryResults[resultsAlias] instanceof NodesCollection
           ) {
+            if (!this.queryRecord) throw Error('No query record initialized');
+            const queryRecordForThisAlias = this.queryRecord[resultsAlias];
+
+            if (queryRecordForThisAlias?.relational) {
+              const {
+                isSameIds,
+                hasNullRelationalResults,
+              } = this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults(
+                {
+                  relationalAliasesForThisQueryRecord: Object.keys(
+                    queryRecordForThisAlias.relational
+                  ),
+                  previousQueryResults: this.queryResults[resultsAlias].items,
+                  currentQueryResults: currentResults[resultsAlias].items,
+                }
+              );
+
+              if (!isSameIds || hasNullRelationalResults) {
+                this.queryResults[resultsAlias] = currentResults[resultsAlias];
+              }
+            }
+
             const idsFromPreviousQueryResults = this.queryResults[
               resultsAlias
             ].items.map((DoProxy: any) => DoProxy.id);
@@ -1412,6 +1470,93 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
 
       return this.queryResults;
+    };
+
+    public isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults = (opts: {
+      relationalAliasesForThisQueryRecord: Array<string>;
+      previousQueryResults: Array<Record<string, any>>;
+      currentQueryResults: Array<Record<string, any>>;
+    }) => {
+      const {
+        relationalAliasesForThisQueryRecord,
+        previousQueryResults,
+        currentQueryResults,
+      } = opts;
+
+      let hasNullRelationalResults = false;
+
+      const relationalIdsFromPreviousQueryResults = previousQueryResults.reduce(
+        (acc: Array<Id>, DoProxy) => {
+          relationalAliasesForThisQueryRecord.forEach(relationalAlias => {
+            if (DoProxy[relationalAlias] == null) {
+              hasNullRelationalResults = true;
+              return;
+            } else if (Array.isArray(DoProxy[relationalAlias])) {
+              const relationalProxyIds = DoProxy[relationalAlias].map(
+                (DoRelationalProxy: Record<string, any>) => DoRelationalProxy.id
+              );
+              return acc.push(...relationalProxyIds);
+            } else if (DoProxy[relationalAlias] instanceof NodesCollection) {
+              const relationalProxyIds = DoProxy[relationalAlias].items.map(
+                (DoRelationalProxy: Record<string, any>) => {
+                  return DoRelationalProxy.id;
+                }
+              );
+              return acc.push(...relationalProxyIds);
+            } else {
+              return acc.push(DoProxy[relationalAlias].id);
+            }
+          });
+
+          return acc;
+        },
+        [] as Array<Id>
+      );
+
+      const relationalIdsFromCurrentQueryResults = currentQueryResults.reduce(
+        (acc: Array<Id>, DoProxy) => {
+          relationalAliasesForThisQueryRecord.forEach(relationalAlias => {
+            if (DoProxy[relationalAlias] == null) {
+              hasNullRelationalResults = true;
+              return;
+            } else if (Array.isArray(DoProxy[relationalAlias])) {
+              const relationalProxyIds = DoProxy[relationalAlias].map(
+                (DoRelationalProxy: Record<string, any>) => DoRelationalProxy.id
+              );
+              return acc.push(...relationalProxyIds);
+            } else if (DoProxy[relationalAlias] instanceof NodesCollection) {
+              const relationalProxyIds = DoProxy[relationalAlias].items.map(
+                (DoRelationalProxy: Record<string, any>) => {
+                  return DoRelationalProxy.id;
+                }
+              );
+              return acc.push(...relationalProxyIds);
+            } else {
+              return acc.push(DoProxy[relationalAlias].id);
+            }
+          });
+
+          return acc;
+        },
+        [] as Array<Id>
+      );
+
+      const isSameIds = arrayEquals(
+        relationalIdsFromPreviousQueryResults,
+        relationalIdsFromCurrentQueryResults
+      );
+
+      //NOLEY BUG: failing test has the same ids, and same relational aliases.
+      // need to look into what updated before on mm-gql and find the source.
+      console.log(
+        'NOLEY',
+        isSameIds,
+        hasNullRelationalResults,
+        relationalIdsFromPreviousQueryResults,
+        relationalIdsFromCurrentQueryResults
+      );
+
+      return { isSameIds, hasNullRelationalResults };
     };
 
     /**
