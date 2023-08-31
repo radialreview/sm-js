@@ -8054,7 +8054,12 @@ function createQueryManager(mmGQLInstance) {
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
         var queryRecordEntry = opts.queryRecord[queryAlias];
-        if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
+
+        if (!queryRecordEntry) {
+          resultingStateAcc[queryAlias] = getEmptyStateEntry();
+          return resultingStateAcc;
+        }
+
         var dataAlias = getAliasForData({
           queryRecordEntry: queryRecordEntry,
           isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
