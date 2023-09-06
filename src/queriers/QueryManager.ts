@@ -1546,16 +1546,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         relationalIdsFromCurrentQueryResults
       );
 
-      //NOLEY BUG: failing test has the same ids, and same relational aliases.
-      // need to look into what updated before on mm-gql and find the source.
-      console.log(
-        'NOLEY',
-        isSameIds,
-        hasNullRelationalResults,
-        relationalIdsFromPreviousQueryResults,
-        relationalIdsFromCurrentQueryResults
-      );
-
       return { isSameIds, hasNullRelationalResults };
     };
 
@@ -1649,6 +1639,25 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       return Object.keys(opts.queryRecord).reduce(
         (resultingStateAcc, queryAlias) => {
           const queryRecordEntry = opts.queryRecord[queryAlias];
+          //NOLEY HERE LOOK AT EXISTING STATE, then based on existing state, new to have new proxies or update existing proxies.
+          // if the proxy exists, check and update from the leaf node up, then based on those proxies traverse upwards.
+
+          // steps
+          // 1. make this function smart to use 274 logic to not always make a new proxy and update as expected.
+          // 1.1 this function needs to be aware of the state within the query manager to look for the proxyCache. State will need to be a param to make
+          // sure we are impacting the correct state for the potion of the query that is used. not always root level state.
+          // 1.2 update as expected - when a new proxy is not made, need to update relational results.
+          // start the data from the parent - parent will always come for free with data, so we will know what to update for the parent.
+          // doesnt need to know what the parent of relational result is, handled somewhere else.
+
+          // we need to update a certain part of the query, ex root aliases with relational resutls
+          // want to change a filter, without refiring an entire query. the miminal thing starts from a root, so not the entire query.
+          // example would be meeeting, currentUser, meetings for meetings lookup.
+          // problem is firing root level query, relational results are not updating, requires alias path to tell the relational results to update.
+          // alias path is incorrect or not included, this function half works, so proxies are not update, out of sync with state.
+          // miminal query record vs alias paths to update.
+          // this function needs to get new resutls, minimal query record, then augment internal state of query manager and update proxies.
+          // alias paths need to die.
 
           if (!queryRecordEntry)
             throw Error(`No query record entry found for ${queryAlias}`);
@@ -1659,6 +1668,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             originalAlias: queryAlias,
           });
 
+          //NOLEY NOTES: the subsciption system can't deal with pagination or filtering, having 2 different user.todos one with filter one without,
+          // it will combine the two into a todos relationship and then make it a single relational result, we have to seperate them back out.
           const dataForThisAlias = opts.data[dataAlias];
 
           if (dataForThisAlias == null) {
@@ -2485,6 +2496,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       queryResult: Record<string, any>;
       minimalQueryRecord: QueryRecord;
       // if undefined, assumes all entries in the minimal query record represent a new bit of state
+      // NOLEY this will die for sure
       aliasPathsToUpdate?: Array<Array<string>>;
     }) {
       this.notifyRepositories({
@@ -2493,12 +2505,14 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         isFromSubscriptionMessage: false,
       });
 
+      //NOLEY this function will update the relational results and proxies, once that updates correctly then we will not need aliasPathsToUpdate
       const newState = this.getQueryManagerStateFromData({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
         isFromSubscriptionMessage: false,
       });
 
+      //NOLEY TODO: kill the if, and just always call the else, removing aliasPathsToUpdate from the function.
       if (opts.aliasPathsToUpdate) {
         opts.aliasPathsToUpdate.forEach(aliasPath => {
           this.extendStateObject({
@@ -2524,6 +2538,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       this.opts.onResultsUpdated(this.getQueryResults());
     }
 
+    // NOLEY leave this as is, and then just pass in root level my use cases
     public extendStateObject(opts: {
       aliasPath: Array<string>;
       originalAliasPath: Array<string>;
@@ -2575,6 +2590,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           }
         }
 
+        //NOLEY THIS WILL DIE
         opts.parentProxy?.updateRelationalResults(
           this.getResultsFromState({
             state: {
@@ -2857,6 +2873,8 @@ export function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts: {
 } {
   const { nextQueryRecord, previousQueryRecord } = opts;
   const minimalQueryRecord: QueryRecord = {};
+
+  // NOLEY kill alias paths from here.
   const aliasPathsToUpdate: Array<Array<string>> = [];
 
   Object.entries(nextQueryRecord).forEach(([alias, nextQueryRecordEntry]) => {

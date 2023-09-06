@@ -23,13 +23,17 @@ export const DO_PROXY_GENERATOR_ESCAPED_KEYS = [
   'asymmetricMatch',
 ];
 
-// NOLEY NOTES: we might need to remove this, follow up ->
-// In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds 'constructor' as a key to
+// In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds DO_PROXY_GENERATOR_ESCAPED_KEYS as a key to
 // the get traps. We have to escape that key, and we want to prevent it from being used as a property name which would break the DOProxyGenerator,
-// since it is purposely excluded from the get traps.
-export const PROTECTED_NODE_PROPTERY_NAMES = {
-  constructor: string,
-};
+// since these are purposely excluded from the get traps.
+export const PROTECTED_NODE_PROPTERY_NAMES = DO_PROXY_GENERATOR_ESCAPED_KEYS.reduce(
+  (acc, item) => {
+    acc[item] = string;
+    return acc;
+  },
+  {} as Record<string, typeof string>
+);
+
 // These properties are ensuring that every node definition built with mmGQL.def now has these properties auto added to their data.
 // They are not queried automatically and must be explicitly defined on the node definition, unless they also appear on PROPERTIES_QUERIED_FOR_ALL_NODES.
 const {

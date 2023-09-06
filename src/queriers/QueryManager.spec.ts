@@ -274,7 +274,10 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
       secondMockSecondResults: {
         ...mockQueryDef,
         filter: {
-          id: 'test-id',
+          //NOLEY NOTES: what level is this filtering on? This would be a root level filter right?
+          // this isn't the cause of the problem so w/e but worth fixing here.
+          //id: 'test-id',
+          mock: { id: 'test-id' },
         },
       },
     });
@@ -1387,7 +1390,7 @@ describe('subscription handling', () => {
     });
   });
 
-  it.only('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases', done => {
+  it('handles an "UPDATED" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases', done => {
     const mockTodosCollection = {
       [NODES_PROPERTY_KEY]: [
         {
@@ -1442,7 +1445,7 @@ describe('subscription handling', () => {
                 usersCopy: mockUsersResponse,
               },
             ],
-            [TOTAL_COUNT_PROPERTY_KEY]: 2,
+            [TOTAL_COUNT_PROPERTY_KEY]: 1,
             [PAGE_INFO_PROPERTY_KEY]: {
               hasNextPage: false,
               hasPreviousPage: false,

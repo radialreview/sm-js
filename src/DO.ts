@@ -284,7 +284,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
         }
       }
 
-      public onDataReceived = decorateInActionIfApplicable({
+      public onDataReceived = decorateInPluginActionIfApplicable({
         func: (
           receivedData: {
             version: number;
@@ -597,8 +597,7 @@ export function createDOFactory(mmGQLInstance: IMMGQL) {
   };
 }
 
-//NOLEY: issues with how this is done here, want to allow multiple plugins but use case is weird.
-const decorateInActionIfApplicable = (opts: {
+const decorateInPluginActionIfApplicable = (opts: {
   func: IDOMethods['onDataReceived'];
   mmGQLInstance: IMMGQL;
 }) => {

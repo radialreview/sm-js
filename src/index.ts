@@ -112,7 +112,6 @@ export class MMGQL implements IMMGQL {
     const defaultProp = propertyNames.find(x =>
       Object.keys({
         ...DEFAULT_NODE_PROPERTIES,
-        // NOLEY NOTES: we might need to remove this, follow up
         ...PROTECTED_NODE_PROPTERY_NAMES,
       }).includes(x)
     );
