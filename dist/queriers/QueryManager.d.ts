@@ -19,8 +19,7 @@ declare type QueryManagerOpts = {
     queryId: string;
     subscribe: boolean;
     useServerSidePaginationFilteringSorting: boolean;
-    resultsObject: Record<string, any>;
-    onResultsUpdated(): void;
+    onResultsUpdated(resultsObject: Record<string, any>): void;
     onQueryError(error: any): void;
     onSubscriptionError(error: any): void;
     batchKey: Maybe<string>;
@@ -37,8 +36,10 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         opts: QueryManagerOpts;
         queryRecord: Maybe<QueryRecord>;
         queryIdx: number;
+        queryResults: Record<string, any>;
         subscriptionMessageHandlers: Record<string, (message: SubscriptionMessage) => void>;
         unsubRecord: Record<string, () => void>;
+        onConstructQueryResultsFromPlugin: () => void;
         onSubscriptionMessage: (message: SubscriptionMessage) => void;
         logSubscriptionError: (error: string) => void;
         getSubscriptionMessageHandlers(opts: {
@@ -138,6 +139,15 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             state: QueryManagerState;
             aliasPath?: Array<string>;
         }): Record<string, any>;
+        getQueryResults: () => Record<string, any>;
+        isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults: (opts: {
+            relationalAliasesForThisQueryRecord: Array<string>;
+            previousQueryResults: Array<Record<string, any>>;
+            currentQueryResults: Array<Record<string, any>>;
+        }) => {
+            isSameIds: boolean;
+            hasNullRelationalResults: boolean;
+        };
         /**
          * Takes a queryRecord and the data that resulted from that query
          * notifies the appropriate repositories so that DOs can be constructed or updated

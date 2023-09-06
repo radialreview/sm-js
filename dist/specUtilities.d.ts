@@ -1,5 +1,5 @@
 import { MMGQL } from '.';
-import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder, Id } from './types';
+import { IOneToOneQueryBuilder, IOneToManyQueryBuilder, INode, IMMGQL, IData, DataDefaultFn, NodeRelationalQueryBuilderRecord, NodeComputedFns, NodeRelationalFns, Config, NodeDefaultProps, EPaginationFilteringSortingInstance, DocumentNode, ValidFilterForNode, INonPaginatedOneToManyQueryBuilder, Plugin, Id } from './types';
 import { PageInfoFromResults } from './nodesCollection';
 declare const userProperties: {
     firstName: {
@@ -3099,6 +3099,7 @@ export declare function getMockConfig(opts?: {
     paginationFilteringSortingInstance?: EPaginationFilteringSortingInstance;
     onQueryPerformed?: (query: DocumentNode) => void;
     failQuery?: () => any;
+    plugins?: Array<Plugin>;
 }): Config;
 export declare function autoIndentGQL(gqlString: string): string;
 export declare function getPrettyPrintedGQL(documentNode: DocumentNode): string;

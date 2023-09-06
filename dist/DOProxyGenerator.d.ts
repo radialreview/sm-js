@@ -1,4 +1,4 @@
-import { IMMGQL, IData, DataDefaultFn, IDOProxy, INode, NodeDO, Maybe, RelationalQueryRecordEntry } from './types';
+import { IData, DataDefaultFn, IDOProxy, INode, NodeDO, Maybe, RelationalQueryRecordEntry, IMMGQL } from './types';
 export declare function createDOProxyGenerator(mmGQLInstance: IMMGQL): <TNodeType extends string, TNodeData extends Record<string, IData<any> | DataDefaultFn>, TNodeComputedData extends Record<string, any>, TRelationalResults extends Record<string, IDOProxy | IDOProxy[]>>(opts: {
     node: INode<{
         TNodeType: TNodeType;
@@ -118,3 +118,11 @@ export declare function createDOProxyGenerator(mmGQLInstance: IMMGQL): <TNodeTyp
     relationalResults: Maybe<TRelationalResults>;
     relationalQueries: Maybe<Record<string, RelationalQueryRecordEntry>>;
 }) => Record<string, any> & import("./types").IDOMethods & import("./types").IDOAccessors & TRelationalResults & IDOProxy;
+export declare function getNestedProxyObjectWithNotUpToDateProtection(opts: {
+    nodeType: string;
+    queryId: string;
+    allCachedData: Record<string, any>;
+    dataForThisObject: Record<string, IData>;
+    allPropertiesQueried: Array<string>;
+    parentObjectKey: Maybe<string>;
+}): Record<string, any>;

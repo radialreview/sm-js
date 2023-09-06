@@ -70,6 +70,24 @@ export declare const PROPERTIES_QUERIED_FOR_ALL_NODES: {
 };
 export declare const RELATIONAL_UNION_QUERY_SEPARATOR = "__rU__";
 export declare const DEFAULT_TOKEN_NAME = "default";
+export declare const DO_PROXY_GENERATOR_ESCAPED_KEYS: string[];
+export declare const PROTECTED_NODE_PROPTERY_NAMES: Record<string, {
+    (defaultValue: string): import("./types").IData<{
+        TValue: string;
+        TParsedValue: string;
+        TBoxedValue: undefined;
+    }>;
+    _default: import("./types").IData<{
+        TValue: string;
+        TParsedValue: string;
+        TBoxedValue: undefined;
+    }>;
+    optional: import("./types").IData<{
+        TValue: import("./types").Maybe<string>;
+        TParsedValue: import("./types").Maybe<string>;
+        TBoxedValue: undefined;
+    }>;
+}>;
 export declare const DEFAULT_NODE_PROPERTIES: {
     dateCreated: {
         (defaultValue: number): import("./types").IData<{

@@ -30,16 +30,28 @@ export declare type Plugin = {
             DOInstance: NodeDO;
             parsedDataKey: string;
         }) => void;
-        computedDecorator?: <TReturnType, TComputedFn extends (data: Record<string, any>) => TReturnType>(opts: {
+        onExtendObservable?: (opts: {
             DOInstance: NodeDO;
+            objectToExtend: Record<string, any>;
+        }) => void;
+        onExtendComputedObservable?: <TReturnType, TComputedFn extends (data: Record<string, any>) => TReturnType>(opts: {
+            DOInstance: NodeDO;
+            propName: string;
+            computedFn: TComputedFn;
+        }) => void;
+        actionDecorator?: (opts: {
+            actionFn: IDOMethods['onDataReceived'];
+        }) => IDOMethods['onDataReceived'];
+    };
+    DOProxy?: {
+        computedDecorator?: <TReturnType, TComputedFn extends () => TReturnType>(opts: {
             computedFn: TComputedFn;
         }) => () => TReturnType;
     };
-    DOProxy?: {
-        computedDecorator?: <TReturnType, TComputedFn extends (data: Record<string, any>) => TReturnType>(opts: {
-            ProxyInstance: IDOProxy;
-            computedFn: TComputedFn;
-        }) => () => TReturnType;
+    QMResults?: {
+        onConstruct?: (opts: {
+            queryResults: Record<string, any>;
+        }) => void;
     };
 };
 export declare type Config = {

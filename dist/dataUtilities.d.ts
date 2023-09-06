@@ -11,3 +11,4 @@ export declare function extend(opts: {
     deleteKeysNotInExtension: boolean;
     extendNestedObjects: boolean;
 }): void;
+export declare function arrayEquals<T extends Array<any>>(arr1: T, arr2: T): boolean;
