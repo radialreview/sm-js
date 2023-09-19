@@ -18,7 +18,7 @@ import {
   SubscriptionMessage,
   UseSubscriptionQueryDefinitions,
 } from '../types';
-import { getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery } from './QueryManager';
+import { getMinimalQueryRecordToUpdateForNextQuery } from './QueryManager';
 import { oneToMany, queryDefinition } from '../dataTypes';
 import {
   DEFAULT_TOKEN_NAME,
@@ -274,9 +274,6 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
       secondMockSecondResults: {
         ...mockQueryDef,
         filter: {
-          //NOLEY NOTES: what level is this filtering on? This would be a root level filter right?
-          // this isn't the cause of the problem so w/e but worth fixing here.
-          //id: 'test-id',
           mock: { id: 'test-id' },
         },
       },
@@ -451,7 +448,7 @@ test('QueryManager correctly updates the results object when a fitler/sorting/pa
   }
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if filtering has been updated', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if filtering has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -471,7 +468,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -487,7 +484,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if a nested filter has been updated', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if a nested filter has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance);
@@ -529,7 +526,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   }
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -545,7 +542,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if a nested filter has been updated, if the root query returns a single entity', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if a nested filter has been updated, if the root query returns a single entity', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance);
@@ -588,7 +585,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   }
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -604,7 +601,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if sorting has been updated', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if sorting has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -624,7 +621,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedSort,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -640,7 +637,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if pagination has been updated', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if pagination has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -660,7 +657,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedPagination,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -676,8 +673,8 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-// See comment above getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery for a why
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their filtering', () => {
+// See comment above getMinimalQueryRecordToUpdateForNextQuery for a why
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their filtering', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -716,7 +713,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -732,7 +729,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their sorting', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their sorting', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -771,7 +768,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -787,7 +784,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their pagination', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry as a whole if it returns an array and any of the relational queries have updated their pagination', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const userNode = generateUserNode(mmGQLInstance, todoNode);
@@ -826,7 +823,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedAssigneeFilter,
         todosNotUpdating: mockTodosQueryRecordEntry,
@@ -842,7 +839,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   });
 });
 
-test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query record entry if targeting has been updated', () => {
+test('getMinimalQueryRecordToUpdateForNextQuery includes the query record entry if targeting has been updated', () => {
   const mmGQLInstance = new MMGQL(getMockConfig());
   const todoNode = generateTodoNode(mmGQLInstance);
   const mockTodosQueryRecordEntry: QueryRecordEntry = {
@@ -861,7 +858,7 @@ test('getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery includes the query 
   };
 
   expect(
-    getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+    getMinimalQueryRecordToUpdateForNextQuery({
       nextQueryRecord: {
         todos: mockTodosQueryRecordEntryWithUpdatedTarget,
         todosNotUpdating: mockTodosQueryRecordEntry,

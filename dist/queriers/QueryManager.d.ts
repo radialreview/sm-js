@@ -159,12 +159,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             };
             isFromSubscriptionMessage: boolean;
         }): void;
-        getQueryManagerStateFromData(opts: {
+        getQueryManagerStateFromDataAndUpdateProxies(opts: {
             data: Record<string, any>;
             queryRecord: QueryRecord | RelationalQueryRecord;
             isFromSubscriptionMessage: boolean;
         }): QueryManagerState;
-        buildCacheEntry(opts: {
+        buildOrUpdateCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
             queryAlias: string;
             queryRecord: QueryRecord | RelationalQueryRecord;
@@ -235,7 +235,6 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         onQueryDefinitionUpdatedResult(opts: {
             queryResult: Record<string, any>;
             minimalQueryRecord: QueryRecord;
-            aliasPathsToUpdate?: Array<Array<string>>;
         }): void;
         extendStateObject(opts: {
             aliasPath: Array<string>;
@@ -286,11 +285,10 @@ export declare function removeNullishQueryDefinitions<TNode, TMapFn, TQueryDefin
  * Because of that, any update to the filter/sorting/pagination of a child list query will result in
  * a full query starting at the root of the query record
  */
-export declare function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts: {
+export declare function getMinimalQueryRecordToUpdateForNextQuery(opts: {
     previousQueryRecord: QueryRecord;
     nextQueryRecord: QueryRecord;
 }): {
     minimalQueryRecord: QueryRecord;
-    aliasPathsToUpdate: Array<Array<string>>;
 };
 export {};

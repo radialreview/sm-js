@@ -5812,40 +5812,12 @@ function createQueryManager(mmGQLInstance) {
         });
 
         Object.keys(currentResults).forEach(function (resultsAlias) {
-          // NOLEY
-          // useSub.spec
-          // breaks this test ✓ updates data when paginating (238ms)...
-          // fixed this test  ✕ if the query record provided is updated, performs a new query and returns the new set of results when that query resolves (1527ms)
-          // QM.spec
-          // fixes these tests:
-          // ● QueryManager correctly updates the results object when a fitler/sorting/pagination param is updated in a relational query under a paginated list query
-          // ● subscription handling › handles an ""UPDATED"" subscription message related to a node that was queried within a root collection, which includes new relational data with different aliases"
-          // this.queryResults[resultsAlias] = currentResults[resultsAlias];
-          // NOLEY BUG: so we can have the sameIds here, but we can have relational results with differing ids from filtering that are nested on
-          // the same collection. So the ids will be the same, but the relational results are not. We could write a diffing algo that looks
-          // deeply into the relational results and see if the filters have updated, but since we can have essentially infinitely deep relational results
-          // (well really its like triple nested, but besides the point), then that algo will need to be recursive to detect if nodes colllections exist underneath it.
           if (_this.queryResults[resultsAlias] == null) {
             _this.queryResults[resultsAlias] = currentResults[resultsAlias];
           } else {
             // this would only be the case if the this.queryResults[resultsAlias] is a non paginated array of nodes
             if (Array.isArray(_this.queryResults[resultsAlias])) {
               if (!_this.queryRecord) throw Error('No query record initialized');
-              var queryRecordForThisAlias = _this.queryRecord[resultsAlias];
-
-              if (queryRecordForThisAlias != null && queryRecordForThisAlias.relational) {
-                var _this$isSameIdsOrHasN = _this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults({
-                  relationalAliasesForThisQueryRecord: Object.keys(queryRecordForThisAlias.relational),
-                  previousQueryResults: _this.queryResults[resultsAlias],
-                  currentQueryResults: currentResults[resultsAlias]
-                }),
-                    _isSameIds = _this$isSameIdsOrHasN.isSameIds,
-                    hasNullRelationalResults = _this$isSameIdsOrHasN.hasNullRelationalResults;
-
-                if (!_isSameIds || hasNullRelationalResults) {
-                  _this.queryResults[resultsAlias] = currentResults[resultsAlias];
-                }
-              }
 
               var idsFromPreviousQueryResults = _this.queryResults[resultsAlias].map(function (DoProxy) {
                 return DoProxy.id;
@@ -5862,21 +5834,6 @@ function createQueryManager(mmGQLInstance) {
             } else if ( // this would be the case if the this.queryResults[resultsAlias] is an array of nodes
             _this.queryResults[resultsAlias] instanceof NodesCollection) {
               if (!_this.queryRecord) throw Error('No query record initialized');
-              var _queryRecordForThisAlias = _this.queryRecord[resultsAlias];
-
-              if (_queryRecordForThisAlias != null && _queryRecordForThisAlias.relational) {
-                var _this$isSameIdsOrHasN2 = _this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults({
-                  relationalAliasesForThisQueryRecord: Object.keys(_queryRecordForThisAlias.relational),
-                  previousQueryResults: _this.queryResults[resultsAlias].items,
-                  currentQueryResults: currentResults[resultsAlias].items
-                }),
-                    _isSameIds3 = _this$isSameIdsOrHasN2.isSameIds,
-                    _hasNullRelationalResults = _this$isSameIdsOrHasN2.hasNullRelationalResults;
-
-                if (!_isSameIds3 || _hasNullRelationalResults) {
-                  _this.queryResults[resultsAlias] = currentResults[resultsAlias];
-                }
-              }
 
               var _idsFromPreviousQueryResults = _this.queryResults[resultsAlias].items.map(function (DoProxy) {
                 return DoProxy.id;
@@ -5886,9 +5843,9 @@ function createQueryManager(mmGQLInstance) {
                 return DoProxy.id;
               });
 
-              var _isSameIds2 = arrayEquals(_idsFromPreviousQueryResults, _idsFromCurrentResutls);
+              var _isSameIds = arrayEquals(_idsFromPreviousQueryResults, _idsFromCurrentResutls);
 
-              if (!_isSameIds2) {
+              if (!_isSameIds) {
                 _this.queryResults[resultsAlias] = currentResults[resultsAlias];
               }
             } else {
@@ -5957,15 +5914,15 @@ function createQueryManager(mmGQLInstance) {
 
       this.onQueryDefinitionsUpdated = /*#__PURE__*/function () {
         var _ref = _asyncToGenerator( /*#__PURE__*/runtime_1.mark(function _callee2(newQueryDefinitionRecord) {
-          var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordAndAliasPathsToUpdate, _getMinimalQueryRecor, minimalQueryRecord, aliasPathsToUpdate, subscriptionGQLDocs, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
+          var previousQueryRecord, queryRecord, nonNullishQueryDefinitions, nullishResults, previousNullishResultKeys, getMinimalQueryRecordToUpdate, _getMinimalQueryRecor, minimalQueryRecord, subscriptionGQLDocs, thisQueryIdx, queryRecordsSplitByToken, resultsForEachTokenUsed, allResults;
 
           return runtime_1.wrap(function _callee2$(_context2) {
             while (1) {
               switch (_context2.prev = _context2.next) {
                 case 0:
-                  getMinimalQueryRecordAndAliasPathsToUpdate = function _getMinimalQueryRecor2() {
+                  getMinimalQueryRecordToUpdate = function _getMinimalQueryRecor2() {
                     if (previousQueryRecord) {
-                      return getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
+                      return getMinimalQueryRecordToUpdateForNextQuery({
                         nextQueryRecord: queryRecord,
                         previousQueryRecord: previousQueryRecord
                       });
@@ -6015,7 +5972,7 @@ function createQueryManager(mmGQLInstance) {
                   return _context2.abrupt("return");
 
                 case 13:
-                  _getMinimalQueryRecor = getMinimalQueryRecordAndAliasPathsToUpdate(), minimalQueryRecord = _getMinimalQueryRecor.minimalQueryRecord, aliasPathsToUpdate = _getMinimalQueryRecor.aliasPathsToUpdate;
+                  _getMinimalQueryRecor = getMinimalQueryRecordToUpdate(), minimalQueryRecord = _getMinimalQueryRecor.minimalQueryRecord;
 
                   if (Object.keys(minimalQueryRecord).length) {
                     _context2.next = 16;
@@ -6134,8 +6091,7 @@ function createQueryManager(mmGQLInstance) {
 
                   _this.onQueryDefinitionUpdatedResult({
                     queryResult: allResults,
-                    minimalQueryRecord: minimalQueryRecord,
-                    aliasPathsToUpdate: aliasPathsToUpdate
+                    minimalQueryRecord: minimalQueryRecord
                   });
 
                   _this.opts.onQueryStateChange == null ? void 0 : _this.opts.onQueryStateChange({
@@ -6268,7 +6224,7 @@ function createQueryManager(mmGQLInstance) {
                   // we're building a brand new cache entry
                   // so updating the relational results for any proxies is not necessary
                   requiresPotentialRelationalUpdate = false;
-                  cacheEntry = _this2.buildCacheEntry({
+                  cacheEntry = _this2.buildOrUpdateCacheEntry({
                     nodeData: nodeData,
                     queryAlias: relationalAlias || rootLevelAlias,
                     queryRecord: relationalStateEntry ? (_path$parentQueryReco = path.parentQueryRecordEntry) == null ? void 0 : _path$parentQueryReco.relational : _this2.queryRecord,
@@ -6301,7 +6257,7 @@ function createQueryManager(mmGQLInstance) {
                   var relationalQueryRecord = path.queryRecordEntry.relational;
 
                   if (relationalQueryRecord) {
-                    var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id].relationalState = _this2.getQueryManagerStateFromData({
+                    var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[nodeData.id].relationalState = _this2.getQueryManagerStateFromDataAndUpdateProxies({
                       data: nodeData,
                       queryRecord: relationalQueryRecord,
                       isFromSubscriptionMessage: true
@@ -6361,7 +6317,7 @@ function createQueryManager(mmGQLInstance) {
                 });
               }
 
-              var newCacheEntry = _this2.buildCacheEntry({
+              var newCacheEntry = _this2.buildOrUpdateCacheEntry({
                 aliasPath: path.aliasPath,
                 nodeData: nodeData,
                 queryAlias: rootLevelAlias,
@@ -6453,7 +6409,7 @@ function createQueryManager(mmGQLInstance) {
 
               var relationalAlias = path.aliasPath[path.aliasPath.length - 1];
 
-              var newCacheEntry = _this2.buildCacheEntry({
+              var newCacheEntry = _this2.buildOrUpdateCacheEntry({
                 nodeData: nodeInsertedData,
                 queryAlias: relationalAlias,
                 queryRecord: parentQueryRecordEntry.relational,
@@ -6601,7 +6557,7 @@ function createQueryManager(mmGQLInstance) {
                   });
                 }
 
-                var newCacheEntry = _this2.buildCacheEntry({
+                var newCacheEntry = _this2.buildOrUpdateCacheEntry({
                   nodeData: nodeAssociatedData,
                   queryAlias: relationalAlias,
                   queryRecord: parentQueryRecordEntry.relational,
@@ -7011,36 +6967,17 @@ function createQueryManager(mmGQLInstance) {
       });
     };
 
-    _proto.getQueryManagerStateFromData = function getQueryManagerStateFromData(opts) {
+    _proto.getQueryManagerStateFromDataAndUpdateProxies = function getQueryManagerStateFromDataAndUpdateProxies(opts) {
       var _this8 = this;
 
       return Object.keys(opts.queryRecord).reduce(function (resultingStateAcc, queryAlias) {
-        var queryRecordEntry = opts.queryRecord[queryAlias]; //NOLEY HERE LOOK AT EXISTING STATE, then based on existing state, new to have new proxies or update existing proxies.
-        // if the proxy exists, check and update from the leaf node up, then based on those proxies traverse upwards.
-        // steps
-        // 1. make this function smart to use 274 logic to not always make a new proxy and update as expected.
-        // 1.1 this function needs to be aware of the state within the query manager to look for the proxyCache. State will need to be a param to make
-        // sure we are impacting the correct state for the potion of the query that is used. not always root level state.
-        // 1.2 update as expected - when a new proxy is not made, need to update relational results.
-        // start the data from the parent - parent will always come for free with data, so we will know what to update for the parent.
-        // doesnt need to know what the parent of relational result is, handled somewhere else.
-        // we need to update a certain part of the query, ex root aliases with relational resutls
-        // want to change a filter, without refiring an entire query. the miminal thing starts from a root, so not the entire query.
-        // example would be meeeting, currentUser, meetings for meetings lookup.
-        // problem is firing root level query, relational results are not updating, requires alias path to tell the relational results to update.
-        // alias path is incorrect or not included, this function half works, so proxies are not update, out of sync with state.
-        // miminal query record vs alias paths to update.
-        // this function needs to get new resutls, minimal query record, then augment internal state of query manager and update proxies.
-        // alias paths need to die.
-
+        var queryRecordEntry = opts.queryRecord[queryAlias];
         if (!queryRecordEntry) throw Error("No query record entry found for " + queryAlias);
         var dataAlias = getAliasForData({
           queryRecordEntry: queryRecordEntry,
           isFromSubscriptionMessage: opts.isFromSubscriptionMessage,
           originalAlias: queryAlias
-        }); //NOLEY NOTES: the subsciption system can't deal with pagination or filtering, having 2 different user.todos one with filter one without,
-        // it will combine the two into a todos relationship and then make it a single relational result, we have to seperate them back out.
-
+        });
         var dataForThisAlias = opts.data[dataAlias];
 
         if (dataForThisAlias == null) {
@@ -7048,10 +6985,10 @@ function createQueryManager(mmGQLInstance) {
           return resultingStateAcc;
         }
 
-        var cacheEntry = _this8.buildCacheEntry({
+        var cacheEntry = _this8.buildOrUpdateCacheEntry({
           nodeData: getDataFromQueryResponsePartial({
             queryResponsePartial: dataForThisAlias,
-            queryRecordEntry: opts.queryRecord[queryAlias],
+            queryRecordEntry: queryRecordEntry,
             collectionsIncludePagingInfo: !opts.isFromSubscriptionMessage
           }),
           pageInfoFromResults: _this8.getPageInfoFromResponse({
@@ -7063,7 +7000,7 @@ function createQueryManager(mmGQLInstance) {
             dataForThisAlias: dataForThisAlias
           }),
           clientSidePageInfo: _this8.getInitialClientSidePageInfo({
-            queryRecordEntry: opts.queryRecord[queryAlias]
+            queryRecordEntry: queryRecordEntry
           }),
           queryRecord: opts.queryRecord,
           queryAlias: queryAlias,
@@ -7077,7 +7014,7 @@ function createQueryManager(mmGQLInstance) {
       }, {});
     };
 
-    _proto.buildCacheEntry = function buildCacheEntry(opts) {
+    _proto.buildOrUpdateCacheEntry = function buildOrUpdateCacheEntry(opts) {
       var _this9 = this;
 
       var nodeData = opts.nodeData,
@@ -7157,7 +7094,7 @@ function createQueryManager(mmGQLInstance) {
             dataForThisAlias: node[relationalDataAlias]
           }) : relationalDataForThisAlias.length;
 
-          var cacheEntry = _this9.buildCacheEntry({
+          var cacheEntry = _this9.buildOrUpdateCacheEntry({
             nodeData: relationalDataForThisAlias,
             pageInfoFromResults: pageInfoFromResults,
             totalCount: totalCount,
@@ -7175,17 +7112,17 @@ function createQueryManager(mmGQLInstance) {
         }, {});
       };
 
-      var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildCacheEntryOpts) {
-        var relationalState = buildRelationalStateForNode(buildCacheEntryOpts.node);
+      var buildProxyCacheEntryForNode = function buildProxyCacheEntryForNode(buildOrUpdateCacheEntryOpts) {
+        var relationalState = buildRelationalStateForNode(buildOrUpdateCacheEntryOpts.node);
         var nodeRepository = queryRecordEntry.def.repository;
         var relationalQueries = relationalQueryRecord ? _this9.getApplicableRelationalQueries({
           relationalQueries: relationalQueryRecord,
-          nodeData: buildCacheEntryOpts.node
+          nodeData: buildOrUpdateCacheEntryOpts.node
         }) : null;
 
         var aliasPath = _this9.addIdToLastEntryInAliasPath({
           aliasPath: opts.aliasPath,
-          id: buildCacheEntryOpts.node.id
+          id: buildOrUpdateCacheEntryOpts.node.id
         });
 
         var proxy = mmGQLInstance.DOProxyGenerator({
@@ -7197,12 +7134,152 @@ function createQueryManager(mmGQLInstance) {
             state: relationalState,
             aliasPath: aliasPath
           }),
-          "do": nodeRepository.byId(buildCacheEntryOpts.node.id)
+          "do": nodeRepository.byId(buildOrUpdateCacheEntryOpts.node.id)
         });
         return {
           proxy: proxy,
           relationalState: relationalState
         };
+      };
+
+      var getOrCreateProxyCacheEntryForNodeData = function getOrCreateProxyCacheEntryForNodeData() {
+        var stateEntriesWhichRequireUpdate = _this9.getStateCacheEntriesForAliasPath({
+          aliasPath: opts.aliasPath,
+          pathEndQueryRecordEntry: queryRecordEntry,
+          parentFilters: []
+        });
+
+        if (Array.isArray(opts.nodeData)) {
+          return opts.nodeData.reduce(function (proxyCacheAcc, node) {
+            var proxyCacheEntry;
+
+            if (stateEntriesWhichRequireUpdate.length === 0) {
+              proxyCacheEntry = buildProxyCacheEntryForNode({
+                node: node
+              });
+            } else {
+              var existingStateEntryForNode = stateEntriesWhichRequireUpdate.find(function (stateEntry) {
+                var stateEntryWhichMayRequireUpdate = stateEntry.relationalStateEntry || stateEntry.parentStateEntry;
+                return stateEntryWhichMayRequireUpdate == null ? void 0 : stateEntryWhichMayRequireUpdate.proxyCache[node.id];
+              });
+
+              if (existingStateEntryForNode) {
+                var parentStateEntry = existingStateEntryForNode.parentStateEntry,
+                    idOfAffectedParent = existingStateEntryForNode.idOfAffectedParent,
+                    relationalAlias = existingStateEntryForNode.relationalAlias,
+                    relationalStateEntry = existingStateEntryForNode.relationalStateEntry;
+                var stateEntryWhichMayRequireUpdate = relationalStateEntry || parentStateEntry;
+                proxyCacheEntry = stateEntryWhichMayRequireUpdate.proxyCache[node.id];
+
+                if (Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult) && !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(node.id)) {
+                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(node.id);
+                }
+
+                var _relationalQueryRecord = queryRecordEntry.relational;
+
+                if (_relationalQueryRecord) {
+                  var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[node.id].relationalState = _this9.getQueryManagerStateFromDataAndUpdateProxies({
+                    data: node,
+                    queryRecord: _relationalQueryRecord,
+                    isFromSubscriptionMessage: isFromSubscriptionMessage
+                  });
+
+                  stateEntryWhichMayRequireUpdate.proxyCache[node.id].proxy.updateRelationalResults(_this9.getResultsFromState({
+                    state: relationalState,
+                    aliasPath: opts.aliasPath
+                  }));
+                }
+
+                if (idOfAffectedParent != null && relationalAlias && relationalStateEntry) {
+                  var _parentStateEntry$pro2;
+
+                  var parentProxy = (_parentStateEntry$pro2 = parentStateEntry.proxyCache[idOfAffectedParent]) == null ? void 0 : _parentStateEntry$pro2.proxy;
+
+                  if (parentProxy) {
+                    var _state5;
+
+                    parentProxy.updateRelationalResults(_this9.getResultsFromState({
+                      state: (_state5 = {}, _state5[relationalAlias] = relationalStateEntry, _state5),
+                      aliasPath: opts.aliasPath
+                    }));
+                  }
+                }
+              } else {
+                proxyCacheEntry = buildProxyCacheEntryForNode({
+                  node: node
+                });
+              }
+            }
+
+            proxyCacheAcc[node.id] = proxyCacheEntry;
+            return proxyCacheAcc;
+          }, {});
+        } else {
+          var _ref6;
+
+          var proxyCacheEntry;
+          var nodeId = opts.nodeData.id;
+
+          if (stateEntriesWhichRequireUpdate.length === 0) {
+            proxyCacheEntry = buildProxyCacheEntryForNode({
+              node: opts.nodeData
+            });
+          } else {
+            var existingStateEntryForNode = stateEntriesWhichRequireUpdate.find(function (stateEntry) {
+              var stateEntryWhichMayRequireUpdate = stateEntry.relationalStateEntry || stateEntry.parentStateEntry;
+              return stateEntryWhichMayRequireUpdate == null ? void 0 : stateEntryWhichMayRequireUpdate.proxyCache[nodeId];
+            });
+
+            if (existingStateEntryForNode) {
+              var parentStateEntry = existingStateEntryForNode.parentStateEntry,
+                  idOfAffectedParent = existingStateEntryForNode.idOfAffectedParent,
+                  relationalAlias = existingStateEntryForNode.relationalAlias,
+                  relationalStateEntry = existingStateEntryForNode.relationalStateEntry;
+              var stateEntryWhichMayRequireUpdate = relationalStateEntry || parentStateEntry;
+              proxyCacheEntry = stateEntryWhichMayRequireUpdate.proxyCache[nodeId];
+
+              if (Array.isArray(stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult) && !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(nodeId)) {
+                stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(nodeId);
+              }
+
+              var _relationalQueryRecord2 = queryRecordEntry.relational;
+
+              if (_relationalQueryRecord2) {
+                var relationalState = stateEntryWhichMayRequireUpdate.proxyCache[nodeId].relationalState = _this9.getQueryManagerStateFromDataAndUpdateProxies({
+                  data: opts.nodeData,
+                  queryRecord: _relationalQueryRecord2,
+                  isFromSubscriptionMessage: isFromSubscriptionMessage
+                });
+
+                stateEntryWhichMayRequireUpdate.proxyCache[nodeId].proxy.updateRelationalResults(_this9.getResultsFromState({
+                  state: relationalState,
+                  aliasPath: opts.aliasPath
+                }));
+              }
+
+              if (idOfAffectedParent != null && relationalAlias && relationalStateEntry) {
+                var _parentStateEntry$pro3;
+
+                var parentProxy = (_parentStateEntry$pro3 = parentStateEntry.proxyCache[idOfAffectedParent]) == null ? void 0 : _parentStateEntry$pro3.proxy;
+
+                if (parentProxy) {
+                  var _state6;
+
+                  parentProxy.updateRelationalResults(_this9.getResultsFromState({
+                    state: (_state6 = {}, _state6[relationalAlias] = relationalStateEntry, _state6),
+                    aliasPath: opts.aliasPath
+                  }));
+                }
+              }
+            } else {
+              proxyCacheEntry = buildProxyCacheEntryForNode({
+                node: opts.nodeData
+              });
+            }
+          }
+
+          return _ref6 = {}, _ref6[nodeId] = proxyCacheEntry, _ref6;
+        }
       };
 
       if (Array.isArray(opts.nodeData)) {
@@ -7217,12 +7294,7 @@ function createQueryManager(mmGQLInstance) {
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
-            proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
-                node: node
-              });
-              return proxyCacheAcc;
-            }, {}),
+            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo
@@ -7230,12 +7302,7 @@ function createQueryManager(mmGQLInstance) {
         } else if ('ids' in queryRecordEntry) {
           return {
             idsOrIdInCurrentResult: queryRecordEntry.ids,
-            proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
-                node: node
-              });
-              return proxyCacheAcc;
-            }, {}),
+            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo
@@ -7245,25 +7312,16 @@ function createQueryManager(mmGQLInstance) {
             idsOrIdInCurrentResult: opts.nodeData.map(function (node) {
               return node.id;
             }),
-            proxyCache: opts.nodeData.reduce(function (proxyCacheAcc, node) {
-              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
-                node: node
-              });
-              return proxyCacheAcc;
-            }, {}),
+            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo
           };
         }
       } else {
-        var _proxyCache;
-
         return {
           idsOrIdInCurrentResult: opts.nodeData.id,
-          proxyCache: (_proxyCache = {}, _proxyCache[nodeData.id] = buildProxyCacheEntryForNode({
-            node: nodeData
-          }), _proxyCache),
+          proxyCache: getOrCreateProxyCacheEntryForNodeData(),
           pageInfoFromResults: opts.pageInfoFromResults,
           totalCount: opts.totalCount,
           clientSidePageInfo: opts.clientSidePageInfo
@@ -7661,7 +7719,7 @@ function createQueryManager(mmGQLInstance) {
         queryRecord: opts.queryRecord,
         isFromSubscriptionMessage: false
       });
-      var newState = this.getQueryManagerStateFromData({
+      var newState = this.getQueryManagerStateFromDataAndUpdateProxies({
         data: opts.newData,
         queryRecord: opts.queryRecord,
         isFromSubscriptionMessage: false
@@ -7683,39 +7741,23 @@ function createQueryManager(mmGQLInstance) {
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
         isFromSubscriptionMessage: false
-      }); //NOLEY this function will update the relational results and proxies, once that updates correctly then we will not need aliasPathsToUpdate
-
-      var newState = this.getQueryManagerStateFromData({
+      });
+      var newState = this.getQueryManagerStateFromDataAndUpdateProxies({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
         isFromSubscriptionMessage: false
-      }); //NOLEY TODO: kill the if, and just always call the else, removing aliasPathsToUpdate from the function.
-
-      if (opts.aliasPathsToUpdate) {
-        opts.aliasPathsToUpdate.forEach(function (aliasPath) {
-          _this11.extendStateObject({
-            aliasPath: aliasPath,
-            originalAliasPath: aliasPath,
-            state: _this11.state,
-            newState: newState,
-            mergeStrategy: 'REPLACE'
-          });
+      });
+      Object.keys(newState).forEach(function (newStateAlias) {
+        _this11.extendStateObject({
+          aliasPath: [newStateAlias],
+          originalAliasPath: [newStateAlias],
+          state: _this11.state,
+          newState: newState,
+          mergeStrategy: 'REPLACE'
         });
-      } else {
-        Object.keys(newState).forEach(function (newStateAlias) {
-          _this11.extendStateObject({
-            aliasPath: [newStateAlias],
-            originalAliasPath: [newStateAlias],
-            state: _this11.state,
-            newState: newState,
-            mergeStrategy: 'REPLACE'
-          });
-        });
-      }
-
+      });
       this.opts.onResultsUpdated(this.getQueryResults());
-    } // NOLEY leave this as is, and then just pass in root level my use cases
-    ;
+    };
 
     _proto.extendStateObject = function extendStateObject(opts) {
       var _opts$aliasPath2 = opts.aliasPath,
@@ -7728,8 +7770,6 @@ function createQueryManager(mmGQLInstance) {
       if (!existingStateForFirstAlias && newStateForFirstAlias) opts.state[firstAliasWithoutId] = newStateForFirstAlias;
 
       if (remainingPath.length === 0) {
-        var _opts$parentProxy, _state5;
-
         if (existingStateForFirstAlias) {
           existingStateForFirstAlias.pageInfoFromResults = newStateForFirstAlias.pageInfoFromResults;
           existingStateForFirstAlias.clientSidePageInfo = newStateForFirstAlias.clientSidePageInfo;
@@ -7746,13 +7786,7 @@ function createQueryManager(mmGQLInstance) {
           } else {
             throw new UnreachableCaseError(opts.mergeStrategy);
           }
-        } //NOLEY THIS WILL DIE
-
-
-        (_opts$parentProxy = opts.parentProxy) == null ? void 0 : _opts$parentProxy.updateRelationalResults(this.getResultsFromState({
-          state: (_state5 = {}, _state5[firstAliasWithoutId] = opts.state[firstAliasWithoutId], _state5),
-          aliasPath: opts.originalAliasPath
-        }));
+        }
       } else {
         var id = this.getIdFromAlias(firstAlias); // because if we're not at the last alias, then we must be updating the relational results for a specific proxy
 
@@ -7811,9 +7845,9 @@ function createQueryManager(mmGQLInstance) {
 }
 
 function splitQueryRecordsByToken(queryRecord) {
-  return Object.entries(queryRecord).reduce(function (split, _ref6) {
-    var alias = _ref6[0],
-        queryRecordEntry = _ref6[1];
+  return Object.entries(queryRecord).reduce(function (split, _ref7) {
+    var alias = _ref7[0],
+        queryRecordEntry = _ref7[1];
     var tokenName = queryRecordEntry && 'tokenName' in queryRecordEntry && queryRecordEntry.tokenName != null ? queryRecordEntry.tokenName : DEFAULT_TOKEN_NAME;
     split[tokenName] = split[tokenName] || {};
     split[tokenName][alias] = queryRecordEntry;
@@ -7822,9 +7856,9 @@ function splitQueryRecordsByToken(queryRecord) {
 }
 
 function removeNullishQueryDefinitions(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref7) {
-    var alias = _ref7[0],
-        queryDefinition = _ref7[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref8) {
+    var alias = _ref8[0],
+        queryDefinition = _ref8[1];
     if (!queryDefinition) return acc;
     acc[alias] = queryDefinition;
     return acc;
@@ -7832,9 +7866,9 @@ function removeNullishQueryDefinitions(queryDefinitions) {
 }
 
 function getNullishResults(queryDefinitions) {
-  return Object.entries(queryDefinitions).reduce(function (acc, _ref8) {
-    var key = _ref8[0],
-        queryDefinition = _ref8[1];
+  return Object.entries(queryDefinitions).reduce(function (acc, _ref9) {
+    var key = _ref9[0],
+        queryDefinition = _ref9[1];
     if (queryDefinition == null) acc[key] = null;
     return acc;
   }, {});
@@ -8010,20 +8044,17 @@ function subscribe(opts) {
  */
 
 
-function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
+function getMinimalQueryRecordToUpdateForNextQuery(opts) {
   var nextQueryRecord = opts.nextQueryRecord,
       previousQueryRecord = opts.previousQueryRecord;
-  var minimalQueryRecord = {}; // NOLEY kill alias paths from here.
-
-  var aliasPathsToUpdate = [];
-  Object.entries(nextQueryRecord).forEach(function (_ref9) {
-    var alias = _ref9[0],
-        nextQueryRecordEntry = _ref9[1];
+  var minimalQueryRecord = {};
+  Object.entries(nextQueryRecord).forEach(function (_ref10) {
+    var alias = _ref10[0],
+        nextQueryRecordEntry = _ref10[1];
     if (!nextQueryRecordEntry) return;
     var previousQueryRecordEntry = previousQueryRecord[alias];
 
     if (!previousQueryRecordEntry) {
-      aliasPathsToUpdate.push([alias]);
       minimalQueryRecord[alias] = nextQueryRecordEntry;
       return;
     }
@@ -8035,7 +8066,6 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
 
     if (rootQueryHasUpdatedTheirFilteringSortingOrPagination) {
       minimalQueryRecord[alias] = nextQueryRecordEntry;
-      aliasPathsToUpdate.push([alias]);
       return;
     } // if this root query record entry returns an array of data
     // we must perform a full query if sorting/pagination/filtering has changed
@@ -8055,7 +8085,6 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
 
       if (relationalParamsHaveBeenUpdatedForRelationalQueries) {
         minimalQueryRecord[alias] = nextQueryRecordEntry;
-        aliasPathsToUpdate.push([alias]);
         return;
       }
     }
@@ -8069,23 +8098,10 @@ function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts) {
       minimalQueryRecord[alias] = _extends({}, nextQueryRecordEntry, {
         relational: updatedRelationalQueries
       });
-      Object.keys(updatedRelationalQueries).forEach(function (relationalAlias) {
-        var nodeId = nextQueryRecordEntry.id;
-
-        if (!nodeId) {
-          throw Error('Expected a node id');
-        }
-
-        aliasPathsToUpdate.push([addIdToAliasPathEntry({
-          aliasPathEntry: alias,
-          id: nodeId
-        }), relationalAlias]);
-      });
     }
   });
   return {
-    minimalQueryRecord: minimalQueryRecord,
-    aliasPathsToUpdate: aliasPathsToUpdate
+    minimalQueryRecord: minimalQueryRecord
   };
 }
 
@@ -8101,9 +8117,9 @@ function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts) {
     return true;
   } else {
     var previousRelationalRecord = previousQueryRecordEntry.relational;
-    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref10) {
-      var key = _ref10[0],
-          nextRelationalQueryRecordEntry = _ref10[1];
+    return Object.entries(nextQueryRecordEntry.relational).some(function (_ref11) {
+      var key = _ref11[0],
+          nextRelationalQueryRecordEntry = _ref11[1];
       var previousRelationalQueryRecordEntry = previousRelationalRecord[key];
       if (!previousRelationalQueryRecordEntry) return true;
       var previousFilterSortingPagination = JSON.stringify({
@@ -8130,9 +8146,9 @@ function getRelationalQueriesWithUpdatedFilteringSortingPagination(opts) {
       nextQueryRecordEntry = opts.nextQueryRecordEntry;
   if (nextQueryRecordEntry.relational == null || previousQueryRecordEntry.relational == null) return nextQueryRecordEntry.relational;
   var previousRelational = previousQueryRecordEntry.relational;
-  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref11) {
-    var key = _ref11[0],
-        nextQueryRecordEntry = _ref11[1];
+  var updatedRelationalQueries = Object.entries(nextQueryRecordEntry.relational).reduce(function (acc, _ref12) {
+    var key = _ref12[0],
+        nextQueryRecordEntry = _ref12[1];
     var previousQueryRecordEntry = previousRelational[key];
 
     if (!previousQueryRecordEntry) {
