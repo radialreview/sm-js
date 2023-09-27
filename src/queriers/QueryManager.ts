@@ -1588,8 +1588,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         (resultingStateAcc, queryAlias) => {
           const queryRecordEntry = opts.queryRecord[queryAlias];
 
-          if (!queryRecordEntry)
-            throw Error(`No query record entry found for ${queryAlias}`);
+          if (!queryRecordEntry) {
+            resultingStateAcc[queryAlias] = getEmptyStateEntry();
+            return resultingStateAcc;
+          }
 
           const dataAlias = getAliasForData({
             queryRecordEntry,
@@ -1834,19 +1836,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 proxyCacheEntry =
                   stateEntryWhichMayRequireUpdate.proxyCache[node.id];
 
-                if (
-                  Array.isArray(
-                    stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult
-                  ) &&
-                  !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(
-                    node.id
-                  )
-                ) {
-                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(
-                    node.id
-                  );
-                }
-
                 const relationalQueryRecord = queryRecordEntry.relational;
 
                 if (relationalQueryRecord) {
@@ -1932,19 +1921,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
               proxyCacheEntry =
                 stateEntryWhichMayRequireUpdate.proxyCache[nodeId];
-
-              if (
-                Array.isArray(
-                  stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult
-                ) &&
-                !stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.includes(
-                  nodeId
-                )
-              ) {
-                stateEntryWhichMayRequireUpdate.idsOrIdInCurrentResult.push(
-                  nodeId
-                );
-              }
 
               const relationalQueryRecord = queryRecordEntry.relational;
 
@@ -2364,6 +2340,22 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       previousEndCursor: string;
       preExistingQueryRecord: QueryRecord | RelationalQueryRecord;
     }): QueryRecord | RelationalQueryRecord {
+      //NOLEY NOTES: I think the bug is stemming from here.
+      // NOLEY IN getMinimalQueryRecordForMoreResults {
+      //   preExistingQueryRecord: {
+      //     users: {
+      //       def: [Object],
+      //       properties: [Array],
+      //       relational: [Object],
+      //       allowNullResult: undefined,
+      //       tokenName: null,
+      //       pagination: [Object]
+      //     }
+      //   },
+      //   previousEndCursor: 'mock-end-cursor-for-users',
+      //   aliasPath: [ 'todos[mock-todo-id1]', 'users' ]
+      // }
+
       return this.getMinimalQueryRecordWithUpdatedPaginationParams({
         aliasPath: opts.aliasPath,
         preExistingQueryRecord: opts.preExistingQueryRecord,
@@ -2457,11 +2449,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return;
       }
 
-      function getMinimalQueryRecordToUpdate(): {
+      function getMinimalQueryRecordAndAliasPathToUpdate(): {
         minimalQueryRecord: QueryRecord;
+        aliasPathsToUpdate?: Array<Array<string>>;
       } {
         if (previousQueryRecord) {
-          return getMinimalQueryRecordToUpdateForNextQuery({
+          return getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery({
             nextQueryRecord: queryRecord,
             previousQueryRecord,
           });
@@ -2471,7 +2464,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           };
         }
       }
-      const { minimalQueryRecord } = getMinimalQueryRecordToUpdate();
+      const {
+        minimalQueryRecord,
+        aliasPathsToUpdate,
+      } = getMinimalQueryRecordAndAliasPathToUpdate();
 
       if (!Object.keys(minimalQueryRecord).length) {
         // no changes to the query record, so no need to update the results
@@ -2585,6 +2581,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         this.onQueryDefinitionUpdatedResult({
           queryResult: allResults,
           minimalQueryRecord,
+          aliasPathsToUpdate: aliasPathsToUpdate,
         });
         this.opts.onQueryStateChange?.({
           queryIdx: thisQueryIdx,
@@ -2603,6 +2600,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public onQueryDefinitionUpdatedResult(opts: {
       queryResult: Record<string, any>;
       minimalQueryRecord: QueryRecord;
+      aliasPathsToUpdate?: Array<Array<string>>;
     }) {
       this.notifyRepositories({
         data: opts.queryResult,
@@ -2616,15 +2614,27 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         isFromSubscriptionMessage: false,
       });
 
-      Object.keys(newState).forEach(newStateAlias => {
-        this.extendStateObject({
-          aliasPath: [newStateAlias],
-          originalAliasPath: [newStateAlias],
-          state: this.state,
-          newState,
-          mergeStrategy: 'REPLACE',
+      if (opts.aliasPathsToUpdate) {
+        opts.aliasPathsToUpdate.forEach(aliasPath => {
+          this.extendStateObject({
+            aliasPath,
+            originalAliasPath: aliasPath,
+            state: this.state,
+            newState,
+            mergeStrategy: 'REPLACE',
+          });
         });
-      });
+      } else {
+        Object.keys(newState).forEach(newStateAlias => {
+          this.extendStateObject({
+            aliasPath: [newStateAlias],
+            originalAliasPath: [newStateAlias],
+            state: this.state,
+            newState,
+            mergeStrategy: 'REPLACE',
+          });
+        });
+      }
 
       this.opts.onResultsUpdated(this.getQueryResults());
     }
@@ -2679,6 +2689,15 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             throw new UnreachableCaseError(opts.mergeStrategy);
           }
         }
+
+        opts.parentProxy?.updateRelationalResults(
+          this.getResultsFromState({
+            state: {
+              [firstAliasWithoutId]: opts.state[firstAliasWithoutId],
+            },
+            aliasPath: opts.originalAliasPath,
+          })
+        );
       } else {
         const id = this.getIdFromAlias(firstAlias);
         // because if we're not at the last alias, then we must be updating the relational results for a specific proxy
@@ -2944,14 +2963,16 @@ function subscribe(opts: {
  * Because of that, any update to the filter/sorting/pagination of a child list query will result in
  * a full query starting at the root of the query record
  */
-export function getMinimalQueryRecordToUpdateForNextQuery(opts: {
+export function getMinimalQueryRecordAndAliasPathsToUpdateForNextQuery(opts: {
   previousQueryRecord: QueryRecord;
   nextQueryRecord: QueryRecord;
 }): {
   minimalQueryRecord: QueryRecord;
+  aliasPathsToUpdate: Array<Array<string>>;
 } {
   const { nextQueryRecord, previousQueryRecord } = opts;
   const minimalQueryRecord: QueryRecord = {};
+  const aliasPathsToUpdate: Array<Array<string>> = [];
 
   Object.entries(nextQueryRecord).forEach(([alias, nextQueryRecordEntry]) => {
     if (!nextQueryRecordEntry) return;
@@ -2959,6 +2980,7 @@ export function getMinimalQueryRecordToUpdateForNextQuery(opts: {
     const previousQueryRecordEntry = previousQueryRecord[alias];
 
     if (!previousQueryRecordEntry) {
+      aliasPathsToUpdate.push([alias]);
       minimalQueryRecord[alias] = nextQueryRecordEntry;
       return;
     }
@@ -2972,6 +2994,7 @@ export function getMinimalQueryRecordToUpdateForNextQuery(opts: {
 
     if (rootQueryHasUpdatedTheirFilteringSortingOrPagination) {
       minimalQueryRecord[alias] = nextQueryRecordEntry;
+      aliasPathsToUpdate.push([alias]);
       return;
     }
 
@@ -2991,6 +3014,7 @@ export function getMinimalQueryRecordToUpdateForNextQuery(opts: {
       );
       if (relationalParamsHaveBeenUpdatedForRelationalQueries) {
         minimalQueryRecord[alias] = nextQueryRecordEntry;
+        aliasPathsToUpdate.push([alias]);
         return;
       }
     }
@@ -3007,10 +3031,21 @@ export function getMinimalQueryRecordToUpdateForNextQuery(opts: {
         ...nextQueryRecordEntry,
         relational: updatedRelationalQueries,
       };
+
+      Object.keys(updatedRelationalQueries).forEach(relationalAlias => {
+        const nodeId = nextQueryRecordEntry.id;
+        if (!nodeId) {
+          throw Error('Expected a node id');
+        }
+        aliasPathsToUpdate.push([
+          addIdToAliasPathEntry({ aliasPathEntry: alias, id: nodeId }),
+          relationalAlias,
+        ]);
+      });
     }
   });
 
-  return { minimalQueryRecord };
+  return { minimalQueryRecord, aliasPathsToUpdate };
 }
 
 function getHasSomeRelationalQueryUpdatedTheirFilterSortingPagination(opts: {

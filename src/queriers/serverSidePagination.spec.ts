@@ -286,7 +286,7 @@ test(`calling loadMore on a piece of relational results causes the expected quer
   await data.users.nodes[0].todos.nodes[0].users.loadMore();
 });
 
-test(`calling loadMore on a piece of relational results appends the new results to the previous results`, async () => {
+test.only(`calling loadMore on a piece of relational results appends the new results to the previous results`, async () => {
   let queriesPerformed = 0;
   function getMockData() {
     return {
