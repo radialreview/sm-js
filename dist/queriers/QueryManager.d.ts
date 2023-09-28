@@ -137,6 +137,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
         getResultsFromState(opts: {
             state: QueryManagerState;
             aliasPath?: Array<string>;
+            fromPagingEvent?: boolean;
         }): Record<string, any>;
         /**
          * Takes a queryRecord and the data that resulted from that query
@@ -234,6 +235,7 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             newState: QueryManagerState;
             mergeStrategy: 'CONCAT' | 'REPLACE';
             parentProxy?: IDOProxy;
+            fromPagingEvent?: boolean;
         }): void;
         addIdToLastEntryInAliasPath(opts: {
             aliasPath: Array<string>;
