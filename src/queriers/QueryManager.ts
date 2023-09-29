@@ -1300,6 +1300,9 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
     public getResultsFromState(opts: {
       state: QueryManagerState;
       aliasPath?: Array<string>;
+      // if we call this function from a paging event, the aliasPath already includes
+      // the resultsAlias, so we don't want to add it again.
+      fromPagingEvent?: boolean;
     }): Record<string, any> {
       return Object.keys(opts.state).reduce((resultsAcc, queryAlias) => {
         const stateForThisAlias = opts.state[queryAlias];
@@ -1320,7 +1323,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           const items = idsOrId.map(
             id => stateForThisAlias.proxyCache[id].proxy
           );
-          const aliasPath = [...(opts.aliasPath || []), resultsAlias];
+          const aliasPath =
+            opts.fromPagingEvent && opts.aliasPath
+              ? opts.aliasPath
+              : [...(opts.aliasPath || []), resultsAlias];
+
           if (pageInfoFromResults) {
             resultsAcc[resultsAlias] = new NodesCollection({
               items,
@@ -2093,6 +2100,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         state: this.state,
         newState,
         mergeStrategy: opts.event === 'LOAD_MORE' ? 'CONCAT' : 'REPLACE',
+        fromPagingEvent: true,
       });
 
       extend({
@@ -2354,6 +2362,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       newState: QueryManagerState;
       mergeStrategy: 'CONCAT' | 'REPLACE';
       parentProxy?: IDOProxy;
+      fromPagingEvent?: boolean;
     }) {
       const [firstAlias, ...remainingPath] = opts.aliasPath;
 
@@ -2404,6 +2413,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               [firstAliasWithoutId]: opts.state[firstAliasWithoutId],
             },
             aliasPath: opts.originalAliasPath,
+            fromPagingEvent: opts.fromPagingEvent,
           })
         );
       } else {
@@ -2437,6 +2447,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           newState: newRelationalStateForThisProxy,
           mergeStrategy: opts.mergeStrategy,
           parentProxy: existingStateForFirstAlias.proxyCache[id].proxy,
+          fromPagingEvent: opts.fromPagingEvent,
         });
       }
     }
