@@ -22,6 +22,7 @@ export const DO_PROXY_GENERATOR_ESCAPED_KEYS = [
   '_isMockFunction',
   'asymmetricMatch',
   'isMobXAtom',
+  'isMobXReaction',
 ];
 
 // In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds DO_PROXY_GENERATOR_ESCAPED_KEYS as a key to
