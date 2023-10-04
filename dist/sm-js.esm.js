@@ -702,7 +702,7 @@ var PROPERTIES_QUERIED_FOR_ALL_NODES = {
 };
 var RELATIONAL_UNION_QUERY_SEPARATOR = '__rU__';
 var DEFAULT_TOKEN_NAME = 'default';
-var DO_PROXY_GENERATOR_ESCAPED_KEYS = ['nodeType', 'toJSON', '$$typeof', 'constructor', '@@__IMMUTABLE_ITERABLE__@@', '@@__IMMUTABLE_RECORD__@@', '_isMockFunction', 'asymmetricMatch']; // In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds DO_PROXY_GENERATOR_ESCAPED_KEYS as a key to
+var DO_PROXY_GENERATOR_ESCAPED_KEYS = ['nodeType', 'toJSON', '$$typeof', 'constructor', '@@__IMMUTABLE_ITERABLE__@@', '@@__IMMUTABLE_RECORD__@@', '_isMockFunction', 'asymmetricMatch', 'isMobXAtom']; // In the doProxyGenerator.spec.ts file, we use the .toMatchInlineSnapshot() function to test results. .toMatchInlineSnapshot adds DO_PROXY_GENERATOR_ESCAPED_KEYS as a key to
 // the get traps. We have to escape that key, and we want to prevent it from being used as a property name which would break the DOProxyGenerator,
 // since these are purposely excluded from the get traps.
 
