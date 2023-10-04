@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`calling goToNextPage causes the expected query to be executed 1`] = `
-"query query10 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(after: \\"mock-end-cursor\\", first: 2) {
    nodes {
      id
@@ -21,7 +21,7 @@ exports[`calling goToNextPage causes the expected query to be executed 1`] = `
 `;
 
 exports[`calling goToPreviousPage causes the expected query to be executed 1`] = `
-"query query14 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(after: \\"xyz\\", first: 2) {
    nodes {
      id
@@ -41,7 +41,7 @@ exports[`calling goToPreviousPage causes the expected query to be executed 1`] =
 `;
 
 exports[`calling loadMore on a piece of relational results causes the expected query to be executed 1`] = `
-"query query6 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(first: 1) {
    nodes {
      id
@@ -91,7 +91,7 @@ exports[`calling loadMore on a piece of relational results causes the expected q
 `;
 
 exports[`calling loadMore on a piece of relational results causes the expected query to be executed 2`] = `
-"query query6 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(first: 1) {
    nodes {
      id
@@ -141,7 +141,7 @@ exports[`calling loadMore on a piece of relational results causes the expected q
 `;
 
 exports[`calling loadMore results causes the expected query to be executed 1`] = `
-"query query4 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(after: \\"mock-end-cursor\\", first: 2) {
    nodes {
      id
@@ -161,7 +161,7 @@ exports[`calling loadMore results causes the expected query to be executed 1`] =
 `;
 
 exports[`query gql matches the expectation when querying relational data and specifying an items per page param 1`] = `
-"query query1 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users {
    nodes {
      id
@@ -196,7 +196,7 @@ exports[`query gql matches the expectation when querying relational data and spe
 `;
 
 exports[`query gql matches the expectation when specifying a start cursor param 1`] = `
-"query query2 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(after: \\"xyz\\", first: 2) {
    nodes {
      id
@@ -216,7 +216,7 @@ exports[`query gql matches the expectation when specifying a start cursor param 
 `;
 
 exports[`query gql matches the expectation when specifying an end cursor param 1`] = `
-"query query3 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(before: \\"xyz\\", last: 2) {
    nodes {
      id
@@ -236,7 +236,7 @@ exports[`query gql matches the expectation when specifying an end cursor param 1
 `;
 
 exports[`query gql matches the expectation when specifying an items per page param 1`] = `
-"query query0 {
+"query ____at_MMGQL__anonymous____Users_noleyholland_Desktop_sm_js_src_queriers_queriers_ts_28_24_ {
  users: users(first: 2) {
    nodes {
      id
