@@ -417,7 +417,10 @@ function getQueryDefinitionStateManager<
             opts.context.ongoingSubscriptionRecord[parentSubscriptionId];
 
           opts.context.updateSubscriptionInfo(parentSubscriptionId, {
-            data: newResults,
+            data: {
+              ...contextForThisParentSub.data,
+              ...newResults,
+            },
           });
 
           contextForThisParentSub.onQueryStateChange?.();

@@ -160,12 +160,12 @@ export declare function createQueryManager(mmGQLInstance: IMMGQL): {
             };
             isFromSubscriptionMessage: boolean;
         }): void;
-        getQueryManagerStateFromDataAndUpdateProxies(opts: {
+        getQueryManagerStateFromData(opts: {
             data: Record<string, any>;
             queryRecord: QueryRecord | RelationalQueryRecord;
             isFromSubscriptionMessage: boolean;
         }): QueryManagerState;
-        buildOrUpdateCacheEntry(opts: {
+        buildCacheEntry(opts: {
             nodeData: Record<string, any> | Array<Record<string, any>>;
             queryAlias: string;
             queryRecord: QueryRecord | RelationalQueryRecord;

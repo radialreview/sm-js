@@ -280,7 +280,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                     // we're building a brand new cache entry
                     // so updating the relational results for any proxies is not necessary
                     requiresPotentialRelationalUpdate = false;
-                    cacheEntry = this.buildOrUpdateCacheEntry({
+                    cacheEntry = this.buildCacheEntry({
                       nodeData: nodeData,
                       queryAlias: relationalAlias || rootLevelAlias,
                       queryRecord: relationalStateEntry
@@ -333,13 +333,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                     if (relationalQueryRecord) {
                       const relationalState = (stateEntryWhichMayRequireUpdate.proxyCache[
                         nodeData.id
-                      ].relationalState = this.getQueryManagerStateFromDataAndUpdateProxies(
-                        {
-                          data: nodeData,
-                          queryRecord: relationalQueryRecord,
-                          isFromSubscriptionMessage: true,
-                        }
-                      ));
+                      ].relationalState = this.getQueryManagerStateFromData({
+                        data: nodeData,
+                        queryRecord: relationalQueryRecord,
+                        isFromSubscriptionMessage: true,
+                      }));
 
                       this.applyClientSideFilterAndSortToState({
                         stateWhichMayRequireUpdate: relationalState,
@@ -424,7 +422,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 });
               }
 
-              const newCacheEntry = this.buildOrUpdateCacheEntry({
+              const newCacheEntry = this.buildCacheEntry({
                 aliasPath: path.aliasPath,
                 nodeData,
                 queryAlias: rootLevelAlias,
@@ -567,7 +565,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
                 const relationalAlias =
                   path.aliasPath[path.aliasPath.length - 1];
-                const newCacheEntry = this.buildOrUpdateCacheEntry({
+                const newCacheEntry = this.buildCacheEntry({
                   nodeData: nodeInsertedData,
                   queryAlias: relationalAlias,
                   queryRecord: parentQueryRecordEntry.relational,
@@ -816,7 +814,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   });
                 }
 
-                const newCacheEntry = this.buildOrUpdateCacheEntry({
+                const newCacheEntry = this.buildCacheEntry({
                   nodeData: nodeAssociatedData,
                   queryAlias: relationalAlias,
                   queryRecord: parentQueryRecordEntry.relational,
@@ -1385,6 +1383,26 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
           // this would only be the case if the this.queryResults[resultsAlias] is a non paginated array of nodes
           if (Array.isArray(this.queryResults[resultsAlias])) {
             if (!this.queryRecord) throw Error('No query record initialized');
+            const queryRecordForThisAlias = this.queryRecord[resultsAlias];
+
+            if (queryRecordForThisAlias?.relational) {
+              const {
+                isSameIds,
+                hasNullRelationalResults,
+              } = this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults(
+                {
+                  relationalAliasesForThisQueryRecord: Object.keys(
+                    queryRecordForThisAlias.relational
+                  ),
+                  previousQueryResults: this.queryResults[resultsAlias],
+                  currentQueryResults: currentResults[resultsAlias],
+                }
+              );
+
+              if (!isSameIds || hasNullRelationalResults) {
+                this.queryResults[resultsAlias] = currentResults[resultsAlias];
+              }
+            }
 
             const idsFromPreviousQueryResults = this.queryResults[
               resultsAlias
@@ -1404,6 +1422,26 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             this.queryResults[resultsAlias] instanceof NodesCollection
           ) {
             if (!this.queryRecord) throw Error('No query record initialized');
+            const queryRecordForThisAlias = this.queryRecord[resultsAlias];
+
+            if (queryRecordForThisAlias?.relational) {
+              const {
+                isSameIds,
+                hasNullRelationalResults,
+              } = this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults(
+                {
+                  relationalAliasesForThisQueryRecord: Object.keys(
+                    queryRecordForThisAlias.relational
+                  ),
+                  previousQueryResults: this.queryResults[resultsAlias].items,
+                  currentQueryResults: currentResults[resultsAlias].items,
+                }
+              );
+
+              if (!isSameIds || hasNullRelationalResults) {
+                this.queryResults[resultsAlias] = currentResults[resultsAlias];
+              }
+            }
 
             const idsFromPreviousQueryResults = this.queryResults[
               resultsAlias
@@ -1586,7 +1624,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       });
     }
 
-    public getQueryManagerStateFromDataAndUpdateProxies(opts: {
+    public getQueryManagerStateFromData(opts: {
       data: Record<string, any>;
       queryRecord: QueryRecord | RelationalQueryRecord;
       isFromSubscriptionMessage: boolean;
@@ -1613,7 +1651,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
             return resultingStateAcc;
           }
 
-          const cacheEntry = this.buildOrUpdateCacheEntry({
+          const cacheEntry = this.buildCacheEntry({
             nodeData: getDataFromQueryResponsePartial({
               queryResponsePartial: dataForThisAlias,
               queryRecordEntry,
@@ -1645,7 +1683,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       );
     }
 
-    public buildOrUpdateCacheEntry(opts: {
+    public buildCacheEntry(opts: {
       nodeData: Record<string, any> | Array<Record<string, any>>;
       queryAlias: string;
       queryRecord: QueryRecord | RelationalQueryRecord;
@@ -1655,12 +1693,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       aliasPath: Array<string>;
       isFromSubscriptionMessage: boolean;
     }): Maybe<QueryManagerStateEntry> {
-      const {
-        nodeData,
-        queryAlias,
-        aliasPath,
-        isFromSubscriptionMessage,
-      } = opts;
+      const { nodeData, queryAlias, isFromSubscriptionMessage } = opts;
       const queryRecord = opts.queryRecord;
       const queryRecordEntry = queryRecord[opts.queryAlias];
 
@@ -1744,7 +1777,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                 })
               : relationalDataForThisAlias.length;
 
-            const cacheEntry = this.buildOrUpdateCacheEntry({
+            const cacheEntry = this.buildCacheEntry({
               nodeData: relationalDataForThisAlias,
               pageInfoFromResults,
               totalCount,
@@ -1806,124 +1839,6 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         };
       };
 
-      const getOrCreateProxyCacheEntryForNodeData = (): QueryManagerProxyCache => {
-        const stateEntriesWhichRequireUpdate = this.getStateCacheEntriesForAliasPath(
-          {
-            aliasPath: opts.aliasPath,
-            pathEndQueryRecordEntry: queryRecordEntry,
-            parentFilters: [],
-          }
-        );
-
-        const getAndUpdateProxyCacheEntryFromExistingState = (opts: {
-          node: Record<string, any> & { id: Id };
-          stateEntriesWhichRequireUpdate: Array<{
-            parentStateEntry: QueryManagerStateEntry;
-            idOfAffectedParent: Maybe<Id>;
-            relationalAlias: Maybe<string>;
-            relationalStateEntry: Maybe<QueryManagerStateEntry>;
-          }>;
-        }) => {
-          const { node, stateEntriesWhichRequireUpdate } = opts;
-          let proxyCacheEntry: Maybe<QueryManagerProxyCacheEntry>;
-
-          if (!stateEntriesWhichRequireUpdate.length) {
-            proxyCacheEntry = buildProxyCacheEntryForNode({
-              node,
-            });
-          } else {
-            stateEntriesWhichRequireUpdate.forEach(
-              ({
-                parentStateEntry,
-                idOfAffectedParent,
-                relationalAlias,
-                relationalStateEntry,
-              }) => {
-                const stateEntryWhichMayRequireUpdate =
-                  relationalStateEntry || parentStateEntry;
-
-                let requiresPotentialRelationalUpdate: boolean = true;
-                if (!stateEntryWhichMayRequireUpdate?.proxyCache[node.id]) {
-                  requiresPotentialRelationalUpdate = false;
-                  proxyCacheEntry = buildProxyCacheEntryForNode({
-                    node,
-                  });
-                } else {
-                  proxyCacheEntry =
-                    stateEntryWhichMayRequireUpdate.proxyCache[node.id];
-                }
-
-                if (requiresPotentialRelationalUpdate) {
-                  const relationalState = (proxyCacheEntry.relationalState = buildRelationalStateForNode(
-                    node as { id: Id } & Record<string, any>
-                  ));
-
-                  if (relationalState) {
-                    proxyCacheEntry.proxy.updateRelationalResults(
-                      this.getResultsFromState({
-                        state: relationalState,
-                        aliasPath,
-                      })
-                    );
-                  }
-                }
-
-                if (
-                  idOfAffectedParent != null &&
-                  relationalAlias &&
-                  relationalStateEntry
-                ) {
-                  const parentProxy =
-                    parentStateEntry.proxyCache[idOfAffectedParent]?.proxy;
-
-                  if (parentProxy) {
-                    parentProxy.updateRelationalResults(
-                      this.getResultsFromState({
-                        state: {
-                          [relationalAlias]: relationalStateEntry,
-                        },
-                        aliasPath,
-                      })
-                    );
-                  }
-                }
-              }
-            );
-          }
-
-          // @ts-ignore - varible is used before assigned error
-          if (!proxyCacheEntry) {
-            proxyCacheEntry = buildProxyCacheEntryForNode({
-              node,
-            });
-          }
-
-          return proxyCacheEntry;
-        };
-
-        if (Array.isArray(opts.nodeData)) {
-          return opts.nodeData.reduce((proxyCacheAcc, node) => {
-            proxyCacheAcc[
-              node.id
-            ] = getAndUpdateProxyCacheEntryFromExistingState({
-              node: node as { id: Id } & Record<string, any>,
-              stateEntriesWhichRequireUpdate,
-            });
-
-            return proxyCacheAcc;
-          }, {} as QueryManagerProxyCache);
-        } else {
-          const nodeId = (opts.nodeData as { id: Id }).id;
-
-          return {
-            [nodeId]: getAndUpdateProxyCacheEntryFromExistingState({
-              node: nodeData as { id: Id } & Record<string, any>,
-              stateEntriesWhichRequireUpdate,
-            }),
-          };
-        }
-      };
-
       if (Array.isArray(opts.nodeData)) {
         if ('id' in queryRecordEntry) {
           if (opts.nodeData[0] == null) {
@@ -1938,7 +1853,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
 
           return {
             idsOrIdInCurrentResult: opts.nodeData[0].id,
-            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
+
+              return proxyCacheAcc;
+            }, {} as QueryManagerProxyCache),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
@@ -1946,7 +1867,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         } else if ('ids' in queryRecordEntry) {
           return {
             idsOrIdInCurrentResult: queryRecordEntry.ids as Array<string>,
-            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
+
+              return proxyCacheAcc;
+            }, {} as QueryManagerProxyCache),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
@@ -1954,7 +1881,13 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         } else {
           return {
             idsOrIdInCurrentResult: opts.nodeData.map(node => node.id),
-            proxyCache: getOrCreateProxyCacheEntryForNodeData(),
+            proxyCache: opts.nodeData.reduce((proxyCacheAcc, node) => {
+              proxyCacheAcc[node.id] = buildProxyCacheEntryForNode({
+                node,
+              });
+
+              return proxyCacheAcc;
+            }, {} as QueryManagerProxyCache),
             pageInfoFromResults: opts.pageInfoFromResults,
             totalCount: opts.totalCount,
             clientSidePageInfo: opts.clientSidePageInfo,
@@ -1963,7 +1896,11 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       } else {
         return {
           idsOrIdInCurrentResult: opts.nodeData.id,
-          proxyCache: getOrCreateProxyCacheEntryForNodeData(),
+          proxyCache: {
+            [(nodeData as { id: Id }).id]: buildProxyCacheEntryForNode({
+              node: nodeData,
+            }),
+          },
           pageInfoFromResults: opts.pageInfoFromResults,
           totalCount: opts.totalCount,
           clientSidePageInfo: opts.clientSidePageInfo,
@@ -2325,7 +2262,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         isFromSubscriptionMessage: false,
       });
 
-      const newState = this.getQueryManagerStateFromDataAndUpdateProxies({
+      const newState = this.getQueryManagerStateFromData({
         data: opts.newData,
         queryRecord: opts.queryRecord,
         isFromSubscriptionMessage: false,
@@ -2382,7 +2319,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         return;
       }
 
-      function getMinimalQueryRecordAndAliasPathToUpdate(): {
+      function getMinimalQueryRecordAndAliasPathsToUpdate(): {
         minimalQueryRecord: QueryRecord;
         aliasPathsToUpdate?: Array<Array<string>>;
       } {
@@ -2400,7 +2337,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
       const {
         minimalQueryRecord,
         aliasPathsToUpdate,
-      } = getMinimalQueryRecordAndAliasPathToUpdate();
+      } = getMinimalQueryRecordAndAliasPathsToUpdate();
 
       if (!Object.keys(minimalQueryRecord).length) {
         // no changes to the query record, so no need to update the results
@@ -2541,7 +2478,7 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
         isFromSubscriptionMessage: false,
       });
 
-      const newState = this.getQueryManagerStateFromDataAndUpdateProxies({
+      const newState = this.getQueryManagerStateFromData({
         data: opts.queryResult,
         queryRecord: opts.minimalQueryRecord,
         isFromSubscriptionMessage: false,
