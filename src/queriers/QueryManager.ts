@@ -1394,8 +1394,8 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   relationalAliasesForThisQueryRecord: Object.keys(
                     queryRecordForThisAlias.relational
                   ),
-                  previousQueryResults: this.queryResults[resultsAlias],
-                  currentQueryResults: currentResults[resultsAlias],
+                  previousQueryResults: this.queryResults[resultsAlias] || [],
+                  currentQueryResults: currentResults[resultsAlias] || [],
                 }
               );
 
@@ -1404,12 +1404,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               }
             }
 
-            const idsFromPreviousQueryResults = this.queryResults[
-              resultsAlias
-            ].map((DoProxy: any) => DoProxy.id);
-            const idsFromCurrentResutls = currentResults[resultsAlias].map(
-              (DoProxy: any) => DoProxy.id
-            );
+            const idsFromPreviousQueryResults = (
+              this.queryResults[resultsAlias] || []
+            ).map((DoProxy: any) => DoProxy.id);
+            const idsFromCurrentResutls = (
+              currentResults[resultsAlias] || []
+            ).map((DoProxy: any) => DoProxy.id);
             const isSameIds = arrayEquals(
               idsFromPreviousQueryResults,
               idsFromCurrentResutls
@@ -1433,8 +1433,10 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
                   relationalAliasesForThisQueryRecord: Object.keys(
                     queryRecordForThisAlias.relational
                   ),
-                  previousQueryResults: this.queryResults[resultsAlias].items,
-                  currentQueryResults: currentResults[resultsAlias].items,
+                  previousQueryResults:
+                    this.queryResults[resultsAlias]?.items || [],
+                  currentQueryResults:
+                    currentResults[resultsAlias]?.items || [],
                 }
               );
 
@@ -1443,12 +1445,12 @@ export function createQueryManager(mmGQLInstance: IMMGQL) {
               }
             }
 
-            const idsFromPreviousQueryResults = this.queryResults[
-              resultsAlias
-            ].items.map((DoProxy: any) => DoProxy.id);
-            const idsFromCurrentResutls = currentResults[
-              resultsAlias
-            ].items.map((DoProxy: any) => DoProxy.id);
+            const idsFromPreviousQueryResults = (
+              this.queryResults[resultsAlias]?.items || []
+            ).map((DoProxy: any) => DoProxy.id);
+            const idsFromCurrentResutls = (
+              currentResults[resultsAlias]?.items || []
+            ).map((DoProxy: any) => DoProxy.id);
             const isSameIds = arrayEquals(
               idsFromPreviousQueryResults,
               idsFromCurrentResutls

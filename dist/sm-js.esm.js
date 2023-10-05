@@ -5823,8 +5823,8 @@ function createQueryManager(mmGQLInstance) {
               if (queryRecordForThisAlias != null && queryRecordForThisAlias.relational) {
                 var _this$isSameIdsOrHasN = _this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults({
                   relationalAliasesForThisQueryRecord: Object.keys(queryRecordForThisAlias.relational),
-                  previousQueryResults: _this.queryResults[resultsAlias],
-                  currentQueryResults: currentResults[resultsAlias]
+                  previousQueryResults: _this.queryResults[resultsAlias] || [],
+                  currentQueryResults: currentResults[resultsAlias] || []
                 }),
                     _isSameIds = _this$isSameIdsOrHasN.isSameIds,
                     hasNullRelationalResults = _this$isSameIdsOrHasN.hasNullRelationalResults;
@@ -5834,11 +5834,10 @@ function createQueryManager(mmGQLInstance) {
                 }
               }
 
-              var idsFromPreviousQueryResults = _this.queryResults[resultsAlias].map(function (DoProxy) {
+              var idsFromPreviousQueryResults = (_this.queryResults[resultsAlias] || []).map(function (DoProxy) {
                 return DoProxy.id;
               });
-
-              var idsFromCurrentResutls = currentResults[resultsAlias].map(function (DoProxy) {
+              var idsFromCurrentResutls = (currentResults[resultsAlias] || []).map(function (DoProxy) {
                 return DoProxy.id;
               });
               var isSameIds = arrayEquals(idsFromPreviousQueryResults, idsFromCurrentResutls);
@@ -5848,14 +5847,18 @@ function createQueryManager(mmGQLInstance) {
               }
             } else if ( // this would be the case if the this.queryResults[resultsAlias] is an array of nodes
             _this.queryResults[resultsAlias] instanceof NodesCollection) {
+              var _this$queryResults$re2, _currentResults$resul2;
+
               if (!_this.queryRecord) throw Error('No query record initialized');
               var _queryRecordForThisAlias = _this.queryRecord[resultsAlias];
 
               if (_queryRecordForThisAlias != null && _queryRecordForThisAlias.relational) {
+                var _this$queryResults$re, _currentResults$resul;
+
                 var _this$isSameIdsOrHasN2 = _this.isSameIdsOrHasNullRelationalResultsFromCurrentAndPreviousRelationalResults({
                   relationalAliasesForThisQueryRecord: Object.keys(_queryRecordForThisAlias.relational),
-                  previousQueryResults: _this.queryResults[resultsAlias].items,
-                  currentQueryResults: currentResults[resultsAlias].items
+                  previousQueryResults: ((_this$queryResults$re = _this.queryResults[resultsAlias]) == null ? void 0 : _this$queryResults$re.items) || [],
+                  currentQueryResults: ((_currentResults$resul = currentResults[resultsAlias]) == null ? void 0 : _currentResults$resul.items) || []
                 }),
                     _isSameIds3 = _this$isSameIdsOrHasN2.isSameIds,
                     _hasNullRelationalResults = _this$isSameIdsOrHasN2.hasNullRelationalResults;
@@ -5865,11 +5868,11 @@ function createQueryManager(mmGQLInstance) {
                 }
               }
 
-              var _idsFromPreviousQueryResults = _this.queryResults[resultsAlias].items.map(function (DoProxy) {
+              var _idsFromPreviousQueryResults = (((_this$queryResults$re2 = _this.queryResults[resultsAlias]) == null ? void 0 : _this$queryResults$re2.items) || []).map(function (DoProxy) {
                 return DoProxy.id;
               });
 
-              var _idsFromCurrentResutls = currentResults[resultsAlias].items.map(function (DoProxy) {
+              var _idsFromCurrentResutls = (((_currentResults$resul2 = currentResults[resultsAlias]) == null ? void 0 : _currentResults$resul2.items) || []).map(function (DoProxy) {
                 return DoProxy.id;
               });
 
