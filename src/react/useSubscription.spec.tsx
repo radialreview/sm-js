@@ -9,9 +9,10 @@ import {
   generateUserNode,
   createMockDataItems,
   mockUserData,
+  mockTodoData,
 } from '../specUtilities';
 import { UnsafeNoDuplicateSubIdErrorProvider, useSubscription } from '.';
-import { MMGQLProvider, MMGQL, queryDefinition } from '..';
+import { MMGQLProvider, MMGQL, queryDefinition, NodesCollection } from '..';
 import { deepClone } from '../dataUtilities';
 import { DEFAULT_TOKEN_NAME } from '../consts';
 import {
@@ -19,6 +20,7 @@ import {
   SortDirection,
   QueryState,
 } from '../types';
+import { makeAutoObservable } from 'mobx';
 
 // this file tests some console error functionality, this keeps the test output clean
 const nativeConsoleError = console.error;
@@ -742,6 +744,139 @@ test('rendering multiple instances of the same component using useSubscription w
     mockQueryDataReturn.users.nodes[0].id
   );
   expect(results.length).toBe(2);
+});
+
+test.only(`Subscribing to triple nested relational results returns the correct data once passed through a controller`, async () => {
+  function getMockData() {
+    return {
+      user: {
+        type: 'user',
+        version: 1,
+        firstName: 'John',
+        id: 'user-id-1',
+        todos: createMockDataItems({
+          sampleMockData: mockTodoData,
+          items: [
+            {
+              task: 'Task 1',
+              users: createMockDataItems({
+                sampleMockData: mockUserData,
+                items: [
+                  {
+                    firstName: 'Jane',
+                  },
+                ],
+              }),
+            },
+          ],
+        }),
+      },
+    };
+  }
+
+  const { mmGQL } = setupTests(getMockData());
+
+  function MyComponent() {
+    class DemoController {
+      unsubscribe: null | (() => void);
+
+      public storedTodo: {
+        task: string;
+        users: NodesCollection<{
+          TItemType: { firstName: string };
+          TIncludeTotalCount: false;
+        }>;
+      } | null;
+
+      public storedTodoOnceGetterIsInvoked: {
+        task: string;
+        users: NodesCollection<{
+          TItemType: { firstName: string };
+          TIncludeTotalCount: false;
+        }>;
+      } | null;
+
+      constructor() {
+        this.storedTodo = null;
+        this.unsubscribe = null;
+        this.storedTodoOnceGetterIsInvoked = null;
+
+        makeAutoObservable(this);
+      }
+
+      public async startSubscriptions() {
+        const { data, unsub } = await mmGQL.subscribe(
+          {
+            user: queryDefinition({
+              def: generateUserNode(mmGQL),
+              map: ({ firstName, todos }) => ({
+                firstName,
+                todos: todos({
+                  map: ({ task, users }) => ({
+                    task,
+                    users: users({
+                      map: ({ firstName }) => ({ firstName }),
+                    }),
+                  }),
+                }),
+              }),
+              target: { id: 'user-id-1' },
+            }),
+          },
+          {
+            onData: ({ results }) => {
+              this.storedTodoOnceGetterIsInvoked = {
+                ...results.user.todos.nodes[0],
+              };
+
+              const descriptors = Object.getOwnPropertyDescriptors(
+                results.user.todos.nodes[0]
+              );
+
+              Object.defineProperty(this, 'storedTodo', { ...descriptors });
+
+              console.log(
+                'NOLEY this.storedTodo vs this.storedTodoOnceGetterIsInvoked',
+                this.storedTodo?.task,
+                this.storedTodoOnceGetterIsInvoked.task
+              );
+            },
+          }
+        );
+
+        this.unsubscribe = unsub;
+
+        expect(this.storedTodoOnceGetterIsInvoked?.task).toBe('Task 1');
+        expect(this.storedTodo?.task).toBe('Task 1');
+        expect(data.user.todos.nodes[0].task).toBe('Task 1');
+        expect(data.user.todos.nodes[0].users.nodes[0].firstName).toBe('Jane');
+      }
+    }
+
+    const demoController = new DemoController();
+
+    const todoData = demoController.storedTodo;
+
+    React.useEffect(() => {
+      demoController.startSubscriptions();
+
+      return () => {
+        demoController.unsubscribe && demoController.unsubscribe();
+      };
+    });
+
+    return <>{todoData?.task}</>;
+  }
+
+  const result = render(
+    <React.Suspense fallback="loading">
+      <MMGQLProvider mmGQL={mmGQL}>
+        <MyComponent />
+      </MMGQLProvider>
+    </React.Suspense>
+  );
+
+  await result.findByText('Task 1');
 });
 
 function setupTests(mockData?: any) {
