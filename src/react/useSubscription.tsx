@@ -44,10 +44,20 @@ export function useSubscription<
   }
 
   const obj = { stack: '' };
-  Error.captureStackTrace(obj, useSubscription);
+  if ('captureStackTrace' in Error) {
+    Error.captureStackTrace(obj, useSubscription);
+  } else {
+    obj.stack = Error().stack || '';
+  }
   if (obj.stack === '') {
-    // Should be supported in all browsers, but better safe than sorry
-    throw Error('Error.captureStackTrace not supported');
+    // Error.captureStackTrace or Error().stack should be supported in all browsers, but better safe than sorry
+    throw Error(
+      `${
+        'captureStackTrace' in Error
+          ? `Error.captureStackTrace`
+          : `Error().stack`
+      } not supported`
+    );
   }
   const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
 
