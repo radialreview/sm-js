@@ -60,16 +60,13 @@ export function useSubscription<
     );
   }
 
-  const formatSubscriptionId = (subscriptionId: string): string => {
-    if (/^\d/.test(subscriptionId)) {
-      return formatSubscriptionId(subscriptionId.slice(1));
-    } else {
-      return subscriptionId;
-    }
-  };
+  function removeStartingNumbersFromString(string: string) {
+    return string.replace(/^\d+/, '');
+  }
 
   const subscriptionId =
-    opts?.subscriptionId || formatSubscriptionId(obj.stack.split('\n')[1]);
+    opts?.subscriptionId ||
+    removeStartingNumbersFromString(obj.stack.split('\n')[1]);
 
   const queryState = getQueryState({
     subscriptionId,
