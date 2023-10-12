@@ -59,7 +59,14 @@ export function useSubscription<
       } not supported`
     );
   }
-  const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
+
+  function removeStartingNumbersFromString(string: string) {
+    return string.replace(/^\d+/, '');
+  }
+
+  const subscriptionId =
+    opts?.subscriptionId ||
+    removeStartingNumbersFromString(obj.stack.split('\n')[1]);
 
   const queryState = getQueryState({
     subscriptionId,

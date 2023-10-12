@@ -8713,7 +8713,11 @@ function useSubscription(queryDefinitions, opts) {
     throw Error(('captureStackTrace' in Error ? "Error.captureStackTrace" : "Error().stack") + " not supported");
   }
 
-  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || obj.stack.split('\n')[1];
+  function removeStartingNumbersFromString(string) {
+    return string.replace(/^\d+/, '');
+  }
+
+  var subscriptionId = (opts == null ? void 0 : opts.subscriptionId) || removeStartingNumbersFromString(obj.stack.split('\n')[1]);
   var queryState = getQueryState({
     subscriptionId: subscriptionId,
     context: context,
