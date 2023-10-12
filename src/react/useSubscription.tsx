@@ -59,7 +59,17 @@ export function useSubscription<
       } not supported`
     );
   }
-  const subscriptionId = opts?.subscriptionId || obj.stack.split('\n')[1];
+
+  const formatSubscriptionId = (subscriptionId: string): string => {
+    if (/^\d/.test(subscriptionId)) {
+      return formatSubscriptionId(subscriptionId.slice(1));
+    } else {
+      return subscriptionId;
+    }
+  };
+
+  const subscriptionId =
+    opts?.subscriptionId || formatSubscriptionId(obj.stack.split('\n')[1]);
 
   const queryState = getQueryState({
     subscriptionId,
